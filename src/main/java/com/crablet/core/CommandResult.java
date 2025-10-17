@@ -1,0 +1,36 @@
+package com.crablet.core;
+
+import java.util.List;
+
+/**
+ * Result of command handling containing events and append condition.
+ * Following DCB pattern: handlers build decision model, create events,
+ * and return condition for atomic constraint enforcement.
+ * 
+ * The reason field provides context when operation is idempotent (empty events).
+ */
+public record CommandResult(
+    List<InputEvent> events,
+    AppendCondition appendCondition,
+    String reason  // Reason for idempotency (null when operation creates events)
+) {
+    public static CommandResult of(List<InputEvent> events, AppendCondition condition) {
+        return new CommandResult(events, condition, null);
+    }
+    
+    public static CommandResult empty() {
+        return new CommandResult(List.of(), AppendCondition.forEmptyStream(), null);
+    }
+    
+    public static CommandResult emptyWithReason(String reason) {
+        return new CommandResult(List.of(), AppendCondition.forEmptyStream(), reason);
+    }
+    
+    public boolean isEmpty() {
+        return events.isEmpty();
+    }
+    
+    public String getReason() {
+        return reason;
+    }
+}

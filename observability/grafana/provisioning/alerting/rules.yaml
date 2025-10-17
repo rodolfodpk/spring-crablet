@@ -1,0 +1,143 @@
+apiVersion: 1
+
+groups:
+  - name: java-crablet-alerts
+    interval: 30s
+    rules:
+      # Circuit Breaker Alerts
+      - alert: CircuitBreakerOpen
+        expr: resilience4j_circuitbreaker_state{name="database"} == 1
+        for: 1m
+        labels:
+          severity: critical
+          service: java-crablet
+        annotations:
+          summary: "Circuit breaker is OPEN for database operations"
+          description: "Database circuit breaker has been open for more than 1 minute. Database operations are being blocked."
+          runbook_url: "https://github.com/your-org/wallets-challenge/wiki/Circuit-Breaker-Troubleshooting"
+
+      # Database Connection Pool Alerts
+      - alert: DatabaseConnectionPoolHigh
+        expr: (hikaricp_connections_active / hikaricp_connections_max) > 0.9
+        for: 2m
+        labels:
+          severity: warning
+          service: java-crablet
+        annotations:
+          summary: "Database connection pool usage is high"
+          description: "Database connection pool is {{ $value | humanizePercentage }} full. Consider increasing pool size."
+
+      - alert: DatabaseConnectionPoolExhausted
+        expr: hikaricp_connections_pending > 0
+        for: 30s
+        labels:
+          severity: critical
+          service: java-crablet
+        annotations:
+          summary: "Database connection pool exhausted"
+          description: "There are {{ $value }} pending database connection requests. Pool is exhausted."
+
+      # HTTP Error Rate Alerts
+      - alert: HighErrorRate
+        expr: (rate(http_server_requests_seconds_count{status=~"5.."}[5m]) / rate(http_server_requests_seconds_count[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: java-crablet
+        annotations:
+          summary: "High HTTP error rate detected"
+          description: "HTTP error rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+
+      - alert: CriticalErrorRate
+        expr: (rate(http_server_requests_seconds_count{status=~"5.."}[5m]) / rate(http_server_requests_seconds_count[5m])) > 0.1
+        for: 1m
+        labels:
+          severity: critical
+          service: java-crablet
+        annotations:
+          summary: "Critical HTTP error rate detected"
+          description: "HTTP error rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+
+      # JVM Memory Alerts
+      - alert: HighMemoryUsage
+        expr: (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.85
+        for: 2m
+        labels:
+          severity: warning
+          service: java-crablet
+        annotations:
+          summary: "High JVM heap memory usage"
+          description: "JVM heap memory usage is {{ $value | humanizePercentage }}."
+
+      - alert: CriticalMemoryUsage
+        expr: (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.95
+        for: 1m
+        labels:
+          severity: critical
+          service: java-crablet
+        annotations:
+          summary: "Critical JVM heap memory usage"
+          description: "JVM heap memory usage is {{ $value | humanizePercentage }}. OutOfMemoryError risk."
+
+      # Business Logic Alerts
+      - alert: HighConcurrencyConflicts
+        expr: rate(wallet_concurrency_conflicts[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: java-crablet
+        annotations:
+          summary: "High concurrency conflict rate"
+          description: "Concurrency conflicts are occurring at {{ $value }} per second. Consider optimizing transaction patterns."
+
+      - alert: EventStoreOperationFailures
+        expr: rate(eventstore_operations_total{status="failed"}[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          service: java-crablet
+        annotations:
+          summary: "High event store operation failure rate"
+          description: "Event store operations are failing at {{ $value }} per second."
+
+      # Service Availability Alerts
+      - alert: ServiceDown
+        expr: up{job="java-crablet"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: java-crablet
+        annotations:
+          summary: "Java Crablet service is down"
+          description: "The java-crablet service has been down for more than 30 seconds."
+
+      - alert: NoMetricsReceived
+        expr: absent(up{job="java-crablet"})
+        for: 1m
+        labels:
+          severity: critical
+          service: java-crablet
+        annotations:
+          summary: "No metrics received from java-crablet"
+          description: "No metrics have been received from java-crablet for more than 1 minute."
+
+      # Financial Alerts (Business Critical)
+      - alert: LargeTransactionSpike
+        expr: rate(wallet_transaction_large_count[5m]) > 100
+        for: 1m
+        labels:
+          severity: warning
+          service: java-crablet
+        annotations:
+          summary: "Unusual spike in large transactions"
+          description: "Large transactions (>$10k) are occurring at {{ $value }} per second. This may indicate fraud or unusual activity."
+
+      - alert: HighFailedTransactionVolume
+        expr: rate(wallet_transaction_failed_amount[5m]) > 100000
+        for: 2m
+        labels:
+          severity: warning
+          service: java-crablet
+        annotations:
+          summary: "High volume of failed transaction amounts"
+          description: "Failed transaction volume is {{ $value | humanize }} per second. This may indicate system issues affecting revenue."

@@ -1,0 +1,2 @@
+# This file ensures the badges directory is tracked by git
+# JaCoCo coverage badges will be generated here by GitHub Actions
