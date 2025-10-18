@@ -151,12 +151,21 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
      * @throws Exception if any event fails to parse
      */
     private WalletBalanceState processEvents(List<Event> relevantEvents, String walletId) throws Exception {
+        if (relevantEvents.isEmpty()) {
+            return new WalletBalanceState(walletId, 0, false);
+        }
+        
+        // Batch deserialize all events for better performance
+        List<byte[]> eventDataList = relevantEvents.stream()
+            .map(Event::data)
+            .toList();
+        
+        WalletEvent[] walletEvents = batchDeserializeWalletEvents(eventDataList);
+        
         int balance = 0;
         boolean exists = false;
         
-        for (Event event : relevantEvents) {
-            WalletEvent walletEvent = objectMapper.readValue(event.data(), WalletEvent.class);
-            
+        for (WalletEvent walletEvent : walletEvents) {
             switch (walletEvent) {
                 case WalletOpened opened when walletId.equals(opened.walletId()) -> {
                     balance = opened.initialBalance();
@@ -182,5 +191,30 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
         }
         
         return new WalletBalanceState(walletId, balance, exists);
+    }
+    
+    /**
+     * Batch deserialize multiple event data arrays to WalletEvent array.
+     * Uses Jackson's polymorphic support for efficient batch processing.
+     * 
+     * @param eventDataList List of raw event data bytes
+     * @return Array of deserialized WalletEvent objects
+     * @throws Exception if any deserialization fails
+     */
+    private WalletEvent[] batchDeserializeWalletEvents(List<byte[]> eventDataList) throws Exception {
+        if (eventDataList.isEmpty()) {
+            return new WalletEvent[0];
+        }
+        
+        // Build JSON array from event data
+        StringBuilder jsonArray = new StringBuilder("[");
+        for (int i = 0; i < eventDataList.size(); i++) {
+            if (i > 0) jsonArray.append(",");
+            jsonArray.append(new String(eventDataList.get(i), java.nio.charset.StandardCharsets.UTF_8));
+        }
+        jsonArray.append("]");
+        
+        // Deserialize entire array in one pass
+        return objectMapper.readValue(jsonArray.toString(), WalletEvent[].class);
     }
 }

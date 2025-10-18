@@ -498,10 +498,10 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
     @Test
     @DisplayName("Should handle database connection errors gracefully")
     void shouldHandleDatabaseConnectionErrorsGracefully() throws JsonProcessingException, SQLException {
-        // When & Then - constructor should throw IllegalArgumentException for null JdbcTemplate
+        // When & Then - constructor should throw IllegalArgumentException for null DataSource
         assertThatThrownBy(() -> new JDBCEventStore(null, objectMapper, config))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("JdbcTemplate must not be null");
+            .hasMessageContaining("DataSource must not be null");
     }
 
     @Test

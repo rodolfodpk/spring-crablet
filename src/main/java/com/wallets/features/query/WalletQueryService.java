@@ -54,11 +54,8 @@ public class WalletQueryService {
             // Create projector for this specific wallet
             WalletStateProjector projector = new WalletStateProjector(walletId, objectMapper);
             
-            // Use WalletStateProjector for read operations
-            WalletState walletState = projector.getInitialState();
-            for (Event event : events) {
-                walletState = projector.transition(walletState, event);
-            }
+            // Use batch deserialization for better performance
+            WalletState walletState = projector.project(events);
 
             if (walletState.isEmpty()) {
                 return null;
@@ -276,34 +273,18 @@ public class WalletQueryService {
                         dataMap = castedMap;
                     }
 
-                    // Convert events to DTOs
-                    List<WalletEventDTO> eventDTOs = command.events().stream()
-                        .map(event -> {
-                            try {
-                                // Event data might be a String, parse it to Map
-                                Map<String, Object> eventDataMap;
-                                if (event.data() instanceof String) {
-                                    eventDataMap = objectMapper.readValue((String) event.data(), Map.class);
-                                } else {
-                                    @SuppressWarnings("unchecked")
-                                    Map<String, Object> castedMap = (Map<String, Object>) event.data();
-                                    eventDataMap = castedMap;
-                                }
-                                return new WalletEventDTO(
-                                    event.type(),
-                                    event.occurredAt(),
-                                    eventDataMap
-                                );
-                            } catch (Exception e) {
-                                log.error("Error parsing event data for event type {}: {}", event.type(), e.getMessage(), e);
-                                return new WalletEventDTO(
-                                    event.type(),
-                                    event.occurredAt(),
-                                    Map.of("data", event.data())
-                                );
-                            }
-                        })
-                        .collect(Collectors.toList());
+                    // Convert events to DTOs - use batch deserialization for better performance
+                    List<WalletEventDTO> eventDTOs = convertEventsToDTOs(command.events().stream()
+                        .map(eventResponse -> new Event(
+                            eventResponse.type(),
+                            List.of(), // tags
+                            eventResponse.data() instanceof byte[] ? (byte[]) eventResponse.data() : 
+                                eventResponse.data().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                            "", // transactionId
+                            0L, // position
+                            eventResponse.occurredAt()
+                        ))
+                        .collect(Collectors.toList()));
 
                     return new WalletCommandDTO(
                         command.transactionId(),
@@ -325,4 +306,70 @@ public class WalletQueryService {
             })
             .collect(Collectors.toList());
     }
+    
+    /**
+     * Convert multiple events to DTOs using batch deserialization for better performance.
+     * Since we fail-fast on any deserialization error, let exceptions propagate naturally.
+     * 
+     * @param events List of events to convert
+     * @return List of WalletEventDTOs
+     * @throws RuntimeException if any event data parsing fails
+     */
+    private List<WalletEventDTO> convertEventsToDTOs(List<Event> events) {
+        if (events.isEmpty()) {
+            return List.of();
+        }
+        
+        // Batch deserialize event data for better performance
+        List<byte[]> eventDataList = events.stream()
+            .map(Event::data)
+            .toList();
+        
+        Map<String, Object>[] eventDataMaps = batchDeserializeEventData(eventDataList);
+        
+        List<WalletEventDTO> eventDTOs = new java.util.ArrayList<>(events.size());
+        for (int i = 0; i < events.size(); i++) {
+            Event event = events.get(i);
+            Map<String, Object> eventDataMap = eventDataMaps[i];
+            
+            eventDTOs.add(new WalletEventDTO(
+                event.type(),
+                event.occurredAt(),
+                eventDataMap
+            ));
+        }
+        
+        return eventDTOs;
+    }
+    
+    /**
+     * Batch deserialize multiple event data arrays to Map arrays.
+     * Uses Jackson's array parsing for efficient batch processing.
+     * 
+     * @param eventDataList List of raw event data bytes
+     * @return Array of deserialized Map objects
+     * @throws RuntimeException if any deserialization fails
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object>[] batchDeserializeEventData(List<byte[]> eventDataList) {
+        if (eventDataList.isEmpty()) {
+            return new Map[0];
+        }
+        
+        try {
+            // Build JSON array from event data
+            StringBuilder jsonArray = new StringBuilder("[");
+            for (int i = 0; i < eventDataList.size(); i++) {
+                if (i > 0) jsonArray.append(",");
+                jsonArray.append(new String(eventDataList.get(i), java.nio.charset.StandardCharsets.UTF_8));
+            }
+            jsonArray.append("]");
+            
+            // Deserialize entire array in one pass
+            return objectMapper.readValue(jsonArray.toString(), Map[].class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to batch deserialize event data", e);
+        }
+    }
+    
 }

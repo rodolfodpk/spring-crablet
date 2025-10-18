@@ -18,6 +18,24 @@
         <appender-ref ref="CONSOLE"/>
     </logger>
     
+    <!-- Disable debug logging for crablet core components during tests -->
+    <logger name="com.crablet" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <logger name="com.crablet.impl.JDBCEventStore" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <logger name="com.crablet.core.CommandExecutor" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
+    <!-- Suppress error logs during error handling tests - they're intentional and scary-looking -->
+    <logger name="com.wallets.infrastructure.web.GlobalExceptionHandler" level="OFF" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    
     <!-- Reduce Spring framework verbosity during tests -->
     <logger name="org.springframework" level="WARN" additivity="false">
         <appender-ref ref="CONSOLE"/>

@@ -9,6 +9,10 @@ import com.wallets.infrastructure.web.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.NoHandlerFoundException;
@@ -16,12 +20,18 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
+import org.slf4j.LoggerFactory;
 
 /**
  * Integration tests for GlobalExceptionHandler to ensure proper HTTP status codes
  * and error response formats for all exception types.
  */
 @DisplayName("GlobalExceptionHandler Integration Tests")
+@ExtendWith(MockitoExtension.class)
 class GlobalExceptionHandlerTest {
 
     private GlobalExceptionHandler exceptionHandler;

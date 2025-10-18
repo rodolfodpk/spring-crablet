@@ -18,6 +18,7 @@ public class EventStoreConfig {
     
     private boolean persistCommands = true;
     private String transactionIsolation = "READ_COMMITTED";
+    private int fetchSize = 1000;
     
     public boolean isPersistCommands() { 
         return persistCommands; 
@@ -33,6 +34,14 @@ public class EventStoreConfig {
     
     public void setTransactionIsolation(String transactionIsolation) { 
         this.transactionIsolation = transactionIsolation; 
+    }
+    
+    public int getFetchSize() { 
+        return fetchSize; 
+    }
+    
+    public void setFetchSize(int fetchSize) { 
+        this.fetchSize = fetchSize; 
     }
 }
 
