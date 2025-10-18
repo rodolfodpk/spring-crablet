@@ -39,8 +39,9 @@ perf-app.log
 logs/
 
 ### Performance Test Results ###
-performance-tests/results/
+performance-tests/results/*.json
 performance-tests/*_results.json
+!performance-tests/results/summary.md
 
 ### Docker ###
 .docker/
