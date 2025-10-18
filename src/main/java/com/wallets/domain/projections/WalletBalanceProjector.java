@@ -1,7 +1,7 @@
 package com.wallets.domain.projections;
 
 import com.crablet.core.Cursor;
-import com.crablet.core.Event;
+import com.crablet.core.StoredEvent;
 import com.crablet.core.EventStore;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
@@ -59,7 +59,7 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
     }
     
     @Override
-    public WalletBalanceState transition(WalletBalanceState currentState, Event event) {
+    public WalletBalanceState transition(WalletBalanceState currentState, StoredEvent event) {
         // This method is not used in the current implementation
         // as we use the more specific projectWalletBalance method
         return currentState;
@@ -86,7 +86,7 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
             QueryItem.ofTags(List.of(new Tag("to_wallet_id", walletId)))
         ));
         
-        List<Event> events = store.query(query, null);
+        List<StoredEvent> events = store.query(query, null);
         WalletBalanceState state = buildBalanceState(events, walletId);
         
         // Capture cursor for optimistic locking
@@ -111,10 +111,10 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
      * @param walletId The wallet ID to build state for
      * @return WalletBalanceState containing balance and existence
      */
-    public WalletBalanceState buildBalanceState(List<Event> events, String walletId) {
+    public WalletBalanceState buildBalanceState(List<StoredEvent> events, String walletId) {
         // Filter events relevant to this wallet (for transfer scenarios)
         // Optimized: Single iteration through tags instead of three separate stream operations
-        List<Event> relevantEvents = events.stream()
+        List<StoredEvent> relevantEvents = events.stream()
             .filter(event -> {
                 // Check if event is relevant to this wallet with single tag iteration
                 for (Tag tag : event.tags()) {
@@ -150,13 +150,22 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
      * @return WalletBalanceState with calculated balance and existence
      * @throws Exception if any event fails to parse
      */
-    private WalletBalanceState processEvents(List<Event> relevantEvents, String walletId) throws Exception {
+    private WalletBalanceState processEvents(List<StoredEvent> relevantEvents, String walletId) throws Exception {
+        if (relevantEvents.isEmpty()) {
+            return new WalletBalanceState(walletId, 0, false);
+        }
+        
+        // Batch deserialize all events for better performance
+        List<byte[]> eventDataList = relevantEvents.stream()
+            .map(StoredEvent::data)
+            .toList();
+        
+        WalletEvent[] walletEvents = batchDeserializeWalletEvents(eventDataList);
+        
         int balance = 0;
         boolean exists = false;
         
-        for (Event event : relevantEvents) {
-            WalletEvent walletEvent = objectMapper.readValue(event.data(), WalletEvent.class);
-            
+        for (WalletEvent walletEvent : walletEvents) {
             switch (walletEvent) {
                 case WalletOpened opened when walletId.equals(opened.walletId()) -> {
                     balance = opened.initialBalance();
@@ -182,5 +191,30 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
         }
         
         return new WalletBalanceState(walletId, balance, exists);
+    }
+    
+    /**
+     * Batch deserialize multiple event data arrays to WalletEvent array.
+     * Uses Jackson's polymorphic support for efficient batch processing.
+     * 
+     * @param eventDataList List of raw event data bytes
+     * @return Array of deserialized WalletEvent objects
+     * @throws Exception if any deserialization fails
+     */
+    private WalletEvent[] batchDeserializeWalletEvents(List<byte[]> eventDataList) throws Exception {
+        if (eventDataList.isEmpty()) {
+            return new WalletEvent[0];
+        }
+        
+        // Build JSON array from event data
+        StringBuilder jsonArray = new StringBuilder("[");
+        for (int i = 0; i < eventDataList.size(); i++) {
+            if (i > 0) jsonArray.append(",");
+            jsonArray.append(new String(eventDataList.get(i), java.nio.charset.StandardCharsets.UTF_8));
+        }
+        jsonArray.append("]");
+        
+        // Deserialize entire array in one pass
+        return objectMapper.readValue(jsonArray.toString(), WalletEvent[].class);
     }
 }

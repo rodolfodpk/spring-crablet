@@ -37,4 +37,70 @@ jobs:
         cache: 'maven'  # Caches ~/.m2/repository
 
     - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      run: mvn -B clean package --file pom.xml
+
+    - name: Generate JaCoCo Coverage Report
+      run: mvn -B jacoco:report --file pom.xml
+
+    - name: Generate Coverage Badges
+      if: github.ref == 'refs/heads/main'
+      run: |
+        # Create badges directory if it doesn't exist
+        mkdir -p .github/badges
+        
+        # Extract coverage values from JaCoCo XML report final summary
+        COVERAGE_MISSED=$(xmllint --xpath '/report/counter[@type="LINE"]/@missed' target/site/jacoco/jacoco.xml 2>/dev/null | grep -o '[0-9]*')
+        COVERAGE_COVERED=$(xmllint --xpath '/report/counter[@type="LINE"]/@covered' target/site/jacoco/jacoco.xml 2>/dev/null | grep -o '[0-9]*')
+        
+        # Calculate coverage percentage
+        COVERAGE_TOTAL=$((COVERAGE_MISSED + COVERAGE_COVERED))
+        COVERAGE_PERCENT=$((COVERAGE_COVERED * 100 / COVERAGE_TOTAL))
+        
+        # Determine badge color based on coverage
+        if [ "$COVERAGE_PERCENT" -ge 90 ]; then
+          COLOR="brightgreen"
+        elif [ "$COVERAGE_PERCENT" -ge 80 ]; then
+          COLOR="green"
+        elif [ "$COVERAGE_PERCENT" -ge 70 ]; then
+          COLOR="yellowgreen"
+        elif [ "$COVERAGE_PERCENT" -ge 60 ]; then
+          COLOR="yellow"
+        else
+          COLOR="red"
+        fi
+        
+        # Generate coverage badge
+        curl -s "https://img.shields.io/badge/coverage-${COVERAGE_PERCENT}%25-${COLOR}" > .github/badges/jacoco.svg
+        
+        # Extract branch coverage values from JaCoCo XML report final summary
+        BRANCH_MISSED=$(xmllint --xpath '/report/counter[@type="BRANCH"]/@missed' target/site/jacoco/jacoco.xml 2>/dev/null | grep -o '[0-9]*')
+        BRANCH_COVERED=$(xmllint --xpath '/report/counter[@type="BRANCH"]/@covered' target/site/jacoco/jacoco.xml 2>/dev/null | grep -o '[0-9]*')
+        
+        # Calculate branch coverage percentage
+        BRANCH_TOTAL=$((BRANCH_MISSED + BRANCH_COVERED))
+        BRANCH_PERCENT=$((BRANCH_COVERED * 100 / BRANCH_TOTAL))
+        
+        # Determine branch badge color
+        if [ "$BRANCH_PERCENT" -ge 90 ]; then
+          BRANCH_COLOR="brightgreen"
+        elif [ "$BRANCH_PERCENT" -ge 80 ]; then
+          BRANCH_COLOR="green"
+        elif [ "$BRANCH_PERCENT" -ge 70 ]; then
+          BRANCH_COLOR="yellowgreen"
+        elif [ "$BRANCH_PERCENT" -ge 60 ]; then
+          BRANCH_COLOR="yellow"
+        else
+          BRANCH_COLOR="red"
+        fi
+        
+        # Generate branch coverage badge
+        curl -s "https://img.shields.io/badge/branches-${BRANCH_PERCENT}%25-${BRANCH_COLOR}" > .github/badges/branches.svg
+
+    - name: Commit Coverage Badges
+      if: github.ref == 'refs/heads/main'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .github/badges/
+        git diff --staged --quiet || git commit -m "Update coverage badges [skip ci]"
+        git push

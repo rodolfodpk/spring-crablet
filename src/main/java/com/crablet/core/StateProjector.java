@@ -31,12 +31,12 @@ public interface StateProjector<T> {
     /**
      * Transition the state based on an event.
      */
-    T transition(T currentState, Event event);
+    T transition(T currentState, StoredEvent event);
     
     /**
      * Check if this projector handles the given event.
      */
-    default boolean handles(Event event) {
+    default boolean handles(StoredEvent event) {
         // Check event types
         if (!getEventTypes().isEmpty() && !getEventTypes().contains(event.type())) {
             return false;

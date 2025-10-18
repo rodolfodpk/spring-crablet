@@ -10,11 +10,11 @@ import java.util.List;
  * The reason field provides context when operation is idempotent (empty events).
  */
 public record CommandResult(
-    List<InputEvent> events,
+    List<AppendEvent> events,
     AppendCondition appendCondition,
     String reason  // Reason for idempotency (null when operation creates events)
 ) {
-    public static CommandResult of(List<InputEvent> events, AppendCondition condition) {
+    public static CommandResult of(List<AppendEvent> events, AppendCondition condition) {
         return new CommandResult(events, condition, null);
     }
     

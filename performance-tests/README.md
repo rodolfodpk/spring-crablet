@@ -30,28 +30,30 @@ make stop
 
 | Test File | VUs | Operations | Throughput (rps) | p95 (ms) | Error Rate | Status |
 |-----------|-----|------------|------------------|----------|------------|--------|
-| `wallet-creation-load.js` | 20 | 34,036 | 681 | 47.7 | 0% | ✅ |
-| `simple-deposit-test.js` | 10 | 9,259 | 185 | 104.0 | 0% | ✅ |
-| `simple-withdrawal-test.js` | 10 | 13,647 | 273 | 44.7 | 0% | ✅ |
-| `simple-transfer-test.js` | 10 | 12,304 | 246 | 59 | 0% | ✅ |
-| `simple-history-test.js` | 15 | 9,558 | 191 | 120.7 | 0% | ✅ |
-| `simple-spike-test.js` | 5→50→5 | 12,564 | 251 | 210.2 | 0% | ✅ |
-| `simple-mixed-workload-test.js` | 25 | 14,650 | 293 | 174.4 | 0% | ✅ |
-| `simple-insufficient-balance-test.js` | 10 | 5,537 | 111 | 72.6 | 100%* | ✅ |
+| `wallet-creation-load.js` | 20 | 34,261 | 685 | 44.9 | 0% | ✅ |
+| `simple-deposit-test.js` | 10 | 19,106 | 382 | 42.2 | 0% | ✅ |
+| `simple-withdrawal-test.js` | 10 | 19,812 | 396 | 37.4 | 0% | ✅ |
+| `simple-transfer-test.js` | 10 | 14,612 | 292 | 49.0 | 0% | ✅ |
+| `simple-history-test.js` | 15 | 30,113 | 602 | 34.2 | 0% | ✅ |
+| `simple-spike-test.js` | 5→50→5 | 14,850 | 297 | 171.0 | 0% | ✅ |
+| `simple-mixed-workload-test.js` | 25 | 20,199 | 404 | 136.8 | 0% | ✅ |
+| `simple-insufficient-balance-test.js` | 10 | 39,054 | 781 | 29.3 | 99.7%* | ✅ |
+| `simple-concurrency-test.js` | 50 | 10,096 | 202 | 417.4 | 0% | ✅ |
 
-*Note: 100% error rate for insufficient balance test is expected as it tests error conditions.
+*Note: 99.7% error rate for insufficient balance test is expected as it tests error conditions.
 
 ## Performance Results
 
 **Current performance (command persistence DISABLED in test profile):**
 
-- **Wallet Creation**: 681 rps, 47.7ms p95 latency
-- **Deposit**: 185 rps, 104.0ms p95 latency  
-- **Withdrawal**: 273 rps, 44.7ms p95 latency
-- **Transfer**: 246 rps, 59ms p95 latency
-- **History**: 191 rps, 120.7ms p95 latency
-- **Spike Test**: 251 rps, 210.2ms p95 latency
-- **Mixed Workload**: 293 rps, 174.4ms p95 latency
+- **Wallet Creation**: 685 rps, 44.9ms p95 latency
+- **Deposit**: 382 rps, 42.2ms p95 latency  
+- **Withdrawal**: 396 rps, 37.4ms p95 latency
+- **Transfer**: 292 rps, 49.0ms p95 latency
+- **History**: 602 rps, 34.2ms p95 latency
+- **Spike Test**: 297 rps, 171.0ms p95 latency
+- **Mixed Workload**: 404 rps, 136.8ms p95 latency
+- **Concurrency**: 202 rps, 417.4ms p95 latency
 
 ### Command Storage Configuration
 

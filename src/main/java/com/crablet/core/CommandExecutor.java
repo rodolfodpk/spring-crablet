@@ -103,7 +103,7 @@ public class CommandExecutor {
                 
                 // Validate individual events with enhanced for-loops
                 int eventIndex = 0;
-                for (InputEvent event : result.events()) {
+                for (AppendEvent event : result.events()) {
                     if (event.type() == null || event.type().isEmpty()) {
                         throw new IllegalArgumentException("Event at index " + eventIndex + " has empty type");
                     }

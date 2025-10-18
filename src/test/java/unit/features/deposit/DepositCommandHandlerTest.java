@@ -1,9 +1,9 @@
 package unit.features.deposit;
 
 import com.crablet.core.CommandResult;
-import com.crablet.core.Event;
+import com.crablet.core.StoredEvent;
 import com.crablet.core.EventStore;
-import com.crablet.core.InputEvent;
+import com.crablet.core.AppendEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.event.DepositMade;
 import com.wallets.domain.event.WalletOpened;
@@ -50,8 +50,8 @@ class DepositCommandHandlerTest extends AbstractCrabletTest {
     void testHandleDeposit_Success() {
         // Arrange - create wallet first
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
-        Event walletEvent = WalletTestUtils.createEvent(walletOpened);
-        InputEvent walletInputEvent = InputEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
+        StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
+        AppendEvent walletInputEvent = AppendEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
         eventStore.append(List.of(walletInputEvent));
         
         DepositCommand cmd = DepositCommand.of("deposit1", "wallet1", 500, "Bonus payment");
@@ -123,8 +123,8 @@ class DepositCommandHandlerTest extends AbstractCrabletTest {
     void testProjectMinimalState() {
         // Arrange - create wallet with multiple events
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
-        Event walletEvent = WalletTestUtils.createEvent(walletOpened);
-        InputEvent walletInputEvent = InputEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
+        StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
+        AppendEvent walletInputEvent = AppendEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
         eventStore.append(List.of(walletInputEvent));
         
         // Act - deposit should only project balance + existence, not full WalletState
@@ -146,8 +146,8 @@ class DepositCommandHandlerTest extends AbstractCrabletTest {
     void testDepositScenarios(String walletId, String owner, int initialBalance, String description) {
         // Arrange - create wallet
         WalletOpened walletOpened = WalletOpened.of(walletId, owner, initialBalance);
-        Event walletEvent = WalletTestUtils.createEvent(walletOpened);
-        InputEvent walletInputEvent = InputEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
+        StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
+        AppendEvent walletInputEvent = AppendEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
         eventStore.append(List.of(walletInputEvent));
         
         DepositCommand cmd = DepositCommand.of("deposit1", walletId, 100, description);

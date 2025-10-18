@@ -1,9 +1,9 @@
 package unit.features.withdraw;
 
 import com.crablet.core.CommandResult;
-import com.crablet.core.Event;
+import com.crablet.core.StoredEvent;
 import com.crablet.core.EventStore;
-import com.crablet.core.InputEvent;
+import com.crablet.core.AppendEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.event.WalletOpened;
 import com.wallets.domain.event.WithdrawalMade;
@@ -51,8 +51,8 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
     void testHandleWithdraw_Success() {
         // Arrange - create wallet first
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
-        Event walletEvent = WalletTestUtils.createEvent(walletOpened);
-        InputEvent walletInputEvent = InputEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
+        StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
+        AppendEvent walletInputEvent = AppendEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
         eventStore.append(List.of(walletInputEvent));
         
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", "wallet1", 300, "Shopping");
@@ -106,8 +106,8 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
     void testHandleWithdraw_InsufficientFunds() {
         // Arrange - create wallet with low balance
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 100);
-        Event walletEvent = WalletTestUtils.createEvent(walletOpened);
-        InputEvent walletInputEvent = InputEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
+        StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
+        AppendEvent walletInputEvent = AppendEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
         eventStore.append(List.of(walletInputEvent));
         
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", "wallet1", 200, "Overdraft");
@@ -143,8 +143,8 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
     void testHandleWithdraw_ExactBalance() {
         // Arrange - create wallet with exact balance
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 500);
-        Event walletEvent = WalletTestUtils.createEvent(walletOpened);
-        InputEvent walletInputEvent = InputEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
+        StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
+        AppendEvent walletInputEvent = AppendEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
         eventStore.append(List.of(walletInputEvent));
         
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", "wallet1", 500, "Full withdrawal");
@@ -163,8 +163,8 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
     void testProjectMinimalState() {
         // Arrange - create wallet with multiple events
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
-        Event walletEvent = WalletTestUtils.createEvent(walletOpened);
-        InputEvent walletInputEvent = InputEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
+        StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
+        AppendEvent walletInputEvent = AppendEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
         eventStore.append(List.of(walletInputEvent));
         
         // Act - withdrawal should only project balance + existence, not full WalletState
@@ -186,8 +186,8 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
     void testWithdrawalScenarios(String walletId, String owner, int initialBalance, String description) {
         // Arrange - create wallet
         WalletOpened walletOpened = WalletOpened.of(walletId, owner, initialBalance);
-        Event walletEvent = WalletTestUtils.createEvent(walletOpened);
-        InputEvent walletInputEvent = InputEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
+        StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
+        AppendEvent walletInputEvent = AppendEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
         eventStore.append(List.of(walletInputEvent));
         
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", walletId, 100, description);

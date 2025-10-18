@@ -1,8 +1,8 @@
 # Spring Boot Java DCB Event Sourcing Solution
 
-[![Java CI](https://github.com/recargapay-dev/RodolfoPaula/actions/workflows/maven.yml/badge.svg)](https://github.com/recargapay-dev/RodolfoPaula/actions/workflows/maven.yml)
-[![Coverage](.github/badges/jacoco.svg)](https://github.com/recargapay-dev/RodolfoPaula/actions/workflows/maven.yml)
-[![Branches](.github/badges/branches.svg)](https://github.com/recargapay-dev/RodolfoPaula/actions/workflows/maven.yml)
+[![Java CI](https://github.com/rodolfodpk/spring-crablet/actions/workflows/maven.yml/badge.svg)](https://github.com/rodolfodpk/spring-crablet/actions/workflows/maven.yml)
+[![Coverage](.github/badges/jacoco.svg)](https://github.com/rodolfodpk/spring-crablet/actions/workflows/maven.yml)
+[![Branches](.github/badges/branches.svg)](https://github.com/rodolfodpk/spring-crablet/actions/workflows/maven.yml)
 [![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 

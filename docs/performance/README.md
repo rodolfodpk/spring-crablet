@@ -10,15 +10,18 @@ Performance tests for the wallet application using k6 load testing tool.
 
 ## Performance Results Overview
 
-### Verified Performance (October 2025)
+### Verified Performance (October 2025) - After Event Naming Refactoring
 
 | Operation | Throughput | 95th Percentile | Error Rate | Status |
 |-----------|------------|-----------------|------------|--------|
-| Wallet Creation | 549 RPS | 47.82ms | 0.07% | ✅ Excellent |
-| Deposit Operations | 194 RPS | 66.15ms | 0.00% | ✅ Excellent |
-| Withdrawal Operations | 261 RPS | 60.88ms | 0.00% | ✅ Excellent |
-| Transfer Operations | 171 RPS | 73.03ms | 0.00% | ✅ Excellent |
-| Mixed Workload | 20 RPS | 233.00ms | 28.30% | ⚠️ Acceptable |
+| Wallet Creation | 685 RPS | 44.9ms | 0.00% | ✅ Excellent |
+| Deposit Operations | 382 RPS | 42.2ms | 0.00% | ✅ Excellent |
+| Withdrawal Operations | 396 RPS | 37.4ms | 0.00% | ✅ Excellent |
+| Transfer Operations | 292 RPS | 49.0ms | 0.00% | ✅ Excellent |
+| History Queries | 602 RPS | 34.2ms | 0.00% | ✅ Excellent |
+| Mixed Workload | 404 RPS | 136.8ms | 0.00% | ✅ Excellent |
+| Spike Test | 297 RPS | 171.0ms | 0.00% | ✅ Excellent |
+| Concurrency Test | 202 RPS | 417.4ms | 0.00% | ✅ Excellent |
 
 **All core operations meet performance targets** with excellent response times and low error rates.
 

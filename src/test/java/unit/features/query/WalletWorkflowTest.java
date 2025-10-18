@@ -1,6 +1,6 @@
 package unit.features.query;
 
-import com.crablet.core.Event;
+import com.crablet.core.StoredEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -59,11 +59,11 @@ class WalletWorkflowTest {
         MoneyTransferred transfer1 = MoneyTransferred.of("tx1", "wallet1", "wallet2", 300, 1000, 700, "Transfer 1");
         DepositMade deposit2 = DepositMade.of("dep2", "wallet1", 1000, 2000, "Bonus");
         WithdrawalMade withdrawal2 = WithdrawalMade.of("with2", "wallet1", 500, 1500, "Vacation");
-        List<Event> events = WalletTestUtils.createEventList(opened, deposit1, withdrawal1, transfer1, deposit2, withdrawal2);
+        List<StoredEvent> events = WalletTestUtils.createEventList(opened, deposit1, withdrawal1, transfer1, deposit2, withdrawal2);
         
         // Act
         WalletState currentState = initialState;
-        for (Event event : events) {
+        for (StoredEvent event : events) {
             currentState = projector.transition(currentState, event);
         }
         
@@ -90,7 +90,7 @@ class WalletWorkflowTest {
         
         // Transfer event
         MoneyTransferred transfer = MoneyTransferred.of("tx1", "wallet1", "wallet2", 300, 700, 800, "Test transfer");
-        Event transferEvent = WalletTestUtils.createEvent(transfer);
+        StoredEvent transferEvent = WalletTestUtils.createEvent(transfer);
         
         // Act
         WalletState newFromState = fromProjector.transition(fromState, transferEvent);
@@ -135,14 +135,14 @@ class WalletWorkflowTest {
         MoneyTransferred transfer2 = MoneyTransferred.of("tx2", "wallet2", "wallet3", 100, 600, 400, "Transfer 2");
         MoneyTransferred transfer3 = MoneyTransferred.of("tx3", "wallet3", "wallet1", 50, 350, 850, "Transfer 3");
         
-        List<Event> events = WalletTestUtils.createEventList(transfer1, transfer2, transfer3);
+        List<StoredEvent> events = WalletTestUtils.createEventList(transfer1, transfer2, transfer3);
         
         // Act
         WalletState currentWallet1State = wallet1State;
         WalletState currentWallet2State = wallet2State;
         WalletState currentWallet3State = wallet3State;
         
-        for (Event event : events) {
+        for (StoredEvent event : events) {
             currentWallet1State = wallet1Projector.transition(currentWallet1State, event);
             currentWallet2State = wallet2Projector.transition(currentWallet2State, event);
             currentWallet3State = wallet3Projector.transition(currentWallet3State, event);
@@ -174,7 +174,7 @@ class WalletWorkflowTest {
         // Transfer event
         MoneyTransferred transfer = MoneyTransferred.of("tx1", "wallet1", "wallet2", scenario.transferAmount(), 
             scenario.expectedFromBalance(), scenario.expectedToBalance(), "Test transfer");
-        Event transferEvent = WalletTestUtils.createEvent(transfer);
+        StoredEvent transferEvent = WalletTestUtils.createEvent(transfer);
         
         // Act
         WalletState newFromState = fromProjector.transition(fromState, transferEvent);
@@ -221,11 +221,11 @@ class WalletWorkflowTest {
         DepositMade deposit2 = DepositMade.of("dep2", "wallet1", 1000, 2300, "Bonus");
         WithdrawalMade withdrawal2 = WithdrawalMade.of("with2", "wallet1", 300, 2000, "Vacation");
         
-        List<Event> events = WalletTestUtils.createEventList(deposit1, withdrawal1, deposit2, withdrawal2);
+        List<StoredEvent> events = WalletTestUtils.createEventList(deposit1, withdrawal1, deposit2, withdrawal2);
         
         // Act
         WalletState currentState = initialState;
-        for (Event event : events) {
+        for (StoredEvent event : events) {
             currentState = projector.transition(currentState, event);
         }
         
@@ -251,11 +251,11 @@ class WalletWorkflowTest {
         MoneyTransferred transferIn = MoneyTransferred.of("tx2", "wallet3", "wallet1", 100, 500, 1100, "Transfer in");
         DepositMade finalDeposit = DepositMade.of("dep2", "wallet1", 200, 1300, "Bonus");
         
-        List<Event> events = WalletTestUtils.createEventList(deposit, transferOut, withdrawal, transferIn, finalDeposit);
+        List<StoredEvent> events = WalletTestUtils.createEventList(deposit, transferOut, withdrawal, transferIn, finalDeposit);
         
         // Act
         WalletState currentState = initialState;
-        for (Event event : events) {
+        for (StoredEvent event : events) {
             currentState = projector.transition(currentState, event);
         }
         
@@ -275,7 +275,7 @@ class WalletWorkflowTest {
         WalletState initialState = new WalletState("wallet1", "Alice", 1000, Instant.now(), Instant.now());
         
         // Create high-frequency operations
-        List<Event> events = WalletTestUtils.createEventList(
+        List<StoredEvent> events = WalletTestUtils.createEventList(
             DepositMade.of("dep1", "wallet1", 100, 1100, "Deposit 1"),
             WithdrawalMade.of("with1", "wallet1", 50, 1050, "Withdrawal 1"),
             DepositMade.of("dep2", "wallet1", 200, 1250, "Deposit 2"),
@@ -288,7 +288,7 @@ class WalletWorkflowTest {
         
         // Act
         WalletState currentState = initialState;
-        for (Event event : events) {
+        for (StoredEvent event : events) {
             currentState = projector.transition(currentState, event);
         }
         
@@ -311,11 +311,11 @@ class WalletWorkflowTest {
         DepositMade deposit = DepositMade.of("dep1", "wallet1", 1000, 1000, "Initial deposit");
         WithdrawalMade withdrawal = WithdrawalMade.of("with1", "wallet1", 1000, 0, "Full withdrawal");
         
-        List<Event> events = WalletTestUtils.createEventList(deposit, withdrawal);
+        List<StoredEvent> events = WalletTestUtils.createEventList(deposit, withdrawal);
         
         // Act
         WalletState currentState = initialState;
-        for (Event event : events) {
+        for (StoredEvent event : events) {
             currentState = projector.transition(currentState, event);
         }
         
@@ -340,11 +340,11 @@ class WalletWorkflowTest {
         MoneyTransferred transfer = MoneyTransferred.of("tx1", "wallet1", "wallet2", 200, 1300, 700, "Test transfer");
         WithdrawalMade withdrawal = WithdrawalMade.of("with1", "wallet1", 300, 1000, "Test withdrawal");
         
-        List<Event> events = WalletTestUtils.createEventList(deposit, transfer, withdrawal);
+        List<StoredEvent> events = WalletTestUtils.createEventList(deposit, transfer, withdrawal);
         
         // Act
         WalletState currentState = initialState;
-        for (Event event : events) {
+        for (StoredEvent event : events) {
             currentState = projector.transition(currentState, event);
         }
         

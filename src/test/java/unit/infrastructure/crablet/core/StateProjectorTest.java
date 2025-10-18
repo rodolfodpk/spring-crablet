@@ -1,6 +1,6 @@
 package unit.infrastructure.crablet.core;
 
-import com.crablet.core.Event;
+import com.crablet.core.StoredEvent;
 import com.crablet.core.StateProjector;
 import com.crablet.core.Tag;
 import org.junit.jupiter.api.DisplayName;
@@ -52,7 +52,7 @@ class StateProjectorTest {
         }
 
         @Override
-        public Map<String, Object> transition(Map<String, Object> currentState, Event event) {
+        public Map<String, Object> transition(Map<String, Object> currentState, StoredEvent event) {
             return currentState;
         }
     }
@@ -66,7 +66,7 @@ class StateProjectorTest {
             List.of("WalletOpened", "MoneyTransferred"),
             List.of()
         );
-        Event event = new Event("WalletOpened", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
+        StoredEvent event = new StoredEvent("WalletOpened", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
         boolean handles = projector.handles(event);
@@ -84,7 +84,7 @@ class StateProjectorTest {
             List.of("WalletOpened", "MoneyTransferred"),
             List.of()
         );
-        Event event = new Event("DepositMade", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
+        StoredEvent event = new StoredEvent("DepositMade", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
         boolean handles = projector.handles(event);
@@ -102,7 +102,7 @@ class StateProjectorTest {
             List.of(),
             List.of()
         );
-        Event event = new Event("AnyEvent", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
+        StoredEvent event = new StoredEvent("AnyEvent", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
         boolean handles = projector.handles(event);
@@ -122,7 +122,7 @@ class StateProjectorTest {
             List.of(),
             List.of(tag1, tag2)
         );
-        Event event = new Event("WalletOpened", List.of(tag1), "{}".getBytes(), "1", 1L, java.time.Instant.now());
+        StoredEvent event = new StoredEvent("WalletOpened", List.of(tag1), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
         boolean handles = projector.handles(event);
@@ -142,7 +142,7 @@ class StateProjectorTest {
             List.of(),
             List.of(projectorTag)
         );
-        Event event = new Event("WalletOpened", List.of(eventTag), "{}".getBytes(), "1", 1L, java.time.Instant.now());
+        StoredEvent event = new StoredEvent("WalletOpened", List.of(eventTag), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
         boolean handles = projector.handles(event);
@@ -160,7 +160,7 @@ class StateProjectorTest {
             List.of(),
             List.of()
         );
-        Event event = new Event("AnyEvent", List.of(new Tag("any", "value")), "{}".getBytes(), "1", 1L, java.time.Instant.now());
+        StoredEvent event = new StoredEvent("AnyEvent", List.of(new Tag("any", "value")), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
         boolean handles = projector.handles(event);
@@ -179,7 +179,7 @@ class StateProjectorTest {
             List.of("WalletOpened"),
             List.of(tag)
         );
-        Event event = new Event("WalletOpened", List.of(tag), "{}".getBytes(), "1", 1L, java.time.Instant.now());
+        StoredEvent event = new StoredEvent("WalletOpened", List.of(tag), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
         boolean handles = projector.handles(event);
@@ -199,7 +199,7 @@ class StateProjectorTest {
             List.of("WalletOpened"),
             List.of(projectorTag)
         );
-        Event event = new Event("WalletOpened", List.of(eventTag), "{}".getBytes(), "1", 1L, java.time.Instant.now());
+        StoredEvent event = new StoredEvent("WalletOpened", List.of(eventTag), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
         boolean handles = projector.handles(event);
@@ -218,7 +218,7 @@ class StateProjectorTest {
             List.of("WalletOpened"),
             List.of(tag)
         );
-        Event event = new Event("DepositMade", List.of(tag), "{}".getBytes(), "1", 1L, java.time.Instant.now());
+        StoredEvent event = new StoredEvent("DepositMade", List.of(tag), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
         boolean handles = projector.handles(event);
@@ -240,7 +240,7 @@ class StateProjectorTest {
             List.of(),
             List.of(projectorTag1, projectorTag2)
         );
-        Event event = new Event("WalletOpened", List.of(eventTag1, eventTag2), "{}".getBytes(), "1", 1L, java.time.Instant.now());
+        StoredEvent event = new StoredEvent("WalletOpened", List.of(eventTag1, eventTag2), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
         boolean handles = projector.handles(event);
@@ -259,7 +259,7 @@ class StateProjectorTest {
             List.of(),
             List.of(projectorTag)
         );
-        Event event = new Event("WalletOpened", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
+        StoredEvent event = new StoredEvent("WalletOpened", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
         boolean handles = projector.handles(event);
@@ -277,7 +277,7 @@ class StateProjectorTest {
             List.of(),
             List.of()
         );
-        Event event = new Event("WalletOpened", List.of(new Tag("wallet", "wallet-123")), "{}".getBytes(), "1", 1L, java.time.Instant.now());
+        StoredEvent event = new StoredEvent("WalletOpened", List.of(new Tag("wallet", "wallet-123")), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
         boolean handles = projector.handles(event);
@@ -295,7 +295,7 @@ class StateProjectorTest {
             List.of(),
             List.of()
         );
-        Event event = new Event("AnyEvent", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
+        StoredEvent event = new StoredEvent("AnyEvent", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
         boolean handles = projector.handles(event);
@@ -313,7 +313,7 @@ class StateProjectorTest {
             List.of("WalletOpened", "MoneyTransferred", "DepositMade"),
             List.of()
         );
-        Event event = new Event("MoneyTransferred", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
+        StoredEvent event = new StoredEvent("MoneyTransferred", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
         boolean handles = projector.handles(event);
@@ -331,7 +331,7 @@ class StateProjectorTest {
             List.of("WalletOpened", "MoneyTransferred", "DepositMade"),
             List.of()
         );
-        Event event = new Event("WithdrawalMade", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
+        StoredEvent event = new StoredEvent("WithdrawalMade", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
         boolean handles = projector.handles(event);
