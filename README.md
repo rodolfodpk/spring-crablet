@@ -1,4 +1,4 @@
-# Spring Bot Java DCB Event Sourcing Solution
+# Spring Boot Java DCB Event Sourcing Solution
 
 [![Java CI](https://github.com/recargapay-dev/RodolfoPaula/actions/workflows/maven.yml/badge.svg)](https://github.com/recargapay-dev/RodolfoPaula/actions/workflows/maven.yml)
 [![Coverage](.github/badges/jacoco.svg)](https://github.com/recargapay-dev/RodolfoPaula/actions/workflows/maven.yml)
