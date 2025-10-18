@@ -17,6 +17,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+import static com.crablet.core.CommandHandler.serializeEvent;
+
 /**
  * Command handler for opening wallets.
  * 

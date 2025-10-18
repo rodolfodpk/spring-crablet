@@ -24,6 +24,8 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.List;
 
+import static com.crablet.core.CommandHandler.serializeEvent;
+
 /**
  * Command handler for transferring money between wallets.
  * 

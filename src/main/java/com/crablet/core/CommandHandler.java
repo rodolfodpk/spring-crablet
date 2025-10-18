@@ -47,7 +47,7 @@ public interface CommandHandler<T extends Command> {
      * @return JSON string representation of the object
      * @throws RuntimeException if serialization fails (wraps JsonProcessingException)
      */
-    default String serializeEvent(ObjectMapper objectMapper, Object object) {
+    static String serializeEvent(ObjectMapper objectMapper, Object object) {
         try {
             return objectMapper.writeValueAsString(object);
         } catch (JsonProcessingException e) {
