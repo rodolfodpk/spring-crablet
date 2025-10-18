@@ -4,7 +4,7 @@ import com.crablet.core.AppendCondition;
 import com.crablet.core.CommandHandler;
 import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
-import com.crablet.core.InputEvent;
+import com.crablet.core.AppendEvent;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
 import com.crablet.core.QueryItem;
@@ -75,7 +75,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
             command.description()
         );
         
-        InputEvent event = InputEvent.of(
+        AppendEvent event = AppendEvent.of(
             "WithdrawalMade",
             List.of(
                 new Tag("wallet_id", command.walletId()),

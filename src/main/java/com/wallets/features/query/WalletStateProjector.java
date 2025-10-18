@@ -1,6 +1,6 @@
 package com.wallets.features.query;
 
-import com.crablet.core.Event;
+import com.crablet.core.StoredEvent;
 import com.crablet.core.StateProjector;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -57,14 +57,14 @@ public class WalletStateProjector implements StateProjector<WalletState> {
      * @param events List of events to project from
      * @return Final wallet state after projecting all events
      */
-    public WalletState project(List<Event> events) {
+    public WalletState project(List<StoredEvent> events) {
         if (events.isEmpty()) {
             return getInitialState();
         }
         
         // Batch deserialize all events for better performance
         List<byte[]> eventDataList = events.stream()
-            .map(Event::data)
+            .map(StoredEvent::data)
             .toList();
         
         WalletEvent[] walletEvents = batchDeserializeWalletEvents(eventDataList);
@@ -128,7 +128,7 @@ public class WalletStateProjector implements StateProjector<WalletState> {
     }
     
     @Override
-    public WalletState transition(WalletState currentState, Event event) {
+    public WalletState transition(WalletState currentState, StoredEvent event) {
         // Parse event data as WalletEvent using sealed interface
         // Since we fail-fast on any deserialization error, no try-catch needed
         WalletEvent walletEvent;

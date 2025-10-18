@@ -16,21 +16,21 @@ public interface EventStore {
      * after == null: query from beginning of stream
      * after != null: query from specified cursor position
      */
-    List<Event> query(Query query, Cursor after);
+    List<StoredEvent> query(Query query, Cursor after);
     
     /**
      * Append appends events to the store without any consistency/concurrency checks.
      * Use this only when there are no business rules or consistency requirements.
      * For operations that require DCB concurrency control, use appendIf instead.
      */
-    void append(List<InputEvent> events);
+    void append(List<AppendEvent> events);
     
     /**
      * AppendIf appends events to the store with explicit DCB concurrency control.
      * This method makes it clear when consistency/concurrency checks are required.
      * Use this for operations that need to ensure data hasn't changed since projection.
      */
-    void appendIf(List<InputEvent> events, AppendCondition condition);
+    void appendIf(List<AppendEvent> events, AppendCondition condition);
     
     /**
      * Project projects state from events matching projectors with optional cursor.

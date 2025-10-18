@@ -1,6 +1,6 @@
 package com.wallets.features.query;
 
-import com.crablet.core.Event;
+import com.crablet.core.StoredEvent;
 import com.crablet.core.EventStore;
 import com.crablet.core.Query;
 import com.crablet.core.QueryItem;
@@ -49,7 +49,7 @@ public class WalletQueryService {
         try {
             // Query events for this wallet using OR logic (go-crablet style)
             Query walletQuery = buildCompleteWalletEventsQuery(walletId);
-            List<Event> events = eventStore.query(walletQuery, null);
+            List<StoredEvent> events = eventStore.query(walletQuery, null);
             
             // Create projector for this specific wallet
             WalletStateProjector projector = new WalletStateProjector(walletId, objectMapper);
@@ -80,17 +80,17 @@ public class WalletQueryService {
         try {
             // Query events for this wallet using OR logic (go-crablet style)
             Query walletHistoryQuery = buildWalletHistoryQuery(walletId);
-            List<Event> walletEvents = eventStore.query(walletHistoryQuery, null);
+            List<StoredEvent> walletEvents = eventStore.query(walletHistoryQuery, null);
             
             log.debug("Query for wallet {} returned {} events, timestamp: {}", walletId, walletEvents.size(), timestamp);
             
             // Filter events to only include those up to the target time
-            List<Event> filteredEvents = filterEventsByTimestamp(walletEvents, timestamp);
+            List<StoredEvent> filteredEvents = filterEventsByTimestamp(walletEvents, timestamp);
             
             log.debug("After timestamp filtering: {} events", filteredEvents.size());
 
             // Apply pagination
-            List<Event> paginatedEvents = paginateEvents(filteredEvents, page, size);
+            List<StoredEvent> paginatedEvents = paginateEvents(filteredEvents, page, size);
             int totalEvents = filteredEvents.size();
             boolean hasNext = (page + 1) * size < totalEvents;
 
@@ -191,7 +191,7 @@ public class WalletQueryService {
      * @param targetTime The target timestamp (null means no filtering)
      * @return Filtered and sorted events
      */
-    private List<Event> filterEventsByTimestamp(List<Event> events, Instant targetTime) {
+    private List<StoredEvent> filterEventsByTimestamp(List<StoredEvent> events, Instant targetTime) {
         log.debug("Filtering {} events with targetTime: {}", events.size(), targetTime);
         return events.stream()
             .filter(event -> {
@@ -212,7 +212,7 @@ public class WalletQueryService {
      * @param size The page size
      * @return Paginated events
      */
-    private List<Event> paginateEvents(List<Event> events, int page, int size) {
+    private List<StoredEvent> paginateEvents(List<StoredEvent> events, int page, int size) {
         int totalEvents = events.size();
         int startIndex = page * size;
         int endIndex = Math.min(startIndex + size, totalEvents);
@@ -230,7 +230,7 @@ public class WalletQueryService {
      * @param events The events to convert
      * @return List of WalletEventDTO
      */
-    private List<WalletEventDTO> convertToEventDTOs(List<Event> events) {
+    private List<WalletEventDTO> convertToEventDTOs(List<StoredEvent> events) {
         return events.stream()
             .map(event -> {
                 try {
@@ -275,7 +275,7 @@ public class WalletQueryService {
 
                     // Convert events to DTOs - use batch deserialization for better performance
                     List<WalletEventDTO> eventDTOs = convertEventsToDTOs(command.events().stream()
-                        .map(eventResponse -> new Event(
+                        .map(eventResponse -> new StoredEvent(
                             eventResponse.type(),
                             List.of(), // tags
                             eventResponse.data() instanceof byte[] ? (byte[]) eventResponse.data() : 
@@ -315,21 +315,21 @@ public class WalletQueryService {
      * @return List of WalletEventDTOs
      * @throws RuntimeException if any event data parsing fails
      */
-    private List<WalletEventDTO> convertEventsToDTOs(List<Event> events) {
+    private List<WalletEventDTO> convertEventsToDTOs(List<StoredEvent> events) {
         if (events.isEmpty()) {
             return List.of();
         }
         
         // Batch deserialize event data for better performance
         List<byte[]> eventDataList = events.stream()
-            .map(Event::data)
+            .map(StoredEvent::data)
             .toList();
         
         Map<String, Object>[] eventDataMaps = batchDeserializeEventData(eventDataList);
         
         List<WalletEventDTO> eventDTOs = new java.util.ArrayList<>(events.size());
         for (int i = 0; i < events.size(); i++) {
-            Event event = events.get(i);
+            StoredEvent event = events.get(i);
             Map<String, Object> eventDataMap = eventDataMaps[i];
             
             eventDTOs.add(new WalletEventDTO(

@@ -4,10 +4,10 @@ import com.crablet.core.AppendCondition;
 import com.crablet.core.Command;
 import com.crablet.core.ConcurrencyException;
 import com.crablet.core.Cursor;
-import com.crablet.core.Event;
+import com.crablet.core.StoredEvent;
 import com.crablet.core.EventStore;
 import com.crablet.core.EventStoreConfig;
-import com.crablet.core.InputEvent;
+import com.crablet.core.AppendEvent;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
 import com.crablet.core.QueryItem;
@@ -53,10 +53,10 @@ public class JDBCEventStore implements EventStore {
     private final EventStoreConfig config;
     
     /**
-     * Singleton RowMapper for Event objects.
+     * Singleton RowMapper for StoredEvent objects.
      * Reused across all queries to avoid lambda allocation overhead.
      */
-    private final RowMapper<Event> EVENT_ROW_MAPPER = (rs, rowNum) -> {
+    private final RowMapper<StoredEvent> EVENT_ROW_MAPPER = (rs, rowNum) -> {
         String type = rs.getString("type");
         String[] tagArray = (String[]) rs.getArray("tags").getArray();
         List<Tag> tags = parseTags(tagArray);
@@ -65,7 +65,7 @@ public class JDBCEventStore implements EventStore {
         long position = rs.getLong("position");
         Instant occurredAt = rs.getTimestamp("occurred_at").toInstant();
         
-        return new Event(type, tags, data, transactionId, position, occurredAt);
+        return new StoredEvent(type, tags, data, transactionId, position, occurredAt);
     };
     
     @Autowired
@@ -88,7 +88,7 @@ public class JDBCEventStore implements EventStore {
     @CircuitBreaker(name = "database")
     @Retry(name = "database")
     @TimeLimiter(name = "database")
-    public List<Event> query(Query query, Cursor after) {
+    public List<StoredEvent> query(Query query, Cursor after) {
         try {
             // Build SQL query directly instead of using the function
             StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at FROM events");
@@ -160,7 +160,7 @@ public class JDBCEventStore implements EventStore {
                 }
                 
                 // Execute query and process results
-                List<Event> events = new ArrayList<>();
+                List<StoredEvent> events = new ArrayList<>();
                 try (ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
                         events.add(EVENT_ROW_MAPPER.mapRow(rs, 0));
@@ -177,14 +177,14 @@ public class JDBCEventStore implements EventStore {
     @CircuitBreaker(name = "database")
     @Retry(name = "database")
     @TimeLimiter(name = "database")
-    public void append(List<InputEvent> events) {
+    public void append(List<AppendEvent> events) {
         if (events.isEmpty()) {
             return;
         }
         
         try {
             // Prepare arrays for append_events_batch function
-            String[] types = events.stream().map(InputEvent::type).toArray(String[]::new);
+            String[] types = events.stream().map(AppendEvent::type).toArray(String[]::new);
             String[] tagArrays = events.stream()
                 .map(event -> convertTagsToPostgresArray(event.tags()))
                 .toArray(String[]::new);
@@ -218,7 +218,7 @@ public class JDBCEventStore implements EventStore {
     }
     
     @Override
-    public void appendIf(List<InputEvent> events, AppendCondition condition) {
+    public void appendIf(List<AppendEvent> events, AppendCondition condition) {
         if (events.isEmpty()) {
             return;
         }
@@ -237,7 +237,7 @@ public class JDBCEventStore implements EventStore {
                 .toList();
             
             // Prepare event data
-            String[] types = events.stream().map(InputEvent::type).toArray(String[]::new);
+            String[] types = events.stream().map(AppendEvent::type).toArray(String[]::new);
             String[] tagArrays = events.stream()
                 .map(event -> convertTagsToPostgresArray(event.tags()))
                 .toArray(String[]::new);
@@ -361,14 +361,14 @@ public class JDBCEventStore implements EventStore {
         Query query = buildQueryFromProjectors(projectors);
         
         // 2. Read events matching the query, starting AFTER cursor
-        List<Event> events = query(query, after);
+        List<StoredEvent> events = query(query, after);
         
         // 3. Apply projectors to build state
         T state = projectors.isEmpty() 
             ? null 
             : projectors.get(0).getInitialState();
         
-        for (Event event : events) {
+        for (StoredEvent event : events) {
             for (StateProjector<T> projector : projectors) {
                 if (projector.handles(event)) {
                     state = projector.transition(state, event);
@@ -400,14 +400,14 @@ public class JDBCEventStore implements EventStore {
         // Build query from projectors
         @SuppressWarnings("unchecked")
         Query query = buildQueryFromProjectors((List<StateProjector<Map<String, Object>>>) (List<?>) projectors);
-        List<Event> events = query(query, after);
+        List<StoredEvent> events = query(query, after);
         
         // Apply projectors to build state
         Map<String, Object> state = projectors.isEmpty() 
             ? new HashMap<>() 
             : (Map<String, Object>) projectors.get(0).getInitialState();
         
-        for (Event event : events) {
+        for (StoredEvent event : events) {
             for (StateProjector projector : projectors) {
                 if (projector.handles(event)) {
                     state = (Map<String, Object>) projector.transition(state, event);
@@ -431,7 +431,7 @@ public class JDBCEventStore implements EventStore {
      * Private method to append events using a provided connection.
      * Used internally by ConnectionScopedEventStore.
      */
-    private void appendWithConnection(Connection connection, List<InputEvent> events) {
+    private void appendWithConnection(Connection connection, List<AppendEvent> events) {
         if (events.isEmpty()) {
             return;
         }
@@ -440,7 +440,7 @@ public class JDBCEventStore implements EventStore {
             "SELECT append_events_batch(?, ?, ?)")) {
             
             // Prepare arrays for append_events_batch function
-            String[] types = events.stream().map(InputEvent::type).toArray(String[]::new);
+            String[] types = events.stream().map(AppendEvent::type).toArray(String[]::new);
             String[] tagArrays = events.stream()
                 .map(event -> convertTagsToPostgresArray(event.tags()))
                 .toArray(String[]::new);
@@ -462,7 +462,7 @@ public class JDBCEventStore implements EventStore {
      * Private method to append events conditionally using a provided connection.
      * Used internally by ConnectionScopedEventStore.
      */
-    private void appendIfWithConnection(Connection connection, List<InputEvent> events, AppendCondition condition) {
+    private void appendIfWithConnection(Connection connection, List<AppendEvent> events, AppendCondition condition) {
         if (events.isEmpty()) {
             return;
         }
@@ -471,7 +471,7 @@ public class JDBCEventStore implements EventStore {
                 "SELECT append_events_if(?::text[], ?::text[], ?::jsonb[], ?::text[], ?::text[], ?::xid8, ?)")) {
             
             // Prepare arrays for append_events_batch_if function
-            String[] types = events.stream().map(InputEvent::type).toArray(String[]::new);
+            String[] types = events.stream().map(AppendEvent::type).toArray(String[]::new);
             String[] tagArrays = events.stream()
                 .map(event -> convertTagsToPostgresArray(event.tags()))
                 .toArray(String[]::new);
@@ -580,7 +580,7 @@ public class JDBCEventStore implements EventStore {
      * Private method to query events using a provided connection.
      * Used internally by ConnectionScopedEventStore.
      */
-    private List<Event> queryWithConnection(Connection connection, Query query, Cursor after) {
+    private List<StoredEvent> queryWithConnection(Connection connection, Query query, Cursor after) {
         try {
             // Build SQL query directly instead of using the function
             StringBuilder sql = new StringBuilder();
@@ -650,10 +650,10 @@ public class JDBCEventStore implements EventStore {
                     }
                 }
                 
-                List<Event> events = new ArrayList<>();
+                List<StoredEvent> events = new ArrayList<>();
                 try (ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
-                        Event event = new Event(
+                        StoredEvent event = new StoredEvent(
                             rs.getString("type"),
                             parseTagsFromArray(rs.getArray("tags")),
                             rs.getBytes("data"),
@@ -681,14 +681,14 @@ public class JDBCEventStore implements EventStore {
             Query query = buildQueryFromProjectors(projectors);
             
             // Query events using the connection
-            List<Event> events = queryWithConnection(connection, query, after);
+            List<StoredEvent> events = queryWithConnection(connection, query, after);
             
             // Apply projectors
             T state = projectors.isEmpty() 
                 ? null 
                 : projectors.get(0).getInitialState();
             
-            for (Event event : events) {
+            for (StoredEvent event : events) {
                 for (StateProjector<T> projector : projectors) {
                     if (projector.handles(event)) {
                         state = projector.transition(state, event);
@@ -729,14 +729,14 @@ public class JDBCEventStore implements EventStore {
             Query query = buildQueryFromProjectors((List<StateProjector<Map<String, Object>>>) (List<?>) projectors);
             
             // Query events using the connection
-            List<Event> events = queryWithConnection(connection, query, after);
+            List<StoredEvent> events = queryWithConnection(connection, query, after);
             
             // Apply projectors
             Map<String, Object> state = projectors.isEmpty() 
                 ? new HashMap<>() 
                 : (Map<String, Object>) projectors.get(0).getInitialState();
             
-            for (Event event : events) {
+            for (StoredEvent event : events) {
                 for (StateProjector projector : projectors) {
                     if (projector.handles(event)) {
                         state = (Map<String, Object>) projector.transition(state, event);
@@ -941,18 +941,18 @@ public class JDBCEventStore implements EventStore {
         }
         
         @Override
-        public List<Event> query(Query query, Cursor after) {
+        public List<StoredEvent> query(Query query, Cursor after) {
             // Use the connection for querying
             return JDBCEventStore.this.queryWithConnection(connection, query, after);
         }
         
         @Override
-        public void append(List<InputEvent> events) {
+        public void append(List<AppendEvent> events) {
             JDBCEventStore.this.appendWithConnection(connection, events);
         }
         
         @Override
-        public void appendIf(List<InputEvent> events, AppendCondition condition) {
+        public void appendIf(List<AppendEvent> events, AppendCondition condition) {
             JDBCEventStore.this.appendIfWithConnection(connection, events, condition);
         }
         
