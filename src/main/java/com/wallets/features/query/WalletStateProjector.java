@@ -1,6 +1,6 @@
 package com.wallets.features.query;
 
-import com.crablet.core.Event;
+import com.crablet.core.StoredEvent;
 import com.crablet.core.StateProjector;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -50,14 +50,33 @@ public class WalletStateProjector implements StateProjector<WalletState> {
         return WalletState.empty();
     }
     
-    @Override
-    public WalletState transition(WalletState currentState, Event event) {
-        try {
-            // Parse event data as WalletEvent using sealed interface
-            WalletEvent walletEvent = objectMapper.readValue(event.data(), WalletEvent.class);
+    /**
+     * Project wallet state from multiple events efficiently using batch deserialization.
+     * This is the optimized method that should be used instead of individual transition() calls.
+     * 
+     * @param events List of events to project from
+     * @return Final wallet state after projecting all events
+     */
+    public WalletState project(List<StoredEvent> events) {
+        if (events.isEmpty()) {
+            return getInitialState();
+        }
+        
+        // Batch deserialize all events for better performance
+        List<byte[]> eventDataList = events.stream()
+            .map(StoredEvent::data)
+            .toList();
+        
+        WalletEvent[] walletEvents = batchDeserializeWalletEvents(eventDataList);
+        
+        WalletState state = getInitialState();
+        
+        // Process each deserialized event
+        for (int i = 0; i < walletEvents.length; i++) {
+            WalletEvent walletEvent = walletEvents[i];
             
-            // Use pattern matching for type-safe event handling
-            return switch (walletEvent) {
+            // Apply the same logic as transition() but with pre-deserialized events
+            state = switch (walletEvent) {
                 case WalletOpened opened when walletId.equals(opened.walletId()) -> 
                     new WalletState(
                         opened.walletId(),
@@ -68,24 +87,82 @@ public class WalletStateProjector implements StateProjector<WalletState> {
                     );
                 
                 case MoneyTransferred transfer when walletId.equals(transfer.fromWalletId()) -> 
-                    currentState.withBalance(transfer.fromBalance(), transfer.transferredAt());
+                    state.withBalance(transfer.fromBalance(), transfer.transferredAt());
                 
                 case MoneyTransferred transfer when walletId.equals(transfer.toWalletId()) -> 
-                    currentState.withBalance(transfer.toBalance(), transfer.transferredAt());
+                    state.withBalance(transfer.toBalance(), transfer.transferredAt());
                 
                 case DepositMade deposit when walletId.equals(deposit.walletId()) -> 
-                    currentState.withBalance(deposit.newBalance(), deposit.depositedAt());
+                    state.withBalance(deposit.newBalance(), deposit.depositedAt());
                 
                 case WithdrawalMade withdrawal when walletId.equals(withdrawal.walletId()) -> 
-                    currentState.withBalance(withdrawal.newBalance(), withdrawal.withdrawnAt());
+                    state.withBalance(withdrawal.newBalance(), withdrawal.withdrawnAt());
                 
-                
-                default -> currentState; // Event not relevant to this wallet
+                default -> state; // Event not relevant to this wallet
             };
-        } catch (Exception e) {
-            // If parsing fails, return current state unchanged
-            log.error("Failed to parse event data: {}", e.getMessage(), e);
-            return currentState;
         }
+        
+        return state;
+    }
+    
+    /**
+     * Batch deserialize wallet events using Jackson's polymorphic support.
+     */
+    private WalletEvent[] batchDeserializeWalletEvents(List<byte[]> eventDataList) {
+        if (eventDataList.isEmpty()) {
+            return new WalletEvent[0];
+        }
+        
+        try {
+            StringBuilder jsonArray = new StringBuilder("[");
+            for (int i = 0; i < eventDataList.size(); i++) {
+                if (i > 0) jsonArray.append(",");
+                jsonArray.append(new String(eventDataList.get(i), java.nio.charset.StandardCharsets.UTF_8));
+            }
+            jsonArray.append("]");
+            
+            return objectMapper.readValue(jsonArray.toString(), WalletEvent[].class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to batch deserialize WalletEvents", e);
+        }
+    }
+    
+    @Override
+    public WalletState transition(WalletState currentState, StoredEvent event) {
+        // Parse event data as WalletEvent using sealed interface
+        // Since we fail-fast on any deserialization error, no try-catch needed
+        WalletEvent walletEvent;
+        try {
+            walletEvent = objectMapper.readValue(event.data(), WalletEvent.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to deserialize WalletEvent", e);
+        }
+        
+        // Use pattern matching for type-safe event handling
+        return switch (walletEvent) {
+            case WalletOpened opened when walletId.equals(opened.walletId()) -> 
+                new WalletState(
+                    opened.walletId(),
+                    opened.owner(),
+                    opened.initialBalance(),
+                    opened.openedAt(),
+                    opened.openedAt()
+                );
+            
+            case MoneyTransferred transfer when walletId.equals(transfer.fromWalletId()) -> 
+                currentState.withBalance(transfer.fromBalance(), transfer.transferredAt());
+            
+            case MoneyTransferred transfer when walletId.equals(transfer.toWalletId()) -> 
+                currentState.withBalance(transfer.toBalance(), transfer.transferredAt());
+            
+            case DepositMade deposit when walletId.equals(deposit.walletId()) -> 
+                currentState.withBalance(deposit.newBalance(), deposit.depositedAt());
+            
+            case WithdrawalMade withdrawal when walletId.equals(withdrawal.walletId()) -> 
+                currentState.withBalance(withdrawal.newBalance(), withdrawal.withdrawnAt());
+            
+            
+            default -> currentState; // Event not relevant to this wallet
+        };
     }
 }

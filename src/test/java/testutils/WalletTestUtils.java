@@ -1,7 +1,7 @@
 package testutils;
 
-import com.crablet.core.Event;
-import com.crablet.core.InputEvent;
+import com.crablet.core.StoredEvent;
+import com.crablet.core.AppendEvent;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -29,9 +29,9 @@ public class WalletTestUtils {
     }
     
     /**
-     * Create an Event from a WalletEvent for testing.
+     * Create a StoredEvent from a WalletEvent for testing.
      */
-    public static Event createEvent(WalletEvent walletEvent) {
+    public static StoredEvent createEvent(WalletEvent walletEvent) {
         try {
             byte[] data = OBJECT_MAPPER.writeValueAsBytes(walletEvent);
             
@@ -48,7 +48,7 @@ public class WalletTestUtils {
                 default -> List.of();
             };
             
-            return new Event(
+            return new StoredEvent(
                 walletEvent.getEventType(),
                 tags,
                 data,
@@ -64,7 +64,7 @@ public class WalletTestUtils {
     /**
      * Create a list of Events from WalletEvents for testing.
      */
-    public static List<Event> createEventList(WalletEvent... events) {
+    public static List<StoredEvent> createEventList(WalletEvent... events) {
         return Arrays.stream(events)
             .map(WalletTestUtils::createEvent)
             .collect(Collectors.toList());
@@ -91,21 +91,21 @@ public class WalletTestUtils {
     }
     
     /**
-     * Create an InputEvent with tags for testing.
+     * Create an AppendEvent with tags for testing.
      */
-    public static InputEvent createInputEvent(String type, List<Tag> tags, WalletEvent walletEvent) {
+    public static AppendEvent createInputEvent(String type, List<Tag> tags, WalletEvent walletEvent) {
         try {
             byte[] data = OBJECT_MAPPER.writeValueAsBytes(walletEvent);
-            return InputEvent.of(type, tags, data);
+            return AppendEvent.of(type, tags, data);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create input event", e);
+            throw new RuntimeException("Failed to create append event", e);
         }
     }
     
     /**
-     * Create a simple InputEvent without tags for testing.
+     * Create a simple AppendEvent without tags for testing.
      */
-    public static InputEvent createInputEvent(String type, WalletEvent walletEvent) {
+    public static AppendEvent createInputEvent(String type, WalletEvent walletEvent) {
         return createInputEvent(type, List.of(), walletEvent);
     }
     

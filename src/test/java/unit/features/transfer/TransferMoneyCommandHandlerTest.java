@@ -1,9 +1,9 @@
 package unit.features.transfer;
 
 import com.crablet.core.CommandResult;
-import com.crablet.core.Event;
+import com.crablet.core.StoredEvent;
 import com.crablet.core.EventStore;
-import com.crablet.core.InputEvent;
+import com.crablet.core.AppendEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.event.MoneyTransferred;
 import com.wallets.domain.event.WalletOpened;
@@ -53,11 +53,11 @@ class TransferMoneyCommandHandlerTest extends AbstractCrabletTest {
         WalletOpened fromWallet = WalletOpened.of("wallet1", "Alice", 1000);
         WalletOpened toWallet = WalletOpened.of("wallet2", "Bob", 500);
         
-        Event fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
-        Event toWalletEvent = WalletTestUtils.createEvent(toWallet);
+        StoredEvent fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
+        StoredEvent toWalletEvent = WalletTestUtils.createEvent(toWallet);
         
-        InputEvent fromWalletInputEvent = InputEvent.of(fromWalletEvent.type(), fromWalletEvent.tags(), fromWalletEvent.data());
-        InputEvent toWalletInputEvent = InputEvent.of(toWalletEvent.type(), toWalletEvent.tags(), toWalletEvent.data());
+        AppendEvent fromWalletInputEvent = AppendEvent.of(fromWalletEvent.type(), fromWalletEvent.tags(), fromWalletEvent.data());
+        AppendEvent toWalletInputEvent = AppendEvent.of(toWalletEvent.type(), toWalletEvent.tags(), toWalletEvent.data());
         
         eventStore.append(List.of(fromWalletInputEvent, toWalletInputEvent));
         
@@ -107,8 +107,8 @@ class TransferMoneyCommandHandlerTest extends AbstractCrabletTest {
     void testHandleTransferMoney_SourceWalletNotFound() {
         // Arrange - create only destination wallet
         WalletOpened toWallet = WalletOpened.of("wallet2", "Bob", 500);
-        Event toWalletEvent = WalletTestUtils.createEvent(toWallet);
-        InputEvent toWalletInputEvent = InputEvent.of(toWalletEvent.type(), toWalletEvent.tags(), toWalletEvent.data());
+        StoredEvent toWalletEvent = WalletTestUtils.createEvent(toWallet);
+        AppendEvent toWalletInputEvent = AppendEvent.of(toWalletEvent.type(), toWalletEvent.tags(), toWalletEvent.data());
         eventStore.append(List.of(toWalletInputEvent));
         
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", "nonexistent", "wallet2", 100, "Payment");
@@ -124,8 +124,8 @@ class TransferMoneyCommandHandlerTest extends AbstractCrabletTest {
     void testHandleTransferMoney_DestinationWalletNotFound() {
         // Arrange - create only source wallet
         WalletOpened fromWallet = WalletOpened.of("wallet1", "Alice", 1000);
-        Event fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
-        InputEvent fromWalletInputEvent = InputEvent.of(fromWalletEvent.type(), fromWalletEvent.tags(), fromWalletEvent.data());
+        StoredEvent fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
+        AppendEvent fromWalletInputEvent = AppendEvent.of(fromWalletEvent.type(), fromWalletEvent.tags(), fromWalletEvent.data());
         eventStore.append(List.of(fromWalletInputEvent));
         
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", "wallet1", "nonexistent", 100, "Payment");
@@ -143,11 +143,11 @@ class TransferMoneyCommandHandlerTest extends AbstractCrabletTest {
         WalletOpened fromWallet = WalletOpened.of("wallet1", "Alice", 100);
         WalletOpened toWallet = WalletOpened.of("wallet2", "Bob", 500);
         
-        Event fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
-        Event toWalletEvent = WalletTestUtils.createEvent(toWallet);
+        StoredEvent fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
+        StoredEvent toWalletEvent = WalletTestUtils.createEvent(toWallet);
         
-        InputEvent fromWalletInputEvent = InputEvent.of(fromWalletEvent.type(), fromWalletEvent.tags(), fromWalletEvent.data());
-        InputEvent toWalletInputEvent = InputEvent.of(toWalletEvent.type(), toWalletEvent.tags(), toWalletEvent.data());
+        AppendEvent fromWalletInputEvent = AppendEvent.of(fromWalletEvent.type(), fromWalletEvent.tags(), fromWalletEvent.data());
+        AppendEvent toWalletInputEvent = AppendEvent.of(toWalletEvent.type(), toWalletEvent.tags(), toWalletEvent.data());
         
         eventStore.append(List.of(fromWalletInputEvent, toWalletInputEvent));
         
@@ -186,11 +186,11 @@ class TransferMoneyCommandHandlerTest extends AbstractCrabletTest {
         WalletOpened fromWallet = WalletOpened.of("wallet1", "Alice", 500);
         WalletOpened toWallet = WalletOpened.of("wallet2", "Bob", 200);
         
-        Event fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
-        Event toWalletEvent = WalletTestUtils.createEvent(toWallet);
+        StoredEvent fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
+        StoredEvent toWalletEvent = WalletTestUtils.createEvent(toWallet);
         
-        InputEvent fromWalletInputEvent = InputEvent.of(fromWalletEvent.type(), fromWalletEvent.tags(), fromWalletEvent.data());
-        InputEvent toWalletInputEvent = InputEvent.of(toWalletEvent.type(), toWalletEvent.tags(), toWalletEvent.data());
+        AppendEvent fromWalletInputEvent = AppendEvent.of(fromWalletEvent.type(), fromWalletEvent.tags(), fromWalletEvent.data());
+        AppendEvent toWalletInputEvent = AppendEvent.of(toWalletEvent.type(), toWalletEvent.tags(), toWalletEvent.data());
         
         eventStore.append(List.of(fromWalletInputEvent, toWalletInputEvent));
         
@@ -213,11 +213,11 @@ class TransferMoneyCommandHandlerTest extends AbstractCrabletTest {
         WalletOpened fromWallet = WalletOpened.of("wallet1", "Alice", 1000);
         WalletOpened toWallet = WalletOpened.of("wallet2", "Bob", 500);
         
-        Event fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
-        Event toWalletEvent = WalletTestUtils.createEvent(toWallet);
+        StoredEvent fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
+        StoredEvent toWalletEvent = WalletTestUtils.createEvent(toWallet);
         
-        InputEvent fromWalletInputEvent = InputEvent.of(fromWalletEvent.type(), fromWalletEvent.tags(), fromWalletEvent.data());
-        InputEvent toWalletInputEvent = InputEvent.of(toWalletEvent.type(), toWalletEvent.tags(), toWalletEvent.data());
+        AppendEvent fromWalletInputEvent = AppendEvent.of(fromWalletEvent.type(), fromWalletEvent.tags(), fromWalletEvent.data());
+        AppendEvent toWalletInputEvent = AppendEvent.of(toWalletEvent.type(), toWalletEvent.tags(), toWalletEvent.data());
         
         eventStore.append(List.of(fromWalletInputEvent, toWalletInputEvent));
         
@@ -241,11 +241,11 @@ class TransferMoneyCommandHandlerTest extends AbstractCrabletTest {
         WalletOpened fromWallet = WalletOpened.of("wallet1", "Alice", 1000);
         WalletOpened toWallet = WalletOpened.of("wallet2", "Bob", 500);
         
-        Event fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
-        Event toWalletEvent = WalletTestUtils.createEvent(toWallet);
+        StoredEvent fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
+        StoredEvent toWalletEvent = WalletTestUtils.createEvent(toWallet);
         
-        InputEvent fromWalletInputEvent = InputEvent.of(fromWalletEvent.type(), fromWalletEvent.tags(), fromWalletEvent.data());
-        InputEvent toWalletInputEvent = InputEvent.of(toWalletEvent.type(), toWalletEvent.tags(), toWalletEvent.data());
+        AppendEvent fromWalletInputEvent = AppendEvent.of(fromWalletEvent.type(), fromWalletEvent.tags(), fromWalletEvent.data());
+        AppendEvent toWalletInputEvent = AppendEvent.of(toWalletEvent.type(), toWalletEvent.tags(), toWalletEvent.data());
         
         eventStore.append(List.of(fromWalletInputEvent, toWalletInputEvent));
         
@@ -271,11 +271,11 @@ class TransferMoneyCommandHandlerTest extends AbstractCrabletTest {
         WalletOpened fromWallet = WalletOpened.of(fromWalletId, "Alice", fromBalance);
         WalletOpened toWallet = WalletOpened.of(toWalletId, "Bob", toBalance);
         
-        Event fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
-        Event toWalletEvent = WalletTestUtils.createEvent(toWallet);
+        StoredEvent fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
+        StoredEvent toWalletEvent = WalletTestUtils.createEvent(toWallet);
         
-        InputEvent fromWalletInputEvent = InputEvent.of(fromWalletEvent.type(), fromWalletEvent.tags(), fromWalletEvent.data());
-        InputEvent toWalletInputEvent = InputEvent.of(toWalletEvent.type(), toWalletEvent.tags(), toWalletEvent.data());
+        AppendEvent fromWalletInputEvent = AppendEvent.of(fromWalletEvent.type(), fromWalletEvent.tags(), fromWalletEvent.data());
+        AppendEvent toWalletInputEvent = AppendEvent.of(toWalletEvent.type(), toWalletEvent.tags(), toWalletEvent.data());
         
         eventStore.append(List.of(fromWalletInputEvent, toWalletInputEvent));
         

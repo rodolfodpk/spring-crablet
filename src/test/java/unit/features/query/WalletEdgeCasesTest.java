@@ -1,6 +1,6 @@
 package unit.features.query;
 
-import com.crablet.core.Event;
+import com.crablet.core.StoredEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -71,7 +71,7 @@ class WalletEdgeCasesTest {
         // Arrange
         WalletState empty = WalletState.empty();
         WalletOpened opened = WalletOpened.of("wallet1", "Alice", 0); // Zero initial balance
-        Event event = WalletTestUtils.createEvent(opened);
+        StoredEvent event = WalletTestUtils.createEvent(opened);
         
         // Act
         WalletState state = projector.transition(empty, event);
@@ -103,7 +103,7 @@ class WalletEdgeCasesTest {
         
         // Maximum transfer
         MoneyTransferred transfer = MoneyTransferred.of("tx1", "wallet1", "wallet2", Integer.MAX_VALUE, 0, 500, "Max transfer");
-        Event event = WalletTestUtils.createEvent(transfer);
+        StoredEvent event = WalletTestUtils.createEvent(transfer);
         
         // Act
         WalletState newState = projector.transition(initialState, event);
@@ -132,7 +132,7 @@ class WalletEdgeCasesTest {
             // Valid transfer
             MoneyTransferred transfer = MoneyTransferred.of("tx1", "wallet1", "wallet2", transferAmount, 
                 expectedBalance, 500, "Edge case transfer");
-            Event event = WalletTestUtils.createEvent(transfer);
+            StoredEvent event = WalletTestUtils.createEvent(transfer);
             
             // Act
             WalletState newState = projector.transition(initialState, event);
@@ -218,7 +218,7 @@ class WalletEdgeCasesTest {
         // Transfer with very long description
         String longDescription = "A".repeat(10000);
         MoneyTransferred transfer = MoneyTransferred.of("tx1", "wallet1", "wallet2", 300, 700, 500, longDescription);
-        Event event = WalletTestUtils.createEvent(transfer);
+        StoredEvent event = WalletTestUtils.createEvent(transfer);
         
         // Act
         WalletState newState = projector.transition(initialState, event);
@@ -237,7 +237,7 @@ class WalletEdgeCasesTest {
         // Transfer with special characters
         String specialDescription = "Transfer with special chars: !@#$%^&*()_+-=[]{}|;':\",./<>?";
         MoneyTransferred transfer = MoneyTransferred.of("tx1", "wallet1", "wallet2", 300, 700, 500, specialDescription);
-        Event event = WalletTestUtils.createEvent(transfer);
+        StoredEvent event = WalletTestUtils.createEvent(transfer);
         
         // Act
         WalletState newState = projector.transition(initialState, event);
@@ -256,7 +256,7 @@ class WalletEdgeCasesTest {
         // Transfer with unicode characters
         String unicodeDescription = "Transfer with unicode: 你好世界 🌍 émojis";
         MoneyTransferred transfer = MoneyTransferred.of("tx1", "wallet1", "wallet2", 300, 700, 500, unicodeDescription);
-        Event event = WalletTestUtils.createEvent(transfer);
+        StoredEvent event = WalletTestUtils.createEvent(transfer);
         
         // Act
         WalletState newState = projector.transition(initialState, event);
@@ -274,7 +274,7 @@ class WalletEdgeCasesTest {
         
         // Transfer with maximum integer values
         MoneyTransferred transfer = MoneyTransferred.of("tx1", "wallet1", "wallet2", Integer.MAX_VALUE, 0, Integer.MAX_VALUE, "Max transfer");
-        Event event = WalletTestUtils.createEvent(transfer);
+        StoredEvent event = WalletTestUtils.createEvent(transfer);
         
         // Act
         WalletState newState = projector.transition(initialState, event);
@@ -294,7 +294,7 @@ class WalletEdgeCasesTest {
         
         // Transfer with minimum positive values
         MoneyTransferred transfer = MoneyTransferred.of("tx1", "wallet1", "wallet2", 1, 0, 1, "Min transfer");
-        Event event = WalletTestUtils.createEvent(transfer);
+        StoredEvent event = WalletTestUtils.createEvent(transfer);
         
         // Act
         WalletState newState = projector.transition(initialState, event);
@@ -314,7 +314,7 @@ class WalletEdgeCasesTest {
         
         // Transfer that results in zero balance
         MoneyTransferred transfer = MoneyTransferred.of("tx1", "wallet1", "wallet2", 1000, 0, 1000, "Full transfer");
-        Event event = WalletTestUtils.createEvent(transfer);
+        StoredEvent event = WalletTestUtils.createEvent(transfer);
         
         // Act
         WalletState newState = projector.transition(initialState, event);
@@ -333,7 +333,7 @@ class WalletEdgeCasesTest {
         WalletState initialState = new WalletState("wallet1", "Alice", 1000, Instant.now(), Instant.now());
         
         // Create events that simulate concurrent operations
-        List<Event> events = WalletTestUtils.createEventList(
+        List<StoredEvent> events = WalletTestUtils.createEventList(
             DepositMade.of("dep1", "wallet1", 100, 1100, "Deposit 1"),
             DepositMade.of("dep2", "wallet1", 200, 1300, "Deposit 2"),
             WithdrawalMade.of("with1", "wallet1", 50, 1250, "Withdrawal 1"),
@@ -342,7 +342,7 @@ class WalletEdgeCasesTest {
         
         // Act
         WalletState currentState = initialState;
-        for (Event event : events) {
+        for (StoredEvent event : events) {
             currentState = projector.transition(currentState, event);
         }
         
@@ -359,7 +359,7 @@ class WalletEdgeCasesTest {
         WalletState initialState = new WalletState("wallet1", "Alice", 1000, Instant.now(), Instant.now());
         
         // Create events that should maintain state consistency
-        List<Event> events = WalletTestUtils.createEventList(
+        List<StoredEvent> events = WalletTestUtils.createEventList(
             DepositMade.of("dep1", "wallet1", 500, 1500, "Test deposit"),
             MoneyTransferred.of("tx1", "wallet1", "wallet2", 200, 1300, 700, "Test transfer"),
             WithdrawalMade.of("with1", "wallet1", 300, 1000, "Test withdrawal")
@@ -367,7 +367,7 @@ class WalletEdgeCasesTest {
         
         // Act
         WalletState currentState = initialState;
-        for (Event event : events) {
+        for (StoredEvent event : events) {
             currentState = projector.transition(currentState, event);
         }
         
@@ -389,7 +389,7 @@ class WalletEdgeCasesTest {
         WalletState initialState = new WalletState("wallet1", "Alice", 1000, Instant.now(), Instant.now());
         
         // Act - No events to process
-        List<Event> emptyEvents = List.of();
+        List<StoredEvent> emptyEvents = List.of();
         
         // Assert - State should remain unchanged
         assertThat(initialState)
@@ -409,7 +409,7 @@ class WalletEdgeCasesTest {
         
         // Single deposit
         DepositMade singleDeposit = DepositMade.of("dep1", "wallet1", 500, 1500, "Single transaction");
-        Event event = WalletTestUtils.createEvent(singleDeposit);
+        StoredEvent event = WalletTestUtils.createEvent(singleDeposit);
         
         // Act
         WalletState finalState = projector.transition(initialState, event);
@@ -431,7 +431,7 @@ class WalletEdgeCasesTest {
         WalletState initialState = new WalletState("wallet1", "Alice", 1000, Instant.now(), Instant.now());
         
         // Create many small transactions to simulate high-volume wallet
-        List<Event> events = new java.util.ArrayList<>();
+        List<StoredEvent> events = new java.util.ArrayList<>();
         final int initialBalance = 1000;
         final int[] currentBalance = {1000};
         
@@ -453,7 +453,7 @@ class WalletEdgeCasesTest {
         
         // Act
         WalletState currentState = initialState;
-        for (Event event : events) {
+        for (StoredEvent event : events) {
             currentState = projector.transition(currentState, event);
         }
         
@@ -478,7 +478,7 @@ class WalletEdgeCasesTest {
         
         // Create a valid event first
         DepositMade validDeposit = DepositMade.of("dep1", "wallet1", 100, 1100, "Valid deposit");
-        Event validEvent = WalletTestUtils.createEvent(validDeposit);
+        StoredEvent validEvent = WalletTestUtils.createEvent(validDeposit);
         
         // Act - Process valid event
         WalletState stateAfterValid = projector.transition(initialState, validEvent);
@@ -502,7 +502,7 @@ class WalletEdgeCasesTest {
         
         // Valid deposit event
         DepositMade validDeposit = DepositMade.of("dep1", "wallet1", 100, 1100, "Valid deposit");
-        Event validEvent = WalletTestUtils.createEvent(validDeposit);
+        StoredEvent validEvent = WalletTestUtils.createEvent(validDeposit);
         
         // Act
         WalletState finalState = projector.transition(initialState, validEvent);
@@ -521,7 +521,7 @@ class WalletEdgeCasesTest {
         WalletState initialState = new WalletState("wallet1", "Alice", 1000, Instant.now(), Instant.now());
         
         // Create events that would require pagination in a real system
-        List<Event> events = new java.util.ArrayList<>();
+        List<StoredEvent> events = new java.util.ArrayList<>();
         final int[] currentBalance = {1000};
         
         // Create 50 events to simulate pagination scenarios
@@ -549,7 +549,7 @@ class WalletEdgeCasesTest {
         
         // Act - Process all events
         WalletState currentState = initialState;
-        for (Event event : events) {
+        for (StoredEvent event : events) {
             currentState = projector.transition(currentState, event);
         }
         
@@ -577,7 +577,7 @@ class WalletEdgeCasesTest {
         WalletState initialState = new WalletState("wallet1", "Alice", 1000, Instant.now(), Instant.now());
         
         // Create events in a specific order to test state transitions
-        List<Event> events = WalletTestUtils.createEventList(
+        List<StoredEvent> events = WalletTestUtils.createEventList(
             // Start with deposits
             DepositMade.of("dep1", "wallet1", 100, 1100, "First deposit"),
             DepositMade.of("dep2", "wallet1", 200, 1300, "Second deposit"),
@@ -593,7 +593,7 @@ class WalletEdgeCasesTest {
         
         // Act
         WalletState currentState = initialState;
-        for (Event event : events) {
+        for (StoredEvent event : events) {
             currentState = projector.transition(currentState, event);
         }
         
@@ -615,7 +615,7 @@ class WalletEdgeCasesTest {
         
         // Test with large numbers
         DepositMade largeDeposit = DepositMade.of("dep1", "wallet1", 500000, 1500000, "Large deposit");
-        Event event = WalletTestUtils.createEvent(largeDeposit);
+        StoredEvent event = WalletTestUtils.createEvent(largeDeposit);
         
         // Act
         WalletState finalState = projector.transition(initialState, event);
@@ -637,7 +637,7 @@ class WalletEdgeCasesTest {
         WalletState initialState = new WalletState("wallet1", "Alice", 1000, Instant.now(), Instant.now());
         
         // Create rapid state changes
-        List<Event> events = WalletTestUtils.createEventList(
+        List<StoredEvent> events = WalletTestUtils.createEventList(
             DepositMade.of("dep1", "wallet1", 100, 1100, "Rapid deposit 1"),
             WithdrawalMade.of("with1", "wallet1", 50, 1050, "Rapid withdrawal 1"),
             DepositMade.of("dep2", "wallet1", 200, 1250, "Rapid deposit 2"),
@@ -648,7 +648,7 @@ class WalletEdgeCasesTest {
         
         // Act
         WalletState currentState = initialState;
-        for (Event event : events) {
+        for (StoredEvent event : events) {
             currentState = projector.transition(currentState, event);
         }
         

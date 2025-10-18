@@ -6,7 +6,7 @@ import com.crablet.core.CommandExecutor;
 import com.crablet.core.CommandHandler;
 import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
-import com.crablet.core.InputEvent;
+import com.crablet.core.AppendEvent;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.event.WalletOpened;
@@ -111,7 +111,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
             @Override
             public CommandResult handle(EventStore eventStore, Command command) {
                 // Create event with empty type
-                return CommandResult.of(List.of(InputEvent.of("", List.of(), new byte[0])), AppendCondition.forEmptyStream());
+                return CommandResult.of(List.of(AppendEvent.of("", List.of(), new byte[0])), AppendCondition.forEmptyStream());
             }
             
             @Override
@@ -135,7 +135,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
             @Override
             public CommandResult handle(EventStore eventStore, Command command) {
                 // Create event with empty tag key
-                return CommandResult.of(List.of(InputEvent.of("TestEvent", List.of(new Tag("", "value")), new byte[0])), AppendCondition.forEmptyStream());
+                return CommandResult.of(List.of(AppendEvent.of("TestEvent", List.of(new Tag("", "value")), new byte[0])), AppendCondition.forEmptyStream());
             }
             
             @Override
@@ -159,7 +159,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
             @Override
             public CommandResult handle(EventStore eventStore, Command command) {
                 // Create event with empty tag value
-                return CommandResult.of(List.of(InputEvent.of("TestEvent", List.of(new Tag("key", "")), new byte[0])), AppendCondition.forEmptyStream());
+                return CommandResult.of(List.of(AppendEvent.of("TestEvent", List.of(new Tag("key", "")), new byte[0])), AppendCondition.forEmptyStream());
             }
             
             @Override
@@ -225,7 +225,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
         CommandHandler<Command> mockHandler = new CommandHandler<Command>() {
             @Override
             public CommandResult handle(EventStore eventStore, Command command) {
-                return CommandResult.of(List.of(InputEvent.of("TestEvent", List.of(), new byte[0])), AppendCondition.forEmptyStream());
+                return CommandResult.of(List.of(AppendEvent.of("TestEvent", List.of(), new byte[0])), AppendCondition.forEmptyStream());
             }
             
             @Override
@@ -256,8 +256,8 @@ class CommandExecutorTest extends AbstractCrabletTest {
                     
                     return CommandResult.of(
                         List.of(
-                            InputEvent.of("WalletOpened", List.of(new Tag("wallet_id", walletId)), data),
-                            InputEvent.of("WalletInitialized", List.of(new Tag("wallet_id", walletId)), "{}".getBytes())
+                            AppendEvent.of("WalletOpened", List.of(new Tag("wallet_id", walletId)), data),
+                            AppendEvent.of("WalletInitialized", List.of(new Tag("wallet_id", walletId)), "{}".getBytes())
                         ),
                         AppendCondition.forEmptyStream()
                     );

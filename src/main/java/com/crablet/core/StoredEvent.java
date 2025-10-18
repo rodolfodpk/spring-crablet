@@ -4,10 +4,13 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Event represents a single event in the event store.
- * This is a pure data record with no business logic.
+ * StoredEvent represents an event retrieved from the event store.
+ * Includes database-specific fields like transaction ID, position, and timestamp.
+ * 
+ * Use AppendEvent for events being appended to the store.
+ * Use StoredEvent for events queried from the store.
  */
-public record Event(
+public record StoredEvent(
     String type,
     List<Tag> tags,
     byte[] data,

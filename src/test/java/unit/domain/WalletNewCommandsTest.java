@@ -2,7 +2,7 @@ package unit.domain;
 
 import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
-import com.crablet.core.InputEvent;
+import com.crablet.core.AppendEvent;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.event.WalletOpened;
@@ -55,7 +55,7 @@ class WalletNewCommandsTest extends AbstractCrabletTest {
     void shouldSuccessfullyDepositMoneyIntoExistingWallet() throws Exception {
         // Given: An existing wallet
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
-        eventStore.append(List.of(InputEvent.of("WalletOpened", List.of(new Tag("wallet_id", "wallet1")), objectMapper.writeValueAsBytes(walletOpened))));
+        eventStore.append(List.of(AppendEvent.of("WalletOpened", List.of(new Tag("wallet_id", "wallet1")), objectMapper.writeValueAsBytes(walletOpened))));
 
         // When: Depositing money
         DepositCommand depositCmd = DepositCommand.of("deposit1", "wallet1", 500, "Salary deposit");
@@ -96,7 +96,7 @@ class WalletNewCommandsTest extends AbstractCrabletTest {
     void shouldSuccessfullyWithdrawMoneyFromExistingWallet() throws Exception {
         // Given: An existing wallet with sufficient balance
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
-        eventStore.append(List.of(InputEvent.of("WalletOpened", List.of(new Tag("wallet_id", "wallet1")), objectMapper.writeValueAsBytes(walletOpened))));
+        eventStore.append(List.of(AppendEvent.of("WalletOpened", List.of(new Tag("wallet_id", "wallet1")), objectMapper.writeValueAsBytes(walletOpened))));
 
         // When: Withdrawing money
         WithdrawCommand withdrawCmd = WithdrawCommand.of("withdrawal1", "wallet1", 300, "Shopping");
@@ -115,7 +115,7 @@ class WalletNewCommandsTest extends AbstractCrabletTest {
     void shouldFailToWithdrawMoreThanAvailableBalance() throws Exception {
         // Given: An existing wallet with limited balance
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 100);
-        eventStore.append(List.of(InputEvent.of("WalletOpened", List.of(new Tag("wallet_id", "wallet1")), objectMapper.writeValueAsBytes(walletOpened))));
+        eventStore.append(List.of(AppendEvent.of("WalletOpened", List.of(new Tag("wallet_id", "wallet1")), objectMapper.writeValueAsBytes(walletOpened))));
 
         // When: Withdrawing more than available
         WithdrawCommand withdrawCmd = WithdrawCommand.of("withdrawal1", "wallet1", 200, "Shopping");

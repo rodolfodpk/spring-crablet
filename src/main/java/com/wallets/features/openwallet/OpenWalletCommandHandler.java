@@ -5,7 +5,7 @@ import com.crablet.core.CommandHandler;
 import com.crablet.core.CommandResult;
 import com.crablet.core.Cursor;
 import com.crablet.core.EventStore;
-import com.crablet.core.InputEvent;
+import com.crablet.core.AppendEvent;
 import com.crablet.core.Query;
 import com.crablet.core.QueryItem;
 import com.crablet.core.Tag;
@@ -49,7 +49,7 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
         );
         
         String jsonData = serializeEvent(objectMapper, walletOpened);
-        InputEvent event = InputEvent.of(
+        AppendEvent event = AppendEvent.of(
             "WalletOpened",
             List.of(new Tag("wallet_id", command.walletId())),
             jsonData.getBytes()

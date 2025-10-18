@@ -4,9 +4,9 @@ import com.crablet.core.AppendCondition;
 import com.crablet.core.CommandHandler;
 import com.crablet.core.CommandResult;
 import com.crablet.core.Cursor;
-import com.crablet.core.Event;
+import com.crablet.core.StoredEvent;
 import com.crablet.core.EventStore;
-import com.crablet.core.InputEvent;
+import com.crablet.core.AppendEvent;
 import com.crablet.core.Query;
 import com.crablet.core.QueryItem;
 import com.crablet.core.SequenceNumber;
@@ -88,7 +88,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
             command.description()
         );
         
-        InputEvent event = InputEvent.of(
+        AppendEvent event = AppendEvent.of(
             "MoneyTransferred",
             List.of(
                 new Tag("transfer_id", command.transferId()),
@@ -168,7 +168,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
             )
         ));
         
-        List<Event> events = store.query(walletsQuery, null);
+        List<StoredEvent> events = store.query(walletsQuery, null);
         
         // Build balance states for both wallets
         WalletBalanceState fromWallet = balanceProjector.buildBalanceState(events, cmd.fromWalletId());

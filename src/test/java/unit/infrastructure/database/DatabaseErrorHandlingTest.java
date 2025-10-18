@@ -1,7 +1,7 @@
 package unit.infrastructure.database;
 
 import com.crablet.core.AppendCondition;
-import com.crablet.core.InputEvent;
+import com.crablet.core.AppendEvent;
 import com.crablet.core.Query;
 import com.crablet.core.StateProjector;
 import com.crablet.core.Tag;
@@ -68,8 +68,8 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     @DisplayName("Should handle appendIf with null condition")
     void shouldHandleAppendIfWithNullCondition() {
         // Given
-        List<InputEvent> events = List.of(
-            InputEvent.of("TestEvent", List.of(), "test data".getBytes())
+        List<AppendEvent> events = List.of(
+            AppendEvent.of("TestEvent", List.of(), "test data".getBytes())
         );
 
         // When & Then
@@ -105,7 +105,7 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     @DisplayName("Should handle invalid event data gracefully")
     void shouldHandleInvalidEventDataGracefully() {
         // Given - Create event with invalid JSON data
-        InputEvent invalidEvent = InputEvent.of(
+        AppendEvent invalidEvent = AppendEvent.of(
             "InvalidEvent", 
             List.of(new Tag("test", "value")), 
             "invalid json data".getBytes()
@@ -120,7 +120,7 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     @DisplayName("Should handle malformed tags gracefully")
     void shouldHandleMalformedTagsGracefully() {
         // Given - Create event with malformed tags but valid JSON data
-        InputEvent eventWithMalformedTags = InputEvent.of(
+        AppendEvent eventWithMalformedTags = AppendEvent.of(
             "TestEvent", 
             List.of(new Tag("", "value"), new Tag("key", "")), 
             "{\"test\": \"data\"}".getBytes()
@@ -136,7 +136,7 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleVeryLargeEventData() {
         // Given - Create event with large data
         String largeData = "x".repeat(10000);
-        InputEvent largeEvent = InputEvent.of(
+        AppendEvent largeEvent = AppendEvent.of(
             "LargeEvent", 
             List.of(new Tag("size", "large")), 
             largeData.getBytes()
@@ -152,7 +152,7 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleSpecialCharactersInEventData() {
         // Given - Create event with special characters
         String specialData = "Special chars: éñüñç@#$%^&*()_+-=[]{}|;':\",./<>?";
-        InputEvent specialEvent = InputEvent.of(
+        AppendEvent specialEvent = AppendEvent.of(
             "SpecialEvent", 
             List.of(new Tag("chars", "special")), 
             specialData.getBytes()
@@ -168,7 +168,7 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleUnicodeCharactersInEventData() {
         // Given - Create event with unicode characters
         String unicodeData = "Unicode: 🚀🌟💫⭐✨🎉🎊";
-        InputEvent unicodeEvent = InputEvent.of(
+        AppendEvent unicodeEvent = AppendEvent.of(
             "UnicodeEvent", 
             List.of(new Tag("unicode", "true")), 
             unicodeData.getBytes()

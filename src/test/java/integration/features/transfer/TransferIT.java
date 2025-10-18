@@ -1,7 +1,7 @@
 package integration.features.transfer;
 
 import com.crablet.core.CommandExecutor;
-import com.crablet.core.Event;
+import com.crablet.core.StoredEvent;
 import com.crablet.core.EventStore;
 import com.crablet.core.Query;
 import com.crablet.core.QueryItem;
@@ -89,7 +89,7 @@ public class TransferIT extends AbstractCrabletTest {
         // Verify specific query
         var walletEvents = eventStore.query(Query.of(QueryItem.ofType("WalletOpened")), null);
         assertThat(walletEvents).hasSize(1);
-        Event event = walletEvents.get(0);
+        StoredEvent event = walletEvents.get(0);
         assertThat(event.type()).isEqualTo("WalletOpened");
         assertThat(event.hasTag("wallet_id", "wallet1")).isTrue();
     }
@@ -162,7 +162,7 @@ public class TransferIT extends AbstractCrabletTest {
         var events = eventStore.query(query, null);
         
         assertThat(events).hasSize(1);
-        Event event = events.get(0);
+        StoredEvent event = events.get(0);
         assertThat(event.type()).isEqualTo("MoneyTransferred");
         assertThat(event.hasTag("transfer_id", "tx1")).isTrue();
     }
