@@ -48,9 +48,9 @@ jobs:
         # Create badges directory if it doesn't exist
         mkdir -p .github/badges
         
-        # Extract coverage values from JaCoCo XML report final summary
-        COVERAGE_MISSED=$(xmllint --xpath '/report/counter[@type="LINE"]/@missed' target/site/jacoco/jacoco.xml 2>/dev/null | grep -o '[0-9]*')
-        COVERAGE_COVERED=$(xmllint --xpath '/report/counter[@type="LINE"]/@covered' target/site/jacoco/jacoco.xml 2>/dev/null | grep -o '[0-9]*')
+        # Extract coverage values from JaCoCo XML report using grep (no xmllint needed)
+        COVERAGE_MISSED=$(grep 'counter type="LINE"' target/site/jacoco/jacoco.xml | tail -1 | sed -n 's/.*missed="\([0-9]*\)".*/\1/p')
+        COVERAGE_COVERED=$(grep 'counter type="LINE"' target/site/jacoco/jacoco.xml | tail -1 | sed -n 's/.*covered="\([0-9]*\)".*/\1/p')
         
         # Calculate coverage percentage
         COVERAGE_TOTAL=$((COVERAGE_MISSED + COVERAGE_COVERED))
@@ -72,9 +72,9 @@ jobs:
         # Generate coverage badge
         curl -s "https://img.shields.io/badge/coverage-${COVERAGE_PERCENT}%25-${COLOR}" > .github/badges/jacoco.svg
         
-        # Extract branch coverage values from JaCoCo XML report final summary
-        BRANCH_MISSED=$(xmllint --xpath '/report/counter[@type="BRANCH"]/@missed' target/site/jacoco/jacoco.xml 2>/dev/null | grep -o '[0-9]*')
-        BRANCH_COVERED=$(xmllint --xpath '/report/counter[@type="BRANCH"]/@covered' target/site/jacoco/jacoco.xml 2>/dev/null | grep -o '[0-9]*')
+        # Extract branch coverage values from JaCoCo XML report using grep (no xmllint needed)
+        BRANCH_MISSED=$(grep 'counter type="BRANCH"' target/site/jacoco/jacoco.xml | tail -1 | sed -n 's/.*missed="\([0-9]*\)".*/\1/p')
+        BRANCH_COVERED=$(grep 'counter type="BRANCH"' target/site/jacoco/jacoco.xml | tail -1 | sed -n 's/.*covered="\([0-9]*\)".*/\1/p')
         
         # Calculate branch coverage percentage
         BRANCH_TOTAL=$((BRANCH_MISSED + BRANCH_COVERED))
