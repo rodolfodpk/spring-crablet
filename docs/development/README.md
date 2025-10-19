@@ -12,14 +12,27 @@ Development practices and testing strategies for the wallet challenge solution.
 
 ### Local Development
 
+#### Building and Testing
 ```bash
-# Clone and start
-git clone <repository-url>
-cd wallets-challenge
-docker-compose up -d postgres
+# Build and test (uses Testcontainers, no app startup needed)
+./mvnw clean compile
+./mvnw test verify
+./mvnw package
+```
+
+Tests use Testcontainers and don't require PostgreSQL or Spring Boot to be running.
+
+#### Running the Application
+
+```bash
+# Option 1: Using make
+make start
+
+# Option 2: Manual start
+docker-compose up -d  # Starts PostgreSQL + observability stack
 ./mvnw spring-boot:run
 
-# Verify setup
+# Verify
 curl http://localhost:8080/actuator/health
 ```
 
@@ -37,22 +50,6 @@ src/
     ├── crablet/                        # Unit tests
     ├── domain/                         # Domain tests
     └── service/                        # Service tests
-```
-
-## Build Commands
-
-```bash
-# Clean and compile
-./mvnw clean compile
-
-# Run tests
-./mvnw test verify
-
-# Package application
-./mvnw package
-
-# Run application
-./mvnw spring-boot:run
 ```
 
 ## Testing Strategy

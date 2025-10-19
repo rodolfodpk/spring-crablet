@@ -12,21 +12,45 @@ Java 25 implementation of the DCB (Dynamic Consistency Boundary) event sourcing 
 
 ## Quick Start
 
+### Build and Test (No Application Required)
 ```bash
-# Start everything (PostgreSQL + Spring Boot)
-make start
+# Build and run all tests with Testcontainers
+./mvnw clean install
 
-# Run tests
+# Or just run tests
 ./mvnw test verify
+```
 
-# Performance test
+### Run the Application
+
+```bash
+# Start all services (PostgreSQL, Prometheus, Grafana, Loki, Promtail)
+docker-compose up -d
+
+# Start Spring Boot application
+./mvnw spring-boot:run
+
+# Or use make (does both)
+make start
+```
+
+**Available URLs after startup**:
+- API: http://localhost:8080/api
+- Swagger UI: http://localhost:8080/swagger-ui/index.html
+- Grafana: http://localhost:3000 (admin/admin)
+- Prometheus: http://localhost:9090
+
+See [docs/urls.md](docs/urls.md) for complete URL reference.
+
+### Performance Testing (Requires Running Application)
+
+```bash
+make start
 make perf-quick
-
-# Stop everything
 make stop
 ```
 
-**📚 [Detailed Setup](docs/setup/README.md)** | **📚 [API Reference](docs/api/README.md)** | **📚 [Swagger UI](http://localhost:8080/swagger-ui/index.html)**
+**📚 [Detailed Setup](docs/setup/README.md)** | **📚 [API Reference](docs/api/README.md)** | **📚 [All URLs](docs/urls.md)**
 
 ## Key Components
 

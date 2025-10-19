@@ -1,5 +1,7 @@
 # HTTP/2 Configuration
 
+> **📌 Note**: This documentation has been consolidated into [Security Documentation](security/README.md). Please refer to that location for the most up-to-date information.
+
 ## Overview
 
 HTTP/2 is enabled to improve performance through multiplexing, header compression, and reduced connection overhead.

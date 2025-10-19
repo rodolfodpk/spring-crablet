@@ -1,5 +1,7 @@
 # Rate Limiting
 
+> **📌 Note**: This documentation has been consolidated into [Security Documentation](security/README.md). Please refer to that location for the most up-to-date information.
+
 Application-level rate limiting using Resilience4j to protect against abuse and resource exhaustion.
 
 ## Rate Limits
