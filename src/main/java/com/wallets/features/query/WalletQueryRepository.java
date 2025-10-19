@@ -5,6 +5,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -84,6 +85,75 @@ public class WalletQueryRepository {
                 timestamp != null ? Timestamp.from(timestamp) : null,
                 timestamp != null ? Timestamp.from(timestamp) : null);
         return count != null ? count : 0L;
+    }
+
+    /**
+     * Get wallet events as individual rows with pagination and timestamp filtering.
+     * Used for history queries - pagination done at database level for efficiency.
+     */
+    public List<EventResponse> getWalletEvents(String walletId, Instant before, int limit, int offset) {
+        String sql = """
+                SELECT type, data, position, occurred_at
+                FROM events
+                WHERE (
+                    tags @> ARRAY['wallet_id=' || ?] OR
+                    tags @> ARRAY['from_wallet_id=' || ?] OR
+                    tags @> ARRAY['to_wallet_id=' || ?]
+                )
+                AND (?::TIMESTAMP IS NULL OR occurred_at <= ?::TIMESTAMP)
+                ORDER BY transaction_id, position ASC
+                LIMIT ? OFFSET ?
+                """;
+
+        return jdbcTemplate.query(sql, new EventRowMapper(),
+                walletId, walletId, walletId,
+                before != null ? Timestamp.from(before) : null,
+                before != null ? Timestamp.from(before) : null,
+                limit, offset);
+    }
+
+    /**
+     * Get total count of wallet events (for pagination metadata).
+     */
+    public long getWalletEventsCount(String walletId, Instant before) {
+        String sql = """
+                SELECT COUNT(*)
+                FROM events
+                WHERE (
+                    tags @> ARRAY['wallet_id=' || ?] OR
+                    tags @> ARRAY['from_wallet_id=' || ?] OR
+                    tags @> ARRAY['to_wallet_id=' || ?]
+                )
+                AND (?::TIMESTAMP IS NULL OR occurred_at <= ?::TIMESTAMP)
+                """;
+
+        Long count = jdbcTemplate.queryForObject(sql, Long.class,
+                walletId, walletId, walletId,
+                before != null ? Timestamp.from(before) : null,
+                before != null ? Timestamp.from(before) : null);
+
+        return count != null ? count : 0L;
+    }
+
+    /**
+     * Get wallet events as aggregated JSON array (optimized for projection).
+     * Used for state projection without pagination - leverages PostgreSQL jsonb_agg() for efficient binary transfer.
+     */
+    public byte[] getWalletEventsAsJsonArray(String walletId) {
+        String sql = """
+                SELECT COALESCE(jsonb_agg(data ORDER BY transaction_id, position), '[]'::jsonb)
+                FROM events
+                WHERE (
+                    tags @> ARRAY['wallet_id=' || ?] OR
+                    tags @> ARRAY['from_wallet_id=' || ?] OR
+                    tags @> ARRAY['to_wallet_id=' || ?]
+                )
+                """;
+
+        String jsonArray = jdbcTemplate.queryForObject(sql, String.class,
+                walletId, walletId, walletId);
+
+        return jsonArray != null ? jsonArray.getBytes(StandardCharsets.UTF_8) : "[]".getBytes(StandardCharsets.UTF_8);
     }
 
     /**

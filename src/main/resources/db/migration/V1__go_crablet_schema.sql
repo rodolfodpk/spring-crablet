@@ -90,6 +90,9 @@ BEGIN
         p_after_cursor_position IS NULL OR
         e.position > p_after_cursor_position
         )
+      -- Only consider committed transactions for proper ordering and conflict detection
+      -- This prevents false positives from in-flight transactions that might rollback
+      AND e.transaction_id < pg_snapshot_xmin(pg_current_snapshot())
     LIMIT 1;
 
     IF condition_count > 0 THEN

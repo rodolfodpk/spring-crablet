@@ -89,19 +89,24 @@ See [API Reference](api/README.md) for complete API documentation.
 
 ### Dynamic Consistency Boundary (DCB)
 
-Event sourcing concurrency pattern:
+Cursor-based optimistic locking:
 
-- **Optimistic Locking**: Conflict detection and resolution
-- **Event Ordering**: Consistent event ordering
-- **Conflict Resolution**: Automatic retry mechanisms
-- **Consistency Guarantees**: Eventual consistency
+- **Entity Scoping**: Conflicts checked per entity (e.g., per wallet)
+- **Position Checks**: "Any events for entity X after position N?"
+- **PostgreSQL Integration**: `pg_snapshot_xmin()` for committed-only checks
+- **Conflict Response**: 409 status code triggers client retry
+
+Measured throughput: 700+ req/s with entity-scoped checks.
+
+See **[DCB Technical Details](DCB_AND_CRABLET.md)** for implementation walkthrough.
 
 ### Append Conditions
 
-- **Version Checking**: Event version validation
-- **Conditional Appends**: Atomic event appends
-- **Conflict Detection**: Automatic conflict identification
-- **Retry Logic**: Automatic retry on conflicts
+Declarative conflict detection:
+- Filter by event types
+- Filter by entity tags
+- Check after cursor position
+- Return 409 on conflict
 
 ## Serialization
 

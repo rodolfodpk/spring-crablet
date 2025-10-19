@@ -37,14 +37,14 @@ public class CommandExecutor {
                         CommandHandler::getCommandType,
                         h -> h,
                         (h1, _) -> {
-                            throw new IllegalStateException(
-                                    "Duplicate handler for command type: " + h1.getCommandType());
+                            throw new InvalidCommandException(
+                                    "Duplicate handler for command type: " + h1.getCommandType(), h1.getCommandType());
                         }
                 ));
 
         // Fail fast if no handlers registered
         if (handlers.isEmpty()) {
-            throw new IllegalStateException("No command handlers registered");
+            throw new InvalidCommandException("No command handlers registered", "NO_HANDLERS");
         }
 
         // Log EventStore configuration at startup
@@ -81,10 +81,10 @@ public class CommandExecutor {
     public ExecutionResult executeCommand(Command command, CommandHandler<?> handler) {
         // Validate command
         if (command == null) {
-            throw new IllegalArgumentException("Command cannot be null");
+            throw new InvalidCommandException("Command cannot be null", "NULL_COMMAND");
         }
         if (handler == null) {
-            throw new IllegalArgumentException("Handler cannot be null");
+            throw new InvalidCommandException("Handler cannot be null", "NULL_HANDLER");
         }
 
         log.debug("Starting transaction for command: {}", command.getCommandType());
@@ -98,14 +98,14 @@ public class CommandExecutor {
 
                 // Validate generated events - allow empty list for idempotent operations
                 if (result.events() == null) {
-                    throw new IllegalArgumentException("Handler returned null events");
+                    throw new InvalidCommandException("Handler returned null events", command);
                 }
 
                 // Validate individual events with enhanced for-loops
                 int eventIndex = 0;
                 for (AppendEvent event : result.events()) {
                     if (event.type() == null || event.type().isEmpty()) {
-                        throw new IllegalArgumentException("Event at index " + eventIndex + " has empty type");
+                        throw new InvalidCommandException("Event at index " + eventIndex + " has empty type", command);
                     }
 
                     // Validate tags
@@ -113,10 +113,10 @@ public class CommandExecutor {
                         int tagIndex = 0;
                         for (Tag tag : event.tags()) {
                             if (tag.key() == null || tag.key().isEmpty()) {
-                                throw new IllegalArgumentException("Empty tag key at index " + tagIndex);
+                                throw new InvalidCommandException("Empty tag key at index " + tagIndex, command);
                             }
                             if (tag.value() == null || tag.value().isEmpty()) {
-                                throw new IllegalArgumentException("Empty tag value for key " + tag.key());
+                                throw new InvalidCommandException("Empty tag value for key " + tag.key(), command);
                             }
                             tagIndex++;
                         }
@@ -167,12 +167,11 @@ public class CommandExecutor {
      */
     private CommandHandler<?> getHandlerForCommand(Command command) {
         if (command == null) {
-            throw new IllegalArgumentException("Command cannot be null");
+            throw new InvalidCommandException("Command cannot be null", "NULL_COMMAND");
         }
         CommandHandler<?> handler = handlers.get(command.getCommandType());
         if (handler == null) {
-            throw new IllegalArgumentException("No handler registered for command type: "
-                    + command.getCommandType());
+            throw new InvalidCommandException("No handler registered for command type: " + command.getCommandType(), command);
         }
         return handler;
     }

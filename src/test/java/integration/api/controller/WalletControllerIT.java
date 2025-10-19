@@ -136,11 +136,11 @@ class WalletControllerIT extends AbstractCrabletTest {
         assertThat(history.size()).isEqualTo(20);
         assertThat(history.hasNext()).isFalse();
 
-        // Verify event types (events are returned in DESC order - newest first)
+        // Verify event types (events are returned in ASC order - chronological order)
         List<String> eventTypes = history.events().stream()
                 .map(WalletEventDTO::eventType)
                 .toList();
-        assertThat(eventTypes).containsExactly("MoneyTransferred", "DepositMade", "WalletOpened");
+        assertThat(eventTypes).containsExactly("WalletOpened", "DepositMade", "MoneyTransferred");
     }
 
     @Test
