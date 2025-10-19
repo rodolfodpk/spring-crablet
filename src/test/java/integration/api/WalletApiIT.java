@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Integration tests for the complete wallet API workflow.
  * Tests the happy path: open wallets, deposit, withdraw, transfer, and query operations.
- * 
+ * <p>
  * Note: This test requires command persistence to be enabled.
  */
 @DisplayName("Wallet API Integration Tests")
@@ -53,7 +53,7 @@ class WalletApiIT extends AbstractCrabletTest {
     void shouldCompleteWalletWorkflow() throws Exception {
         String walletId1 = "workflow-" + UUID.randomUUID().toString().substring(0, 8);
         String walletId2 = "workflow-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         // Step 1: Open wallet 1
         OpenWalletRequest openWallet1Request = new OpenWalletRequest("user1", 1000);
         ResponseEntity<Void> wallet1Response = openWallet(baseUrl + "/api/wallets/" + walletId1, openWallet1Request);
@@ -83,61 +83,61 @@ class WalletApiIT extends AbstractCrabletTest {
 
         // Step 6: Query events for wallet 1
         ResponseEntity<WalletHistoryResponse> eventsResponse = restTemplate.getForEntity(
-            baseUrl + "/api/wallets/" + walletId1 + "/events?page=0&size=20", WalletHistoryResponse.class);
+                baseUrl + "/api/wallets/" + walletId1 + "/events?page=0&size=20", WalletHistoryResponse.class);
         assertThat(eventsResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        
+
         WalletHistoryResponse events = eventsResponse.getBody();
         assertThat(events).isNotNull();
         assertThat(events.events()).hasSize(4); // WalletOpened, DepositMade, MoneyWithdrawn, MoneyTransferred
         assertThat(events.events().stream().map(e -> e.eventType()))
-            .containsExactlyInAnyOrder("WalletOpened", "DepositMade", "WithdrawalMade", "MoneyTransferred");
+                .containsExactlyInAnyOrder("WalletOpened", "DepositMade", "WithdrawalMade", "MoneyTransferred");
         assertThat(events.totalEvents()).isEqualTo(4);
         assertThat(events.hasNext()).isFalse();
 
         // Step 7: Query events for wallet 2
         ResponseEntity<WalletHistoryResponse> events2Response = restTemplate.getForEntity(
-            baseUrl + "/api/wallets/" + walletId2 + "/events?page=0&size=20", WalletHistoryResponse.class);
+                baseUrl + "/api/wallets/" + walletId2 + "/events?page=0&size=20", WalletHistoryResponse.class);
         assertThat(events2Response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        
+
         WalletHistoryResponse events2 = events2Response.getBody();
         assertThat(events2).isNotNull();
         assertThat(events2.events()).hasSize(2); // WalletOpened, MoneyTransferred
         assertThat(events2.events().stream().map(e -> e.eventType()))
-            .containsExactlyInAnyOrder("WalletOpened", "MoneyTransferred");
+                .containsExactlyInAnyOrder("WalletOpened", "MoneyTransferred");
         assertThat(events2.totalEvents()).isEqualTo(2);
 
         // Step 8: Query commands for wallet 1
         ResponseEntity<WalletCommandsResponse> commandsResponse = restTemplate.getForEntity(
-            baseUrl + "/api/wallets/" + walletId1 + "/commands?page=0&size=20", WalletCommandsResponse.class);
+                baseUrl + "/api/wallets/" + walletId1 + "/commands?page=0&size=20", WalletCommandsResponse.class);
         assertThat(commandsResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        
+
         WalletCommandsResponse commands = commandsResponse.getBody();
         assertThat(commands).isNotNull();
         assertThat(commands.commands()).hasSize(4); // open_wallet, deposit, withdraw, transfer_money
         assertThat(commands.commands().stream().map(c -> c.commandType()))
-            .containsExactlyInAnyOrder("open_wallet", "deposit", "withdraw", "transfer_money");
+                .containsExactlyInAnyOrder("open_wallet", "deposit", "withdraw", "transfer_money");
         assertThat(commands.totalCommands()).isEqualTo(4);
         assertThat(commands.hasNext()).isFalse();
 
         // Step 9: Query commands for wallet 2
         ResponseEntity<WalletCommandsResponse> commands2Response = restTemplate.getForEntity(
-            baseUrl + "/api/wallets/" + walletId2 + "/commands?page=0&size=20", WalletCommandsResponse.class);
+                baseUrl + "/api/wallets/" + walletId2 + "/commands?page=0&size=20", WalletCommandsResponse.class);
         assertThat(commands2Response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        
+
         WalletCommandsResponse commands2 = commands2Response.getBody();
         assertThat(commands2).isNotNull();
         assertThat(commands2.commands()).hasSize(2); // open_wallet, transfer_money
         assertThat(commands2.commands().stream().map(c -> c.commandType()))
-            .containsExactlyInAnyOrder("open_wallet", "transfer_money");
+                .containsExactlyInAnyOrder("open_wallet", "transfer_money");
         assertThat(commands2.totalCommands()).isEqualTo(2);
 
         // Step 10: Verify wallet state
         ResponseEntity<String> wallet1StateResponse = restTemplate.getForEntity(
-            baseUrl + "/api/wallets/" + walletId1, String.class);
+                baseUrl + "/api/wallets/" + walletId1, String.class);
         assertThat(wallet1StateResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        
+
         ResponseEntity<String> wallet2StateResponse = restTemplate.getForEntity(
-            baseUrl + "/api/wallets/" + walletId2, String.class);
+                baseUrl + "/api/wallets/" + walletId2, String.class);
         assertThat(wallet2StateResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
@@ -145,7 +145,7 @@ class WalletApiIT extends AbstractCrabletTest {
     @DisplayName("Error scenario: insufficient funds for withdrawal")
     void shouldHandleInsufficientFundsForWithdrawal() throws Exception {
         String walletId = "insufficient-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         // Open wallet with small balance
         OpenWalletRequest openRequest = new OpenWalletRequest("user1", 50);
         ResponseEntity<Void> walletResponse = openWallet(baseUrl + "/api/wallets/" + walletId, openRequest);
@@ -155,7 +155,7 @@ class WalletApiIT extends AbstractCrabletTest {
         WithdrawRequest withdrawRequest = new WithdrawRequest("withdraw-1", 100, "Large withdrawal");
         ResponseEntity<String> withdrawResponse = withdrawWithError(baseUrl + "/api/wallets/" + walletId + "/withdraw", withdrawRequest);
         assertThat(withdrawResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        
+
         String errorBody = withdrawResponse.getBody();
         assertThat(errorBody).contains("Insufficient funds");
     }
@@ -165,7 +165,7 @@ class WalletApiIT extends AbstractCrabletTest {
     void shouldHandleInsufficientFundsForTransfer() throws Exception {
         String walletId1 = "transfer-" + UUID.randomUUID().toString().substring(0, 8);
         String walletId2 = "transfer-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         // Open wallets
         OpenWalletRequest openRequest1 = new OpenWalletRequest("user1", 50);
         ResponseEntity<Void> wallet1Response = openWallet(baseUrl + "/api/wallets/" + walletId1, openRequest1);
@@ -179,7 +179,7 @@ class WalletApiIT extends AbstractCrabletTest {
         TransferRequest transferRequest = new TransferRequest("transfer-" + UUID.randomUUID().toString().substring(0, 8), walletId1, walletId2, 100, "Large transfer");
         ResponseEntity<String> transferResponse = transferWithError(baseUrl + "/api/wallets/transfer", transferRequest);
         assertThat(transferResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        
+
         String errorBody = transferResponse.getBody();
         assertThat(errorBody).contains("Insufficient funds");
     }
@@ -188,7 +188,7 @@ class WalletApiIT extends AbstractCrabletTest {
     @DisplayName("Error scenario: duplicate wallet creation")
     void shouldHandleDuplicateWalletCreation() throws Exception {
         String walletId = "duplicate-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         // Open wallet first time
         OpenWalletRequest openRequest = new OpenWalletRequest("user1", 1000);
         ResponseEntity<Void> firstResponse = openWallet(baseUrl + "/api/wallets/" + walletId, openRequest);
@@ -197,7 +197,7 @@ class WalletApiIT extends AbstractCrabletTest {
         // Try to open same wallet again
         ResponseEntity<String> secondResponse = openWalletWithError(baseUrl + "/api/wallets/" + walletId, openRequest);
         assertThat(secondResponse.getStatusCode()).isEqualTo(HttpStatus.OK); // Idempotent operation
-        
+
         String responseBody = secondResponse.getBody();
         assertThat(responseBody).contains("Wallet already exists");
     }
@@ -206,12 +206,12 @@ class WalletApiIT extends AbstractCrabletTest {
     @DisplayName("Error scenario: wallet not found for operations")
     void shouldHandleWalletNotFound() throws Exception {
         String walletId = "nonexistent-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         // Try to deposit to non-existent wallet
         DepositRequest depositRequest = new DepositRequest("deposit-" + UUID.randomUUID().toString().substring(0, 8), 100, "Deposit to non-existent wallet");
         ResponseEntity<String> depositResponse = depositWithError(baseUrl + "/api/wallets/" + walletId + "/deposit", depositRequest);
         assertThat(depositResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        
+
         String errorBody = depositResponse.getBody();
         assertThat(errorBody).contains("Wallet not found");
     }
@@ -220,7 +220,7 @@ class WalletApiIT extends AbstractCrabletTest {
     @DisplayName("Timestamp filtering for events and commands")
     void shouldFilterEventsAndCommandsByTimestamp() throws Exception {
         String walletId = "timestamp-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         // Open wallet and perform operations
         OpenWalletRequest openRequest = new OpenWalletRequest("user1", 1000);
         ResponseEntity<Void> walletResponse = openWallet(baseUrl + "/api/wallets/" + walletId, openRequest);
@@ -236,20 +236,20 @@ class WalletApiIT extends AbstractCrabletTest {
 
         // Query events with timestamp filter (should return all events since we're filtering up to 1 hour in the future)
         ResponseEntity<WalletHistoryResponse> eventsResponse = restTemplate.getForEntity(
-            baseUrl + "/api/wallets/" + walletId + "/events?timestamp=" + futureTimestamp + "&page=0&size=20", 
-            WalletHistoryResponse.class);
+                baseUrl + "/api/wallets/" + walletId + "/events?timestamp=" + futureTimestamp + "&page=0&size=20",
+                WalletHistoryResponse.class);
         assertThat(eventsResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        
+
         WalletHistoryResponse events = eventsResponse.getBody();
         assertThat(events).isNotNull();
         assertThat(events.events()).hasSize(2); // WalletOpened, DepositMade
 
         // Query commands with timestamp filter
         ResponseEntity<WalletCommandsResponse> commandsResponse = restTemplate.getForEntity(
-            baseUrl + "/api/wallets/" + walletId + "/commands?timestamp=" + futureTimestamp + "&page=0&size=20", 
-            WalletCommandsResponse.class);
+                baseUrl + "/api/wallets/" + walletId + "/commands?timestamp=" + futureTimestamp + "&page=0&size=20",
+                WalletCommandsResponse.class);
         assertThat(commandsResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        
+
         WalletCommandsResponse commands = commandsResponse.getBody();
         assertThat(commands).isNotNull();
         assertThat(commands.commands()).hasSize(2); // open_wallet, deposit

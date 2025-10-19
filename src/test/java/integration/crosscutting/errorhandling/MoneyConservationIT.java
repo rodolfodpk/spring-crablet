@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration test for money conservation across wallet operations.
- * 
+ * <p>
  * Tests that money is conserved across:
  * 1. Transfers between wallets (total system balance unchanged)
  * 2. Multi-wallet transfer chains
@@ -48,33 +48,33 @@ class MoneyConservationIT extends AbstractCrabletTest {
         String wallet1Id = "conservation-1-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet2Id = "conservation-2-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet3Id = "conservation-3-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         // Create three wallets with different balances
         OpenWalletRequest openRequest1 = new OpenWalletRequest("Alice", 1000);
         OpenWalletRequest openRequest2 = new OpenWalletRequest("Bob", 500);
         OpenWalletRequest openRequest3 = new OpenWalletRequest("Charlie", 200);
-        
+
         ResponseEntity<Void> openResponse1 = restTemplate.exchange(
-            "http://localhost:" + port + "/api/wallets/" + wallet1Id,
-            HttpMethod.PUT,
-            new HttpEntity<>(openRequest1),
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet1Id,
+                HttpMethod.PUT,
+                new HttpEntity<>(openRequest1),
+                Void.class
         );
         assertThat(openResponse1.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<Void> openResponse2 = restTemplate.exchange(
-            "http://localhost:" + port + "/api/wallets/" + wallet2Id,
-            HttpMethod.PUT,
-            new HttpEntity<>(openRequest2),
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet2Id,
+                HttpMethod.PUT,
+                new HttpEntity<>(openRequest2),
+                Void.class
         );
         assertThat(openResponse2.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<Void> openResponse3 = restTemplate.exchange(
-            "http://localhost:" + port + "/api/wallets/" + wallet3Id,
-            HttpMethod.PUT,
-            new HttpEntity<>(openRequest3),
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet3Id,
+                HttpMethod.PUT,
+                new HttpEntity<>(openRequest3),
+                Void.class
         );
         assertThat(openResponse3.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
@@ -87,38 +87,38 @@ class MoneyConservationIT extends AbstractCrabletTest {
         TransferRequest transfer3 = new TransferRequest("transfer-3", wallet3Id, wallet1Id, 50, "Transfer 3");
 
         ResponseEntity<Void> transferResponse1 = restTemplate.postForEntity(
-            "http://localhost:" + port + "/api/wallets/transfer",
-            transfer1,
-            Void.class
+                "http://localhost:" + port + "/api/wallets/transfer",
+                transfer1,
+                Void.class
         );
         assertThat(transferResponse1.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<Void> transferResponse2 = restTemplate.postForEntity(
-            "http://localhost:" + port + "/api/wallets/transfer",
-            transfer2,
-            Void.class
+                "http://localhost:" + port + "/api/wallets/transfer",
+                transfer2,
+                Void.class
         );
         assertThat(transferResponse2.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<Void> transferResponse3 = restTemplate.postForEntity(
-            "http://localhost:" + port + "/api/wallets/transfer",
-            transfer3,
-            Void.class
+                "http://localhost:" + port + "/api/wallets/transfer",
+                transfer3,
+                Void.class
         );
         assertThat(transferResponse3.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         // Calculate final total balance
         ResponseEntity<Map> wallet1Response = restTemplate.getForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet1Id,
-            Map.class
+                "http://localhost:" + port + "/api/wallets/" + wallet1Id,
+                Map.class
         );
         ResponseEntity<Map> wallet2Response = restTemplate.getForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet2Id,
-            Map.class
+                "http://localhost:" + port + "/api/wallets/" + wallet2Id,
+                Map.class
         );
         ResponseEntity<Map> wallet3Response = restTemplate.getForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet3Id,
-            Map.class
+                "http://localhost:" + port + "/api/wallets/" + wallet3Id,
+                Map.class
         );
 
         assertThat(wallet1Response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -132,7 +132,7 @@ class MoneyConservationIT extends AbstractCrabletTest {
 
         // Total system balance should be unchanged
         assertThat(finalTotal).isEqualTo(initialTotal).as("Total system balance should be conserved across transfers");
-        
+
         // Verify individual balances are correct
         assertThat(finalBalance1).isEqualTo(850); // 1000 - 200 + 50
         assertThat(finalBalance2).isEqualTo(600); // 500 + 200 - 100
@@ -144,24 +144,24 @@ class MoneyConservationIT extends AbstractCrabletTest {
     void shouldIncreaseTotalSystemMoneyOnDeposits() {
         String wallet1Id = "deposit-total-1-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet2Id = "deposit-total-2-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         // Create two wallets
         OpenWalletRequest openRequest1 = new OpenWalletRequest("David", 1000);
         OpenWalletRequest openRequest2 = new OpenWalletRequest("Eve", 500);
-        
+
         ResponseEntity<Void> openResponse1 = restTemplate.exchange(
-            "http://localhost:" + port + "/api/wallets/" + wallet1Id,
-            HttpMethod.PUT,
-            new HttpEntity<>(openRequest1),
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet1Id,
+                HttpMethod.PUT,
+                new HttpEntity<>(openRequest1),
+                Void.class
         );
         assertThat(openResponse1.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<Void> openResponse2 = restTemplate.exchange(
-            "http://localhost:" + port + "/api/wallets/" + wallet2Id,
-            HttpMethod.PUT,
-            new HttpEntity<>(openRequest2),
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet2Id,
+                HttpMethod.PUT,
+                new HttpEntity<>(openRequest2),
+                Void.class
         );
         assertThat(openResponse2.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
@@ -172,27 +172,27 @@ class MoneyConservationIT extends AbstractCrabletTest {
         DepositRequest deposit2 = new DepositRequest("deposit-2", 300, "Deposit 2");
 
         ResponseEntity<Void> depositResponse1 = restTemplate.postForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet1Id + "/deposit",
-            deposit1,
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet1Id + "/deposit",
+                deposit1,
+                Void.class
         );
         assertThat(depositResponse1.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<Void> depositResponse2 = restTemplate.postForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet2Id + "/deposit",
-            deposit2,
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet2Id + "/deposit",
+                deposit2,
+                Void.class
         );
         assertThat(depositResponse2.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         // Calculate final total
         ResponseEntity<Map> wallet1Response = restTemplate.getForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet1Id,
-            Map.class
+                "http://localhost:" + port + "/api/wallets/" + wallet1Id,
+                Map.class
         );
         ResponseEntity<Map> wallet2Response = restTemplate.getForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet2Id,
-            Map.class
+                "http://localhost:" + port + "/api/wallets/" + wallet2Id,
+                Map.class
         );
 
         int finalBalance1 = (Integer) wallet1Response.getBody().get("balance");
@@ -209,24 +209,24 @@ class MoneyConservationIT extends AbstractCrabletTest {
     void shouldDecreaseTotalSystemMoneyOnWithdrawals() {
         String wallet1Id = "withdrawal-total-1-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet2Id = "withdrawal-total-2-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         // Create two wallets
         OpenWalletRequest openRequest1 = new OpenWalletRequest("Frank", 1000);
         OpenWalletRequest openRequest2 = new OpenWalletRequest("Grace", 500);
-        
+
         ResponseEntity<Void> openResponse1 = restTemplate.exchange(
-            "http://localhost:" + port + "/api/wallets/" + wallet1Id,
-            HttpMethod.PUT,
-            new HttpEntity<>(openRequest1),
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet1Id,
+                HttpMethod.PUT,
+                new HttpEntity<>(openRequest1),
+                Void.class
         );
         assertThat(openResponse1.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<Void> openResponse2 = restTemplate.exchange(
-            "http://localhost:" + port + "/api/wallets/" + wallet2Id,
-            HttpMethod.PUT,
-            new HttpEntity<>(openRequest2),
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet2Id,
+                HttpMethod.PUT,
+                new HttpEntity<>(openRequest2),
+                Void.class
         );
         assertThat(openResponse2.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
@@ -237,27 +237,27 @@ class MoneyConservationIT extends AbstractCrabletTest {
         WithdrawRequest withdraw2 = new WithdrawRequest("withdraw-2", 100, "Withdrawal 2");
 
         ResponseEntity<Void> withdrawResponse1 = restTemplate.postForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet1Id + "/withdraw",
-            withdraw1,
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet1Id + "/withdraw",
+                withdraw1,
+                Void.class
         );
         assertThat(withdrawResponse1.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<Void> withdrawResponse2 = restTemplate.postForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet2Id + "/withdraw",
-            withdraw2,
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet2Id + "/withdraw",
+                withdraw2,
+                Void.class
         );
         assertThat(withdrawResponse2.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         // Calculate final total
         ResponseEntity<Map> wallet1Response = restTemplate.getForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet1Id,
-            Map.class
+                "http://localhost:" + port + "/api/wallets/" + wallet1Id,
+                Map.class
         );
         ResponseEntity<Map> wallet2Response = restTemplate.getForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet2Id,
-            Map.class
+                "http://localhost:" + port + "/api/wallets/" + wallet2Id,
+                Map.class
         );
 
         int finalBalance1 = (Integer) wallet1Response.getBody().get("balance");
@@ -275,33 +275,33 @@ class MoneyConservationIT extends AbstractCrabletTest {
         String wallet1Id = "concurrent-1-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet2Id = "concurrent-2-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet3Id = "concurrent-3-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         // Create three wallets
         OpenWalletRequest openRequest1 = new OpenWalletRequest("Henry", 1000);
         OpenWalletRequest openRequest2 = new OpenWalletRequest("Iris", 1000);
         OpenWalletRequest openRequest3 = new OpenWalletRequest("Jack", 1000);
-        
+
         ResponseEntity<Void> openResponse1 = restTemplate.exchange(
-            "http://localhost:" + port + "/api/wallets/" + wallet1Id,
-            HttpMethod.PUT,
-            new HttpEntity<>(openRequest1),
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet1Id,
+                HttpMethod.PUT,
+                new HttpEntity<>(openRequest1),
+                Void.class
         );
         assertThat(openResponse1.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<Void> openResponse2 = restTemplate.exchange(
-            "http://localhost:" + port + "/api/wallets/" + wallet2Id,
-            HttpMethod.PUT,
-            new HttpEntity<>(openRequest2),
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet2Id,
+                HttpMethod.PUT,
+                new HttpEntity<>(openRequest2),
+                Void.class
         );
         assertThat(openResponse2.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<Void> openResponse3 = restTemplate.exchange(
-            "http://localhost:" + port + "/api/wallets/" + wallet3Id,
-            HttpMethod.PUT,
-            new HttpEntity<>(openRequest3),
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet3Id,
+                HttpMethod.PUT,
+                new HttpEntity<>(openRequest3),
+                Void.class
         );
         assertThat(openResponse3.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
@@ -380,16 +380,16 @@ class MoneyConservationIT extends AbstractCrabletTest {
 
         // Calculate final total
         ResponseEntity<Map> wallet1Response = restTemplate.getForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet1Id,
-            Map.class
+                "http://localhost:" + port + "/api/wallets/" + wallet1Id,
+                Map.class
         );
         ResponseEntity<Map> wallet2Response = restTemplate.getForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet2Id,
-            Map.class
+                "http://localhost:" + port + "/api/wallets/" + wallet2Id,
+                Map.class
         );
         ResponseEntity<Map> wallet3Response = restTemplate.getForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet3Id,
-            Map.class
+                "http://localhost:" + port + "/api/wallets/" + wallet3Id,
+                Map.class
         );
 
         int finalBalance1 = (Integer) wallet1Response.getBody().get("balance");
@@ -402,13 +402,13 @@ class MoneyConservationIT extends AbstractCrabletTest {
         // Total should be: initial + successful_deposits - successful_withdrawals
         // At minimum: initial - 250 (if withdrawal succeeds but deposits fail), at maximum: initial + 250 (if all deposits succeed, no withdrawal)
         assertThat(finalTotal).isBetween(initialTotal - 250, initialTotal + 250)
-            .as("Total system balance should be preserved under concurrent operations (actual: %d, initial: %d)", 
-                finalTotal, initialTotal);
-        
+                .as("Total system balance should be preserved under concurrent operations (actual: %d, initial: %d)",
+                        finalTotal, initialTotal);
+
         // Log actual results for debugging
         System.out.println("Final balances - W1: " + finalBalance1 + ", W2: " + finalBalance2 + ", W3: " + finalBalance3);
         System.out.println("Total: " + finalTotal + " (initial: " + initialTotal + ", completed: " + completedOperations.get() + ")");
-        
+
         // Verify at least some operations completed
         assertThat(completedOperations.get()).isGreaterThan(0).as("At least some concurrent operations should have completed");
     }
@@ -420,42 +420,42 @@ class MoneyConservationIT extends AbstractCrabletTest {
         String wallet2Id = "chain-2-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet3Id = "chain-3-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet4Id = "chain-4-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         // Create four wallets
         OpenWalletRequest openRequest1 = new OpenWalletRequest("Kelly", 1000);
         OpenWalletRequest openRequest2 = new OpenWalletRequest("Liam", 800);
         OpenWalletRequest openRequest3 = new OpenWalletRequest("Mia", 600);
         OpenWalletRequest openRequest4 = new OpenWalletRequest("Noah", 400);
-        
+
         ResponseEntity<Void> openResponse1 = restTemplate.exchange(
-            "http://localhost:" + port + "/api/wallets/" + wallet1Id,
-            HttpMethod.PUT,
-            new HttpEntity<>(openRequest1),
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet1Id,
+                HttpMethod.PUT,
+                new HttpEntity<>(openRequest1),
+                Void.class
         );
         assertThat(openResponse1.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<Void> openResponse2 = restTemplate.exchange(
-            "http://localhost:" + port + "/api/wallets/" + wallet2Id,
-            HttpMethod.PUT,
-            new HttpEntity<>(openRequest2),
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet2Id,
+                HttpMethod.PUT,
+                new HttpEntity<>(openRequest2),
+                Void.class
         );
         assertThat(openResponse2.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<Void> openResponse3 = restTemplate.exchange(
-            "http://localhost:" + port + "/api/wallets/" + wallet3Id,
-            HttpMethod.PUT,
-            new HttpEntity<>(openRequest3),
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet3Id,
+                HttpMethod.PUT,
+                new HttpEntity<>(openRequest3),
+                Void.class
         );
         assertThat(openResponse3.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<Void> openResponse4 = restTemplate.exchange(
-            "http://localhost:" + port + "/api/wallets/" + wallet4Id,
-            HttpMethod.PUT,
-            new HttpEntity<>(openRequest4),
-            Void.class
+                "http://localhost:" + port + "/api/wallets/" + wallet4Id,
+                HttpMethod.PUT,
+                new HttpEntity<>(openRequest4),
+                Void.class
         );
         assertThat(openResponse4.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
@@ -468,49 +468,49 @@ class MoneyConservationIT extends AbstractCrabletTest {
         TransferRequest chain4 = new TransferRequest("chain-4", wallet4Id, wallet1Id, 50, "Chain step 4");
 
         ResponseEntity<Void> chainResponse1 = restTemplate.postForEntity(
-            "http://localhost:" + port + "/api/wallets/transfer",
-            chain1,
-            Void.class
+                "http://localhost:" + port + "/api/wallets/transfer",
+                chain1,
+                Void.class
         );
         assertThat(chainResponse1.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<Void> chainResponse2 = restTemplate.postForEntity(
-            "http://localhost:" + port + "/api/wallets/transfer",
-            chain2,
-            Void.class
+                "http://localhost:" + port + "/api/wallets/transfer",
+                chain2,
+                Void.class
         );
         assertThat(chainResponse2.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<Void> chainResponse3 = restTemplate.postForEntity(
-            "http://localhost:" + port + "/api/wallets/transfer",
-            chain3,
-            Void.class
+                "http://localhost:" + port + "/api/wallets/transfer",
+                chain3,
+                Void.class
         );
         assertThat(chainResponse3.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<Void> chainResponse4 = restTemplate.postForEntity(
-            "http://localhost:" + port + "/api/wallets/transfer",
-            chain4,
-            Void.class
+                "http://localhost:" + port + "/api/wallets/transfer",
+                chain4,
+                Void.class
         );
         assertThat(chainResponse4.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         // Calculate final total
         ResponseEntity<Map> wallet1Response = restTemplate.getForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet1Id,
-            Map.class
+                "http://localhost:" + port + "/api/wallets/" + wallet1Id,
+                Map.class
         );
         ResponseEntity<Map> wallet2Response = restTemplate.getForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet2Id,
-            Map.class
+                "http://localhost:" + port + "/api/wallets/" + wallet2Id,
+                Map.class
         );
         ResponseEntity<Map> wallet3Response = restTemplate.getForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet3Id,
-            Map.class
+                "http://localhost:" + port + "/api/wallets/" + wallet3Id,
+                Map.class
         );
         ResponseEntity<Map> wallet4Response = restTemplate.getForEntity(
-            "http://localhost:" + port + "/api/wallets/" + wallet4Id,
-            Map.class
+                "http://localhost:" + port + "/api/wallets/" + wallet4Id,
+                Map.class
         );
 
         int finalBalance1 = (Integer) wallet1Response.getBody().get("balance");
@@ -521,7 +521,7 @@ class MoneyConservationIT extends AbstractCrabletTest {
 
         // Total system balance should be unchanged
         assertThat(finalTotal).isEqualTo(initialTotal).as("Total system balance should be conserved across complex transfer chains");
-        
+
         // Verify individual balances are correct
         assertThat(finalBalance1).isEqualTo(950); // 1000 - 100 + 50
         assertThat(finalBalance2).isEqualTo(750); // 800 + 100 - 150

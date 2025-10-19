@@ -10,16 +10,17 @@ import java.time.Instant;
  */
 @Schema(description = "Event information")
 public record EventResponse(
-    @Schema(description = "Event type", example = "MoneyTransferred")
-    String type,
-    
-    @Schema(description = "Event data as JSON")
-    Object data,
-    
-    @Schema(description = "Event position in the stream")
-    Long position,
-    
-    @Schema(description = "When the event occurred")
-    @JsonProperty("occurred_at")
-    Instant occurredAt
-) {}
+        @Schema(description = "Event type", example = "MoneyTransferred")
+        String type,
+
+        @Schema(description = "Event data as JSON")
+        Object data,
+
+        @Schema(description = "Event position in the stream")
+        Long position,
+
+        @Schema(description = "When the event occurred")
+        @JsonProperty("occurred_at")
+        Instant occurredAt
+) {
+}

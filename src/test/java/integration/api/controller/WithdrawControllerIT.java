@@ -42,14 +42,14 @@ class WithdrawControllerIT extends AbstractCrabletTest {
         // Arrange: Create a wallet first
         String walletId = "withdraw-wallet-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + walletId;
-        
+
         OpenWalletRequest walletRequest = new OpenWalletRequest("Alice", 1000);
         restTemplate.put(walletUrl, walletRequest);
 
         // Act: Withdraw money
         WithdrawRequest withdrawRequest = new WithdrawRequest("withdrawal-1", 300, "Shopping");
         ResponseEntity<Void> withdrawResponse = restTemplate.postForEntity(
-            walletUrl + "/withdraw", withdrawRequest, Void.class
+                walletUrl + "/withdraw", withdrawRequest, Void.class
         );
 
         // Assert
@@ -68,12 +68,12 @@ class WithdrawControllerIT extends AbstractCrabletTest {
         // Arrange
         String nonExistentWalletId = "nonexistent-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + nonExistentWalletId;
-        
+
         WithdrawRequest withdrawRequest = new WithdrawRequest("withdrawal-1", 300, "Shopping");
 
         // Act
         ResponseEntity<Void> withdrawResponse = restTemplate.postForEntity(
-            walletUrl + "/withdraw", withdrawRequest, Void.class
+                walletUrl + "/withdraw", withdrawRequest, Void.class
         );
 
         // Assert
@@ -86,14 +86,14 @@ class WithdrawControllerIT extends AbstractCrabletTest {
         // Arrange: Create a wallet with low balance
         String walletId = "insufficient-funds-wallet-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + walletId;
-        
+
         OpenWalletRequest walletRequest = new OpenWalletRequest("Alice", 100);
         restTemplate.put(walletUrl, walletRequest);
 
         // Act: Try to withdraw more than available
         WithdrawRequest withdrawRequest = new WithdrawRequest("withdrawal-1", 200, "Overdraft");
         ResponseEntity<Void> withdrawResponse = restTemplate.postForEntity(
-            walletUrl + "/withdraw", withdrawRequest, Void.class
+                walletUrl + "/withdraw", withdrawRequest, Void.class
         );
 
         // Assert
@@ -112,14 +112,14 @@ class WithdrawControllerIT extends AbstractCrabletTest {
         // Arrange: Create a wallet first
         String walletId = "invalid-withdraw-wallet-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + walletId;
-        
+
         OpenWalletRequest walletRequest = new OpenWalletRequest("Alice", 1000);
         restTemplate.put(walletUrl, walletRequest);
 
         // Act: Try to withdraw negative amount
         WithdrawRequest withdrawRequest = new WithdrawRequest("withdrawal-1", -100, "Invalid withdrawal");
         ResponseEntity<Void> withdrawResponse = restTemplate.postForEntity(
-            walletUrl + "/withdraw", withdrawRequest, Void.class
+                walletUrl + "/withdraw", withdrawRequest, Void.class
         );
 
         // Assert
@@ -138,14 +138,14 @@ class WithdrawControllerIT extends AbstractCrabletTest {
         // Arrange: Create a wallet first
         String walletId = "zero-withdraw-wallet-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + walletId;
-        
+
         OpenWalletRequest walletRequest = new OpenWalletRequest("Alice", 1000);
         restTemplate.put(walletUrl, walletRequest);
 
         // Act: Try to withdraw zero amount
         WithdrawRequest withdrawRequest = new WithdrawRequest("withdrawal-1", 0, "Zero withdrawal");
         ResponseEntity<Void> withdrawResponse = restTemplate.postForEntity(
-            walletUrl + "/withdraw", withdrawRequest, Void.class
+                walletUrl + "/withdraw", withdrawRequest, Void.class
         );
 
         // Assert
@@ -164,14 +164,14 @@ class WithdrawControllerIT extends AbstractCrabletTest {
         // Arrange: Create a wallet with exact balance
         String walletId = "exact-balance-wallet-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + walletId;
-        
+
         OpenWalletRequest walletRequest = new OpenWalletRequest("Alice", 500);
         restTemplate.put(walletUrl, walletRequest);
 
         // Act: Withdraw exact balance
         WithdrawRequest withdrawRequest = new WithdrawRequest("withdrawal-1", 500, "Full withdrawal");
         ResponseEntity<Void> withdrawResponse = restTemplate.postForEntity(
-            walletUrl + "/withdraw", withdrawRequest, Void.class
+                walletUrl + "/withdraw", withdrawRequest, Void.class
         );
 
         // Assert
@@ -190,14 +190,14 @@ class WithdrawControllerIT extends AbstractCrabletTest {
         // Arrange: Create a wallet first
         String walletId = "validation-wallet-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + walletId;
-        
+
         OpenWalletRequest walletRequest = new OpenWalletRequest("Alice", 1000);
         restTemplate.put(walletUrl, walletRequest);
 
         // Act: Try to withdraw with invalid request body (empty withdrawalId)
         WithdrawRequest invalidRequest = new WithdrawRequest("", 100, "");
         ResponseEntity<Void> withdrawResponse = restTemplate.postForEntity(
-            walletUrl + "/withdraw", invalidRequest, Void.class
+                walletUrl + "/withdraw", invalidRequest, Void.class
         );
 
         // Assert
@@ -216,14 +216,14 @@ class WithdrawControllerIT extends AbstractCrabletTest {
         // Arrange: Create a wallet first
         String walletId = "idempotent-withdraw-wallet-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + walletId;
-        
+
         OpenWalletRequest walletRequest = new OpenWalletRequest("Alice", 1000);
         restTemplate.put(walletUrl, walletRequest);
 
         // Act: First withdrawal
         WithdrawRequest withdrawRequest = new WithdrawRequest("idempotent-withdrawal-1", 200, "First withdrawal");
         ResponseEntity<Void> firstWithdrawResponse = restTemplate.postForEntity(
-            walletUrl + "/withdraw", withdrawRequest, Void.class
+                walletUrl + "/withdraw", withdrawRequest, Void.class
         );
         assertThat(firstWithdrawResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
@@ -234,7 +234,7 @@ class WithdrawControllerIT extends AbstractCrabletTest {
 
         // Act: Second withdrawal with same withdrawalId (should be idempotent)
         ResponseEntity<Void> secondWithdrawResponse = restTemplate.postForEntity(
-            walletUrl + "/withdraw", withdrawRequest, Void.class
+                walletUrl + "/withdraw", withdrawRequest, Void.class
         );
         assertThat(secondWithdrawResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
@@ -250,7 +250,7 @@ class WithdrawControllerIT extends AbstractCrabletTest {
         // Arrange: Create a wallet with sufficient balance
         String walletId = "multiple-withdrawals-wallet-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + walletId;
-        
+
         OpenWalletRequest walletRequest = new OpenWalletRequest("Alice", 1000);
         restTemplate.put(walletUrl, walletRequest);
 
@@ -281,7 +281,7 @@ class WithdrawControllerIT extends AbstractCrabletTest {
         // Arrange: Create a wallet
         String walletId = "deposit-then-withdraw-wallet-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + walletId;
-        
+
         OpenWalletRequest walletRequest = new OpenWalletRequest("Alice", 500);
         restTemplate.put(walletUrl, walletRequest);
 

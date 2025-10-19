@@ -2,56 +2,48 @@ package com.wallets.domain;
 
 import com.crablet.core.Query;
 import com.crablet.core.QueryBuilder;
-import com.crablet.core.QueryItem;
-import com.crablet.core.Tag;
-
-import java.util.List;
 
 /**
  * Reusable query patterns for wallet operations.
  * Encapsulates DCB decision model queries for wallet domain.
  */
 public class WalletQueryPatterns {
-    
+
     /**
      * Complete decision model query for single wallet operations.
      * Used by Deposit and Withdraw handlers.
      */
     public static Query singleWalletDecisionModel(String walletId) {
         return QueryBuilder.create()
-            .events("WalletOpened", "DepositMade", "WithdrawalMade").tag("wallet_id", walletId)
-            .event("MoneyTransferred", "from_wallet_id", walletId)
-            .event("MoneyTransferred", "to_wallet_id", walletId)
-            .build();
+                .events("WalletOpened", "DepositMade", "WithdrawalMade").tag("wallet_id", walletId)
+                .event("MoneyTransferred", "from_wallet_id", walletId)
+                .event("MoneyTransferred", "to_wallet_id", walletId)
+                .build();
     }
-    
+
     /**
      * Complete decision model query for transfer operations.
      * Includes all events affecting both source and destination wallets.
      */
     public static Query transferDecisionModel(String fromWalletId, String toWalletId) {
         return QueryBuilder.create()
-            .events("WalletOpened", "DepositMade", "WithdrawalMade").tag("wallet_id", fromWalletId)
-            .events("MoneyTransferred").tags(
-                QueryBuilder.tag("from_wallet_id", fromWalletId),
-                QueryBuilder.tag("to_wallet_id", fromWalletId)
-            )
-            .events("WalletOpened", "DepositMade", "WithdrawalMade").tag("wallet_id", toWalletId)
-            .events("MoneyTransferred").tags(
-                QueryBuilder.tag("from_wallet_id", toWalletId),
-                QueryBuilder.tag("to_wallet_id", toWalletId)
-            )
-            .build();
+                .events("WalletOpened", "DepositMade", "WithdrawalMade").tag("wallet_id", fromWalletId)
+                .event("MoneyTransferred", "from_wallet_id", fromWalletId)
+                .event("MoneyTransferred", "to_wallet_id", fromWalletId)
+                .events("WalletOpened", "DepositMade", "WithdrawalMade").tag("wallet_id", toWalletId)
+                .event("MoneyTransferred", "from_wallet_id", toWalletId)
+                .event("MoneyTransferred", "to_wallet_id", toWalletId)
+                .build();
     }
-    
+
     /**
      * Simple query for wallet existence check.
      * Used by OpenWallet handler.
      */
     public static Query walletExistenceQuery(String walletId) {
         return QueryBuilder.create()
-            .event("WalletOpened", "wallet_id", walletId)
-            .build();
+                .event("WalletOpened", "wallet_id", walletId)
+                .build();
     }
 }
 

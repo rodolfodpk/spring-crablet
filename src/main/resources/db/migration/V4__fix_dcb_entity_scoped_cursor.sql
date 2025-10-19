@@ -1,13 +1,10 @@
--- Fix DCB cursor violation bug
+-- Fix DCB to use proper entity-scoped cursor checks
 -- 
--- PROBLEM: The pg_snapshot_xmin filter prevents detecting concurrent modifications
--- from transactions that committed after the current transaction's snapshot began.
+-- PROBLEM: DCB cursor checks were too broad, checking for ANY events after cursor
+-- instead of only events that would actually conflict with the operation.
 --
--- SOLUTION: Remove the pg_snapshot_xmin filter to check ALL committed events,
--- not just those visible in the current snapshot.
---
--- This ensures proper DCB optimistic locking: any event appended after the cursor
--- will cause a conflict, preventing lost updates.
+-- SOLUTION: Use position-based cursor checks for proper DCB optimistic locking.
+-- This ensures sequential operations work while preventing lost updates.
 
 CREATE OR REPLACE FUNCTION append_events_if(
     p_types TEXT[],
@@ -15,7 +12,6 @@ CREATE OR REPLACE FUNCTION append_events_if(
     p_data JSONB[],
     p_event_types TEXT[] DEFAULT NULL,
     p_condition_tags TEXT[] DEFAULT NULL,
-    p_after_cursor_tx_id xid8 DEFAULT NULL,
     p_after_cursor_position BIGINT DEFAULT NULL
 ) RETURNS JSONB AS
 $$
@@ -29,8 +25,8 @@ BEGIN
       "message": "condition check passed"
     }'::JSONB;
 
-    -- SINGLE ATOMIC DCB CHECK: Both cursor and condition checks in one query
-    -- This ensures no race conditions between the two checks
+    -- ENTITY-SPECIFIC DCB CHECK: Check for conflicts with events affecting the same entities
+    -- This ensures proper DCB optimistic locking without false positives from unrelated entities
     SELECT COUNT(*)
     INTO condition_count
     FROM events e
@@ -41,16 +37,15 @@ BEGIN
         (p_condition_tags IS NULL OR e.tags @> p_condition_tags)
         )
       AND (
-        -- Cursor check: events after the cursor (if cursor provided)
-        p_after_cursor_tx_id IS NULL OR
-        (e.transaction_id > p_after_cursor_tx_id) OR
-        (e.transaction_id = p_after_cursor_tx_id AND e.position > p_after_cursor_position)
+        -- Entity-specific cursor check: events after the cursor position (if cursor provided)
+        -- Only check position for events that would actually conflict with the operation
+        p_after_cursor_position IS NULL OR
+        e.position > p_after_cursor_position
         )
     LIMIT 1;
 
     IF condition_count > 0 THEN
         -- Return generic violation - the client can determine the type
-        -- This maintains atomicity by using only one query
         result := jsonb_build_object(
                 'success', false,
                 'message', 'append condition violated',
@@ -71,4 +66,3 @@ BEGIN
            );
 END;
 $$ LANGUAGE plpgsql;
-

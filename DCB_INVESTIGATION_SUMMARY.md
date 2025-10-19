@@ -8,7 +8,8 @@ All 14 DCB compliance tests are now passing!
 
 ### Critical Bug Found and Fixed
 
-**Bug**: The `append_events_if` PostgreSQL function had a critical flaw where cursor checks were **never executed** when no event types/tags were specified (i.e., when using `Query.empty()`).
+**Bug**: The `append_events_if` PostgreSQL function had a critical flaw where cursor checks were **never executed** when
+no event types/tags were specified (i.e., when using `Query.empty()`).
 
 **Root Cause**: The cursor check was inside an `IF` statement that only executed when conditions were provided:
 
@@ -21,6 +22,7 @@ END IF;
 ```
 
 **Impact**:
+
 - ❌ Universal cursor checks didn't work
 - ❌ Optimistic locking was broken
 - ❌ Concurrent modifications were not detected
@@ -31,12 +33,12 @@ END IF;
 Created `V3__fix_dcb_cursor_check.sql` that separates concerns:
 
 1. **Step 1: Universal Cursor Check** (ALWAYS runs if cursor provided)
-   - Checks if ANY events exist after the cursor
-   - This is the DCB optimistic locking mechanism
+    - Checks if ANY events exist after the cursor
+    - This is the DCB optimistic locking mechanism
 
 2. **Step 2: Idempotency Check** (only runs if conditions provided)
-   - Checks if events matching specific types/tags exist
-   - This is for duplicate operation detection
+    - Checks if events matching specific types/tags exist
+    - This is for duplicate operation detection
 
 ```sql
 -- FIXED CODE (V3):
@@ -68,38 +70,39 @@ END IF;
 **Location**: `src/test/java/integration/database/`
 
 1. **JDBCEventStoreDCBAtomicityTest.java** (3 tests)
-   - ✅ Cursor violation detection
-   - ✅ No separation of cursor and condition checks
-   - ✅ Consistent snapshot verification
+    - ✅ Cursor violation detection
+    - ✅ No separation of cursor and condition checks
+    - ✅ Consistent snapshot verification
 
 2. **JDBCEventStoreDCBOrderingTest.java** (4 tests)
-   - ✅ Strict position sequence
-   - ✅ Transaction ID ordering
-   - ✅ Order preservation across appends
-   - ✅ Concurrent append ordering
+    - ✅ Strict position sequence
+    - ✅ Transaction ID ordering
+    - ✅ Order preservation across appends
+    - ✅ Concurrent append ordering
 
 3. **JDBCEventStoreDCBEventIntegrityTest.java** (5 tests)
-   - ✅ Event type preservation
-   - ✅ Tag preservation
-   - ✅ Complex JSON data integrity
-   - ✅ Unicode/special characters
-   - ✅ Transaction ID and timestamp
+    - ✅ Event type preservation
+    - ✅ Tag preservation
+    - ✅ Complex JSON data integrity
+    - ✅ Unicode/special characters
+    - ✅ Transaction ID and timestamp
 
 4. **MinimalDCBTest.java** (1 test)
-   - ✅ Minimal cursor violation reproduction
+    - ✅ Minimal cursor violation reproduction
 
 ### Domain-Level Test (1 test)
 
 **Location**: `src/test/java/integration/crosscutting/concurrency/`
 
 5. **WalletDCBComplianceIT.java** (1 test)
-   - ✅ Wallet event order and data preservation
+    - ✅ Wallet event order and data preservation
 
 **Total: 14 DCB compliance tests, all passing**
 
 ## Files Changed
 
 ### Created Files
+
 1. `src/main/resources/db/migration/V3__fix_dcb_cursor_check.sql` - The fix
 2. `src/test/java/testutils/DCBTestHelpers.java` - Test utilities
 3. `src/test/java/integration/database/JDBCEventStoreDCBAtomicityTest.java`
@@ -111,35 +114,41 @@ END IF;
 9. `DCB_INVESTIGATION_SUMMARY.md` - This file
 
 ### Modified Files
+
 1. `src/test/java/testutils/AbstractCrabletTest.java` - Added `flyway.clean()` for testing
 2. Test expectation adjustments for READ COMMITTED isolation behavior
 
 ## What The Tests Verify
 
 ### 1. Atomicity ✅
+
 - Cursor violations are detected
 - Checks happen in a single atomic operation
 - No race conditions in concurrent scenarios
 
 ### 2. Ordering ✅
+
 - Events maintain strict position sequence
 - No gaps in position numbers
 - Proper transaction_id ordering
 - Concurrent operations maintain order
 
 ### 3. Data Integrity ✅
+
 - Event types are preserved exactly
 - Tags are preserved exactly
 - JSON data (including unicode) is preserved
 - Timestamps and transaction IDs are set correctly
 
 ### 4. Domain Correctness ✅
+
 - Wallet events maintain proper order
 - Event data matches business logic expectations
 
 ## Performance Impact
 
 The fix has **minimal performance impact**:
+
 - Adds one additional COUNT query when cursor is provided
 - Both queries use indexes and LIMIT 1 for efficiency
 - Queries are in the same transaction (no extra round-trips)
@@ -161,7 +170,8 @@ The fix has **minimal performance impact**:
 
 ## Conclusion
 
-The DCB implementation is now **correct and verified**. The cursor check properly detects concurrent modifications, preventing lost updates in financial operations. All 14 tests pass, demonstrating:
+The DCB implementation is now **correct and verified**. The cursor check properly detects concurrent modifications,
+preventing lost updates in financial operations. All 14 tests pass, demonstrating:
 
 - ✅ Optimistic locking works
 - ✅ Idempotency works

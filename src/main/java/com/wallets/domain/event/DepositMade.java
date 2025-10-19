@@ -9,14 +9,14 @@ import java.time.Instant;
  * This is the event data structure.
  */
 public record DepositMade(
-    @JsonProperty("deposit_id") String depositId,
-    @JsonProperty("wallet_id") String walletId,
-    @JsonProperty("amount") int amount,
-    @JsonProperty("new_balance") int newBalance,
-    @JsonProperty("deposited_at") Instant depositedAt,
-    @JsonProperty("description") String description
+        @JsonProperty("deposit_id") String depositId,
+        @JsonProperty("wallet_id") String walletId,
+        @JsonProperty("amount") int amount,
+        @JsonProperty("new_balance") int newBalance,
+        @JsonProperty("deposited_at") Instant depositedAt,
+        @JsonProperty("description") String description
 ) implements WalletEvent {
-    
+
     public DepositMade {
         if (depositId == null || depositId.trim().isEmpty()) {
             throw new IllegalArgumentException("Deposit ID cannot be null or empty");
@@ -37,31 +37,32 @@ public record DepositMade(
             throw new IllegalArgumentException("Description cannot be null");
         }
     }
+
     /**
      * Create a DepositMade event.
      */
     public static DepositMade of(
-        String depositId,
-        String walletId,
-        int amount,
-        int newBalance,
-        String description
+            String depositId,
+            String walletId,
+            int amount,
+            int newBalance,
+            String description
     ) {
         return new DepositMade(
-            depositId,
-            walletId,
-            amount,
-            newBalance,
-            Instant.now(),
-            description
+                depositId,
+                walletId,
+                amount,
+                newBalance,
+                Instant.now(),
+                description
         );
     }
-    
+
     @Override
     public String getEventType() {
         return "DepositMade";
     }
-    
+
     @Override
     public Instant getOccurredAt() {
         return depositedAt;

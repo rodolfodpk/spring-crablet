@@ -1,12 +1,12 @@
 package crablet.unit.core;
 
 import com.crablet.core.AppendCondition;
+import com.crablet.core.AppendEvent;
 import com.crablet.core.Command;
 import com.crablet.core.CommandExecutor;
 import com.crablet.core.CommandHandler;
 import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
-import com.crablet.core.AppendEvent;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.event.WalletOpened;
@@ -42,14 +42,14 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
     @Autowired
     private OpenWalletCommandHandler openWalletHandler;
-    
-    
+
+
     @Autowired
     private DepositCommandHandler depositHandler;
-    
+
     @Autowired
     private WithdrawCommandHandler withdrawHandler;
-    
+
     @Autowired
     private TransferMoneyCommandHandler transferHandler;
 
@@ -65,8 +65,8 @@ class CommandExecutorTest extends AbstractCrabletTest {
     void shouldValidateCommandIsNotNull() {
         // When & Then
         assertThatThrownBy(() -> commandExecutor.executeCommand(null))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Command cannot be null");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Command cannot be null");
     }
 
     @Test
@@ -77,8 +77,8 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> commandExecutor.execute(command, null))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Handler cannot be null");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Handler cannot be null");
     }
 
     @Test
@@ -90,7 +90,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
             public CommandResult handle(EventStore eventStore, Command command) {
                 return CommandResult.empty(); // Return empty list
             }
-            
+
             @Override
             public String getCommandType() {
                 return "test_empty";
@@ -100,7 +100,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // When & Then - Empty event list is now allowed for idempotent operations
         assertThatCode(() -> commandExecutor.execute(command, emptyHandler))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -113,7 +113,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
                 // Create event with empty type
                 return CommandResult.of(List.of(AppendEvent.of("", List.of(), new byte[0])), AppendCondition.forEmptyStream());
             }
-            
+
             @Override
             public String getCommandType() {
                 return "test_invalid_type";
@@ -123,8 +123,8 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> commandExecutor.execute(command, invalidHandler))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Event at index 0 has empty type");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Event at index 0 has empty type");
     }
 
     @Test
@@ -137,7 +137,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
                 // Create event with empty tag key
                 return CommandResult.of(List.of(AppendEvent.of("TestEvent", List.of(new Tag("", "value")), new byte[0])), AppendCondition.forEmptyStream());
             }
-            
+
             @Override
             public String getCommandType() {
                 return "test_invalid_tag_key";
@@ -147,8 +147,8 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> commandExecutor.execute(command, invalidHandler))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Empty tag key at index 0");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Empty tag key at index 0");
     }
 
     @Test
@@ -161,7 +161,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
                 // Create event with empty tag value
                 return CommandResult.of(List.of(AppendEvent.of("TestEvent", List.of(new Tag("key", "")), new byte[0])), AppendCondition.forEmptyStream());
             }
-            
+
             @Override
             public String getCommandType() {
                 return "test_invalid_tag_value";
@@ -171,8 +171,8 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> commandExecutor.execute(command, invalidHandler))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Empty tag value for key key");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Empty tag value for key key");
     }
 
     @Test
@@ -183,7 +183,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // When & Then - Use real CommandExecutor with Testcontainers
         assertThatCode(() -> commandExecutor.executeCommand(command))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -211,7 +211,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
             public String getCommandType() {
                 return "ProblematicCommand";
             }
-            
+
             // This will cause serialization issues
             public Object getProblematicField() {
                 return new Object() {
@@ -227,7 +227,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
             public CommandResult handle(EventStore eventStore, Command command) {
                 return CommandResult.of(List.of(AppendEvent.of("TestEvent", List.of(), new byte[0])), AppendCondition.forEmptyStream());
             }
-            
+
             @Override
             public String getCommandType() {
                 return "test_mock";
@@ -236,8 +236,8 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> commandExecutor.execute(problematicCommand, mockHandler))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Failed to append events with condition using connection");
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to append events with condition using connection");
     }
 
     @Test
@@ -253,19 +253,19 @@ class CommandExecutorTest extends AbstractCrabletTest {
                 try {
                     WalletOpened walletOpened = WalletOpened.of(walletId, "Multi User", 1000);
                     byte[] data = objectMapper.writeValueAsBytes(walletOpened);
-                    
+
                     return CommandResult.of(
-                        List.of(
-                            AppendEvent.of("WalletOpened", List.of(new Tag("wallet_id", walletId)), data),
-                            AppendEvent.of("WalletInitialized", List.of(new Tag("wallet_id", walletId)), "{}".getBytes())
-                        ),
-                        AppendCondition.forEmptyStream()
+                            List.of(
+                                    AppendEvent.of("WalletOpened", List.of(new Tag("wallet_id", walletId)), data),
+                                    AppendEvent.of("WalletInitialized", List.of(new Tag("wallet_id", walletId)), "{}".getBytes())
+                            ),
+                            AppendCondition.forEmptyStream()
                     );
                 } catch (Exception e) {
                     throw new RuntimeException("Failed to serialize events", e);
                 }
             }
-            
+
             @Override
             public String getCommandType() {
                 return "test_multi_event";
@@ -291,7 +291,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
                 // Simulate business logic validation failure
                 throw new IllegalArgumentException("Wallet already exists");
             }
-            
+
             @Override
             public String getCommandType() {
                 return "test_business_logic";
@@ -300,8 +300,8 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> commandExecutor.execute(command, businessLogicHandler))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Wallet already exists");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Wallet already exists");
     }
 
     @Test
@@ -315,7 +315,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
             public CommandResult handle(EventStore eventStore, Command command) {
                 throw new RuntimeException("Unexpected error in handler");
             }
-            
+
             @Override
             public String getCommandType() {
                 return "test_error";
@@ -324,7 +324,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> commandExecutor.execute(command, errorHandler))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessage("Unexpected error in handler");
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Unexpected error in handler");
     }
 }

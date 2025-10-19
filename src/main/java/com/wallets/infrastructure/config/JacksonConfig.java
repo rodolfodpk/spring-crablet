@@ -16,14 +16,14 @@ public class JacksonConfig {
     @Primary
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
-        
+
         // Register JavaTime module for Instant serialization
         mapper.registerModule(new JavaTimeModule());
-        
+
         // Disable timestamp serialization for dates
         mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        
-        
+
+
         return mapper;
     }
 }

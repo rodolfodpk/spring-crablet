@@ -19,7 +19,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @SpringBootTest(classes = Application.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 public abstract class AbstractCrabletTest {
-    
+
     // Shared container instance across all test classes
     private static final PostgreSQLContainer<?> SHARED_POSTGRES = new PostgreSQLContainer<>("postgres:17")
             .withDatabaseName("postgres")
@@ -28,23 +28,25 @@ public abstract class AbstractCrabletTest {
             .withReuse(true) // Enable reuse to share container between test classes
             .withCommand("postgres", "-c", "max_connections=50", "-c", "shared_buffers=128MB", "-c", "work_mem=32MB") // Reduced limits for better stability
             .withLabel("testcontainers.reuse", "true"); // Explicit reuse label
-    
+    // Use the shared container instance
+    static final PostgreSQLContainer<?> postgres = SHARED_POSTGRES;
+
     static {
         // Start the shared container once
         SHARED_POSTGRES.start();
-        
+
         // Run Flyway migrations to initialize schema
         try {
             System.out.println("Starting Flyway migrations on Testcontainers PostgreSQL...");
             System.out.println("Database URL: " + SHARED_POSTGRES.getJdbcUrl());
             System.out.println("Username: " + SHARED_POSTGRES.getUsername());
-            
+
             org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
                     .dataSource(SHARED_POSTGRES.getJdbcUrl(), SHARED_POSTGRES.getUsername(), SHARED_POSTGRES.getPassword())
                     .locations("classpath:db/migration")
                     .cleanDisabled(false) // Allow clean for testing
                     .load();
-            
+
             System.out.println("Cleaning and running Flyway migrations...");
             flyway.clean(); // Clean existing schema
             flyway.migrate(); // Apply all migrations including new ones
@@ -54,7 +56,7 @@ public abstract class AbstractCrabletTest {
             e.printStackTrace();
             // Don't fail startup, schema might already exist
         }
-        
+
         // Register shutdown hook to automatically stop container when JVM exits
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("Shutting down Testcontainers PostgreSQL container...");
@@ -66,26 +68,29 @@ public abstract class AbstractCrabletTest {
             }
         }));
     }
-    
-    // Use the shared container instance
-    static final PostgreSQLContainer<?> postgres = SHARED_POSTGRES;
-    
+
+    @Autowired
+    protected EventStore eventStore;
+    @Autowired
+    protected JdbcTemplate jdbcTemplate;
+
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
-        
+
         // Disable Flyway for tests since we use init script
         registry.add("spring.flyway.enabled", () -> false);
     }
-    
-    @Autowired
-    protected EventStore eventStore;
-    
-    @Autowired
-    protected JdbcTemplate jdbcTemplate;
-    
+
+    /**
+     * Get the PostgreSQL container for direct access if needed.
+     */
+    protected static PostgreSQLContainer<?> getPostgresContainer() {
+        return postgres;
+    }
+
     /**
      * Clean the database before each test.
      * This ensures test isolation by clearing all data between tests within the same test class.
@@ -98,27 +103,21 @@ public abstract class AbstractCrabletTest {
         // Reset the BIGSERIAL sequence for events.position
         jdbcTemplate.execute("ALTER SEQUENCE events_position_seq RESTART WITH 1");
     }
-    
-    /**
-     * Get the PostgreSQL container for direct access if needed.
-     */
-    protected static PostgreSQLContainer<?> getPostgresContainer() {
-        return postgres;
-    }
-    
+
     /**
      * Get database connection properties for manual connections if needed.
      */
     protected DatabaseProperties getDatabaseProperties() {
         return new DatabaseProperties(
-            postgres.getJdbcUrl(),
-            postgres.getUsername(),
-            postgres.getPassword()
+                postgres.getJdbcUrl(),
+                postgres.getUsername(),
+                postgres.getPassword()
         );
     }
-    
+
     /**
      * Simple record to hold database connection properties.
      */
-    public record DatabaseProperties(String url, String username, String password) {}
+    public record DatabaseProperties(String url, String username, String password) {
+    }
 }

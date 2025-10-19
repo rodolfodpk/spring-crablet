@@ -12,6 +12,6 @@
 CREATE INDEX IF NOT EXISTS idx_events_type_position ON events (type, position);
 
 -- Add comment explaining the index purpose
-COMMENT ON INDEX idx_events_type_position IS 
-'Optimizes queries filtering by event type and ordering by position. Common pattern in DCB projections where events are filtered by type and must be processed in position order.';
+COMMENT ON INDEX idx_events_type_position IS
+    'Optimizes queries filtering by event type and ordering by position. Common pattern in DCB projections where events are filtered by type and must be processed in position order.';
 

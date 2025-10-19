@@ -11,47 +11,47 @@ import java.util.stream.Collectors;
 
 /**
  * CommandExecutor executes commands and generates events within a single transaction.
- * 
+ * <p>
  * EventStore manages all database operations and transactions internally.
  * CommandExecutor focuses solely on command execution logic.
- * 
+ * <p>
  * This is based on the Go implementation's CommandExecutor pattern.
  */
 @Component
 public class CommandExecutor {
-    
+
     private static final Logger log = LoggerFactory.getLogger(CommandExecutor.class);
-    
+
     private final EventStore eventStore;
     private final Map<String, CommandHandler<?>> handlers;
     private final EventStoreConfig config;
-    
+
     @Autowired
     public CommandExecutor(EventStore eventStore, List<CommandHandler<?>> commandHandlers, EventStoreConfig config) {
         this.eventStore = eventStore;
         this.config = config;
-        
+
         // Build handler map from Spring-injected list
         this.handlers = commandHandlers.stream()
-            .collect(Collectors.toMap(
-                CommandHandler::getCommandType,
-                h -> h,
-                (h1, _) -> {
-                    throw new IllegalStateException(
-                        "Duplicate handler for command type: " + h1.getCommandType());
-                }
-            ));
-        
+                .collect(Collectors.toMap(
+                        CommandHandler::getCommandType,
+                        h -> h,
+                        (h1, _) -> {
+                            throw new IllegalStateException(
+                                    "Duplicate handler for command type: " + h1.getCommandType());
+                        }
+                ));
+
         // Fail fast if no handlers registered
         if (handlers.isEmpty()) {
             throw new IllegalStateException("No command handlers registered");
         }
-        
+
         // Log EventStore configuration at startup
         log.info("EventStore - Command persistence: {}", config.isPersistCommands() ? "ENABLED" : "DISABLED");
         log.info("EventStore - Transaction isolation: {}", config.getTransactionIsolation());
     }
-    
+
     /**
      * Execute a command within a single transaction.
      * All EventStore operations (queries, projections, appends) will use the same transaction.
@@ -59,11 +59,11 @@ public class CommandExecutor {
     public void execute(Command command, CommandHandler<?> handler) {
         executeCommand(command, handler);
     }
-    
+
     /**
      * Execute a command within a single transaction.
      * All EventStore operations (queries, projections, appends) will use the same transaction.
-     * 
+     *
      * @return ExecutionResult indicating whether the operation was idempotent
      */
     public ExecutionResult executeCommand(Command command) {
@@ -71,11 +71,11 @@ public class CommandExecutor {
         CommandHandler<?> handler = getHandlerForCommand(command);
         return executeCommand(command, handler);
     }
-    
+
     /**
      * Execute a command within a single transaction.
      * EventStore manages all transaction operations internally.
-     * 
+     *
      * @return ExecutionResult indicating whether the operation was idempotent
      */
     public ExecutionResult executeCommand(Command command, CommandHandler<?> handler) {
@@ -86,28 +86,28 @@ public class CommandExecutor {
         if (handler == null) {
             throw new IllegalArgumentException("Handler cannot be null");
         }
-        
+
         log.debug("Starting transaction for command: {}", command.getCommandType());
-        
+
         try {
             return eventStore.executeInTransaction(txStore -> {
                 // Handle command and generate events
                 @SuppressWarnings("unchecked")
                 CommandHandler<Command> typedHandler = (CommandHandler<Command>) handler;
                 CommandResult result = typedHandler.handle(txStore, command);
-                
+
                 // Validate generated events - allow empty list for idempotent operations
                 if (result.events() == null) {
                     throw new IllegalArgumentException("Handler returned null events");
                 }
-                
+
                 // Validate individual events with enhanced for-loops
                 int eventIndex = 0;
                 for (AppendEvent event : result.events()) {
                     if (event.type() == null || event.type().isEmpty()) {
                         throw new IllegalArgumentException("Event at index " + eventIndex + " has empty type");
                     }
-                    
+
                     // Validate tags
                     if (event.tags() != null) {
                         int tagIndex = 0;
@@ -123,7 +123,7 @@ public class CommandExecutor {
                     }
                     eventIndex++;
                 }
-                
+
                 // Atomic append with condition (DCB pattern)
                 if (!result.isEmpty()) {
                     try {
@@ -132,13 +132,13 @@ public class CommandExecutor {
                         throw new ConcurrencyException(e.getMessage(), command, e);
                     }
                 }
-                
+
                 // Store command for audit and query purposes (if enabled)
                 if (!result.isEmpty() && config.isPersistCommands()) {
                     String transactionId = txStore.getCurrentTransactionId();
                     txStore.storeCommand(command, transactionId);
                 }
-                
+
                 // Return execution result based on what handler determined
                 boolean wasIdempotent = result.isEmpty();
                 if (wasIdempotent) {
@@ -161,7 +161,7 @@ public class CommandExecutor {
             throw new RuntimeException("Failed to execute command: " + command.getCommandType(), e);
         }
     }
-    
+
     /**
      * Get the appropriate handler for a command based on its type.
      */
@@ -171,10 +171,10 @@ public class CommandExecutor {
         }
         CommandHandler<?> handler = handlers.get(command.getCommandType());
         if (handler == null) {
-            throw new IllegalArgumentException("No handler registered for command type: " 
-                + command.getCommandType());
+            throw new IllegalArgumentException("No handler registered for command type: "
+                    + command.getCommandType());
         }
         return handler;
     }
-    
+
 }

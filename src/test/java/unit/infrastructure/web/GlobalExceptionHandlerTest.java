@@ -10,9 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.slf4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.NoHandlerFoundException;
@@ -20,11 +18,6 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
-import org.slf4j.LoggerFactory;
 
 /**
  * Integration tests for GlobalExceptionHandler to ensure proper HTTP status codes
@@ -74,7 +67,7 @@ class GlobalExceptionHandlerTest {
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).isNotNull();
-        
+
         @SuppressWarnings("unchecked")
         Map<String, Object> error = (Map<String, Object>) response.getBody().get("error");
         assertThat(error.get("code")).isEqualTo("WALLET_NOT_FOUND");
@@ -99,7 +92,7 @@ class GlobalExceptionHandlerTest {
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNotNull();
-        
+
         @SuppressWarnings("unchecked")
         Map<String, Object> error = (Map<String, Object>) response.getBody().get("error");
         assertThat(error.get("code")).isEqualTo("INSUFFICIENT_FUNDS");
@@ -123,7 +116,7 @@ class GlobalExceptionHandlerTest {
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNotNull();
-        
+
         @SuppressWarnings("unchecked")
         Map<String, Object> error = (Map<String, Object>) response.getBody().get("error");
         assertThat(error.get("code")).isEqualTo("VALIDATION_ERROR");
@@ -144,7 +137,7 @@ class GlobalExceptionHandlerTest {
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(response.getBody()).isNotNull();
-        
+
         @SuppressWarnings("unchecked")
         Map<String, Object> error = (Map<String, Object>) response.getBody().get("error");
         assertThat(error.get("code")).isEqualTo("CONCURRENCY_CONFLICT");
@@ -164,7 +157,7 @@ class GlobalExceptionHandlerTest {
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).isNotNull();
-        
+
         @SuppressWarnings("unchecked")
         Map<String, Object> error = (Map<String, Object>) response.getBody().get("error");
         assertThat(error.get("code")).isEqualTo("NOT_FOUND");
@@ -185,7 +178,7 @@ class GlobalExceptionHandlerTest {
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody()).isNotNull();
-        
+
         @SuppressWarnings("unchecked")
         Map<String, Object> error = (Map<String, Object>) response.getBody().get("error");
         assertThat(error.get("code")).isEqualTo("INTERNAL_ERROR");

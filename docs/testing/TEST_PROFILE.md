@@ -6,7 +6,8 @@ The `test` profile disables rate limiting to allow accurate performance testing 
 
 ## Why Disable Rate Limiting?
 
-Rate limiting is designed to protect the application from abuse in production. However, during performance testing, we want to measure the actual performance of the system without artificial constraints.
+Rate limiting is designed to protect the application from abuse in production. However, during performance testing, we
+want to measure the actual performance of the system without artificial constraints.
 
 ## Usage
 
@@ -59,12 +60,12 @@ resilience4j.ratelimiter.instances.withdrawal.limit-for-period=1000000
 
 ## Production vs Test Profile
 
-| Setting | Production (default) | Test Profile |
-|---------|---------------------|--------------|
-| Global API Limit | 1000 req/sec | 1,000,000 req/sec |
-| Per-Wallet Limit | 50/min | 1,000,000/min |
-| Transfer Limit | 10/min | 1,000,000/min |
-| Withdrawal Limit | 30/min | 1,000,000/min |
+| Setting          | Production (default) | Test Profile      |
+|------------------|----------------------|-------------------|
+| Global API Limit | 1000 req/sec         | 1,000,000 req/sec |
+| Per-Wallet Limit | 50/min               | 1,000,000/min     |
+| Transfer Limit   | 10/min               | 1,000,000/min     |
+| Withdrawal Limit | 30/min               | 1,000,000/min     |
 
 ## Important Notes
 

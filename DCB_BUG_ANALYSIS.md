@@ -2,7 +2,8 @@
 
 ## Summary
 
-The `append_events_if` PostgreSQL function has a critical bug that prevents it from detecting concurrent modifications, violating DCB optimistic locking guarantees.
+The `append_events_if` PostgreSQL function has a critical bug that prevents it from detecting concurrent modifications,
+violating DCB optimistic locking guarantees.
 
 ## Root Cause
 
@@ -28,7 +29,7 @@ This line filters out events from transactions that started AFTER the current tr
 ### Expected Behavior (CORRECT ✅)
 
 1. Transaction T1 projects state and gets cursor at position 10
-2. Transaction T2 appends event at position 11 and commits  
+2. Transaction T2 appends event at position 11 and commits
 3. Transaction T3 calls `appendIf` with cursor from step 1
 4. **CORRECT**: Check finds event at position 11 (after cursor position 10)
 5. **RESULT**: Cursor violation detected, `ConcurrencyException` thrown
@@ -50,6 +51,7 @@ This line filters out events from transactions that started AFTER the current tr
 ## Impact
 
 This bug means:
+
 - ✅ Idempotency checks work (duplicate operation IDs are detected)
 - ❌ **Optimistic locking DOESN'T work** (concurrent modifications are missed)
 - ❌ **Lost updates are possible** (race conditions lead to incorrect state)
@@ -58,6 +60,7 @@ This bug means:
 ## Why This is Critical
 
 For a financial system like the wallet application:
+
 - Two concurrent withdrawals could both succeed when balance is insufficient
 - Race conditions in transfers could lead to money creation/destruction
 - Audit trail becomes unreliable
@@ -78,7 +81,8 @@ AND e.transaction_id < pg_snapshot_xmin(pg_current_snapshot())
 
 ### Option 2: Use READ COMMITTED Isolation
 
-Ensure the query sees all committed transactions, not just snapshot-visible ones. However, this doesn't solve the fundamental issue.
+Ensure the query sees all committed transactions, not just snapshot-visible ones. However, this doesn't solve the
+fundamental issue.
 
 ### Option 3: Use Advisory Locks
 
@@ -89,6 +93,7 @@ Add pessimistic locking for the projection+append operation. This changes the co
 **Implement Option 1** - Remove the `pg_snapshot_xmin` filter.
 
 The check should be:
+
 ```sql
 WHERE (
     (p_event_types IS NULL OR e.type = ANY(p_event_types))
@@ -107,8 +112,9 @@ This will check for ANY events after the cursor, regardless of transaction visib
 ## Testing
 
 After the fix, all 16 DCB compliance tests should pass:
+
 - ✅ Atomicity tests (3 tests)
-- ✅ Ordering tests (4 tests)  
+- ✅ Ordering tests (4 tests)
 - ✅ Integrity tests (5 tests)
 - ✅ Wallet domain tests (4 tests)
 

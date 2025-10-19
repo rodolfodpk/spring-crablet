@@ -9,12 +9,13 @@ import java.util.List;
  */
 @Schema(description = "Paginated commands response")
 public record CommandsPageResponse(
-    @Schema(description = "List of commands with their events")
-    List<CommandResponse> commands,
-    
-    @Schema(description = "Next cursor for pagination", example = "98765")
-    String nextCursor,
-    
-    @Schema(description = "Whether there are more commands available")
-    boolean hasMore
-) {}
+        @Schema(description = "List of commands with their events")
+        List<CommandResponse> commands,
+
+        @Schema(description = "Next cursor for pagination", example = "98765")
+        String nextCursor,
+
+        @Schema(description = "Whether there are more commands available")
+        boolean hasMore
+) {
+}

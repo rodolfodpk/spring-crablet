@@ -9,14 +9,14 @@ import java.time.Instant;
  * This is the event data structure.
  */
 public record WithdrawalMade(
-    @JsonProperty("withdrawal_id") String withdrawalId,
-    @JsonProperty("wallet_id") String walletId,
-    @JsonProperty("amount") int amount,
-    @JsonProperty("new_balance") int newBalance,
-    @JsonProperty("withdrawn_at") Instant withdrawnAt,
-    @JsonProperty("description") String description
+        @JsonProperty("withdrawal_id") String withdrawalId,
+        @JsonProperty("wallet_id") String walletId,
+        @JsonProperty("amount") int amount,
+        @JsonProperty("new_balance") int newBalance,
+        @JsonProperty("withdrawn_at") Instant withdrawnAt,
+        @JsonProperty("description") String description
 ) implements WalletEvent {
-    
+
     public WithdrawalMade {
         if (withdrawalId == null || withdrawalId.trim().isEmpty()) {
             throw new IllegalArgumentException("Withdrawal ID cannot be null or empty");
@@ -37,31 +37,32 @@ public record WithdrawalMade(
             throw new IllegalArgumentException("Description cannot be null");
         }
     }
+
     /**
      * Create a WithdrawalMade event.
      */
     public static WithdrawalMade of(
-        String withdrawalId,
-        String walletId,
-        int amount,
-        int newBalance,
-        String description
+            String withdrawalId,
+            String walletId,
+            int amount,
+            int newBalance,
+            String description
     ) {
         return new WithdrawalMade(
-            withdrawalId,
-            walletId,
-            amount,
-            newBalance,
-            Instant.now(),
-            description
+                withdrawalId,
+                walletId,
+                amount,
+                newBalance,
+                Instant.now(),
+                description
         );
     }
-    
+
     @Override
     public String getEventType() {
         return "WithdrawalMade";
     }
-    
+
     @Override
     public Instant getOccurredAt() {
         return withdrawnAt;
