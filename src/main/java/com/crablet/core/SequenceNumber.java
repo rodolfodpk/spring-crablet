@@ -7,38 +7,38 @@ import java.util.Objects;
  * This is equivalent to the Go SequenceNumber type.
  */
 public record SequenceNumber(long value) {
-    
+
     public static SequenceNumber of(long value) {
         if (value < 0) {
             throw new IllegalArgumentException("SequenceNumber cannot be negative");
         }
         return new SequenceNumber(value);
     }
-    
+
     public static SequenceNumber zero() {
         return new SequenceNumber(0);
     }
-    
+
     public SequenceNumber increment() {
         return new SequenceNumber(value + 1);
     }
-    
+
     public boolean isZero() {
         return value == 0;
     }
-    
+
     public boolean isGreaterThan(SequenceNumber other) {
         return this.value > other.value;
     }
-    
+
     public boolean isLessThan(SequenceNumber other) {
         return this.value < other.value;
     }
-    
+
     public boolean equals(SequenceNumber other) {
         return this.value == other.value;
     }
-    
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -46,12 +46,12 @@ public record SequenceNumber(long value) {
         SequenceNumber that = (SequenceNumber) o;
         return value == that.value;
     }
-    
+
     @Override
     public int hashCode() {
         return Objects.hash(value);
     }
-    
+
     @Override
     public String toString() {
         return String.valueOf(value);

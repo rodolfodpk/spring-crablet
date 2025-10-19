@@ -46,7 +46,7 @@ class WalletDomainValidationTest {
     void shouldRejectWalletOpenedWithNullWalletId() {
         // When & Then
         assertThatThrownBy(() -> WalletOpened.of(null, "John Doe", 1000))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -54,7 +54,7 @@ class WalletDomainValidationTest {
     void shouldRejectWalletOpenedWithEmptyWalletId() {
         // When & Then
         assertThatThrownBy(() -> WalletOpened.of("", "John Doe", 1000))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -62,7 +62,7 @@ class WalletDomainValidationTest {
     void shouldRejectWalletOpenedWithNullOwner() {
         // When & Then
         assertThatThrownBy(() -> WalletOpened.of("wallet-123", null, 1000))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -70,7 +70,7 @@ class WalletDomainValidationTest {
     void shouldRejectWalletOpenedWithEmptyOwner() {
         // When & Then
         assertThatThrownBy(() -> WalletOpened.of("wallet-123", "", 1000))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -78,7 +78,7 @@ class WalletDomainValidationTest {
     void shouldRejectWalletOpenedWithNegativeInitialBalance() {
         // When & Then
         assertThatThrownBy(() -> WalletOpened.of("wallet-123", "John Doe", -100))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -106,8 +106,8 @@ class WalletDomainValidationTest {
 
         // When
         MoneyTransferred transfer = MoneyTransferred.of(
-            transferId, fromWalletId, toWalletId, amount, 
-            fromBalance, toBalance, description
+                transferId, fromWalletId, toWalletId, amount,
+                fromBalance, toBalance, description
         );
 
         // Then
@@ -128,7 +128,7 @@ class WalletDomainValidationTest {
     void shouldRejectMoneyTransferredWithNullTransferId() {
         // When & Then
         assertThatThrownBy(() -> MoneyTransferred.of(
-            null, "wallet-1", "wallet-2", 500, 1000, 1500, "Test"
+                null, "wallet-1", "wallet-2", 500, 1000, 1500, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -137,7 +137,7 @@ class WalletDomainValidationTest {
     void shouldRejectMoneyTransferredWithEmptyTransferId() {
         // When & Then
         assertThatThrownBy(() -> MoneyTransferred.of(
-            "", "wallet-1", "wallet-2", 500, 1000, 1500, "Test"
+                "", "wallet-1", "wallet-2", 500, 1000, 1500, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -146,7 +146,7 @@ class WalletDomainValidationTest {
     void shouldRejectMoneyTransferredWithNullFromWalletId() {
         // When & Then
         assertThatThrownBy(() -> MoneyTransferred.of(
-            "transfer-123", null, "wallet-2", 500, 1000, 1500, "Test"
+                "transfer-123", null, "wallet-2", 500, 1000, 1500, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -155,7 +155,7 @@ class WalletDomainValidationTest {
     void shouldRejectMoneyTransferredWithNullToWalletId() {
         // When & Then
         assertThatThrownBy(() -> MoneyTransferred.of(
-            "transfer-123", "wallet-1", null, 500, 1000, 1500, "Test"
+                "transfer-123", "wallet-1", null, 500, 1000, 1500, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -164,7 +164,7 @@ class WalletDomainValidationTest {
     void shouldRejectMoneyTransferredWithSameFromAndToWallet() {
         // When & Then
         assertThatThrownBy(() -> MoneyTransferred.of(
-            "transfer-123", "wallet-1", "wallet-1", 500, 1000, 1000, "Test"
+                "transfer-123", "wallet-1", "wallet-1", 500, 1000, 1000, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -173,7 +173,7 @@ class WalletDomainValidationTest {
     void shouldRejectMoneyTransferredWithZeroAmount() {
         // When & Then
         assertThatThrownBy(() -> MoneyTransferred.of(
-            "transfer-123", "wallet-1", "wallet-2", 0, 1000, 1000, "Test"
+                "transfer-123", "wallet-1", "wallet-2", 0, 1000, 1000, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -182,7 +182,7 @@ class WalletDomainValidationTest {
     void shouldRejectMoneyTransferredWithNegativeAmount() {
         // When & Then
         assertThatThrownBy(() -> MoneyTransferred.of(
-            "transfer-123", "wallet-1", "wallet-2", -100, 1000, 1000, "Test"
+                "transfer-123", "wallet-1", "wallet-2", -100, 1000, 1000, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -191,7 +191,7 @@ class WalletDomainValidationTest {
     void shouldRejectMoneyTransferredWithNegativeFromBalance() {
         // When & Then
         assertThatThrownBy(() -> MoneyTransferred.of(
-            "transfer-123", "wallet-1", "wallet-2", 500, -100, 1500, "Test"
+                "transfer-123", "wallet-1", "wallet-2", 500, -100, 1500, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -200,7 +200,7 @@ class WalletDomainValidationTest {
     void shouldRejectMoneyTransferredWithNegativeToBalance() {
         // When & Then
         assertThatThrownBy(() -> MoneyTransferred.of(
-            "transfer-123", "wallet-1", "wallet-2", 500, 1000, -100, "Test"
+                "transfer-123", "wallet-1", "wallet-2", 500, 1000, -100, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -209,7 +209,7 @@ class WalletDomainValidationTest {
     void shouldRejectMoneyTransferredWithNullDescription() {
         // When & Then
         assertThatThrownBy(() -> MoneyTransferred.of(
-            "transfer-123", "wallet-1", "wallet-2", 500, 1000, 1500, null
+                "transfer-123", "wallet-1", "wallet-2", 500, 1000, 1500, null
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -218,7 +218,7 @@ class WalletDomainValidationTest {
     void shouldAcceptMoneyTransferredWithEmptyDescription() {
         // When
         MoneyTransferred transfer = MoneyTransferred.of(
-            "transfer-123", "wallet-1", "wallet-2", 500, 1000, 1500, ""
+                "transfer-123", "wallet-1", "wallet-2", 500, 1000, 1500, ""
         );
 
         // Then
@@ -238,7 +238,7 @@ class WalletDomainValidationTest {
 
         // When
         DepositMade deposit = DepositMade.of(
-            depositId, walletId, amount, newBalance, description
+                depositId, walletId, amount, newBalance, description
         );
 
         // Then
@@ -257,7 +257,7 @@ class WalletDomainValidationTest {
     void shouldRejectDepositMadeWithNullDepositId() {
         // When & Then
         assertThatThrownBy(() -> DepositMade.of(
-            null, "wallet-1", 500, 1500, "Test"
+                null, "wallet-1", 500, 1500, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -266,7 +266,7 @@ class WalletDomainValidationTest {
     void shouldRejectDepositMadeWithNullWalletId() {
         // When & Then
         assertThatThrownBy(() -> DepositMade.of(
-            "deposit-123", null, 500, 1500, "Test"
+                "deposit-123", null, 500, 1500, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -275,7 +275,7 @@ class WalletDomainValidationTest {
     void shouldRejectDepositMadeWithZeroAmount() {
         // When & Then
         assertThatThrownBy(() -> DepositMade.of(
-            "deposit-123", "wallet-1", 0, 1000, "Test"
+                "deposit-123", "wallet-1", 0, 1000, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -284,7 +284,7 @@ class WalletDomainValidationTest {
     void shouldRejectDepositMadeWithNegativeAmount() {
         // When & Then
         assertThatThrownBy(() -> DepositMade.of(
-            "deposit-123", "wallet-1", -100, 1000, "Test"
+                "deposit-123", "wallet-1", -100, 1000, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -293,7 +293,7 @@ class WalletDomainValidationTest {
     void shouldRejectDepositMadeWithNegativeNewBalance() {
         // When & Then
         assertThatThrownBy(() -> DepositMade.of(
-            "deposit-123", "wallet-1", 500, -100, "Test"
+                "deposit-123", "wallet-1", 500, -100, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -302,7 +302,7 @@ class WalletDomainValidationTest {
     void shouldRejectDepositMadeWithNullDescription() {
         // When & Then
         assertThatThrownBy(() -> DepositMade.of(
-            "deposit-123", "wallet-1", 500, 1500, null
+                "deposit-123", "wallet-1", 500, 1500, null
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -319,7 +319,7 @@ class WalletDomainValidationTest {
 
         // When
         WithdrawalMade withdrawal = WithdrawalMade.of(
-            withdrawalId, walletId, amount, newBalance, description
+                withdrawalId, walletId, amount, newBalance, description
         );
 
         // Then
@@ -338,7 +338,7 @@ class WalletDomainValidationTest {
     void shouldRejectWithdrawalMadeWithNullWithdrawalId() {
         // When & Then
         assertThatThrownBy(() -> WithdrawalMade.of(
-            null, "wallet-1", 300, 700, "Test"
+                null, "wallet-1", 300, 700, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -347,7 +347,7 @@ class WalletDomainValidationTest {
     void shouldRejectWithdrawalMadeWithNullWalletId() {
         // When & Then
         assertThatThrownBy(() -> WithdrawalMade.of(
-            "withdrawal-123", null, 300, 700, "Test"
+                "withdrawal-123", null, 300, 700, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -356,7 +356,7 @@ class WalletDomainValidationTest {
     void shouldRejectWithdrawalMadeWithZeroAmount() {
         // When & Then
         assertThatThrownBy(() -> WithdrawalMade.of(
-            "withdrawal-123", "wallet-1", 0, 1000, "Test"
+                "withdrawal-123", "wallet-1", 0, 1000, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -365,7 +365,7 @@ class WalletDomainValidationTest {
     void shouldRejectWithdrawalMadeWithNegativeAmount() {
         // When & Then
         assertThatThrownBy(() -> WithdrawalMade.of(
-            "withdrawal-123", "wallet-1", -100, 1000, "Test"
+                "withdrawal-123", "wallet-1", -100, 1000, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -374,7 +374,7 @@ class WalletDomainValidationTest {
     void shouldRejectWithdrawalMadeWithNegativeNewBalance() {
         // When & Then
         assertThatThrownBy(() -> WithdrawalMade.of(
-            "withdrawal-123", "wallet-1", 300, -100, "Test"
+                "withdrawal-123", "wallet-1", 300, -100, "Test"
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -383,7 +383,7 @@ class WalletDomainValidationTest {
     void shouldRejectWithdrawalMadeWithNullDescription() {
         // When & Then
         assertThatThrownBy(() -> WithdrawalMade.of(
-            "withdrawal-123", "wallet-1", 300, 700, null
+                "withdrawal-123", "wallet-1", 300, 700, null
         )).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -429,7 +429,7 @@ class WalletDomainValidationTest {
     void shouldAcceptWalletStateWithNullWalletId() {
         // When
         WalletState walletState = new WalletState(
-            null, "John Doe", 1000, Instant.now(), Instant.now()
+                null, "John Doe", 1000, Instant.now(), Instant.now()
         );
 
         // Then
@@ -441,7 +441,7 @@ class WalletDomainValidationTest {
     void shouldAcceptWalletStateWithNullOwner() {
         // When
         WalletState walletState = new WalletState(
-            "wallet-123", null, 1000, Instant.now(), Instant.now()
+                "wallet-123", null, 1000, Instant.now(), Instant.now()
         );
 
         // Then
@@ -453,7 +453,7 @@ class WalletDomainValidationTest {
     void shouldAcceptWalletStateWithNegativeBalance() {
         // When
         WalletState walletState = new WalletState(
-            "wallet-123", "John Doe", -100, Instant.now(), Instant.now()
+                "wallet-123", "John Doe", -100, Instant.now(), Instant.now()
         );
 
         // Then
@@ -465,7 +465,7 @@ class WalletDomainValidationTest {
     void shouldAcceptWalletStateWithZeroBalance() {
         // When
         WalletState walletState = new WalletState(
-            "wallet-123", "John Doe", 0, Instant.now(), Instant.now()
+                "wallet-123", "John Doe", 0, Instant.now(), Instant.now()
         );
 
         // Then
@@ -477,7 +477,7 @@ class WalletDomainValidationTest {
     void shouldValidateWalletStateWithBalanceMethod() {
         // Given
         WalletState originalState = new WalletState(
-            "wallet-123", "John Doe", 1000, Instant.now(), Instant.now()
+                "wallet-123", "John Doe", 1000, Instant.now(), Instant.now()
         );
         int newBalance = 1500;
         Instant newUpdatedAt = Instant.now();
@@ -499,7 +499,7 @@ class WalletDomainValidationTest {
     void shouldAcceptWalletStateWithBalanceWithNegativeBalance() {
         // Given
         WalletState originalState = new WalletState(
-            "wallet-123", "John Doe", 1000, Instant.now(), Instant.now()
+                "wallet-123", "John Doe", 1000, Instant.now(), Instant.now()
         );
 
         // When
@@ -515,7 +515,7 @@ class WalletDomainValidationTest {
     void shouldRejectWalletOpenedWithWhitespaceOnlyWalletId(String whitespaceId) {
         // When & Then
         assertThatThrownBy(() -> WalletOpened.of(whitespaceId, "John Doe", 1000))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @ParameterizedTest
@@ -524,7 +524,7 @@ class WalletDomainValidationTest {
     void shouldRejectWalletOpenedWithWhitespaceOnlyOwner(String whitespaceOwner) {
         // When & Then
         assertThatThrownBy(() -> WalletOpened.of("wallet-123", whitespaceOwner, 1000))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @ParameterizedTest
@@ -533,7 +533,7 @@ class WalletDomainValidationTest {
     void shouldRejectWalletOpenedWithNegativeInitialBalance(int negativeBalance) {
         // When & Then
         assertThatThrownBy(() -> WalletOpened.of("wallet-123", "John Doe", negativeBalance))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @ParameterizedTest
@@ -562,8 +562,8 @@ class WalletDomainValidationTest {
     void shouldValidateMoneyTransferredWithMaximumAllowedAmount() {
         // When
         MoneyTransferred transfer = MoneyTransferred.of(
-            "transfer-123", "wallet-1", "wallet-2", Integer.MAX_VALUE, 
-            Integer.MAX_VALUE, Integer.MAX_VALUE, "Test"
+                "transfer-123", "wallet-1", "wallet-2", Integer.MAX_VALUE,
+                Integer.MAX_VALUE, Integer.MAX_VALUE, "Test"
         );
 
         // Then
@@ -575,7 +575,7 @@ class WalletDomainValidationTest {
     void shouldValidateDepositMadeWithMaximumAllowedAmount() {
         // When
         DepositMade deposit = DepositMade.of(
-            "deposit-123", "wallet-1", Integer.MAX_VALUE, Integer.MAX_VALUE, "Test"
+                "deposit-123", "wallet-1", Integer.MAX_VALUE, Integer.MAX_VALUE, "Test"
         );
 
         // Then
@@ -587,7 +587,7 @@ class WalletDomainValidationTest {
     void shouldValidateWithdrawalMadeWithMaximumAllowedAmount() {
         // When
         WithdrawalMade withdrawal = WithdrawalMade.of(
-            "withdrawal-123", "wallet-1", Integer.MAX_VALUE, Integer.MAX_VALUE, "Test"
+                "withdrawal-123", "wallet-1", Integer.MAX_VALUE, Integer.MAX_VALUE, "Test"
         );
 
         // Then
@@ -599,7 +599,7 @@ class WalletDomainValidationTest {
     void shouldValidateWalletStateWithMaximumAllowedBalance() {
         // When
         WalletState walletState = new WalletState(
-            "wallet-123", "John Doe", Integer.MAX_VALUE, Instant.now(), Instant.now()
+                "wallet-123", "John Doe", Integer.MAX_VALUE, Instant.now(), Instant.now()
         );
 
         // Then

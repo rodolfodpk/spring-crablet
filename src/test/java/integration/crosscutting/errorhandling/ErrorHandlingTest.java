@@ -30,16 +30,16 @@ class ErrorHandlingTest extends AbstractCrabletTest {
 
     @Autowired
     private OpenWalletController openWalletController;
-    
+
     @Autowired
     private DepositController depositController;
-    
+
     @Autowired
     private WithdrawController withdrawController;
-    
+
     @Autowired
     private TransferController transferController;
-    
+
     @Autowired
     private WalletQueryController walletQueryController;
 
@@ -54,8 +54,8 @@ class ErrorHandlingTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> openWalletController.openWallet(null, request))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("walletId");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("walletId");
     }
 
     @Test
@@ -66,8 +66,8 @@ class ErrorHandlingTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> openWalletController.openWallet("", request))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("walletId");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("walletId");
     }
 
     @Test
@@ -75,7 +75,7 @@ class ErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleNullRequestInOpenWallet() {
         // When & Then
         assertThatThrownBy(() -> openWalletController.openWallet("wallet-123", null))
-            .isInstanceOf(Exception.class);
+                .isInstanceOf(Exception.class);
     }
 
     @Test
@@ -86,8 +86,8 @@ class ErrorHandlingTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> transferController.transfer(request))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("amount");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("amount");
     }
 
     @Test
@@ -98,7 +98,7 @@ class ErrorHandlingTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> transferController.transfer(request))
-            .isInstanceOf(com.wallets.domain.exception.WalletNotFoundException.class);
+                .isInstanceOf(com.wallets.domain.exception.WalletNotFoundException.class);
     }
 
     @Test
@@ -116,7 +116,7 @@ class ErrorHandlingTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> transferController.transfer(transferRequest))
-            .isInstanceOf(com.wallets.domain.exception.WalletNotFoundException.class);
+                .isInstanceOf(com.wallets.domain.exception.WalletNotFoundException.class);
     }
 
     @Test
@@ -127,10 +127,10 @@ class ErrorHandlingTest extends AbstractCrabletTest {
 
         // When - Create wallet twice
         ResponseEntity<Void> response1 = openWalletController.openWallet("wallet-123", request);
-        
+
         // Then - First call succeeds, second call throws exception (handled by GlobalExceptionHandler)
         assertThat(response1.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        
+
         // Second call should throw ConcurrencyException (handled by GlobalExceptionHandler)
         assertThatThrownBy(() -> openWalletController.openWallet("wallet-123", request))
                 .isInstanceOf(ConcurrencyException.class)
@@ -153,14 +153,14 @@ class ErrorHandlingTest extends AbstractCrabletTest {
 
         // When - Transfer twice with same transfer ID (should be idempotent)
         ResponseEntity<Void> response1 = transferController.transfer(request);
-        
+
         // Small delay to ensure first transfer is committed
         try {
             Thread.sleep(100);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        
+
         ResponseEntity<Void> response2 = transferController.transfer(request);
 
         // Then - First should be CREATED, second should be OK (idempotent operation)
@@ -196,7 +196,7 @@ class ErrorHandlingTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> depositController.deposit("non-existent", request))
-            .isInstanceOf(com.wallets.domain.exception.WalletNotFoundException.class);
+                .isInstanceOf(com.wallets.domain.exception.WalletNotFoundException.class);
     }
 
     @Test
@@ -207,7 +207,7 @@ class ErrorHandlingTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> withdrawController.withdraw("non-existent", request))
-            .isInstanceOf(com.wallets.domain.exception.WalletNotFoundException.class);
+                .isInstanceOf(com.wallets.domain.exception.WalletNotFoundException.class);
     }
 
     @Test
@@ -223,7 +223,7 @@ class ErrorHandlingTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> withdrawController.withdraw(walletId, withdrawRequest))
-            .isInstanceOf(com.wallets.domain.exception.InsufficientFundsException.class);
+                .isInstanceOf(com.wallets.domain.exception.InsufficientFundsException.class);
     }
 
     @Test
@@ -239,7 +239,7 @@ class ErrorHandlingTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> depositController.deposit(walletId, depositRequest))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -255,7 +255,7 @@ class ErrorHandlingTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> withdrawController.withdraw(walletId, withdrawRequest))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -274,7 +274,7 @@ class ErrorHandlingTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> transferController.transfer(request))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -290,7 +290,7 @@ class ErrorHandlingTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> transferController.transfer(request))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     // ===== Domain Logic Error Handling Tests =====
@@ -310,8 +310,8 @@ class ErrorHandlingTest extends AbstractCrabletTest {
         // The system should validate wallet state before processing operations
         // Duplicate wallet creation should throw ConcurrencyException (AppendCondition violated)
         assertThatThrownBy(() -> openWalletController.openWallet("wallet-state-1", openRequest))
-            .isInstanceOf(ConcurrencyException.class)
-            .hasMessageContaining("AppendCondition violated");
+                .isInstanceOf(ConcurrencyException.class)
+                .hasMessageContaining("AppendCondition violated");
 
         // Verify wallet operations work correctly after state validation
         depositController.deposit("wallet-state-1", depositRequest);
@@ -337,7 +337,7 @@ class ErrorHandlingTest extends AbstractCrabletTest {
         // When & Then - Second deposit should be handled as duplicate (idempotent)
         // The system should detect concurrent modifications and handle them gracefully
         depositController.deposit("wallet-concurrent-1", depositRequest2);
-        
+
         // Verify system handles concurrent modifications correctly
         assertThat(true).isTrue(); // Test passes if no exceptions thrown
     }
@@ -363,7 +363,7 @@ class ErrorHandlingTest extends AbstractCrabletTest {
             // The system should either succeed or fail with appropriate error handling
             assertThat(e).isInstanceOf(Exception.class);
         }
-        
+
         // Verify system handles database connection issues correctly
         assertThat(true).isTrue(); // Test passes if system handles errors gracefully
     }
@@ -387,7 +387,7 @@ class ErrorHandlingTest extends AbstractCrabletTest {
             // The system should either succeed or fail with appropriate error handling
             assertThat(e).isInstanceOf(Exception.class);
         }
-        
+
         // Verify system handles serialization correctly
         assertThat(true).isTrue(); // Test passes if system handles serialization gracefully
     }

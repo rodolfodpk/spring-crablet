@@ -1,15 +1,15 @@
-package integration.database;
+package crablet.integration;
 
 import com.crablet.core.AppendCondition;
+import com.crablet.core.AppendEvent;
 import com.crablet.core.Cursor;
-import com.crablet.core.StoredEvent;
 import com.crablet.core.EventStore;
 import com.crablet.core.EventStoreConfig;
-import com.crablet.core.AppendEvent;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
 import com.crablet.core.QueryItem;
 import com.crablet.core.StateProjector;
+import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
 import com.crablet.impl.JDBCEventStore;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -45,13 +45,13 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
 
     @Autowired
     private ObjectMapper objectMapper;
-    
+
     @Autowired
     private EventStoreConfig config;
 
     @BeforeEach
     void setUp() {
-        
+
         // Clean up database before each test to ensure isolation
         jdbcTemplate.execute("DELETE FROM events");
         jdbcTemplate.execute("DELETE FROM commands");
@@ -65,7 +65,7 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatCode(() -> eventStore.append(emptyEvents))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -76,7 +76,7 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> eventStore.append(nullEvents))
-            .isInstanceOf(NullPointerException.class);
+                .isInstanceOf(NullPointerException.class);
     }
 
     @Test
@@ -87,8 +87,8 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> eventStore.append(List.of(eventWithNullData)))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Failed to append events");
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to append events");
     }
 
     @Test
@@ -99,8 +99,8 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> eventStore.append(List.of(eventWithEmptyData)))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Failed to append events");
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to append events");
     }
 
     @Test
@@ -111,8 +111,8 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> eventStore.append(List.of(eventWithInvalidJson)))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Failed to append events");
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to append events");
     }
 
     @Test
@@ -125,7 +125,7 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
 
         // When & Then - null tags should be handled gracefully
         assertThatCode(() -> eventStore.append(List.of(eventWithNullTags)))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -139,7 +139,7 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
 
         // When & Then - null tag values should be filtered out gracefully
         assertThatCode(() -> eventStore.append(List.of(eventWithNullTagValues)))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -147,8 +147,8 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
     void shouldHandleQueryWithNullQueryParameter() {
         // When & Then
         assertThatThrownBy(() -> eventStore.query(null, null))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Failed to query events");
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to query events");
     }
 
     @Test
@@ -170,10 +170,10 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
     void shouldHandleQueryWithComplexQueryItems() {
         // Given
         Query complexQuery = Query.of(List.of(
-            QueryItem.of(List.of("WalletOpened", "MoneyTransferred"), List.of(
-                new Tag("wallet_id", "test-wallet"),
-                new Tag("transfer_id", "test-transfer")
-            ))
+                QueryItem.of(List.of("WalletOpened", "MoneyTransferred"), List.of(
+                        new Tag("wallet_id", "test-wallet"),
+                        new Tag("transfer_id", "test-transfer")
+                ))
         ));
 
         // When
@@ -210,10 +210,10 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
         try (Connection connection = jdbcTemplate.getDataSource().getConnection()) {
             // When - Create transaction-scoped EventStore
             EventStore txStore = eventStore.withConnection(connection);
-            
+
             // Then - Use clean API without passing connection
             assertThatCode(() -> txStore.append(List.of(event)))
-                .doesNotThrowAnyException();
+                    .doesNotThrowAnyException();
         }
     }
 
@@ -224,18 +224,18 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
         String sql = "SELECT pg_current_xact_id()";
         String result = jdbcTemplate.queryForObject(sql, String.class);
         System.out.println("pg_current_xact_id() returns: " + result);
-        
+
         // Test what transaction_id column returns (after inserting an event)
         WalletOpened walletOpened = WalletOpened.of("test-wallet", "Test User", 1000);
         try {
             String jsonData = objectMapper.writeValueAsString(walletOpened);
             AppendEvent event = AppendEvent.of("WalletOpened", List.of(new Tag("wallet_id", "test-wallet")), jsonData.getBytes());
             eventStore.append(List.of(event));
-            
+
             String sql2 = "SELECT transaction_id FROM events LIMIT 1";
             String txId = jdbcTemplate.queryForObject(sql2, String.class);
             System.out.println("transaction_id column returns: " + txId);
-            
+
             // Test if we can cast it to long
             try {
                 Long txIdLong = jdbcTemplate.queryForObject(sql2, Long.class);
@@ -243,7 +243,7 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
             } catch (Exception e) {
                 System.out.println("Cannot cast transaction_id to Long: " + e.getMessage());
             }
-            
+
         } catch (Exception e) {
             System.out.println("Error testing transaction_id: " + e.getMessage());
         }
@@ -279,7 +279,7 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
             // When & Then - Create transaction-scoped EventStore and test null condition
             EventStore txStore = eventStore.withConnection(connection);
             assertThatCode(() -> txStore.appendIf(List.of(event), null))
-                .doesNotThrowAnyException();
+                    .doesNotThrowAnyException();
         }
     }
 
@@ -317,7 +317,7 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
     void shouldHandleProjectionWithNullProjectors() {
         // When & Then
         assertThatThrownBy(() -> eventStore.project(null, null, Object.class))
-            .isInstanceOf(NullPointerException.class);
+                .isInstanceOf(NullPointerException.class);
     }
 
     @Test
@@ -341,32 +341,36 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
     void shouldApplyProjectorsAndReturnProperCursor() throws JsonProcessingException {
         // Given: Create a test wallet and deposit events
         String walletId = "dcb-test-wallet";
-        
+
         // Append wallet opened event
         WalletOpened walletOpened = WalletOpened.of(walletId, "DCB Test User", 100);
         byte[] openedData = objectMapper.writeValueAsBytes(walletOpened);
-        AppendEvent openedEvent = AppendEvent.of("WalletOpened", 
-            List.of(new Tag("wallet_id", walletId)), openedData);
+        AppendEvent openedEvent = AppendEvent.of("WalletOpened",
+                List.of(new Tag("wallet_id", walletId)), openedData);
         eventStore.append(List.of(openedEvent));
-        
+
         // Create a simple test projector that counts events
         StateProjector<Integer> countProjector = new StateProjector<>() {
             @Override
-            public String getId() { return "count-projector"; }
-            
-            @Override
-            public List<String> getEventTypes() { 
-                return List.of("WalletOpened", "DepositMade"); 
+            public String getId() {
+                return "count-projector";
             }
-            
+
             @Override
-            public List<Tag> getTags() { 
-                return List.of(new Tag("wallet_id", walletId)); 
+            public List<String> getEventTypes() {
+                return List.of("WalletOpened", "DepositMade");
             }
-            
+
             @Override
-            public Integer getInitialState() { return 0; }
-            
+            public List<Tag> getTags() {
+                return List.of(new Tag("wallet_id", walletId));
+            }
+
+            @Override
+            public Integer getInitialState() {
+                return 0;
+            }
+
             @Override
             public Integer transition(Integer currentState, StoredEvent event) {
                 return currentState == null ? 1 : currentState + 1;
@@ -375,9 +379,9 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
 
         // When: Project with the test projector
         ProjectionResult<Integer> result = eventStore.project(
-            List.of(countProjector), 
-            Cursor.zero(), 
-            Integer.class
+                List.of(countProjector),
+                Cursor.zero(),
+                Integer.class
         );
 
         // Then: Verify projector was applied
@@ -405,7 +409,7 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatCode(() -> eventStore.append(finalLargeEventList))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -415,16 +419,16 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
         WalletOpened walletOpened = WalletOpened.of("special-chars-wallet", "Test User", 1000);
         byte[] data = objectMapper.writeValueAsBytes(walletOpened);
         List<Tag> specialTags = List.of(
-            new Tag("key with spaces", "value with spaces"),
-            new Tag("key-with-dashes", "value-with-dashes"),
-            new Tag("key_with_underscores", "value_with_underscores"),
-            new Tag("key.with.dots", "value.with.dots")
+                new Tag("key with spaces", "value with spaces"),
+                new Tag("key-with-dashes", "value-with-dashes"),
+                new Tag("key_with_underscores", "value_with_underscores"),
+                new Tag("key.with.dots", "value.with.dots")
         );
         AppendEvent event = AppendEvent.of("WalletOpened", specialTags, data);
 
         // When & Then
         assertThatCode(() -> eventStore.append(List.of(event)))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -439,7 +443,7 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatCode(() -> eventStore.append(List.of(event)))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -449,16 +453,16 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
         WalletOpened walletOpened = WalletOpened.of("unicode-wallet", "Test User", 1000);
         byte[] data = objectMapper.writeValueAsBytes(walletOpened);
         List<Tag> unicodeTags = List.of(
-            new Tag("emoji_key", "🚀💰💳"),
-            new Tag("chinese_key", "钱包测试"),
-            new Tag("arabic_key", "محفظة اختبار"),
-            new Tag("russian_key", "тест кошелька")
+                new Tag("emoji_key", "🚀💰💳"),
+                new Tag("chinese_key", "钱包测试"),
+                new Tag("arabic_key", "محفظة اختبار"),
+                new Tag("russian_key", "тест кошелька")
         );
         AppendEvent event = AppendEvent.of("WalletOpened", unicodeTags, data);
 
         // When & Then
         assertThatCode(() -> eventStore.append(List.of(event)))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -467,20 +471,20 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
         // Given
         List<AppendEvent> events1 = List.of();
         List<AppendEvent> events2 = List.of();
-        
+
         for (int i = 0; i < 5; i++) { // Reduced for test performance
             String walletId1 = "concurrent-wallet1-" + i;
             String walletId2 = "concurrent-wallet2-" + i;
-            
+
             WalletOpened walletOpened1 = WalletOpened.of(walletId1, "User 1", 1000);
             WalletOpened walletOpened2 = WalletOpened.of(walletId2, "User 2", 1000);
-            
+
             byte[] data1 = objectMapper.writeValueAsBytes(walletOpened1);
             byte[] data2 = objectMapper.writeValueAsBytes(walletOpened2);
-            
+
             AppendEvent event1 = AppendEvent.of("WalletOpened", List.of(new Tag("wallet_id", walletId1)), data1);
             AppendEvent event2 = AppendEvent.of("WalletOpened", List.of(new Tag("wallet_id", walletId2)), data2);
-            
+
             events1 = List.of(event1); // Simplified for test
             events2 = List.of(event2); // Simplified for test
         }
@@ -500,8 +504,8 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
     void shouldHandleDatabaseConnectionErrorsGracefully() throws JsonProcessingException, SQLException {
         // When & Then - constructor should throw IllegalArgumentException for null DataSource
         assertThatThrownBy(() -> new JDBCEventStore(null, objectMapper, config))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("DataSource must not be null");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("DataSource must not be null");
     }
 
     @Test
@@ -513,8 +517,8 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> eventStore.append(List.of(invalidEvent)))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Failed to append events");
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to append events");
     }
 
     @Test
@@ -523,11 +527,11 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
         // Given
         // Create a query with invalid tag format that should cause SQL issues
         Query problematicQuery = Query.of(List.of(
-            QueryItem.of(List.of("WalletOpened"), List.of(new Tag("invalid_tag_format", "value with 'quotes' and ; semicolons")))
+                QueryItem.of(List.of("WalletOpened"), List.of(new Tag("invalid_tag_format", "value with 'quotes' and ; semicolons")))
         ));
 
         // When & Then - PostgreSQL handles this gracefully, so no exception is thrown
         assertThatCode(() -> eventStore.query(problematicQuery, null))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 }

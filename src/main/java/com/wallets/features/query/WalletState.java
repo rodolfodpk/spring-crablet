@@ -7,11 +7,11 @@ import java.time.Instant;
  * This is reconstructed from events using state projectors.
  */
 public record WalletState(
-    String walletId,
-    String owner,
-    int balance,
-    Instant createdAt,
-    Instant updatedAt
+        String walletId,
+        String owner,
+        int balance,
+        Instant createdAt,
+        Instant updatedAt
 ) {
     /**
      * Create an empty wallet state.
@@ -19,14 +19,14 @@ public record WalletState(
     public static WalletState empty() {
         return new WalletState("", "", 0, null, null);
     }
-    
+
     /**
      * Check if this wallet state is empty (not initialized).
      */
     public boolean isEmpty() {
         return walletId.isEmpty() || owner.isEmpty();
     }
-    
+
     /**
      * Update the balance and timestamp.
      */

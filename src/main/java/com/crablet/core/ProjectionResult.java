@@ -5,8 +5,8 @@ package com.crablet.core;
  * This is a pure data record with no business logic.
  */
 public record ProjectionResult<T>(
-    T states,
-    Cursor cursor
+        T states,
+        Cursor cursor
 ) {
     /**
      * Create a projection result from states and cursor.
@@ -14,21 +14,21 @@ public record ProjectionResult<T>(
     public static <T> ProjectionResult<T> of(T states, Cursor cursor) {
         return new ProjectionResult<>(states, cursor);
     }
-    
+
     /**
      * Create a projection result from states only.
      */
     public static <T> ProjectionResult<T> of(T states) {
         return new ProjectionResult<>(states, null);
     }
-    
+
     /**
      * Get the projected state.
      */
     public T state() {
         return states;
     }
-    
+
     /**
      * Check if this result has a cursor for optimistic locking.
      */

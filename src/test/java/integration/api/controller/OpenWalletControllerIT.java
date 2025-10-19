@@ -50,7 +50,7 @@ class OpenWalletControllerIT extends AbstractCrabletTest {
         ResponseEntity<WalletResponse> walletResponse = restTemplate.getForEntity(walletUrl, WalletResponse.class);
         assertThat(walletResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(walletResponse.getBody()).isNotNull();
-        
+
         WalletResponse wallet = walletResponse.getBody();
         assertThat(wallet.walletId()).isEqualTo(walletId);
         assertThat(wallet.owner()).isEqualTo("Alice");
@@ -96,7 +96,7 @@ class OpenWalletControllerIT extends AbstractCrabletTest {
         // Arrange
         String walletId = "validation-wallet-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + walletId;
-        
+
         // Act: Try to create wallet with invalid data (empty owner, negative balance)
         OpenWalletRequest invalidRequest = new OpenWalletRequest("", -100);
         restTemplate.put(walletUrl, invalidRequest);
@@ -121,7 +121,7 @@ class OpenWalletControllerIT extends AbstractCrabletTest {
         ResponseEntity<WalletResponse> walletResponse = restTemplate.getForEntity(walletUrl, WalletResponse.class);
         assertThat(walletResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(walletResponse.getBody()).isNotNull();
-        
+
         WalletResponse wallet = walletResponse.getBody();
         assertThat(wallet.walletId()).isEqualTo(walletId);
         assertThat(wallet.owner()).isEqualTo("Alice");
@@ -143,7 +143,7 @@ class OpenWalletControllerIT extends AbstractCrabletTest {
         ResponseEntity<WalletResponse> walletResponse = restTemplate.getForEntity(walletUrl, WalletResponse.class);
         assertThat(walletResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(walletResponse.getBody()).isNotNull();
-        
+
         WalletResponse wallet = walletResponse.getBody();
         assertThat(wallet.walletId()).isEqualTo(walletId);
         assertThat(wallet.owner()).isEqualTo("Alice");
@@ -165,7 +165,7 @@ class OpenWalletControllerIT extends AbstractCrabletTest {
         ResponseEntity<WalletResponse> walletResponse = restTemplate.getForEntity(walletUrl, WalletResponse.class);
         assertThat(walletResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(walletResponse.getBody()).isNotNull();
-        
+
         WalletResponse wallet = walletResponse.getBody();
         assertThat(wallet.walletId()).isEqualTo(walletId);
         assertThat(wallet.owner()).isEqualTo("Alice O'Connor-Smith");
@@ -187,7 +187,7 @@ class OpenWalletControllerIT extends AbstractCrabletTest {
         ResponseEntity<WalletResponse> walletResponse = restTemplate.getForEntity(walletUrl, WalletResponse.class);
         assertThat(walletResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(walletResponse.getBody()).isNotNull();
-        
+
         WalletResponse wallet = walletResponse.getBody();
         assertThat(wallet.walletId()).isEqualTo(walletId);
         assertThat(wallet.owner()).isEqualTo("张三");
@@ -201,7 +201,7 @@ class OpenWalletControllerIT extends AbstractCrabletTest {
         String wallet1Id = "multi-wallet1-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet2Id = "multi-wallet2-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet3Id = "multi-wallet3-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         OpenWalletRequest wallet1Request = new OpenWalletRequest("Alice", 1000);
         OpenWalletRequest wallet2Request = new OpenWalletRequest("Bob", 2000);
         OpenWalletRequest wallet3Request = new OpenWalletRequest("Charlie", 3000);
@@ -213,31 +213,31 @@ class OpenWalletControllerIT extends AbstractCrabletTest {
 
         // Assert: All wallets should be created successfully
         ResponseEntity<WalletResponse> wallet1Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet1Id, WalletResponse.class
+                baseUrl + "/" + wallet1Id, WalletResponse.class
         );
         ResponseEntity<WalletResponse> wallet2Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet2Id, WalletResponse.class
+                baseUrl + "/" + wallet2Id, WalletResponse.class
         );
         ResponseEntity<WalletResponse> wallet3Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet3Id, WalletResponse.class
+                baseUrl + "/" + wallet3Id, WalletResponse.class
         );
-        
+
         assertThat(wallet1Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet2Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet3Response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        
+
         assertThat(wallet1Response.getBody()).isNotNull();
         assertThat(wallet2Response.getBody()).isNotNull();
         assertThat(wallet3Response.getBody()).isNotNull();
-        
+
         assertThat(wallet1Response.getBody().walletId()).isEqualTo(wallet1Id);
         assertThat(wallet2Response.getBody().walletId()).isEqualTo(wallet2Id);
         assertThat(wallet3Response.getBody().walletId()).isEqualTo(wallet3Id);
-        
+
         assertThat(wallet1Response.getBody().owner()).isEqualTo("Alice");
         assertThat(wallet2Response.getBody().owner()).isEqualTo("Bob");
         assertThat(wallet3Response.getBody().owner()).isEqualTo("Charlie");
-        
+
         assertThat(wallet1Response.getBody().balance()).isEqualTo(1000);
         assertThat(wallet2Response.getBody().balance()).isEqualTo(2000);
         assertThat(wallet3Response.getBody().balance()).isEqualTo(3000);
@@ -250,7 +250,7 @@ class OpenWalletControllerIT extends AbstractCrabletTest {
         String wallet1Id = "balance-test1-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet2Id = "balance-test2-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet3Id = "balance-test3-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         OpenWalletRequest wallet1Request = new OpenWalletRequest("Alice", 0);
         OpenWalletRequest wallet2Request = new OpenWalletRequest("Bob", 1);
         OpenWalletRequest wallet3Request = new OpenWalletRequest("Charlie", 999999);
@@ -262,23 +262,23 @@ class OpenWalletControllerIT extends AbstractCrabletTest {
 
         // Assert: All wallets should be created with correct balances
         ResponseEntity<WalletResponse> wallet1Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet1Id, WalletResponse.class
+                baseUrl + "/" + wallet1Id, WalletResponse.class
         );
         ResponseEntity<WalletResponse> wallet2Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet2Id, WalletResponse.class
+                baseUrl + "/" + wallet2Id, WalletResponse.class
         );
         ResponseEntity<WalletResponse> wallet3Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet3Id, WalletResponse.class
+                baseUrl + "/" + wallet3Id, WalletResponse.class
         );
-        
+
         assertThat(wallet1Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet2Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet3Response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        
+
         assertThat(wallet1Response.getBody()).isNotNull();
         assertThat(wallet2Response.getBody()).isNotNull();
         assertThat(wallet3Response.getBody()).isNotNull();
-        
+
         assertThat(wallet1Response.getBody().balance()).isEqualTo(0);
         assertThat(wallet2Response.getBody().balance()).isEqualTo(1);
         assertThat(wallet3Response.getBody().balance()).isEqualTo(999999);
@@ -300,7 +300,7 @@ class OpenWalletControllerIT extends AbstractCrabletTest {
         ResponseEntity<WalletResponse> walletResponse = restTemplate.getForEntity(walletUrl, WalletResponse.class);
         assertThat(walletResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(walletResponse.getBody()).isNotNull();
-        
+
         WalletResponse wallet = walletResponse.getBody();
         assertThat(wallet.walletId()).isEqualTo(walletId);
         assertThat(wallet.owner()).isEqualTo(longOwnerName);

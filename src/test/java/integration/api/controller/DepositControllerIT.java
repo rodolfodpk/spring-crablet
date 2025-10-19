@@ -42,14 +42,14 @@ class DepositControllerIT extends AbstractCrabletTest {
         // Arrange: Create a wallet first
         String walletId = "deposit-wallet-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + walletId;
-        
+
         OpenWalletRequest walletRequest = new OpenWalletRequest("Alice", 1000);
         restTemplate.put(walletUrl, walletRequest);
 
         // Act: Deposit money
         DepositRequest depositRequest = new DepositRequest("deposit-1", 500, "Bonus payment");
         ResponseEntity<Void> depositResponse = restTemplate.postForEntity(
-            walletUrl + "/deposit", depositRequest, Void.class
+                walletUrl + "/deposit", depositRequest, Void.class
         );
 
         // Assert
@@ -68,12 +68,12 @@ class DepositControllerIT extends AbstractCrabletTest {
         // Arrange
         String nonExistentWalletId = "nonexistent-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + nonExistentWalletId;
-        
+
         DepositRequest depositRequest = new DepositRequest("deposit-1", 500, "Bonus payment");
 
         // Act
         ResponseEntity<Void> depositResponse = restTemplate.postForEntity(
-            walletUrl + "/deposit", depositRequest, Void.class
+                walletUrl + "/deposit", depositRequest, Void.class
         );
 
         // Assert
@@ -86,14 +86,14 @@ class DepositControllerIT extends AbstractCrabletTest {
         // Arrange: Create a wallet first
         String walletId = "invalid-deposit-wallet-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + walletId;
-        
+
         OpenWalletRequest walletRequest = new OpenWalletRequest("Alice", 1000);
         restTemplate.put(walletUrl, walletRequest);
 
         // Act: Try to deposit negative amount
         DepositRequest depositRequest = new DepositRequest("deposit-1", -100, "Invalid deposit");
         ResponseEntity<Void> depositResponse = restTemplate.postForEntity(
-            walletUrl + "/deposit", depositRequest, Void.class
+                walletUrl + "/deposit", depositRequest, Void.class
         );
 
         // Assert
@@ -112,14 +112,14 @@ class DepositControllerIT extends AbstractCrabletTest {
         // Arrange: Create a wallet first
         String walletId = "zero-deposit-wallet-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + walletId;
-        
+
         OpenWalletRequest walletRequest = new OpenWalletRequest("Alice", 1000);
         restTemplate.put(walletUrl, walletRequest);
 
         // Act: Try to deposit zero amount
         DepositRequest depositRequest = new DepositRequest("deposit-1", 0, "Zero deposit");
         ResponseEntity<Void> depositResponse = restTemplate.postForEntity(
-            walletUrl + "/deposit", depositRequest, Void.class
+                walletUrl + "/deposit", depositRequest, Void.class
         );
 
         // Assert
@@ -138,14 +138,14 @@ class DepositControllerIT extends AbstractCrabletTest {
         // Arrange: Create a wallet first
         String walletId = "validation-wallet-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + walletId;
-        
+
         OpenWalletRequest walletRequest = new OpenWalletRequest("Alice", 1000);
         restTemplate.put(walletUrl, walletRequest);
 
         // Act: Try to deposit with invalid request body (empty depositId)
         DepositRequest invalidRequest = new DepositRequest("", 100, "");
         ResponseEntity<Void> depositResponse = restTemplate.postForEntity(
-            walletUrl + "/deposit", invalidRequest, Void.class
+                walletUrl + "/deposit", invalidRequest, Void.class
         );
 
         // Assert
@@ -164,14 +164,14 @@ class DepositControllerIT extends AbstractCrabletTest {
         // Arrange: Create a wallet first
         String walletId = "idempotent-deposit-wallet-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + walletId;
-        
+
         OpenWalletRequest walletRequest = new OpenWalletRequest("Alice", 1000);
         restTemplate.put(walletUrl, walletRequest);
 
         // Act: First deposit
         DepositRequest depositRequest = new DepositRequest("idempotent-deposit-1", 200, "First deposit");
         ResponseEntity<Void> firstDepositResponse = restTemplate.postForEntity(
-            walletUrl + "/deposit", depositRequest, Void.class
+                walletUrl + "/deposit", depositRequest, Void.class
         );
         assertThat(firstDepositResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
@@ -182,7 +182,7 @@ class DepositControllerIT extends AbstractCrabletTest {
 
         // Act: Second deposit with same depositId (should be idempotent)
         ResponseEntity<Void> secondDepositResponse = restTemplate.postForEntity(
-            walletUrl + "/deposit", depositRequest, Void.class
+                walletUrl + "/deposit", depositRequest, Void.class
         );
         assertThat(secondDepositResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
@@ -198,7 +198,7 @@ class DepositControllerIT extends AbstractCrabletTest {
         // Arrange: Create a wallet first
         String walletId = "multiple-deposits-wallet-" + UUID.randomUUID().toString().substring(0, 8);
         String walletUrl = baseUrl + "/" + walletId;
-        
+
         OpenWalletRequest walletRequest = new OpenWalletRequest("Alice", 1000);
         restTemplate.put(walletUrl, walletRequest);
 

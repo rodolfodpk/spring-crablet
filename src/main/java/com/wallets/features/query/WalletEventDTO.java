@@ -7,7 +7,8 @@ import java.util.Map;
  * DTO for individual event in wallet history.
  */
 public record WalletEventDTO(
-    String eventType,
-    Instant occurredAt,
-    Map<String, Object> data
-) {}
+        String eventType,
+        Instant occurredAt,
+        Map<String, Object> data
+) {
+}

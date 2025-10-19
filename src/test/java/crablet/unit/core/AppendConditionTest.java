@@ -1,4 +1,4 @@
-package unit.infrastructure.crablet.core;
+package crablet.unit.core;
 
 import com.crablet.core.AppendCondition;
 import com.crablet.core.Cursor;
@@ -70,8 +70,8 @@ class AppendConditionTest {
 
         // When & Then
         assertThatThrownBy(() -> AppendCondition.of(null, failIfEventsMatch))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("afterCursor cannot be null");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("afterCursor cannot be null");
     }
 
     @Test
@@ -82,8 +82,8 @@ class AppendConditionTest {
 
         // When & Then
         assertThatThrownBy(() -> AppendCondition.of(afterCursor, null))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("failIfEventsMatch cannot be null");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("failIfEventsMatch cannot be null");
     }
 
     @Test
@@ -148,9 +148,9 @@ class AppendConditionTest {
 
         // Then
         assertThat(condition.toString())
-            .contains("AppendCondition{")
-            .contains("afterCursor=")
-            .contains("failIfEventsMatch=");
+                .contains("AppendCondition{")
+                .contains("afterCursor=")
+                .contains("failIfEventsMatch=");
     }
 
     @Test

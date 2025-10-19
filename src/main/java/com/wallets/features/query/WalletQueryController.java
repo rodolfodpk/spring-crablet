@@ -18,7 +18,7 @@ import java.time.Instant;
 
 /**
  * Controller for wallet query operations.
- * 
+ * <p>
  * DCB Principle: Single responsibility - handles only read operations.
  * Separate from command controllers to maintain CQRS separation.
  */
@@ -26,15 +26,15 @@ import java.time.Instant;
 @RequestMapping("/api/wallets")
 @Tag(name = "Wallet Queries", description = "API for querying wallet state and history")
 public class WalletQueryController {
-    
+
     private static final Logger log = LoggerFactory.getLogger(WalletQueryController.class);
-    
+
     private final WalletQueryService queryService;
-    
+
     public WalletQueryController(WalletQueryService queryService) {
         this.queryService = queryService;
     }
-    
+
     /**
      * Get current wallet state (current balance).
      * GET /api/wallets/{walletId}
@@ -42,15 +42,15 @@ public class WalletQueryController {
     @GetMapping("/{walletId}")
     @Operation(summary = "Get wallet state", description = "Retrieves current wallet balance and metadata")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Wallet found"),
-        @ApiResponse(responseCode = "404", description = "Wallet not found")
+            @ApiResponse(responseCode = "200", description = "Wallet found"),
+            @ApiResponse(responseCode = "404", description = "Wallet not found")
     })
     public ResponseEntity<WalletResponse> getWallet(
             @Parameter(description = "Wallet ID") @PathVariable String walletId) {
         WalletResponse response = queryService.getWalletState(walletId);
         return response != null ? ResponseEntity.ok(response) : ResponseEntity.notFound().build();
     }
-    
+
     /**
      * Get events for a wallet with pagination.
      * GET /api/wallets/{walletId}/events?timestamp={timestamp}&page={page}&size={size}
@@ -58,9 +58,9 @@ public class WalletQueryController {
     @GetMapping("/{walletId}/events")
     @Operation(summary = "Get wallet events", description = "Retrieves paginated events for a wallet including transfers")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Events retrieved successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid parameters"),
-        @ApiResponse(responseCode = "404", description = "Wallet not found")
+            @ApiResponse(responseCode = "200", description = "Events retrieved successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid parameters"),
+            @ApiResponse(responseCode = "404", description = "Wallet not found")
     })
     public ResponseEntity<WalletHistoryResponse> getWalletEvents(
             @Parameter(description = "Wallet ID") @PathVariable String walletId,
@@ -71,7 +71,7 @@ public class WalletQueryController {
         WalletHistoryResponse response = queryService.getWalletHistory(walletId, targetTime, page, size);
         return ResponseEntity.ok(response);
     }
-    
+
     /**
      * Get commands for a wallet with their events using CTE queries.
      * GET /api/wallets/{walletId}/commands?timestamp={timestamp}&page={page}&size={size}
@@ -79,9 +79,9 @@ public class WalletQueryController {
     @GetMapping("/{walletId}/commands")
     @Operation(summary = "Get wallet commands", description = "Retrieves paginated commands for a wallet with their events")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Commands retrieved successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid parameters"),
-        @ApiResponse(responseCode = "404", description = "Wallet not found")
+            @ApiResponse(responseCode = "200", description = "Commands retrieved successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid parameters"),
+            @ApiResponse(responseCode = "404", description = "Wallet not found")
     })
     public ResponseEntity<WalletCommandsResponse> getWalletCommands(
             @Parameter(description = "Wallet ID") @PathVariable String walletId,
@@ -92,5 +92,5 @@ public class WalletQueryController {
         WalletCommandsResponse response = queryService.getWalletCommands(walletId, targetTime, page, size);
         return ResponseEntity.ok(response);
     }
-    
+
 }

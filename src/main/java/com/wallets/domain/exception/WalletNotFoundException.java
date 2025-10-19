@@ -4,19 +4,19 @@ package com.wallets.domain.exception;
  * Exception thrown when attempting to perform operations on a wallet that does not exist.
  */
 public class WalletNotFoundException extends RuntimeException {
-    
+
     private final String walletId;
-    
+
     public WalletNotFoundException(String walletId) {
         super("Wallet not found: " + walletId);
         this.walletId = walletId;
     }
-    
+
     public WalletNotFoundException(String walletId, String message) {
         super(message);
         this.walletId = walletId;
     }
-    
+
     public String getWalletId() {
         return walletId;
     }

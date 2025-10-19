@@ -19,9 +19,9 @@ export const options = {
     },
 };
 
-export default function() {
+export default function () {
     const walletId = 'rate-limit-test-wallet';
-    
+
     // Try to deposit - should hit rate limit after 50 requests
     const depositPayload = JSON.stringify({
         depositId: randomUUID(),
@@ -33,7 +33,7 @@ export default function() {
         `${BASE_URL}/api/wallets/${walletId}/deposit`,
         depositPayload,
         {
-            headers: { 'Content-Type': 'application/json' },
+            headers: {'Content-Type': 'application/json'},
         }
     );
 
@@ -66,7 +66,7 @@ export default function() {
 export function handleSummary(data) {
     const rateLimited = data.metrics['checks'].values['rate>0.15'];
     const status429Count = Object.values(data.metrics['http_reqs'].values).filter(v => v === 429).length;
-    
+
     console.log(`\n========================================`);
     console.log(`Rate Limiting Test Summary`);
     console.log(`========================================`);
@@ -75,7 +75,7 @@ export function handleSummary(data) {
     console.log(`Expected: ~10 rate limited (after 50 successful)`);
     console.log(`Rate limiting working: ${rateLimited ? 'YES ✅' : 'NO ❌'}`);
     console.log(`========================================\n`);
-    
+
     return {
         'stdout': JSON.stringify(data, null, 2),
     };

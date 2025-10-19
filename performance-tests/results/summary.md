@@ -7,6 +7,7 @@ Generated on: Sat Oct 18 21:22:36 -03 2025
 ### Wallet Creation Load Test
 
 [0;32m✅[0m Test completed successfully
+
 - **Operations completed**: 41299
 - **95th percentile response time**: 36.89ms
 - **Error rate**: 0.00%
@@ -15,6 +16,7 @@ Generated on: Sat Oct 18 21:22:36 -03 2025
 ### Deposit Operations Test
 
 [0;32m✅[0m Test completed successfully
+
 - **Operations completed**: 14562
 - **95th percentile response time**: 59.49ms
 - **Error rate**: 0.00%
@@ -23,6 +25,7 @@ Generated on: Sat Oct 18 21:22:36 -03 2025
 ### Withdrawal Operations Test
 
 [0;32m✅[0m Test completed successfully
+
 - **Operations completed**: 10579
 - **95th percentile response time**: 64.69ms
 - **Error rate**: 0.00%
@@ -31,6 +34,7 @@ Generated on: Sat Oct 18 21:22:36 -03 2025
 ### Transfer Operations Test
 
 [0;32m✅[0m Test completed successfully
+
 - **Operations completed**: 6587
 - **95th percentile response time**: 138.02ms
 - **Error rate**: 0.03%
@@ -39,6 +43,7 @@ Generated on: Sat Oct 18 21:22:36 -03 2025
 ### History Query Test
 
 [0;32m✅[0m Test completed successfully
+
 - **Operations completed**: 13452
 - **95th percentile response time**: 85.89ms
 - **Error rate**: 0.00%
@@ -47,6 +52,7 @@ Generated on: Sat Oct 18 21:22:36 -03 2025
 ### Spike Resilience Test
 
 [0;32m✅[0m Test completed successfully
+
 - **Operations completed**: 7763
 - **95th percentile response time**: 282.74ms
 - **Error rate**: 0.00%
@@ -55,6 +61,7 @@ Generated on: Sat Oct 18 21:22:36 -03 2025
 ### Mixed Workload Test
 
 [0;32m✅[0m Test completed successfully
+
 - **Operations completed**: 17066
 - **95th percentile response time**: 145.38ms
 - **Error rate**: 0.00%
@@ -63,6 +70,7 @@ Generated on: Sat Oct 18 21:22:36 -03 2025
 ### Insufficient Balance Test
 
 [0;32m✅[0m Test completed successfully
+
 - **Operations completed**: 9054
 - **95th percentile response time**: 81.83ms
 - **Error rate**: 100.00%
@@ -71,16 +79,16 @@ Generated on: Sat Oct 18 21:22:36 -03 2025
 ### Concurrency Conflict Test
 
 [0;32m✅[0m Test completed successfully
+
 - **Operations completed**: 3459
 - **95th percentile response time**: 1067.72ms
 - **Error rate**: 0.00%
 - **Throughput**: 69 requests/second
 
-
 ## Performance Targets
 
 - **Wallet Creation**: < 500ms (95th percentile)
-- **Deposits**: < 300ms (95th percentile)  
+- **Deposits**: < 300ms (95th percentile)
 - **Withdrawals**: < 300ms (95th percentile)
 - **Transfers**: < 300ms (95th percentile)
 - **History Queries**: < 1000ms (95th percentile)

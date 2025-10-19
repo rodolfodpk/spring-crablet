@@ -17,9 +17,9 @@ import java.util.Map;
  */
 @RestControllerAdvice
 public class RateLimitExceptionHandler {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(RateLimitExceptionHandler.class);
-    
+
     /**
      * Handle rate limit exceeded exceptions.
      *
@@ -29,15 +29,15 @@ public class RateLimitExceptionHandler {
     @ExceptionHandler(RequestNotPermitted.class)
     public ResponseEntity<Map<String, Object>> handleRateLimitException(RequestNotPermitted ex) {
         logger.warn("Rate limit exceeded: {}", ex.getMessage());
-        
+
         Map<String, Object> body = Map.of(
-            "error", Map.of(
-                "code", "RATE_LIMIT_EXCEEDED",
-                "message", "Too many requests. Please try again later.",
-                "timestamp", Instant.now().toString()
-            )
+                "error", Map.of(
+                        "code", "RATE_LIMIT_EXCEEDED",
+                        "message", "Too many requests. Please try again later.",
+                        "timestamp", Instant.now().toString()
+                )
         );
-        
+
         return ResponseEntity
                 .status(HttpStatus.TOO_MANY_REQUESTS)
                 .header("Retry-After", "60")  // Retry after 60 seconds

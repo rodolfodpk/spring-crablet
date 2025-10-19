@@ -1,4 +1,4 @@
-package unit.infrastructure.crablet.core;
+package crablet.unit.core;
 
 import com.crablet.core.Query;
 import com.crablet.core.QueryItem;
@@ -37,8 +37,8 @@ class QueryTest {
         // Given
         String eventType = "DepositMade";
         List<Tag> tags = List.of(
-            new Tag("wallet_id", "wallet-123"),
-            new Tag("deposit_id", "deposit-456")
+                new Tag("wallet_id", "wallet-123"),
+                new Tag("deposit_id", "deposit-456")
         );
 
         // When
@@ -71,8 +71,8 @@ class QueryTest {
         // Given
         List<String> eventTypes = List.of("WalletOpened", "DepositMade");
         List<Tag> tags = List.of(
-            new Tag("wallet_id", "wallet-123"),
-            new Tag("deposit_id", "deposit-456")
+                new Tag("wallet_id", "wallet-123"),
+                new Tag("deposit_id", "deposit-456")
         );
 
         // When
@@ -88,15 +88,15 @@ class QueryTest {
     @Test
     void shouldSupportDCBQueryPatterns() {
         // Test common DCB query patterns used in command handlers
-        
+
         // Pattern 1: Check if wallet exists
         Query walletExistsQuery = Query.forEventAndTag("WalletOpened", "wallet_id", "wallet-123");
         assertThat(walletExistsQuery.items()).hasSize(1);
-        
+
         // Pattern 2: Check if deposit was already processed (idempotency)
         Query depositProcessedQuery = Query.forEventAndTag("DepositMade", "deposit_id", "deposit-456");
         assertThat(depositProcessedQuery.items()).hasSize(1);
-        
+
         // Pattern 3: Get all events for a wallet (no event type filter)
         Query allWalletEventsQuery = Query.forEventAndTag("", "wallet_id", "wallet-123");
         assertThat(allWalletEventsQuery.items()).hasSize(1);
@@ -129,8 +129,8 @@ class QueryTest {
     void shouldCreateQueryFromMultipleItems() {
         // Given
         List<QueryItem> items = List.of(
-            QueryItem.ofType("WalletOpened"),
-            QueryItem.ofType("DepositMade")
+                QueryItem.ofType("WalletOpened"),
+                QueryItem.ofType("DepositMade")
         );
 
         // When
@@ -145,13 +145,13 @@ class QueryTest {
     void shouldSupportDCBAppendConditionPatterns() {
         // Test that Query helpers work well with DCB AppendCondition patterns
         // This is the pattern used in command handlers for idempotency checks
-        
+
         // Given - typical idempotency check query
         Query idempotencyQuery = Query.forEventAndTag("DepositMade", "deposit_id", "deposit-123");
-        
+
         // When - used in AppendCondition context
         // AppendCondition.of(cursor, idempotencyQuery)
-        
+
         // Then - should be a valid query for DCB consistency checking
         assertThat(idempotencyQuery.items()).hasSize(1);
         QueryItem item = idempotencyQuery.items().get(0);

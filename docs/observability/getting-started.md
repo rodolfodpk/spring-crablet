@@ -21,6 +21,7 @@ docker-compose ps
 ```
 
 You should see the following services running:
+
 - `postgres` - Database
 - `prometheus` - Metrics collection
 - `grafana` - Dashboards and visualization
@@ -38,11 +39,11 @@ The application will start on port 8080 and begin exposing metrics at `/actuator
 
 ### 3. Access the Services
 
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| **Grafana** | http://localhost:3000 | admin/admin |
-| **Prometheus** | http://localhost:9090 | - |
-| **Loki** | http://localhost:3100 | - |
+| Service        | URL                   | Credentials |
+|----------------|-----------------------|-------------|
+| **Grafana**    | http://localhost:3000 | admin/admin |
+| **Prometheus** | http://localhost:9090 | -           |
+| **Loki**       | http://localhost:3100 | -           |
 
 ## First-Time Setup
 
@@ -59,10 +60,10 @@ The application will start on port 8080 and begin exposing metrics at `/actuator
 2. Login with `admin/admin`
 3. Go to **Dashboards** (📊 icon in left sidebar)
 4. You should see 4 pre-configured dashboards:
-   - JVM & System Metrics
-   - Database & HikariCP Metrics
-   - Application & Resilience4j Metrics
-   - Business Metrics - Wallet Operations
+    - JVM & System Metrics
+    - Database & HikariCP Metrics
+    - Application & Resilience4j Metrics
+    - Business Metrics - Wallet Operations
 
 ### 3. Generate Some Metrics
 

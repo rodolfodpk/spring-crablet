@@ -48,7 +48,14 @@ public record Cursor(SequenceNumber position, Instant occurredAt, String transac
     public static Cursor of(long position, Instant occurredAt, String transactionId) {
         return new Cursor(SequenceNumber.of(position), occurredAt, transactionId);
     }
-    
+
+    /**
+     * Create a zero cursor for empty projections.
+     */
+    public static Cursor zero() {
+        return Cursor.of(SequenceNumber.zero(), Instant.EPOCH, "0");
+    }
+
     /**
      * Check if this cursor is before another cursor.
      */
@@ -58,7 +65,7 @@ public record Cursor(SequenceNumber position, Instant occurredAt, String transac
         }
         return this.occurredAt.isBefore(other.occurredAt);
     }
-    
+
     /**
      * Check if this cursor is after another cursor.
      */
@@ -67,12 +74,5 @@ public record Cursor(SequenceNumber position, Instant occurredAt, String transac
             return this.position.isGreaterThan(other.position);
         }
         return this.occurredAt.isAfter(other.occurredAt);
-    }
-    
-    /**
-     * Create a zero cursor for empty projections.
-     */
-    public static Cursor zero() {
-        return Cursor.of(SequenceNumber.zero(), Instant.EPOCH, "0");
     }
 }

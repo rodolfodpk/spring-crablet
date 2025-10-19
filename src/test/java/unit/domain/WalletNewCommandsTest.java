@@ -1,8 +1,8 @@
 package unit.domain;
 
+import com.crablet.core.AppendEvent;
 import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
-import com.crablet.core.AppendEvent;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.event.WalletOpened;
@@ -37,13 +37,13 @@ class WalletNewCommandsTest extends AbstractCrabletTest {
     private OpenWalletCommandHandler openHandler;
     @Autowired
     private ObjectMapper objectMapper;
-    
+
     @Autowired
     private EventStore eventStore;
 
     @BeforeEach
     void setUp() {
-        
+
         WalletBalanceProjector balanceProjector = new WalletBalanceProjector(objectMapper);
         depositHandler = new DepositCommandHandler(objectMapper, balanceProjector);
         withdrawHandler = new WithdrawCommandHandler(objectMapper, balanceProjector);
@@ -65,7 +65,7 @@ class WalletNewCommandsTest extends AbstractCrabletTest {
         assertThat(result.events()).hasSize(1);
         assertThat(result.events().get(0).type()).isEqualTo("DepositMade");
         assertThat(result.events().get(0).tags()).contains(
-            new Tag("wallet_id", "wallet1")
+                new Tag("wallet_id", "wallet1")
         );
     }
 
@@ -77,8 +77,8 @@ class WalletNewCommandsTest extends AbstractCrabletTest {
 
         // Then: Should throw exception
         assertThatThrownBy(() -> depositHandler.handle(eventStore, depositCmd))
-            .isInstanceOf(com.wallets.domain.exception.WalletNotFoundException.class)
-            .hasMessage("Wallet not found: nonexistent");
+                .isInstanceOf(com.wallets.domain.exception.WalletNotFoundException.class)
+                .hasMessage("Wallet not found: nonexistent");
     }
 
     @Test
@@ -87,8 +87,8 @@ class WalletNewCommandsTest extends AbstractCrabletTest {
         // When: Trying to create command with negative amount
         // Then: Should throw exception at command creation
         assertThatThrownBy(() -> DepositCommand.of("deposit1", "wallet1", -100, "Invalid deposit"))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("amount");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("amount");
     }
 
     @Test
@@ -106,7 +106,7 @@ class WalletNewCommandsTest extends AbstractCrabletTest {
         assertThat(result.events()).hasSize(1);
         assertThat(result.events().get(0).type()).isEqualTo("WithdrawalMade");
         assertThat(result.events().get(0).tags()).contains(
-            new Tag("wallet_id", "wallet1")
+                new Tag("wallet_id", "wallet1")
         );
     }
 
@@ -122,35 +122,35 @@ class WalletNewCommandsTest extends AbstractCrabletTest {
 
         // Then: Should throw exception
         assertThatThrownBy(() -> withdrawHandler.handle(eventStore, withdrawCmd))
-            .isInstanceOf(com.wallets.domain.exception.InsufficientFundsException.class)
-            .hasMessage("Insufficient funds in wallet wallet1: balance 100, requested 200");
+                .isInstanceOf(com.wallets.domain.exception.InsufficientFundsException.class)
+                .hasMessage("Insufficient funds in wallet wallet1: balance 100, requested 200");
     }
 
 
     @ParameterizedTest
     @CsvSource({
-        "deposit1, wallet1, 0, 'Zero amount deposit'",
-        "deposit1, wallet1, -100, 'Negative amount deposit'"
+            "deposit1, wallet1, 0, 'Zero amount deposit'",
+            "deposit1, wallet1, -100, 'Negative amount deposit'"
     })
     @DisplayName("Should validate deposit command parameters at creation")
     void shouldValidateDepositCommandParameters(String depositId, String walletId, int amount, String description) throws Exception {
         // When: Creating deposit command with invalid parameters
         // Then: Should throw exception at command creation
         assertThatThrownBy(() -> DepositCommand.of(depositId, walletId, amount, description))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @ParameterizedTest
     @CsvSource({
-        "withdrawal1, wallet1, 0, 'Zero amount withdrawal'",
-        "withdrawal1, wallet1, -100, 'Negative amount withdrawal'"
+            "withdrawal1, wallet1, 0, 'Zero amount withdrawal'",
+            "withdrawal1, wallet1, -100, 'Negative amount withdrawal'"
     })
     @DisplayName("Should validate withdraw command parameters at creation")
     void shouldValidateWithdrawCommandParameters(String withdrawalId, String walletId, int amount, String description) throws Exception {
         // When: Creating withdraw command with invalid parameters
         // Then: Should throw exception at command creation
         assertThatThrownBy(() -> WithdrawCommand.of(withdrawalId, walletId, amount, description))
-            .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

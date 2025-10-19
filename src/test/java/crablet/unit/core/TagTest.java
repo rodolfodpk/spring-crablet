@@ -1,4 +1,4 @@
-package unit.infrastructure.crablet.core;
+package crablet.unit.core;
 
 import com.crablet.core.Tag;
 import org.junit.jupiter.api.Test;
@@ -94,13 +94,13 @@ class TagTest {
     void shouldSupportDCBQueryPatterns() {
         // Test that Tag.single() works well with DCB query patterns
         // This is the most common pattern: single tag for entity identification
-        
+
         // Given - wallet identification tag
         List<Tag> walletTag = Tag.single("wallet_id", "wallet-123");
-        
+
         // When - used in DCB query context
         // This would typically be used with Query.forEventAndTags()
-        
+
         // Then - should be a single-element list
         assertThat(walletTag).hasSize(1);
         assertThat(walletTag.get(0).key()).isEqualTo("wallet_id");

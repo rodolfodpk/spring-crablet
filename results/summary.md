@@ -32,11 +32,10 @@ Generated on: Sat Oct 18 15:38:40 -03 2025
 
 ❌ Test failed or was not executed
 
-
 ## Performance Targets
 
 - **Wallet Creation**: < 500ms (95th percentile)
-- **Deposits**: < 300ms (95th percentile)  
+- **Deposits**: < 300ms (95th percentile)
 - **Withdrawals**: < 300ms (95th percentile)
 - **Transfers**: < 300ms (95th percentile)
 - **History Queries**: < 1000ms (95th percentile)
