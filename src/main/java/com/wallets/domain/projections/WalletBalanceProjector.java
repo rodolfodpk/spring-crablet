@@ -86,6 +86,18 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
             QueryItem.ofTags(List.of(new Tag("to_wallet_id", walletId)))
         ));
         
+        return projectWalletBalance(store, walletId, query);
+    }
+    
+    /**
+     * Project wallet balance using a custom query (DCB pattern with decision model).
+     * 
+     * @param store The event store to query
+     * @param walletId The wallet ID to project balance for
+     * @param query The decision model query to use
+     * @return ProjectionResult containing WalletBalanceState and cursor for optimistic locking
+     */
+    public ProjectionResult<WalletBalanceState> projectWalletBalance(EventStore store, String walletId, Query query) {
         List<StoredEvent> events = store.query(query, null);
         WalletBalanceState state = buildBalanceState(events, walletId);
         

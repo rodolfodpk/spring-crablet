@@ -14,6 +14,7 @@ import com.wallets.domain.event.DepositMade;
 import com.wallets.domain.exception.WalletNotFoundException;
 import com.wallets.domain.projections.WalletBalanceProjector;
 import com.wallets.domain.projections.WalletBalanceState;
+import com.wallets.domain.WalletQueryPatterns;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -45,9 +46,12 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
     public CommandResult handle(EventStore eventStore, DepositCommand command) {
         // Command is already validated at construction with YAVI
         
+        // Use domain-specific decision model query
+        Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
+        
         // Project state (needed for balance calculation)
         ProjectionResult<WalletBalanceState> projection = 
-            balanceProjector.projectWalletBalance(eventStore, command.walletId());
+            balanceProjector.projectWalletBalance(eventStore, command.walletId(), decisionModel);
         WalletBalanceState state = projection.state();
         
         if (!state.isExisting()) {
@@ -80,14 +84,15 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
             serializeEvent(objectMapper, deposit).getBytes()
         );
         
-        // Build condition: cursor + uniqueness
-        AppendCondition condition = AppendCondition.of(
-            projection.cursor(),
-            Query.of(QueryItem.of(
-                List.of("DepositMade"),
-                List.of(new Tag("deposit_id", command.depositId()))
-            ))
-        );
+        // Build condition: decision model + idempotency
+        // DCB Principle: failIfEventsMatch includes same query used for projection
+        AppendCondition condition = decisionModel
+            .toAppendCondition(projection.cursor())
+            .withIdempotencyCheck(
+                "DepositMade",
+                new Tag("deposit_id", command.depositId())
+            )
+            .build();
         
         return CommandResult.of(List.of(event), condition);
     }
