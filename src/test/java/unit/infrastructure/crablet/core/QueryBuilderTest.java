@@ -142,5 +142,113 @@ class QueryBuilderTest {
         // Then
         assertThat(query.items()).hasSize(3);
     }
+    
+    // ===== NEW DSL TESTS =====
+    
+    @Test
+    void shouldCreateQueryWithNewEventMethod() {
+        // When
+        Query query = QueryBuilder.create()
+            .event("WalletOpened", "wallet_id", "w1")
+            .build();
+        
+        // Then
+        assertThat(query.items()).hasSize(1);
+        assertThat(query.items().get(0).eventTypes()).containsExactly("WalletOpened");
+        assertThat(query.items().get(0).tags()).containsExactly(new Tag("wallet_id", "w1"));
+    }
+    
+    @Test
+    void shouldCreateQueryWithNewEventsMethod() {
+        // When
+        Query query = QueryBuilder.create()
+            .events("WalletOpened", "DepositMade", "WithdrawalMade")
+            .tag("wallet_id", "w1")
+            .build();
+        
+        // Then
+        assertThat(query.items()).hasSize(1);
+        assertThat(query.items().get(0).eventTypes())
+            .containsExactly("WalletOpened", "DepositMade", "WithdrawalMade");
+        assertThat(query.items().get(0).tags()).containsExactly(new Tag("wallet_id", "w1"));
+    }
+    
+    @Test
+    void shouldChainEventsWithMultipleTags() {
+        // When
+        Query query = QueryBuilder.create()
+            .events("Event1", "Event2")
+            .tags(QueryBuilder.tag("tag1", "val1"), QueryBuilder.tag("tag2", "val2"))
+            .build();
+        
+        // Then
+        assertThat(query.items()).hasSize(1);
+        assertThat(query.items().get(0).eventTypes()).containsExactly("Event1", "Event2");
+        assertThat(query.items().get(0).tags()).containsExactly(
+            new Tag("tag1", "val1"),
+            new Tag("tag2", "val2")
+        );
+    }
+    
+    @Test
+    void shouldMixOldAndNewDSLMethods() {
+        // When
+        Query query = QueryBuilder.create()
+            .event("WalletOpened", "wallet_id", "w1")
+            .events("DepositMade", "WithdrawalMade").tag("wallet_id", "w1")
+            .matching(new String[]{"MoneyTransferred"}, new Tag("from_wallet_id", "w1"))
+            .build();
+        
+        // Then
+        assertThat(query.items()).hasSize(3);
+        
+        // First item: single event
+        assertThat(query.items().get(0).eventTypes()).containsExactly("WalletOpened");
+        assertThat(query.items().get(0).tags()).containsExactly(new Tag("wallet_id", "w1"));
+        
+        // Second item: multiple events
+        assertThat(query.items().get(1).eventTypes()).containsExactly("DepositMade", "WithdrawalMade");
+        assertThat(query.items().get(1).tags()).containsExactly(new Tag("wallet_id", "w1"));
+        
+        // Third item: old DSL method
+        assertThat(query.items().get(2).eventTypes()).containsExactly("MoneyTransferred");
+        assertThat(query.items().get(2).tags()).containsExactly(new Tag("from_wallet_id", "w1"));
+    }
+    
+    @Test
+    void shouldCreateComplexWalletQueryWithNewDSL() {
+        // When - simulating WalletQueryPatterns.singleWalletDecisionModel
+        Query query = QueryBuilder.create()
+            .events("WalletOpened", "DepositMade", "WithdrawalMade").tag("wallet_id", "w1")
+            .event("MoneyTransferred", "from_wallet_id", "w1")
+            .event("MoneyTransferred", "to_wallet_id", "w1")
+            .build();
+        
+        // Then
+        assertThat(query.items()).hasSize(3);
+        
+        // Balance events
+        assertThat(query.items().get(0).eventTypes())
+            .containsExactly("WalletOpened", "DepositMade", "WithdrawalMade");
+        assertThat(query.items().get(0).tags()).containsExactly(new Tag("wallet_id", "w1"));
+        
+        // Transfer from
+        assertThat(query.items().get(1).eventTypes()).containsExactly("MoneyTransferred");
+        assertThat(query.items().get(1).tags()).containsExactly(new Tag("from_wallet_id", "w1"));
+        
+        // Transfer to
+        assertThat(query.items().get(2).eventTypes()).containsExactly("MoneyTransferred");
+        assertThat(query.items().get(2).tags()).containsExactly(new Tag("to_wallet_id", "w1"));
+    }
+    
+    @Test
+    void shouldCreateTagHelperMethod() {
+        // When
+        Tag tag = QueryBuilder.tag("test_key", "test_value");
+        
+        // Then
+        assertThat(tag.key()).isEqualTo("test_key");
+        assertThat(tag.value()).isEqualTo("test_value");
+    }
 }
 
