@@ -73,15 +73,17 @@ Verified results (October 2025): **723 req/s** wallet creation, **224 req/s** tr
 
 ⚠️ **Experimental project** - Missing production security features for educational purposes.
 
-**📚 [Security Details](docs/setup/README.md#security)**
+**📚 [Security Guide](docs/security/README.md)**
 
 ## Documentation
 
 - **[Architecture](docs/architecture/README.md)** - DCB pattern, event sourcing, system design
 - **[Development](docs/development/README.md)** - Setup, testing, coding practices
 - **[API](docs/api/README.md)** - REST endpoints, examples, Swagger
-- **[Observability](docs/observability/README.md)** - Monitoring, metrics, dashboards
+- **[Security](docs/security/README.md)** - Rate limiting, HTTP/2, input validation
 - **[Performance](performance-tests/README.md)** - Load testing, benchmarks, optimization
+- **[Observability](docs/observability/README.md)** - Monitoring, metrics, dashboards
+- **[Available URLs](docs/urls.md)** - Quick reference for all service URLs
 
 ## License
 
