@@ -12,21 +12,45 @@ Java 25 implementation of the DCB (Dynamic Consistency Boundary) event sourcing 
 
 ## Quick Start
 
+### Build and Test (No Application Required)
 ```bash
-# Start everything (PostgreSQL + Spring Boot)
-make start
+# Build and run all tests with Testcontainers
+./mvnw clean install
 
-# Run tests
+# Or just run tests
 ./mvnw test verify
+```
 
-# Performance test
+### Run the Application
+
+```bash
+# Start all services (PostgreSQL, Prometheus, Grafana, Loki, Promtail)
+docker-compose up -d
+
+# Start Spring Boot application
+./mvnw spring-boot:run
+
+# Or use make (does both)
+make start
+```
+
+**Available URLs after startup**:
+- API: http://localhost:8080/api
+- Swagger UI: http://localhost:8080/swagger-ui/index.html
+- Grafana: http://localhost:3000 (admin/admin)
+- Prometheus: http://localhost:9090
+
+See [docs/urls.md](docs/urls.md) for complete URL reference.
+
+### Performance Testing (Requires Running Application)
+
+```bash
+make start
 make perf-quick
-
-# Stop everything
 make stop
 ```
 
-**📚 [Detailed Setup](docs/setup/README.md)** | **📚 [API Reference](docs/api/README.md)** | **📚 [Swagger UI](http://localhost:8080/swagger-ui/index.html)**
+**📚 [Detailed Setup](docs/setup/README.md)** | **📚 [API Reference](docs/api/README.md)** | **📚 [All URLs](docs/urls.md)**
 
 ## Key Components
 
@@ -39,25 +63,15 @@ make stop
 
 **📚 [DCB Technical Details](docs/architecture/DCB_AND_CRABLET.md)** | **📚 [Testing Guide](docs/development/README.md#testing-strategy)** | **📚 [Observability](docs/observability/README.md)**
 
-## Performance
-
-Verified results (October 2025): **723 req/s** wallet creation, **224 req/s** transfers, **zero false positives** in conflict detection.
-
-**📊 [Complete Results](performance-tests/results/summary.md)** | **📚 [Performance Guide](performance-tests/README.md)**
-
-## Security
-
-⚠️ **Experimental project** - Missing production security features for educational purposes.
-
-**📚 [Security Details](docs/setup/README.md#security)**
-
 ## Documentation
 
 - **[Architecture](docs/architecture/README.md)** - DCB pattern, event sourcing, system design
 - **[Development](docs/development/README.md)** - Setup, testing, coding practices
 - **[API](docs/api/README.md)** - REST endpoints, examples, Swagger
-- **[Observability](docs/observability/README.md)** - Monitoring, metrics, dashboards
+- **[Security](docs/security/README.md)** - Rate limiting, HTTP/2, input validation
 - **[Performance](performance-tests/README.md)** - Load testing, benchmarks, optimization
+- **[Observability](docs/observability/README.md)** - Monitoring, metrics, dashboards
+- **[Available URLs](docs/urls.md)** - Quick reference for all service URLs
 
 ## License
 

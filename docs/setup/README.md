@@ -22,10 +22,13 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 25)
 
 ## Quick Start
 
+### Run the Application
 ```bash
-# Clone and start
+# Clone repository
 git clone <repository-url>
-cd wallets-challenge
+cd spring-crablet
+
+# Start all services (PostgreSQL, Prometheus, Grafana, Loki, Promtail)
 make start
 
 # Verify setup
@@ -33,6 +36,17 @@ make health
 
 # Access Swagger UI
 open http://localhost:8080/swagger-ui/index.html
+```
+
+See [docs/urls.md](../urls.md) for all available URLs.
+
+### Build and Test (No Application Required)
+
+```bash
+# Build and test using Testcontainers
+./mvnw clean install
+
+# Tests use Testcontainers - no need to start PostgreSQL or Spring Boot
 ```
 
 ## Configuration

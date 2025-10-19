@@ -2,6 +2,8 @@
 
 Performance tests for the wallet application using k6 load testing tool.
 
+**Note**: Performance tests require the application to be running. Use `make start` to start all services, or `make start-test` to start with rate limiting disabled for testing.
+
 ## Quick Links
 
 - **📊 [Performance Results Summary](../../performance-tests/results/summary.md)** - Complete results with throughput
