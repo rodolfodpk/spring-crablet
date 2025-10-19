@@ -1,80 +1,80 @@
 # Performance Test Summary
 
-Generated on: Sat Oct 18 15:50:36 -03 2025
+Generated on: Sat Oct 18 21:22:36 -03 2025
 
 ## Test Results
 
 ### Wallet Creation Load Test
 
 [0;32m✅[0m Test completed successfully
-- **Operations completed**: 34261
-- **95th percentile response time**: 44.88ms
+- **Operations completed**: 41299
+- **95th percentile response time**: 36.89ms
 - **Error rate**: 0.00%
-- **Throughput**: 685 requests/second
+- **Throughput**: 826 requests/second
 
 ### Deposit Operations Test
 
 [0;32m✅[0m Test completed successfully
-- **Operations completed**: 19106
-- **95th percentile response time**: 42.21ms
+- **Operations completed**: 14562
+- **95th percentile response time**: 59.49ms
 - **Error rate**: 0.00%
-- **Throughput**: 382 requests/second
+- **Throughput**: 291 requests/second
 
 ### Withdrawal Operations Test
 
 [0;32m✅[0m Test completed successfully
-- **Operations completed**: 19812
-- **95th percentile response time**: 37.43ms
+- **Operations completed**: 10579
+- **95th percentile response time**: 64.69ms
 - **Error rate**: 0.00%
-- **Throughput**: 396 requests/second
+- **Throughput**: 212 requests/second
 
 ### Transfer Operations Test
 
 [0;32m✅[0m Test completed successfully
-- **Operations completed**: 14612
-- **95th percentile response time**: 49.03ms
-- **Error rate**: 0.00%
-- **Throughput**: 292 requests/second
+- **Operations completed**: 6587
+- **95th percentile response time**: 138.02ms
+- **Error rate**: 0.03%
+- **Throughput**: 132 requests/second
 
 ### History Query Test
 
 [0;32m✅[0m Test completed successfully
-- **Operations completed**: 30113
-- **95th percentile response time**: 34.17ms
+- **Operations completed**: 13452
+- **95th percentile response time**: 85.89ms
 - **Error rate**: 0.00%
-- **Throughput**: 602 requests/second
+- **Throughput**: 269 requests/second
 
 ### Spike Resilience Test
 
 [0;32m✅[0m Test completed successfully
-- **Operations completed**: 14850
-- **95th percentile response time**: 170.97ms
+- **Operations completed**: 7763
+- **95th percentile response time**: 282.74ms
 - **Error rate**: 0.00%
-- **Throughput**: 297 requests/second
+- **Throughput**: 155 requests/second
 
 ### Mixed Workload Test
 
 [0;32m✅[0m Test completed successfully
-- **Operations completed**: 20199
-- **95th percentile response time**: 136.76ms
+- **Operations completed**: 17066
+- **95th percentile response time**: 145.38ms
 - **Error rate**: 0.00%
-- **Throughput**: 404 requests/second
+- **Throughput**: 341 requests/second
 
 ### Insufficient Balance Test
 
 [0;32m✅[0m Test completed successfully
-- **Operations completed**: 39054
-- **95th percentile response time**: 29.32ms
-- **Error rate**: 99.71%
-- **Throughput**: 781 requests/second
+- **Operations completed**: 9054
+- **95th percentile response time**: 81.83ms
+- **Error rate**: 100.00%
+- **Throughput**: 181 requests/second
 
 ### Concurrency Conflict Test
 
 [0;32m✅[0m Test completed successfully
-- **Operations completed**: 10096
-- **95th percentile response time**: 417.36ms
+- **Operations completed**: 3459
+- **95th percentile response time**: 1067.72ms
 - **Error rate**: 0.00%
-- **Throughput**: 202 requests/second
+- **Throughput**: 69 requests/second
 
 
 ## Performance Targets

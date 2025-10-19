@@ -15,6 +15,7 @@ import com.wallets.domain.exception.InsufficientFundsException;
 import com.wallets.domain.exception.WalletNotFoundException;
 import com.wallets.domain.projections.WalletBalanceProjector;
 import com.wallets.domain.projections.WalletBalanceState;
+import com.wallets.domain.WalletQueryPatterns;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -46,9 +47,12 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
     public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
         // Command is already validated at construction with YAVI
         
+        // Use domain-specific decision model query
+        Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
+        
         // Project state (needed for balance calculation)
         ProjectionResult<WalletBalanceState> projection = 
-            balanceProjector.projectWalletBalance(eventStore, command.walletId());
+            balanceProjector.projectWalletBalance(eventStore, command.walletId(), decisionModel);
         WalletBalanceState state = projection.state();
         
         if (!state.isExisting()) {
@@ -86,14 +90,15 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
             serializeEvent(objectMapper, withdrawal).getBytes()
         );
         
-        // Build condition: cursor + uniqueness
-        AppendCondition condition = AppendCondition.of(
-            projection.cursor(),
-            Query.of(QueryItem.of(
-                List.of("WithdrawalMade"),
-                List.of(new Tag("withdrawal_id", command.withdrawalId()))
-            ))
-        );
+        // Build condition: decision model + idempotency
+        // DCB Principle: failIfEventsMatch includes same query used for projection
+        AppendCondition condition = decisionModel
+            .toAppendCondition(projection.cursor())
+            .withIdempotencyCheck(
+                "WithdrawalMade",
+                new Tag("withdrawal_id", command.withdrawalId())
+            )
+            .build();
         
         return CommandResult.of(List.of(event), condition);
     }

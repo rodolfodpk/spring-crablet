@@ -17,6 +17,7 @@ import com.wallets.domain.exception.InsufficientFundsException;
 import com.wallets.domain.exception.WalletNotFoundException;
 import com.wallets.domain.projections.WalletBalanceProjector;
 import com.wallets.domain.projections.WalletBalanceState;
+import com.wallets.domain.WalletQueryPatterns;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -100,16 +101,15 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
             serializeEvent(objectMapper, transfer).getBytes()
         );
         
-        // Build condition: cursor + uniqueness
-        // DCB Principle: The cursor ensures no events have been appended after projection
-        // The failIfEventsMatch only checks for duplicate transfer IDs (idempotency)
-        AppendCondition condition = AppendCondition.of(
-            transferProjection.cursor(),
-            Query.of(QueryItem.of(
-                List.of("MoneyTransferred"),
-                List.of(new Tag("transfer_id", command.transferId()))
-            ))
-        );
+        // Build condition: decision model + idempotency
+        // DCB Principle: failIfEventsMatch includes same query used for projection
+        AppendCondition condition = transferProjection.decisionModel()
+            .toAppendCondition(transferProjection.cursor())
+            .withIdempotencyCheck(
+                "MoneyTransferred",
+                new Tag("transfer_id", command.transferId())
+            )
+            .build();
         
         return CommandResult.of(List.of(event), condition);
     }
@@ -135,53 +135,24 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
      * For transfers, we need balances for both wallets (not full WalletState).
      */
     private TransferProjectionResult projectTransferState(EventStore store, TransferMoneyCommand cmd) {
-        // Query events for both wallets using OR logic (go-crablet style)
-        // Include all events that affect either wallet's balance
-        Query walletsQuery = Query.of(List.of(
-            // Events for fromWallet
-            QueryItem.of(
-                List.of("WalletOpened", "DepositMade", "WithdrawalMade"),
-                List.of(new Tag("wallet_id", cmd.fromWalletId()))
-            ),
-            // Events for toWallet
-            QueryItem.of(
-                List.of("WalletOpened", "DepositMade", "WithdrawalMade"),
-                List.of(new Tag("wallet_id", cmd.toWalletId()))
-            ),
-            // Transfer events where fromWallet is sender
-            QueryItem.of(
-                List.of("MoneyTransferred"),
-                List.of(new Tag("from_wallet_id", cmd.fromWalletId()))
-            ),
-            // Transfer events where fromWallet is receiver
-            QueryItem.of(
-                List.of("MoneyTransferred"),
-                List.of(new Tag("to_wallet_id", cmd.fromWalletId()))
-            ),
-            // Transfer events where toWallet is sender
-            QueryItem.of(
-                List.of("MoneyTransferred"),
-                List.of(new Tag("from_wallet_id", cmd.toWalletId()))
-            ),
-            // Transfer events where toWallet is receiver
-            QueryItem.of(
-                List.of("MoneyTransferred"),
-                List.of(new Tag("to_wallet_id", cmd.toWalletId()))
-            )
-        ));
+        // Use domain-specific query pattern
+        Query decisionModel = WalletQueryPatterns.transferDecisionModel(
+            cmd.fromWalletId(),
+            cmd.toWalletId()
+        );
         
-        List<StoredEvent> events = store.query(walletsQuery, null);
+        List<StoredEvent> events = store.query(decisionModel, null);
         
         // Build balance states for both wallets
         WalletBalanceState fromWallet = balanceProjector.buildBalanceState(events, cmd.fromWalletId());
         WalletBalanceState toWallet = balanceProjector.buildBalanceState(events, cmd.toWalletId());
         
-        // Capture cursor for optimistic locking (use latest event)
+        // Capture cursor for optimistic locking
         Cursor cursor = events.isEmpty() 
             ? Cursor.of(SequenceNumber.zero(), Instant.EPOCH)
             : Cursor.of(events.get(events.size() - 1).position(), events.get(events.size() - 1).occurredAt());
 
-        return new TransferProjectionResult(new TransferState(fromWallet, toWallet), cursor);
+        return new TransferProjectionResult(new TransferState(fromWallet, toWallet), cursor, decisionModel);
     }
     
     
@@ -198,7 +169,8 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
     
     private record TransferProjectionResult(
         TransferState state,
-        Cursor cursor
+        Cursor cursor,
+        Query decisionModel
     ) {}
     
     

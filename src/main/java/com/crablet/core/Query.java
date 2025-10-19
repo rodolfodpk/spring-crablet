@@ -73,4 +73,11 @@ public record Query(List<QueryItem> items) {
     public static Query forEventsAndTags(List<String> eventTypes, List<Tag> tags) {
         return Query.of(QueryItem.of(eventTypes, tags));
     }
+    
+    /**
+     * Create an AppendConditionBuilder from this query.
+     */
+    public AppendConditionBuilder toAppendCondition(Cursor cursor) {
+        return new AppendConditionBuilder(this, cursor);
+    }
 }
