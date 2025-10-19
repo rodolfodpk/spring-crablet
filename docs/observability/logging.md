@@ -4,7 +4,8 @@ This guide covers the structured logging configuration, log format, and querying
 
 ## Overview
 
-The application uses structured JSON logging with Logback, automatically shipped to Loki via Promtail for centralized log aggregation and querying.
+The application uses structured JSON logging with Logback, automatically shipped to Loki via Promtail for centralized
+log aggregation and querying.
 
 ## Log Format
 
@@ -25,16 +26,16 @@ The application uses structured JSON logging with Logback, automatically shipped
 
 ### Fields
 
-| Field | Type | Description | Example |
-|-------|------|-------------|---------|
-| `@timestamp` | String | ISO 8601 timestamp | `2025-10-12T13:41:46.922844-03:00` |
-| `level` | String | Log level | `DEBUG`, `INFO`, `WARN`, `ERROR` |
-| `logger_name` | String | Full logger class name | `com.wallets.service.WalletService` |
-| `message` | String | Log message content | `Processing deposit for wallet: test-wallet` |
-| `traceId` | String | Distributed trace ID | `abc123def456` |
-| `spanId` | String | Span ID within trace | `789xyz012` |
-| `thread` | String | Thread name | `undertow-512119` |
-| `logger` | String | Short logger name | `c.w.s.WalletService` |
+| Field         | Type   | Description            | Example                                      |
+|---------------|--------|------------------------|----------------------------------------------|
+| `@timestamp`  | String | ISO 8601 timestamp     | `2025-10-12T13:41:46.922844-03:00`           |
+| `level`       | String | Log level              | `DEBUG`, `INFO`, `WARN`, `ERROR`             |
+| `logger_name` | String | Full logger class name | `com.wallets.service.WalletService`          |
+| `message`     | String | Log message content    | `Processing deposit for wallet: test-wallet` |
+| `traceId`     | String | Distributed trace ID   | `abc123def456`                               |
+| `spanId`      | String | Span ID within trace   | `789xyz012`                                  |
+| `thread`      | String | Thread name            | `undertow-512119`                            |
+| `logger`      | String | Short logger name      | `c.w.s.WalletService`                        |
 
 ### Custom Fields
 
@@ -49,6 +50,7 @@ The application uses structured JSON logging with Logback, automatically shipped
 ### Configuration by Environment
 
 #### Development (`dev` profile)
+
 ```xml
 <springProfile name="dev">
     <root level="DEBUG">
@@ -59,6 +61,7 @@ The application uses structured JSON logging with Logback, automatically shipped
 ```
 
 #### Production (`default` profile)
+
 ```xml
 <springProfile name="default">
     <root level="INFO">
@@ -202,6 +205,7 @@ scrape_configs:
 ### Basic Queries
 
 #### LogQL Syntax
+
 ```
 {job="wallet-challenge-logs"} |= "error"
 ```
@@ -209,21 +213,25 @@ scrape_configs:
 #### Common Queries
 
 **All logs from the application:**
+
 ```
 {job="wallet-challenge-logs"}
 ```
 
 **Error logs only:**
+
 ```
 {job="wallet-challenge-logs"} |= "ERROR"
 ```
 
 **Logs from specific logger:**
+
 ```
 {job="wallet-challenge-logs"} |= "WalletService"
 ```
 
 **Logs with specific trace ID:**
+
 ```
 {job="wallet-challenge-logs"} |= "abc123def456"
 ```
@@ -231,21 +239,25 @@ scrape_configs:
 ### Advanced Queries
 
 #### Filter by Log Level
+
 ```
 {job="wallet-challenge-logs"} | json | level="ERROR"
 ```
 
 #### Filter by Operation
+
 ```
 {job="wallet-challenge-logs"} | json | operation="deposit"
 ```
 
 #### Filter by Wallet ID
+
 ```
 {job="wallet-challenge-logs"} | json | wallet_id="test-wallet"
 ```
 
 #### Filter by Duration
+
 ```
 {job="wallet-challenge-logs"} | json | duration > 1000
 ```
@@ -253,16 +265,19 @@ scrape_configs:
 ### Aggregation Queries
 
 #### Count by Log Level
+
 ```
 sum by (level) (count_over_time({job="wallet-challenge-logs"} | json [5m]))
 ```
 
 #### Count by Operation
+
 ```
 sum by (operation) (count_over_time({job="wallet-challenge-logs"} | json [5m]))
 ```
 
 #### Average Duration
+
 ```
 avg_over_time({job="wallet-challenge-logs"} | json | unwrap duration [5m])
 ```

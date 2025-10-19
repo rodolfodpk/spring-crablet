@@ -4,19 +4,20 @@ Base URL: `http://localhost:8080/api`
 
 ## Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| PUT | /api/wallets/{walletId} | Create wallet |
-| POST | /api/wallets/{walletId}/deposit | Deposit money |
-| POST | /api/wallets/{walletId}/withdraw | Withdraw money |
-| POST | /api/wallets/transfer | Transfer between wallets |
-| GET | /api/wallets/{walletId} | Get wallet state |
-| GET | /api/wallets/{walletId}/events | Get event history |
-| GET | /api/wallets/{walletId}/commands | Get command history with events |
+| Method | Endpoint                         | Description                     |
+|--------|----------------------------------|---------------------------------|
+| PUT    | /api/wallets/{walletId}          | Create wallet                   |
+| POST   | /api/wallets/{walletId}/deposit  | Deposit money                   |
+| POST   | /api/wallets/{walletId}/withdraw | Withdraw money                  |
+| POST   | /api/wallets/transfer            | Transfer between wallets        |
+| GET    | /api/wallets/{walletId}          | Get wallet state                |
+| GET    | /api/wallets/{walletId}/events   | Get event history               |
+| GET    | /api/wallets/{walletId}/commands | Get command history with events |
 
 ## Example Workflow
 
 ### 1. Create Wallet
+
 ```bash
 curl -X PUT http://localhost:8080/api/wallets/user123 \
   -H "Content-Type: application/json" \
@@ -24,6 +25,7 @@ curl -X PUT http://localhost:8080/api/wallets/user123 \
 ```
 
 ### 2. Deposit Money
+
 ```bash
 curl -X POST http://localhost:8080/api/wallets/user123/deposit \
   -H "Content-Type: application/json" \
@@ -31,6 +33,7 @@ curl -X POST http://localhost:8080/api/wallets/user123/deposit \
 ```
 
 ### 3. Withdraw Money
+
 ```bash
 curl -X POST http://localhost:8080/api/wallets/user123/withdraw \
   -H "Content-Type: application/json" \
@@ -38,6 +41,7 @@ curl -X POST http://localhost:8080/api/wallets/user123/withdraw \
 ```
 
 ### 4. Transfer Money
+
 ```bash
 curl -X POST http://localhost:8080/api/wallets/transfer \
   -H "Content-Type: application/json" \
@@ -45,16 +49,19 @@ curl -X POST http://localhost:8080/api/wallets/transfer \
 ```
 
 ### 5. Get Wallet State
+
 ```bash
 curl http://localhost:8080/api/wallets/user123
 ```
 
 ### 6. Get Event History
+
 ```bash
 curl "http://localhost:8080/api/wallets/user123/events?page=0&size=10"
 ```
 
 ### 7. Get Command History
+
 ```bash
 curl "http://localhost:8080/api/wallets/user123/commands?page=0&size=10"
 ```
@@ -62,6 +69,7 @@ curl "http://localhost:8080/api/wallets/user123/commands?page=0&size=10"
 ## Request Bodies
 
 ### OpenWalletRequest
+
 ```json
 {
   "owner": "string",
@@ -70,6 +78,7 @@ curl "http://localhost:8080/api/wallets/user123/commands?page=0&size=10"
 ```
 
 ### DepositRequest
+
 ```json
 {
   "depositId": "string",
@@ -79,6 +88,7 @@ curl "http://localhost:8080/api/wallets/user123/commands?page=0&size=10"
 ```
 
 ### WithdrawRequest
+
 ```json
 {
   "withdrawalId": "string",
@@ -88,6 +98,7 @@ curl "http://localhost:8080/api/wallets/user123/commands?page=0&size=10"
 ```
 
 ### TransferRequest
+
 ```json
 {
   "transferId": "string",
@@ -101,6 +112,7 @@ curl "http://localhost:8080/api/wallets/user123/commands?page=0&size=10"
 ## Response Examples
 
 ### Command History Response
+
 ```json
 {
   "commands": [

@@ -9,16 +9,16 @@ import java.time.Instant;
  * This is the event data structure.
  */
 public record MoneyTransferred(
-    @JsonProperty("transfer_id") String transferId,
-    @JsonProperty("from_wallet_id") String fromWalletId,
-    @JsonProperty("to_wallet_id") String toWalletId,
-    @JsonProperty("amount") int amount,
-    @JsonProperty("from_balance") int fromBalance,
-    @JsonProperty("to_balance") int toBalance,
-    @JsonProperty("transferred_at") Instant transferredAt,
-    @JsonProperty("description") String description
+        @JsonProperty("transfer_id") String transferId,
+        @JsonProperty("from_wallet_id") String fromWalletId,
+        @JsonProperty("to_wallet_id") String toWalletId,
+        @JsonProperty("amount") int amount,
+        @JsonProperty("from_balance") int fromBalance,
+        @JsonProperty("to_balance") int toBalance,
+        @JsonProperty("transferred_at") Instant transferredAt,
+        @JsonProperty("description") String description
 ) implements WalletEvent {
-    
+
     public MoneyTransferred {
         if (transferId == null || transferId.trim().isEmpty()) {
             throw new IllegalArgumentException("Transfer ID cannot be null or empty");
@@ -45,35 +45,36 @@ public record MoneyTransferred(
             throw new IllegalArgumentException("Description cannot be null");
         }
     }
+
     /**
      * Create a MoneyTransferred event.
      */
     public static MoneyTransferred of(
-        String transferId,
-        String fromWalletId,
-        String toWalletId,
-        int amount,
-        int fromBalance,
-        int toBalance,
-        String description
+            String transferId,
+            String fromWalletId,
+            String toWalletId,
+            int amount,
+            int fromBalance,
+            int toBalance,
+            String description
     ) {
         return new MoneyTransferred(
-            transferId,
-            fromWalletId,
-            toWalletId,
-            amount,
-            fromBalance,
-            toBalance,
-            Instant.now(),
-            description
+                transferId,
+                fromWalletId,
+                toWalletId,
+                amount,
+                fromBalance,
+                toBalance,
+                Instant.now(),
+                description
         );
     }
-    
+
     @Override
     public String getEventType() {
         return "MoneyTransferred";
     }
-    
+
     @Override
     public Instant getOccurredAt() {
         return transferredAt;

@@ -34,7 +34,7 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleNullInputGracefully() {
         // When & Then
         assertThatThrownBy(() -> eventStore.append(null))
-            .isInstanceOf(Exception.class);
+                .isInstanceOf(Exception.class);
     }
 
     @Test
@@ -42,7 +42,7 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleEmptyQueryGracefully() {
         // When & Then
         assertThatCode(() -> eventStore.query(Query.empty(), null))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -50,7 +50,7 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleEmptyAppendGracefully() {
         // When & Then
         assertThatCode(() -> eventStore.append(List.of()))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -61,7 +61,7 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> eventStore.appendIf(null, condition))
-            .isInstanceOf(Exception.class);
+                .isInstanceOf(Exception.class);
     }
 
     @Test
@@ -69,12 +69,12 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleAppendIfWithNullCondition() {
         // Given
         List<AppendEvent> events = List.of(
-            AppendEvent.of("TestEvent", List.of(), "test data".getBytes())
+                AppendEvent.of("TestEvent", List.of(), "test data".getBytes())
         );
 
         // When & Then
         assertThatThrownBy(() -> eventStore.appendIf(events, null))
-            .isInstanceOf(Exception.class);
+                .isInstanceOf(Exception.class);
     }
 
     @Test
@@ -82,7 +82,7 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleQueryWithNullQuery() {
         // When & Then
         assertThatThrownBy(() -> eventStore.query(null, null))
-            .isInstanceOf(Exception.class);
+                .isInstanceOf(Exception.class);
     }
 
     @Test
@@ -90,7 +90,7 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleProjectionWithNullProjector() {
         // When & Then
         assertThatThrownBy(() -> eventStore.project((List<StateProjector>) null, null))
-            .isInstanceOf(Exception.class);
+                .isInstanceOf(Exception.class);
     }
 
     @Test
@@ -98,7 +98,7 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleProjectionWithNullQuery() {
         // When & Then
         assertThatThrownBy(() -> eventStore.project((List<StateProjector>) null, null))
-            .isInstanceOf(Exception.class);
+                .isInstanceOf(Exception.class);
     }
 
     @Test
@@ -106,14 +106,14 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleInvalidEventDataGracefully() {
         // Given - Create event with invalid JSON data
         AppendEvent invalidEvent = AppendEvent.of(
-            "InvalidEvent", 
-            List.of(new Tag("test", "value")), 
-            "invalid json data".getBytes()
+                "InvalidEvent",
+                List.of(new Tag("test", "value")),
+                "invalid json data".getBytes()
         );
 
         // When & Then
         assertThatThrownBy(() -> eventStore.append(List.of(invalidEvent)))
-            .isInstanceOf(Exception.class);
+                .isInstanceOf(Exception.class);
     }
 
     @Test
@@ -121,14 +121,14 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleMalformedTagsGracefully() {
         // Given - Create event with malformed tags but valid JSON data
         AppendEvent eventWithMalformedTags = AppendEvent.of(
-            "TestEvent", 
-            List.of(new Tag("", "value"), new Tag("key", "")), 
-            "{\"test\": \"data\"}".getBytes()
+                "TestEvent",
+                List.of(new Tag("", "value"), new Tag("key", "")),
+                "{\"test\": \"data\"}".getBytes()
         );
 
         // When & Then
         assertThatCode(() -> eventStore.append(List.of(eventWithMalformedTags)))
-            .doesNotThrowAnyException();
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -137,14 +137,14 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
         // Given - Create event with large data
         String largeData = "x".repeat(10000);
         AppendEvent largeEvent = AppendEvent.of(
-            "LargeEvent", 
-            List.of(new Tag("size", "large")), 
-            largeData.getBytes()
+                "LargeEvent",
+                List.of(new Tag("size", "large")),
+                largeData.getBytes()
         );
 
         // When & Then
         assertThatThrownBy(() -> eventStore.append(List.of(largeEvent)))
-            .isInstanceOf(Exception.class);
+                .isInstanceOf(Exception.class);
     }
 
     @Test
@@ -153,14 +153,14 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
         // Given - Create event with special characters
         String specialData = "Special chars: éñüñç@#$%^&*()_+-=[]{}|;':\",./<>?";
         AppendEvent specialEvent = AppendEvent.of(
-            "SpecialEvent", 
-            List.of(new Tag("chars", "special")), 
-            specialData.getBytes()
+                "SpecialEvent",
+                List.of(new Tag("chars", "special")),
+                specialData.getBytes()
         );
 
         // When & Then
         assertThatThrownBy(() -> eventStore.append(List.of(specialEvent)))
-            .isInstanceOf(Exception.class);
+                .isInstanceOf(Exception.class);
     }
 
     @Test
@@ -169,13 +169,13 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
         // Given - Create event with unicode characters
         String unicodeData = "Unicode: 🚀🌟💫⭐✨🎉🎊";
         AppendEvent unicodeEvent = AppendEvent.of(
-            "UnicodeEvent", 
-            List.of(new Tag("unicode", "true")), 
-            unicodeData.getBytes()
+                "UnicodeEvent",
+                List.of(new Tag("unicode", "true")),
+                unicodeData.getBytes()
         );
 
         // When & Then
         assertThatThrownBy(() -> eventStore.append(List.of(unicodeEvent)))
-            .isInstanceOf(Exception.class);
+                .isInstanceOf(Exception.class);
     }
 }

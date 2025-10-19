@@ -5,18 +5,20 @@ Application-level rate limiting using Resilience4j to protect against abuse and 
 ## Rate Limits
 
 ### Global API Limit
+
 - **Limit**: 1000 requests/second across all endpoints
 - **Purpose**: Prevent total system overload
 - **Scope**: All API endpoints
 - **Response**: HTTP 429 when exceeded
 
 ### Per-Wallet Limits
-| Operation | Limit | Purpose |
-|-----------|-------|---------|
-| Deposits | 50/minute per wallet | Prevent deposit spam |
-| Withdrawals | 30/minute per wallet | Limit withdrawal operations |
-| Transfers | 10/minute per wallet | Strictest limit for high-value operations |
-| Queries | 100/minute per wallet | Read operation limit |
+
+| Operation   | Limit                 | Purpose                                   |
+|-------------|-----------------------|-------------------------------------------|
+| Deposits    | 50/minute per wallet  | Prevent deposit spam                      |
+| Withdrawals | 30/minute per wallet  | Limit withdrawal operations               |
+| Transfers   | 10/minute per wallet  | Strictest limit for high-value operations |
+| Queries     | 100/minute per wallet | Read operation limit                      |
 
 ## Configuration
 
@@ -57,6 +59,7 @@ When rate limit is exceeded, API returns HTTP 429:
 ```
 
 **Response Headers**:
+
 - `Retry-After: 60` - Retry after 60 seconds
 - `X-RateLimit-Limit: 50` - Per-wallet limit
 - `X-RateLimit-Window: 60` - 60 seconds window
@@ -89,11 +92,11 @@ Rate limiting has **negligible performance impact** (<0.1ms overhead):
 
 ### Before vs After Rate Limiting
 
-| Test | Before | After | Impact |
-|------|--------|-------|--------|
-| Deposits | 194 RPS, 66.15ms p95 | 194 RPS, 66.20ms p95 | +0.05ms |
-| Transfers | 171 RPS, 73.03ms p95 | 171 RPS, 73.05ms p95 | +0.02ms |
-| Withdrawals | 261 RPS | 261 RPS | No change |
+| Test        | Before               | After                | Impact    |
+|-------------|----------------------|----------------------|-----------|
+| Deposits    | 194 RPS, 66.15ms p95 | 194 RPS, 66.20ms p95 | +0.05ms   |
+| Transfers   | 171 RPS, 73.03ms p95 | 171 RPS, 73.05ms p95 | +0.02ms   |
+| Withdrawals | 261 RPS              | 261 RPS              | No change |
 
 ## Architecture
 
@@ -155,12 +158,14 @@ rate(resilience4j_ratelimiter_calls[5m]) * 100
 ## Environment-Specific Configuration
 
 ### Production
+
 ```properties
 resilience4j.ratelimiter.instances.perWallet.limitForPeriod=50
 resilience4j.ratelimiter.instances.perWallet.limitRefreshPeriod=1m
 ```
 
 ### Testing (Higher Limits)
+
 ```properties
 # application-test.properties
 resilience4j.ratelimiter.instances.perWallet.limitForPeriod=10000
@@ -173,11 +178,11 @@ This ensures k6 performance tests don't trigger rate limiting during load testin
 
 Application-level rate limiting complements network-level protection:
 
-| Layer | Tool | Purpose |
-|-------|------|---------|
-| Network | Kong/API Gateway | DDoS, IP blocking, global limits |
-| Application | Resilience4j | Business rules, per-wallet limits |
-| Database | HikariCP | Connection pool limits |
+| Layer       | Tool             | Purpose                           |
+|-------------|------------------|-----------------------------------|
+| Network     | Kong/API Gateway | DDoS, IP blocking, global limits  |
+| Application | Resilience4j     | Business rules, per-wallet limits |
+| Database    | HikariCP         | Connection pool limits            |
 
 Both layers are recommended for production.
 

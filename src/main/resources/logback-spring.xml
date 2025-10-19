@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
-    
+
     <!-- Console appender for development -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
@@ -15,10 +15,10 @@
                 <pattern>
                     <pattern>
                         {
-                            "traceId": "%X{traceId:-}",
-                            "spanId": "%X{spanId:-}",
-                            "thread": "%thread",
-                            "logger": "%logger{36}"
+                        "traceId": "%X{traceId:-}",
+                        "spanId": "%X{spanId:-}",
+                        "thread": "%thread",
+                        "logger": "%logger{36}"
                         }
                     </pattern>
                 </pattern>
@@ -48,10 +48,10 @@
                 <pattern>
                     <pattern>
                         {
-                            "traceId": "%X{traceId:-}",
-                            "spanId": "%X{spanId:-}",
-                            "thread": "%thread",
-                            "logger": "%logger{36}"
+                        "traceId": "%X{traceId:-}",
+                        "spanId": "%X{spanId:-}",
+                        "thread": "%thread",
+                        "logger": "%logger{36}"
                         }
                     </pattern>
                 </pattern>
@@ -72,27 +72,27 @@
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="ASYNC_FILE"/>
     </logger>
-    
+
     <logger name="com.wallets.crablet" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="ASYNC_FILE"/>
     </logger>
-    
+
     <logger name="com.crablet.core.CommandExecutor" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="ASYNC_FILE"/>
     </logger>
-    
+
     <logger name="org.springframework.jdbc" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="ASYNC_FILE"/>
     </logger>
-    
+
     <logger name="com.zaxxer.hikari" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="ASYNC_FILE"/>
     </logger>
-    
+
     <logger name="org.flywaydb" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="ASYNC_FILE"/>

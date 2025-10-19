@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 /**
  * Configuration for EventStore behavior.
  * Controls command persistence and transaction isolation levels.
- * 
+ * <p>
  * Located in crablet.core since CommandExecutor (main consumer) is here,
  * and crablet.core is already Spring-coupled.
  */
@@ -15,33 +15,33 @@ import org.springframework.stereotype.Component;
 public class EventStoreConfig {
     // Note: Spring Boot will automatically bind properties from application.properties
     // to these fields via setters
-    
+
     private boolean persistCommands = true;
     private String transactionIsolation = "READ_COMMITTED";
     private int fetchSize = 1000;
-    
-    public boolean isPersistCommands() { 
-        return persistCommands; 
+
+    public boolean isPersistCommands() {
+        return persistCommands;
     }
-    
-    public void setPersistCommands(boolean persistCommands) { 
-        this.persistCommands = persistCommands; 
+
+    public void setPersistCommands(boolean persistCommands) {
+        this.persistCommands = persistCommands;
     }
-    
-    public String getTransactionIsolation() { 
-        return transactionIsolation; 
+
+    public String getTransactionIsolation() {
+        return transactionIsolation;
     }
-    
-    public void setTransactionIsolation(String transactionIsolation) { 
-        this.transactionIsolation = transactionIsolation; 
+
+    public void setTransactionIsolation(String transactionIsolation) {
+        this.transactionIsolation = transactionIsolation;
     }
-    
-    public int getFetchSize() { 
-        return fetchSize; 
+
+    public int getFetchSize() {
+        return fetchSize;
     }
-    
-    public void setFetchSize(int fetchSize) { 
-        this.fetchSize = fetchSize; 
+
+    public void setFetchSize(int fetchSize) {
+        this.fetchSize = fetchSize;
     }
 }
 

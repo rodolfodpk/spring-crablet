@@ -42,19 +42,19 @@ class TransferControllerIT extends AbstractCrabletTest {
         // Arrange: Create both wallets
         String wallet1Id = "transfer-wallet1-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet2Id = "transfer-wallet2-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         OpenWalletRequest wallet1Request = new OpenWalletRequest("Alice", 1000);
         OpenWalletRequest wallet2Request = new OpenWalletRequest("Bob", 500);
-        
+
         restTemplate.put(baseUrl + "/" + wallet1Id, wallet1Request);
         restTemplate.put(baseUrl + "/" + wallet2Id, wallet2Request);
 
         // Act: Transfer money
         TransferRequest transferRequest = new TransferRequest(
-            "transfer-1", wallet1Id, wallet2Id, 300, "Payment"
+                "transfer-1", wallet1Id, wallet2Id, 300, "Payment"
         );
         ResponseEntity<Void> transferResponse = restTemplate.postForEntity(
-            baseUrl + "/transfer", transferRequest, Void.class
+                baseUrl + "/transfer", transferRequest, Void.class
         );
 
         // Assert
@@ -62,12 +62,12 @@ class TransferControllerIT extends AbstractCrabletTest {
 
         // Verify balances after transfer
         ResponseEntity<WalletResponse> wallet1Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet1Id, WalletResponse.class
+                baseUrl + "/" + wallet1Id, WalletResponse.class
         );
         ResponseEntity<WalletResponse> wallet2Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet2Id, WalletResponse.class
+                baseUrl + "/" + wallet2Id, WalletResponse.class
         );
-        
+
         assertThat(wallet1Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet2Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet1Response.getBody()).isNotNull();
@@ -82,16 +82,16 @@ class TransferControllerIT extends AbstractCrabletTest {
         // Arrange: Create only destination wallet
         String wallet2Id = "transfer-wallet2-" + UUID.randomUUID().toString().substring(0, 8);
         String nonExistentWalletId = "nonexistent-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         OpenWalletRequest wallet2Request = new OpenWalletRequest("Bob", 500);
         restTemplate.put(baseUrl + "/" + wallet2Id, wallet2Request);
 
         // Act: Try to transfer from non-existent wallet
         TransferRequest transferRequest = new TransferRequest(
-            "transfer-1", nonExistentWalletId, wallet2Id, 100, "Payment"
+                "transfer-1", nonExistentWalletId, wallet2Id, 100, "Payment"
         );
         ResponseEntity<Void> transferResponse = restTemplate.postForEntity(
-            baseUrl + "/transfer", transferRequest, Void.class
+                baseUrl + "/transfer", transferRequest, Void.class
         );
 
         // Assert
@@ -99,7 +99,7 @@ class TransferControllerIT extends AbstractCrabletTest {
 
         // Verify destination wallet balance unchanged
         ResponseEntity<WalletResponse> wallet2Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet2Id, WalletResponse.class
+                baseUrl + "/" + wallet2Id, WalletResponse.class
         );
         assertThat(wallet2Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet2Response.getBody()).isNotNull();
@@ -112,16 +112,16 @@ class TransferControllerIT extends AbstractCrabletTest {
         // Arrange: Create only source wallet
         String wallet1Id = "transfer-wallet1-" + UUID.randomUUID().toString().substring(0, 8);
         String nonExistentWalletId = "nonexistent-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         OpenWalletRequest wallet1Request = new OpenWalletRequest("Alice", 1000);
         restTemplate.put(baseUrl + "/" + wallet1Id, wallet1Request);
 
         // Act: Try to transfer to non-existent wallet
         TransferRequest transferRequest = new TransferRequest(
-            "transfer-1", wallet1Id, nonExistentWalletId, 100, "Payment"
+                "transfer-1", wallet1Id, nonExistentWalletId, 100, "Payment"
         );
         ResponseEntity<Void> transferResponse = restTemplate.postForEntity(
-            baseUrl + "/transfer", transferRequest, Void.class
+                baseUrl + "/transfer", transferRequest, Void.class
         );
 
         // Assert
@@ -129,7 +129,7 @@ class TransferControllerIT extends AbstractCrabletTest {
 
         // Verify source wallet balance unchanged
         ResponseEntity<WalletResponse> wallet1Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet1Id, WalletResponse.class
+                baseUrl + "/" + wallet1Id, WalletResponse.class
         );
         assertThat(wallet1Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet1Response.getBody()).isNotNull();
@@ -142,19 +142,19 @@ class TransferControllerIT extends AbstractCrabletTest {
         // Arrange: Create both wallets
         String wallet1Id = "insufficient-funds-wallet1-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet2Id = "insufficient-funds-wallet2-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         OpenWalletRequest wallet1Request = new OpenWalletRequest("Alice", 100);
         OpenWalletRequest wallet2Request = new OpenWalletRequest("Bob", 500);
-        
+
         restTemplate.put(baseUrl + "/" + wallet1Id, wallet1Request);
         restTemplate.put(baseUrl + "/" + wallet2Id, wallet2Request);
 
         // Act: Try to transfer more than available
         TransferRequest transferRequest = new TransferRequest(
-            "transfer-1", wallet1Id, wallet2Id, 200, "Payment"
+                "transfer-1", wallet1Id, wallet2Id, 200, "Payment"
         );
         ResponseEntity<Void> transferResponse = restTemplate.postForEntity(
-            baseUrl + "/transfer", transferRequest, Void.class
+                baseUrl + "/transfer", transferRequest, Void.class
         );
 
         // Assert
@@ -162,12 +162,12 @@ class TransferControllerIT extends AbstractCrabletTest {
 
         // Verify balances unchanged
         ResponseEntity<WalletResponse> wallet1Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet1Id, WalletResponse.class
+                baseUrl + "/" + wallet1Id, WalletResponse.class
         );
         ResponseEntity<WalletResponse> wallet2Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet2Id, WalletResponse.class
+                baseUrl + "/" + wallet2Id, WalletResponse.class
         );
-        
+
         assertThat(wallet1Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet2Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet1Response.getBody()).isNotNull();
@@ -182,19 +182,19 @@ class TransferControllerIT extends AbstractCrabletTest {
         // Arrange: Create both wallets
         String wallet1Id = "invalid-transfer-wallet1-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet2Id = "invalid-transfer-wallet2-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         OpenWalletRequest wallet1Request = new OpenWalletRequest("Alice", 1000);
         OpenWalletRequest wallet2Request = new OpenWalletRequest("Bob", 500);
-        
+
         restTemplate.put(baseUrl + "/" + wallet1Id, wallet1Request);
         restTemplate.put(baseUrl + "/" + wallet2Id, wallet2Request);
 
         // Act: Try to transfer negative amount
         TransferRequest transferRequest = new TransferRequest(
-            "transfer-1", wallet1Id, wallet2Id, -100, "Invalid transfer"
+                "transfer-1", wallet1Id, wallet2Id, -100, "Invalid transfer"
         );
         ResponseEntity<Void> transferResponse = restTemplate.postForEntity(
-            baseUrl + "/transfer", transferRequest, Void.class
+                baseUrl + "/transfer", transferRequest, Void.class
         );
 
         // Assert
@@ -202,12 +202,12 @@ class TransferControllerIT extends AbstractCrabletTest {
 
         // Verify balances unchanged
         ResponseEntity<WalletResponse> wallet1Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet1Id, WalletResponse.class
+                baseUrl + "/" + wallet1Id, WalletResponse.class
         );
         ResponseEntity<WalletResponse> wallet2Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet2Id, WalletResponse.class
+                baseUrl + "/" + wallet2Id, WalletResponse.class
         );
-        
+
         assertThat(wallet1Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet2Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet1Response.getBody()).isNotNull();
@@ -222,19 +222,19 @@ class TransferControllerIT extends AbstractCrabletTest {
         // Arrange: Create both wallets
         String wallet1Id = "zero-transfer-wallet1-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet2Id = "zero-transfer-wallet2-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         OpenWalletRequest wallet1Request = new OpenWalletRequest("Alice", 1000);
         OpenWalletRequest wallet2Request = new OpenWalletRequest("Bob", 500);
-        
+
         restTemplate.put(baseUrl + "/" + wallet1Id, wallet1Request);
         restTemplate.put(baseUrl + "/" + wallet2Id, wallet2Request);
 
         // Act: Try to transfer zero amount
         TransferRequest transferRequest = new TransferRequest(
-            "transfer-1", wallet1Id, wallet2Id, 0, "Zero transfer"
+                "transfer-1", wallet1Id, wallet2Id, 0, "Zero transfer"
         );
         ResponseEntity<Void> transferResponse = restTemplate.postForEntity(
-            baseUrl + "/transfer", transferRequest, Void.class
+                baseUrl + "/transfer", transferRequest, Void.class
         );
 
         // Assert
@@ -242,12 +242,12 @@ class TransferControllerIT extends AbstractCrabletTest {
 
         // Verify balances unchanged
         ResponseEntity<WalletResponse> wallet1Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet1Id, WalletResponse.class
+                baseUrl + "/" + wallet1Id, WalletResponse.class
         );
         ResponseEntity<WalletResponse> wallet2Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet2Id, WalletResponse.class
+                baseUrl + "/" + wallet2Id, WalletResponse.class
         );
-        
+
         assertThat(wallet1Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet2Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet1Response.getBody()).isNotNull();
@@ -262,19 +262,19 @@ class TransferControllerIT extends AbstractCrabletTest {
         // Arrange: Create both wallets
         String wallet1Id = "exact-balance-transfer-wallet1-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet2Id = "exact-balance-transfer-wallet2-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         OpenWalletRequest wallet1Request = new OpenWalletRequest("Alice", 500);
         OpenWalletRequest wallet2Request = new OpenWalletRequest("Bob", 200);
-        
+
         restTemplate.put(baseUrl + "/" + wallet1Id, wallet1Request);
         restTemplate.put(baseUrl + "/" + wallet2Id, wallet2Request);
 
         // Act: Transfer exact balance
         TransferRequest transferRequest = new TransferRequest(
-            "transfer-1", wallet1Id, wallet2Id, 500, "Full transfer"
+                "transfer-1", wallet1Id, wallet2Id, 500, "Full transfer"
         );
         ResponseEntity<Void> transferResponse = restTemplate.postForEntity(
-            baseUrl + "/transfer", transferRequest, Void.class
+                baseUrl + "/transfer", transferRequest, Void.class
         );
 
         // Assert
@@ -282,12 +282,12 @@ class TransferControllerIT extends AbstractCrabletTest {
 
         // Verify balances after transfer
         ResponseEntity<WalletResponse> wallet1Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet1Id, WalletResponse.class
+                baseUrl + "/" + wallet1Id, WalletResponse.class
         );
         ResponseEntity<WalletResponse> wallet2Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet2Id, WalletResponse.class
+                baseUrl + "/" + wallet2Id, WalletResponse.class
         );
-        
+
         assertThat(wallet1Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet2Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet1Response.getBody()).isNotNull();
@@ -302,17 +302,17 @@ class TransferControllerIT extends AbstractCrabletTest {
         // Arrange: Create both wallets
         String wallet1Id = "validation-transfer-wallet1-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet2Id = "validation-transfer-wallet2-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         OpenWalletRequest wallet1Request = new OpenWalletRequest("Alice", 1000);
         OpenWalletRequest wallet2Request = new OpenWalletRequest("Bob", 500);
-        
+
         restTemplate.put(baseUrl + "/" + wallet1Id, wallet1Request);
         restTemplate.put(baseUrl + "/" + wallet2Id, wallet2Request);
 
         // Act: Try to transfer with invalid request body (empty IDs)
         TransferRequest invalidRequest = new TransferRequest("", "", "", 100, "");
         ResponseEntity<Void> transferResponse = restTemplate.postForEntity(
-            baseUrl + "/transfer", invalidRequest, Void.class
+                baseUrl + "/transfer", invalidRequest, Void.class
         );
 
         // Assert
@@ -320,12 +320,12 @@ class TransferControllerIT extends AbstractCrabletTest {
 
         // Verify balances unchanged
         ResponseEntity<WalletResponse> wallet1Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet1Id, WalletResponse.class
+                baseUrl + "/" + wallet1Id, WalletResponse.class
         );
         ResponseEntity<WalletResponse> wallet2Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet2Id, WalletResponse.class
+                baseUrl + "/" + wallet2Id, WalletResponse.class
         );
-        
+
         assertThat(wallet1Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet2Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(wallet1Response.getBody()).isNotNull();
@@ -340,30 +340,30 @@ class TransferControllerIT extends AbstractCrabletTest {
         // Arrange: Create both wallets
         String wallet1Id = "idempotent-transfer-wallet1-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet2Id = "idempotent-transfer-wallet2-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         OpenWalletRequest wallet1Request = new OpenWalletRequest("Alice", 1000);
         OpenWalletRequest wallet2Request = new OpenWalletRequest("Bob", 500);
-        
+
         restTemplate.put(baseUrl + "/" + wallet1Id, wallet1Request);
         restTemplate.put(baseUrl + "/" + wallet2Id, wallet2Request);
 
         // Act: First transfer
         TransferRequest transferRequest = new TransferRequest(
-            "idempotent-transfer-1", wallet1Id, wallet2Id, 200, "First transfer"
+                "idempotent-transfer-1", wallet1Id, wallet2Id, 200, "First transfer"
         );
         ResponseEntity<Void> firstTransferResponse = restTemplate.postForEntity(
-            baseUrl + "/transfer", transferRequest, Void.class
+                baseUrl + "/transfer", transferRequest, Void.class
         );
         assertThat(firstTransferResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         // Verify first transfer
         ResponseEntity<WalletResponse> wallet1AfterFirst = restTemplate.getForEntity(
-            baseUrl + "/" + wallet1Id, WalletResponse.class
+                baseUrl + "/" + wallet1Id, WalletResponse.class
         );
         ResponseEntity<WalletResponse> wallet2AfterFirst = restTemplate.getForEntity(
-            baseUrl + "/" + wallet2Id, WalletResponse.class
+                baseUrl + "/" + wallet2Id, WalletResponse.class
         );
-        
+
         assertThat(wallet1AfterFirst.getBody()).isNotNull();
         assertThat(wallet2AfterFirst.getBody()).isNotNull();
         assertThat(wallet1AfterFirst.getBody().balance()).isEqualTo(800); // 1000 - 200
@@ -371,18 +371,18 @@ class TransferControllerIT extends AbstractCrabletTest {
 
         // Act: Second transfer with same transferId (should be idempotent)
         ResponseEntity<Void> secondTransferResponse = restTemplate.postForEntity(
-            baseUrl + "/transfer", transferRequest, Void.class
+                baseUrl + "/transfer", transferRequest, Void.class
         );
         assertThat(secondTransferResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         // Assert: Balances should be unchanged (idempotent)
         ResponseEntity<WalletResponse> wallet1AfterSecond = restTemplate.getForEntity(
-            baseUrl + "/" + wallet1Id, WalletResponse.class
+                baseUrl + "/" + wallet1Id, WalletResponse.class
         );
         ResponseEntity<WalletResponse> wallet2AfterSecond = restTemplate.getForEntity(
-            baseUrl + "/" + wallet2Id, WalletResponse.class
+                baseUrl + "/" + wallet2Id, WalletResponse.class
         );
-        
+
         assertThat(wallet1AfterSecond.getBody()).isNotNull();
         assertThat(wallet2AfterSecond.getBody()).isNotNull();
         assertThat(wallet1AfterSecond.getBody().balance()).isEqualTo(800); // Unchanged
@@ -395,10 +395,10 @@ class TransferControllerIT extends AbstractCrabletTest {
         // Arrange: Create both wallets
         String wallet1Id = "multiple-transfers-wallet1-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet2Id = "multiple-transfers-wallet2-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         OpenWalletRequest wallet1Request = new OpenWalletRequest("Alice", 1000);
         OpenWalletRequest wallet2Request = new OpenWalletRequest("Bob", 500);
-        
+
         restTemplate.put(baseUrl + "/" + wallet1Id, wallet1Request);
         restTemplate.put(baseUrl + "/" + wallet2Id, wallet2Request);
 
@@ -418,12 +418,12 @@ class TransferControllerIT extends AbstractCrabletTest {
 
         // Verify final balances
         ResponseEntity<WalletResponse> finalWallet1Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet1Id, WalletResponse.class
+                baseUrl + "/" + wallet1Id, WalletResponse.class
         );
         ResponseEntity<WalletResponse> finalWallet2Response = restTemplate.getForEntity(
-            baseUrl + "/" + wallet2Id, WalletResponse.class
+                baseUrl + "/" + wallet2Id, WalletResponse.class
         );
-        
+
         assertThat(finalWallet1Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(finalWallet2Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(finalWallet1Response.getBody()).isNotNull();
@@ -437,16 +437,16 @@ class TransferControllerIT extends AbstractCrabletTest {
     void shouldHandleTransferBetweenSameWallet() {
         // Arrange: Create a wallet
         String walletId = "same-wallet-transfer-" + UUID.randomUUID().toString().substring(0, 8);
-        
+
         OpenWalletRequest walletRequest = new OpenWalletRequest("Alice", 1000);
         restTemplate.put(baseUrl + "/" + walletId, walletRequest);
 
         // Act: Try to transfer to the same wallet
         TransferRequest transferRequest = new TransferRequest(
-            "transfer-1", walletId, walletId, 200, "Self transfer"
+                "transfer-1", walletId, walletId, 200, "Self transfer"
         );
         ResponseEntity<Void> transferResponse = restTemplate.postForEntity(
-            baseUrl + "/transfer", transferRequest, Void.class
+                baseUrl + "/transfer", transferRequest, Void.class
         );
 
         // Assert: Should be rejected (invalid operation)
@@ -454,7 +454,7 @@ class TransferControllerIT extends AbstractCrabletTest {
 
         // Verify balance unchanged
         ResponseEntity<WalletResponse> walletResponse = restTemplate.getForEntity(
-            baseUrl + "/" + walletId, WalletResponse.class
+                baseUrl + "/" + walletId, WalletResponse.class
         );
         assertThat(walletResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(walletResponse.getBody()).isNotNull();

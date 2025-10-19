@@ -28,81 +28,81 @@ jobs:
           --health-retries 5
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Java 25 (Temurin)
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '25'
-        cache: 'maven'  # Caches ~/.m2/repository
+      - name: Set up Java 25 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'  # Caches ~/.m2/repository
 
-    - name: Build with Maven
-      run: mvn -B clean package --file pom.xml
+      - name: Build with Maven
+        run: mvn -B clean package --file pom.xml
 
-    - name: Generate JaCoCo Coverage Report
-      run: mvn -B jacoco:report --file pom.xml
+      - name: Generate JaCoCo Coverage Report
+        run: mvn -B jacoco:report --file pom.xml
 
-    - name: Generate Coverage Badges
-      if: github.ref == 'refs/heads/main'
-      run: |
-        # Create badges directory if it doesn't exist
-        mkdir -p .github/badges
-        
-        # Extract coverage values from JaCoCo XML report using grep (correctly extract report-level counters)
-        COVERAGE_MISSED=$(grep -o '<counter type="LINE" missed="[0-9]*" covered="[0-9]*"/><counter type="COMPLEXITY"' target/site/jacoco/jacoco.xml | tail -1 | grep -o 'missed="[0-9]*"' | grep -o '[0-9]*')
-        COVERAGE_COVERED=$(grep -o '<counter type="LINE" missed="[0-9]*" covered="[0-9]*"/><counter type="COMPLEXITY"' target/site/jacoco/jacoco.xml | tail -1 | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*')
-        
-        # Calculate coverage percentage
-        COVERAGE_TOTAL=$((COVERAGE_MISSED + COVERAGE_COVERED))
-        COVERAGE_PERCENT=$((COVERAGE_COVERED * 100 / COVERAGE_TOTAL))
-        
-        # Determine badge color based on coverage
-        if [ "$COVERAGE_PERCENT" -ge 90 ]; then
-          COLOR="brightgreen"
-        elif [ "$COVERAGE_PERCENT" -ge 80 ]; then
-          COLOR="green"
-        elif [ "$COVERAGE_PERCENT" -ge 70 ]; then
-          COLOR="yellowgreen"
-        elif [ "$COVERAGE_PERCENT" -ge 60 ]; then
-          COLOR="yellow"
-        else
-          COLOR="red"
-        fi
-        
-        # Generate coverage badge
-        curl -s "https://img.shields.io/badge/coverage-${COVERAGE_PERCENT}%25-${COLOR}" > .github/badges/jacoco.svg
-        
-        # Extract branch coverage values from JaCoCo XML report using grep (correctly extract report-level counters)
-        BRANCH_MISSED=$(grep -o '<counter type="BRANCH" missed="[0-9]*" covered="[0-9]*"/><counter type="LINE"' target/site/jacoco/jacoco.xml | tail -1 | grep -o 'missed="[0-9]*"' | grep -o '[0-9]*')
-        BRANCH_COVERED=$(grep -o '<counter type="BRANCH" missed="[0-9]*" covered="[0-9]*"/><counter type="LINE"' target/site/jacoco/jacoco.xml | tail -1 | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*')
-        
-        # Calculate branch coverage percentage
-        BRANCH_TOTAL=$((BRANCH_MISSED + BRANCH_COVERED))
-        BRANCH_PERCENT=$((BRANCH_COVERED * 100 / BRANCH_TOTAL))
-        
-        # Determine branch badge color
-        if [ "$BRANCH_PERCENT" -ge 90 ]; then
-          BRANCH_COLOR="brightgreen"
-        elif [ "$BRANCH_PERCENT" -ge 80 ]; then
-          BRANCH_COLOR="green"
-        elif [ "$BRANCH_PERCENT" -ge 70 ]; then
-          BRANCH_COLOR="yellowgreen"
-        elif [ "$BRANCH_PERCENT" -ge 60 ]; then
-          BRANCH_COLOR="yellow"
-        else
-          BRANCH_COLOR="red"
-        fi
-        
-        # Generate branch coverage badge
-        curl -s "https://img.shields.io/badge/branches-${BRANCH_PERCENT}%25-${BRANCH_COLOR}" > .github/badges/branches.svg
+      - name: Generate Coverage Badges
+        if: github.ref == 'refs/heads/main'
+        run: |
+          # Create badges directory if it doesn't exist
+          mkdir -p .github/badges
+          
+          # Extract coverage values from JaCoCo XML report using grep (correctly extract report-level counters)
+          COVERAGE_MISSED=$(grep -o '<counter type="LINE" missed="[0-9]*" covered="[0-9]*"/><counter type="COMPLEXITY"' target/site/jacoco/jacoco.xml | tail -1 | grep -o 'missed="[0-9]*"' | grep -o '[0-9]*')
+          COVERAGE_COVERED=$(grep -o '<counter type="LINE" missed="[0-9]*" covered="[0-9]*"/><counter type="COMPLEXITY"' target/site/jacoco/jacoco.xml | tail -1 | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*')
+          
+          # Calculate coverage percentage
+          COVERAGE_TOTAL=$((COVERAGE_MISSED + COVERAGE_COVERED))
+          COVERAGE_PERCENT=$((COVERAGE_COVERED * 100 / COVERAGE_TOTAL))
+          
+          # Determine badge color based on coverage
+          if [ "$COVERAGE_PERCENT" -ge 90 ]; then
+            COLOR="brightgreen"
+          elif [ "$COVERAGE_PERCENT" -ge 80 ]; then
+            COLOR="green"
+          elif [ "$COVERAGE_PERCENT" -ge 70 ]; then
+            COLOR="yellowgreen"
+          elif [ "$COVERAGE_PERCENT" -ge 60 ]; then
+            COLOR="yellow"
+          else
+            COLOR="red"
+          fi
+          
+          # Generate coverage badge
+          curl -s "https://img.shields.io/badge/coverage-${COVERAGE_PERCENT}%25-${COLOR}" > .github/badges/jacoco.svg
+          
+          # Extract branch coverage values from JaCoCo XML report using grep (correctly extract report-level counters)
+          BRANCH_MISSED=$(grep -o '<counter type="BRANCH" missed="[0-9]*" covered="[0-9]*"/><counter type="LINE"' target/site/jacoco/jacoco.xml | tail -1 | grep -o 'missed="[0-9]*"' | grep -o '[0-9]*')
+          BRANCH_COVERED=$(grep -o '<counter type="BRANCH" missed="[0-9]*" covered="[0-9]*"/><counter type="LINE"' target/site/jacoco/jacoco.xml | tail -1 | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*')
+          
+          # Calculate branch coverage percentage
+          BRANCH_TOTAL=$((BRANCH_MISSED + BRANCH_COVERED))
+          BRANCH_PERCENT=$((BRANCH_COVERED * 100 / BRANCH_TOTAL))
+          
+          # Determine branch badge color
+          if [ "$BRANCH_PERCENT" -ge 90 ]; then
+            BRANCH_COLOR="brightgreen"
+          elif [ "$BRANCH_PERCENT" -ge 80 ]; then
+            BRANCH_COLOR="green"
+          elif [ "$BRANCH_PERCENT" -ge 70 ]; then
+            BRANCH_COLOR="yellowgreen"
+          elif [ "$BRANCH_PERCENT" -ge 60 ]; then
+            BRANCH_COLOR="yellow"
+          else
+            BRANCH_COLOR="red"
+          fi
+          
+          # Generate branch coverage badge
+          curl -s "https://img.shields.io/badge/branches-${BRANCH_PERCENT}%25-${BRANCH_COLOR}" > .github/badges/branches.svg
 
-    - name: Commit Coverage Badges
-      if: github.ref == 'refs/heads/main'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add .github/badges/
-        git diff --staged --quiet || git commit -m "Update coverage badges [skip ci]"
-        git push
+      - name: Commit Coverage Badges
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .github/badges/
+          git diff --staged --quiet || git commit -m "Update coverage badges [skip ci]"
+          git push

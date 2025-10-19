@@ -36,9 +36,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(WalletAlreadyExistsException.class)
     public ResponseEntity<Map<String, Object>> handleWalletAlreadyExists(WalletAlreadyExistsException ex) {
         Map<String, Object> body = Map.of(
-            "message", ex.getMessage(),
-            "walletId", ex.getWalletId(),
-            "timestamp", Instant.now().toString()
+                "message", ex.getMessage(),
+                "walletId", ex.getWalletId(),
+                "timestamp", Instant.now().toString()
         );
         return ResponseEntity.ok(body);
     }
@@ -50,12 +50,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleWalletNotFound(WalletNotFoundException ex) {
         log.warn("Wallet not found: walletId={}", ex.getWalletId());
         Map<String, Object> body = Map.of(
-            "error", Map.of(
-                "code", "WALLET_NOT_FOUND",
-                "message", ex.getMessage(),
-                "walletId", ex.getWalletId(),
-                "timestamp", Instant.now().toString()
-            )
+                "error", Map.of(
+                        "code", "WALLET_NOT_FOUND",
+                        "message", ex.getMessage(),
+                        "walletId", ex.getWalletId(),
+                        "timestamp", Instant.now().toString()
+                )
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
@@ -65,17 +65,17 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(InsufficientFundsException.class)
     public ResponseEntity<Map<String, Object>> handleInsufficientFunds(InsufficientFundsException ex) {
-        log.warn("Insufficient funds: walletId={}, balance={}, requested={}", 
-            ex.getWalletId(), ex.getCurrentBalance(), ex.getRequestedAmount());
+        log.warn("Insufficient funds: walletId={}, balance={}, requested={}",
+                ex.getWalletId(), ex.getCurrentBalance(), ex.getRequestedAmount());
         Map<String, Object> body = Map.of(
-            "error", Map.of(
-                "code", "INSUFFICIENT_FUNDS",
-                "message", ex.getMessage(),
-                "walletId", ex.getWalletId(),
-                "currentBalance", ex.getCurrentBalance(),
-                "requestedAmount", ex.getRequestedAmount(),
-                "timestamp", Instant.now().toString()
-            )
+                "error", Map.of(
+                        "code", "INSUFFICIENT_FUNDS",
+                        "message", ex.getMessage(),
+                        "walletId", ex.getWalletId(),
+                        "currentBalance", ex.getCurrentBalance(),
+                        "requestedAmount", ex.getRequestedAmount(),
+                        "timestamp", Instant.now().toString()
+                )
         );
         return ResponseEntity.badRequest().body(body);
     }
@@ -86,13 +86,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidOperationException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidOperation(InvalidOperationException ex) {
         Map<String, Object> body = Map.of(
-            "error", Map.of(
-                "code", "VALIDATION_ERROR",
-                "message", ex.getMessage(),
-                "operation", ex.getOperation(),
-                "reason", ex.getReason(),
-                "timestamp", Instant.now().toString()
-            )
+                "error", Map.of(
+                        "code", "VALIDATION_ERROR",
+                        "message", ex.getMessage(),
+                        "operation", ex.getOperation(),
+                        "reason", ex.getReason(),
+                        "timestamp", Instant.now().toString()
+                )
         );
         return ResponseEntity.badRequest().body(body);
     }
@@ -103,8 +103,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateOperationException.class)
     public ResponseEntity<Map<String, Object>> handleDuplicateOperation(DuplicateOperationException ex) {
         Map<String, Object> body = Map.of(
-            "message", ex.getMessage(),
-            "timestamp", Instant.now().toString()
+                "message", ex.getMessage(),
+                "timestamp", Instant.now().toString()
         );
         return ResponseEntity.ok(body);
     }
@@ -115,11 +115,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(OptimisticLockException.class)
     public ResponseEntity<Map<String, Object>> handleOptimisticLock(OptimisticLockException ex) {
         Map<String, Object> body = Map.of(
-            "error", Map.of(
-                "code", "OPTIMISTIC_LOCK_FAILED",
-                "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()
-            )
+                "error", Map.of(
+                        "code", "OPTIMISTIC_LOCK_FAILED",
+                        "message", ex.getMessage(),
+                        "timestamp", Instant.now().toString()
+                )
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
@@ -135,11 +135,11 @@ public class GlobalExceptionHandler {
             log.warn("Concurrency conflict: {}", ex.getMessage());
             return handleGenericConcurrencyConflict(ex);
         }
-        
+
         String cmdType = cmd.getCommandType();
         log.warn("Concurrency conflict for command: type={}, message={}", cmdType, ex.getMessage());
         String msg = ex.getMessage().toLowerCase();
-        
+
         // Pattern 1: Duplicate entity IDs (idempotency violations)
         if (cmdType.equals("open_wallet")) {
             return handleWalletAlreadyExists(new WalletAlreadyExistsException(extractWalletId(cmd)));
@@ -153,12 +153,12 @@ public class GlobalExceptionHandler {
         if (cmdType.equals("transfer_money")) {
             return handleDuplicateOperation(new DuplicateOperationException("Transfer already processed: " + extractTransferId(cmd)));
         }
-        
+
         // Pattern 2: Optimistic concurrency control failures
         if (msg.contains("cursor") || msg.contains("position") || msg.contains("aftercursor")) {
             return handleOptimisticLock(new OptimisticLockException("Wallet state changed during operation, please retry"));
         }
-        
+
         // Pattern 3: Unknown failure - use generic handler
         return handleGenericConcurrencyConflict(ex);
     }
@@ -169,11 +169,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
         Map<String, Object> body = Map.of(
-            "error", Map.of(
-                "code", "VALIDATION_ERROR",
-                "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()
-            )
+                "error", Map.of(
+                        "code", "VALIDATION_ERROR",
+                        "message", ex.getMessage(),
+                        "timestamp", Instant.now().toString()
+                )
         );
         return ResponseEntity.badRequest().body(body);
     }
@@ -184,11 +184,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(org.springframework.web.servlet.NoHandlerFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNoHandlerFound(org.springframework.web.servlet.NoHandlerFoundException ex) {
         Map<String, Object> body = Map.of(
-            "error", Map.of(
-                "code", "NOT_FOUND",
-                "message", "No handler found for " + ex.getHttpMethod() + " " + ex.getRequestURL(),
-                "timestamp", Instant.now().toString()
-            )
+                "error", Map.of(
+                        "code", "NOT_FOUND",
+                        "message", "No handler found for " + ex.getHttpMethod() + " " + ex.getRequestURL(),
+                        "timestamp", Instant.now().toString()
+                )
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
@@ -199,11 +199,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNoResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException ex) {
         Map<String, Object> body = Map.of(
-            "error", Map.of(
-                "code", "NOT_FOUND",
-                "message", "Resource not found: " + ex.getHttpMethod() + " " + ex.getResourcePath(),
-                "timestamp", Instant.now().toString()
-            )
+                "error", Map.of(
+                        "code", "NOT_FOUND",
+                        "message", "Resource not found: " + ex.getHttpMethod() + " " + ex.getResourcePath(),
+                        "timestamp", Instant.now().toString()
+                )
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
@@ -215,17 +215,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
         log.error("Unhandled exception occurred: {}", ex.getMessage(), ex);
         Map<String, Object> body = Map.of(
-            "error", Map.of(
-                "code", "INTERNAL_ERROR",
-                "message", "An unexpected error occurred",
-                "timestamp", Instant.now().toString()
-            )
+                "error", Map.of(
+                        "code", "INTERNAL_ERROR",
+                        "message", "An unexpected error occurred",
+                        "timestamp", Instant.now().toString()
+                )
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
-    
+
     // Helper methods for command-specific exception mapping using polymorphic methods
-    
+
     private String extractWalletId(Command cmd) {
         if (cmd instanceof WalletCommand wc) {
             return wc.getWalletId();
@@ -256,11 +256,11 @@ public class GlobalExceptionHandler {
 
     private ResponseEntity<Map<String, Object>> handleGenericConcurrencyConflict(ConcurrencyException ex) {
         Map<String, Object> body = Map.of(
-            "error", Map.of(
-                "code", "CONCURRENCY_CONFLICT",
-                "message", ex.getMessage(),
-                "timestamp", Instant.now().toString()
-            )
+                "error", Map.of(
+                        "code", "CONCURRENCY_CONFLICT",
+                        "message", ex.getMessage(),
+                        "timestamp", Instant.now().toString()
+                )
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
@@ -270,22 +270,22 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationException(
-        MethodArgumentNotValidException ex) {
-        
+            MethodArgumentNotValidException ex) {
+
         Map<String, String> fieldErrors = new HashMap<>();
         ex.getBindingResult().getFieldErrors().forEach(error ->
-            fieldErrors.put(error.getField(), error.getDefaultMessage())
+                fieldErrors.put(error.getField(), error.getDefaultMessage())
         );
-        
+
         Map<String, Object> response = new HashMap<>();
         response.put("error", "Validation failed");
         response.put("message", "Invalid request parameters");
         response.put("fields", fieldErrors);
         response.put("timestamp", Instant.now().toString());
-        
+
         return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
-            .body(response);
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
     }
 
 }

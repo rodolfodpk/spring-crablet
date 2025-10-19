@@ -1,9 +1,9 @@
 package unit.features.deposit;
 
-import com.crablet.core.CommandResult;
-import com.crablet.core.StoredEvent;
-import com.crablet.core.EventStore;
 import com.crablet.core.AppendEvent;
+import com.crablet.core.CommandResult;
+import com.crablet.core.EventStore;
+import com.crablet.core.StoredEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.event.DepositMade;
 import com.wallets.domain.event.WalletOpened;
@@ -26,25 +26,25 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Test DepositCommandHandler with minimal state projection.
- * 
+ * <p>
  * DCB Principle: Tests verify that handler projects only balance + existence.
  */
 class DepositCommandHandlerTest extends AbstractCrabletTest {
-    
+
     private com.wallets.features.deposit.DepositCommandHandler handler;
     @Autowired
     private ObjectMapper objectMapper;
     private WalletBalanceProjector balanceProjector;
-    
+
     @Autowired
     private EventStore eventStore;
-    
+
     @BeforeEach
     void setUp() {
         balanceProjector = new WalletBalanceProjector(objectMapper);
         handler = new com.wallets.features.deposit.DepositCommandHandler(objectMapper, balanceProjector);
     }
-    
+
     @Test
     @DisplayName("Should successfully handle deposit command")
     void testHandleDeposit_Success() {
@@ -53,71 +53,71 @@ class DepositCommandHandlerTest extends AbstractCrabletTest {
         StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
         AppendEvent walletInputEvent = AppendEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
         eventStore.append(List.of(walletInputEvent));
-        
+
         DepositCommand cmd = DepositCommand.of("deposit1", "wallet1", 500, "Bonus payment");
-        
+
         // Act
         CommandResult result = handler.handle(eventStore, cmd);
-        
+
         // Assert
         assertThat(result.events()).hasSize(1);
         assertThat(result.events().get(0))
-            .satisfies(event -> {
-                assertThat(event.type()).isEqualTo("DepositMade");
-                assertThat(event.tags()).hasSize(2);
-                assertThat(event.tags().get(0))
-                    .satisfies(tag -> {
-                        assertThat(tag.key()).isEqualTo("wallet_id");
-                        assertThat(tag.value()).isEqualTo("wallet1");
-                    });
-                assertThat(event.tags().get(1))
-                    .satisfies(tag -> {
-                        assertThat(tag.key()).isEqualTo("deposit_id");
-                        assertThat(tag.value()).isEqualTo("deposit1");
-                    });
-            });
-        
+                .satisfies(event -> {
+                    assertThat(event.type()).isEqualTo("DepositMade");
+                    assertThat(event.tags()).hasSize(2);
+                    assertThat(event.tags().get(0))
+                            .satisfies(tag -> {
+                                assertThat(tag.key()).isEqualTo("wallet_id");
+                                assertThat(tag.value()).isEqualTo("wallet1");
+                            });
+                    assertThat(event.tags().get(1))
+                            .satisfies(tag -> {
+                                assertThat(tag.key()).isEqualTo("deposit_id");
+                                assertThat(tag.value()).isEqualTo("deposit1");
+                            });
+                });
+
         DepositMade deposit = WalletTestUtils.deserializeEventData(result.events().get(0).data(), DepositMade.class);
         assertThat(deposit)
-            .satisfies(d -> {
-                assertThat(d.depositId()).isEqualTo("deposit1");
-                assertThat(d.walletId()).isEqualTo("wallet1");
-                assertThat(d.amount()).isEqualTo(500);
-                assertThat(d.newBalance()).isEqualTo(1500); // 1000 + 500
-                assertThat(d.description()).isEqualTo("Bonus payment");
-            });
+                .satisfies(d -> {
+                    assertThat(d.depositId()).isEqualTo("deposit1");
+                    assertThat(d.walletId()).isEqualTo("wallet1");
+                    assertThat(d.amount()).isEqualTo(500);
+                    assertThat(d.newBalance()).isEqualTo(1500); // 1000 + 500
+                    assertThat(d.description()).isEqualTo("Bonus payment");
+                });
     }
-    
+
     @Test
     @DisplayName("Should throw exception when wallet does not exist")
     void testHandleDeposit_WalletNotFound() {
         // Arrange
         DepositCommand cmd = DepositCommand.of("deposit1", "nonexistent", 500, "Bonus payment");
-        
+
         // Act & Assert
         assertThatThrownBy(() -> handler.handle(eventStore, cmd))
-            .isInstanceOf(WalletNotFoundException.class)
-            .hasMessageContaining("nonexistent");
+                .isInstanceOf(WalletNotFoundException.class)
+                .hasMessageContaining("nonexistent");
     }
-    
+
     @Test
     @DisplayName("Should throw exception for zero amount at command creation")
     void testHandleDeposit_ZeroAmount() {
         // Act & Assert - YAVI validation prevents invalid command creation
         assertThatThrownBy(() -> DepositCommand.of("deposit1", "wallet1", 0, "Zero deposit"))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("amount");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("amount");
     }
-    
+
     @Test
     @DisplayName("Should throw exception for negative amount at command creation")
     void testHandleDeposit_NegativeAmount() {
         // Act & Assert - YAVI validation prevents invalid command creation
         assertThatThrownBy(() -> DepositCommand.of("deposit1", "wallet1", -100, "Negative deposit"))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("amount");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("amount");
     }
-    
+
     @Test
     @DisplayName("Should project minimal state - balance + existence")
     void testProjectMinimalState() {
@@ -126,21 +126,21 @@ class DepositCommandHandlerTest extends AbstractCrabletTest {
         StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
         AppendEvent walletInputEvent = AppendEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
         eventStore.append(List.of(walletInputEvent));
-        
+
         // Act - deposit should only project balance + existence, not full WalletState
         DepositCommand cmd = DepositCommand.of("deposit1", "wallet1", 200, "Test deposit");
         CommandResult result = handler.handle(eventStore, cmd);
-        
+
         // Assert - verify correct new balance calculation
         DepositMade deposit = WalletTestUtils.deserializeEventData(result.events().get(0).data(), DepositMade.class);
         assertThat(deposit.newBalance()).isEqualTo(1200); // 1000 + 200
     }
-    
+
     @ParameterizedTest
     @CsvSource({
-        "wallet1, Alice, 1000, Bonus payment",
-        "wallet2, Bob, 0, Initial deposit",
-        "wallet3, Charlie, 5000, Salary"
+            "wallet1, Alice, 1000, Bonus payment",
+            "wallet2, Bob, 0, Initial deposit",
+            "wallet3, Charlie, 5000, Salary"
     })
     @DisplayName("Should handle various deposit scenarios")
     void testDepositScenarios(String walletId, String owner, int initialBalance, String description) {
@@ -149,12 +149,12 @@ class DepositCommandHandlerTest extends AbstractCrabletTest {
         StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
         AppendEvent walletInputEvent = AppendEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
         eventStore.append(List.of(walletInputEvent));
-        
+
         DepositCommand cmd = DepositCommand.of("deposit1", walletId, 100, description);
-        
+
         // Act
         CommandResult result = handler.handle(eventStore, cmd);
-        
+
         // Assert
         assertThat(result.events()).hasSize(1);
         DepositMade deposit = WalletTestUtils.deserializeEventData(result.events().get(0).data(), DepositMade.class);

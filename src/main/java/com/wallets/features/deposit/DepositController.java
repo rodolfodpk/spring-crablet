@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Controller for depositing money into wallets.
- * 
+ * <p>
  * DCB Principle: Single responsibility - handles only deposits.
  * Thin HTTP layer that converts DTOs to commands and delegates to handler.
  * Rate limiting: Global API limit + per-wallet deposit limit.
@@ -25,23 +25,23 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/wallets")
 public class DepositController {
-    
+
     private static final Logger log = LoggerFactory.getLogger(DepositController.class);
-    
+
     private final CommandExecutor commandExecutor;
     private final WalletRateLimitService rateLimitService;
-    
+
     public DepositController(
             CommandExecutor commandExecutor,
             WalletRateLimitService rateLimitService) {
         this.commandExecutor = commandExecutor;
         this.rateLimitService = rateLimitService;
     }
-    
+
     /**
      * Deposit money into a wallet.
      * POST /api/wallets/{walletId}/deposit
-     * 
+     * <p>
      * Rate limits:
      * - Global: 1000 req/sec across all endpoints
      * - Per-wallet: 50 deposits/minute per wallet
@@ -51,24 +51,24 @@ public class DepositController {
     public ResponseEntity<Void> deposit(
             @PathVariable String walletId,
             @Valid @RequestBody DepositRequest request) {
-        
+
         // Apply per-wallet rate limiting and execute
         return rateLimitService.executeWithRateLimit(walletId, "deposit", () -> {
             // Create command from DTO
             DepositCommand cmd = DepositCommand.of(
-                request.depositId(),
-                walletId,
-                request.amount(),
-                request.description()
+                    request.depositId(),
+                    walletId,
+                    request.amount(),
+                    request.description()
             );
-            
+
             // Execute command through CommandExecutor (handles events and command storage)
             ExecutionResult result = commandExecutor.executeCommand(cmd);
-            
+
             // Return appropriate HTTP status based on execution result
-            return result.wasCreated() 
-                ? ResponseEntity.status(HttpStatus.CREATED).build()
-                : ResponseEntity.ok().build();
+            return result.wasCreated()
+                    ? ResponseEntity.status(HttpStatus.CREATED).build()
+                    : ResponseEntity.ok().build();
         });
     }
 }

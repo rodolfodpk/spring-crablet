@@ -22,7 +22,7 @@ class YaviValidationTest {
     @DisplayName("Should create valid deposit command")
     void shouldCreateValidDepositCommand() {
         DepositCommand cmd = new DepositCommand("dep-1", "wallet-1", 100, "test deposit");
-        
+
         assertThat(cmd.depositId()).isEqualTo("dep-1");
         assertThat(cmd.walletId()).isEqualTo("wallet-1");
         assertThat(cmd.amount()).isEqualTo(100);
@@ -34,29 +34,29 @@ class YaviValidationTest {
     @ValueSource(strings = {" ", "  "})
     @DisplayName("Should reject null/empty deposit ID")
     void shouldRejectInvalidDepositId(String invalidId) {
-        assertThatThrownBy(() -> 
-            new DepositCommand(invalidId, "wallet-1", 100, "test")
+        assertThatThrownBy(() ->
+                new DepositCommand(invalidId, "wallet-1", 100, "test")
         )
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("depositId");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("depositId");
     }
 
     @ParameterizedTest
     @ValueSource(ints = {0, -1, -100})
     @DisplayName("Should reject non-positive amounts")
     void shouldRejectNonPositiveAmount(int amount) {
-        assertThatThrownBy(() -> 
-            new DepositCommand("dep-1", "wallet-1", amount, "test")
+        assertThatThrownBy(() ->
+                new DepositCommand("dep-1", "wallet-1", amount, "test")
         )
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("amount");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("amount");
     }
 
     @Test
     @DisplayName("Should create valid withdraw command")
     void shouldCreateValidWithdrawCommand() {
         WithdrawCommand cmd = new WithdrawCommand("withdraw-1", "wallet-1", 100, "test withdraw");
-        
+
         assertThat(cmd.withdrawalId()).isEqualTo("withdraw-1");
         assertThat(cmd.walletId()).isEqualTo("wallet-1");
         assertThat(cmd.amount()).isEqualTo(100);
@@ -66,18 +66,18 @@ class YaviValidationTest {
     @Test
     @DisplayName("Should reject negative withdrawal amount")
     void shouldRejectNegativeWithdrawalAmount() {
-        assertThatThrownBy(() -> 
-            new WithdrawCommand("withdraw-1", "wallet-1", -100, "test")
+        assertThatThrownBy(() ->
+                new WithdrawCommand("withdraw-1", "wallet-1", -100, "test")
         )
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("amount");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("amount");
     }
 
     @Test
     @DisplayName("Should create valid transfer command")
     void shouldCreateValidTransferCommand() {
         TransferMoneyCommand cmd = new TransferMoneyCommand("transfer-1", "wallet-1", "wallet-2", 100, "test transfer");
-        
+
         assertThat(cmd.transferId()).isEqualTo("transfer-1");
         assertThat(cmd.fromWalletId()).isEqualTo("wallet-1");
         assertThat(cmd.toWalletId()).isEqualTo("wallet-2");
@@ -88,18 +88,18 @@ class YaviValidationTest {
     @Test
     @DisplayName("Should reject transfer to same wallet")
     void shouldRejectTransferToSameWallet() {
-        assertThatThrownBy(() -> 
-            new TransferMoneyCommand("transfer-1", "wallet-1", "wallet-1", 100, "test")
+        assertThatThrownBy(() ->
+                new TransferMoneyCommand("transfer-1", "wallet-1", "wallet-1", 100, "test")
         )
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("same wallet");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("same wallet");
     }
 
     @Test
     @DisplayName("Should create valid open wallet command")
     void shouldCreateValidOpenWalletCommand() {
         OpenWalletCommand cmd = new OpenWalletCommand("wallet-1", "John Doe", 1000);
-        
+
         assertThat(cmd.walletId()).isEqualTo("wallet-1");
         assertThat(cmd.owner()).isEqualTo("John Doe");
         assertThat(cmd.initialBalance()).isEqualTo(1000);
@@ -108,10 +108,10 @@ class YaviValidationTest {
     @Test
     @DisplayName("Should reject negative initial balance")
     void shouldRejectNegativeInitialBalance() {
-        assertThatThrownBy(() -> 
-            new OpenWalletCommand("wallet-1", "John Doe", -100)
+        assertThatThrownBy(() ->
+                new OpenWalletCommand("wallet-1", "John Doe", -100)
         )
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("initialBalance");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("initialBalance");
     }
 }

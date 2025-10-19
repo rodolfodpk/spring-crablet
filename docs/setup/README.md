@@ -10,6 +10,7 @@ Installation and configuration for the wallet challenge solution.
 - **k6** (optional): [Installation guide](https://k6.io/docs/getting-started/installation/)
 
 ### Quick Installation (macOS)
+
 ```bash
 # Install all prerequisites
 brew install openjdk@25 maven k6
@@ -37,6 +38,7 @@ open http://localhost:8080/swagger-ui/index.html
 ## Configuration
 
 ### Application Properties
+
 ```properties
 # src/main/resources/application.properties
 server.port=8080
@@ -53,6 +55,7 @@ spring.datasource.hikari.minimum-idle=5
 ```
 
 ### Environment Profiles
+
 ```bash
 # Development
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
@@ -64,6 +67,7 @@ java -jar target/wallets-challenge-1.0.0.jar --spring.profiles.active=prod
 ## Development
 
 ### Local Development
+
 ```bash
 # Start PostgreSQL
 docker-compose up -d postgres
@@ -76,6 +80,7 @@ docker-compose up -d postgres
 ```
 
 ### IDE Setup
+
 - **IntelliJ IDEA**: Import project, configure Java 25 SDK
 - **VS Code**: Install Java Extension Pack, open project folder
 
@@ -97,18 +102,21 @@ cd performance-tests && ./run-all-tests.sh
 ### Common Issues
 
 **Java Version**: Ensure Java 25 is installed and JAVA_HOME is set
+
 ```bash
 java --version
 export JAVA_HOME=$(/usr/libexec/java_home -v 25)  # macOS
 ```
 
 **Database Connection**: Reset database if needed
+
 ```bash
 docker-compose down -v
 docker-compose up -d postgres
 ```
 
 **Maven Issues**: Clean and rebuild
+
 ```bash
 ./mvnw clean install -U
 ```
@@ -116,6 +124,6 @@ docker-compose up -d postgres
 ## Related Documentation
 
 - [Architecture](../architecture/README.md) - System design
-- [API Reference](../api/README.md) - API documentation  
+- [API Reference](../api/README.md) - API documentation
 - [Development Guide](../development/README.md) - Development practices
 - [Observability](../observability/README.md) - Monitoring setup
