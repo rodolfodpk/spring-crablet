@@ -150,7 +150,11 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
         // Capture cursor for optimistic locking
         Cursor cursor = events.isEmpty() 
             ? Cursor.of(SequenceNumber.zero(), Instant.EPOCH)
-            : Cursor.of(events.get(events.size() - 1).position(), events.get(events.size() - 1).occurredAt());
+            : Cursor.of(
+                events.get(events.size() - 1).position(), 
+                events.get(events.size() - 1).occurredAt(),
+                events.get(events.size() - 1).transactionId()
+            );
 
         return new TransferProjectionResult(new TransferState(fromWallet, toWallet), cursor, decisionModel);
     }
