@@ -7,6 +7,7 @@ import com.crablet.core.CommandExecutor;
 import com.crablet.core.CommandHandler;
 import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
+import com.crablet.core.InvalidCommandException;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.event.WalletOpened;
@@ -65,7 +66,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
     void shouldValidateCommandIsNotNull() {
         // When & Then
         assertThatThrownBy(() -> commandExecutor.executeCommand(null))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidCommandException.class)
                 .hasMessage("Command cannot be null");
     }
 
@@ -77,7 +78,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> commandExecutor.execute(command, null))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidCommandException.class)
                 .hasMessage("Handler cannot be null");
     }
 
@@ -123,7 +124,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> commandExecutor.execute(command, invalidHandler))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidCommandException.class)
                 .hasMessage("Event at index 0 has empty type");
     }
 
@@ -147,7 +148,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> commandExecutor.execute(command, invalidHandler))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidCommandException.class)
                 .hasMessage("Empty tag key at index 0");
     }
 
@@ -171,7 +172,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // When & Then
         assertThatThrownBy(() -> commandExecutor.execute(command, invalidHandler))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidCommandException.class)
                 .hasMessage("Empty tag value for key key");
     }
 

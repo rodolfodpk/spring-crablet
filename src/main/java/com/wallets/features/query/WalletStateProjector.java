@@ -1,5 +1,7 @@
 package com.wallets.features.query;
 
+import com.crablet.core.EventStore;
+import com.crablet.core.Query;
 import com.crablet.core.StateProjector;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
@@ -51,12 +53,34 @@ public class WalletStateProjector implements StateProjector<WalletState> {
     }
 
     /**
+     * Project wallet state from EventStore using optimized batch deserialization.
+     * This is the preferred method for better performance.
+     *
+     * @param store The event store to query
+     * @param query The query to filter events
+     * @return Final wallet state after projecting all events
+     */
+    public WalletState project(EventStore store, Query query) {
+        try {
+            // Use new batch deserialization method for better performance
+            byte[] eventsJsonArray = store.queryAsJsonArray(query, null);
+            WalletEvent[] walletEvents = objectMapper.readValue(eventsJsonArray, WalletEvent[].class);
+            
+            return projectFromWalletEvents(walletEvents);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to project wallet state from EventStore", e);
+        }
+    }
+
+    /**
      * Project wallet state from multiple events efficiently using batch deserialization.
      * This is the optimized method that should be used instead of individual transition() calls.
      *
      * @param events List of events to project from
      * @return Final wallet state after projecting all events
+     * @deprecated Use project(EventStore, Query) for better performance
      */
+    @Deprecated
     public WalletState project(List<StoredEvent> events) {
         if (events.isEmpty()) {
             return getInitialState();
@@ -67,14 +91,37 @@ public class WalletStateProjector implements StateProjector<WalletState> {
                 .map(StoredEvent::data)
                 .toList();
 
-        WalletEvent[] walletEvents = batchDeserializeWalletEvents(eventDataList);
+        // Build JSON array manually for backward compatibility
+        StringBuilder jsonArray = new StringBuilder("[");
+        for (int i = 0; i < eventDataList.size(); i++) {
+            if (i > 0) jsonArray.append(",");
+            jsonArray.append(new String(eventDataList.get(i), java.nio.charset.StandardCharsets.UTF_8));
+        }
+        jsonArray.append("]");
+
+        try {
+            WalletEvent[] walletEvents = objectMapper.readValue(jsonArray.toString(), WalletEvent[].class);
+            return projectFromWalletEvents(walletEvents);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to batch deserialize wallet events", e);
+        }
+    }
+
+    /**
+     * Project wallet state from deserialized WalletEvent array.
+     *
+     * @param walletEvents Array of deserialized wallet events
+     * @return Final wallet state after projecting all events
+     */
+    private WalletState projectFromWalletEvents(WalletEvent[] walletEvents) {
+        if (walletEvents.length == 0) {
+            return getInitialState();
+        }
 
         WalletState state = getInitialState();
 
         // Process each deserialized event
-        for (int i = 0; i < walletEvents.length; i++) {
-            WalletEvent walletEvent = walletEvents[i];
-
+        for (WalletEvent walletEvent : walletEvents) {
             // Apply the same logic as transition() but with pre-deserialized events
             state = switch (walletEvent) {
                 case WalletOpened opened when walletId.equals(opened.walletId()) -> new WalletState(
@@ -102,28 +149,6 @@ public class WalletStateProjector implements StateProjector<WalletState> {
         }
 
         return state;
-    }
-
-    /**
-     * Batch deserialize wallet events using Jackson's polymorphic support.
-     */
-    private WalletEvent[] batchDeserializeWalletEvents(List<byte[]> eventDataList) {
-        if (eventDataList.isEmpty()) {
-            return new WalletEvent[0];
-        }
-
-        try {
-            StringBuilder jsonArray = new StringBuilder("[");
-            for (int i = 0; i < eventDataList.size(); i++) {
-                if (i > 0) jsonArray.append(",");
-                jsonArray.append(new String(eventDataList.get(i), java.nio.charset.StandardCharsets.UTF_8));
-            }
-            jsonArray.append("]");
-
-            return objectMapper.readValue(jsonArray.toString(), WalletEvent[].class);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to batch deserialize WalletEvents", e);
-        }
     }
 
     @Override

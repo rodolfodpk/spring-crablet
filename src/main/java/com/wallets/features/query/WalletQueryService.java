@@ -1,11 +1,11 @@
 package com.wallets.features.query;
 
-import com.crablet.core.EventStore;
-import com.crablet.core.Query;
-import com.crablet.core.QueryItem;
-import com.crablet.core.StoredEvent;
-import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wallets.domain.event.DepositMade;
+import com.wallets.domain.event.MoneyTransferred;
+import com.wallets.domain.event.WalletEvent;
+import com.wallets.domain.event.WalletOpened;
+import com.wallets.domain.event.WithdrawalMade;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -29,12 +29,10 @@ public class WalletQueryService {
 
     private static final Logger log = LoggerFactory.getLogger(WalletQueryService.class);
 
-    private final EventStore eventStore;
     private final ObjectMapper objectMapper;
     private final WalletQueryRepository queryRepository;
 
-    public WalletQueryService(EventStore eventStore, ObjectMapper objectMapper, WalletQueryRepository queryRepository) {
-        this.eventStore = eventStore;
+    public WalletQueryService(ObjectMapper objectMapper, WalletQueryRepository queryRepository) {
         this.objectMapper = objectMapper;
         this.queryRepository = queryRepository;
     }
@@ -47,15 +45,14 @@ public class WalletQueryService {
      */
     public WalletResponse getWalletState(String walletId) {
         try {
-            // Query events for this wallet using OR logic (go-crablet style)
-            Query walletQuery = buildCompleteWalletEventsQuery(walletId);
-            List<StoredEvent> events = eventStore.query(walletQuery, null);
+            // Use repository for read-optimized query with json_agg()
+            byte[] eventsJsonArray = queryRepository.getWalletEventsAsJsonArray(walletId);
 
-            // Create projector for this specific wallet
-            WalletStateProjector projector = new WalletStateProjector(walletId, objectMapper);
+            // Batch deserialize in one pass (PostgreSQL built the array)
+            WalletEvent[] walletEvents = objectMapper.readValue(eventsJsonArray, WalletEvent[].class);
 
-            // Use batch deserialization for better performance
-            WalletState walletState = projector.project(events);
+            // Project state from deserialized events
+            WalletState walletState = projectWalletState(walletId, walletEvents);
 
             if (walletState.isEmpty()) {
                 return null;
@@ -78,30 +75,39 @@ public class WalletQueryService {
      */
     public WalletHistoryResponse getWalletHistory(String walletId, Instant timestamp, int page, int size) {
         try {
-            // Query events for this wallet using OR logic (go-crablet style)
-            Query walletHistoryQuery = buildWalletHistoryQuery(walletId);
-            List<StoredEvent> walletEvents = eventStore.query(walletHistoryQuery, null);
+            // Database-level pagination and filtering for efficiency
+            List<EventResponse> eventResponses = queryRepository.getWalletEvents(
+                    walletId,
+                    timestamp,      // SQL WHERE filtering (not in-memory)
+                    size + 1,       // Fetch one extra to detect hasNext
+                    page * size     // SQL OFFSET
+            );
 
-            log.debug("Query for wallet {} returned {} events, timestamp: {}", walletId, walletEvents.size(), timestamp);
+            log.debug("Query for wallet {} returned {} events, timestamp: {}", walletId, eventResponses.size(), timestamp);
 
-            // Filter events to only include those up to the target time
-            List<StoredEvent> filteredEvents = filterEventsByTimestamp(walletEvents, timestamp);
+            // Calculate pagination metadata
+            boolean hasNext = eventResponses.size() > size;
+            if (hasNext) {
+                eventResponses = eventResponses.subList(0, size);
+            }
 
-            log.debug("After timestamp filtering: {} events", filteredEvents.size());
+            // Get total count for pagination metadata
+            long totalEvents = queryRepository.getWalletEventsCount(walletId, timestamp);
 
-            // Apply pagination
-            List<StoredEvent> paginatedEvents = paginateEvents(filteredEvents, page, size);
-            int totalEvents = filteredEvents.size();
-            boolean hasNext = (page + 1) * size < totalEvents;
-
-            // Convert events to DTOs
-            List<WalletEventDTO> eventDTOs = convertToEventDTOs(paginatedEvents);
+            // Convert to DTOs (EventResponse.data() is Object, cast to String)
+            List<WalletEventDTO> eventDTOs = eventResponses.stream()
+                    .map(e -> new WalletEventDTO(
+                            e.type(),
+                            e.occurredAt(),
+                            parseEventData((String) e.data())
+                    ))
+                    .collect(Collectors.toList());
 
             return new WalletHistoryResponse(
                     eventDTOs,
                     page,
                     size,
-                    totalEvents,
+                    (int) totalEvents,
                     hasNext
             );
         } catch (Exception e) {
@@ -147,114 +153,6 @@ public class WalletQueryService {
         }
     }
 
-    /**
-     * Build complete wallet events query for all event types affecting this wallet.
-     *
-     * @param walletId The wallet ID
-     * @return Query for all wallet-related events
-     */
-    private Query buildCompleteWalletEventsQuery(String walletId) {
-        return Query.of(List.of(
-                QueryItem.of(
-                        List.of("WalletOpened", "MoneyTransferred", "DepositMade", "WithdrawalMade"),
-                        List.of(new Tag("wallet_id", walletId))
-                ),
-                QueryItem.of(
-                        List.of("MoneyTransferred"),
-                        List.of(new Tag("from_wallet_id", walletId))
-                ),
-                QueryItem.of(
-                        List.of("MoneyTransferred"),
-                        List.of(new Tag("to_wallet_id", walletId))
-                )
-        ));
-    }
-
-    /**
-     * Build wallet history query using only tags (no event type filter) for comprehensive history.
-     *
-     * @param walletId The wallet ID
-     * @return Query for all events tagged with wallet-related tags
-     */
-    private Query buildWalletHistoryQuery(String walletId) {
-        return Query.of(List.of(
-                QueryItem.ofTags(List.of(new Tag("wallet_id", walletId))),
-                QueryItem.ofTags(List.of(new Tag("from_wallet_id", walletId))),
-                QueryItem.ofTags(List.of(new Tag("to_wallet_id", walletId)))
-        ));
-    }
-
-    /**
-     * Filter events by timestamp and sort by occurredAt.
-     *
-     * @param events     The events to filter
-     * @param targetTime The target timestamp (null means no filtering)
-     * @return Filtered and sorted events
-     */
-    private List<StoredEvent> filterEventsByTimestamp(List<StoredEvent> events, Instant targetTime) {
-        log.debug("Filtering {} events with targetTime: {}", events.size(), targetTime);
-        return events.stream()
-                .filter(event -> {
-                    boolean include = targetTime == null || !event.occurredAt().isAfter(targetTime);
-                    log.debug("Event {} at {} - include: {} (targetTime: {})",
-                            event.type(), event.occurredAt(), include, targetTime);
-                    return include;
-                })
-                .sorted((e1, e2) -> e2.occurredAt().compareTo(e1.occurredAt()))
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Apply pagination to events.
-     *
-     * @param events The events to paginate
-     * @param page   The page number (0-based)
-     * @param size   The page size
-     * @return Paginated events
-     */
-    private List<StoredEvent> paginateEvents(List<StoredEvent> events, int page, int size) {
-        int totalEvents = events.size();
-        int startIndex = page * size;
-        int endIndex = Math.min(startIndex + size, totalEvents);
-
-        if (startIndex >= totalEvents) {
-            return List.of();
-        }
-
-        return events.subList(startIndex, endIndex);
-    }
-
-    /**
-     * Convert events to DTOs.
-     *
-     * @param events The events to convert
-     * @return List of WalletEventDTO
-     */
-    private List<WalletEventDTO> convertToEventDTOs(List<StoredEvent> events) {
-        return events.stream()
-                .map(event -> {
-                    try {
-                        // Parse the JSON data from bytes
-                        String jsonString = new String(event.data());
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> dataMap = objectMapper.readValue(jsonString, Map.class);
-
-                        return new WalletEventDTO(
-                                event.type(),
-                                event.occurredAt(),
-                                dataMap
-                        );
-                    } catch (Exception e) {
-                        // Fallback to raw data if JSON parsing fails
-                        return new WalletEventDTO(
-                                event.type(),
-                                event.occurredAt(),
-                                Map.of("data", new String(event.data()))
-                        );
-                    }
-                })
-                .collect(Collectors.toList());
-    }
 
     /**
      * Convert CommandResponse list to WalletCommandDTO list with parsed JSON data.
@@ -273,18 +171,14 @@ public class WalletQueryService {
                             dataMap = castedMap;
                         }
 
-                        // Convert events to DTOs - use batch deserialization for better performance
-                        List<WalletEventDTO> eventDTOs = convertEventsToDTOs(command.events().stream()
-                                .map(eventResponse -> new StoredEvent(
+                        // Convert events to DTOs
+                        List<WalletEventDTO> eventDTOs = command.events().stream()
+                                .map(eventResponse -> new WalletEventDTO(
                                         eventResponse.type(),
-                                        List.of(), // tags
-                                        eventResponse.data() instanceof byte[] ? (byte[]) eventResponse.data() :
-                                                eventResponse.data().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                                        "", // transactionId
-                                        0L, // position
-                                        eventResponse.occurredAt()
+                                        eventResponse.occurredAt(),
+                                        parseEventData((String) eventResponse.data())
                                 ))
-                                .collect(Collectors.toList()));
+                                .collect(Collectors.toList());
 
                         return new WalletCommandDTO(
                                 command.transactionId(),
@@ -307,68 +201,56 @@ public class WalletQueryService {
                 .collect(Collectors.toList());
     }
 
+
     /**
-     * Convert multiple events to DTOs using batch deserialization for better performance.
-     * Since we fail-fast on any deserialization error, let exceptions propagate naturally.
+     * Project wallet state from deserialized events.
+     * Applies state transitions based on event types.
      *
-     * @param events List of events to convert
-     * @return List of WalletEventDTOs
-     * @throws RuntimeException if any event data parsing fails
+     * @param walletId Wallet ID to project state for
+     * @param events   Array of deserialized wallet events
+     * @return Final wallet state after applying all events
      */
-    private List<WalletEventDTO> convertEventsToDTOs(List<StoredEvent> events) {
-        if (events.isEmpty()) {
-            return List.of();
+    private WalletState projectWalletState(String walletId, WalletEvent[] events) {
+        WalletState state = new WalletState(walletId, "", 0, null, null);
+
+        for (WalletEvent event : events) {
+            state = switch (event) {
+                case WalletOpened opened when walletId.equals(opened.walletId()) ->
+                        new WalletState(opened.walletId(), opened.owner(),
+                                opened.initialBalance(), opened.openedAt(), opened.openedAt());
+
+                case MoneyTransferred transfer when walletId.equals(transfer.fromWalletId()) ->
+                        state.withBalance(transfer.fromBalance(), transfer.transferredAt());
+
+                case MoneyTransferred transfer when walletId.equals(transfer.toWalletId()) ->
+                        state.withBalance(transfer.toBalance(), transfer.transferredAt());
+
+                case DepositMade deposit when walletId.equals(deposit.walletId()) ->
+                        state.withBalance(deposit.newBalance(), deposit.depositedAt());
+
+                case WithdrawalMade withdrawal when walletId.equals(withdrawal.walletId()) ->
+                        state.withBalance(withdrawal.newBalance(), withdrawal.withdrawnAt());
+
+                default -> state;
+            };
         }
 
-        // Batch deserialize event data for better performance
-        List<byte[]> eventDataList = events.stream()
-                .map(StoredEvent::data)
-                .toList();
-
-        Map<String, Object>[] eventDataMaps = batchDeserializeEventData(eventDataList);
-
-        List<WalletEventDTO> eventDTOs = new java.util.ArrayList<>(events.size());
-        for (int i = 0; i < events.size(); i++) {
-            StoredEvent event = events.get(i);
-            Map<String, Object> eventDataMap = eventDataMaps[i];
-
-            eventDTOs.add(new WalletEventDTO(
-                    event.type(),
-                    event.occurredAt(),
-                    eventDataMap
-            ));
-        }
-
-        return eventDTOs;
+        return state;
     }
 
     /**
-     * Batch deserialize multiple event data arrays to Map arrays.
-     * Uses Jackson's array parsing for efficient batch processing.
+     * Parse event data from JSON string to Map.
      *
-     * @param eventDataList List of raw event data bytes
-     * @return Array of deserialized Map objects
-     * @throws RuntimeException if any deserialization fails
+     * @param jsonData JSON string representation of event data
+     * @return Parsed event data as Map
+     * @throws RuntimeException if parsing fails
      */
     @SuppressWarnings("unchecked")
-    private Map<String, Object>[] batchDeserializeEventData(List<byte[]> eventDataList) {
-        if (eventDataList.isEmpty()) {
-            return new Map[0];
-        }
-
+    private Map<String, Object> parseEventData(String jsonData) {
         try {
-            // Build JSON array from event data
-            StringBuilder jsonArray = new StringBuilder("[");
-            for (int i = 0; i < eventDataList.size(); i++) {
-                if (i > 0) jsonArray.append(",");
-                jsonArray.append(new String(eventDataList.get(i), java.nio.charset.StandardCharsets.UTF_8));
-            }
-            jsonArray.append("]");
-
-            // Deserialize entire array in one pass
-            return objectMapper.readValue(jsonArray.toString(), Map[].class);
+            return objectMapper.readValue(jsonData, Map.class);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to batch deserialize event data", e);
+            throw new RuntimeException("Failed to parse event data", e);
         }
     }
 

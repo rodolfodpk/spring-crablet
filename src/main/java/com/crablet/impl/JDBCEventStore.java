@@ -5,6 +5,8 @@ import com.crablet.core.AppendEvent;
 import com.crablet.core.Command;
 import com.crablet.core.ConcurrencyException;
 import com.crablet.core.Cursor;
+import com.crablet.core.DCBViolation;
+import com.crablet.core.EventStoreException;
 import com.crablet.core.EventStore;
 import com.crablet.core.EventStoreConfig;
 import com.crablet.core.ProjectionResult;
@@ -94,54 +96,13 @@ public class JDBCEventStore implements EventStore {
             StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at FROM events");
             List<Object> params = new ArrayList<>();
 
-            // after_position parameter
-            long afterPosition = after != null ? after.position().value() : 0L;
-            if (afterPosition > 0) {
-                sql.append(" WHERE position > ?");
-                params.add(afterPosition);
+            // Use shared WHERE clause builder
+            String whereClause = buildEventQueryWhereClause(query, after, params);
+            if (!whereClause.isEmpty()) {
+                sql.append(" WHERE ").append(whereClause);
             }
 
-            // Build OR conditions for each QueryItem (go-crablet style)
-            if (!query.isEmpty()) {
-                List<String> orConditions = new ArrayList<>();
-
-                for (QueryItem item : query.items()) {
-                    StringBuilder condition = new StringBuilder("(");
-                    List<String> andConditions = new ArrayList<>();
-
-                    // Handle event types for this QueryItem
-                    if (item.hasEventTypes() && !item.eventTypes().isEmpty()) {
-                        andConditions.add("type = ANY(?)");
-                        params.add(item.eventTypes().toArray(new String[0]));
-                    }
-
-                    // Handle tags for this QueryItem
-                    if (item.hasTags() && !item.tags().isEmpty()) {
-                        List<String> tagStrings = item.tags().stream()
-                                .map(tag -> tag.key() + "=" + tag.value())
-                                .collect(Collectors.toList());
-                        andConditions.add("tags @> ?::TEXT[]");
-                        params.add(tagStrings.toArray(new String[0]));
-                    }
-
-                    if (!andConditions.isEmpty()) {
-                        condition.append(String.join(" AND ", andConditions));
-                        condition.append(")");
-                        orConditions.add(condition.toString());
-                    }
-                }
-
-                if (!orConditions.isEmpty()) {
-                    if (afterPosition > 0) {
-                        sql.append(" AND ");
-                    } else {
-                        sql.append(" WHERE ");
-                    }
-                    sql.append("(").append(String.join(" OR ", orConditions)).append(")");
-                }
-            }
-
-            sql.append(" ORDER BY position ASC");
+            sql.append(" ORDER BY transaction_id, position ASC");
 
             // Use raw JDBC for better control
             try (Connection connection = dataSource.getConnection();
@@ -169,7 +130,165 @@ public class JDBCEventStore implements EventStore {
                 return events;
             }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to query events", e);
+            throw new EventStoreException("Failed to query events", e);
+        }
+    }
+
+    /**
+     * Builds the WHERE clause for event queries.
+     * Shared logic between query() and queryAsJsonArray() to avoid duplication.
+     * 
+     * @param query The query to filter events
+     * @param after Cursor to query events after
+     * @param params List to collect query parameters
+     * @return WHERE clause SQL string (without "WHERE" keyword)
+     */
+    private String buildEventQueryWhereClause(Query query, Cursor after, List<Object> params) {
+        StringBuilder whereClause = new StringBuilder();
+        
+        // after_position parameter
+        long afterPosition = after != null ? after.position().value() : 0L;
+        if (afterPosition > 0) {
+            whereClause.append("position > ?");
+            params.add(afterPosition);
+        }
+
+        // Build OR conditions for each QueryItem
+        if (!query.isEmpty()) {
+            List<String> orConditions = new ArrayList<>();
+            
+            for (QueryItem item : query.items()) {
+                StringBuilder condition = new StringBuilder("(");
+                
+                // Event types filter
+                if (!item.eventTypes().isEmpty()) {
+                    condition.append("type = ANY(?)");
+                    params.add(item.eventTypes().toArray(new String[0]));
+                }
+                
+                // Tags filter
+                if (!item.tags().isEmpty()) {
+                    if (!item.eventTypes().isEmpty()) {
+                        condition.append(" AND ");
+                    }
+                    
+                    String[] tagStrings = item.tags().stream()
+                            .map(tag -> tag.key() + "=" + tag.value())
+                            .toArray(String[]::new);
+                    condition.append("tags @> ?::text[]");
+                    params.add(tagStrings);
+                }
+                
+                condition.append(")");
+                
+                if (condition.length() > 2) { // More than just "()"
+                    orConditions.add(condition.toString());
+                }
+            }
+
+            if (!orConditions.isEmpty()) {
+                if (afterPosition > 0) {
+                    whereClause.append(" AND ");
+                }
+                whereClause.append("(").append(String.join(" OR ", orConditions)).append(")");
+            }
+        }
+        
+        return whereClause.toString();
+    }
+
+    @Override
+    @CircuitBreaker(name = "database")
+    @Retry(name = "database")
+    @TimeLimiter(name = "database")
+    public byte[] queryAsJsonArray(Query query, Cursor after) {
+        try {
+            // Build SQL query with jsonb_agg() aggregation (more efficient than json_agg)
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COALESCE(jsonb_agg(data ORDER BY transaction_id, position), '[]'::jsonb) FROM events");
+            
+            List<Object> params = new ArrayList<>();
+            
+            // Use shared WHERE clause builder
+            String whereClause = buildEventQueryWhereClause(query, after, params);
+            if (!whereClause.isEmpty()) {
+                sql.append(" WHERE ").append(whereClause);
+            }
+
+            // Use raw JDBC for better control
+            try (Connection connection = dataSource.getConnection();
+                 PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
+
+                // Set parameters
+                for (int i = 0; i < params.size(); i++) {
+                    Object param = params.get(i);
+                    if (param instanceof String[]) {
+                        stmt.setArray(i + 1, connection.createArrayOf("text", (String[]) param));
+                    } else {
+                        stmt.setObject(i + 1, param);
+                    }
+                }
+
+                // Execute query and return JSON array
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        String jsonArray = rs.getString(1);
+                        return jsonArray != null 
+                            ? jsonArray.getBytes(StandardCharsets.UTF_8) 
+                            : "[]".getBytes(StandardCharsets.UTF_8);
+                    }
+                    return "[]".getBytes(StandardCharsets.UTF_8);
+                }
+            }
+        } catch (Exception e) {
+            throw new EventStoreException("Failed to query events as JSON array", e);
+        }
+    }
+
+    /**
+     * Query events as JSON array using a specific connection.
+     * This method is used by ConnectionScopedEventStore.
+     */
+    private byte[] queryAsJsonArrayWithConnection(Connection connection, Query query, Cursor after) {
+        try {
+            // Build SQL query with jsonb_agg() aggregation (more efficient than json_agg)
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT COALESCE(jsonb_agg(data ORDER BY transaction_id, position), '[]'::jsonb) FROM events");
+            
+            List<Object> params = new ArrayList<>();
+            
+            // Use shared WHERE clause builder
+            String whereClause = buildEventQueryWhereClause(query, after, params);
+            if (!whereClause.isEmpty()) {
+                sql.append(" WHERE ").append(whereClause);
+            }
+
+            // Use the provided connection
+            try (PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
+
+                // Set parameters
+                for (int i = 0; i < params.size(); i++) {
+                    Object param = params.get(i);
+                    if (param instanceof String[]) {
+                        stmt.setArray(i + 1, connection.createArrayOf("text", (String[]) param));
+                    } else {
+                        stmt.setObject(i + 1, param);
+                    }
+                }
+
+                // Execute query and return JSON array
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        String jsonArray = rs.getString(1);
+                        return jsonArray != null 
+                            ? jsonArray.getBytes(StandardCharsets.UTF_8) 
+                            : "[]".getBytes(StandardCharsets.UTF_8);
+                    }
+                    return "[]".getBytes(StandardCharsets.UTF_8);
+                }
+            }
+        } catch (Exception e) {
+            throw new EventStoreException("Failed to query events as JSON array with connection", e);
         }
     }
 
@@ -208,12 +327,12 @@ public class JDBCEventStore implements EventStore {
 
             // Handle PostgreSQL procedural errors (P0001, etc.)
             if (sqlState != null && sqlState.startsWith("P")) {
-                throw new RuntimeException("PostgreSQL procedural error (" + sqlState + "): " + e.getMessage(), e);
+                throw new EventStoreException("PostgreSQL procedural error (" + sqlState + "): " + e.getMessage(), e);
             }
 
-            throw new RuntimeException("Failed to append events", e);
+            throw new EventStoreException("Failed to append events", e);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to append events", e);
+            throw new EventStoreException("Failed to append events", e);
         }
     }
 
@@ -275,7 +394,18 @@ public class JDBCEventStore implements EventStore {
                             if (successObj instanceof Boolean) {
                                 Boolean success = (Boolean) successObj;
                                 if (!success) {
-                                    throw new ConcurrencyException("AppendCondition violated: " + result.get("message"));
+                                    // Parse DCB violation details
+                                    String errorCode = (String) result.getOrDefault("error_code", "DCB_VIOLATION");
+                                    String message = (String) result.getOrDefault("message", "append condition violated");
+                                    
+                                    Number matchingCount = (Number) result.get("matching_events_count");
+                                    int matchingEventsCount = matchingCount != null ? matchingCount.intValue() : 0;
+                                    
+                                    // Create DCBViolation with details
+                                    DCBViolation violation = new DCBViolation(errorCode, message, matchingEventsCount);
+                                    
+                                    // Throw with violation details
+                                    throw new ConcurrencyException("AppendCondition violated: " + message, violation);
                                 }
                             } else {
                                 // Handle case where success is not a boolean
@@ -331,17 +461,17 @@ public class JDBCEventStore implements EventStore {
 
             // Handle other PostgreSQL-specific errors
             if (sqlState != null && sqlState.startsWith("P")) {
-                throw new RuntimeException("PostgreSQL procedural error (" + sqlState + "): " + e.getMessage(), e);
+                throw new EventStoreException("PostgreSQL procedural error (" + sqlState + "): " + e.getMessage(), e);
             }
 
-            throw new RuntimeException("Failed to append events with condition", e);
+            throw new EventStoreException("Failed to append events with condition", e);
         } catch (Exception e) {
             // Fallback: check message content for backward compatibility
             if (e.getMessage() != null && e.getMessage().contains("AppendIf condition failed")) {
                 throw new ConcurrencyException("Concurrent modification: " + e.getMessage(), e);
             }
 
-            throw new RuntimeException("Failed to append events", e);
+            throw new EventStoreException("Failed to append events", e);
         }
     }
 
@@ -454,7 +584,7 @@ public class JDBCEventStore implements EventStore {
 
             stmt.execute();
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to append events with connection", e);
+            throw new EventStoreException("Failed to append events with connection", e);
         }
     }
 
@@ -519,7 +649,7 @@ public class JDBCEventStore implements EventStore {
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to append events with condition using connection", e);
+            throw new EventStoreException("Failed to append events with condition using connection", e);
         }
     }
 
@@ -553,7 +683,7 @@ public class JDBCEventStore implements EventStore {
                 throw e;
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to execute transaction", e);
+            throw new EventStoreException("Failed to execute transaction", e);
         }
     }
 
@@ -634,7 +764,7 @@ public class JDBCEventStore implements EventStore {
                 }
             }
 
-            sql.append("ORDER BY position ASC");
+            sql.append("ORDER BY transaction_id, position ASC");
 
             try (PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
                 // Set fetch size for memory efficiency
@@ -666,7 +796,7 @@ public class JDBCEventStore implements EventStore {
                 return events;
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to query events using connection", e);
+            throw new EventStoreException("Failed to query events using connection", e);
         }
     }
 
@@ -706,7 +836,7 @@ public class JDBCEventStore implements EventStore {
 
             return new ProjectionResult<>(state, newCursor);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to project state using connection", e);
+            throw new EventStoreException("Failed to project state using connection", e);
         }
     }
 
@@ -754,7 +884,7 @@ public class JDBCEventStore implements EventStore {
 
             return new ProjectionResult<>(state, newCursor);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to project state using connection", e);
+            throw new EventStoreException("Failed to project state using connection", e);
         }
     }
 
@@ -847,7 +977,7 @@ public class JDBCEventStore implements EventStore {
         try (Connection connection = dataSource.getConnection()) {
             storeCommandWithConnection(connection, command, transactionId);
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to store command", e);
+            throw new EventStoreException("Failed to store command", e);
         }
     }
 
@@ -856,7 +986,7 @@ public class JDBCEventStore implements EventStore {
         try (Connection connection = dataSource.getConnection()) {
             return getCurrentTransactionIdWithConnection(connection);
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to get current transaction ID", e);
+            throw new EventStoreException("Failed to get current transaction ID", e);
         }
     }
 
@@ -886,7 +1016,7 @@ public class JDBCEventStore implements EventStore {
                 stmt.executeUpdate();
             }
         } catch (SQLException | com.fasterxml.jackson.core.JsonProcessingException e) {
-            throw new RuntimeException("Failed to store command with connection", e);
+            throw new EventStoreException("Failed to store command with connection", e);
         }
     }
 
@@ -905,7 +1035,7 @@ public class JDBCEventStore implements EventStore {
                 throw new RuntimeException("Failed to get transaction ID");
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to get current transaction ID with connection", e);
+            throw new EventStoreException("Failed to get current transaction ID with connection", e);
         }
     }
 
@@ -927,7 +1057,7 @@ public class JDBCEventStore implements EventStore {
         try {
             return objectMapper.writeValueAsString(metadata);
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize command metadata", e);
+            throw new EventStoreException("Failed to serialize command metadata", e);
         }
     }
 
@@ -943,6 +1073,12 @@ public class JDBCEventStore implements EventStore {
         public List<StoredEvent> query(Query query, Cursor after) {
             // Use the connection for querying
             return JDBCEventStore.this.queryWithConnection(connection, query, after);
+        }
+
+        @Override
+        public byte[] queryAsJsonArray(Query query, Cursor after) {
+            // Use the connection for querying
+            return JDBCEventStore.this.queryAsJsonArrayWithConnection(connection, query, after);
         }
 
         @Override
