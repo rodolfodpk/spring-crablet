@@ -8,45 +8,9 @@
 
 ## Project Background
 
-This project represents a **Java 25 migration** of my original **crablet** event sourcing library, which was initially
-implemented in Kotlin. After building both [crablet](https://github.com/rodolfodpk/crablet) (Kotlin)
-and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go), I decided to port the DCB pattern to Java using Spring
-Boot to explore event sourcing in a different ecosystem.
+Java 25 implementation of the DCB (Dynamic Consistency Boundary) event sourcing pattern, ported from [crablet](https://github.com/rodolfodpk/crablet) (Kotlin) and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go). Built with Spring Boot to explore event sourcing in Java ecosystem.
 
-### Why Event Sourcing?
-
-I chose event sourcing for this challenge because it provides:
-
-- **Complete audit trail** of all business operations
-- **Temporal queries** - ability to reconstruct state at any point in time
-- **Scalability** through event-driven architecture
-- **Domain modeling** that closely matches business processes
-- **Consistency guarantees** through the DCB pattern
-
-### Development Approach
-
-This implementation was developed using **Cursor IDE** with AI assistance, taking approximately **20+ hours** of
-development time. The AI helped with:
-
-- Code generation and boilerplate reduction
-- Architecture decisions and pattern implementation
-- Testing strategies and performance optimization
-- Documentation and configuration management
-
-### Package Organization: Feature-Based Slices
-
-The project organizes code by business capabilities rather than technical layers. Each feature slice (deposit, withdraw,
-transfer, openwallet) contains:
-
-- **Controllers** - HTTP endpoints and request/response handling
-- **Commands** - Business operations and validation
-- **Handlers** - Business logic, event generation, and command-specific projections
-
-This approach ensures high cohesion within each business capability while maintaining loose coupling between different
-features.
-
-The final result demonstrates modern Java features (records, sealed interfaces, virtual threads, pattern matching),
-Spring Boot best practices, feature-based package organization, and comprehensive observability.
+**📚 [Why Event Sourcing?](docs/architecture/README.md#event-sourcing-benefits)** | **📚 [Development Approach](docs/development/README.md)** | **📚 [Package Organization](docs/architecture/README.md#package-organization)**
 
 ## Features
 
@@ -116,47 +80,15 @@ See [docs/](docs/) for additional documentation on architecture, development, an
 
 ## Testing
 
-### Quick Start
+**435 tests passing** (369 unit + 66 integration) with Testcontainers infrastructure.
 
 ```bash
-# Run all tests (435 total: 369 unit + 66 integration)
-./mvnw test verify
-
-# Unit tests only (fast)
-./mvnw test
-
-# Integration tests only (full stack with Testcontainers)
-./mvnw verify
-
-# Run specific integration test
-./mvnw test -Dtest=WalletWorkflowIT
+./mvnw test verify    # All tests
+./mvnw test          # Unit tests only
+./mvnw verify        # Integration tests only
 ```
 
-### Test Status
-
-- ✅ **435 tests passing** (369 unit + 66 integration)
-- ✅ **All integration tests fixed** (October 2025)
-- 🐳 **Testcontainers** infrastructure for isolated testing
-
-📖 **Detailed testing guide**: [Development Guide](docs/development/README.md#testing-strategy)
-
-### Performance Tests
-
-```bash
-# Start application with TEST profile (rate limiting disabled)
-make start-test
-
-# Run working performance tests
-cd performance-tests
-k6 run wallet-creation-load.js    # 6,288 operations, 111ms p95, 0.31% error rate
-k6 run simple-deposit-test.js     # 16,804 operations, 41ms p95, 0% error rate
-
-# Or use the automated runner (automatically uses test profile)
-make perf-quick  # Quick wallet creation test
-```
-
-⚠️ **Important**: Always use the TEST profile when running performance tests to disable rate limiting.
-See [Test Profile Documentation](docs/testing/TEST_PROFILE.md) for details.
+**📚 [Testing Guide](docs/development/README.md#testing-strategy)** | **📚 [Performance Tests](performance-tests/README.md)**
 
 ## Configuration
 
@@ -168,49 +100,31 @@ The application implements **event sourcing** with the **Dynamic Consistency Bou
 consistent wallet operations. For detailed architecture documentation,
 see [Architecture Guide](docs/architecture/README.md).
 
+### Dynamic Consistency Boundary (DCB)
+
+DCB is an optimistic concurrency control pattern for event sourcing using cursor-based, entity-scoped conflict detection. Prevents double-spending and inconsistent state through position-based checks before event appends.
+
+**📚 [Technical Details →](docs/architecture/DCB_AND_CRABLET.md)**
+
+**Key characteristics**: Entity-scoped conflicts, cursor-based tracking, PostgreSQL-native implementation, 700+ req/s throughput.
+
 ## Performance
 
-k6-based performance tests are included in `performance-tests/`:
+k6-based performance tests with verified results (October 2025):
 
-### Verified Results (October 2025)
+- **Wallet Creation**: 6,288 operations, 111ms p95, 0.31% error rate
+- **Deposits**: 16,804 operations, 41ms p95, 0% error rate
+- **Throughput**: 110-336 req/s depending on operation
 
-- **Wallet Creation**: 6,288 operations, 111ms p95 response time, 0.31% error rate
-- **Deposit Operations**: 16,804 operations, 41ms p95 response time, 0% error rate
-- **Throughput**: 110-336 requests/second depending on operation type
-
-**📊 [View Complete Performance Results](performance-tests/results/summary.md)**
-
-### Working Tests
-
-- `wallet-creation-load.js` - Concurrent wallet creation (20 users, 50s)
-- `simple-deposit-test.js` - High-frequency deposits (10 users, 50s)
-
-Run tests: `make start-test && cd performance-tests && k6 run wallet-creation-load.js`
-
-⚠️ **Note**: Performance tests require the TEST profile to disable rate limiting.
-See [Test Profile Documentation](docs/testing/TEST_PROFILE.md).
+**📊 [Complete Results](performance-tests/results/summary.md)** | **📚 [Performance Guide](performance-tests/README.md)**
 
 ## Security
 
-> **⚠️ Experimental Project Disclaimer**: This is an **experimental/learning project** focused on exploring event
-> sourcing patterns and modern Java features. The missing production security features listed below are **intentionally
-omitted** for simplicity and are acceptable for this educational context.
+⚠️ **Experimental project** - Missing production security features (authentication, authorization, HTTPS) for educational purposes.
 
-### Implemented
+**Implemented**: Input validation, SQL injection prevention, audit logging via event sourcing.
 
-- **Input Validation**: Spring Boot validation annotations
-- **SQL Injection Prevention**: Parameterized queries
-- **Audit Logging**: Event sourcing provides comprehensive audit trails
-
-### TODO - Production Requirements
-
-| Feature            | Status            | Priority |
-|--------------------|-------------------|----------|
-| Authentication     | ❌ Not implemented | High     |
-| Authorization      | ❌ Not implemented | High     |
-| HTTPS              | ❌ Not implemented | High     |
-| Rate Limiting      | ❌ Not implemented | Medium   |
-| CORS Configuration | ❌ Not implemented | Medium   |
+**📚 [Security Details](docs/setup/README.md#security)**
 
 ## License
 
