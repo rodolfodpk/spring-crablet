@@ -63,18 +63,6 @@ make stop
 
 **📚 [DCB Technical Details](docs/architecture/DCB_AND_CRABLET.md)** | **📚 [Testing Guide](docs/development/README.md#testing-strategy)** | **📚 [Observability](docs/observability/README.md)**
 
-## Performance
-
-Verified results (October 2025): **723 req/s** wallet creation, **224 req/s** transfers, **zero false positives** in conflict detection.
-
-**📊 [Complete Results](performance-tests/results/summary.md)** | **📚 [Performance Guide](performance-tests/README.md)**
-
-## Security
-
-⚠️ **Experimental project** - Missing production security features for educational purposes.
-
-**📚 [Security Guide](docs/security/README.md)**
-
 ## Documentation
 
 - **[Architecture](docs/architecture/README.md)** - DCB pattern, event sourcing, system design
