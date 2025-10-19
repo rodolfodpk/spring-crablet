@@ -14,34 +14,6 @@ import java.util.List;
 public class WalletQueryPatterns {
     
     /**
-     * Query for wallet balance events (WalletOpened, Deposits, Withdrawals).
-     */
-    public static List<QueryItem> walletBalanceEvents(String walletId) {
-        return List.of(
-            QueryItem.of(
-                List.of("WalletOpened", "DepositMade", "WithdrawalMade"),
-                List.of(new Tag("wallet_id", walletId))
-            )
-        );
-    }
-    
-    /**
-     * Query for transfers affecting a wallet (both from and to).
-     */
-    public static List<QueryItem> walletTransfers(String walletId) {
-        return List.of(
-            QueryItem.of(
-                List.of("MoneyTransferred"),
-                List.of(new Tag("from_wallet_id", walletId))
-            ),
-            QueryItem.of(
-                List.of("MoneyTransferred"),
-                List.of(new Tag("to_wallet_id", walletId))
-            )
-        );
-    }
-    
-    /**
      * Complete decision model query for single wallet operations.
      * Used by Deposit and Withdraw handlers.
      */
@@ -60,11 +32,15 @@ public class WalletQueryPatterns {
     public static Query transferDecisionModel(String fromWalletId, String toWalletId) {
         return QueryBuilder.create()
             .events("WalletOpened", "DepositMade", "WithdrawalMade").tag("wallet_id", fromWalletId)
-            .event("MoneyTransferred", "from_wallet_id", fromWalletId)
-            .event("MoneyTransferred", "to_wallet_id", fromWalletId)
+            .events("MoneyTransferred").tags(
+                QueryBuilder.tag("from_wallet_id", fromWalletId),
+                QueryBuilder.tag("to_wallet_id", fromWalletId)
+            )
             .events("WalletOpened", "DepositMade", "WithdrawalMade").tag("wallet_id", toWalletId)
-            .event("MoneyTransferred", "from_wallet_id", toWalletId)
-            .event("MoneyTransferred", "to_wallet_id", toWalletId)
+            .events("MoneyTransferred").tags(
+                QueryBuilder.tag("from_wallet_id", toWalletId),
+                QueryBuilder.tag("to_wallet_id", toWalletId)
+            )
             .build();
     }
     

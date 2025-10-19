@@ -19,35 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 class WalletQueryPatternsTest {
     
     @Test
-    void walletBalanceEvents_shouldReturnBalanceAffectingEvents() {
-        // When
-        List<QueryItem> items = WalletQueryPatterns.walletBalanceEvents("w1");
-        
-        // Then
-        assertThat(items).hasSize(1);
-        assertThat(items.get(0).eventTypes())
-            .containsExactlyInAnyOrder("WalletOpened", "DepositMade", "WithdrawalMade");
-        assertThat(items.get(0).tags()).containsExactly(new Tag("wallet_id", "w1"));
-    }
-    
-    @Test
-    void walletTransfers_shouldReturnBothDirections() {
-        // When
-        List<QueryItem> items = WalletQueryPatterns.walletTransfers("w1");
-        
-        // Then
-        assertThat(items).hasSize(2);
-        
-        // From wallet transfers (w1 is sender)
-        assertThat(items.get(0).eventTypes()).containsExactly("MoneyTransferred");
-        assertThat(items.get(0).tags()).containsExactly(new Tag("from_wallet_id", "w1"));
-        
-        // To wallet transfers (w1 is receiver)
-        assertThat(items.get(1).eventTypes()).containsExactly("MoneyTransferred");
-        assertThat(items.get(1).tags()).containsExactly(new Tag("to_wallet_id", "w1"));
-    }
-    
-    @Test
     void singleWalletDecisionModel_shouldCombineBalanceAndTransfers() {
         // When
         Query query = WalletQueryPatterns.singleWalletDecisionModel("w1");
@@ -75,29 +46,31 @@ class WalletQueryPatternsTest {
         Query query = WalletQueryPatterns.transferDecisionModel("w1", "w2");
         
         // Then
-        assertThat(query.items()).hasSize(6);
+        assertThat(query.items()).hasSize(4);
         
         // Items for wallet w1
         assertThat(query.items().get(0).eventTypes())
             .containsExactlyInAnyOrder("WalletOpened", "DepositMade", "WithdrawalMade");
         assertThat(query.items().get(0).tags()).containsExactly(new Tag("wallet_id", "w1"));
         
+        // MoneyTransferred for w1 (both from and to tags in one item)
         assertThat(query.items().get(1).eventTypes()).containsExactly("MoneyTransferred");
-        assertThat(query.items().get(1).tags()).containsExactly(new Tag("from_wallet_id", "w1"));
-        
-        assertThat(query.items().get(2).eventTypes()).containsExactly("MoneyTransferred");
-        assertThat(query.items().get(2).tags()).containsExactly(new Tag("to_wallet_id", "w1"));
+        assertThat(query.items().get(1).tags()).containsExactlyInAnyOrder(
+            new Tag("from_wallet_id", "w1"),
+            new Tag("to_wallet_id", "w1")
+        );
         
         // Items for wallet w2
-        assertThat(query.items().get(3).eventTypes())
+        assertThat(query.items().get(2).eventTypes())
             .containsExactlyInAnyOrder("WalletOpened", "DepositMade", "WithdrawalMade");
-        assertThat(query.items().get(3).tags()).containsExactly(new Tag("wallet_id", "w2"));
+        assertThat(query.items().get(2).tags()).containsExactly(new Tag("wallet_id", "w2"));
         
-        assertThat(query.items().get(4).eventTypes()).containsExactly("MoneyTransferred");
-        assertThat(query.items().get(4).tags()).containsExactly(new Tag("from_wallet_id", "w2"));
-        
-        assertThat(query.items().get(5).eventTypes()).containsExactly("MoneyTransferred");
-        assertThat(query.items().get(5).tags()).containsExactly(new Tag("to_wallet_id", "w2"));
+        // MoneyTransferred for w2 (both from and to tags in one item)
+        assertThat(query.items().get(3).eventTypes()).containsExactly("MoneyTransferred");
+        assertThat(query.items().get(3).tags()).containsExactlyInAnyOrder(
+            new Tag("from_wallet_id", "w2"),
+            new Tag("to_wallet_id", "w2")
+        );
     }
     
     @Test
@@ -116,8 +89,8 @@ class WalletQueryPatternsTest {
         // When (transfer to self)
         Query query = WalletQueryPatterns.transferDecisionModel("w1", "w1");
         
-        // Then - should still have 6 items (duplicates intentional for query clarity)
-        assertThat(query.items()).hasSize(6);
+        // Then - should have 4 items (2 balance + 2 transfer items, but w1=w1 so some duplication)
+        assertThat(query.items()).hasSize(4);
     }
     
     @Test
