@@ -6,126 +6,59 @@
 [![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Project Background
+Java 25 implementation of the DCB (Dynamic Consistency Boundary) event sourcing pattern, ported from [crablet](https://github.com/rodolfodpk/crablet) (Kotlin) and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go).
 
-Java 25 implementation of the DCB (Dynamic Consistency Boundary) event sourcing pattern, ported from [crablet](https://github.com/rodolfodpk/crablet) (Kotlin) and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go). Built with Spring Boot to explore event sourcing in Java ecosystem.
-
-**📚 [Why Event Sourcing?](docs/architecture/README.md#event-sourcing-benefits)** | **📚 [Development Approach](docs/development/README.md)** | **📚 [Package Organization](docs/architecture/README.md#package-organization)**
-
-## Features
-
-- **Java 25**: Records, sealed interfaces, virtual threads, and pattern matching
-- **Spring Boot**: Spring Boot 3.5 with Undertow and JDBC PostgreSQL
-- **DCB Pattern**: Dynamic Consistency Boundary for event sourcing
-- **Type Safety**: Generic projections with compile-time validation
-- **Comprehensive Testing**: Unit and integration test separation
-- **Wallet Domain**: Complete event sourcing implementation
-- **Observability**: Prometheus, Grafana, and Loki monitoring stack
+**📚 [Project Background](docs/architecture/README.md)** | **📚 [Features](docs/architecture/README.md#features)** | **📚 [Architecture](docs/architecture/README.md)**
 
 ## Quick Start
 
-### Prerequisites
-
-- Java 25
-- Docker & Docker Compose
-- Maven 3.9+
-- k6 (for performance testing)
-
-### Installation
-
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd wallets-challenge
-
 # Start everything (PostgreSQL + Spring Boot)
 make start
 
-# Run a quick performance test
-make perf-quick
+# Run tests
+./mvnw test verify
 
-# Check application health
-make health
+# Performance test
+make perf-quick
 
 # Stop everything
 make stop
 ```
 
-### Manual Setup
+**📚 [Detailed Setup](docs/setup/README.md)** | **📚 [API Reference](docs/api/README.md)** | **📚 [Swagger UI](http://localhost:8080/swagger-ui/index.html)**
 
-```bash
-# 1. Start PostgreSQL
-docker-compose up -d postgres
+## Key Components
 
-# 2. Start the application
-./mvnw spring-boot:run
+- **DCB Pattern**: Cursor-based optimistic concurrency control
+- **Event Sourcing**: Complete audit trail with state reconstruction
+- **Java 25**: Records, sealed interfaces, virtual threads, pattern matching
+- **Spring Boot**: REST API with PostgreSQL backend
+- **Testing**: 435 tests (369 unit + 66 integration) with Testcontainers
+- **Observability**: Prometheus, Grafana, Loki monitoring stack
 
-# 3. Access Swagger UI
-open http://localhost:8080/swagger-ui/index.html
-```
-
-## API
-
-The wallet service provides RESTful endpoints for wallet operations. For complete API documentation with examples,
-see [API Reference](docs/api/README.md).
-
-## Observability
-
-The application includes a comprehensive observability stack with Prometheus (metrics), Grafana (dashboards), and Loki (
-logs). For detailed setup and configuration, see [Observability Guide](docs/observability/README.md).
-
-## Documentation
-
-See [docs/](docs/) for additional documentation on architecture, development, and observability.
-
-## Testing
-
-**435 tests passing** (369 unit + 66 integration) with Testcontainers infrastructure.
-
-```bash
-./mvnw test verify    # All tests
-./mvnw test          # Unit tests only
-./mvnw verify        # Integration tests only
-```
-
-**📚 [Testing Guide](docs/development/README.md#testing-strategy)** | **📚 [Performance Tests](performance-tests/README.md)**
-
-## Configuration
-
-For detailed configuration options, see [Setup Guide](docs/setup/README.md#configuration).
-
-## Architecture
-
-The application implements **event sourcing** with the **Dynamic Consistency Boundary (DCB)** pattern for scalable,
-consistent wallet operations. For detailed architecture documentation,
-see [Architecture Guide](docs/architecture/README.md).
-
-### Dynamic Consistency Boundary (DCB)
-
-DCB is an optimistic concurrency control pattern for event sourcing using cursor-based, entity-scoped conflict detection. Prevents double-spending and inconsistent state through position-based checks before event appends.
-
-**📚 [Technical Details →](docs/architecture/DCB_AND_CRABLET.md)**
-
-**Key characteristics**: Entity-scoped conflicts, cursor-based tracking, PostgreSQL-native implementation, 700+ req/s throughput.
+**📚 [DCB Technical Details](docs/architecture/DCB_AND_CRABLET.md)** | **📚 [Testing Guide](docs/development/README.md#testing-strategy)** | **📚 [Observability](docs/observability/README.md)**
 
 ## Performance
 
-k6-based performance tests with verified results (October 2025):
-
-- **Wallet Creation**: 6,288 operations, 111ms p95, 0.31% error rate
-- **Deposits**: 16,804 operations, 41ms p95, 0% error rate
-- **Throughput**: 110-336 req/s depending on operation
+Verified results (October 2025): **723 req/s** wallet creation, **224 req/s** transfers, **zero false positives** in conflict detection.
 
 **📊 [Complete Results](performance-tests/results/summary.md)** | **📚 [Performance Guide](performance-tests/README.md)**
 
 ## Security
 
-⚠️ **Experimental project** - Missing production security features (authentication, authorization, HTTPS) for educational purposes.
-
-**Implemented**: Input validation, SQL injection prevention, audit logging via event sourcing.
+⚠️ **Experimental project** - Missing production security features for educational purposes.
 
 **📚 [Security Details](docs/setup/README.md#security)**
 
+## Documentation
+
+- **[Architecture](docs/architecture/README.md)** - DCB pattern, event sourcing, system design
+- **[Development](docs/development/README.md)** - Setup, testing, coding practices
+- **[API](docs/api/README.md)** - REST endpoints, examples, Swagger
+- **[Observability](docs/observability/README.md)** - Monitoring, metrics, dashboards
+- **[Performance](performance-tests/README.md)** - Load testing, benchmarks, optimization
+
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) file for details.

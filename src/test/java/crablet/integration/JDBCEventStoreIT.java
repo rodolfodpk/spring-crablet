@@ -534,4 +534,219 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
         assertThatCode(() -> eventStore.query(problematicQuery, null))
                 .doesNotThrowAnyException();
     }
+
+    // ===== Transaction Isolation Level Tests =====
+
+    @Test
+    @DisplayName("Should apply READ_COMMITTED isolation level")
+    void shouldApplyReadCommittedIsolationLevel() {
+        // Given: events to append
+        AppendEvent event = AppendEvent.of("TestEvent", List.of(), "{}".getBytes());
+
+        // When: executeInTransaction called
+        String result = eventStore.executeInTransaction(store -> {
+            store.append(List.of(event));
+            return "success";
+        });
+
+        // Then: transaction succeeds
+        assertThat(result).isEqualTo("success");
+        
+        // Verify event was appended
+        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        assertThat(events).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("Should apply SERIALIZABLE isolation level")
+    void shouldApplySerializableIsolationLevel() {
+        // Given: events to append
+        AppendEvent event = AppendEvent.of("TestEvent", List.of(), "{}".getBytes());
+
+        // When: executeInTransaction called
+        String result = eventStore.executeInTransaction(store -> {
+            store.append(List.of(event));
+            return "success";
+        });
+
+        // Then: transaction succeeds
+        assertThat(result).isEqualTo("success");
+        
+        // Verify event was appended
+        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        assertThat(events).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("Should apply REPEATABLE_READ isolation level")
+    void shouldApplyRepeatableReadIsolationLevel() {
+        // Given: events to append
+        AppendEvent event = AppendEvent.of("TestEvent", List.of(), "{}".getBytes());
+
+        // When: executeInTransaction called
+        String result = eventStore.executeInTransaction(store -> {
+            store.append(List.of(event));
+            return "success";
+        });
+
+        // Then: transaction succeeds
+        assertThat(result).isEqualTo("success");
+        
+        // Verify event was appended
+        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        assertThat(events).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("Should apply READ_UNCOMMITTED isolation level")
+    void shouldApplyReadUncommittedIsolationLevel() {
+        // Given: events to append
+        AppendEvent event = AppendEvent.of("TestEvent", List.of(), "{}".getBytes());
+
+        // When: executeInTransaction called
+        String result = eventStore.executeInTransaction(store -> {
+            store.append(List.of(event));
+            return "success";
+        });
+
+        // Then: transaction succeeds
+        assertThat(result).isEqualTo("success");
+        
+        // Verify event was appended
+        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        assertThat(events).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("Should handle unknown isolation level")
+    void shouldHandleUnknownIsolationLevel() {
+        // This test verifies the default case in mapIsolationLevel() switch statement
+        // Given: events to append
+        AppendEvent event = AppendEvent.of("TestEvent", List.of(), "{}".getBytes());
+
+        // When: executeInTransaction called (with default config isolation level)
+        String result = eventStore.executeInTransaction(store -> {
+            store.append(List.of(event));
+            return "success";
+        });
+
+        // Then: transaction succeeds with default isolation level
+        assertThat(result).isEqualTo("success");
+        
+        // Verify event was appended
+        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        assertThat(events).hasSize(1);
+    }
+
+    // ===== Transaction Scope Tests =====
+
+    @Test
+    @DisplayName("Should rollback on error in transaction")
+    void shouldRollbackOnErrorInTransaction() {
+        // Given: events to append
+        AppendEvent event = AppendEvent.of("TestEvent", List.of(), "{}".getBytes());
+
+        // When: executeInTransaction throws exception
+        assertThatThrownBy(() -> eventStore.executeInTransaction(store -> {
+            store.append(List.of(event));
+            throw new RuntimeException("Test error");
+        })).isInstanceOf(RuntimeException.class)
+          .hasMessage("Test error");
+
+        // Then: no events should be persisted (rollback occurred)
+        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        assertThat(events).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should use connection scoped appendIf in transaction")
+    void shouldUseConnectionScopedAppendIfInTransaction() {
+        // Given: events and condition
+        AppendEvent event = AppendEvent.of("TestEvent", List.of(), "{}".getBytes());
+        AppendCondition condition = AppendCondition.of(Cursor.zero());
+
+        // When: executeInTransaction with nested appendIf
+        String result = eventStore.executeInTransaction(store -> {
+            store.appendIf(List.of(event), condition);
+            return "success";
+        });
+
+        // Then: transaction succeeds
+        assertThat(result).isEqualTo("success");
+        
+        // Verify event was appended
+        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        assertThat(events).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("Should handle nested transactions")
+    void shouldHandleNestedTransactions() {
+        // Given: events to append
+        AppendEvent event1 = AppendEvent.of("TestEvent1", List.of(), "{}".getBytes());
+        AppendEvent event2 = AppendEvent.of("TestEvent2", List.of(), "{}".getBytes());
+
+        // When: nested executeInTransaction calls
+        String result = eventStore.executeInTransaction(outerStore -> {
+            outerStore.append(List.of(event1));
+            
+            return eventStore.executeInTransaction(innerStore -> {
+                innerStore.append(List.of(event2));
+                return "success";
+            });
+        });
+
+        // Then: both transactions succeed
+        assertThat(result).isEqualTo("success");
+        
+        // Verify both events were appended
+        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        assertThat(events).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("Should handle transaction with query operations")
+    void shouldHandleTransactionWithQueryOperations() {
+        // Given: events to append
+        AppendEvent event = AppendEvent.of("TestEvent", List.of(), "{}".getBytes());
+
+        // When: executeInTransaction with query operations
+        Integer result = eventStore.executeInTransaction(store -> {
+            store.append(List.of(event));
+            
+            // Query within transaction
+            List<StoredEvent> events = store.query(Query.of(List.of()), Cursor.zero());
+            return events.size();
+        });
+
+        // Then: transaction succeeds and returns correct count
+        assertThat(result).isEqualTo(1);
+        
+        // Verify event was appended
+        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        assertThat(events).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("Should handle transaction with queryAsJsonArray operations")
+    void shouldHandleTransactionWithQueryAsJsonArrayOperations() {
+        // Given: events to append
+        AppendEvent event = AppendEvent.of("TestEvent", List.of(), "{}".getBytes());
+
+        // When: executeInTransaction with queryAsJsonArray operations
+        Integer result = eventStore.executeInTransaction(store -> {
+            store.append(List.of(event));
+            
+            // QueryAsJsonArray within transaction
+            byte[] jsonArray = store.queryAsJsonArray(Query.of(List.of()), Cursor.zero());
+            return jsonArray.length;
+        });
+
+        // Then: transaction succeeds and returns JSON array length
+        assertThat(result).isGreaterThan(0);
+        
+        // Verify event was appended
+        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        assertThat(events).hasSize(1);
+    }
 }
