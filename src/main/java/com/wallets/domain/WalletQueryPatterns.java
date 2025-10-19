@@ -47,8 +47,9 @@ public class WalletQueryPatterns {
      */
     public static Query singleWalletDecisionModel(String walletId) {
         return QueryBuilder.create()
-            .matching(walletBalanceEvents(walletId))
-            .matching(walletTransfers(walletId))
+            .events("WalletOpened", "DepositMade", "WithdrawalMade").tag("wallet_id", walletId)
+            .event("MoneyTransferred", "from_wallet_id", walletId)
+            .event("MoneyTransferred", "to_wallet_id", walletId)
             .build();
     }
     
@@ -58,10 +59,12 @@ public class WalletQueryPatterns {
      */
     public static Query transferDecisionModel(String fromWalletId, String toWalletId) {
         return QueryBuilder.create()
-            .matching(walletBalanceEvents(fromWalletId))
-            .matching(walletTransfers(fromWalletId))
-            .matching(walletBalanceEvents(toWalletId))
-            .matching(walletTransfers(toWalletId))
+            .events("WalletOpened", "DepositMade", "WithdrawalMade").tag("wallet_id", fromWalletId)
+            .event("MoneyTransferred", "from_wallet_id", fromWalletId)
+            .event("MoneyTransferred", "to_wallet_id", fromWalletId)
+            .events("WalletOpened", "DepositMade", "WithdrawalMade").tag("wallet_id", toWalletId)
+            .event("MoneyTransferred", "from_wallet_id", toWalletId)
+            .event("MoneyTransferred", "to_wallet_id", toWalletId)
             .build();
     }
     
@@ -70,10 +73,9 @@ public class WalletQueryPatterns {
      * Used by OpenWallet handler.
      */
     public static Query walletExistenceQuery(String walletId) {
-        return Query.of(QueryItem.of(
-            List.of("WalletOpened"),
-            List.of(new Tag("wallet_id", walletId))
-        ));
+        return QueryBuilder.create()
+            .event("WalletOpened", "wallet_id", walletId)
+            .build();
     }
 }
 
