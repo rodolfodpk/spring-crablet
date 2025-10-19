@@ -42,10 +42,12 @@ public abstract class AbstractCrabletTest {
             org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
                     .dataSource(SHARED_POSTGRES.getJdbcUrl(), SHARED_POSTGRES.getUsername(), SHARED_POSTGRES.getPassword())
                     .locations("classpath:db/migration")
+                    .cleanDisabled(false) // Allow clean for testing
                     .load();
             
-            System.out.println("Running Flyway migrations...");
-            flyway.migrate();
+            System.out.println("Cleaning and running Flyway migrations...");
+            flyway.clean(); // Clean existing schema
+            flyway.migrate(); // Apply all migrations including new ones
             System.out.println("Flyway migrations completed successfully!");
         } catch (Exception e) {
             System.err.println("Failed to run Flyway migrations: " + e.getMessage());

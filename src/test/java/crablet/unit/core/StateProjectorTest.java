@@ -1,4 +1,4 @@
-package unit.infrastructure.crablet.core;
+package crablet.unit.core;
 
 import com.crablet.core.StoredEvent;
 import com.crablet.core.StateProjector;

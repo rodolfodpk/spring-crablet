@@ -1,4 +1,4 @@
-package integration.database;
+package crablet.integration;
 
 import com.crablet.core.AppendCondition;
 import com.crablet.core.Cursor;

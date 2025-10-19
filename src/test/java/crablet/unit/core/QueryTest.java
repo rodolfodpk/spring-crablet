@@ -1,4 +1,4 @@
-package unit.infrastructure.crablet.core;
+package crablet.unit.core;
 
 import com.crablet.core.Query;
 import com.crablet.core.QueryItem;

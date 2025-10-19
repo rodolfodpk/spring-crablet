@@ -1,4 +1,4 @@
-package unit.infrastructure.crablet.core;
+package crablet.unit.core;
 
 import com.crablet.core.Tag;
 import org.junit.jupiter.api.Test;
