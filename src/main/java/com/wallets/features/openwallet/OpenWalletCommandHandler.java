@@ -7,10 +7,10 @@ import com.crablet.core.Cursor;
 import com.crablet.core.EventStore;
 import com.crablet.core.AppendEvent;
 import com.crablet.core.Query;
-import com.crablet.core.QueryItem;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.event.WalletOpened;
+import com.wallets.domain.WalletQueryPatterns;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -57,15 +57,12 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
             jsonData.getBytes()
         );
         
-        // 4. Build condition to enforce uniqueness
+        // 4. Build condition to enforce uniqueness using domain pattern
         //    Fails if ANY WalletOpened event exists for this wallet_id
-        AppendCondition condition = AppendCondition.of(
-            Cursor.zero(), // Expect empty stream for new wallet
-            Query.of(QueryItem.of(
-                List.of("WalletOpened"),
-                List.of(new Tag("wallet_id", command.walletId()))
-            ))
-        );
+        Query existenceQuery = WalletQueryPatterns.walletExistenceQuery(command.walletId());
+        AppendCondition condition = existenceQuery
+            .toAppendCondition(Cursor.zero()) // Expect empty stream for new wallet
+            .build();
         
         // 5. Return - appendIf will:
         //    - Check condition atomically
