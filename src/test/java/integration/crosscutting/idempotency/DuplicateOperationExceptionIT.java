@@ -16,11 +16,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Integration test for idempotency handling.
+ * Integration test for cursor-based concurrency control.
  * <p>
- * Tests that duplicate operations are handled idempotently:
- * - Wallet creation duplicates throw ConcurrencyException (AppendCondition violated)
- * - Other operation duplicates return idempotent result (200 OK)
+ * Tests that duplicate operations are handled correctly:
+ * - Wallet creation duplicates throw ConcurrencyException (idempotency check)
+ * - Other operation duplicates succeed (client re-reads state, gets fresh cursor)
+ * - No advisory locks needed for operations (cursor protects against duplicates)
  */
 class DuplicateOperationExceptionIT extends AbstractCrabletTest {
 
@@ -28,22 +29,23 @@ class DuplicateOperationExceptionIT extends AbstractCrabletTest {
     private CommandExecutor commandExecutor;
 
     @Test
-    @DisplayName("Should trigger DuplicateOperationException for duplicate wallet creation")
+    @DisplayName("Should trigger ConcurrencyException for duplicate wallet creation")
     void shouldTriggerDuplicateOperationExceptionForDuplicateWalletCreation() {
         String walletId = "duplicate-wallet-" + System.currentTimeMillis();
         OpenWalletCommand command = OpenWalletCommand.of(walletId, "Alice", 1000);
 
         // First creation should succeed
-        commandExecutor.executeCommand(command);
+        ExecutionResult firstResult = commandExecutor.executeCommand(command);
+        assertThat(firstResult.wasCreated()).isTrue();
 
-        // Second creation should trigger ConcurrencyException which maps to DuplicateOperationException
+        // Second creation should trigger ConcurrencyException (wallet already exists)
         assertThatThrownBy(() -> commandExecutor.executeCommand(command))
                 .isInstanceOf(ConcurrencyException.class)
-                .hasMessageContaining("AppendCondition violated");
+                .hasMessageContaining("duplicate operation detected");
     }
 
     @Test
-    @DisplayName("Should handle duplicate deposit idempotently")
+    @DisplayName("Should handle duplicate deposit (no longer idempotent)")
     void shouldTriggerDuplicateOperationExceptionForDuplicateDeposit() {
         String walletId = "duplicate-deposit-" + System.currentTimeMillis();
         String depositId = "deposit-" + System.currentTimeMillis();
@@ -58,13 +60,14 @@ class DuplicateOperationExceptionIT extends AbstractCrabletTest {
         ExecutionResult firstResult = commandExecutor.executeCommand(depositCommand);
         assertThat(firstResult.wasCreated()).isTrue();
 
-        // Second deposit should be idempotent (returns OK)
+        // Second deposit also succeeds (client re-reads state, gets fresh cursor)
+        // Note: Operations are no longer idempotent by operation ID
         ExecutionResult secondResult = commandExecutor.executeCommand(depositCommand);
-        assertThat(secondResult.wasIdempotent()).isTrue();
+        assertThat(secondResult.wasCreated()).isTrue();
     }
 
     @Test
-    @DisplayName("Should handle duplicate withdrawal idempotently")
+    @DisplayName("Should handle duplicate withdrawal (no longer idempotent)")
     void shouldTriggerDuplicateOperationExceptionForDuplicateWithdrawal() {
         String walletId = "duplicate-withdrawal-" + System.currentTimeMillis();
         String withdrawalId = "withdrawal-" + System.currentTimeMillis();
@@ -79,13 +82,13 @@ class DuplicateOperationExceptionIT extends AbstractCrabletTest {
         ExecutionResult firstResult = commandExecutor.executeCommand(withdrawCommand);
         assertThat(firstResult.wasCreated()).isTrue();
 
-        // Second withdrawal should be idempotent (returns OK)
+        // Second withdrawal also succeeds (client re-reads state, gets fresh cursor)
         ExecutionResult secondResult = commandExecutor.executeCommand(withdrawCommand);
-        assertThat(secondResult.wasIdempotent()).isTrue();
+        assertThat(secondResult.wasCreated()).isTrue();
     }
 
     @Test
-    @DisplayName("Should handle duplicate transfer idempotently")
+    @DisplayName("Should handle duplicate transfer (no longer idempotent)")
     void shouldTriggerDuplicateOperationExceptionForDuplicateTransfer() {
         String wallet1Id = "duplicate-transfer-1-" + System.currentTimeMillis();
         String wallet2Id = "duplicate-transfer-2-" + System.currentTimeMillis();
@@ -105,13 +108,13 @@ class DuplicateOperationExceptionIT extends AbstractCrabletTest {
         ExecutionResult firstResult = commandExecutor.executeCommand(transferCommand);
         assertThat(firstResult.wasCreated()).isTrue();
 
-        // Second transfer should be idempotent (returns OK)
+        // Second transfer also succeeds (client re-reads state, gets fresh cursor)
         ExecutionResult secondResult = commandExecutor.executeCommand(transferCommand);
-        assertThat(secondResult.wasIdempotent()).isTrue();
+        assertThat(secondResult.wasCreated()).isTrue();
     }
 
     @Test
-    @DisplayName("Should handle all operation types consistently")
+    @DisplayName("Should handle all operation types consistently (no idempotency)")
     void shouldHandleAllOperationTypesConsistently() {
         String wallet1Id = "consistency-1-" + System.currentTimeMillis();
         String wallet2Id = "consistency-2-" + System.currentTimeMillis();
@@ -123,22 +126,22 @@ class DuplicateOperationExceptionIT extends AbstractCrabletTest {
         commandExecutor.executeCommand(openCommand1);
         commandExecutor.executeCommand(openCommand2);
 
-        // Test deposit duplicate
+        // Test deposit duplicate - both succeed
         DepositCommand depositCommand = DepositCommand.of(operationId, wallet1Id, 100, "Test");
         ExecutionResult depositFirst = commandExecutor.executeCommand(depositCommand);
         ExecutionResult depositSecond = commandExecutor.executeCommand(depositCommand);
         assertThat(depositFirst.wasCreated()).isTrue();
-        assertThat(depositSecond.wasIdempotent()).isTrue();
+        assertThat(depositSecond.wasCreated()).isTrue();
 
-        // Test withdrawal duplicate (different operation ID)
+        // Test withdrawal duplicate - both succeed
         String withdrawalId = "withdrawal-" + System.currentTimeMillis();
         WithdrawCommand withdrawCommand = WithdrawCommand.of(withdrawalId, wallet1Id, 50, "Test");
         ExecutionResult withdrawFirst = commandExecutor.executeCommand(withdrawCommand);
         ExecutionResult withdrawSecond = commandExecutor.executeCommand(withdrawCommand);
         assertThat(withdrawFirst.wasCreated()).isTrue();
-        assertThat(withdrawSecond.wasIdempotent()).isTrue();
+        assertThat(withdrawSecond.wasCreated()).isTrue();
 
-        // Test transfer duplicate (different operation ID)
+        // Test transfer duplicate - both succeed
         String transferId = "transfer-" + System.currentTimeMillis();
         TransferMoneyCommand transferCommand = TransferMoneyCommand.of(
                 transferId, wallet1Id, wallet2Id, 75, "Test"
@@ -146,11 +149,11 @@ class DuplicateOperationExceptionIT extends AbstractCrabletTest {
         ExecutionResult transferFirst = commandExecutor.executeCommand(transferCommand);
         ExecutionResult transferSecond = commandExecutor.executeCommand(transferCommand);
         assertThat(transferFirst.wasCreated()).isTrue();
-        assertThat(transferSecond.wasIdempotent()).isTrue();
+        assertThat(transferSecond.wasCreated()).isTrue();
     }
 
     @Test
-    @DisplayName("Should preserve operation context in idempotent result")
+    @DisplayName("Should handle duplicate operations consistently")
     void shouldPreserveOperationContextInException() {
         String walletId = "context-" + System.currentTimeMillis();
         String depositId = "deposit-context-" + System.currentTimeMillis();
@@ -165,8 +168,8 @@ class DuplicateOperationExceptionIT extends AbstractCrabletTest {
         ExecutionResult firstResult = commandExecutor.executeCommand(depositCommand);
         assertThat(firstResult.wasCreated()).isTrue();
 
-        // Second deposit should be idempotent
+        // Second deposit also succeeds (no longer idempotent)
         ExecutionResult secondResult = commandExecutor.executeCommand(depositCommand);
-        assertThat(secondResult.wasIdempotent()).isTrue();
+        assertThat(secondResult.wasCreated()).isTrue();
     }
 }

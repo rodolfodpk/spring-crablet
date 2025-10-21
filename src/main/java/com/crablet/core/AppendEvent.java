@@ -15,26 +15,6 @@ public record AppendEvent(
         List<Tag> tags,
         byte[] data
 ) {
-    /**
-     * Create an append event from type, tags, and data.
-     */
-    public static AppendEvent of(String type, List<Tag> tags, byte[] data) {
-        return new AppendEvent(type, tags, data);
-    }
-
-    /**
-     * Create an append event from type, tags, and JSON string.
-     */
-    public static AppendEvent of(String type, List<Tag> tags, String jsonData) {
-        return new AppendEvent(type, tags, jsonData.getBytes());
-    }
-
-    /**
-     * Create an append event from type and JSON string (no tags).
-     */
-    public static AppendEvent of(String type, String jsonData) {
-        return new AppendEvent(type, List.of(), jsonData.getBytes());
-    }
 
     /**
      * Fluent builder for creating AppendEvent with multiple tags.

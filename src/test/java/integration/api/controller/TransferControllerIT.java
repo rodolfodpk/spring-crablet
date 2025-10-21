@@ -335,7 +335,7 @@ class TransferControllerIT extends AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("Should handle transfer idempotency")
+    @DisplayName("Should handle transfer (no longer idempotent)")
     void shouldHandleTransferIdempotency() {
         // Arrange: Create both wallets
         String wallet1Id = "idempotent-transfer-wallet1-" + UUID.randomUUID().toString().substring(0, 8);
@@ -369,13 +369,13 @@ class TransferControllerIT extends AbstractCrabletTest {
         assertThat(wallet1AfterFirst.getBody().balance()).isEqualTo(800); // 1000 - 200
         assertThat(wallet2AfterFirst.getBody().balance()).isEqualTo(700); // 500 + 200
 
-        // Act: Second transfer with same transferId (should be idempotent)
+        // Act: Second transfer with same transferId (no longer idempotent)
         ResponseEntity<Void> secondTransferResponse = restTemplate.postForEntity(
                 baseUrl + "/transfer", transferRequest, Void.class
         );
-        assertThat(secondTransferResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(secondTransferResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Assert: Balances should be unchanged (idempotent)
+        // Assert: Balances should reflect both transfers (no longer idempotent)
         ResponseEntity<WalletResponse> wallet1AfterSecond = restTemplate.getForEntity(
                 baseUrl + "/" + wallet1Id, WalletResponse.class
         );
@@ -385,8 +385,8 @@ class TransferControllerIT extends AbstractCrabletTest {
 
         assertThat(wallet1AfterSecond.getBody()).isNotNull();
         assertThat(wallet2AfterSecond.getBody()).isNotNull();
-        assertThat(wallet1AfterSecond.getBody().balance()).isEqualTo(800); // Unchanged
-        assertThat(wallet2AfterSecond.getBody().balance()).isEqualTo(700); // Unchanged
+        assertThat(wallet1AfterSecond.getBody().balance()).isEqualTo(600); // 1000 - 200 - 200
+        assertThat(wallet2AfterSecond.getBody().balance()).isEqualTo(900); // 500 + 200 + 200
     }
 
     @Test

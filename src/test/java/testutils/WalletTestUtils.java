@@ -95,7 +95,11 @@ public class WalletTestUtils {
     public static AppendEvent createInputEvent(String type, List<Tag> tags, WalletEvent walletEvent) {
         try {
             byte[] data = OBJECT_MAPPER.writeValueAsBytes(walletEvent);
-            return AppendEvent.of(type, tags, data);
+            AppendEvent.Builder builder = AppendEvent.builder(type);
+            for (Tag tag : tags) {
+                builder.tag(tag.key(), tag.value());
+            }
+            return builder.data(data).build();
         } catch (Exception e) {
             throw new RuntimeException("Failed to create append event", e);
         }

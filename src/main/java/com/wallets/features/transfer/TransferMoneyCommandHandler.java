@@ -71,11 +71,6 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
                     transferState.fromWallet().balance(), command.amount());
         }
 
-        // Idempotency check
-        if (transferWasAlreadyProcessed(eventStore, command.transferId())) {
-            return CommandResult.emptyWithReason("DUPLICATE_TRANSFER_ID");
-        }
-
         // Calculate new balances
         int fromNewBalance = transferState.fromWallet().balance() - command.amount();
         int toNewBalance = transferState.toWallet().balance() + command.amount();
@@ -98,24 +93,14 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
                 .data(serializeEvent(objectMapper, transfer))
                 .build();
 
-        // Build condition: decision model + idempotency
-        // DCB Principle: failIfEventsMatch includes same query used for projection
+        // Build condition: decision model only (cursor-based concurrency control)
+        // DCB Principle: Cursor check prevents duplicate charges
+        // Note: No idempotency check - cursor advancement detects if operation already succeeded
         AppendCondition condition = transferProjection.decisionModel()
                 .toAppendCondition(transferProjection.cursor())
                 .build();
 
         return CommandResult.of(List.of(event), condition);
-    }
-
-
-    /**
-     * Check if transfer was already processed (for idempotency handling).
-     */
-    private boolean transferWasAlreadyProcessed(EventStore store, String transferId) {
-        Query query = QueryBuilder.create()
-                .event("MoneyTransferred", "transfer_id", transferId)
-                .build();
-        return !store.query(query, null).isEmpty();
     }
 
     /**

@@ -343,17 +343,33 @@ public class JDBCEventStore implements EventStore {
         }
 
         try {
-            // Extract event types and tags from failIfEventsMatch query
-            List<String> eventTypes = condition.failIfEventsMatch().items().stream()
+            // Extract concurrency check (with cursor)
+            List<String> concurrencyTypes = condition.stateChanged().items().stream()
                     .flatMap(item -> item.eventTypes().stream())
                     .distinct()
                     .toList();
 
-            List<String> conditionTags = condition.failIfEventsMatch().items().stream()
+            List<String> concurrencyTags = condition.stateChanged().items().stream()
                     .flatMap(item -> item.tags().stream())
                     .map(tag -> tag.key() + "=" + tag.value())
                     .distinct()
                     .toList();
+
+            // Extract idempotency check (no cursor)
+            List<String> idempotencyTypes = null;
+            List<String> idempotencyTags = null;
+            if (condition.alreadyExists() != null) {
+                idempotencyTypes = condition.alreadyExists().items().stream()
+                        .flatMap(item -> item.eventTypes().stream())
+                        .distinct()
+                        .toList();
+                idempotencyTags = condition.alreadyExists().items().stream()
+                        .flatMap(item -> item.tags().stream())
+                        .map(tag -> tag.key() + "=" + tag.value())
+                        .distinct()
+                        .sorted()  // Ensure deterministic order for consistent hash
+                        .toList();
+            }
 
             // Prepare event data
             String[] types = events.stream().map(AppendEvent::type).toArray(String[]::new);
@@ -364,16 +380,18 @@ public class JDBCEventStore implements EventStore {
                     .map(event -> new String(event.data()))
                     .toArray(String[]::new);
 
-            // Call append_events_if with position-based parameters only (no transaction_id)
+            // Call append_events_if with dual conditions
             try (Connection connection = dataSource.getConnection();
-                 PreparedStatement stmt = connection.prepareStatement("SELECT append_events_if(?, ?, ?::jsonb[], ?, ?, ?)")) {
+                 PreparedStatement stmt = connection.prepareStatement("SELECT append_events_if(?, ?, ?::jsonb[], ?, ?, ?, ?, ?)")) {
 
                 stmt.setArray(1, connection.createArrayOf("varchar", types));
                 stmt.setArray(2, connection.createArrayOf("varchar", tagArrays));
                 stmt.setArray(3, connection.createArrayOf("jsonb", dataStrings));
-                stmt.setObject(4, eventTypes.isEmpty() ? null : eventTypes.toArray(new String[0]));
-                stmt.setObject(5, conditionTags.isEmpty() ? null : conditionTags.toArray(new String[0]));
+                stmt.setObject(4, concurrencyTypes.isEmpty() ? null : concurrencyTypes.toArray(new String[0]));
+                stmt.setObject(5, concurrencyTags.isEmpty() ? null : concurrencyTags.toArray(new String[0]));
                 stmt.setObject(6, condition.afterCursor().position().value());
+                stmt.setObject(7, idempotencyTypes != null && !idempotencyTypes.isEmpty() ? idempotencyTypes.toArray(new String[0]) : null);
+                stmt.setObject(8, idempotencyTags != null && !idempotencyTags.isEmpty() ? idempotencyTags.toArray(new String[0]) : null);
 
                 try (ResultSet rs = stmt.executeQuery()) {
                     if (rs.next()) {
@@ -598,7 +616,7 @@ public class JDBCEventStore implements EventStore {
         }
 
         try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT append_events_if(?::text[], ?::text[], ?::jsonb[], ?::text[], ?::text[], ?)")) {
+                "SELECT append_events_if(?::text[], ?::text[], ?::jsonb[], ?::text[], ?::text[], ?, ?::text[], ?::text[])")) {
 
             // Prepare arrays for append_events_batch_if function
             String[] types = events.stream().map(AppendEvent::type).toArray(String[]::new);
@@ -609,26 +627,44 @@ public class JDBCEventStore implements EventStore {
                     .map(event -> new String(event.data()))
                     .toArray(String[]::new);
 
-            // Extract event types and tags from failIfEventsMatch query
-            List<String> eventTypes = condition != null ? condition.failIfEventsMatch().items().stream()
+            // Extract concurrency check (with cursor)
+            List<String> concurrencyTypes = condition != null ? condition.stateChanged().items().stream()
                     .flatMap(item -> item.eventTypes().stream())
                     .distinct()
                     .toList() : List.of();
 
-            List<String> conditionTags = condition != null ? condition.failIfEventsMatch().items().stream()
+            List<String> concurrencyTags = condition != null ? condition.stateChanged().items().stream()
                     .flatMap(item -> item.tags().stream())
                     .map(tag -> tag.key() + "=" + tag.value())
                     .distinct()
                     .toList() : List.of();
+
+            // Extract idempotency check (no cursor)
+            List<String> idempotencyTypes = null;
+            List<String> idempotencyTags = null;
+            if (condition != null && condition.alreadyExists() != null) {
+                idempotencyTypes = condition.alreadyExists().items().stream()
+                        .flatMap(item -> item.eventTypes().stream())
+                        .distinct()
+                        .toList();
+                idempotencyTags = condition.alreadyExists().items().stream()
+                        .flatMap(item -> item.tags().stream())
+                        .map(tag -> tag.key() + "=" + tag.value())
+                        .distinct()
+                        .sorted()  // Ensure deterministic order for consistent hash
+                        .toList();
+            }
 
             long position = condition != null ? condition.afterCursor().position().value() : 0L;
 
             stmt.setArray(1, connection.createArrayOf("text", types));
             stmt.setArray(2, connection.createArrayOf("text", tagArrays));
             stmt.setArray(3, connection.createArrayOf("jsonb", dataStrings));
-            stmt.setArray(4, connection.createArrayOf("text", eventTypes.toArray(new String[0])));
-            stmt.setArray(5, connection.createArrayOf("text", conditionTags.toArray(new String[0])));
+            stmt.setArray(4, connection.createArrayOf("text", concurrencyTypes.toArray(new String[0])));
+            stmt.setArray(5, connection.createArrayOf("text", concurrencyTags.toArray(new String[0])));
             stmt.setLong(6, position);
+            stmt.setArray(7, idempotencyTypes != null && !idempotencyTypes.isEmpty() ? connection.createArrayOf("text", idempotencyTypes.toArray(new String[0])) : null);
+            stmt.setArray(8, idempotencyTags != null && !idempotencyTags.isEmpty() ? connection.createArrayOf("text", idempotencyTags.toArray(new String[0])) : null);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {

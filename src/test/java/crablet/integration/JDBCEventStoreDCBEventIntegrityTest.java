@@ -53,15 +53,12 @@ class JDBCEventStoreDCBEventIntegrityTest extends testutils.AbstractCrabletTest 
 
     @Test
     void shouldPreserveEventTags() {
-        AppendEvent event = AppendEvent.of(
-                "TestEvent",
-                List.of(
-                        new Tag("key1", "value1"),
-                        new Tag("key2", "value2"),
-                        new Tag("key3", "value3")
-                ),
-                "{}".getBytes()
-        );
+        AppendEvent event = AppendEvent.builder("TestEvent")
+                .tag("key1", "value1")
+                .tag("key2", "value2")
+                .tag("key3", "value3")
+                .data("{}")
+                .build();
         store.append(List.of(event));
 
         List<StoredEvent> stored = store.query(Query.empty(), null);

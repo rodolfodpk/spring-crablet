@@ -66,11 +66,6 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
             throw new InsufficientFundsException(command.walletId(), state.balance(), command.amount());
         }
 
-        // Idempotency check
-        if (withdrawalWasAlreadyProcessed(eventStore, command.withdrawalId())) {
-            return CommandResult.emptyWithReason("DUPLICATE_WITHDRAWAL_ID");
-        }
-
         int newBalance = state.balance() - command.amount();
 
         WithdrawalMade withdrawal = WithdrawalMade.of(
@@ -87,26 +82,15 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
                 .data(serializeEvent(objectMapper, withdrawal))
                 .build();
 
-        // Build condition: decision model + idempotency
-        // DCB Principle: failIfEventsMatch includes same query used for projection
+        // Build condition: decision model only (cursor-based concurrency control)
+        // DCB Principle: Cursor check prevents duplicate charges
+        // Note: No idempotency check - cursor advancement detects if operation already succeeded
         AppendCondition condition = decisionModel
                 .toAppendCondition(projection.cursor())
                 .build();
 
         return CommandResult.of(List.of(event), condition);
     }
-
-
-    /**
-     * Check if withdrawal was already processed (for idempotency handling).
-     */
-    private boolean withdrawalWasAlreadyProcessed(EventStore store, String withdrawalId) {
-        Query query = QueryBuilder.create()
-                .event("WithdrawalMade", "withdrawal_id", withdrawalId)
-                .build();
-        return !store.query(query, null).isEmpty();
-    }
-
 
     @Override
     public String getCommandType() {

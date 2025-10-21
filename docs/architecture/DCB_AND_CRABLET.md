@@ -140,12 +140,7 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
             throw new WalletNotFoundException(command.walletId());
         }
 
-        // 3. Idempotency check
-        if (depositWasAlreadyProcessed(eventStore, command.depositId())) {
-            return CommandResult.emptyWithReason("DUPLICATE_DEPOSIT_ID");
-        }
-
-        // 4. Business logic
+        // 3. Business logic
         int newBalance = projection.state().balance() + command.amount();
         DepositMade deposit = DepositMade.of(
             command.depositId(),
@@ -165,17 +160,14 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
         // 6. Build append condition (DCB enforcement)
         AppendCondition condition = decisionModel
             .toAppendCondition(projection.cursor())
+            .withIdempotencyCheck("DepositMade", "deposit_id", command.depositId())
             .build();
+
+        // Now users can understand:
+        // - condition.stateChanged() = wallet state may have changed (check events after cursor)
+        // - condition.alreadyExists() = this deposit may already exist (check by deposit_id)
 
         return CommandResult.of(List.of(event), condition);
-    }
-
-    private boolean depositWasAlreadyProcessed(EventStore store, String depositId) {
-        Query query = QueryBuilder.create()
-            .event("DepositMade", "deposit_id", depositId)
-            .build();
-        return !store.query(query, null).isEmpty();
-    }
 }
 ```
 
@@ -184,8 +176,9 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
 1. **QueryBuilder**: Fluent API for building complex queries
 2. **AppendEvent.builder()**: Fluent event creation with inline tags
 3. **AppendCondition**: Enforces concurrency control using decision model cursor
-4. **Manual Idempotency**: Separate checks for duplicate operations (200 OK)
+4. **DCB Idempotency**: Duplicate operations detected via AppendCondition (200 OK via GlobalExceptionHandler)
 5. **DCB Principle**: Condition uses same query as projection for consistency
+6. **Semantic Fields**: `stateChanged` checks if wallet state changed since projection (concurrency control), `alreadyExists` checks if operation already exists (idempotency control)
 
 ## PostgreSQL Integration
 

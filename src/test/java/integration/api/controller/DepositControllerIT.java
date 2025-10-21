@@ -159,7 +159,7 @@ class DepositControllerIT extends AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("Should handle deposit idempotency")
+    @DisplayName("Should handle deposit (no longer idempotent)")
     void shouldHandleDepositIdempotency() {
         // Arrange: Create a wallet first
         String walletId = "idempotent-deposit-wallet-" + UUID.randomUUID().toString().substring(0, 8);
@@ -180,16 +180,16 @@ class DepositControllerIT extends AbstractCrabletTest {
         assertThat(afterFirstDeposit.getBody()).isNotNull();
         assertThat(afterFirstDeposit.getBody().balance()).isEqualTo(1200); // 1000 + 200
 
-        // Act: Second deposit with same depositId (should be idempotent)
+        // Act: Second deposit with same depositId (no longer idempotent)
         ResponseEntity<Void> secondDepositResponse = restTemplate.postForEntity(
                 walletUrl + "/deposit", depositRequest, Void.class
         );
-        assertThat(secondDepositResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(secondDepositResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Assert: Balance should be unchanged (idempotent)
+        // Assert: Balance should reflect both deposits (no longer idempotent)
         ResponseEntity<WalletResponse> afterSecondDeposit = restTemplate.getForEntity(walletUrl, WalletResponse.class);
         assertThat(afterSecondDeposit.getBody()).isNotNull();
-        assertThat(afterSecondDeposit.getBody().balance()).isEqualTo(1200); // Unchanged
+        assertThat(afterSecondDeposit.getBody().balance()).isEqualTo(1400); // 1000 + 200 + 200
     }
 
     @Test

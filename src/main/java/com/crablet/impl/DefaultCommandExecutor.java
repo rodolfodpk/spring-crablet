@@ -132,6 +132,17 @@ public class DefaultCommandExecutor implements CommandExecutor {
                     try {
                         txStore.appendIf(result.events(), result.appendCondition());
                     } catch (ConcurrencyException e) {
+                        // Check if this is an idempotency violation (duplicate operation)
+                        if (e.getMessage().toLowerCase().contains("duplicate operation detected")) {
+                            // Wallet creation duplicates should throw exception (handled by GlobalExceptionHandler)
+                            if ("open_wallet".equals(command.getCommandType())) {
+                                throw new ConcurrencyException(e.getMessage(), command, e);
+                            }
+                            // Other operation duplicates should return idempotent result
+                            log.debug("Transaction committed successfully for command: {} (idempotent - duplicate detected)", command.getCommandType());
+                            return ExecutionResult.idempotent("DUPLICATE_OPERATION");
+                        }
+                        // Re-throw other concurrency exceptions (optimistic locking failures)
                         throw new ConcurrencyException(e.getMessage(), command, e);
                     }
                 }

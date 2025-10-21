@@ -67,7 +67,7 @@ class JDBCEventStoreErrorHandlingIT extends AbstractCrabletTest {
     @DisplayName("Should handle null condition in appendIf")
     void shouldHandleNullConditionInAppendIf() {
         // Given: valid events but null condition
-        AppendEvent event = AppendEvent.of("TestEvent", List.of(), "{}".getBytes());
+        AppendEvent event = AppendEvent.builder("TestEvent").data("{}").build();
         List<AppendEvent> events = List.of(event);
 
         // When & Then: should throw NullPointerException

@@ -4,29 +4,56 @@ import java.util.Objects;
 
 /**
  * AppendCondition defines the conditions for appending events.
- * This is equivalent to the Go AppendCondition struct.
+ * Supports dual conditions: concurrency check (with cursor) and idempotency check (no cursor).
+ * This follows the DCB specification where idempotency checks ignore cursor position.
  */
 public record AppendCondition(
         Cursor afterCursor,
-        Query failIfEventsMatch
+        Query stateChanged,      // Concurrency check (with cursor)
+        Query alreadyExists      // Idempotency check (no cursor)
 ) {
 
-    public static AppendCondition of(Cursor afterCursor, Query failIfEventsMatch) {
+    public static AppendCondition of(Cursor afterCursor, Query stateChanged) {
         if (afterCursor == null) {
             throw new IllegalArgumentException("afterCursor cannot be null");
         }
-        if (failIfEventsMatch == null) {
-            throw new IllegalArgumentException("failIfEventsMatch cannot be null");
+        if (stateChanged == null) {
+            throw new IllegalArgumentException("stateChanged cannot be null");
         }
-        return new AppendCondition(afterCursor, failIfEventsMatch);
+        return new AppendCondition(afterCursor, stateChanged, null);
+    }
+
+    public static AppendCondition of(Cursor afterCursor, Query stateChangedQuery, Query alreadyExistsQuery) {
+        if (afterCursor == null) {
+            throw new IllegalArgumentException("afterCursor cannot be null");
+        }
+        if (stateChangedQuery == null) {
+            throw new IllegalArgumentException("stateChangedQuery cannot be null");
+        }
+        return new AppendCondition(afterCursor, stateChangedQuery, alreadyExistsQuery);
     }
 
     public static AppendCondition of(Cursor afterCursor) {
         return of(afterCursor, Query.empty());
     }
 
-    public static AppendCondition forEmptyStream() {
-        return new AppendCondition(Cursor.zero(), Query.empty());
+    /**
+     * Create condition for new streams WITHOUT idempotency protection.
+     * Use when creating the first event in a stream and duplicates are not a concern.
+     */
+    public static AppendCondition expectEmptyStream() {
+        return new AppendCondition(Cursor.zero(), Query.empty(), null);
+    }
+
+    /**
+     * Create condition for new streams WITH idempotency protection.
+     * Use when creating the first event in a stream and you want to prevent duplicates.
+     */
+    public static AppendCondition expectEmptyStreamWith(Query idempotencyCheck) {
+        if (idempotencyCheck == null) {
+            throw new IllegalArgumentException("idempotencyCheck cannot be null");
+        }
+        return new AppendCondition(Cursor.zero(), Query.empty(), idempotencyCheck);
     }
 
     /**
@@ -42,19 +69,21 @@ public record AppendCondition(
         if (o == null || getClass() != o.getClass()) return false;
         AppendCondition that = (AppendCondition) o;
         return Objects.equals(afterCursor, that.afterCursor) &&
-                Objects.equals(failIfEventsMatch, that.failIfEventsMatch);
+                Objects.equals(stateChanged, that.stateChanged) &&
+                Objects.equals(alreadyExists, that.alreadyExists);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(afterCursor, failIfEventsMatch);
+        return Objects.hash(afterCursor, stateChanged, alreadyExists);
     }
 
     @Override
     public String toString() {
         return "AppendCondition{" +
                 "afterCursor=" + afterCursor +
-                ", failIfEventsMatch=" + failIfEventsMatch +
+                ", stateChanged=" + stateChanged +
+                ", alreadyExists=" + alreadyExists +
                 '}';
     }
 }

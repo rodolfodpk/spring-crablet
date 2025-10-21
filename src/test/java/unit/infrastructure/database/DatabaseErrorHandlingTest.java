@@ -57,7 +57,7 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     @DisplayName("Should handle appendIf with null events")
     void shouldHandleAppendIfWithNullEvents() {
         // Given
-        AppendCondition condition = AppendCondition.forEmptyStream();
+        AppendCondition condition = AppendCondition.expectEmptyStream();
 
         // When & Then
         assertThatThrownBy(() -> eventStore.appendIf(null, condition))
@@ -69,7 +69,7 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleAppendIfWithNullCondition() {
         // Given
         List<AppendEvent> events = List.of(
-                AppendEvent.of("TestEvent", List.of(), "test data".getBytes())
+                AppendEvent.builder("TestEvent").data("test data").build()
         );
 
         // When & Then
@@ -105,11 +105,10 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     @DisplayName("Should handle invalid event data gracefully")
     void shouldHandleInvalidEventDataGracefully() {
         // Given - Create event with invalid JSON data
-        AppendEvent invalidEvent = AppendEvent.of(
-                "InvalidEvent",
-                List.of(new Tag("test", "value")),
-                "invalid json data".getBytes()
-        );
+        AppendEvent invalidEvent = AppendEvent.builder("InvalidEvent")
+                .tag("test", "value")
+                .data("invalid json data")
+                .build();
 
         // When & Then
         assertThatThrownBy(() -> eventStore.append(List.of(invalidEvent)))
@@ -120,11 +119,11 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     @DisplayName("Should handle malformed tags gracefully")
     void shouldHandleMalformedTagsGracefully() {
         // Given - Create event with malformed tags but valid JSON data
-        AppendEvent eventWithMalformedTags = AppendEvent.of(
-                "TestEvent",
-                List.of(new Tag("", "value"), new Tag("key", "")),
-                "{\"test\": \"data\"}".getBytes()
-        );
+        AppendEvent eventWithMalformedTags = AppendEvent.builder("TestEvent")
+                .tag("", "value")
+                .tag("key", "")
+                .data("{\"test\": \"data\"}")
+                .build();
 
         // When & Then
         assertThatCode(() -> eventStore.append(List.of(eventWithMalformedTags)))
@@ -136,11 +135,10 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleVeryLargeEventData() {
         // Given - Create event with large data
         String largeData = "x".repeat(10000);
-        AppendEvent largeEvent = AppendEvent.of(
-                "LargeEvent",
-                List.of(new Tag("size", "large")),
-                largeData.getBytes()
-        );
+        AppendEvent largeEvent = AppendEvent.builder("LargeEvent")
+                .tag("size", "large")
+                .data(largeData)
+                .build();
 
         // When & Then
         assertThatThrownBy(() -> eventStore.append(List.of(largeEvent)))
@@ -152,11 +150,10 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleSpecialCharactersInEventData() {
         // Given - Create event with special characters
         String specialData = "Special chars: éñüñç@#$%^&*()_+-=[]{}|;':\",./<>?";
-        AppendEvent specialEvent = AppendEvent.of(
-                "SpecialEvent",
-                List.of(new Tag("chars", "special")),
-                specialData.getBytes()
-        );
+        AppendEvent specialEvent = AppendEvent.builder("SpecialEvent")
+                .tag("chars", "special")
+                .data(specialData)
+                .build();
 
         // When & Then
         assertThatThrownBy(() -> eventStore.append(List.of(specialEvent)))
@@ -168,11 +165,10 @@ class DatabaseErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleUnicodeCharactersInEventData() {
         // Given - Create event with unicode characters
         String unicodeData = "Unicode: 🚀🌟💫⭐✨🎉🎊";
-        AppendEvent unicodeEvent = AppendEvent.of(
-                "UnicodeEvent",
-                List.of(new Tag("unicode", "true")),
-                unicodeData.getBytes()
-        );
+        AppendEvent unicodeEvent = AppendEvent.builder("UnicodeEvent")
+                .tag("unicode", "true")
+                .data(unicodeData)
+                .build();
 
         // When & Then
         assertThatThrownBy(() -> eventStore.append(List.of(unicodeEvent)))

@@ -33,6 +33,12 @@ CREATE INDEX idx_events_type ON events (type);
 -- Common pattern: SELECT * FROM events WHERE type = ANY(?) ORDER BY position ASC
 CREATE INDEX idx_events_type_position ON events (type, position);
 
+-- Composite index for idempotency checks (type + tags GIN)
+-- Optimizes: WHERE type = ANY(?) AND tags @> ?
+-- This is the exact pattern used in idempotency checks
+CREATE INDEX idx_events_type_tags_gin ON events (type, tags) 
+    WHERE type IS NOT NULL AND tags IS NOT NULL;
+
 -- Function to batch insert events using UNNEST for better performance
 -- Always uses 'events' table for maximum performance
 CREATE OR REPLACE FUNCTION append_events_batch(
@@ -53,67 +59,90 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Optimized function for conditional event appending with DCB pattern
--- Uses position-based cursor checks for proper optimistic locking
+-- Uses advisory locks to prevent idempotency race conditions
 CREATE OR REPLACE FUNCTION append_events_if(
     p_types TEXT[],
     p_tags TEXT[],
     p_data JSONB[],
     p_event_types TEXT[] DEFAULT NULL,
     p_condition_tags TEXT[] DEFAULT NULL,
-    p_after_cursor_position BIGINT DEFAULT NULL
+    p_after_cursor_position BIGINT DEFAULT NULL,
+    p_idempotency_types TEXT[] DEFAULT NULL,
+    p_idempotency_tags TEXT[] DEFAULT NULL
 ) RETURNS JSONB AS
 $$
 DECLARE
-    condition_count INTEGER;
-    result          JSONB;
+    v_has_duplicate BOOLEAN;
+    v_has_conflict BOOLEAN;
+    v_lock_key BIGINT;
 BEGIN
-    -- Initialize result
-    result := '{
-      "success": true,
-      "message": "condition check passed"
-    }'::JSONB;
-
-    -- ENTITY-SPECIFIC DCB CHECK: Check for conflicts with events affecting the same entities
-    -- This ensures proper DCB optimistic locking without false positives from unrelated entities
-    SELECT COUNT(*)
-    INTO condition_count
-    FROM events e
-    WHERE (
-        -- Condition check: event types and tags (if specified)
-        (p_event_types IS NULL OR e.type = ANY (p_event_types))
-            AND
-        (p_condition_tags IS NULL OR e.tags @> p_condition_tags)
-        )
-      AND (
-        -- Entity-specific cursor check: events after the cursor position (if cursor provided)
-        -- Only check position for events that would actually conflict with the operation
-        p_after_cursor_position IS NULL OR
-        e.position > p_after_cursor_position
-        )
-      -- Only consider committed transactions for proper ordering and conflict detection
-      -- This prevents false positives from in-flight transactions that might rollback
-      AND e.transaction_id < pg_snapshot_xmin(pg_current_snapshot())
-    LIMIT 1;
-
-    IF condition_count > 0 THEN
-        -- Return generic violation - the client can determine the type
-        result := jsonb_build_object(
-                'success', false,
-                'message', 'append condition violated',
-                'matching_events_count', condition_count,
-                'error_code', 'DCB_VIOLATION'
-                  );
-        RETURN result;
+    -- ADVISORY LOCK: Serialize duplicate checks per operation ID
+    -- This prevents race conditions where concurrent transactions both see "no duplicate"
+    IF p_idempotency_types IS NOT NULL OR p_idempotency_tags IS NOT NULL THEN
+        -- Generate consistent lock key from operation tags
+        v_lock_key := hashtextextended(
+            array_to_string(
+                ARRAY(SELECT unnest(p_idempotency_tags) ORDER BY 1),
+                ','
+            ),
+            0
+        );
+        -- Acquire transaction-scoped advisory lock (blocks until available)
+        PERFORM pg_advisory_xact_lock(v_lock_key);
     END IF;
 
-    -- If conditions pass, insert events using UNNEST for all cases
+    -- Perform checks (now protected by advisory lock)
+    SELECT 
+        -- Idempotency check: See ALL committed events
+        CASE 
+            WHEN p_idempotency_types IS NOT NULL OR p_idempotency_tags IS NOT NULL THEN
+                EXISTS (
+                    SELECT 1 FROM events e
+                    WHERE e.type = ANY(p_idempotency_types)
+                      AND e.tags @> p_idempotency_tags
+                    LIMIT 1
+                )
+            ELSE FALSE
+        END,
+        
+        -- Concurrency check: Only snapshot-visible events after cursor
+        EXISTS (
+            SELECT 1 FROM events e
+            WHERE (p_event_types IS NULL OR e.type = ANY(p_event_types))
+              AND (p_condition_tags IS NULL OR e.tags @> p_condition_tags)
+              AND (p_after_cursor_position IS NULL OR e.position > p_after_cursor_position)
+              AND e.transaction_id < pg_snapshot_xmin(pg_current_snapshot())
+            LIMIT 1
+        )
+    INTO v_has_duplicate, v_has_conflict;
+
+    -- Check idempotency first (most common failure)
+    IF v_has_duplicate THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'message', 'duplicate operation detected',
+            'error_code', 'IDEMPOTENCY_VIOLATION'
+        );
+    END IF;
+
+    -- Then check concurrency
+    IF v_has_conflict THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'message', 'append condition violated',
+            'error_code', 'DCB_VIOLATION'
+        );
+    END IF;
+
+    -- Both checks passed, insert events
     PERFORM append_events_batch(p_types, p_tags, p_data);
 
-    -- Return success status
     RETURN jsonb_build_object(
-            'success', true,
-            'message', 'events appended successfully',
-            'events_count', array_length(p_types, 1)
-           );
+        'success', true,
+        'message', 'events appended successfully',
+        'events_count', array_length(p_types, 1)
+    );
+    
+    -- Advisory lock is automatically released at transaction end
 END;
 $$ LANGUAGE plpgsql;

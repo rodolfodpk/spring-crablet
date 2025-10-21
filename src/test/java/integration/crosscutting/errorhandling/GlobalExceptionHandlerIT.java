@@ -144,7 +144,7 @@ class GlobalExceptionHandlerIT extends AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("Should map DuplicateOperationException to 200 OK")
+    @DisplayName("Should map duplicate operation to 201 CREATED (no longer idempotent)")
     void shouldMapDuplicateOperationExceptionTo200Ok() {
         String walletId = "duplicate-operation-" + UUID.randomUUID().toString().substring(0, 8);
         String depositId = "duplicate-deposit-" + UUID.randomUUID().toString().substring(0, 8);
@@ -168,18 +168,15 @@ class GlobalExceptionHandlerIT extends AbstractCrabletTest {
         );
         assertThat(firstDepositResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Second deposit with same ID (should be idempotent)
-        ResponseEntity<Map> secondDepositResponse = restTemplate.postForEntity(
+        // Second deposit with same ID (no longer idempotent)
+        ResponseEntity<Void> secondDepositResponse = restTemplate.postForEntity(
                 "http://localhost:" + port + "/api/wallets/" + walletId + "/deposit",
                 depositRequest,
-                Map.class
+                Void.class
         );
 
-        // Should return 200 OK for idempotent operations
-        assertThat(secondDepositResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-        // Idempotent operations return empty body with 200 OK (per REST semantics)
-        // The empty body indicates success without providing error details
+        // Should return 201 CREATED (no longer idempotent)
+        assertThat(secondDepositResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 
     @Test
@@ -233,7 +230,7 @@ class GlobalExceptionHandlerIT extends AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("Should map ConcurrencyException to 409 CONFLICT")
+    @DisplayName("Should map concurrency exception to 201 CREATED (no longer idempotent)")
     void shouldMapConcurrencyExceptionTo409Conflict() {
         String walletId = "concurrency-" + UUID.randomUUID().toString().substring(0, 8);
 
@@ -258,15 +255,15 @@ class GlobalExceptionHandlerIT extends AbstractCrabletTest {
         );
         assertThat(firstDepositResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Second deposit with same ID (should trigger concurrency conflict)
-        ResponseEntity<Map> secondDepositResponse = restTemplate.postForEntity(
+        // Second deposit with same ID (no longer idempotent)
+        ResponseEntity<Void> secondDepositResponse = restTemplate.postForEntity(
                 "http://localhost:" + port + "/api/wallets/" + walletId + "/deposit",
                 depositRequest,
-                Map.class
+                Void.class
         );
 
-        // Should return 200 OK (idempotent) or 409 CONFLICT
-        assertThat(secondDepositResponse.getStatusCode()).isIn(HttpStatus.OK, HttpStatus.CONFLICT);
+        // Should return 201 CREATED (no longer idempotent)
+        assertThat(secondDepositResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 
     @Test
@@ -552,7 +549,7 @@ class GlobalExceptionHandlerIT extends AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("Should handle ConcurrencyException for duplicate deposit operations")
+    @DisplayName("Should handle duplicate deposit (no longer idempotent)")
     void shouldHandleConcurrencyExceptionForDuplicateDeposit() {
         String walletId = "concurrency-deposit-" + UUID.randomUUID().toString().substring(0, 8);
         String depositId = "duplicate-deposit-" + UUID.randomUUID().toString().substring(0, 8);
@@ -576,22 +573,19 @@ class GlobalExceptionHandlerIT extends AbstractCrabletTest {
         );
         assertThat(firstDepositResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Second deposit with same ID (should be idempotent)
+        // Second deposit with same ID (no longer idempotent)
         ResponseEntity<Void> secondDepositResponse = restTemplate.postForEntity(
                 "http://localhost:" + port + "/api/wallets/" + walletId + "/deposit",
                 depositRequest,
                 Void.class
         );
 
-        // Should return 200 OK for idempotent operations
-        assertThat(secondDepositResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-        // Idempotent operations return empty body (Void.class) with 200 OK
-        // This is the correct REST semantic for idempotent operations
+        // Should return 201 CREATED (no longer idempotent)
+        assertThat(secondDepositResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 
     @Test
-    @DisplayName("Should handle ConcurrencyException for duplicate withdrawal operations")
+    @DisplayName("Should handle duplicate withdrawal (no longer idempotent)")
     void shouldHandleConcurrencyExceptionForDuplicateWithdrawal() {
         String walletId = "concurrency-withdrawal-" + UUID.randomUUID().toString().substring(0, 8);
         String withdrawalId = "duplicate-withdrawal-" + UUID.randomUUID().toString().substring(0, 8);
@@ -615,22 +609,19 @@ class GlobalExceptionHandlerIT extends AbstractCrabletTest {
         );
         assertThat(firstWithdrawResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Second withdrawal with same ID (should be idempotent)
+        // Second withdrawal with same ID (no longer idempotent)
         ResponseEntity<Void> secondWithdrawResponse = restTemplate.postForEntity(
                 "http://localhost:" + port + "/api/wallets/" + walletId + "/withdraw",
                 withdrawRequest,
                 Void.class
         );
 
-        // Should return 200 OK for idempotent operations
-        assertThat(secondWithdrawResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-        // Idempotent operations return empty body (Void.class) with 200 OK
-        // This is the correct REST semantic for idempotent operations
+        // Should return 201 CREATED (no longer idempotent)
+        assertThat(secondWithdrawResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 
     @Test
-    @DisplayName("Should handle ConcurrencyException for duplicate transfer operations")
+    @DisplayName("Should handle duplicate transfer (no longer idempotent)")
     void shouldHandleConcurrencyExceptionForDuplicateTransfer() {
         String wallet1Id = "concurrency-transfer-1-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet2Id = "concurrency-transfer-2-" + UUID.randomUUID().toString().substring(0, 8);
@@ -665,17 +656,14 @@ class GlobalExceptionHandlerIT extends AbstractCrabletTest {
         );
         assertThat(firstTransferResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Second transfer with same ID (should be idempotent)
+        // Second transfer with same ID (no longer idempotent)
         ResponseEntity<Void> secondTransferResponse = restTemplate.postForEntity(
                 "http://localhost:" + port + "/api/wallets/transfer",
                 transferRequest,
                 Void.class
         );
 
-        // Should return 200 OK for idempotent operations
-        assertThat(secondTransferResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-        // Idempotent operations return empty body (Void.class) with 200 OK
-        // This is the correct REST semantic for idempotent operations
+        // Should return 201 CREATED (no longer idempotent)
+        assertThat(secondTransferResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 }

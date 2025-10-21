@@ -52,7 +52,10 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
         // Arrange - create wallet first
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
         StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
-        AppendEvent walletInputEvent = AppendEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
+        AppendEvent walletInputEvent = AppendEvent.builder(walletEvent.type())
+                .data(walletEvent.data())
+                .tag("wallet_id", "wallet1")
+                .build();
         eventStore.append(List.of(walletInputEvent));
 
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", "wallet1", 300, "Shopping");
@@ -107,7 +110,10 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
         // Arrange - create wallet with low balance
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 100);
         StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
-        AppendEvent walletInputEvent = AppendEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
+        AppendEvent walletInputEvent = AppendEvent.builder(walletEvent.type())
+                .data(walletEvent.data())
+                .tag("wallet_id", "wallet1")
+                .build();
         eventStore.append(List.of(walletInputEvent));
 
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", "wallet1", 200, "Overdraft");
@@ -144,7 +150,10 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
         // Arrange - create wallet with exact balance
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 500);
         StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
-        AppendEvent walletInputEvent = AppendEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
+        AppendEvent walletInputEvent = AppendEvent.builder(walletEvent.type())
+                .data(walletEvent.data())
+                .tag("wallet_id", "wallet1")
+                .build();
         eventStore.append(List.of(walletInputEvent));
 
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", "wallet1", 500, "Full withdrawal");
@@ -164,7 +173,10 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
         // Arrange - create wallet with multiple events
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
         StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
-        AppendEvent walletInputEvent = AppendEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
+        AppendEvent walletInputEvent = AppendEvent.builder(walletEvent.type())
+                .data(walletEvent.data())
+                .tag("wallet_id", "wallet1")
+                .build();
         eventStore.append(List.of(walletInputEvent));
 
         // Act - withdrawal should only project balance + existence, not full WalletState
@@ -187,7 +199,10 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
         // Arrange - create wallet
         WalletOpened walletOpened = WalletOpened.of(walletId, owner, initialBalance);
         StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
-        AppendEvent walletInputEvent = AppendEvent.of(walletEvent.type(), walletEvent.tags(), walletEvent.data());
+        AppendEvent walletInputEvent = AppendEvent.builder(walletEvent.type())
+                .data(walletEvent.data())
+                .tag("wallet_id", walletId)
+                .build();
         eventStore.append(List.of(walletInputEvent));
 
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", walletId, 100, description);

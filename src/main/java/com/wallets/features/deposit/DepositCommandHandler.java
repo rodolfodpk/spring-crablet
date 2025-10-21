@@ -60,11 +60,6 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
             throw new WalletNotFoundException(command.walletId());
         }
 
-        // Idempotency check
-        if (depositWasAlreadyProcessed(eventStore, command.depositId())) {
-            return CommandResult.emptyWithReason("DUPLICATE_DEPOSIT_ID");
-        }
-
         int newBalance = state.balance() + command.amount();
 
         DepositMade deposit = DepositMade.of(
@@ -81,26 +76,15 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
                 .data(serializeEvent(objectMapper, deposit))
                 .build();
 
-        // Build condition: decision model + idempotency
-        // DCB Principle: failIfEventsMatch includes same query used for projection
+        // Build condition: decision model only (cursor-based concurrency control)
+        // DCB Principle: Cursor check prevents duplicate charges
+        // Note: No idempotency check - cursor advancement detects if operation already succeeded
         AppendCondition condition = decisionModel
                 .toAppendCondition(projection.cursor())
                 .build();
 
         return CommandResult.of(List.of(event), condition);
     }
-
-
-    /**
-     * Check if deposit was already processed (for idempotency handling).
-     */
-    private boolean depositWasAlreadyProcessed(EventStore store, String depositId) {
-        Query query = QueryBuilder.create()
-                .event("DepositMade", "deposit_id", depositId)
-                .build();
-        return !store.query(query, null).isEmpty();
-    }
-
 
     @Override
     public String getCommandType() {

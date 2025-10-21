@@ -104,18 +104,22 @@ class QueryBuilderTest {
                 .withIdempotencyCheck("DepositMade", new Tag("deposit_id", "d1"))
                 .build();
 
-        // Then
+        // Then - Dual conditions approach
         assertThat(condition.afterCursor()).isEqualTo(cursor);
-        assertThat(condition.failIfEventsMatch().items()).hasSize(2); // decision model + idempotency
-        // First item: decision model
-        assertThat(condition.failIfEventsMatch().items().get(0).eventTypes())
+        
+        // Concurrency check: decision model only
+        assertThat(condition.stateChanged().items()).hasSize(1);
+        assertThat(condition.stateChanged().items().get(0).eventTypes())
                 .containsExactly("WalletOpened", "DepositMade");
-        assertThat(condition.failIfEventsMatch().items().get(0).tags())
+        assertThat(condition.stateChanged().items().get(0).tags())
                 .containsExactly(new Tag("wallet_id", "w1"));
-        // Second item: idempotency check
-        assertThat(condition.failIfEventsMatch().items().get(1).eventTypes())
+        
+        // Idempotency check: separate query
+        assertThat(condition.alreadyExists()).isNotNull();
+        assertThat(condition.alreadyExists().items()).hasSize(1);
+        assertThat(condition.alreadyExists().items().get(0).eventTypes())
                 .containsExactly("DepositMade");
-        assertThat(condition.failIfEventsMatch().items().get(1).tags())
+        assertThat(condition.alreadyExists().items().get(0).tags())
                 .containsExactly(new Tag("deposit_id", "d1"));
     }
 

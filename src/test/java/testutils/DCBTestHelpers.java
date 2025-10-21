@@ -23,25 +23,30 @@ public class DCBTestHelpers {
      * Creates a test event with a single test_id tag.
      */
     public static AppendEvent createTestEvent(String type, String id) {
-        return AppendEvent.of(
-                type,
-                List.of(new Tag("test_id", id)),
-                String.format("{\"id\": \"%s\"}", id).getBytes()
-        );
+        return AppendEvent.builder(type)
+                .tag("test_id", id)
+                .data(String.format("{\"id\": \"%s\"}", id))
+                .build();
     }
 
     /**
      * Creates a test event with custom tags.
      */
     public static AppendEvent createTestEvent(String type, Tag... tags) {
-        return AppendEvent.of(type, List.of(tags), "{}".getBytes());
+        AppendEvent.Builder builder = AppendEvent.builder(type);
+        for (Tag tag : tags) {
+            builder.tag(tag.key(), tag.value());
+        }
+        return builder.data("{}").build();
     }
 
     /**
      * Creates a test event with custom data.
      */
     public static AppendEvent createTestEvent(String type, byte[] data) {
-        return AppendEvent.of(type, List.of(), data);
+        return AppendEvent.builder(type)
+                .data(data)
+                .build();
     }
 
     /**

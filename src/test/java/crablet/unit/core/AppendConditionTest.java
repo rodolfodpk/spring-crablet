@@ -33,7 +33,7 @@ class AppendConditionTest {
 
         // Then
         assertThat(condition.afterCursor()).isEqualTo(afterCursor);
-        assertThat(condition.failIfEventsMatch()).isEqualTo(failIfEventsMatch);
+        assertThat(condition.stateChanged()).isEqualTo(failIfEventsMatch);
     }
 
     @Test
@@ -47,18 +47,18 @@ class AppendConditionTest {
 
         // Then
         assertThat(condition.afterCursor()).isEqualTo(afterCursor);
-        assertThat(condition.failIfEventsMatch()).isEqualTo(Query.empty());
+        assertThat(condition.stateChanged()).isEqualTo(Query.empty());
     }
 
     @Test
     @DisplayName("Should create AppendCondition for empty stream")
     void shouldCreateAppendConditionForEmptyStream() {
         // When
-        AppendCondition condition = AppendCondition.forEmptyStream();
+        AppendCondition condition = AppendCondition.expectEmptyStream();
 
         // Then
         assertThat(condition.afterCursor()).isEqualTo(Cursor.zero());
-        assertThat(condition.failIfEventsMatch()).isEqualTo(Query.empty());
+        assertThat(condition.stateChanged()).isEqualTo(Query.empty());
         assertThat(condition.expectsEmptyStream()).isTrue();
     }
 
@@ -83,7 +83,7 @@ class AppendConditionTest {
         // When & Then
         assertThatThrownBy(() -> AppendCondition.of(afterCursor, null))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("failIfEventsMatch cannot be null");
+                .hasMessage("stateChanged cannot be null");
     }
 
     @Test
@@ -150,7 +150,7 @@ class AppendConditionTest {
         assertThat(condition.toString())
                 .contains("AppendCondition{")
                 .contains("afterCursor=")
-                .contains("failIfEventsMatch=");
+                .contains("stateChanged=");
     }
 
     @Test

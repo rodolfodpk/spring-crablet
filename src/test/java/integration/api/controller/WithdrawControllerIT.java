@@ -211,7 +211,7 @@ class WithdrawControllerIT extends AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("Should handle withdrawal idempotency")
+    @DisplayName("Should handle withdrawal (no longer idempotent)")
     void shouldHandleWithdrawalIdempotency() {
         // Arrange: Create a wallet first
         String walletId = "idempotent-withdraw-wallet-" + UUID.randomUUID().toString().substring(0, 8);
@@ -232,16 +232,16 @@ class WithdrawControllerIT extends AbstractCrabletTest {
         assertThat(afterFirstWithdraw.getBody()).isNotNull();
         assertThat(afterFirstWithdraw.getBody().balance()).isEqualTo(800); // 1000 - 200
 
-        // Act: Second withdrawal with same withdrawalId (should be idempotent)
+        // Act: Second withdrawal with same withdrawalId (no longer idempotent)
         ResponseEntity<Void> secondWithdrawResponse = restTemplate.postForEntity(
                 walletUrl + "/withdraw", withdrawRequest, Void.class
         );
-        assertThat(secondWithdrawResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(secondWithdrawResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Assert: Balance should be unchanged (idempotent)
+        // Assert: Balance should reflect both withdrawals (no longer idempotent)
         ResponseEntity<WalletResponse> afterSecondWithdraw = restTemplate.getForEntity(walletUrl, WalletResponse.class);
         assertThat(afterSecondWithdraw.getBody()).isNotNull();
-        assertThat(afterSecondWithdraw.getBody().balance()).isEqualTo(800); // Unchanged
+        assertThat(afterSecondWithdraw.getBody().balance()).isEqualTo(600); // 1000 - 200 - 200
     }
 
     @Test

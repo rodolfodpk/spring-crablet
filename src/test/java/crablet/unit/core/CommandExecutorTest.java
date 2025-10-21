@@ -112,7 +112,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
             @Override
             public CommandResult handle(EventStore eventStore, Command command) {
                 // Create event with empty type
-                return CommandResult.of(List.of(AppendEvent.of("", List.of(), new byte[0])), AppendCondition.forEmptyStream());
+                return CommandResult.of(List.of(AppendEvent.builder("").data(new byte[0]).build()), AppendCondition.expectEmptyStream());
             }
 
             @Override
@@ -136,7 +136,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
             @Override
             public CommandResult handle(EventStore eventStore, Command command) {
                 // Create event with empty tag key
-                return CommandResult.of(List.of(AppendEvent.of("TestEvent", List.of(new Tag("", "value")), new byte[0])), AppendCondition.forEmptyStream());
+                return CommandResult.of(List.of(AppendEvent.builder("TestEvent").tag("", "value").data(new byte[0]).build()), AppendCondition.expectEmptyStream());
             }
 
             @Override
@@ -160,7 +160,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
             @Override
             public CommandResult handle(EventStore eventStore, Command command) {
                 // Create event with empty tag value
-                return CommandResult.of(List.of(AppendEvent.of("TestEvent", List.of(new Tag("key", "")), new byte[0])), AppendCondition.forEmptyStream());
+                return CommandResult.of(List.of(AppendEvent.builder("TestEvent").tag("key", "").data(new byte[0]).build()), AppendCondition.expectEmptyStream());
             }
 
             @Override
@@ -226,7 +226,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
         CommandHandler<Command> mockHandler = new CommandHandler<Command>() {
             @Override
             public CommandResult handle(EventStore eventStore, Command command) {
-                return CommandResult.of(List.of(AppendEvent.of("TestEvent", List.of(), new byte[0])), AppendCondition.forEmptyStream());
+                return CommandResult.of(List.of(AppendEvent.builder("TestEvent").data(new byte[0]).build()), AppendCondition.expectEmptyStream());
             }
 
             @Override
@@ -257,10 +257,10 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
                     return CommandResult.of(
                             List.of(
-                                    AppendEvent.of("WalletOpened", List.of(new Tag("wallet_id", walletId)), data),
-                                    AppendEvent.of("WalletInitialized", List.of(new Tag("wallet_id", walletId)), "{}".getBytes())
+                                    AppendEvent.builder("WalletOpened").tag("wallet_id", walletId).data(data).build(),
+                                    AppendEvent.builder("WalletInitialized").tag("wallet_id", walletId).data("{}".getBytes()).build()
                             ),
-                            AppendCondition.forEmptyStream()
+                            AppendCondition.expectEmptyStream()
                     );
                 } catch (Exception e) {
                     throw new RuntimeException("Failed to serialize events", e);

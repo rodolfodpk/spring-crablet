@@ -62,13 +62,22 @@ public class DepositController {
                     request.description()
             );
 
-            // Execute command through CommandExecutor (handles events and command storage)
-            ExecutionResult result = commandExecutor.executeCommand(cmd);
+            try {
+                // Execute command through CommandExecutor (handles events and command storage)
+                ExecutionResult result = commandExecutor.executeCommand(cmd);
 
-            // Return appropriate HTTP status based on execution result
-            return result.wasCreated()
-                    ? ResponseEntity.status(HttpStatus.CREATED).build()
-                    : ResponseEntity.ok().build();
+                // Return appropriate HTTP status based on execution result
+                return result.wasCreated()
+                        ? ResponseEntity.status(HttpStatus.CREATED).build()
+                        : ResponseEntity.ok().build();
+            } catch (com.crablet.core.ConcurrencyException e) {
+                // DCB idempotency: duplicate operation detected, return 200 OK
+                if (e.getMessage() != null && e.getMessage().toLowerCase().contains("duplicate operation detected")) {
+                    return ResponseEntity.ok().build();
+                }
+                // Re-throw for other concurrency exceptions (409 Conflict)
+                throw e;
+            }
         });
     }
 }

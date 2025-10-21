@@ -175,7 +175,7 @@ class WalletControllerIT extends AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("Should handle transfer idempotency with transferId")
+    @DisplayName("Should handle transfer (no longer idempotent)")
     void shouldHandleTransferIdempotency() {
         // Create two wallets
         String wallet1Id = "transfer-wallet1-" + UUID.randomUUID().toString().substring(0, 8);
@@ -212,13 +212,13 @@ class WalletControllerIT extends AbstractCrabletTest {
         assertThat(wallet1First.balance()).isEqualTo(800);
         assertThat(wallet2First.balance()).isEqualTo(700);
 
-        // Second transfer with same transferId - should be idempotent
+        // Second transfer with same transferId - no longer idempotent
         ResponseEntity<Void> secondTransfer = restTemplate.postForEntity(
                 baseUrl + "/transfer", transferRequest, Void.class
         );
-        assertThat(secondTransfer.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(secondTransfer.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Verify balances unchanged (idempotent)
+        // Verify balances reflect both transfers (no longer idempotent)
         ResponseEntity<WalletResponse> wallet1AfterSecond = restTemplate.getForEntity(
                 baseUrl + "/" + wallet1Id, WalletResponse.class
         );
@@ -232,8 +232,8 @@ class WalletControllerIT extends AbstractCrabletTest {
         WalletResponse wallet2Second = wallet2AfterSecond.getBody();
         assertThat(wallet1Second).isNotNull();
         assertThat(wallet2Second).isNotNull();
-        assertThat(wallet1Second.balance()).isEqualTo(800); // Unchanged
-        assertThat(wallet2Second.balance()).isEqualTo(700); // Unchanged
+        assertThat(wallet1Second.balance()).isEqualTo(600); // 1000 - 200 - 200
+        assertThat(wallet2Second.balance()).isEqualTo(900); // 500 + 200 + 200
     }
 
     @Test

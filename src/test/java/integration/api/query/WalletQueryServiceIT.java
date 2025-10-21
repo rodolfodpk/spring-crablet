@@ -171,7 +171,7 @@ class WalletQueryServiceIT extends AbstractCrabletTest {
         
         Instant filterTime = Instant.now();
         
-        executeCommand(new DepositCommand("deposit-2", walletId1, 300, "Second deposit"));
+        executeCommand(new DepositCommand("deposit-2-unique", walletId1, 300, "Second deposit"));
 
         // When: get history with timestamp filter
         WalletHistoryResponse response = queryService.getWalletHistory(walletId1, filterTime, 0, 10);
@@ -274,7 +274,7 @@ class WalletQueryServiceIT extends AbstractCrabletTest {
         
         Instant filterTime = Instant.now();
         
-        executeCommand(new DepositCommand("deposit-2", walletId1, 300, "Second deposit"));
+        executeCommand(new DepositCommand("deposit-2-unique", walletId1, 300, "Second deposit"));
 
         // When: get commands with timestamp filter
         WalletCommandsResponse response = queryService.getWalletCommands(walletId1, filterTime, 0, 10);

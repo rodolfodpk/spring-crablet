@@ -56,11 +56,12 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
                 .data(jsonData)
                 .build();
 
-        // 4. Build condition to enforce uniqueness using domain pattern
-        //    Fails if ANY WalletOpened event exists for this wallet_id
-        Query existenceQuery = WalletQueryPatterns.walletExistenceQuery(command.walletId());
-        AppendCondition condition = existenceQuery
-                .toAppendCondition(Cursor.zero()) // Expect empty stream for new wallet
+        // 4. Build condition to enforce uniqueness using DCB idempotency pattern
+        //    Fails if ANY WalletOpened event exists for this wallet_id (idempotency check)
+        //    No concurrency check needed for wallet creation - only idempotency matters
+        AppendCondition condition = Query.empty()
+                .toAppendCondition(Cursor.zero())
+                .withIdempotencyCheck("WalletOpened", "wallet_id", command.walletId())
                 .build();
 
         // 5. Return - appendIf will:

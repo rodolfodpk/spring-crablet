@@ -212,13 +212,13 @@ class DatabaseErrorHandlingIT extends AbstractCrabletTest {
         );
         assertThat(firstDepositResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Second deposit with same ID should be handled gracefully (idempotent)
-        ResponseEntity<Map> secondDepositResponse = restTemplate.postForEntity(
+        // Second deposit with same ID should be handled gracefully (no longer idempotent)
+        ResponseEntity<Void> secondDepositResponse = restTemplate.postForEntity(
                 "http://localhost:" + port + "/api/wallets/" + walletId + "/deposit",
                 depositRequest,
-                Map.class
+                Void.class
         );
-        assertThat(secondDepositResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(secondDepositResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 
     @Test

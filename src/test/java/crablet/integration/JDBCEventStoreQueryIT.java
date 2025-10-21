@@ -45,21 +45,30 @@ class JDBCEventStoreQueryIT extends AbstractCrabletTest {
 
     private void insertTestEvents() {
         // Insert events with different types and tags for testing
-        AppendEvent event1 = AppendEvent.of("WalletOpened", 
-            List.of(Tag.of("wallet", "wallet-1"), Tag.of("owner", "alice")), 
-            "{\"walletId\":\"wallet-1\",\"owner\":\"alice\"}".getBytes());
+        AppendEvent event1 = AppendEvent.builder("WalletOpened")
+            .tag("wallet", "wallet-1")
+            .tag("owner", "alice")
+            .data("{\"walletId\":\"wallet-1\",\"owner\":\"alice\"}")
+            .build();
         
-        AppendEvent event2 = AppendEvent.of("DepositMade", 
-            List.of(Tag.of("wallet", "wallet-1"), Tag.of("amount", "100")), 
-            "{\"walletId\":\"wallet-1\",\"amount\":100}".getBytes());
+        AppendEvent event2 = AppendEvent.builder("DepositMade")
+            .tag("wallet", "wallet-1")
+            .tag("amount", "100")
+            .data("{\"walletId\":\"wallet-1\",\"amount\":100}")
+            .build();
         
-        AppendEvent event3 = AppendEvent.of("WalletOpened", 
-            List.of(Tag.of("wallet", "wallet-2"), Tag.of("owner", "bob")), 
-            "{\"walletId\":\"wallet-2\",\"owner\":\"bob\"}".getBytes());
+        AppendEvent event3 = AppendEvent.builder("WalletOpened")
+            .tag("wallet", "wallet-2")
+            .tag("owner", "bob")
+            .data("{\"walletId\":\"wallet-2\",\"owner\":\"bob\"}")
+            .build();
         
-        AppendEvent event4 = AppendEvent.of("TransferMade", 
-            List.of(Tag.of("from", "wallet-1"), Tag.of("to", "wallet-2"), Tag.of("amount", "50")), 
-            "{\"fromWallet\":\"wallet-1\",\"toWallet\":\"wallet-2\",\"amount\":50}".getBytes());
+        AppendEvent event4 = AppendEvent.builder("TransferMade")
+            .tag("from", "wallet-1")
+            .tag("to", "wallet-2")
+            .tag("amount", "50")
+            .data("{\"fromWallet\":\"wallet-1\",\"toWallet\":\"wallet-2\",\"amount\":50}")
+            .build();
 
         eventStore.append(List.of(event1, event2, event3, event4));
     }

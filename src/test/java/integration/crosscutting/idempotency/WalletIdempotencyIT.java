@@ -24,12 +24,12 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Integration test for wallet idempotency scenarios.
  * <p>
  * Tests idempotent behavior:
- * 1. Duplicate wallet creation (same wallet ID)
- * 2. Duplicate deposit (same deposit ID)
- * 3. Duplicate withdrawal (same withdrawal ID)
- * 4. Duplicate transfer (same transfer ID)
- * 5. Verify balances unchanged on duplicate operations
- * 6. Verify idempotent HTTP responses (200 OK)
+ * 1. Duplicate wallet creation (same wallet ID) - STILL idempotent
+ * 2. Duplicate deposit (same deposit ID) - NO LONGER idempotent
+ * 3. Duplicate withdrawal (same withdrawal ID) - NO LONGER idempotent
+ * 4. Duplicate transfer (same transfer ID) - NO LONGER idempotent
+ * 5. Verify balances unchanged on duplicate operations (for wallet creation only)
+ * 6. Verify HTTP responses: 200 OK for wallet creation, 201 CREATED for operations
  */
 class WalletIdempotencyIT extends AbstractCrabletTest {
 
@@ -82,7 +82,7 @@ class WalletIdempotencyIT extends AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("Should handle duplicate deposit idempotently")
+    @DisplayName("Should handle duplicate deposit (no longer idempotent)")
     void shouldHandleDuplicateDepositIdempotently() {
         String walletId = "idempotent-" + UUID.randomUUID().toString().substring(0, 8);
         String depositId = "deposit-" + UUID.randomUUID().toString().substring(0, 8);
@@ -106,17 +106,17 @@ class WalletIdempotencyIT extends AbstractCrabletTest {
         );
         assertThat(firstDepositResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Second deposit with same deposit ID (should be idempotent)
+        // Second deposit with same deposit ID (no longer idempotent)
         ResponseEntity<Void> secondDepositResponse = restTemplate.postForEntity(
                 "http://localhost:" + port + "/api/wallets/" + walletId + "/deposit",
                 depositRequest,
                 Void.class
         );
 
-        // Should return 200 OK (idempotent behavior)
-        assertThat(secondDepositResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        // Should return 201 CREATED (no longer idempotent)
+        assertThat(secondDepositResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Verify wallet balance is unchanged (500 + 200 = 700, not 900)
+        // Verify wallet balance reflects both deposits (500 + 200 + 200 = 900)
         ResponseEntity<Map> walletResponse = restTemplate.getForEntity(
                 "http://localhost:" + port + "/api/wallets/" + walletId,
                 Map.class
@@ -124,11 +124,11 @@ class WalletIdempotencyIT extends AbstractCrabletTest {
         assertThat(walletResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         Map<String, Object> walletBody = walletResponse.getBody();
         assertThat(walletBody).isNotNull();
-        assertThat(walletBody.get("balance")).isEqualTo(700); // Only one deposit applied
+        assertThat(walletBody.get("balance")).isEqualTo(900); // Both deposits applied
     }
 
     @Test
-    @DisplayName("Should handle duplicate withdrawal idempotently")
+    @DisplayName("Should handle duplicate withdrawal (no longer idempotent)")
     void shouldHandleDuplicateWithdrawalIdempotently() {
         String walletId = "idempotent-" + UUID.randomUUID().toString().substring(0, 8);
         String withdrawalId = "withdrawal-" + UUID.randomUUID().toString().substring(0, 8);
@@ -152,17 +152,17 @@ class WalletIdempotencyIT extends AbstractCrabletTest {
         );
         assertThat(firstWithdrawResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Second withdrawal with same withdrawal ID (should be idempotent)
+        // Second withdrawal with same withdrawal ID (no longer idempotent)
         ResponseEntity<Void> secondWithdrawResponse = restTemplate.postForEntity(
                 "http://localhost:" + port + "/api/wallets/" + walletId + "/withdraw",
                 withdrawRequest,
                 Void.class
         );
 
-        // Should return 200 OK (idempotent behavior)
-        assertThat(secondWithdrawResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        // Should return 201 CREATED (no longer idempotent)
+        assertThat(secondWithdrawResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Verify wallet balance is unchanged (1000 - 300 = 700, not 400)
+        // Verify wallet balance reflects both withdrawals (1000 - 300 - 300 = 400)
         ResponseEntity<Map> walletResponse = restTemplate.getForEntity(
                 "http://localhost:" + port + "/api/wallets/" + walletId,
                 Map.class
@@ -170,11 +170,11 @@ class WalletIdempotencyIT extends AbstractCrabletTest {
         assertThat(walletResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         Map<String, Object> walletBody = walletResponse.getBody();
         assertThat(walletBody).isNotNull();
-        assertThat(walletBody.get("balance")).isEqualTo(700); // Only one withdrawal applied
+        assertThat(walletBody.get("balance")).isEqualTo(400); // Both withdrawals applied
     }
 
     @Test
-    @DisplayName("Should handle duplicate transfer idempotently")
+    @DisplayName("Should handle duplicate transfer (no longer idempotent)")
     void shouldHandleDuplicateTransferIdempotently() {
         String wallet1Id = "idempotent-1-" + UUID.randomUUID().toString().substring(0, 8);
         String wallet2Id = "idempotent-2-" + UUID.randomUUID().toString().substring(0, 8);
@@ -209,17 +209,17 @@ class WalletIdempotencyIT extends AbstractCrabletTest {
         );
         assertThat(firstTransferResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Second transfer with same transfer ID (should be idempotent)
+        // Second transfer with same transfer ID (no longer idempotent)
         ResponseEntity<Void> secondTransferResponse = restTemplate.postForEntity(
                 "http://localhost:" + port + "/api/wallets/transfer",
                 transferRequest,
                 Void.class
         );
 
-        // Should return 200 OK (idempotent behavior)
-        assertThat(secondTransferResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        // Should return 201 CREATED (no longer idempotent)
+        assertThat(secondTransferResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Verify wallet balances are unchanged
+        // Verify wallet balances reflect both transfers
         ResponseEntity<Map> wallet1Response = restTemplate.getForEntity(
                 "http://localhost:" + port + "/api/wallets/" + wallet1Id,
                 Map.class
@@ -227,7 +227,7 @@ class WalletIdempotencyIT extends AbstractCrabletTest {
         assertThat(wallet1Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         Map<String, Object> wallet1Body = wallet1Response.getBody();
         assertThat(wallet1Body).isNotNull();
-        assertThat(wallet1Body.get("balance")).isEqualTo(800); // 1000 - 200, only one transfer applied
+        assertThat(wallet1Body.get("balance")).isEqualTo(600); // 1000 - 200 - 200, both transfers applied
 
         ResponseEntity<Map> wallet2Response = restTemplate.getForEntity(
                 "http://localhost:" + port + "/api/wallets/" + wallet2Id,
@@ -236,7 +236,7 @@ class WalletIdempotencyIT extends AbstractCrabletTest {
         assertThat(wallet2Response.getStatusCode()).isEqualTo(HttpStatus.OK);
         Map<String, Object> wallet2Body = wallet2Response.getBody();
         assertThat(wallet2Body).isNotNull();
-        assertThat(wallet2Body.get("balance")).isEqualTo(700); // 500 + 200, only one transfer applied
+        assertThat(wallet2Body.get("balance")).isEqualTo(900); // 500 + 200 + 200, both transfers applied
     }
 
     @Test
@@ -287,7 +287,7 @@ class WalletIdempotencyIT extends AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("Should simulate network retry scenarios")
+    @DisplayName("Should simulate network retry scenarios (no longer idempotent)")
     void shouldSimulateNetworkRetryScenarios() {
         String walletId = "idempotent-" + UUID.randomUUID().toString().substring(0, 8);
         String depositId = "retry-" + UUID.randomUUID().toString().substring(0, 8);
@@ -319,7 +319,7 @@ class WalletIdempotencyIT extends AbstractCrabletTest {
                 depositRequest,
                 Void.class
         );
-        assertThat(secondAttempt.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(secondAttempt.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         // Third attempt (simulates another retry)
         ResponseEntity<Void> thirdAttempt = restTemplate.postForEntity(
@@ -327,9 +327,9 @@ class WalletIdempotencyIT extends AbstractCrabletTest {
                 depositRequest,
                 Void.class
         );
-        assertThat(thirdAttempt.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(thirdAttempt.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Verify wallet balance reflects only one deposit (500 + 150 = 650)
+        // Verify wallet balance reflects all deposits (500 + 150 + 150 + 150 = 950)
         ResponseEntity<Map> walletResponse = restTemplate.getForEntity(
                 "http://localhost:" + port + "/api/wallets/" + walletId,
                 Map.class
@@ -337,7 +337,7 @@ class WalletIdempotencyIT extends AbstractCrabletTest {
         assertThat(walletResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         Map<String, Object> walletBody = walletResponse.getBody();
         assertThat(walletBody).isNotNull();
-        assertThat(walletBody.get("balance")).isEqualTo(650); // Only one deposit applied despite multiple requests
+        assertThat(walletBody.get("balance")).isEqualTo(950); // All deposits applied despite multiple requests
     }
 }
 

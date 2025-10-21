@@ -140,18 +140,20 @@ public class GlobalExceptionHandler {
         log.warn("Concurrency conflict for command: type={}, message={}", cmdType, ex.getMessage());
         String msg = ex.getMessage().toLowerCase();
 
-        // Pattern 1: Duplicate entity IDs (idempotency violations)
-        if (cmdType.equals("open_wallet")) {
-            return handleWalletAlreadyExists(new WalletAlreadyExistsException(extractWalletId(cmd)));
-        }
-        if (cmdType.equals("deposit")) {
-            return handleDuplicateOperation(new DuplicateOperationException("Deposit already processed: " + extractDepositId(cmd)));
-        }
-        if (cmdType.equals("withdraw")) {
-            return handleDuplicateOperation(new DuplicateOperationException("Withdrawal already processed: " + extractWithdrawalId(cmd)));
-        }
-        if (cmdType.equals("transfer_money")) {
-            return handleDuplicateOperation(new DuplicateOperationException("Transfer already processed: " + extractTransferId(cmd)));
+        // Pattern 1: DCB Idempotency violations (duplicate operation detected)
+        if (msg.contains("duplicate operation detected")) {
+            if (cmdType.equals("open_wallet")) {
+                return handleWalletAlreadyExists(new WalletAlreadyExistsException(extractWalletId(cmd)));
+            }
+            if (cmdType.equals("deposit")) {
+                return handleDuplicateOperation(new DuplicateOperationException("Deposit already processed: " + extractDepositId(cmd)));
+            }
+            if (cmdType.equals("withdraw")) {
+                return handleDuplicateOperation(new DuplicateOperationException("Withdrawal already processed: " + extractWithdrawalId(cmd)));
+            }
+            if (cmdType.equals("transfer_money")) {
+                return handleDuplicateOperation(new DuplicateOperationException("Transfer already processed: " + extractTransferId(cmd)));
+            }
         }
 
         // Pattern 2: Optimistic concurrency control failures

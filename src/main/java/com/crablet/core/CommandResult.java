@@ -19,11 +19,11 @@ public record CommandResult(
     }
 
     public static CommandResult empty() {
-        return new CommandResult(List.of(), AppendCondition.forEmptyStream(), null);
+        return new CommandResult(List.of(), AppendCondition.expectEmptyStream(), null);
     }
 
     public static CommandResult emptyWithReason(String reason) {
-        return new CommandResult(List.of(), AppendCondition.forEmptyStream(), reason);
+        return new CommandResult(List.of(), AppendCondition.expectEmptyStream(), reason);
     }
 
     public boolean isEmpty() {
