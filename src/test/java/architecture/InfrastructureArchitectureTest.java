@@ -59,7 +59,7 @@ class InfrastructureArchitectureTest {
     void config_classes_should_be_in_config_or_core_package() {
         ArchRule rule = classes()
                 .that().haveSimpleNameEndingWith("Config")
-                .should().resideInAnyPackage("..infrastructure.config..", "..core..");
+                .should().resideInAnyPackage("..infrastructure.config..", "..core..", "..impl..");
 
         rule.check(classes);
     }

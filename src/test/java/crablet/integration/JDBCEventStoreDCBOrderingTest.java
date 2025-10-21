@@ -1,7 +1,7 @@
 package crablet.integration;
 
 import com.crablet.core.AppendEvent;
-import com.crablet.core.EventStoreConfig;
+import com.crablet.impl.EventStoreConfig;
 import com.crablet.core.Query;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;

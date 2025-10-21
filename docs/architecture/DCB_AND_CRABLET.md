@@ -60,6 +60,11 @@ Result: Conflicts only detected for events affecting same wallet. Operations on 
 
 ## Implementation Details
 
+### Package Structure
+
+- **`com.crablet.core`**: Framework-agnostic interfaces (EventStore, CommandExecutor)
+- **`com.crablet.impl`**: Spring Boot implementations (JDBCEventStore, DefaultCommandExecutor)
+
 ### Cursor Structure
 
 ```java

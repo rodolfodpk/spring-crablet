@@ -56,12 +56,4 @@ public class ConcurrencyException extends RuntimeException {
     public DCBViolation getViolation() {
         return violation;
     }
-
-    public int getConflictingEventCount() {
-        return violation != null ? violation.getMatchingEventsCount() : 0;
-    }
-
-    public boolean hasViolationDetails() {
-        return violation != null;
-    }
 }

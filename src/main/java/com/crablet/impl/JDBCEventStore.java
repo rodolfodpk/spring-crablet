@@ -8,7 +8,7 @@ import com.crablet.core.Cursor;
 import com.crablet.core.DCBViolation;
 import com.crablet.core.EventStoreException;
 import com.crablet.core.EventStore;
-import com.crablet.core.EventStoreConfig;
+import com.crablet.impl.EventStoreConfig;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
 import com.crablet.core.QueryItem;

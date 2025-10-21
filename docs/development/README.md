@@ -100,6 +100,17 @@ src/
 - **Line Coverage**: > 60% (currently 71%)
 - **JaCoCo**: Code coverage analysis
 
+## Architecture Constraints
+
+### Crablet Package Rules
+
+Enforced by `CrabletArchitectureTest`:
+
+- **`crablet.core`**: Interfaces only, no Spring dependencies
+- **`crablet.impl`**: Spring implementations with `@Component`
+
+Run: `./mvnw test -Dtest=CrabletArchitectureTest`
+
 ### Code Formatting
 
 - **EditorConfig**: Standard formatting rules

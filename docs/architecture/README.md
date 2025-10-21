@@ -20,6 +20,15 @@ The wallet challenge solution implements event sourcing with:
 - **Query**: Retrieve events with filtering and pagination
 - **Projection**: Reconstruct state from events
 
+## Package Structure
+
+### Crablet Library
+
+- **`com.crablet.core`**: Pure interfaces (EventStore, CommandExecutor, domain models) - no Spring dependencies
+- **`com.crablet.impl`**: Spring implementations (JDBCEventStore, DefaultCommandExecutor, EventStoreConfig)
+
+Architecture tests enforce this separation to keep core contracts framework-agnostic.
+
 ### Event Model
 
 Immutable event records with:

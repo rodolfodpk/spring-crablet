@@ -21,12 +21,4 @@ public class SerializationException extends RuntimeException {
         this.eventType = null;
         this.eventClass = eventClass;
     }
-    
-    public String getEventType() {
-        return eventType;
-    }
-    
-    public Class<?> getEventClass() {
-        return eventClass;
-    }
 }

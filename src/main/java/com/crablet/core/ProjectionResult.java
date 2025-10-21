@@ -28,11 +28,4 @@ public record ProjectionResult<T>(
     public T state() {
         return states;
     }
-
-    /**
-     * Check if this result has a cursor for optimistic locking.
-     */
-    public boolean hasCursor() {
-        return cursor != null;
-    }
 }

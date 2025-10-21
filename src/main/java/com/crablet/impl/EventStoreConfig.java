@@ -1,4 +1,4 @@
-package com.crablet.core;
+package com.crablet.impl;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -7,8 +7,8 @@ import org.springframework.stereotype.Component;
  * Configuration for EventStore behavior.
  * Controls command persistence and transaction isolation levels.
  * <p>
- * Located in crablet.core since CommandExecutor (main consumer) is here,
- * and crablet.core is already Spring-coupled.
+ * Located in crablet.impl since it's a Spring-specific implementation detail
+ * used only by implementation classes (JDBCEventStore and DefaultCommandExecutor).
  */
 @Component
 @ConfigurationProperties(prefix = "crablet.eventstore")
@@ -44,4 +44,3 @@ public class EventStoreConfig {
         this.fetchSize = fetchSize;
     }
 }
-
