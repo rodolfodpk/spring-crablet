@@ -184,14 +184,6 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
 4. **Projector Pattern**: State reconstruction from events
 5. **DCB Principle**: Condition uses same query as projection for consistency
 
-**API Evolution:**
-
-- **Old**: `AppendEvent.of(type, List.of(new Tag(...)), data)`
-- **New**: `AppendEvent.builder(type).tag(key, value).data(data).build()`
-
-- **Old**: `.withIdempotencyCheck("DepositMade", new Tag("deposit_id", id))`
-- **New**: `.withIdempotencyCheck("DepositMade", "deposit_id", id)`
-
 ## PostgreSQL Integration
 
 DCB leverages PostgreSQL features:
@@ -224,27 +216,3 @@ Measured on this codebase (October 2025):
 | 50 Concurrent Users | 87 req/s | 793ms |
 
 Conflict detection: Zero false positives (entity scoping prevents unrelated conflicts)
-
-## Use Cases
-
-Applicable to:
-- Banking/financial operations
-- Inventory management
-- Order processing
-- Any domain where entity-level consistency required
-
-Not applicable to:
-- Append-only logs
-- Read-only analytics
-- Single-user systems
-
-## Related Implementations
-
-- go-crablet (Go)
-- crablet (Kotlin)
-- spring-crablet (Java 25, this implementation)
-
-Pattern is language-agnostic; requires:
-- Event store with append operations
-- Database with ACID guarantees
-- Position-based event ordering
