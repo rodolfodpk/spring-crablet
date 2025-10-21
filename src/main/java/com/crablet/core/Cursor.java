@@ -57,6 +57,70 @@ public record Cursor(SequenceNumber position, Instant occurredAt, String transac
     }
 
     /**
+     * Fluent builder for constructing cursors.
+     */
+    public static class Builder {
+        private SequenceNumber position;
+        private Instant occurredAt;
+        private String transactionId;
+        
+        private Builder() {
+            // Defaults for optional fields
+            this.position = SequenceNumber.zero();
+            this.occurredAt = Instant.now();
+            this.transactionId = "0";
+        }
+        
+        private Builder(SequenceNumber position, Instant occurredAt, String transactionId) {
+            this.position = position;
+            this.occurredAt = occurredAt;
+            this.transactionId = transactionId;
+        }
+        
+        public Builder position(long position) {
+            this.position = SequenceNumber.of(position);
+            return this;
+        }
+        
+        public Builder position(SequenceNumber position) {
+            this.position = position;
+            return this;
+        }
+        
+        public Builder occurredAt(Instant occurredAt) {
+            this.occurredAt = occurredAt;
+            return this;
+        }
+        
+        public Builder transactionId(String transactionId) {
+            this.transactionId = transactionId;
+            return this;
+        }
+        
+        public Cursor build() {
+            return new Cursor(position, occurredAt, transactionId);
+        }
+    }
+
+    /**
+     * Create a fluent builder for constructing cursors.
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Create a fluent builder starting from a StoredEvent.
+     */
+    public static Builder from(StoredEvent event) {
+        return new Builder(
+            SequenceNumber.of(event.position()),
+            event.occurredAt(),
+            event.transactionId()
+        );
+    }
+
+    /**
      * Check if this cursor is before another cursor.
      */
     public boolean isBefore(Cursor other) {

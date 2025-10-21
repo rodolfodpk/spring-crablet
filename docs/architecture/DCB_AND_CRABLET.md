@@ -68,11 +68,15 @@ Result: Conflicts only detected for events affecting same wallet. Operations on 
 ### Cursor Structure
 
 ```java
-Cursor cursor = Cursor.of(
-    lastEvent.position(),      // Event stream position
-    lastEvent.occurredAt(),    // Timestamp
-    lastEvent.transactionId()  // PostgreSQL transaction ID
-);
+// From StoredEvent (most common)
+Cursor cursor = Cursor.from(lastEvent).build();
+
+// Or build from scratch
+Cursor cursor = Cursor.builder()
+    .position(42L)
+    .occurredAt(Instant.now())
+    .transactionId("12345")
+    .build();
 ```
 
 ### Query Builder
