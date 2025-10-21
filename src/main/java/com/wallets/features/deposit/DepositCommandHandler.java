@@ -75,14 +75,11 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
                 command.description()
         );
 
-        AppendEvent event = AppendEvent.of(
-                "DepositMade",
-                List.of(
-                        new Tag("wallet_id", command.walletId()),
-                        new Tag("deposit_id", command.depositId())
-                ),
-                serializeEvent(objectMapper, deposit).getBytes()
-        );
+        AppendEvent event = AppendEvent.builder("DepositMade")
+                .tag("wallet_id", command.walletId())
+                .tag("deposit_id", command.depositId())
+                .data(serializeEvent(objectMapper, deposit))
+                .build();
 
         // Build condition: decision model + idempotency
         // DCB Principle: failIfEventsMatch includes same query used for projection

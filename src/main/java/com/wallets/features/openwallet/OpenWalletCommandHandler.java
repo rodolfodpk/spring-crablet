@@ -51,11 +51,10 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
         );
 
         String jsonData = serializeEvent(objectMapper, walletOpened);
-        AppendEvent event = AppendEvent.of(
-                "WalletOpened",
-                List.of(new Tag("wallet_id", command.walletId())),
-                jsonData.getBytes()
-        );
+        AppendEvent event = AppendEvent.builder("WalletOpened")
+                .tag("wallet_id", command.walletId())
+                .data(jsonData)
+                .build();
 
         // 4. Build condition to enforce uniqueness using domain pattern
         //    Fails if ANY WalletOpened event exists for this wallet_id

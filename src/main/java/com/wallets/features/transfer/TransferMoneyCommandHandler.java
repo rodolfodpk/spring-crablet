@@ -91,15 +91,12 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
                 command.description()
         );
 
-        AppendEvent event = AppendEvent.of(
-                "MoneyTransferred",
-                List.of(
-                        new Tag("transfer_id", command.transferId()),
-                        new Tag("from_wallet_id", command.fromWalletId()),
-                        new Tag("to_wallet_id", command.toWalletId())
-                ),
-                serializeEvent(objectMapper, transfer).getBytes()
-        );
+        AppendEvent event = AppendEvent.builder("MoneyTransferred")
+                .tag("transfer_id", command.transferId())
+                .tag("from_wallet_id", command.fromWalletId())
+                .tag("to_wallet_id", command.toWalletId())
+                .data(serializeEvent(objectMapper, transfer))
+                .build();
 
         // Build condition: decision model + idempotency
         // DCB Principle: failIfEventsMatch includes same query used for projection

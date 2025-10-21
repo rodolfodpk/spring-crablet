@@ -1,5 +1,6 @@
 package com.crablet.core;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -35,6 +36,56 @@ public record AppendEvent(
         return new AppendEvent(type, List.of(), jsonData.getBytes());
     }
 
+    /**
+     * Fluent builder for creating AppendEvent with multiple tags.
+     */
+    public static class Builder {
+        private String type;
+        private final List<Tag> tags = new ArrayList<>();
+        private byte[] data;
+        
+        private Builder(String type) {
+            this.type = type;
+        }
+        
+        /**
+         * Add a tag to this event.
+         */
+        public Builder tag(String key, String value) {
+            tags.add(new Tag(key, value));
+            return this;
+        }
+        
+        /**
+         * Set the event data from JSON string.
+         */
+        public Builder data(String jsonData) {
+            this.data = jsonData.getBytes();
+            return this;
+        }
+        
+        /**
+         * Set the event data from byte array.
+         */
+        public Builder data(byte[] data) {
+            this.data = data;
+            return this;
+        }
+        
+        /**
+         * Build the AppendEvent.
+         */
+        public AppendEvent build() {
+            return new AppendEvent(type, List.copyOf(tags), data);
+        }
+    }
+
+    /**
+     * Start building an AppendEvent with fluent API.
+     */
+    public static Builder builder(String type) {
+        return new Builder(type);
+    }
 
     /**
      * Check if this input event has a specific tag.

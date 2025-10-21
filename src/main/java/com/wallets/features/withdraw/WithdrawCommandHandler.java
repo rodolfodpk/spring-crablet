@@ -81,14 +81,11 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
                 command.description()
         );
 
-        AppendEvent event = AppendEvent.of(
-                "WithdrawalMade",
-                List.of(
-                        new Tag("wallet_id", command.walletId()),
-                        new Tag("withdrawal_id", command.withdrawalId())
-                ),
-                serializeEvent(objectMapper, withdrawal).getBytes()
-        );
+        AppendEvent event = AppendEvent.builder("WithdrawalMade")
+                .tag("wallet_id", command.walletId())
+                .tag("withdrawal_id", command.withdrawalId())
+                .data(serializeEvent(objectMapper, withdrawal))
+                .build();
 
         // Build condition: decision model + idempotency
         // DCB Principle: failIfEventsMatch includes same query used for projection
