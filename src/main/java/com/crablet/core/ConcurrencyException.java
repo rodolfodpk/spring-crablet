@@ -6,7 +6,6 @@ package com.crablet.core;
  * 
  * See also:
  * - EventStoreException - for infrastructure failures
- * - SerializationException - for event serialization issues
  * - InvalidCommandException - for validation errors
  */
 public class ConcurrencyException extends RuntimeException {
