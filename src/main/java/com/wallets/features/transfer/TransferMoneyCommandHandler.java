@@ -102,10 +102,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
         // DCB Principle: failIfEventsMatch includes same query used for projection
         AppendCondition condition = transferProjection.decisionModel()
                 .toAppendCondition(transferProjection.cursor())
-                .withIdempotencyCheck(
-                        "MoneyTransferred",
-                        new Tag("transfer_id", command.transferId())
-                )
+                .withIdempotencyCheck("MoneyTransferred", "transfer_id", command.transferId())
                 .build();
 
         return CommandResult.of(List.of(event), condition);

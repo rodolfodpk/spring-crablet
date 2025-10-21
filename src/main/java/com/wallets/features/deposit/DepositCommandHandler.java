@@ -85,10 +85,7 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
         // DCB Principle: failIfEventsMatch includes same query used for projection
         AppendCondition condition = decisionModel
                 .toAppendCondition(projection.cursor())
-                .withIdempotencyCheck(
-                        "DepositMade",
-                        new Tag("deposit_id", command.depositId())
-                )
+                .withIdempotencyCheck("DepositMade", "deposit_id", command.depositId())
                 .build();
 
         return CommandResult.of(List.of(event), condition);

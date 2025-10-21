@@ -91,10 +91,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         // DCB Principle: failIfEventsMatch includes same query used for projection
         AppendCondition condition = decisionModel
                 .toAppendCondition(projection.cursor())
-                .withIdempotencyCheck(
-                        "WithdrawalMade",
-                        new Tag("withdrawal_id", command.withdrawalId())
-                )
+                .withIdempotencyCheck("WithdrawalMade", "withdrawal_id", command.withdrawalId())
                 .build();
 
         return CommandResult.of(List.of(event), condition);

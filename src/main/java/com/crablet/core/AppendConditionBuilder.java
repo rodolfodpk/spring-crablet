@@ -30,6 +30,18 @@ public class AppendConditionBuilder {
     }
 
     /**
+     * Add idempotency check for duplicate operations (convenience method).
+     * 
+     * @param eventType The event type to check for duplicates
+     * @param tagKey    The tag key identifying the unique operation
+     * @param tagValue  The tag value identifying the unique operation
+     */
+    public AppendConditionBuilder withIdempotencyCheck(String eventType, String tagKey, String tagValue) {
+        additionalItems.add(QueryItem.of(List.of(eventType), List.of(new Tag(tagKey, tagValue))));
+        return this;
+    }
+
+    /**
      * Build the final AppendCondition.
      * Combines decision model query + idempotency checks.
      */

@@ -44,7 +44,7 @@ public class WalletStateProjector implements StateProjector<WalletState> {
 
     @Override
     public List<Tag> getTags() {
-        return List.of(new Tag("wallet_id", walletId));
+        return List.of(Tag.of("wallet_id", walletId));
     }
 
     @Override
