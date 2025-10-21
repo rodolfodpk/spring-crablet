@@ -7,7 +7,7 @@ import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
-import com.crablet.core.QueryItem;
+import com.crablet.core.QueryBuilder;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.WalletQueryPatterns;
@@ -102,12 +102,9 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
      * Check if deposit was already processed (for idempotency handling).
      */
     private boolean depositWasAlreadyProcessed(EventStore store, String depositId) {
-        Query query = Query.of(
-                QueryItem.of(
-                        List.of("DepositMade"),
-                        List.of(new Tag("deposit_id", depositId))
-                )
-        );
+        Query query = QueryBuilder.create()
+                .event("DepositMade", "deposit_id", depositId)
+                .build();
         return !store.query(query, null).isEmpty();
     }
 

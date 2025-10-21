@@ -7,7 +7,7 @@ import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
-import com.crablet.core.QueryItem;
+import com.crablet.core.QueryBuilder;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.WalletQueryPatterns;
@@ -108,12 +108,9 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
      * Check if withdrawal was already processed (for idempotency handling).
      */
     private boolean withdrawalWasAlreadyProcessed(EventStore store, String withdrawalId) {
-        Query query = Query.of(
-                QueryItem.of(
-                        List.of("WithdrawalMade"),
-                        List.of(new Tag("withdrawal_id", withdrawalId))
-                )
-        );
+        Query query = QueryBuilder.create()
+                .event("WithdrawalMade", "withdrawal_id", withdrawalId)
+                .build();
         return !store.query(query, null).isEmpty();
     }
 

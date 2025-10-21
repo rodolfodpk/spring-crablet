@@ -7,7 +7,7 @@ import com.crablet.core.CommandResult;
 import com.crablet.core.Cursor;
 import com.crablet.core.EventStore;
 import com.crablet.core.Query;
-import com.crablet.core.QueryItem;
+import com.crablet.core.QueryBuilder;
 import com.crablet.core.SequenceNumber;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
@@ -119,12 +119,9 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
      * Check if transfer was already processed (for idempotency handling).
      */
     private boolean transferWasAlreadyProcessed(EventStore store, String transferId) {
-        Query query = Query.of(
-                QueryItem.of(
-                        List.of("MoneyTransferred"),
-                        List.of(new Tag("transfer_id", transferId))
-                )
-        );
+        Query query = QueryBuilder.create()
+                .event("MoneyTransferred", "transfer_id", transferId)
+                .build();
         return !store.query(query, null).isEmpty();
     }
 
