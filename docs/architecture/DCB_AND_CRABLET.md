@@ -165,7 +165,6 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
         // 6. Build append condition (DCB enforcement)
         AppendCondition condition = decisionModel
             .toAppendCondition(projection.cursor())
-            .withIdempotencyCheck("DepositMade", "deposit_id", command.depositId())
             .build();
 
         return CommandResult.of(List.of(event), condition);
@@ -184,8 +183,8 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
 
 1. **QueryBuilder**: Fluent API for building complex queries
 2. **AppendEvent.builder()**: Fluent event creation with inline tags
-3. **AppendCondition**: Combines decision model cursor + idempotency check
-4. **Projector Pattern**: State reconstruction from events
+3. **AppendCondition**: Enforces concurrency control using decision model cursor
+4. **Manual Idempotency**: Separate checks for duplicate operations (200 OK)
 5. **DCB Principle**: Condition uses same query as projection for consistency
 
 ## PostgreSQL Integration
