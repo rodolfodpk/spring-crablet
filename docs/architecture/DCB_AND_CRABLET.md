@@ -107,6 +107,91 @@ List<StoredEvent> events = eventStore.query(query, cursor);
 WalletState state = projector.project(events);
 ```
 
+### Command Handler Pattern
+
+Complete example showing modern Crablet APIs:
+
+```java
+@Component
+public class DepositCommandHandler implements CommandHandler<DepositCommand> {
+    
+    private final ObjectMapper objectMapper;
+    private final WalletBalanceProjector balanceProjector;
+
+    @Override
+    public CommandResult handle(EventStore eventStore, DepositCommand command) {
+        // 1. Define decision model query (what state do we need?)
+        Query decisionModel = QueryBuilder.create()
+            .events("WalletOpened", "DepositMade", "WithdrawalMade")
+            .tag("wallet_id", command.walletId())
+            .event("MoneyTransferred", "from_wallet_id", command.walletId())
+            .event("MoneyTransferred", "to_wallet_id", command.walletId())
+            .build();
+
+        // 2. Project current state
+        ProjectionResult<WalletBalanceState> projection =
+            balanceProjector.projectWalletBalance(eventStore, command.walletId(), decisionModel);
+        
+        if (!projection.state().isExisting()) {
+            throw new WalletNotFoundException(command.walletId());
+        }
+
+        // 3. Idempotency check
+        if (depositWasAlreadyProcessed(eventStore, command.depositId())) {
+            return CommandResult.emptyWithReason("DUPLICATE_DEPOSIT_ID");
+        }
+
+        // 4. Business logic
+        int newBalance = projection.state().balance() + command.amount();
+        DepositMade deposit = DepositMade.of(
+            command.depositId(),
+            command.walletId(),
+            command.amount(),
+            newBalance,
+            command.description()
+        );
+
+        // 5. Create event with fluent builder
+        AppendEvent event = AppendEvent.builder("DepositMade")
+            .tag("wallet_id", command.walletId())
+            .tag("deposit_id", command.depositId())
+            .data(serializeEvent(objectMapper, deposit))
+            .build();
+
+        // 6. Build append condition (DCB enforcement)
+        AppendCondition condition = decisionModel
+            .toAppendCondition(projection.cursor())
+            .withIdempotencyCheck("DepositMade", "deposit_id", command.depositId())
+            .build();
+
+        return CommandResult.of(List.of(event), condition);
+    }
+
+    private boolean depositWasAlreadyProcessed(EventStore store, String depositId) {
+        Query query = QueryBuilder.create()
+            .event("DepositMade", "deposit_id", depositId)
+            .build();
+        return !store.query(query, null).isEmpty();
+    }
+}
+```
+
+**Key Points:**
+
+1. **QueryBuilder**: Fluent API for building complex queries
+2. **AppendEvent.builder()**: Fluent event creation with inline tags
+3. **AppendCondition**: Combines decision model cursor + idempotency check
+4. **Projector Pattern**: State reconstruction from events
+5. **DCB Principle**: Condition uses same query as projection for consistency
+
+**API Evolution:**
+
+- **Old**: `AppendEvent.of(type, List.of(new Tag(...)), data)`
+- **New**: `AppendEvent.builder(type).tag(key, value).data(data).build()`
+
+- **Old**: `.withIdempotencyCheck("DepositMade", new Tag("deposit_id", id))`
+- **New**: `.withIdempotencyCheck("DepositMade", "deposit_id", id)`
+
 ## PostgreSQL Integration
 
 DCB leverages PostgreSQL features:
