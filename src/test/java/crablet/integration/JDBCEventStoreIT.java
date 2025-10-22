@@ -1,5 +1,5 @@
 package crablet.integration;
-import static wallets.testutils.DCBTestHelpers.*;
+import static crablet.testutils.DCBTestHelpers.*;
 
 import com.crablet.core.AppendCondition;
 import com.crablet.core.AppendEvent;
@@ -16,12 +16,13 @@ import com.crablet.core.impl.JDBCEventStore;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.event.WalletOpened;
+import com.crablet.core.ClockProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import crablet.integration.AbstractCrabletTest;
+import crablet.integration.AbstractCrabletIT;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -36,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Unit tests for JDBCEventStore edge cases and error handling.
  * Tests database-specific functionality, connection handling, and error scenarios.
  */
-class JDBCEventStoreTest extends AbstractCrabletTest {
+class JDBCEventStoreTest extends AbstractCrabletIT {
 
     @Autowired
     private JDBCEventStore eventStore;
@@ -49,6 +50,9 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
 
     @Autowired
     private EventStoreConfig config;
+    
+    @Autowired
+    private ClockProvider clock;
 
     @BeforeEach
     void setUp() {
@@ -524,7 +528,7 @@ class JDBCEventStoreTest extends AbstractCrabletTest {
     @DisplayName("Should handle database connection errors gracefully")
     void shouldHandleDatabaseConnectionErrorsGracefully() throws JsonProcessingException, SQLException {
         // When & Then - constructor should throw IllegalArgumentException for null DataSource
-        assertThatThrownBy(() -> new JDBCEventStore(null, objectMapper, config))
+        assertThatThrownBy(() -> new JDBCEventStore(null, objectMapper, config, clock))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("DataSource must not be null");
     }

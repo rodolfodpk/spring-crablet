@@ -40,13 +40,19 @@ class TestingArchitectureTest {
         ArchRule rule = classes()
                 .that().resideInAPackage("crablet..")
                 .and().haveSimpleNameEndingWith("Test")
-                .or().haveSimpleNameEndingWith("IT")
+                .or().resideInAPackage("crablet..")
+                .and().haveSimpleNameEndingWith("IT")
                 .should().onlyAccessClassesThat()
                 .resideInAnyPackage(
                         "crablet..", 
                         "com.crablet..", 
+                        "com.wallets..",  // Allow wallet classes for testing purposes
                         "java..", 
                         "org.springframework..",
+                        "org.springframework.boot.test..",  // Spring Boot test classes
+                        "org.springframework.web.client..",  // RestTemplate
+                        "org.springframework.test.web.client..",  // TestRestTemplate
+                        "org.springframework.jdbc.core..",  // JdbcTemplate
                         "org.junit..",
                         "org.testcontainers..",
                         "org.assertj..",

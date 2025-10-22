@@ -20,7 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import crablet.integration.AbstractCrabletTest;
+import crablet.integration.AbstractCrabletIT;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Integration tests for CommandExecutor.
  * Tests transaction management, event generation, and command storage.
  */
-class CommandExecutorTest extends AbstractCrabletTest {
+class CommandExecutorTest extends AbstractCrabletIT {
 
     @Autowired
     private CommandExecutor commandExecutor;
@@ -43,7 +43,6 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
     @Autowired
     private OpenWalletCommandHandler openWalletHandler;
-
 
     @Autowired
     private DepositCommandHandler depositHandler;

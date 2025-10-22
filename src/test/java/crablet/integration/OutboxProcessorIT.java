@@ -1,17 +1,17 @@
 package crablet.integration;
-import static wallets.testutils.DCBTestHelpers.*;
+import static crablet.testutils.DCBTestHelpers.*;
 
 import com.crablet.core.EventStore;
 import com.crablet.core.AppendEvent;
 import com.crablet.outbox.impl.JDBCOutboxProcessor;
 import com.crablet.outbox.impl.OutboxConfig;
-import crablet.testutils.outbox.CountDownLatchPublisher;
+import com.crablet.outbox.impl.publishers.CountDownLatchPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
-import crablet.integration.AbstractCrabletTest;
+import crablet.integration.AbstractCrabletIT;
 
 import java.util.List;
 
@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
     "crablet.outbox.topics.default.required-tags=test",
     "crablet.outbox.topics.default.publishers=CountDownLatchPublisher,TestPublisher,LogPublisher"
 })
-class OutboxProcessorIT extends AbstractCrabletTest {
+class OutboxProcessorIT extends AbstractCrabletIT {
     
     @Autowired
     private EventStore eventStore;
@@ -44,6 +44,12 @@ class OutboxProcessorIT extends AbstractCrabletTest {
     void setUp() {
         // Reset the publisher state before each test
         countDownLatchPublisher.reset();
+        
+        // Reset outbox database state to ensure test isolation
+        jdbcTemplate.update("DELETE FROM outbox_topic_progress WHERE topic = 'default'");
+        
+        // Ensure outbox is enabled for all tests
+        outboxConfig.setEnabled(true);
     }
     
     @Test
@@ -59,8 +65,7 @@ class OutboxProcessorIT extends AbstractCrabletTest {
         
         eventStore.append(List.of(event));
         
-        // Enable outbox and process
-        outboxConfig.setEnabled(true);
+        // Process outbox
         outboxProcessor.processPending();
         
         // Wait for the event to be processed by CountDownLatchPublisher
@@ -94,9 +99,6 @@ class OutboxProcessorIT extends AbstractCrabletTest {
     void shouldProcessEventsAndUpdatePublisherPosition() throws InterruptedException {
         // Set up expectation for 1 event
         countDownLatchPublisher.expectEvents(1);
-        
-        // Enable outbox temporarily
-        outboxConfig.setEnabled(true);
         
         // Append events
         AppendEvent event = AppendEvent.builder("TestEvent")

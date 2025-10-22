@@ -43,7 +43,7 @@ public class TransferIT extends AbstractWalletIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // Database cleanup is handled by AbstractCrabletTest
+        // Database cleanup is handled by AbstractCrabletIT
     }
 
     @AfterEach

@@ -1,4 +1,4 @@
-package crablet.testutils.outbox;
+package com.crablet.outbox.impl.publishers;
 
 import com.crablet.core.StoredEvent;
 import com.crablet.outbox.OutboxPublisher;

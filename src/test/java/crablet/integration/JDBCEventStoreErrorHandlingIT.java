@@ -1,5 +1,5 @@
 package crablet.integration;
-import static wallets.testutils.DCBTestHelpers.*;
+import static crablet.testutils.DCBTestHelpers.*;
 
 import com.crablet.core.AppendCondition;
 import com.crablet.core.AppendEvent;
@@ -13,7 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import crablet.integration.AbstractCrabletTest;
+import crablet.integration.AbstractCrabletIT;
 
 import java.util.List;
 
@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Tests error scenarios that contribute to low branch coverage in appendIf() and other methods.
  */
 @DisplayName("JDBCEventStore Error Handling Tests")
-class JDBCEventStoreErrorHandlingIT extends AbstractCrabletTest {
+class JDBCEventStoreErrorHandlingIT extends AbstractCrabletIT {
 
     @Autowired
     private JDBCEventStore eventStore;

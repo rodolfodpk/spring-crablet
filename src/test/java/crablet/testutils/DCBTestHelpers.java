@@ -1,4 +1,4 @@
-package wallets.testutils;
+package crablet.testutils;
 
 import com.crablet.core.AppendEvent;
 import com.crablet.core.Cursor;

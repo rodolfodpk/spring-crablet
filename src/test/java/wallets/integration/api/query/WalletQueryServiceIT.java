@@ -25,9 +25,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import wallets.integration.AbstractWalletIntegrationTest;
 import wallets.testutils.WalletTestUtils;
 
+import com.crablet.core.ClockProvider;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,6 +49,9 @@ class WalletQueryServiceIT extends AbstractWalletIntegrationTest {
 
     @Autowired
     private WalletQueryService queryService;
+    
+    @Autowired
+    private ClockProvider clock;
     
     @Autowired
     private WalletQueryRepository queryRepository;
@@ -165,12 +170,19 @@ class WalletQueryServiceIT extends AbstractWalletIntegrationTest {
     @Test
     @DisplayName("Should filter events by timestamp")
     void shouldFilterEventsByTimestamp() {
-        // Given: events at different timestamps
+        // Given: Fixed clock for deterministic timestamps
+        clock.setClock(java.time.Clock.fixed(Instant.parse("2023-01-01T10:00:00Z"), ZoneOffset.UTC));
+        
+        // Execute commands with known timestamps
         executeCommand(new OpenWalletCommand(walletId1, "Alice", 1000));
         executeCommand(new DepositCommand("deposit-1", walletId1, 500, "First deposit"));
         
-        Instant filterTime = Instant.now();
+        // Move clock forward and capture filter time
+        clock.setClock(java.time.Clock.fixed(Instant.parse("2023-01-01T10:01:00Z"), ZoneOffset.UTC));
+        Instant filterTime = clock.now();
         
+        // Move clock forward again for second command
+        clock.setClock(java.time.Clock.fixed(Instant.parse("2023-01-01T10:02:00Z"), ZoneOffset.UTC));
         executeCommand(new DepositCommand("deposit-2-unique", walletId1, 300, "Second deposit"));
 
         // When: get history with timestamp filter
@@ -268,12 +280,19 @@ class WalletQueryServiceIT extends AbstractWalletIntegrationTest {
     @Test
     @DisplayName("Should filter commands by timestamp")
     void shouldFilterCommandsByTimestamp() {
-        // Given: commands at different times
+        // Given: Fixed clock for deterministic timestamps
+        clock.setClock(java.time.Clock.fixed(Instant.parse("2023-01-01T10:00:00Z"), ZoneOffset.UTC));
+        
+        // Execute commands with known timestamps
         executeCommand(new OpenWalletCommand(walletId1, "Alice", 1000));
         executeCommand(new DepositCommand("deposit-1", walletId1, 500, "First deposit"));
         
-        Instant filterTime = Instant.now();
+        // Move clock forward and capture filter time
+        clock.setClock(java.time.Clock.fixed(Instant.parse("2023-01-01T10:01:00Z"), ZoneOffset.UTC));
+        Instant filterTime = clock.now();
         
+        // Move clock forward again for second command
+        clock.setClock(java.time.Clock.fixed(Instant.parse("2023-01-01T10:02:00Z"), ZoneOffset.UTC));
         executeCommand(new DepositCommand("deposit-2-unique", walletId1, 300, "Second deposit"));
 
         // When: get commands with timestamp filter

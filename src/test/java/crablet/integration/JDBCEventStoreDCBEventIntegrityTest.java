@@ -1,5 +1,5 @@
 package crablet.integration;
-import static wallets.testutils.DCBTestHelpers.*;
+import static crablet.testutils.DCBTestHelpers.*;
 
 import com.crablet.core.AppendEvent;
 import com.crablet.core.impl.EventStoreConfig;
@@ -9,6 +9,7 @@ import com.crablet.core.Tag;
 import com.crablet.core.impl.JDBCEventStore;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.crablet.core.ClockProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,13 +20,13 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static wallets.testutils.DCBTestHelpers.createTestEvent;
+import static crablet.testutils.DCBTestHelpers.createTestEvent;
 
 /**
  * Tests for DCB event data integrity.
  * Verifies that event type, tags, and JSON data are preserved exactly.
  */
-class JDBCEventStoreDCBEventIntegrityTest extends AbstractCrabletTest {
+class JDBCEventStoreDCBEventIntegrityTest extends AbstractCrabletIT {
 
     @Autowired
     private DataSource dataSource;
@@ -35,12 +36,15 @@ class JDBCEventStoreDCBEventIntegrityTest extends AbstractCrabletTest {
 
     @Autowired
     private EventStoreConfig config;
+    
+    @Autowired
+    private ClockProvider clock;
 
     private JDBCEventStore store;
 
     @BeforeEach
     void setUp() {
-        store = new JDBCEventStore(dataSource, objectMapper, config);
+        store = new JDBCEventStore(dataSource, objectMapper, config, clock);
     }
 
     @Test

@@ -16,6 +16,7 @@ import com.crablet.core.StateProjector;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.crablet.core.ClockProvider;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
@@ -53,6 +54,7 @@ public class JDBCEventStore implements EventStore {
     private final DataSource dataSource;
     private final ObjectMapper objectMapper;
     private final EventStoreConfig config;
+    private final ClockProvider clock;
 
     /**
      * Singleton RowMapper for StoredEvent objects.
@@ -71,7 +73,7 @@ public class JDBCEventStore implements EventStore {
     };
 
     @Autowired
-    public JDBCEventStore(DataSource dataSource, ObjectMapper objectMapper, EventStoreConfig config) {
+    public JDBCEventStore(DataSource dataSource, ObjectMapper objectMapper, EventStoreConfig config, ClockProvider clock) {
         if (dataSource == null) {
             throw new IllegalArgumentException("DataSource must not be null");
         }
@@ -81,9 +83,13 @@ public class JDBCEventStore implements EventStore {
         if (config == null) {
             throw new IllegalArgumentException("EventStoreConfig must not be null");
         }
+        if (clock == null) {
+            throw new IllegalArgumentException("ClockProvider must not be null");
+        }
         this.dataSource = dataSource;
         this.objectMapper = objectMapper;
         this.config = config;
+        this.clock = clock;
     }
 
     @Override
@@ -313,11 +319,12 @@ public class JDBCEventStore implements EventStore {
 
             // Call append_events_batch function with JSONB[] cast using raw JDBC
             try (Connection connection = dataSource.getConnection();
-                 PreparedStatement stmt = connection.prepareStatement("SELECT append_events_batch(?, ?, ?::jsonb[])")) {
+                 PreparedStatement stmt = connection.prepareStatement("SELECT append_events_batch(?, ?, ?::jsonb[], ?::TIMESTAMP WITH TIME ZONE)")) {
 
                 stmt.setArray(1, connection.createArrayOf("varchar", types));
                 stmt.setArray(2, connection.createArrayOf("varchar", tagArrays));
                 stmt.setArray(3, connection.createArrayOf("jsonb", dataStrings));
+                stmt.setTimestamp(4, java.sql.Timestamp.from(clock.now()));
 
                 stmt.execute();
             }
@@ -382,7 +389,7 @@ public class JDBCEventStore implements EventStore {
 
             // Call append_events_if with dual conditions
             try (Connection connection = dataSource.getConnection();
-                 PreparedStatement stmt = connection.prepareStatement("SELECT append_events_if(?, ?, ?::jsonb[], ?, ?, ?, ?, ?)")) {
+                 PreparedStatement stmt = connection.prepareStatement("SELECT append_events_if(?, ?, ?::jsonb[], ?, ?, ?, ?, ?, ?::TIMESTAMP WITH TIME ZONE)")) {
 
                 stmt.setArray(1, connection.createArrayOf("varchar", types));
                 stmt.setArray(2, connection.createArrayOf("varchar", tagArrays));
@@ -392,6 +399,7 @@ public class JDBCEventStore implements EventStore {
                 stmt.setObject(6, condition.afterCursor().position().value());
                 stmt.setObject(7, idempotencyTypes != null && !idempotencyTypes.isEmpty() ? idempotencyTypes.toArray(new String[0]) : null);
                 stmt.setObject(8, idempotencyTags != null && !idempotencyTags.isEmpty() ? idempotencyTags.toArray(new String[0]) : null);
+                stmt.setTimestamp(9, java.sql.Timestamp.from(clock.now()));
 
                 try (ResultSet rs = stmt.executeQuery()) {
                     if (rs.next()) {
@@ -585,7 +593,7 @@ public class JDBCEventStore implements EventStore {
         }
 
         try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT append_events_batch(?, ?, ?)")) {
+                "SELECT append_events_batch(?, ?, ?::jsonb[], ?::TIMESTAMP WITH TIME ZONE)")) {
 
             // Prepare arrays for append_events_batch function
             String[] types = events.stream().map(AppendEvent::type).toArray(String[]::new);
@@ -599,6 +607,7 @@ public class JDBCEventStore implements EventStore {
             stmt.setArray(1, connection.createArrayOf("text", types));
             stmt.setArray(2, connection.createArrayOf("text", tagArrays));
             stmt.setArray(3, connection.createArrayOf("jsonb", dataStrings));
+            stmt.setTimestamp(4, java.sql.Timestamp.from(clock.now()));
 
             stmt.execute();
         } catch (SQLException e) {
@@ -616,7 +625,7 @@ public class JDBCEventStore implements EventStore {
         }
 
         try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT append_events_if(?::text[], ?::text[], ?::jsonb[], ?::text[], ?::text[], ?, ?::text[], ?::text[])")) {
+                "SELECT append_events_if(?::text[], ?::text[], ?::jsonb[], ?::text[], ?::text[], ?, ?::text[], ?::text[], ?::TIMESTAMP WITH TIME ZONE)")) {
 
             // Prepare arrays for append_events_batch_if function
             String[] types = events.stream().map(AppendEvent::type).toArray(String[]::new);
@@ -665,6 +674,7 @@ public class JDBCEventStore implements EventStore {
             stmt.setLong(6, position);
             stmt.setArray(7, idempotencyTypes != null && !idempotencyTypes.isEmpty() ? connection.createArrayOf("text", idempotencyTypes.toArray(new String[0])) : null);
             stmt.setArray(8, idempotencyTags != null && !idempotencyTags.isEmpty() ? connection.createArrayOf("text", idempotencyTags.toArray(new String[0])) : null);
+            stmt.setTimestamp(9, java.sql.Timestamp.from(clock.now()));
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
@@ -1037,7 +1047,7 @@ public class JDBCEventStore implements EventStore {
 
             String sql = """
                     INSERT INTO commands (transaction_id, type, data, metadata, occurred_at)
-                    VALUES (?::xid8, ?, ?::jsonb, ?::jsonb, CURRENT_TIMESTAMP)
+                    VALUES (?::xid8, ?, ?::jsonb, ?::jsonb, ?::TIMESTAMP WITH TIME ZONE)
                     """;
 
             try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -1048,6 +1058,7 @@ public class JDBCEventStore implements EventStore {
                 // Create metadata JSON with command type and wallet ID if available
                 String metadataJson = createCommandMetadata(command);
                 stmt.setString(4, metadataJson);
+                stmt.setTimestamp(5, java.sql.Timestamp.from(clock.now()));
 
                 stmt.executeUpdate();
             }

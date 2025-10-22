@@ -1,5 +1,5 @@
 package crablet.integration;
-import static wallets.testutils.DCBTestHelpers.*;
+import static crablet.testutils.DCBTestHelpers.*;
 
 import com.crablet.core.EventStore;
 import com.crablet.core.AppendEvent;
@@ -10,7 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import crablet.integration.AbstractCrabletTest;
+import crablet.integration.AbstractCrabletIT;
 
 import java.util.List;
 
@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Integration tests for GlobalStatisticsPublisher.
  */
-class GlobalStatisticsIT extends AbstractCrabletTest {
+class GlobalStatisticsIT extends AbstractCrabletIT {
     
     @Autowired
     private EventStore eventStore;
@@ -42,6 +42,9 @@ class GlobalStatisticsIT extends AbstractCrabletTest {
         if (globalStatistics != null) {
             globalStatistics.reset();
         }
+        
+        // Reset outbox database state to ensure test isolation
+        jdbcTemplate.update("DELETE FROM outbox_topic_progress WHERE topic = 'default'");
         
         // Enable outbox processing
         outboxConfig.setEnabled(true);

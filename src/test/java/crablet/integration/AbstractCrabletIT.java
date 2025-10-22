@@ -1,7 +1,6 @@
 package crablet.integration;
-import static wallets.testutils.DCBTestHelpers.*;
-
 import com.crablet.core.EventStore;
+import com.Application;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,9 +15,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * Abstract base class for integration tests using Testcontainers.
  * Provides shared PostgreSQL container lifecycle and database setup.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "spring.profiles.active=test")
+@SpringBootTest(classes = Application.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "spring.profiles.active=test")
 @Testcontainers
-public abstract class AbstractCrabletTest {
+public abstract class AbstractCrabletIT {
 
     // Shared container instance across all test classes
     private static final PostgreSQLContainer<?> SHARED_POSTGRES = new PostgreSQLContainer<>("postgres:17")

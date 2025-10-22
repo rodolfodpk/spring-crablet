@@ -1,5 +1,5 @@
 package crablet.integration;
-import static wallets.testutils.DCBTestHelpers.*;
+import static crablet.testutils.DCBTestHelpers.*;
 
 import com.crablet.core.EventStore;
 import com.crablet.core.AppendEvent;
@@ -9,13 +9,13 @@ import com.crablet.outbox.impl.OutboxManagementService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import crablet.integration.AbstractCrabletTest;
+import crablet.integration.AbstractCrabletIT;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class OutboxManagementServiceIT extends AbstractCrabletTest {
+class OutboxManagementServiceIT extends AbstractCrabletIT {
     
     @Autowired
     private EventStore eventStore;

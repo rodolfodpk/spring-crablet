@@ -1,8 +1,13 @@
 package wallets.integration;
 
-import com.wallets.Application;
-import crablet.integration.AbstractCrabletTest;
+import com.Application;
+import com.crablet.core.ClockProvider;
+import crablet.integration.AbstractCrabletIT;
+import org.junit.jupiter.api.AfterEach;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.time.Clock;
 
 /**
  * Base class for wallet application integration tests.
@@ -11,6 +16,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest(classes = Application.class, 
                 webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = "spring.profiles.active=test")
-public abstract class AbstractWalletIntegrationTest extends AbstractCrabletTest {
-    // Wallet-specific test utilities can be added here
+public abstract class AbstractWalletIntegrationTest extends AbstractCrabletIT {
+    
+    @Autowired
+    private ClockProvider clock;
+    
+    @AfterEach
+    void resetClock() {
+        // Reset to system clock after each test to ensure clean state
+        clock.resetToSystemClock();
+    }
 }

@@ -21,7 +21,7 @@ import wallets.integration.AbstractWalletIntegrationTest;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static wallets.testutils.DCBTestHelpers.deserialize;
+import static crablet.testutils.DCBTestHelpers.deserialize;
 
 /**
  * Integration tests for DCB compliance with wallet domain operations.

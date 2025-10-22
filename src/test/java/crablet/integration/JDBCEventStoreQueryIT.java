@@ -1,5 +1,5 @@
 package crablet.integration;
-import static wallets.testutils.DCBTestHelpers.*;
+import static crablet.testutils.DCBTestHelpers.*;
 
 import com.crablet.core.AppendEvent;
 import com.crablet.core.Cursor;
@@ -14,7 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import crablet.integration.AbstractCrabletTest;
+import crablet.integration.AbstractCrabletIT;
 
 import java.util.List;
 
@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Tests complex query scenarios that contribute to branch coverage in buildEventQueryWhereClause().
  */
 @DisplayName("JDBCEventStore Query Edge Cases Tests")
-class JDBCEventStoreQueryIT extends AbstractCrabletTest {
+class JDBCEventStoreQueryIT extends AbstractCrabletIT {
 
     @Autowired
     private JDBCEventStore eventStore;
