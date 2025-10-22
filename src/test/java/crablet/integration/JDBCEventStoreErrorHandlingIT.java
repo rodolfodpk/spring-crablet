@@ -6,7 +6,7 @@ import com.crablet.core.ConcurrencyException;
 import com.crablet.core.Cursor;
 import com.crablet.core.EventStoreException;
 import com.crablet.core.Query;
-import com.crablet.impl.JDBCEventStore;
+import com.crablet.core.impl.JDBCEventStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

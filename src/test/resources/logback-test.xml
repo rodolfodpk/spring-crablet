@@ -23,7 +23,7 @@
         <appender-ref ref="CONSOLE"/>
     </logger>
 
-    <logger name="com.crablet.impl.JDBCEventStore" level="WARN" additivity="false">
+    <logger name="com.crablet.core.impl.JDBCEventStore" level="WARN" additivity="false">
         <appender-ref ref="CONSOLE"/>
     </logger>
 

@@ -16,7 +16,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * Abstract base class for integration tests using Testcontainers.
  * Provides shared PostgreSQL container lifecycle and database setup.
  */
-@SpringBootTest(classes = Application.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes = Application.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "spring.profiles.active=test")
 @Testcontainers
 public abstract class AbstractCrabletTest {
 
@@ -34,28 +34,6 @@ public abstract class AbstractCrabletTest {
     static {
         // Start the shared container once
         SHARED_POSTGRES.start();
-
-        // Run Flyway migrations to initialize schema
-        try {
-            System.out.println("Starting Flyway migrations on Testcontainers PostgreSQL...");
-            System.out.println("Database URL: " + SHARED_POSTGRES.getJdbcUrl());
-            System.out.println("Username: " + SHARED_POSTGRES.getUsername());
-
-            org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-                    .dataSource(SHARED_POSTGRES.getJdbcUrl(), SHARED_POSTGRES.getUsername(), SHARED_POSTGRES.getPassword())
-                    .locations("classpath:db/migration")
-                    .cleanDisabled(false) // Allow clean for testing
-                    .load();
-
-            System.out.println("Cleaning and running Flyway migrations...");
-            flyway.clean(); // Clean existing schema
-            flyway.migrate(); // Apply all migrations including new ones
-            System.out.println("Flyway migrations completed successfully!");
-        } catch (Exception e) {
-            System.err.println("Failed to run Flyway migrations: " + e.getMessage());
-            e.printStackTrace();
-            // Don't fail startup, schema might already exist
-        }
 
         // Register shutdown hook to automatically stop container when JVM exits
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -80,8 +58,8 @@ public abstract class AbstractCrabletTest {
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
 
-        // Disable Flyway for tests since we use init script
-        registry.add("spring.flyway.enabled", () -> false);
+        // Enable Flyway for tests since we need the full schema
+        registry.add("spring.flyway.enabled", () -> true);
     }
 
     /**

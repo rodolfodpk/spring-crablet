@@ -15,9 +15,9 @@ public class WalletQueryPatterns {
      */
     public static Query singleWalletDecisionModel(String walletId) {
         return QueryBuilder.create()
-                .events("WalletOpened", "DepositMade", "WithdrawalMade").tag("wallet_id", walletId)
-                .event("MoneyTransferred", "from_wallet_id", walletId)
-                .event("MoneyTransferred", "to_wallet_id", walletId)
+                .events("WalletOpened", "DepositMade", "WithdrawalMade").tag(WalletTags.WALLET_ID, walletId)
+                .event("MoneyTransferred", WalletTags.FROM_WALLET_ID, walletId)
+                .event("MoneyTransferred", WalletTags.TO_WALLET_ID, walletId)
                 .build();
     }
 
@@ -27,12 +27,12 @@ public class WalletQueryPatterns {
      */
     public static Query transferDecisionModel(String fromWalletId, String toWalletId) {
         return QueryBuilder.create()
-                .events("WalletOpened", "DepositMade", "WithdrawalMade").tag("wallet_id", fromWalletId)
-                .event("MoneyTransferred", "from_wallet_id", fromWalletId)
-                .event("MoneyTransferred", "to_wallet_id", fromWalletId)
-                .events("WalletOpened", "DepositMade", "WithdrawalMade").tag("wallet_id", toWalletId)
-                .event("MoneyTransferred", "from_wallet_id", toWalletId)
-                .event("MoneyTransferred", "to_wallet_id", toWalletId)
+                .events("WalletOpened", "DepositMade", "WithdrawalMade").tag(WalletTags.WALLET_ID, fromWalletId)
+                .event("MoneyTransferred", WalletTags.FROM_WALLET_ID, fromWalletId)
+                .event("MoneyTransferred", WalletTags.TO_WALLET_ID, fromWalletId)
+                .events("WalletOpened", "DepositMade", "WithdrawalMade").tag(WalletTags.WALLET_ID, toWalletId)
+                .event("MoneyTransferred", WalletTags.FROM_WALLET_ID, toWalletId)
+                .event("MoneyTransferred", WalletTags.TO_WALLET_ID, toWalletId)
                 .build();
     }
 
@@ -42,7 +42,7 @@ public class WalletQueryPatterns {
      */
     public static Query walletExistenceQuery(String walletId) {
         return QueryBuilder.create()
-                .event("WalletOpened", "wallet_id", walletId)
+                .event("WalletOpened", WalletTags.WALLET_ID, walletId)
                 .build();
     }
 }

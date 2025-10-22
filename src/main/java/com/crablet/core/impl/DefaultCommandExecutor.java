@@ -1,4 +1,4 @@
-package com.crablet.impl;
+package com.crablet.core.impl;
 
 import com.crablet.core.AppendEvent;
 import com.crablet.core.Command;

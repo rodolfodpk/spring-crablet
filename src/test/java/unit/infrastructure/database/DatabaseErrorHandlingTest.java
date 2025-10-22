@@ -5,7 +5,7 @@ import com.crablet.core.AppendEvent;
 import com.crablet.core.Query;
 import com.crablet.core.StateProjector;
 import com.crablet.core.Tag;
-import com.crablet.impl.JDBCEventStore;
+import com.crablet.core.impl.JDBCEventStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

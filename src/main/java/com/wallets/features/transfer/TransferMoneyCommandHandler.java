@@ -13,6 +13,7 @@ import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.WalletQueryPatterns;
+import com.wallets.domain.WalletTags;
 import com.wallets.domain.event.MoneyTransferred;
 import com.wallets.domain.exception.InsufficientFundsException;
 import com.wallets.domain.exception.WalletNotFoundException;
@@ -87,9 +88,9 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
         );
 
         AppendEvent event = AppendEvent.builder("MoneyTransferred")
-                .tag("transfer_id", command.transferId())
-                .tag("from_wallet_id", command.fromWalletId())
-                .tag("to_wallet_id", command.toWalletId())
+                .tag(WalletTags.TRANSFER_ID, command.transferId())
+                .tag(WalletTags.FROM_WALLET_ID, command.fromWalletId())
+                .tag(WalletTags.TO_WALLET_ID, command.toWalletId())
                 .data(serializeEvent(objectMapper, transfer))
                 .build();
 

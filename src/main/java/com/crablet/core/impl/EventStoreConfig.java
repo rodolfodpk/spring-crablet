@@ -1,4 +1,4 @@
-package com.crablet.impl;
+package com.crablet.core.impl;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;

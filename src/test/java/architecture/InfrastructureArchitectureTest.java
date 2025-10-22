@@ -24,7 +24,7 @@ class InfrastructureArchitectureTest {
     static void setUp() {
         classes = new ClassFileImporter()
                 .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-                .importPackages("com.wallets", "com.crablet.core", "com.crablet.impl");
+                .importPackages("com.wallets", "com.crablet.core", "com.crablet.core.impl");
     }
 
     @Test
@@ -41,7 +41,7 @@ class InfrastructureArchitectureTest {
     void event_store_should_only_be_in_infrastructure_or_crablet_impl() {
         ArchRule rule = classes()
                 .that().implement("com.crablet.core.EventStore")
-                .should().resideInAnyPackage("..infrastructure..", "com.crablet.impl..");
+                .should().resideInAnyPackage("..infrastructure..", "com.crablet.core.impl..");
 
         rule.check(classes);
     }
@@ -94,7 +94,7 @@ class InfrastructureArchitectureTest {
     @Test
     void crablet_implementations_should_implement_core_interfaces() {
         ArchRule rule = classes()
-                .that().resideInAnyPackage("..infrastructure.crablet.impl..", "com.crablet.impl..")
+                .that().resideInAnyPackage("..infrastructure.crablet.core.impl..", "com.crablet.core.impl..")
                 .and().haveSimpleNameEndingWith("EventStore")
                 .should().implement("com.crablet.core.EventStore");
 

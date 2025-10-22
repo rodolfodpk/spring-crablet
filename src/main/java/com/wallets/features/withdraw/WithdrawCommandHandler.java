@@ -11,6 +11,7 @@ import com.crablet.core.QueryBuilder;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.WalletQueryPatterns;
+import com.wallets.domain.WalletTags;
 import com.wallets.domain.event.WithdrawalMade;
 import com.wallets.domain.exception.InsufficientFundsException;
 import com.wallets.domain.exception.WalletNotFoundException;
@@ -77,8 +78,8 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         );
 
         AppendEvent event = AppendEvent.builder("WithdrawalMade")
-                .tag("wallet_id", command.walletId())
-                .tag("withdrawal_id", command.withdrawalId())
+                .tag(WalletTags.WALLET_ID, command.walletId())
+                .tag(WalletTags.WITHDRAWAL_ID, command.withdrawalId())
                 .data(serializeEvent(objectMapper, withdrawal))
                 .build();
 

@@ -11,6 +11,7 @@ import com.crablet.core.QueryBuilder;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.WalletQueryPatterns;
+import com.wallets.domain.WalletTags;
 import com.wallets.domain.event.DepositMade;
 import com.wallets.domain.exception.WalletNotFoundException;
 import com.wallets.domain.projections.WalletBalanceProjector;
@@ -71,8 +72,8 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
         );
 
         AppendEvent event = AppendEvent.builder("DepositMade")
-                .tag("wallet_id", command.walletId())
-                .tag("deposit_id", command.depositId())
+                .tag(WalletTags.WALLET_ID, command.walletId())
+                .tag(WalletTags.DEPOSIT_ID, command.depositId())
                 .data(serializeEvent(objectMapper, deposit))
                 .build();
 

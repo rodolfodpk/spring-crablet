@@ -1,4 +1,4 @@
-package com.crablet.impl;
+package com.crablet.core.impl;
 
 import com.crablet.core.AppendCondition;
 import com.crablet.core.AppendEvent;
@@ -8,7 +8,7 @@ import com.crablet.core.Cursor;
 import com.crablet.core.DCBViolation;
 import com.crablet.core.EventStoreException;
 import com.crablet.core.EventStore;
-import com.crablet.impl.EventStoreConfig;
+import com.crablet.core.impl.EventStoreConfig;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
 import com.crablet.core.QueryItem;

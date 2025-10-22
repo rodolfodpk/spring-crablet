@@ -25,13 +25,14 @@ class CrabletArchitectureTest {
     static void setUp() {
         classes = new ClassFileImporter()
                 .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-                .importPackages("com.crablet.core", "com.crablet.impl");
+                .importPackages("com.crablet.core", "com.crablet.core.impl");
     }
 
     @Test
     void crablet_core_should_not_depend_on_spring() {
         ArchRule rule = noClasses()
                 .that().resideInAPackage("com.crablet.core..")
+                .and().resideOutsideOfPackage("com.crablet.core.impl..")
                 .should().dependOnClassesThat()
                 .resideInAPackage("org.springframework..");
 
@@ -42,6 +43,7 @@ class CrabletArchitectureTest {
     void crablet_core_should_not_have_spring_annotations() {
         ArchRule rule = noClasses()
                 .that().resideInAPackage("com.crablet.core..")
+                .and().resideOutsideOfPackage("com.crablet.core.impl..")
                 .should().beAnnotatedWith("org.springframework.stereotype.Component")
                 .orShould().beAnnotatedWith("org.springframework.beans.factory.annotation.Autowired")
                 .orShould().beAnnotatedWith("org.springframework.stereotype.Service")
@@ -56,8 +58,9 @@ class CrabletArchitectureTest {
     void crablet_core_should_not_depend_on_implementations() {
         ArchRule rule = noClasses()
                 .that().resideInAPackage("com.crablet.core..")
+                .and().resideOutsideOfPackage("com.crablet.core.impl..")
                 .should().dependOnClassesThat()
-                .resideInAPackage("com.crablet.impl..");
+                .resideInAPackage("com.crablet.core.impl..");
 
         rule.check(classes);
     }
@@ -65,11 +68,11 @@ class CrabletArchitectureTest {
     @Test
     void crablet_impl_can_use_spring_classes() {
         ArchRule rule = classes()
-                .that().resideInAPackage("com.crablet.impl..")
+                .that().resideInAPackage("com.crablet.core.impl..")
                 .should().onlyDependOnClassesThat()
                 .resideInAnyPackage(
                         "com.crablet.core..",           // Core interfaces
-                        "com.crablet.impl..",          // Other implementations
+                        "com.crablet.core.impl..",      // Other implementations
                         "org.springframework..",      // Spring framework
                         "java..",                      // Java standard library
                         "javax.sql..",                 // JDBC
@@ -86,11 +89,11 @@ class CrabletArchitectureTest {
     @Test
     void crablet_impl_should_have_spring_annotations() {
         ArchRule rule = classes()
-                .that().resideInAPackage("com.crablet.impl..")
+                .that().resideInAPackage("com.crablet.core.impl..")
                 .and().haveSimpleNameEndingWith("EventStore")
                 .and().areNotInnerClasses()
                 .or().haveSimpleNameEndingWith("CommandExecutor")
-                .and().resideInAPackage("com.crablet.impl..")
+                .and().resideInAPackage("com.crablet.core.impl..")
                 .or().haveSimpleNameEndingWith("Config")
                 .should().beAnnotatedWith("org.springframework.stereotype.Component");
 
@@ -100,7 +103,7 @@ class CrabletArchitectureTest {
     @Test
     void crablet_implementations_should_implement_core_interfaces() {
         ArchRule rule = classes()
-                .that().resideInAPackage("com.crablet.impl..")
+                .that().resideInAPackage("com.crablet.core.impl..")
                 .and().haveSimpleNameEndingWith("EventStore")
                 .should().implement("com.crablet.core.EventStore");
 
@@ -110,7 +113,7 @@ class CrabletArchitectureTest {
     @Test
     void crablet_command_executor_should_implement_core_interface() {
         ArchRule rule = classes()
-                .that().resideInAPackage("com.crablet.impl..")
+                .that().resideInAPackage("com.crablet.core.impl..")
                 .and().haveSimpleNameEndingWith("CommandExecutor")
                 .should().implement("com.crablet.core.CommandExecutor");
 
@@ -121,6 +124,7 @@ class CrabletArchitectureTest {
     void crablet_core_should_only_contain_interfaces_and_contracts() {
         ArchRule rule = classes()
                 .that().resideInAPackage("com.crablet.core..")
+                .and().resideOutsideOfPackage("com.crablet.core.impl..")
                 .should().beInterfaces()
                 .orShould().beAssignableTo(Exception.class)
                 .orShould().beAssignableTo(Enum.class)
@@ -142,7 +146,7 @@ class CrabletArchitectureTest {
     @Test
     void crablet_impl_should_not_depend_on_wallet_packages() {
         ArchRule rule = noClasses()
-                .that().resideInAPackage("com.crablet.impl..")
+                .that().resideInAPackage("com.crablet.core.impl..")
                 .should().dependOnClassesThat()
                 .resideInAnyPackage("com.wallets..");
 

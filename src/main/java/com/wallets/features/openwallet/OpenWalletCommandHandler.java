@@ -10,6 +10,7 @@ import com.crablet.core.Query;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.WalletQueryPatterns;
+import com.wallets.domain.WalletTags;
 import com.wallets.domain.event.WalletOpened;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +53,7 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
 
         String jsonData = serializeEvent(objectMapper, walletOpened);
         AppendEvent event = AppendEvent.builder("WalletOpened")
-                .tag("wallet_id", command.walletId())
+                .tag(WalletTags.WALLET_ID, command.walletId())
                 .data(jsonData)
                 .build();
 
