@@ -1,4 +1,5 @@
 package crablet.integration;
+import static wallets.testutils.DCBTestHelpers.*;
 
 import com.crablet.core.AppendCondition;
 import com.crablet.core.AppendEvent;
@@ -13,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -23,16 +25,18 @@ import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static testutils.DCBTestHelpers.createTestEvent;
 
 /**
  * Tests for DCB atomicity guarantees.
  * Verifies that cursor and condition checks happen atomically in a single database snapshot.
  */
-class JDBCEventStoreDCBAtomicityTest extends testutils.AbstractCrabletTest {
+class JDBCEventStoreDCBAtomicityTest extends AbstractCrabletTest {
 
     @Autowired
     private DataSource dataSource;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Autowired
     private ObjectMapper objectMapper;

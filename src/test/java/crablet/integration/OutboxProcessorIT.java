@@ -1,16 +1,17 @@
 package crablet.integration;
+import static wallets.testutils.DCBTestHelpers.*;
 
 import com.crablet.core.EventStore;
 import com.crablet.core.AppendEvent;
 import com.crablet.outbox.impl.JDBCOutboxProcessor;
 import com.crablet.outbox.impl.OutboxConfig;
-import testutils.outbox.CountDownLatchPublisher;
+import crablet.testutils.outbox.CountDownLatchPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
-import testutils.AbstractCrabletTest;
+import crablet.integration.AbstractCrabletTest;
 
 import java.util.List;
 

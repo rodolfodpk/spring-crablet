@@ -1,4 +1,5 @@
 package crablet.integration;
+import static wallets.testutils.DCBTestHelpers.*;
 
 import com.crablet.core.AppendEvent;
 import com.crablet.core.impl.EventStoreConfig;
@@ -18,13 +19,13 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static testutils.DCBTestHelpers.createTestEvent;
+import static wallets.testutils.DCBTestHelpers.createTestEvent;
 
 /**
  * Tests for DCB event data integrity.
  * Verifies that event type, tags, and JSON data are preserved exactly.
  */
-class JDBCEventStoreDCBEventIntegrityTest extends testutils.AbstractCrabletTest {
+class JDBCEventStoreDCBEventIntegrityTest extends AbstractCrabletTest {
 
     @Autowired
     private DataSource dataSource;

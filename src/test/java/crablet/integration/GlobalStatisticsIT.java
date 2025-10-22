@@ -1,4 +1,5 @@
 package crablet.integration;
+import static wallets.testutils.DCBTestHelpers.*;
 
 import com.crablet.core.EventStore;
 import com.crablet.core.AppendEvent;
@@ -9,7 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import testutils.AbstractCrabletTest;
+import crablet.integration.AbstractCrabletTest;
 
 import java.util.List;
 

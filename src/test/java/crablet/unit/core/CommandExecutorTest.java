@@ -20,7 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import testutils.AbstractCrabletTest;
+import crablet.integration.AbstractCrabletTest;
 
 import java.util.List;
 import java.util.UUID;

@@ -1,11 +1,12 @@
 package crablet.integration;
+import static wallets.testutils.DCBTestHelpers.*;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import com.crablet.outbox.impl.OutboxMetrics;
 import com.crablet.outbox.impl.OutboxPublisherMetrics;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import testutils.AbstractCrabletTest;
+import crablet.integration.AbstractCrabletTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

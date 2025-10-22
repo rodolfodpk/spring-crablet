@@ -1,4 +1,5 @@
 package crablet.integration;
+import static wallets.testutils.DCBTestHelpers.*;
 
 import com.crablet.core.AppendEvent;
 import com.crablet.core.impl.EventStoreConfig;
@@ -19,13 +20,13 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static testutils.DCBTestHelpers.createTestEvent;
+import static wallets.testutils.DCBTestHelpers.createTestEvent;
 
 /**
  * Tests for DCB event ordering guarantees.
  * Verifies strict event ordering by position and transaction_id.
  */
-class JDBCEventStoreDCBOrderingTest extends testutils.AbstractCrabletTest {
+class JDBCEventStoreDCBOrderingTest extends AbstractCrabletTest {
 
     @Autowired
     private DataSource dataSource;
