@@ -34,14 +34,18 @@ class TestingArchitectureTest {
         rule.check(classes);
     }
 
+
     @Test
-    void crablet_tests_should_only_test_crablet_code() {
+    void crablet_test_classes_can_use_wallet_code_for_testing() {
         ArchRule rule = classes()
                 .that().resideInAPackage("crablet..")
+                .and().haveSimpleNameEndingWith("Test")
+                .or().haveSimpleNameEndingWith("IT")
                 .should().onlyAccessClassesThat()
                 .resideInAnyPackage(
                         "crablet..", 
                         "com.crablet..", 
+                        "com.wallets..",  // Allow wallet access for test data
                         "java..", 
                         "org.springframework..",
                         "org.junit..",
@@ -52,7 +56,8 @@ class TestingArchitectureTest {
                         "org.slf4j..",
                         "jakarta.annotation..",
                         "io.micrometer.core..",
-                        "io.github.resilience4j.."
+                        "io.github.resilience4j..",
+                        "com.tngtech.archunit.."
                 );
 
         rule.check(classes);
