@@ -36,7 +36,7 @@ class TestingArchitectureTest {
 
 
     @Test
-    void crablet_test_classes_can_use_wallet_code_for_testing() {
+    void crablet_test_classes_should_only_test_crablet_code() {
         ArchRule rule = classes()
                 .that().resideInAPackage("crablet..")
                 .and().haveSimpleNameEndingWith("Test")
@@ -45,7 +45,6 @@ class TestingArchitectureTest {
                 .resideInAnyPackage(
                         "crablet..", 
                         "com.crablet..", 
-                        "com.wallets..",  // Allow wallet access for test data
                         "java..", 
                         "org.springframework..",
                         "org.junit..",
