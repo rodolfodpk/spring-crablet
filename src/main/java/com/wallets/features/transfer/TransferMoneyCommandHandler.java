@@ -4,26 +4,19 @@ import com.crablet.core.AppendCondition;
 import com.crablet.core.AppendEvent;
 import com.crablet.core.CommandHandler;
 import com.crablet.core.CommandResult;
-import com.crablet.core.Cursor;
 import com.crablet.core.EventStore;
 import com.crablet.core.Query;
-import com.crablet.core.QueryBuilder;
-import com.crablet.core.SequenceNumber;
-import com.crablet.core.StoredEvent;
-import com.crablet.core.Tag;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.WalletQueryPatterns;
 import com.wallets.domain.WalletTags;
 import com.wallets.domain.event.MoneyTransferred;
 import com.wallets.domain.exception.InsufficientFundsException;
 import com.wallets.domain.exception.WalletNotFoundException;
 import com.wallets.domain.projections.WalletBalanceProjector;
-import com.wallets.domain.projections.WalletBalanceState;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.util.List;
 
 import static com.crablet.core.CommandHandler.serializeEvent;
@@ -41,10 +34,12 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 
     private final ObjectMapper objectMapper;
     private final WalletBalanceProjector balanceProjector;
+    private final TransferStateProjector transferProjector;
 
-    public TransferMoneyCommandHandler(ObjectMapper objectMapper, WalletBalanceProjector balanceProjector) {
+    public TransferMoneyCommandHandler(ObjectMapper objectMapper, WalletBalanceProjector balanceProjector, TransferStateProjector transferProjector) {
         this.objectMapper = objectMapper;
         this.balanceProjector = balanceProjector;
+        this.transferProjector = transferProjector;
     }
 
     @Override
@@ -116,23 +111,15 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
                 cmd.fromWalletId(),
                 cmd.toWalletId()
         );
-
-        List<StoredEvent> events = store.query(decisionModel, null);
-
-        // Build balance states for both wallets
-        WalletBalanceState fromWallet = balanceProjector.buildBalanceState(events, cmd.fromWalletId());
-        WalletBalanceState toWallet = balanceProjector.buildBalanceState(events, cmd.toWalletId());
-
-        // Capture cursor for optimistic locking
-        Cursor cursor = events.isEmpty()
-                ? Cursor.of(SequenceNumber.zero(), Instant.EPOCH)
-                : Cursor.of(
-                    events.get(events.size() - 1).position(), 
-                    events.get(events.size() - 1).occurredAt(),
-                    events.get(events.size() - 1).transactionId()
-                );
-
-        return new TransferProjectionResult(new TransferState(fromWallet, toWallet), cursor, decisionModel);
+        
+        // Configure projector for these specific wallets
+        transferProjector.forWallets(cmd.fromWalletId(), cmd.toWalletId());
+        
+        // Use EventStore's streaming projection with new signature
+        com.crablet.core.ProjectionResult<TransferState> result = 
+            store.project(decisionModel, com.crablet.core.Cursor.zero(), TransferState.class, List.of(transferProjector));
+        
+        return new TransferProjectionResult(result.state(), result.cursor(), decisionModel);
     }
 
     @Override
@@ -140,21 +127,9 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
         return "transfer_money";
     }
 
-    /**
-     * Minimal state for transfer command - balances for both wallets.
-     * <p>
-     * DCB Principle: Each command defines its own minimal state projection.
-     * This record contains only what TransferMoneyCommand needs to make decisions.
-     */
-    private record TransferState(
-            WalletBalanceState fromWallet,
-            WalletBalanceState toWallet
-    ) {
-    }
-
     private record TransferProjectionResult(
             TransferState state,
-            Cursor cursor,
+            com.crablet.core.Cursor cursor,
             Query decisionModel
     ) {
     }

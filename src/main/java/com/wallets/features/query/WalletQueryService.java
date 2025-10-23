@@ -1,11 +1,10 @@
 package com.wallets.features.query;
 
+import com.crablet.core.EventStore;
+import com.crablet.core.ProjectionResult;
+import com.crablet.core.Query;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wallets.domain.event.DepositMade;
-import com.wallets.domain.event.MoneyTransferred;
-import com.wallets.domain.event.WalletEvent;
-import com.wallets.domain.event.WalletOpened;
-import com.wallets.domain.event.WithdrawalMade;
+import com.wallets.domain.WalletQueryPatterns;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -31,10 +30,14 @@ public class WalletQueryService {
 
     private final ObjectMapper objectMapper;
     private final WalletQueryRepository queryRepository;
+    private final EventStore eventStore;
+    private final WalletStateProjector walletStateProjector;
 
-    public WalletQueryService(ObjectMapper objectMapper, WalletQueryRepository queryRepository) {
+    public WalletQueryService(ObjectMapper objectMapper, WalletQueryRepository queryRepository, EventStore eventStore, WalletStateProjector walletStateProjector) {
         this.objectMapper = objectMapper;
         this.queryRepository = queryRepository;
+        this.eventStore = eventStore;
+        this.walletStateProjector = walletStateProjector;
     }
 
     /**
@@ -45,19 +48,18 @@ public class WalletQueryService {
      */
     public WalletResponse getWalletState(String walletId) {
         try {
-            // Use repository for read-optimized query with json_agg()
-            byte[] eventsJsonArray = queryRepository.getWalletEventsAsJsonArray(walletId);
-
-            // Batch deserialize in one pass (PostgreSQL built the array)
-            WalletEvent[] walletEvents = objectMapper.readValue(eventsJsonArray, WalletEvent[].class);
-
-            // Project state from deserialized events
-            WalletState walletState = projectWalletState(walletId, walletEvents);
-
-            if (walletState.isEmpty()) {
+            // Use the full decision model query that includes MoneyTransferred events
+            Query query = WalletQueryPatterns.singleWalletDecisionModel(walletId);
+            
+            // Use new signature: query, cursor, stateType, projectors
+            ProjectionResult<WalletState> result = 
+                eventStore.project(query, com.crablet.core.Cursor.zero(), WalletState.class, List.of(walletStateProjector));
+            
+            WalletState walletState = result.state();
+            if (walletState == null || walletState.isEmpty()) {
                 return null;
             }
-
+            
             return WalletResponse.from(walletState);
         } catch (Exception e) {
             return null;
@@ -164,7 +166,9 @@ public class WalletQueryService {
                         // Parse the JSON data - data is a String, parse it to Map
                         Map<String, Object> dataMap;
                         if (command.data() instanceof String) {
-                            dataMap = objectMapper.readValue((String) command.data(), Map.class);
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> parsed = objectMapper.readValue((String) command.data(), Map.class);
+                            dataMap = parsed;
                         } else {
                             @SuppressWarnings("unchecked")
                             Map<String, Object> castedMap = (Map<String, Object>) command.data();
@@ -201,42 +205,6 @@ public class WalletQueryService {
                 .collect(Collectors.toList());
     }
 
-
-    /**
-     * Project wallet state from deserialized events.
-     * Applies state transitions based on event types.
-     *
-     * @param walletId Wallet ID to project state for
-     * @param events   Array of deserialized wallet events
-     * @return Final wallet state after applying all events
-     */
-    private WalletState projectWalletState(String walletId, WalletEvent[] events) {
-        WalletState state = new WalletState(walletId, "", 0, null, null);
-
-        for (WalletEvent event : events) {
-            state = switch (event) {
-                case WalletOpened opened when walletId.equals(opened.walletId()) ->
-                        new WalletState(opened.walletId(), opened.owner(),
-                                opened.initialBalance(), opened.openedAt(), opened.openedAt());
-
-                case MoneyTransferred transfer when walletId.equals(transfer.fromWalletId()) ->
-                        state.withBalance(transfer.fromBalance(), transfer.transferredAt());
-
-                case MoneyTransferred transfer when walletId.equals(transfer.toWalletId()) ->
-                        state.withBalance(transfer.toBalance(), transfer.transferredAt());
-
-                case DepositMade deposit when walletId.equals(deposit.walletId()) ->
-                        state.withBalance(deposit.newBalance(), deposit.depositedAt());
-
-                case WithdrawalMade withdrawal when walletId.equals(withdrawal.walletId()) ->
-                        state.withBalance(withdrawal.newBalance(), withdrawal.withdrawnAt());
-
-                default -> state;
-            };
-        }
-
-        return state;
-    }
 
     /**
      * Parse event data from JSON string to Map.

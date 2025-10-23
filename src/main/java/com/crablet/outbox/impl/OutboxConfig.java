@@ -1,6 +1,5 @@
 package com.crablet.outbox.impl;
 
-import com.crablet.outbox.impl.TopicConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +21,20 @@ public class OutboxConfig {
     private int maxRetries = 3;
     private long retryDelayMs = 5000;
     private LockStrategy lockStrategy = LockStrategy.GLOBAL;
+    
+    /**
+     * Heartbeat TTL in seconds. If a leader hasn't updated its heartbeat within this time,
+     * it's considered dead and other instances can take over.
+     * Default: 30 seconds (conservative to avoid false positives)
+     */
+    private int heartbeatTtlSeconds = 30;
+    
+    /**
+     * Interval in milliseconds for retrying acquisition of new/abandoned pairs (PER_TOPIC_PUBLISHER mode).
+     * Default: 30000ms (30 seconds) for production
+     * Set to 1000ms (1 second) for faster testing
+     */
+    private long acquisitionRetryIntervalMs = 30_000;
     
     @Autowired
     private TopicConfigurationProperties topicConfigurationProperties;
@@ -76,5 +89,21 @@ public class OutboxConfig {
     public void setTopics(Map<String, TopicConfig> topics) {
         // Topics are configured via TopicConfigurationProperties, not directly
         log.debug("setTopics called with {} topics", topics != null ? topics.size() : 0);
+    }
+    
+    public int getHeartbeatTtlSeconds() {
+        return heartbeatTtlSeconds;
+    }
+    
+    public void setHeartbeatTtlSeconds(int heartbeatTtlSeconds) {
+        this.heartbeatTtlSeconds = heartbeatTtlSeconds;
+    }
+    
+    public long getAcquisitionRetryIntervalMs() {
+        return acquisitionRetryIntervalMs;
+    }
+    
+    public void setAcquisitionRetryIntervalMs(long acquisitionRetryIntervalMs) {
+        this.acquisitionRetryIntervalMs = acquisitionRetryIntervalMs;
     }
 }

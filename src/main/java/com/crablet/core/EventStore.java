@@ -2,7 +2,6 @@ package com.crablet.core;
 
 import java.sql.Connection;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -43,23 +42,19 @@ public interface EventStore {
     void appendIf(List<AppendEvent> events, AppendCondition condition);
 
     /**
-     * Project projects state from events matching projectors with optional cursor.
-     * after == null: project from beginning of stream
-     * after != null: project from specified cursor position
+     * Project projects state from events matching query with cursor.
      * Returns final aggregated states and append condition for DCB concurrency control
+     * 
+     * @param query The query to filter events
+     * @param after Cursor to project events after (use Cursor.zero() for all events)
+     * @param stateType The type of state to project
+     * @param projectors List of projectors to apply to events
      */
     <T> ProjectionResult<T> project(
-            List<StateProjector<T>> projectors,
+            Query query,
             Cursor after,
-            Class<T> stateType
-    );
-
-    /**
-     * Convenience method for Map<String, Object> projections.
-     */
-    ProjectionResult<Map<String, Object>> project(
-            List<StateProjector> projectors,
-            Cursor after
+            Class<T> stateType,
+            List<StateProjector<T>> projectors
     );
 
     /**

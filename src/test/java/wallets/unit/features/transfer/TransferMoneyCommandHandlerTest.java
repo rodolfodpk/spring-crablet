@@ -14,6 +14,7 @@ import com.wallets.domain.exception.InsufficientFundsException;
 import com.wallets.domain.exception.WalletNotFoundException;
 import com.wallets.domain.projections.WalletBalanceProjector;
 import com.wallets.features.transfer.TransferMoneyCommand;
+import com.wallets.features.transfer.TransferStateProjector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class TransferMoneyCommandHandlerTest extends AbstractWalletIntegrationTest {
 
     private com.wallets.features.transfer.TransferMoneyCommandHandler handler;
+    private TransferStateProjector transferProjector;
     @Autowired
     private ObjectMapper objectMapper;
     private WalletBalanceProjector balanceProjector;
@@ -46,7 +48,8 @@ class TransferMoneyCommandHandlerTest extends AbstractWalletIntegrationTest {
     @BeforeEach
     void setUp() {
         balanceProjector = new WalletBalanceProjector(objectMapper);
-        handler = new com.wallets.features.transfer.TransferMoneyCommandHandler(objectMapper, balanceProjector);
+        transferProjector = new TransferStateProjector(objectMapper);
+        handler = new com.wallets.features.transfer.TransferMoneyCommandHandler(objectMapper, balanceProjector, transferProjector);
     }
 
     @Test

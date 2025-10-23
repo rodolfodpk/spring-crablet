@@ -110,30 +110,42 @@ public class JDBCEventStore implements EventStore {
 
             sql.append(" ORDER BY transaction_id, position ASC");
 
-            // Use raw JDBC for better control
-            try (Connection connection = dataSource.getConnection();
-                 PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
+            // Use raw JDBC with server-side cursor
+            try (Connection connection = dataSource.getConnection()) {
+                connection.setAutoCommit(false); // Required for server-side cursor
+                
+                try (PreparedStatement stmt = connection.prepareStatement(
+                        sql.toString(),
+                        ResultSet.TYPE_FORWARD_ONLY,
+                        ResultSet.CONCUR_READ_ONLY)) {
+                    
+                    stmt.setFetchSize(config.getFetchSize()); // Enables server-side cursor
 
-                stmt.setFetchSize(config.getFetchSize());
-
-                // Set parameters
-                for (int i = 0; i < params.size(); i++) {
-                    Object param = params.get(i);
-                    if (param instanceof String[]) {
-                        stmt.setArray(i + 1, connection.createArrayOf("text", (String[]) param));
-                    } else {
-                        stmt.setObject(i + 1, param);
+                    // Set parameters
+                    for (int i = 0; i < params.size(); i++) {
+                        Object param = params.get(i);
+                        if (param instanceof String[]) {
+                            stmt.setArray(i + 1, connection.createArrayOf("text", (String[]) param));
+                        } else {
+                            stmt.setObject(i + 1, param);
+                        }
                     }
-                }
 
-                // Execute query and process results
-                List<StoredEvent> events = new ArrayList<>();
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        events.add(EVENT_ROW_MAPPER.mapRow(rs, 0));
+                    // Execute query and process results
+                    List<StoredEvent> events = new ArrayList<>();
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            events.add(EVENT_ROW_MAPPER.mapRow(rs, 0));
+                        }
                     }
+                    
+                    connection.commit(); // Commit read-only transaction
+                    return events;
+                    
+                } catch (Exception e) {
+                    connection.rollback();
+                    throw e;
                 }
-                return events;
             }
         } catch (Exception e) {
             throw new EventStoreException("Failed to query events", e);
@@ -502,9 +514,9 @@ public class JDBCEventStore implements EventStore {
     }
 
     @Override
-    public <T> ProjectionResult<T> project(List<StateProjector<T>> projectors, Cursor after, Class<T> stateType) {
-        if (projectors == null) {
-            throw new NullPointerException("Projectors must not be null");
+    public <T> ProjectionResult<T> project(Query query, Cursor after, Class<T> stateType, List<StateProjector<T>> projectors) {
+        if (query == null) {
+            throw new NullPointerException("Query must not be null");
         }
         if (after == null) {
             throw new NullPointerException("Cursor must not be null");
@@ -512,75 +524,72 @@ public class JDBCEventStore implements EventStore {
         if (stateType == null) {
             throw new NullPointerException("State type must not be null");
         }
+        if (projectors == null || projectors.isEmpty()) {
+            throw new IllegalArgumentException("Projectors must not be null or empty");
+        }
 
-        // 1. Build query from projectors (DCB spec: automatically derive from decision model)
-        Query query = buildQueryFromProjectors(projectors);
-
-        // 2. Read events matching the query, starting AFTER cursor
-        List<StoredEvent> events = query(query, after);
-
-        // 3. Apply projectors to build state
-        T state = projectors.isEmpty()
-                ? null
-                : projectors.get(0).getInitialState();
-
-        for (StoredEvent event : events) {
-            for (StateProjector<T> projector : projectors) {
-                if (projector.handles(event)) {
-                    state = projector.transition(state, event);
+        try {
+            // Build SQL using existing helper
+            StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at FROM events");
+            List<Object> params = new ArrayList<>();
+            String whereClause = buildEventQueryWhereClause(query, after, params);
+            if (!whereClause.isEmpty()) {
+                sql.append(" WHERE ").append(whereClause);
+            }
+            sql.append(" ORDER BY transaction_id, position ASC");
+            
+            // Stream with server-side cursor
+            try (Connection connection = dataSource.getConnection()) {
+                connection.setAutoCommit(false); // Required for server-side cursor
+                
+                try (PreparedStatement stmt = connection.prepareStatement(
+                        sql.toString(),
+                        ResultSet.TYPE_FORWARD_ONLY,
+                        ResultSet.CONCUR_READ_ONLY)) {
+                    
+                    stmt.setFetchSize(config.getFetchSize());
+                    
+                    // Set parameters using existing logic
+                    for (int i = 0; i < params.size(); i++) {
+                        Object param = params.get(i);
+                        if (param instanceof String[]) {
+                            stmt.setArray(i + 1, connection.createArrayOf("text", (String[]) param));
+                        } else {
+                            stmt.setObject(i + 1, param);
+                        }
+                    }
+                    
+                    // Stream and project incrementally
+                    T state = projectors.get(0).getInitialState();
+                    Cursor lastCursor = after;
+                    
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            StoredEvent event = EVENT_ROW_MAPPER.mapRow(rs, 0);
+                            
+                            // Apply projectors
+                            for (StateProjector<T> projector : projectors) {
+                                if (projector.handles(event)) {
+                                    state = projector.transition(state, event);
+                                }
+                            }
+                            
+                            // Track cursor
+                            lastCursor = Cursor.of(event.position(), event.occurredAt(), event.transactionId());
+                        }
+                    }
+                    
+                    connection.commit(); // Commit read-only transaction
+                    return ProjectionResult.of(state, lastCursor);
+                    
+                } catch (Exception e) {
+                    connection.rollback();
+                    throw e;
                 }
             }
+        } catch (Exception e) {
+            throw new EventStoreException("Failed to project state", e);
         }
-
-        // 4. Return state with cursor of last processed event (for DCB optimistic locking)
-        Cursor newCursor = events.isEmpty()
-                ? after
-                : Cursor.of(
-                events.get(events.size() - 1).position(),
-                events.get(events.size() - 1).occurredAt(),
-                events.get(events.size() - 1).transactionId()
-        );
-
-        return ProjectionResult.of(state, newCursor);
-    }
-
-    @Override
-    public ProjectionResult<Map<String, Object>> project(List<StateProjector> projectors, Cursor after) {
-        if (projectors == null) {
-            throw new IllegalArgumentException("Projectors cannot be null");
-        }
-        if (after == null) {
-            throw new IllegalArgumentException("Cursor cannot be null");
-        }
-
-        // Build query from projectors
-        @SuppressWarnings("unchecked")
-        Query query = buildQueryFromProjectors((List<StateProjector<Map<String, Object>>>) (List<?>) projectors);
-        List<StoredEvent> events = query(query, after);
-
-        // Apply projectors to build state
-        Map<String, Object> state = projectors.isEmpty()
-                ? new HashMap<>()
-                : (Map<String, Object>) projectors.get(0).getInitialState();
-
-        for (StoredEvent event : events) {
-            for (StateProjector projector : projectors) {
-                if (projector.handles(event)) {
-                    state = (Map<String, Object>) projector.transition(state, event);
-                }
-            }
-        }
-
-        // Return with proper cursor
-        Cursor newCursor = events.isEmpty()
-                ? after
-                : Cursor.of(
-                events.get(events.size() - 1).position(),
-                events.get(events.size() - 1).occurredAt(),
-                events.get(events.size() - 1).transactionId()
-        );
-
-        return ProjectionResult.of(state, newCursor);
     }
 
     /**
@@ -850,85 +859,57 @@ public class JDBCEventStore implements EventStore {
      * Private method to project state using a provided connection.
      * Used internally by ConnectionScopedEventStore.
      */
-    private <T> ProjectionResult<T> projectWithConnection(Connection connection, List<StateProjector<T>> projectors, Cursor after, Class<T> stateType) {
+    private <T> ProjectionResult<T> projectWithConnection(Connection connection, Query query, Cursor after, Class<T> stateType, List<StateProjector<T>> projectors) {
         try {
-            // Build query from projectors (DCB spec)
-            Query query = buildQueryFromProjectors(projectors);
-
-            // Query events using the connection
-            List<StoredEvent> events = queryWithConnection(connection, query, after);
-
-            // Apply projectors
-            T state = projectors.isEmpty()
-                    ? null
-                    : projectors.get(0).getInitialState();
-
-            for (StoredEvent event : events) {
-                for (StateProjector<T> projector : projectors) {
-                    if (projector.handles(event)) {
-                        state = projector.transition(state, event);
+            // Build SQL using existing helper
+            StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at FROM events");
+            List<Object> params = new ArrayList<>();
+            String whereClause = buildEventQueryWhereClause(query, after, params);
+            if (!whereClause.isEmpty()) {
+                sql.append(" WHERE ").append(whereClause);
+            }
+            sql.append(" ORDER BY transaction_id, position ASC");
+            
+            // Stream with server-side cursor
+            try (PreparedStatement stmt = connection.prepareStatement(
+                    sql.toString(),
+                    ResultSet.TYPE_FORWARD_ONLY,
+                    ResultSet.CONCUR_READ_ONLY)) {
+                
+                stmt.setFetchSize(config.getFetchSize());
+                
+                // Set parameters using existing logic
+                for (int i = 0; i < params.size(); i++) {
+                    Object param = params.get(i);
+                    if (param instanceof String[]) {
+                        stmt.setArray(i + 1, connection.createArrayOf("text", (String[]) param));
+                    } else {
+                        stmt.setObject(i + 1, param);
                     }
                 }
-            }
-
-            // Return cursor of last processed event
-            Cursor newCursor = events.isEmpty()
-                    ? after
-                    : Cursor.of(
-                    events.get(events.size() - 1).position(),
-                    events.get(events.size() - 1).occurredAt(),
-                    events.get(events.size() - 1).transactionId()
-            );
-
-            return new ProjectionResult<>(state, newCursor);
-        } catch (Exception e) {
-            throw new EventStoreException("Failed to project state using connection", e);
-        }
-    }
-
-    /**
-     * Private method to project state using a provided connection (generic version).
-     * Used internally by ConnectionScopedEventStore.
-     */
-    @SuppressWarnings("unchecked")
-    private ProjectionResult<Map<String, Object>> projectWithConnection(Connection connection, List<StateProjector> projectors, Cursor after) {
-        if (projectors == null) {
-            throw new IllegalArgumentException("Projectors cannot be null");
-        }
-        if (after == null) {
-            throw new IllegalArgumentException("Cursor cannot be null");
-        }
-
-        try {
-            // Build query from projectors (DCB spec)
-            Query query = buildQueryFromProjectors((List<StateProjector<Map<String, Object>>>) (List<?>) projectors);
-
-            // Query events using the connection
-            List<StoredEvent> events = queryWithConnection(connection, query, after);
-
-            // Apply projectors
-            Map<String, Object> state = projectors.isEmpty()
-                    ? new HashMap<>()
-                    : (Map<String, Object>) projectors.get(0).getInitialState();
-
-            for (StoredEvent event : events) {
-                for (StateProjector projector : projectors) {
-                    if (projector.handles(event)) {
-                        state = (Map<String, Object>) projector.transition(state, event);
+                
+                // Stream and project incrementally
+                T state = projectors.get(0).getInitialState();
+                Cursor lastCursor = after;
+                
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        StoredEvent event = EVENT_ROW_MAPPER.mapRow(rs, 0);
+                        
+                        // Apply projectors
+                        for (StateProjector<T> projector : projectors) {
+                            if (projector.handles(event)) {
+                                state = projector.transition(state, event);
+                            }
+                        }
+                        
+                        // Track cursor
+                        lastCursor = Cursor.of(event.position(), event.occurredAt(), event.transactionId());
                     }
                 }
+                
+                return ProjectionResult.of(state, lastCursor);
             }
-
-            // Return cursor of last processed event
-            Cursor newCursor = events.isEmpty()
-                    ? after
-                    : Cursor.of(
-                    events.get(events.size() - 1).position(),
-                    events.get(events.size() - 1).occurredAt(),
-                    events.get(events.size() - 1).transactionId()
-            );
-
-            return new ProjectionResult<>(state, newCursor);
         } catch (Exception e) {
             throw new EventStoreException("Failed to project state using connection", e);
         }
@@ -1139,13 +1120,8 @@ public class JDBCEventStore implements EventStore {
         }
 
         @Override
-        public <T> ProjectionResult<T> project(List<StateProjector<T>> projectors, Cursor after, Class<T> stateType) {
-            return JDBCEventStore.this.projectWithConnection(connection, projectors, after, stateType);
-        }
-
-        @Override
-        public ProjectionResult<Map<String, Object>> project(List<StateProjector> projectors, Cursor after) {
-            return JDBCEventStore.this.projectWithConnection(connection, projectors, after);
+        public <T> ProjectionResult<T> project(Query query, Cursor after, Class<T> stateType, List<StateProjector<T>> projectors) {
+            return JDBCEventStore.this.projectWithConnection(connection, query, after, stateType, projectors);
         }
 
         @Override

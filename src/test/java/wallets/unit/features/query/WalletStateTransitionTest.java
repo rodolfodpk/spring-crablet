@@ -41,7 +41,7 @@ class WalletStateTransitionTest {
 
     @BeforeEach
     void setUp() {
-        projector = new WalletStateProjector("wallet1", OBJECT_MAPPER);
+        projector = new WalletStateProjector(OBJECT_MAPPER);
     }
 
     @Test

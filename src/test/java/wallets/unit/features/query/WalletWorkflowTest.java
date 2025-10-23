@@ -55,7 +55,7 @@ class WalletWorkflowTest {
 
     @BeforeEach
     void setUp() {
-        projector = new WalletStateProjector("wallet1", OBJECT_MAPPER);
+        projector = new WalletStateProjector(OBJECT_MAPPER);
     }
 
     @Test
@@ -93,8 +93,8 @@ class WalletWorkflowTest {
     @DisplayName("Should handle transfer workflow with multiple wallets")
     void testTransferWorkflowBusinessRules() {
         // Arrange
-        WalletStateProjector fromProjector = new WalletStateProjector("wallet1", OBJECT_MAPPER);
-        WalletStateProjector toProjector = new WalletStateProjector("wallet2", OBJECT_MAPPER);
+        WalletStateProjector fromProjector = new WalletStateProjector(OBJECT_MAPPER);
+        WalletStateProjector toProjector = new WalletStateProjector(OBJECT_MAPPER);
 
         // Initial states
         WalletState fromState = new WalletState("wallet1", "Alice", 1000, Instant.now(), Instant.now());
@@ -133,9 +133,9 @@ class WalletWorkflowTest {
     @DisplayName("Should handle complex transfer scenario with multiple transfers")
     void testComplexTransferScenario() {
         // Arrange
-        WalletStateProjector wallet1Projector = new WalletStateProjector("wallet1", OBJECT_MAPPER);
-        WalletStateProjector wallet2Projector = new WalletStateProjector("wallet2", OBJECT_MAPPER);
-        WalletStateProjector wallet3Projector = new WalletStateProjector("wallet3", OBJECT_MAPPER);
+        WalletStateProjector wallet1Projector = new WalletStateProjector(OBJECT_MAPPER);
+        WalletStateProjector wallet2Projector = new WalletStateProjector(OBJECT_MAPPER);
+        WalletStateProjector wallet3Projector = new WalletStateProjector(OBJECT_MAPPER);
 
         // Initial states
         WalletState wallet1State = new WalletState("wallet1", "Alice", 1000, Instant.now(), Instant.now());
@@ -176,8 +176,8 @@ class WalletWorkflowTest {
     @DisplayName("Should handle complete workflow scenarios")
     void testWorkflowScenarios(WorkflowScenario scenario) {
         // Arrange
-        WalletStateProjector fromProjector = new WalletStateProjector("wallet1", OBJECT_MAPPER);
-        WalletStateProjector toProjector = new WalletStateProjector("wallet2", OBJECT_MAPPER);
+        WalletStateProjector fromProjector = new WalletStateProjector(OBJECT_MAPPER);
+        WalletStateProjector toProjector = new WalletStateProjector(OBJECT_MAPPER);
 
         // Initial states
         WalletState fromState = new WalletState("wallet1", "Alice", scenario.fromBalance(), Instant.now(), Instant.now());

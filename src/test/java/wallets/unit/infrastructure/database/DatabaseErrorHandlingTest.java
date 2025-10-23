@@ -3,6 +3,7 @@ import wallets.integration.AbstractWalletIntegrationTest;
 
 import com.crablet.core.AppendCondition;
 import com.crablet.core.AppendEvent;
+import com.crablet.core.Cursor;
 import com.crablet.core.Query;
 import com.crablet.core.StateProjector;
 import com.crablet.core.Tag;
@@ -87,18 +88,10 @@ class DatabaseErrorHandlingTest extends AbstractWalletIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should handle projection with null projector")
-    void shouldHandleProjectionWithNullProjector() {
-        // When & Then
-        assertThatThrownBy(() -> eventStore.project((List<StateProjector>) null, null))
-                .isInstanceOf(Exception.class);
-    }
-
-    @Test
     @DisplayName("Should handle projection with null query")
     void shouldHandleProjectionWithNullQuery() {
         // When & Then
-        assertThatThrownBy(() -> eventStore.project((List<StateProjector>) null, null))
+        assertThatThrownBy(() -> eventStore.project(null, Cursor.zero(), Object.class, List.of()))
                 .isInstanceOf(Exception.class);
     }
 

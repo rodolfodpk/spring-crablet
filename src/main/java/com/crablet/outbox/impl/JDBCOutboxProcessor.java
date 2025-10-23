@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Component
 public class JDBCOutboxProcessor implements OutboxProcessor {
@@ -41,6 +40,12 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
     // Track which (topic, publisher) pairs this instance currently owns (for PER_TOPIC_PUBLISHER mode)
     private final Set<TopicPublisherPair> ownedPairs = ConcurrentHashMap.newKeySet();
     private final Map<String, OutboxPublisher> publisherByName = new ConcurrentHashMap<>();
+    
+    // Track if this instance is the global leader (for GLOBAL mode)
+    private volatile boolean isGlobalLeader = false;
+    
+    // Track when we last attempted to acquire new pairs (for PER_TOPIC_PUBLISHER mode)
+    private volatile long lastAcquisitionAttemptMs = 0;
     
     public JDBCOutboxProcessor(
             JdbcTemplate jdbcTemplate, 
@@ -74,105 +79,176 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
     private static final long OUTBOX_LOCK_KEY = 4856221667890123456L;
     
     /**
-     * Initialize (topic, publisher) pair ownership on startup (for PER_TOPIC_PUBLISHER mode).
-     * Tries to acquire locks for each configured (topic, publisher) pair once during initialization.
+     * Initialize leader election on startup for both GLOBAL and PER_TOPIC_PUBLISHER modes.
      */
     @PostConstruct
-    public void initializeTopicPublisherOwnership() {
-        if (config.getLockStrategy() != OutboxConfig.LockStrategy.PER_TOPIC_PUBLISHER) {
-            return; // Other modes don't use this
+    public void initializeLeaderElection() {
+        if (config.getLockStrategy() == OutboxConfig.LockStrategy.GLOBAL) {
+            initializeGlobalLeader();
+        } else if (config.getLockStrategy() == OutboxConfig.LockStrategy.PER_TOPIC_PUBLISHER) {
+            initializeTopicPublisherOwnership();
         }
-        
+    }
+    
+    /**
+     * GLOBAL mode: Try to acquire the single global lock at startup.
+     */
+    private void initializeGlobalLeader() {
+        log.info("Attempting to acquire GLOBAL lock on startup...");
+        Boolean lockAcquired = tryAcquireLock(OUTBOX_LOCK_KEY);
+        if (Boolean.TRUE.equals(lockAcquired)) {
+            isGlobalLeader = true;
+            outboxMetrics.setLeader(true);
+            log.info("✓ Acquired GLOBAL lock - this instance is the leader");
+        } else {
+            isGlobalLeader = false;
+            outboxMetrics.setLeader(false);
+            log.info("✗ Another instance holds GLOBAL lock - this instance is follower");
+        }
+    }
+    
+    /**
+     * PER_TOPIC_PUBLISHER mode: Try to acquire available (topic, publisher) pairs at startup.
+     * Uses hybrid approach: advisory lock + database heartbeat.
+     */
+    private void initializeTopicPublisherOwnership() {
         log.info("Attempting to acquire (topic, publisher) pair locks (PER_TOPIC_PUBLISHER mode)...");
-        
-        // Build all (topic, publisher) pairs from configuration
         Map<String, TopicConfig> topicConfigs = config.getTopics();
         
         for (var entry : topicConfigs.entrySet()) {
             String topicName = entry.getKey();
             TopicConfig topicConfig = entry.getValue();
-            
-            // Get publishers for this topic from configuration
             Set<String> configuredPublishers = topicConfig.getPublishers();
             
             for (String publisherName : configuredPublishers) {
                 TopicPublisherPair pair = new TopicPublisherPair(topicName, publisherName);
-                long lockKey = pair.getLockKey();
-                
-                Boolean acquired = tryAcquireLock(lockKey);
-                if (Boolean.TRUE.equals(acquired)) {
-                    ownedPairs.add(pair);
-                    updatePairLeaderInDatabase(pair, instanceId);
-                    
-                    log.info("✓ Acquired ownership of pair '{}'", pair);
-                } else {
-                    log.info("✗ Pair '{}' is owned by another instance", pair);
-                }
+                tryAcquirePair(pair);
             }
         }
         
-        log.info("This instance owns {} of {} total pairs", ownedPairs.size(),
-            topicConfigs.values().stream().mapToInt(t -> t.getPublishers().size()).sum());
+        log.info("This instance owns {} pairs", ownedPairs.size());
     }
     
     /**
-     * Release (topic, publisher) pair ownership on shutdown (for PER_TOPIC_PUBLISHER mode).
-     * Releases all owned locks gracefully.
+     * Try to acquire a (topic, publisher) pair using hybrid lock + heartbeat approach.
      */
-    @PreDestroy
-    public void releaseTopicPublisherOwnership() {
-        if (config.getLockStrategy() != OutboxConfig.LockStrategy.PER_TOPIC_PUBLISHER) {
-            return;
+    private boolean tryAcquirePair(TopicPublisherPair pair) {
+        if (ownedPairs.contains(pair)) {
+            return true;
         }
         
-        log.info("Releasing (topic, publisher) pair ownership...");
+        long lockKey = pair.getLockKey();
+        Boolean lockAcquired = tryAcquireLock(lockKey);
+        if (Boolean.FALSE.equals(lockAcquired)) {
+            Boolean isStale = isHeartbeatStale(pair.topic(), pair.publisher());
+            if (Boolean.FALSE.equals(isStale)) {
+                return false;
+            }
+            log.debug("Pair {} has stale heartbeat but lock is held - waiting for connection drop", pair);
+            return false;
+        }
         
+        // Use make_interval() for better compatibility with prepared statements
+        int updated = jdbcTemplate.update(
+            """
+            UPDATE outbox_topic_progress
+            SET leader_instance = ?,
+                leader_heartbeat = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE topic = ? AND publisher = ?
+              AND (
+                leader_instance IS NULL 
+                OR leader_instance = ?
+                OR leader_heartbeat < CURRENT_TIMESTAMP - make_interval(secs => ?)
+              )
+            """,
+            instanceId, pair.topic(), pair.publisher(), instanceId, config.getHeartbeatTtlSeconds()
+        );
+        
+        if (updated > 0) {
+            ownedPairs.add(pair);
+            outboxMetrics.setLeaderForPublisher(pair.topic(), true);
+            log.info("✓ Acquired pair: {}", pair);
+            return true;
+        } else {
+            releaseLock(lockKey);
+            log.debug("✗ Lost race for pair: {}", pair);
+            return false;
+        }
+    }
+    
+    /**
+     * Check if a pair's heartbeat is stale (leader is dead).
+     */
+    private Boolean isHeartbeatStale(String topic, String publisher) {
+        try {
+            // Use make_interval() for better compatibility and COALESCE for NULL safety
+            return jdbcTemplate.queryForObject(
+                """
+                SELECT COALESCE(
+                    leader_heartbeat < CURRENT_TIMESTAMP - make_interval(secs => ?)
+                    OR leader_heartbeat IS NULL,
+                    true
+                )
+                FROM outbox_topic_progress
+                WHERE topic = ? AND publisher = ?
+                """,
+                Boolean.class,
+                config.getHeartbeatTtlSeconds(), topic, publisher
+            );
+        } catch (Exception e) {
+            // Row doesn't exist - treat as stale/available
+            return true;
+        }
+    }
+    
+    /**
+     * Release leader election resources on shutdown for both GLOBAL and PER_TOPIC_PUBLISHER modes.
+     */
+    @PreDestroy
+    public void releaseLeaderElection() {
+        if (config.getLockStrategy() == OutboxConfig.LockStrategy.GLOBAL) {
+            releaseGlobalLeader();
+        } else if (config.getLockStrategy() == OutboxConfig.LockStrategy.PER_TOPIC_PUBLISHER) {
+            releaseTopicPublisherOwnership();
+        }
+    }
+    
+    /**
+     * GLOBAL mode: Release the global lock on graceful shutdown.
+     */
+    private void releaseGlobalLeader() {
+        if (isGlobalLeader) {
+            releaseLock(OUTBOX_LOCK_KEY);
+            isGlobalLeader = false;
+            outboxMetrics.setLeader(false);
+            log.info("Released GLOBAL lock on shutdown");
+        }
+    }
+    
+    /**
+     * PER_TOPIC_PUBLISHER mode: Release all owned pair locks on graceful shutdown.
+     */
+    private void releaseTopicPublisherOwnership() {
+        log.info("Releasing (topic, publisher) pair ownership...");
         for (TopicPublisherPair pair : ownedPairs) {
             long lockKey = pair.getLockKey();
             releaseLock(lockKey);
-            clearPairLeaderInDatabase(pair);
+            jdbcTemplate.update(
+                """
+                UPDATE outbox_topic_progress
+                SET leader_instance = NULL,
+                    leader_heartbeat = NULL,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE topic = ? AND publisher = ? AND leader_instance = ?
+                """,
+                pair.topic(), pair.publisher(), instanceId
+            );
             outboxMetrics.setLeaderForPublisher(pair.topic(), false);
             log.info("Released ownership of pair: {}", pair);
         }
-        
         ownedPairs.clear();
         log.info("All pair locks released");
-    }
-    
-    /**
-     * Get the lock key for a topic (strategy-aware).
-     */
-    private long getLockKey(String topicName) {
-        if (config.getLockStrategy() == OutboxConfig.LockStrategy.GLOBAL) {
-            return OUTBOX_LOCK_KEY; // Global lock
-        }
-        // Per-topic lock: hash of "crablet-outbox-topic-{name}"
-        return ("crablet-outbox-topic-" + topicName).hashCode();
-    }
-    
-    /**
-     * Get the lock key for a (topic, publisher) pair.
-     */
-    private long getLockKeyForPair(TopicPublisherPair pair) {
-        return pair.getLockKey();
-    }
-    
-    /**
-     * Update leader instance in database for a (topic, publisher) pair.
-     */
-    private void updatePairLeaderInDatabase(TopicPublisherPair pair, String instanceId) {
-        // This will be updated when we implement the new database schema
-        // For now, we'll use a placeholder that works with the current schema
-        log.debug("Updating leader for pair {} to instance {}", pair, instanceId);
-    }
-    
-    /**
-     * Clear leader instance in database for a (topic, publisher) pair.
-     */
-    private void clearPairLeaderInDatabase(TopicPublisherPair pair) {
-        // This will be updated when we implement the new database schema
-        // For now, we'll use a placeholder that works with the current schema
-        log.debug("Clearing leader for pair {}", pair);
     }
     
     /**
@@ -207,21 +283,24 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
     }
     
     /**
-     * GLOBAL mode: Acquire single lock, process all publishers.
+     * GLOBAL mode: One instance processes all publishers.
+     * Uses persistent advisory lock with retry on failure.
      */
     private void pollAndPublishGlobal() {
-        // Try to acquire advisory lock (session-level, non-blocking)
-        // Only one instance across all application nodes can hold this lock
-        Boolean acquired = tryAcquireLock(OUTBOX_LOCK_KEY);
-        
-        if (Boolean.FALSE.equals(acquired)) {
-            log.trace("Another instance holds the outbox lock, skipping");
-            outboxMetrics.setLeader(false);  // Not leader
-            return;
+        // If not leader, try to acquire lock (failover detection)
+        if (!isGlobalLeader) {
+            Boolean lockAcquired = tryAcquireLock(OUTBOX_LOCK_KEY);
+            if (Boolean.TRUE.equals(lockAcquired)) {
+                isGlobalLeader = true;
+                outboxMetrics.setLeader(true);
+                log.info("✓ Acquired GLOBAL lock - this instance is now the leader");
+            } else {
+                log.trace("Another instance holds the GLOBAL lock, skipping");
+                return;
+            }
         }
         
-        outboxMetrics.setLeader(true);  // This instance is leader
-        
+        // We're the leader - process events
         try {
             int processed = processPending();
             outboxMetrics.recordProcessingCycle();
@@ -230,18 +309,26 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
             }
         } catch (Exception e) {
             log.error("Error processing outbox", e);
-        } finally {
-            // Always release lock, even on exception
-            // If process crashes, PostgreSQL releases lock automatically
-            releaseLock(OUTBOX_LOCK_KEY);
         }
+        // NOTE: DO NOT release lock - PostgreSQL will auto-release on crash
     }
     
     /**
-     * PER_TOPIC_PUBLISHER mode: Process only (topic, publisher) pairs owned by this instance.
-     * Each pair is processed independently with fault isolation.
+     * PER_TOPIC_PUBLISHER mode: Each instance processes its owned (topic, publisher) pairs.
+     * Periodically tries to acquire new pairs (for dynamic scaling and failover).
      */
     private void pollAndPublishPerTopicPublisher() {
+        // Step 1: Update heartbeat for pairs we own (proves we're alive)
+        updateHeartbeatForOwnedPairs();
+        
+        // Step 2: Periodically try to acquire new/abandoned pairs (throttled for efficiency)
+        long now = System.currentTimeMillis();
+        if (now - lastAcquisitionAttemptMs >= config.getAcquisitionRetryIntervalMs()) {
+            tryAcquireAvailablePairs();
+            lastAcquisitionAttemptMs = now;
+        }
+        
+        // Step 3: Process owned pairs
         if (ownedPairs.isEmpty()) {
             log.trace("This instance owns no (topic, publisher) pairs, skipping");
             return;
@@ -249,7 +336,6 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
         
         try {
             int totalProcessed = 0;
-            
             for (TopicPublisherPair pair : ownedPairs) {
                 try {
                     int processed = processPair(pair);
@@ -257,21 +343,69 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
                 } catch (Exception e) {
                     log.error("Error processing pair {}", pair, e);
                     incrementErrorCount(pair.topic(), pair.publisher(), e.getMessage());
-                    
-                    // Check if we should auto-pause this pair
                     int errorCount = getErrorCount(pair.topic(), pair.publisher());
                     if (errorCount >= config.getMaxRetries()) {
                         autoPausePair(pair, errorCount, e.getMessage());
                     }
                 }
             }
-            
             outboxMetrics.recordProcessingCycle();
             if (totalProcessed > 0) {
                 log.debug("Processed {} events across {} owned pairs", totalProcessed, ownedPairs.size());
             }
         } catch (Exception e) {
             log.error("Error in PER_TOPIC_PUBLISHER processing", e);
+        }
+    }
+    
+    /**
+     * Update heartbeat for all pairs we own.
+     * This proves we're alive and prevents other instances from stealing our pairs.
+     */
+    private void updateHeartbeatForOwnedPairs() {
+        if (ownedPairs.isEmpty()) {
+            return;
+        }
+        for (TopicPublisherPair pair : ownedPairs) {
+            try {
+                jdbcTemplate.update(
+                    """
+                    UPDATE outbox_topic_progress
+                    SET leader_heartbeat = CURRENT_TIMESTAMP,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE topic = ? AND publisher = ? AND leader_instance = ?
+                    """,
+                    pair.topic(), pair.publisher(), instanceId
+                );
+            } catch (Exception e) {
+                log.warn("Failed to update heartbeat for pair {}: {}", pair, e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * Try to acquire available pairs (unowned or with stale heartbeats).
+     * Called periodically for dynamic scaling and failover.
+     */
+    private void tryAcquireAvailablePairs() {
+        Map<String, TopicConfig> topicConfigs = config.getTopics();
+        int acquired = 0;
+        
+        for (var entry : topicConfigs.entrySet()) {
+            String topicName = entry.getKey();
+            TopicConfig topicConfig = entry.getValue();
+            Set<String> configuredPublishers = topicConfig.getPublishers();
+            
+            for (String publisherName : configuredPublishers) {
+                TopicPublisherPair pair = new TopicPublisherPair(topicName, publisherName);
+                if (tryAcquirePair(pair)) {
+                    acquired++;
+                }
+            }
+        }
+        
+        if (acquired > 0) {
+            log.info("Acquired {} new pairs (failover or scale-up)", acquired);
         }
     }
     
@@ -496,15 +630,26 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
         // Auto-register publisher for topic if not exists
         Integer updated = jdbcTemplate.update(
             """
-            INSERT INTO outbox_topic_progress (topic, publisher, last_position, status)
-            VALUES (?, ?, 0, 'ACTIVE')
+            INSERT INTO outbox_topic_progress (topic, publisher, last_position, status, leader_instance, leader_heartbeat)
+            VALUES (?, ?, 0, 'ACTIVE', ?, CURRENT_TIMESTAMP)
             ON CONFLICT (topic, publisher) DO NOTHING
             """,
-            topicName, publisherName
+            topicName, publisherName, instanceId
         );
         
         if (updated > 0) {
             log.info("Auto-registered new publisher {} for topic {}", publisherName, topicName);
+            // Also acquire the lock and add to ownedPairs since we're claiming it
+            TopicPublisherPair pair = new TopicPublisherPair(topicName, publisherName);
+            long lockKey = pair.getLockKey();
+            Boolean lockAcquired = tryAcquireLock(lockKey);
+            if (Boolean.TRUE.equals(lockAcquired)) {
+                ownedPairs.add(pair);
+                outboxMetrics.setLeaderForPublisher(topicName, true);
+                log.info("✓ Acquired lock for auto-registered pair: {}", pair);
+            } else {
+                log.warn("Failed to acquire lock for auto-registered pair: {}", pair);
+            }
         }
         
         return jdbcTemplate.queryForObject(

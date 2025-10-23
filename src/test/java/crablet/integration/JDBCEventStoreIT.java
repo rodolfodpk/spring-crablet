@@ -315,22 +315,19 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
     @DisplayName("Should handle projection with empty projectors")
     void shouldHandleProjectionWithEmptyProjectors() {
         // Given
+        Query query = Query.empty();
         List<StateProjector<Object>> emptyProjectors = List.of();
 
-        // When
-        ProjectionResult<Object> result = eventStore.project(emptyProjectors, Cursor.zero(), Object.class);
-
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result.state()).isNull(); // Empty projectors = null state
-        assertThat(result.cursor()).isEqualTo(Cursor.zero()); // No events processed
+        // When & Then - should throw for empty projectors
+        assertThatThrownBy(() -> eventStore.project(query, Cursor.zero(), Object.class, emptyProjectors))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     @DisplayName("Should handle projection with null projectors")
     void shouldHandleProjectionWithNullProjectors() {
         // When & Then
-        assertThatThrownBy(() -> eventStore.project(null, null, Object.class))
+        assertThatThrownBy(() -> eventStore.project(null, null, Object.class, null))
                 .isInstanceOf(NullPointerException.class);
     }
 
@@ -338,15 +335,30 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
     @DisplayName("Should handle projection with cursor")
     void shouldHandleProjectionWithCursor() {
         // Given
-        List<StateProjector<Object>> projectors = List.of();
+        Query query = Query.empty();
+        StateProjector<Object> testProjector = new StateProjector<Object>() {
+            @Override
+            public String getId() { return "test"; }
+            @Override
+            public List<String> getEventTypes() { return List.of(); }
+            @Override
+            public List<Tag> getTags() { return List.of(); }
+            @Override
+            public Object getInitialState() { return new Object(); }
+            @Override
+            public boolean handles(StoredEvent event) { return false; }
+            @Override
+            public Object transition(Object currentState, StoredEvent event) { return currentState; }
+        };
+        List<StateProjector<Object>> projectors = List.of(testProjector);
         Cursor cursor = Cursor.of(0L, Instant.now());
 
         // When
-        ProjectionResult<Object> result = eventStore.project(projectors, cursor, Object.class);
+        ProjectionResult<Object> result = eventStore.project(query, cursor, Object.class, projectors);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result.state()).isNull(); // Empty projectors = null state
+        assertThat(result.state()).isNotNull();
         assertThat(result.cursor()).isEqualTo(cursor); // No events processed, returns input cursor
     }
 
@@ -395,9 +407,10 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
 
         // When: Project with the test projector
         ProjectionResult<Integer> result = eventStore.project(
-                List.of(countProjector),
+                Query.empty(),
                 Cursor.zero(),
-                Integer.class
+                Integer.class,
+                List.of(countProjector)
         );
 
         // Then: Verify projector was applied
