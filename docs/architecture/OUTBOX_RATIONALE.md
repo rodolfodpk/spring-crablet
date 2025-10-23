@@ -6,12 +6,13 @@ Your DCB event sourcing provides excellent consistency guarantees, but what abou
 
 ```java
 // ❌ Problematic - not atomic with DCB
-@Transactional
-public CommandResult handleDeposit(DepositCommand command) {
-    // DCB: Store event atomically
-    CommandResult result = depositHandler.handle(eventStore, command);
+public CommandResult handleTransfer(TransferCommand command) {
+    // DCB: Store multiple events atomically
+    CommandResult result = transferHandler.handle(eventStore, command);
     
     // External publishing - what if this fails?
+    kafkaPublisher.publish(new MoneyTransferredEvent(command));
+    kafkaPublisher.publish(new WithdrawalMadeEvent(command));
     kafkaPublisher.publish(new DepositMadeEvent(command));
     webhookPublisher.notify(command);
 }
@@ -25,12 +26,11 @@ The outbox pattern extends DCB's transactional guarantees to external publishing
 
 ```java
 // ✅ Correct - atomic with DCB
-@Transactional
-public CommandResult handleDeposit(DepositCommand command) {
-    // DCB: Store event atomically
-    CommandResult result = depositHandler.handle(eventStore, command);
+public CommandResult handleTransfer(TransferCommand command) {
+    // DCB: Store multiple events atomically
+    CommandResult result = transferHandler.handle(eventStore, command);
     
-    // Outbox: Events automatically published to external systems
+    // Outbox: All events from CommandResult automatically published to external systems
     // (Kafka, webhooks, analytics) with same transactional guarantees
     return result;
 }
@@ -54,10 +54,7 @@ Events are published atomically with DCB operations - no dual-write problem.
 - Maintains DCB's concurrency control guarantees
 
 ### 3. **Independent Publishers**
-Each publisher tracks its own progress, so failures are isolated:
-- Kafka down? Webhooks still work
-- Webhook fails? Kafka continues publishing
-- Analytics slow? Operations continue normally
+Each publisher tracks its own progress independently. Multiple publishers per topic enable fan-out scenarios (e.g., same events to Kafka AND analytics), but one publisher per topic is typical.
 
 ### 4. **Operational Control**
 - Pause/resume publishers independently
