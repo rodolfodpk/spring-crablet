@@ -29,8 +29,4 @@ public record CommandResult(
     public boolean isEmpty() {
         return events.isEmpty();
     }
-
-    public String getReason() {
-        return reason;
-    }
 }

@@ -7,8 +7,8 @@ package com.crablet.core;
  * programming errors (bugs). Includes command context for debugging.
  */
 public class InvalidCommandException extends RuntimeException {
-    private final Command command;
-    private final String validationError;
+    public final Command command;
+    public final String validationError;
     
     public InvalidCommandException(String message, Command command) {
         super(message);
@@ -20,13 +20,5 @@ public class InvalidCommandException extends RuntimeException {
         super(message);
         this.command = null;
         this.validationError = validationError;
-    }
-    
-    public Command getCommand() {
-        return command;
-    }
-    
-    public String getValidationError() {
-        return validationError;
     }
 }

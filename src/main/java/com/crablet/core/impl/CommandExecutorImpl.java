@@ -156,7 +156,7 @@ public class CommandExecutorImpl implements CommandExecutor {
                 // Return execution result based on what handler determined
                 boolean wasIdempotent = result.isEmpty();
                 if (wasIdempotent) {
-                    String reason = result.getReason() != null ? result.getReason() : "DUPLICATE_OPERATION";
+                    String reason = result.reason() != null ? result.reason() : "DUPLICATE_OPERATION";
                     log.debug("Transaction committed successfully for command: {} (idempotent)", command.getCommandType());
                     return ExecutionResult.idempotent(reason);
                 } else {

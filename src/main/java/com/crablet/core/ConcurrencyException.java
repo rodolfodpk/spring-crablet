@@ -9,8 +9,8 @@ package com.crablet.core;
  * - InvalidCommandException - for validation errors
  */
 public class ConcurrencyException extends RuntimeException {
-    private final Command command;
-    private final DCBViolation violation;
+    public final Command command;
+    public final DCBViolation violation;
 
     public ConcurrencyException(String message) {
         super(message);
@@ -46,13 +46,5 @@ public class ConcurrencyException extends RuntimeException {
         super(message);
         this.command = null;
         this.violation = violation;
-    }
-
-    public Command getCommand() {
-        return command;
-    }
-
-    public DCBViolation getViolation() {
-        return violation;
     }
 }

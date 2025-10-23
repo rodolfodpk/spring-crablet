@@ -129,7 +129,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ConcurrencyException.class)
     public ResponseEntity<Map<String, Object>> handleConcurrencyConflict(ConcurrencyException ex) {
-        Command cmd = ex.getCommand();
+        Command cmd = ex.command;
         if (cmd == null) {
             // Fallback for old-style ConcurrencyException without command
             log.warn("Concurrency conflict: {}", ex.getMessage());
