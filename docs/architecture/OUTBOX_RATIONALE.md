@@ -59,6 +59,7 @@ Each publisher tracks its own progress independently. Multiple publishers per to
 - Pause/resume publishers independently
 - Reset failed publishers without data loss
 - Monitor publisher lag and health
+- Deploy as single machine (GLOBAL) or distributed (PER_TOPIC_PUBLISHER)
 
 ## When to Use
 
@@ -95,7 +96,7 @@ Each publisher tracks its own progress independently. Multiple publishers per to
 - **DCB Operations**: ~350 req/s (cursor-only checks)
 - **Outbox Publishing**: 5-30 second polling interval (configurable)
 - **Batch Processing**: 100 events per batch
-- **Scalability**: Multiple processors can run simultaneously
+- **Scalability**: Single machine (GLOBAL) or distributed (PER_TOPIC_PUBLISHER)
 
 ## Conclusion
 

@@ -148,6 +148,32 @@ WHERE publisher = 'KafkaPublisher';
 - High-frequency, low-latency events
 - Exactly-once delivery requirements
 
+## Deployment Architecture
+
+The outbox processor supports different deployment strategies via lock configuration:
+
+### Single Machine (GLOBAL)
+```properties
+crablet.outbox.lock-strategy=GLOBAL
+```
+- **One instance** handles all publishers
+- **Simple deployment** - single point of processing
+- **Single point of failure** - if instance fails, no publishing until restart
+
+### Multiple Machines (PER_TOPIC_PUBLISHER)
+```properties
+crablet.outbox.lock-strategy=PER_TOPIC_PUBLISHER
+```
+- **N machines** each own specific (topic, publisher) pairs
+- **Distributed processing** - each machine handles its assigned pairs
+- **Fault tolerance** - if one machine fails, others continue processing
+- **Horizontal scaling** - add more machines to handle more publishers
+
+**Example with 3 machines:**
+- Machine A: `wallet-events:KafkaPublisher`, `payment-events:AnalyticsPublisher`
+- Machine B: `wallet-events:WebhookPublisher`, `user-events:EmailPublisher`  
+- Machine C: `audit-events:LogPublisher`, `metrics-events:StatsPublisher`
+
 ## Performance
 
 - **Polling Interval**: 5-30 seconds (configurable, default: 1 second)
