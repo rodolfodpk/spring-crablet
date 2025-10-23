@@ -19,10 +19,6 @@ public record SequenceNumber(long value) {
         return new SequenceNumber(0);
     }
 
-    public SequenceNumber increment() {
-        return new SequenceNumber(value + 1);
-    }
-
     public boolean isZero() {
         return value == 0;
     }

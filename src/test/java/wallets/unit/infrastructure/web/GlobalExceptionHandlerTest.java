@@ -40,8 +40,7 @@ class GlobalExceptionHandlerTest {
     void shouldHandleWalletAlreadyExistsWith200Ok() {
         // Given
         String walletId = "wallet-123";
-        String message = "Wallet already exists";
-        WalletAlreadyExistsException ex = new WalletAlreadyExistsException(walletId, message);
+        WalletAlreadyExistsException ex = new WalletAlreadyExistsException(walletId);
 
         // When
         ResponseEntity<Map<String, Object>> response = exceptionHandler.handleWalletAlreadyExists(ex);
@@ -49,7 +48,7 @@ class GlobalExceptionHandlerTest {
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().get("message")).isEqualTo(message);
+        assertThat(response.getBody().get("message")).isEqualTo("Wallet already exists: " + walletId);
         assertThat(response.getBody().get("walletId")).isEqualTo(walletId);
         assertThat(response.getBody().get("timestamp")).isNotNull();
     }
@@ -59,8 +58,7 @@ class GlobalExceptionHandlerTest {
     void shouldHandleWalletNotFoundWith404NotFound() {
         // Given
         String walletId = "wallet-123";
-        String message = "Wallet not found";
-        WalletNotFoundException ex = new WalletNotFoundException(walletId, message);
+        WalletNotFoundException ex = new WalletNotFoundException(walletId);
 
         // When
         ResponseEntity<Map<String, Object>> response = exceptionHandler.handleWalletNotFound(ex);
@@ -72,7 +70,7 @@ class GlobalExceptionHandlerTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> error = (Map<String, Object>) response.getBody().get("error");
         assertThat(error.get("code")).isEqualTo("WALLET_NOT_FOUND");
-        assertThat(error.get("message")).isEqualTo(message);
+        assertThat(error.get("message")).isEqualTo("Wallet not found: " + walletId);
         assertThat(error.get("walletId")).isEqualTo(walletId);
         assertThat(error.get("timestamp")).isNotNull();
     }
@@ -82,10 +80,9 @@ class GlobalExceptionHandlerTest {
     void shouldHandleInsufficientFundsWith400BadRequest() {
         // Given
         String walletId = "wallet-123";
-        String message = "Insufficient funds";
         int currentBalance = 100;
         int requestedAmount = 200;
-        InsufficientFundsException ex = new InsufficientFundsException(walletId, currentBalance, requestedAmount, message);
+        InsufficientFundsException ex = new InsufficientFundsException(walletId, currentBalance, requestedAmount);
 
         // When
         ResponseEntity<Map<String, Object>> response = exceptionHandler.handleInsufficientFunds(ex);
@@ -97,7 +94,7 @@ class GlobalExceptionHandlerTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> error = (Map<String, Object>) response.getBody().get("error");
         assertThat(error.get("code")).isEqualTo("INSUFFICIENT_FUNDS");
-        assertThat(error.get("message")).isEqualTo(message);
+        assertThat(error.get("message")).isEqualTo("Insufficient funds in wallet wallet-123: balance 100, requested 200");
         assertThat(error.get("walletId")).isEqualTo(walletId);
         assertThat(error.get("currentBalance")).isEqualTo(currentBalance);
         assertThat(error.get("requestedAmount")).isEqualTo(requestedAmount);
@@ -108,8 +105,7 @@ class GlobalExceptionHandlerTest {
     @DisplayName("Should handle InvalidOperationException with 400 BAD REQUEST")
     void shouldHandleInvalidOperationWith400BadRequest() {
         // Given
-        String message = "Invalid operation";
-        InvalidOperationException ex = new InvalidOperationException("test-operation", "test-reason", message);
+        InvalidOperationException ex = new InvalidOperationException("test-operation", "test-reason");
 
         // When
         ResponseEntity<Map<String, Object>> response = exceptionHandler.handleInvalidOperation(ex);
@@ -121,7 +117,7 @@ class GlobalExceptionHandlerTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> error = (Map<String, Object>) response.getBody().get("error");
         assertThat(error.get("code")).isEqualTo("VALIDATION_ERROR");
-        assertThat(error.get("message")).isEqualTo(message);
+        assertThat(error.get("message")).isEqualTo("Invalid test-operation operation: test-reason");
         assertThat(error.get("timestamp")).isNotNull();
     }
 

@@ -56,13 +56,6 @@ public class CountDownLatchPublisher implements OutboxPublisher {
         this.healthy = true;
     }
     
-    /**
-     * Simulate publisher failure for testing error scenarios.
-     */
-    public void simulateFailure() {
-        this.healthy = false;
-    }
-    
     @Override
     public String getName() {
         return "CountDownLatchPublisher";

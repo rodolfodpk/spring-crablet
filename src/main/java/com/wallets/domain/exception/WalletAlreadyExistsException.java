@@ -6,19 +6,10 @@ package com.wallets.domain.exception;
  */
 public class WalletAlreadyExistsException extends RuntimeException {
 
-    private final String walletId;
+    public final String walletId;
 
     public WalletAlreadyExistsException(String walletId) {
         super("Wallet already exists: " + walletId);
         this.walletId = walletId;
-    }
-
-    public WalletAlreadyExistsException(String walletId, String message) {
-        super(message);
-        this.walletId = walletId;
-    }
-
-    public String getWalletId() {
-        return walletId;
     }
 }

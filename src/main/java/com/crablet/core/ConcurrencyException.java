@@ -18,12 +18,6 @@ public class ConcurrencyException extends RuntimeException {
         this.violation = null;
     }
 
-    public ConcurrencyException(String message, Throwable cause) {
-        super(message, cause);
-        this.command = null;
-        this.violation = null;
-    }
-
     public ConcurrencyException(String message, Command command) {
         super(message);
         this.command = command;

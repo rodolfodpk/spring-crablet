@@ -320,10 +320,10 @@ public class EventStoreImpl implements EventStore {
             if ("P0001".equals(sqlState)) {
                 String message = e.getMessage();
                 if (message != null && message.contains("AppendIf condition failed")) {
-                    throw new ConcurrencyException("Concurrent modification: " + message, e);
+                    throw new ConcurrencyException("Concurrent modification: " + message);
                 }
                 // Other P0001 errors from PostgreSQL functions
-                throw new ConcurrencyException("PostgreSQL function error: " + message, e);
+                throw new ConcurrencyException("PostgreSQL function error: " + message);
             }
 
             // Handle other PostgreSQL-specific errors
@@ -335,7 +335,7 @@ public class EventStoreImpl implements EventStore {
         } catch (Exception e) {
             // Fallback: check message content for backward compatibility
             if (e.getMessage() != null && e.getMessage().contains("AppendIf condition failed")) {
-                throw new ConcurrencyException("Concurrent modification: " + e.getMessage(), e);
+                throw new ConcurrencyException("Concurrent modification: " + e.getMessage());
             }
 
             throw new EventStoreException("Failed to append events", e);

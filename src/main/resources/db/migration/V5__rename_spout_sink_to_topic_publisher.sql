@@ -14,3 +14,4 @@ CREATE INDEX idx_topic_leader ON outbox_topic_progress(topic, leader_instance);
 -- Update table comment
 COMMENT ON TABLE outbox_topic_progress IS 
 'Tracks last published event position per publisher per topic. Each publisher advances independently through events matching its topic criteria.';
+

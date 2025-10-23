@@ -37,7 +37,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleWalletAlreadyExists(WalletAlreadyExistsException ex) {
         Map<String, Object> body = Map.of(
                 "message", ex.getMessage(),
-                "walletId", ex.getWalletId(),
+                "walletId", ex.walletId,
                 "timestamp", Instant.now().toString()
         );
         return ResponseEntity.ok(body);
@@ -48,12 +48,12 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(WalletNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleWalletNotFound(WalletNotFoundException ex) {
-        log.warn("Wallet not found: walletId={}", ex.getWalletId());
+        log.warn("Wallet not found: walletId={}", ex.walletId);
         Map<String, Object> body = Map.of(
                 "error", Map.of(
                         "code", "WALLET_NOT_FOUND",
                         "message", ex.getMessage(),
-                        "walletId", ex.getWalletId(),
+                        "walletId", ex.walletId,
                         "timestamp", Instant.now().toString()
                 )
         );
@@ -66,14 +66,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InsufficientFundsException.class)
     public ResponseEntity<Map<String, Object>> handleInsufficientFunds(InsufficientFundsException ex) {
         log.warn("Insufficient funds: walletId={}, balance={}, requested={}",
-                ex.getWalletId(), ex.getCurrentBalance(), ex.getRequestedAmount());
+                ex.walletId, ex.currentBalance, ex.requestedAmount);
         Map<String, Object> body = Map.of(
                 "error", Map.of(
                         "code", "INSUFFICIENT_FUNDS",
                         "message", ex.getMessage(),
-                        "walletId", ex.getWalletId(),
-                        "currentBalance", ex.getCurrentBalance(),
-                        "requestedAmount", ex.getRequestedAmount(),
+                        "walletId", ex.walletId,
+                        "currentBalance", ex.currentBalance,
+                        "requestedAmount", ex.requestedAmount,
                         "timestamp", Instant.now().toString()
                 )
         );
@@ -89,8 +89,8 @@ public class GlobalExceptionHandler {
                 "error", Map.of(
                         "code", "VALIDATION_ERROR",
                         "message", ex.getMessage(),
-                        "operation", ex.getOperation(),
-                        "reason", ex.getReason(),
+                        "operation", ex.operation,
+                        "reason", ex.reason,
                         "timestamp", Instant.now().toString()
                 )
         );
