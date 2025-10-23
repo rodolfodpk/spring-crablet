@@ -174,11 +174,94 @@ crablet.outbox.lock-strategy=PER_TOPIC_PUBLISHER
 - Machine B: `wallet-events:WebhookPublisher`, `user-events:EmailPublisher`  
 - Machine C: `audit-events:LogPublisher`, `metrics-events:StatsPublisher`
 
+## Architecture Diagrams
+
+### Simple: Single Machine, Single Publisher
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Application   │───▶│   Event Store    │───▶│  Outbox Topics  │
+│   (DCB Commands)│    │  (events table)  │    │  (1 publisher)  │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │                        │
+                                ▼                        ▼
+                       ┌──────────────────┐    ┌─────────────────┐
+                       │   State Queries  │    │ External System │
+                       │  (Projections)   │    │    (Kafka)      │
+                       └──────────────────┘    └─────────────────┘
+
+Configuration:
+crablet.outbox.enabled=true
+crablet.outbox.lock-strategy=GLOBAL
+crablet.outbox.topics.wallet-events.required-tags=wallet_id
+crablet.outbox.topics.wallet-events.publishers=KafkaPublisher
+```
+
+### Medium: Single Machine, Multiple Publishers (Fan-out)
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Application   │───▶│   Event Store    │───▶│  Outbox Topics  │
+│   (DCB Commands)│    │  (events table)  │    │ (2 publishers)  │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │                        │
+                                ▼                        ▼
+                       ┌──────────────────┐    ┌─────────────────┐
+                       │   State Queries  │    │ External Systems│
+                       │  (Projections)   │    │ Kafka + Webhooks│
+                       └──────────────────┘    └─────────────────┘
+
+Configuration:
+crablet.outbox.enabled=true
+crablet.outbox.lock-strategy=GLOBAL
+crablet.outbox.topics.wallet-events.required-tags=wallet_id
+crablet.outbox.topics.wallet-events.publishers=KafkaPublisher,WebhookPublisher
+```
+
+### Complex: Multiple Machines, Distributed Publishers
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Application   │───▶│   Event Store    │───▶│  Outbox Topics  │
+│   (DCB Commands)│    │  (events table)  │    │ (distributed)   │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │                        │
+                                ▼                        ▼
+                       ┌──────────────────┐    ┌─────────────────┐
+                       │   State Queries  │    │ External Systems│
+                       │  (Projections)   │    │ Kafka + Webhooks│
+                       └──────────────────┘    │ + Analytics     │
+                                               └─────────────────┘
+
+Machine A (wallet-events:KafkaPublisher):
+┌─────────────────┐    ┌─────────────────┐
+│  Outbox Machine │───▶│     Kafka       │
+│       A         │    │   (wallet evts) │
+└─────────────────┘    └─────────────────┘
+
+Machine B (wallet-events:WebhookPublisher):
+┌─────────────────┐    ┌─────────────────┐
+│  Outbox Machine │───▶│   Webhooks      │
+│       B         │    │  (wallet evts)  │
+└─────────────────┘    └─────────────────┘
+
+Machine C (payment-events:AnalyticsPublisher):
+┌─────────────────┐    ┌─────────────────┐
+│  Outbox Machine │───▶│   Analytics     │
+│       C         │    │ (payment evts)  │
+└─────────────────┘    └─────────────────┘
+
+Configuration:
+crablet.outbox.enabled=true
+crablet.outbox.lock-strategy=PER_TOPIC_PUBLISHER
+crablet.outbox.topics.wallet-events.required-tags=wallet_id
+crablet.outbox.topics.wallet-events.publishers=KafkaPublisher,WebhookPublisher
+crablet.outbox.topics.payment-events.required-tags=payment_id
+crablet.outbox.topics.payment-events.publishers=AnalyticsPublisher
+```
+
 ## Performance
 
 - **Polling Interval**: 5-30 seconds (configurable, default: 1 second)
 - **Batch Size**: 100 events (configurable)
 - **Isolation**: READ COMMITTED (sufficient due to DCB advisory locks)
-- **Scalability**: Multiple processors can run simultaneously
+- **Scalability**: Single machine (GLOBAL) or distributed (PER_TOPIC_PUBLISHER)
 
 The outbox pattern adds reliable external publishing to your DCB event sourcing without compromising the core DCB guarantees.
