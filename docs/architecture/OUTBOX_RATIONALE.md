@@ -93,7 +93,7 @@ Each publisher tracks its own progress independently. Multiple publishers per to
 ## Performance Characteristics
 
 - **DCB Operations**: ~350 req/s (cursor-only checks)
-- **Outbox Publishing**: 1-second polling interval
+- **Outbox Publishing**: 5-30 second polling interval (configurable)
 - **Batch Processing**: 100 events per batch
 - **Scalability**: Multiple processors can run simultaneously
 

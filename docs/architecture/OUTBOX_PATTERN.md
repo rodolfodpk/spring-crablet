@@ -62,6 +62,9 @@ public CommandResult handleTransfer(TransferCommand command) {
 # Enable outbox processing
 crablet.outbox.enabled=true
 
+# Polling interval (milliseconds) - adjust based on requirements
+crablet.outbox.polling-interval-ms=5000
+
 # Topic routing (matches DCB event tags)
 crablet.outbox.topics.wallet-events.required-tags=wallet_id
 crablet.outbox.topics.wallet-events.publishers=KafkaPublisher
@@ -147,7 +150,7 @@ WHERE publisher = 'KafkaPublisher';
 
 ## Performance
 
-- **Polling Interval**: 1 second (configurable)
+- **Polling Interval**: 5-30 seconds (configurable, default: 1 second)
 - **Batch Size**: 100 events (configurable)
 - **Isolation**: READ COMMITTED (sufficient due to DCB advisory locks)
 - **Scalability**: Multiple processors can run simultaneously
