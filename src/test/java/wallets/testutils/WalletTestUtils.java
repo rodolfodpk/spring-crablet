@@ -1,6 +1,7 @@
 package wallets.testutils;
 
 import com.crablet.core.AppendEvent;
+import com.crablet.core.EventDeserializer;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -163,6 +164,22 @@ public class WalletTestUtils {
 
     // Note: WalletState assertion method removed as WalletState is now package-private
     // Tests should be moved to the same package or use public APIs
+
+    /**
+     * Create a test EventDeserializer for deserializing events.
+     */
+    public static EventDeserializer createEventDeserializer() {
+        return new EventDeserializer() {
+            @Override
+            public <E> E deserialize(StoredEvent event, Class<E> eventType) {
+                try {
+                    return OBJECT_MAPPER.readValue(event.data(), eventType);
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to deserialize event", e);
+                }
+            }
+        };
+    }
 
     /**
      * Assert that two wallet events are equal ignoring timestamps.

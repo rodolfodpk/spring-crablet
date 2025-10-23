@@ -10,7 +10,6 @@ import com.crablet.core.EventStore;
 import com.crablet.core.ExecutionResult;
 import com.crablet.core.InvalidCommandException;
 import com.crablet.core.Tag;
-import com.crablet.core.ClockProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,13 +36,11 @@ public class DefaultCommandExecutor implements CommandExecutor {
     private final EventStore eventStore;
     private final Map<String, CommandHandler<?>> handlers;
     private final EventStoreConfig config;
-    private final ClockProvider clock;
 
     @Autowired
-    public DefaultCommandExecutor(EventStore eventStore, List<CommandHandler<?>> commandHandlers, EventStoreConfig config, ClockProvider clock) {
+    public DefaultCommandExecutor(EventStore eventStore, List<CommandHandler<?>> commandHandlers, EventStoreConfig config) {
         this.eventStore = eventStore;
         this.config = config;
-        this.clock = clock;
 
         // Build handler map from Spring-injected list
         this.handlers = commandHandlers.stream()

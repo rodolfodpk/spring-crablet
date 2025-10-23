@@ -45,7 +45,7 @@ class WalletNewCommandsTest extends AbstractWalletIntegrationTest {
     @BeforeEach
     void setUp() {
 
-        WalletBalanceProjector balanceProjector = new WalletBalanceProjector(objectMapper);
+        WalletBalanceProjector balanceProjector = new WalletBalanceProjector();
         depositHandler = new DepositCommandHandler(objectMapper, balanceProjector);
         withdrawHandler = new WithdrawCommandHandler(objectMapper, balanceProjector);
         openHandler = new OpenWalletCommandHandler(objectMapper);

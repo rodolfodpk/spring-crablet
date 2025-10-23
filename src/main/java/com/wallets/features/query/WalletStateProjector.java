@@ -1,9 +1,9 @@
 package com.wallets.features.query;
 
+import com.crablet.core.EventDeserializer;
 import com.crablet.core.StateProjector;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.event.*;
 import org.springframework.stereotype.Component;
 
@@ -16,10 +16,7 @@ import java.util.List;
 @Component
 public class WalletStateProjector implements StateProjector<WalletState> {
 
-    private final ObjectMapper objectMapper;
-
-    public WalletStateProjector(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public WalletStateProjector() {
     }
 
     @Override
@@ -43,14 +40,9 @@ public class WalletStateProjector implements StateProjector<WalletState> {
     }
 
     @Override
-    public WalletState transition(WalletState currentState, StoredEvent event) {
-        // Parse event data as WalletEvent using sealed interface
-        WalletEvent walletEvent;
-        try {
-            walletEvent = objectMapper.readValue(event.data(), WalletEvent.class);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to deserialize WalletEvent", e);
-        }
+    public WalletState transition(WalletState currentState, StoredEvent event, EventDeserializer context) {
+        // Deserialize event data as WalletEvent using sealed interface
+        WalletEvent walletEvent = context.deserialize(event, WalletEvent.class);
 
         // Use pattern matching for type-safe event handling
         return switch (walletEvent) {

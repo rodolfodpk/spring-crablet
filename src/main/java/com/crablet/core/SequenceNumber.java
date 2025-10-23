@@ -35,10 +35,6 @@ public record SequenceNumber(long value) {
         return this.value < other.value;
     }
 
-    public boolean equals(SequenceNumber other) {
-        return this.value == other.value;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

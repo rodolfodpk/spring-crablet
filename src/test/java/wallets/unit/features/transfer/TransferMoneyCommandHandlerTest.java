@@ -47,8 +47,8 @@ class TransferMoneyCommandHandlerTest extends AbstractWalletIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        balanceProjector = new WalletBalanceProjector(objectMapper);
-        transferProjector = new TransferStateProjector(objectMapper);
+        balanceProjector = new WalletBalanceProjector();
+        transferProjector = new TransferStateProjector();
         handler = new com.wallets.features.transfer.TransferMoneyCommandHandler(objectMapper, balanceProjector, transferProjector);
     }
 

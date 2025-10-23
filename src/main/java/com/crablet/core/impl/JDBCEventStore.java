@@ -9,6 +9,7 @@ import com.crablet.core.DCBViolation;
 import com.crablet.core.EventStoreException;
 import com.crablet.core.EventStore;
 import com.crablet.core.impl.EventStoreConfig;
+import com.crablet.core.EventDeserializer;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
 import com.crablet.core.QueryItem;
@@ -50,6 +51,27 @@ import java.util.stream.Collectors;
 public class JDBCEventStore implements EventStore {
 
     private static final Logger log = LoggerFactory.getLogger(JDBCEventStore.class);
+
+    /**
+     * SQL statements for PostgreSQL functions and queries.
+     * Extracted as constants for maintainability and readability.
+     */
+    private static final String APPEND_EVENTS_BATCH_SQL = 
+        "SELECT append_events_batch(?, ?, ?::jsonb[], ?::TIMESTAMP WITH TIME ZONE)";
+
+    private static final String APPEND_EVENTS_IF_SQL = 
+        "SELECT append_events_if(?, ?, ?::jsonb[], ?, ?, ?, ?, ?, ?::TIMESTAMP WITH TIME ZONE)";
+
+    private static final String APPEND_EVENTS_IF_CONNECTION_SQL = 
+        "SELECT append_events_if(?::text[], ?::text[], ?::jsonb[], ?::text[], ?::text[], ?, ?::text[], ?::text[], ?::TIMESTAMP WITH TIME ZONE)";
+
+    private static final String INSERT_COMMAND_SQL = """
+        INSERT INTO commands (transaction_id, type, data, metadata, occurred_at)
+        VALUES (?::xid8, ?, ?::jsonb, ?::jsonb, ?::TIMESTAMP WITH TIME ZONE)
+        """;
+
+    private static final String GET_CURRENT_TRANSACTION_ID_SQL = 
+        "SELECT pg_current_xact_id()::TEXT";
 
     private final DataSource dataSource;
     private final ObjectMapper objectMapper;
@@ -331,7 +353,7 @@ public class JDBCEventStore implements EventStore {
 
             // Call append_events_batch function with JSONB[] cast using raw JDBC
             try (Connection connection = dataSource.getConnection();
-                 PreparedStatement stmt = connection.prepareStatement("SELECT append_events_batch(?, ?, ?::jsonb[], ?::TIMESTAMP WITH TIME ZONE)")) {
+                 PreparedStatement stmt = connection.prepareStatement(APPEND_EVENTS_BATCH_SQL)) {
 
                 stmt.setArray(1, connection.createArrayOf("varchar", types));
                 stmt.setArray(2, connection.createArrayOf("varchar", tagArrays));
@@ -401,7 +423,7 @@ public class JDBCEventStore implements EventStore {
 
             // Call append_events_if with dual conditions
             try (Connection connection = dataSource.getConnection();
-                 PreparedStatement stmt = connection.prepareStatement("SELECT append_events_if(?, ?, ?::jsonb[], ?, ?, ?, ?, ?, ?::TIMESTAMP WITH TIME ZONE)")) {
+                 PreparedStatement stmt = connection.prepareStatement(APPEND_EVENTS_IF_SQL)) {
 
                 stmt.setArray(1, connection.createArrayOf("varchar", types));
                 stmt.setArray(2, connection.createArrayOf("varchar", tagArrays));
@@ -513,6 +535,22 @@ public class JDBCEventStore implements EventStore {
         }
     }
 
+    /**
+     * Implementation of EventDeserializer for JDBC event store.
+     * Provides deserialization utilities using the shared ObjectMapper.
+     */
+    private class JDBCEventDeserializer implements EventDeserializer {
+        @Override
+        public <E> E deserialize(StoredEvent event, Class<E> eventType) {
+            try {
+                return objectMapper.readValue(event.data(), eventType);
+            } catch (java.io.IOException e) {
+                throw new RuntimeException("Failed to deserialize event type=" + 
+                    event.type() + " to " + eventType.getName(), e);
+            }
+        }
+    }
+
     @Override
     public <T> ProjectionResult<T> project(Query query, Cursor after, Class<T> stateType, List<StateProjector<T>> projectors) {
         if (query == null) {
@@ -560,6 +598,7 @@ public class JDBCEventStore implements EventStore {
                     }
                     
                     // Stream and project incrementally
+                    EventDeserializer deserializer = new JDBCEventDeserializer();
                     T state = projectors.get(0).getInitialState();
                     Cursor lastCursor = after;
                     
@@ -567,10 +606,11 @@ public class JDBCEventStore implements EventStore {
                         while (rs.next()) {
                             StoredEvent event = EVENT_ROW_MAPPER.mapRow(rs, 0);
                             
-                            // Apply projectors
+                            // Apply projectors - pass deserializer
+                            // Deserialization errors will bubble up, failing the entire projection
                             for (StateProjector<T> projector : projectors) {
-                                if (projector.handles(event)) {
-                                    state = projector.transition(state, event);
+                                if (projector.handles(event, deserializer)) {
+                                    state = projector.transition(state, event, deserializer);
                                 }
                             }
                             
@@ -601,8 +641,7 @@ public class JDBCEventStore implements EventStore {
             return;
         }
 
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT append_events_batch(?, ?, ?::jsonb[], ?::TIMESTAMP WITH TIME ZONE)")) {
+        try (PreparedStatement stmt = connection.prepareStatement(APPEND_EVENTS_BATCH_SQL)) {
 
             // Prepare arrays for append_events_batch function
             String[] types = events.stream().map(AppendEvent::type).toArray(String[]::new);
@@ -633,8 +672,7 @@ public class JDBCEventStore implements EventStore {
             return;
         }
 
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "SELECT append_events_if(?::text[], ?::text[], ?::jsonb[], ?::text[], ?::text[], ?, ?::text[], ?::text[], ?::TIMESTAMP WITH TIME ZONE)")) {
+        try (PreparedStatement stmt = connection.prepareStatement(APPEND_EVENTS_IF_CONNECTION_SQL)) {
 
             // Prepare arrays for append_events_batch_if function
             String[] types = events.stream().map(AppendEvent::type).toArray(String[]::new);
@@ -708,8 +746,11 @@ public class JDBCEventStore implements EventStore {
         }
     }
 
-    @Override
-    public EventStore withConnection(Connection connection) {
+    /**
+     * Create a connection-scoped EventStore for internal transaction management.
+     * This is a private implementation detail - not exposed in public API.
+     */
+    private EventStore createConnectionScopedStore(Connection connection) {
         return new ConnectionScopedEventStore(connection);
     }
 
@@ -722,7 +763,7 @@ public class JDBCEventStore implements EventStore {
             connection.setAutoCommit(false);
 
             try {
-                EventStore txStore = withConnection(connection);
+                EventStore txStore = createConnectionScopedStore(connection);
                 T result = operation.apply(txStore);
                 connection.commit();
                 log.debug("Transaction committed successfully");
@@ -788,13 +829,13 @@ public class JDBCEventStore implements EventStore {
                     List<String> andConditions = new ArrayList<>();
 
                     // Handle event types for this QueryItem
-                    if (item.hasEventTypes() && !item.eventTypes().isEmpty()) {
+                    if (!item.eventTypes().isEmpty()) {
                         andConditions.add("type = ANY(?)");
                         params.add(item.eventTypes().toArray(new String[0]));
                     }
 
                     // Handle tags for this QueryItem
-                    if (item.hasTags() && !item.tags().isEmpty()) {
+                    if (!item.tags().isEmpty()) {
                         List<String> tagStrings = item.tags().stream()
                                 .map(tag -> tag.key() + "=" + tag.value())
                                 .collect(Collectors.toList());
@@ -889,6 +930,7 @@ public class JDBCEventStore implements EventStore {
                 }
                 
                 // Stream and project incrementally
+                EventDeserializer deserializer = new JDBCEventDeserializer();
                 T state = projectors.get(0).getInitialState();
                 Cursor lastCursor = after;
                 
@@ -896,10 +938,10 @@ public class JDBCEventStore implements EventStore {
                     while (rs.next()) {
                         StoredEvent event = EVENT_ROW_MAPPER.mapRow(rs, 0);
                         
-                        // Apply projectors
+                        // Apply projectors - pass deserializer
                         for (StateProjector<T> projector : projectors) {
-                            if (projector.handles(event)) {
-                                state = projector.transition(state, event);
+                            if (projector.handles(event, deserializer)) {
+                                state = projector.transition(state, event, deserializer);
                             }
                         }
                         
@@ -1026,12 +1068,7 @@ public class JDBCEventStore implements EventStore {
             // Serialize command to JSONB
             String commandJson = objectMapper.writeValueAsString(command);
 
-            String sql = """
-                    INSERT INTO commands (transaction_id, type, data, metadata, occurred_at)
-                    VALUES (?::xid8, ?, ?::jsonb, ?::jsonb, ?::TIMESTAMP WITH TIME ZONE)
-                    """;
-
-            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            try (PreparedStatement stmt = connection.prepareStatement(INSERT_COMMAND_SQL)) {
                 stmt.setString(1, transactionId);
                 stmt.setString(2, command.getCommandType());
                 stmt.setString(3, commandJson);
@@ -1054,8 +1091,7 @@ public class JDBCEventStore implements EventStore {
      */
     private String getCurrentTransactionIdWithConnection(Connection connection) {
         try {
-            String sql = "SELECT pg_current_xact_id()::TEXT";
-            try (PreparedStatement stmt = connection.prepareStatement(sql);
+            try (PreparedStatement stmt = connection.prepareStatement(GET_CURRENT_TRANSACTION_ID_SQL);
                  ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     return rs.getString(1);
@@ -1122,11 +1158,6 @@ public class JDBCEventStore implements EventStore {
         @Override
         public <T> ProjectionResult<T> project(Query query, Cursor after, Class<T> stateType, List<StateProjector<T>> projectors) {
             return JDBCEventStore.this.projectWithConnection(connection, query, after, stateType, projectors);
-        }
-
-        @Override
-        public EventStore withConnection(Connection connection) {
-            return new ConnectionScopedEventStore(connection);
         }
 
         @Override

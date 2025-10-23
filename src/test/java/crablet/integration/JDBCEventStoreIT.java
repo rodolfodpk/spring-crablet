@@ -4,8 +4,8 @@ import static crablet.testutils.DCBTestHelpers.*;
 import com.crablet.core.AppendCondition;
 import com.crablet.core.AppendEvent;
 import com.crablet.core.Cursor;
-import com.crablet.core.EventStore;
 import com.crablet.core.impl.EventStoreConfig;
+import com.crablet.core.EventDeserializer;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
 import com.crablet.core.QueryItem;
@@ -22,9 +22,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import crablet.integration.AbstractCrabletIT;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
@@ -205,7 +203,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
     }
 
     @Test
-    @DisplayName("Should handle append with connection using withConnection()")
+    @DisplayName("Should handle append with connection using executeInTransaction()")
     void shouldHandleAppendWithConnection() throws SQLException, JsonProcessingException {
         // Given
         WalletOpened walletOpened = WalletOpened.of("connection-test-wallet", "Test User", 1000);
@@ -215,14 +213,14 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
                 .data(data)
                 .build();
 
-        try (Connection connection = jdbcTemplate.getDataSource().getConnection()) {
-            // When - Create transaction-scoped EventStore
-            EventStore txStore = eventStore.withConnection(connection);
+        // When - Execute within transaction
+        eventStore.executeInTransaction(txStore -> {
+            txStore.append(List.of(event));
+            return null;
+        });
 
-            // Then - Use clean API without passing connection
-            assertThatCode(() -> txStore.append(List.of(event)))
-                    .doesNotThrowAnyException();
-        }
+        // Then - no assertion needed since method returns void
+        assertThat(true).isTrue(); // Test passes if no exception thrown
     }
 
     @Test
@@ -261,7 +259,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
     }
 
     @Test
-    @DisplayName("Should handle appendIf with connection using withConnection()")
+    @DisplayName("Should handle appendIf with connection using executeInTransaction()")
     void shouldHandleAppendIfWithConnection() throws SQLException, JsonProcessingException {
         // Given
         WalletOpened walletOpened = WalletOpened.of("appendif-test-wallet", "Test User", 1000);
@@ -272,43 +270,51 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
             .build();
         AppendCondition condition = AppendCondition.expectEmptyStream();
 
-        try (Connection connection = jdbcTemplate.getDataSource().getConnection()) {
-            // When - Create transaction-scoped EventStore
-            EventStore txStore = eventStore.withConnection(connection);
+        // When - Execute within transaction
+        eventStore.executeInTransaction(txStore -> {
             txStore.appendIf(List.of(event), condition);
+            return null;
+        });
 
-            // Then - no assertion needed since method returns void
-        }
+        // Then - no assertion needed since method returns void
+        assertThat(true).isTrue(); // Test passes if no exception thrown
     }
 
     @Test
-    @DisplayName("Should handle appendIf with null condition using withConnection()")
+    @DisplayName("Should handle appendIf with null condition using executeInTransaction()")
     void shouldHandleAppendIfWithNullCondition() throws SQLException, JsonProcessingException {
         // Given
         WalletOpened walletOpened = WalletOpened.of("null-condition-wallet", "Test User", 1000);
         byte[] data = objectMapper.writeValueAsBytes(walletOpened);
         AppendEvent event = AppendEvent.builder("WalletOpened").tag("wallet_id", "null-condition-wallet").data(data).build();
 
-        try (Connection connection = jdbcTemplate.getDataSource().getConnection()) {
-            // When & Then - Create transaction-scoped EventStore and test null condition
-            EventStore txStore = eventStore.withConnection(connection);
-            assertThatCode(() -> txStore.appendIf(List.of(event), null))
-                    .doesNotThrowAnyException();
-        }
+        // When & Then - Execute within transaction and test null condition
+        assertThatCode(() -> eventStore.executeInTransaction(txStore -> {
+            txStore.appendIf(List.of(event), null);
+            return null;
+        })).doesNotThrowAnyException();
     }
 
     @Test
-    @DisplayName("Should handle withConnection method")
-    void shouldHandleWithConnectionMethod() throws SQLException {
-        // Given
-        try (Connection connection = jdbcTemplate.getDataSource().getConnection()) {
-            // When
-            EventStore connectionScopedStore = eventStore.withConnection(connection);
+    @DisplayName("Should execute operations within transaction")
+    void shouldExecuteOperationsWithinTransaction() throws SQLException, JsonProcessingException {
+        // Given - Create a wallet event
+        WalletOpened walletOpened = WalletOpened.of("tx-test-wallet", "Test User", 1000);
+        byte[] data = objectMapper.writeValueAsBytes(walletOpened);
+        AppendEvent event = AppendEvent.builder("WalletOpened")
+                .tag("wallet_id", "tx-test-wallet")
+                .data(data)
+                .build();
 
-            // Then
-            assertThat(connectionScopedStore).isNotNull();
-            assertThat(connectionScopedStore).isNotSameAs(eventStore);
-        }
+        // When - Execute within transaction
+        eventStore.executeInTransaction(txStore -> {
+            txStore.append(List.of(event));
+            return null;
+        });
+
+        // Then - Verify event was stored
+        List<StoredEvent> events = eventStore.query(Query.empty(), null);
+        assertThat(events).isNotEmpty();
     }
 
     @Test
@@ -346,9 +352,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
             @Override
             public Object getInitialState() { return new Object(); }
             @Override
-            public boolean handles(StoredEvent event) { return false; }
-            @Override
-            public Object transition(Object currentState, StoredEvent event) { return currentState; }
+            public Object transition(Object currentState, StoredEvent event, EventDeserializer context) { return currentState; }
         };
         List<StateProjector<Object>> projectors = List.of(testProjector);
         Cursor cursor = Cursor.of(0L, Instant.now());
@@ -400,7 +404,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
             }
 
             @Override
-            public Integer transition(Integer currentState, StoredEvent event) {
+            public Integer transition(Integer currentState, StoredEvent event, EventDeserializer context) {
                 return currentState == null ? 1 : currentState + 1;
             }
         };

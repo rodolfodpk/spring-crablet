@@ -24,13 +24,12 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-public class JDBCOutboxProcessor implements OutboxProcessor {
+    public class JDBCOutboxProcessor implements OutboxProcessor {
     
     private static final Logger log = LoggerFactory.getLogger(JDBCOutboxProcessor.class);
     
     private final JdbcTemplate jdbcTemplate;
     private final OutboxConfig config;
-    private final List<OutboxPublisher> publishers;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final OutboxMetrics outboxMetrics;
     private final OutboxPublisherMetrics publisherMetrics;
@@ -57,7 +56,6 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
             GlobalStatisticsPublisher globalStatistics) {
         this.jdbcTemplate = jdbcTemplate;
         this.config = config;
-        this.publishers = publishers;
         this.circuitBreakerRegistry = circuitBreakerRegistry;
         this.outboxMetrics = outboxMetrics;
         this.publisherMetrics = publisherMetrics;
@@ -77,6 +75,89 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
     
     // Advisory lock key for outbox coordination (hash of "crablet-outbox-processor")
     private static final long OUTBOX_LOCK_KEY = 4856221667890123456L;
+    
+    /**
+     * SQL statements for outbox operations.
+     * Extracted as constants for maintainability and readability.
+     */
+    private static final String UPDATE_HEARTBEAT_SQL = """
+        UPDATE outbox_topic_progress
+        SET leader_instance = ?,
+            leader_heartbeat = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE leader_instance = ?
+        """;
+
+    private static final String RELEASE_LEADER_SQL = """
+        UPDATE outbox_topic_progress
+        SET leader_instance = NULL,
+            leader_heartbeat = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE leader_instance = ?
+        """;
+
+    private static final String RELEASE_PAIR_SQL = """
+        UPDATE outbox_topic_progress
+        SET leader_instance = NULL,
+            leader_heartbeat = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE topic = ? AND publisher = ? AND leader_instance = ?
+        """;
+
+    private static final String UPDATE_PAIR_HEARTBEAT_SQL = """
+        UPDATE outbox_topic_progress
+        SET leader_heartbeat = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE topic = ? AND publisher = ? AND leader_instance = ?
+        """;
+
+    private static final String UPDATE_STATUS_PAUSED_SQL = 
+        "UPDATE outbox_topic_progress SET status = 'PAUSED', updated_at = CURRENT_TIMESTAMP WHERE topic = ? AND publisher = ?";
+
+    private static final String SELECT_STATUS_SQL = 
+        "SELECT status FROM outbox_topic_progress WHERE topic = ? AND publisher = ?";
+
+    private static final String INSERT_TOPIC_PUBLISHER_SQL = """
+        INSERT INTO outbox_topic_progress (topic, publisher, last_position, status, leader_instance, leader_heartbeat)
+        VALUES (?, ?, 0, 'ACTIVE', ?, CURRENT_TIMESTAMP)
+        ON CONFLICT (topic, publisher) DO NOTHING
+        """;
+
+    private static final String SELECT_LAST_POSITION_SQL = 
+        "SELECT last_position FROM outbox_topic_progress WHERE topic = ? AND publisher = ?";
+
+    private static final String UPDATE_LAST_POSITION_SQL = """
+        UPDATE outbox_topic_progress
+        SET last_position = ?,
+            last_published_at = CURRENT_TIMESTAMP,
+            error_count = 0,
+            last_error = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE topic = ? AND publisher = ?
+        """;
+
+    private static final String INCREMENT_ERROR_COUNT_SQL = """
+        UPDATE outbox_topic_progress
+        SET error_count = error_count + 1,
+            last_error = ?,
+            status = CASE 
+                WHEN error_count + 1 >= ? THEN 'FAILED'
+                ELSE status
+            END,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE topic = ? AND publisher = ?
+        """;
+
+    private static final String SELECT_ERROR_COUNT_SQL = 
+        "SELECT error_count FROM outbox_topic_progress WHERE topic = ? AND publisher = ?";
+
+    private static final String RESET_ERROR_COUNT_SQL = """
+        UPDATE outbox_topic_progress
+        SET error_count = 0,
+            last_error = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE topic = ? AND publisher = ?
+        """;
     
     /**
      * Initialize leader election on startup for both GLOBAL and PER_TOPIC_PUBLISHER modes.
@@ -235,13 +316,7 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
             long lockKey = pair.getLockKey();
             releaseLock(lockKey);
             jdbcTemplate.update(
-                """
-                UPDATE outbox_topic_progress
-                SET leader_instance = NULL,
-                    leader_heartbeat = NULL,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE topic = ? AND publisher = ? AND leader_instance = ?
-                """,
+                RELEASE_PAIR_SQL,
                 pair.topic(), pair.publisher(), instanceId
             );
             outboxMetrics.setLeaderForPublisher(pair.topic(), false);
@@ -369,12 +444,7 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
         for (TopicPublisherPair pair : ownedPairs) {
             try {
                 jdbcTemplate.update(
-                    """
-                    UPDATE outbox_topic_progress
-                    SET leader_heartbeat = CURRENT_TIMESTAMP,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE topic = ? AND publisher = ? AND leader_instance = ?
-                    """,
+                    UPDATE_PAIR_HEARTBEAT_SQL,
                     pair.topic(), pair.publisher(), instanceId
                 );
             } catch (Exception e) {
@@ -477,7 +547,7 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
         
         // Update status to PAUSED in database
         jdbcTemplate.update(
-            "UPDATE outbox_topic_progress SET status = 'PAUSED', updated_at = CURRENT_TIMESTAMP WHERE topic = ? AND publisher = ?",
+            UPDATE_STATUS_PAUSED_SQL,
             pair.topic(), pair.publisher()
         );
         
@@ -489,6 +559,7 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
      * Fetch events for a specific topic using tag-based filtering.
      */
     private List<StoredEvent> fetchEventsForTopic(TopicConfig topicConfig, long lastPosition, int limit) {
+        String sqlFilter = buildSqlFilterForTopic(topicConfig);
         String sql = """
             SELECT type, tags, data, transaction_id, position, occurred_at
             FROM events
@@ -496,7 +567,7 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
               AND (%s)
             ORDER BY position ASC
             LIMIT ?
-            """.formatted(topicConfig.getSqlFilter());
+            """.formatted(sqlFilter);
         
         return jdbcTemplate.query(
             sql,
@@ -511,6 +582,42 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
             lastPosition,
             limit
         );
+    }
+    
+    /**
+     * Generate SQL filter for topic tag matching.
+     * Uses PostgreSQL array operators for efficiency.
+     */
+    private String buildSqlFilterForTopic(TopicConfig topicConfig) {
+        Set<String> requiredTags = topicConfig.getRequiredTags();
+        Set<String> anyOfTags = topicConfig.getAnyOfTags();
+        Map<String, String> exactTags = topicConfig.getExactTags();
+        
+        if (requiredTags.isEmpty() && anyOfTags.isEmpty() && exactTags.isEmpty()) {
+            return "TRUE"; // Match all
+        }
+        
+        List<String> conditions = new ArrayList<>();
+        
+        // Required tags: ALL must be present
+        for (String tag : requiredTags) {
+            conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE '" + tag + ":%')");
+        }
+        
+        // AnyOf tags: at least ONE must be present
+        if (!anyOfTags.isEmpty()) {
+            String anyOfCondition = anyOfTags.stream()
+                .map(tag -> "t LIKE '" + tag + ":%'")
+                .collect(java.util.stream.Collectors.joining(" OR "));
+            conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE " + anyOfCondition + ")");
+        }
+        
+        // Exact matches
+        for (var entry : exactTags.entrySet()) {
+            conditions.add("'" + entry.getKey() + ":" + entry.getValue() + "' = ANY(tags)");
+        }
+        
+        return String.join(" AND ", conditions);
     }
     
     @Override
@@ -616,7 +723,7 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
     private String getPublisherStatus(String topicName, String publisherName) {
         try {
             return jdbcTemplate.queryForObject(
-                "SELECT status FROM outbox_topic_progress WHERE topic = ? AND publisher = ?",
+                SELECT_STATUS_SQL,
                 String.class,
                 topicName, publisherName
             );
@@ -629,11 +736,7 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
     private Long getLastPosition(String topicName, String publisherName) {
         // Auto-register publisher for topic if not exists
         Integer updated = jdbcTemplate.update(
-            """
-            INSERT INTO outbox_topic_progress (topic, publisher, last_position, status, leader_instance, leader_heartbeat)
-            VALUES (?, ?, 0, 'ACTIVE', ?, CURRENT_TIMESTAMP)
-            ON CONFLICT (topic, publisher) DO NOTHING
-            """,
+            INSERT_TOPIC_PUBLISHER_SQL,
             topicName, publisherName, instanceId
         );
         
@@ -653,7 +756,7 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
         }
         
         return jdbcTemplate.queryForObject(
-            "SELECT last_position FROM outbox_topic_progress WHERE topic = ? AND publisher = ?",
+            SELECT_LAST_POSITION_SQL,
             Long.class,
             topicName, publisherName
         );
@@ -661,32 +764,14 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
     
     private void updateLastPosition(String topicName, String publisherName, long newPosition) {
         jdbcTemplate.update(
-            """
-            UPDATE outbox_topic_progress
-            SET last_position = ?,
-                last_published_at = CURRENT_TIMESTAMP,
-                error_count = 0,
-                last_error = NULL,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE topic = ? AND publisher = ?
-            """,
+            UPDATE_LAST_POSITION_SQL,
             newPosition, topicName, publisherName
         );
     }
     
     private void incrementErrorCount(String topicName, String publisherName, String error) {
         jdbcTemplate.update(
-            """
-            UPDATE outbox_topic_progress
-            SET error_count = error_count + 1,
-                last_error = ?,
-                status = CASE 
-                    WHEN error_count + 1 >= ? THEN 'FAILED'
-                    ELSE status
-                END,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE topic = ? AND publisher = ?
-            """,
+            INCREMENT_ERROR_COUNT_SQL,
             error, config.getMaxRetries(), topicName, publisherName
         );
     }
@@ -715,7 +800,7 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
     private int getErrorCount(String topicName, String publisherName) {
         try {
             return jdbcTemplate.queryForObject(
-                "SELECT error_count FROM outbox_topic_progress WHERE topic = ? AND publisher = ?",
+                SELECT_ERROR_COUNT_SQL,
                 Integer.class,
                 topicName, publisherName
             );
@@ -726,13 +811,7 @@ public class JDBCOutboxProcessor implements OutboxProcessor {
     
     private void resetErrorCount(String topicName, String publisherName) {
         jdbcTemplate.update(
-            """
-            UPDATE outbox_topic_progress
-            SET error_count = 0,
-                last_error = NULL,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE topic = ? AND publisher = ?
-            """,
+            RESET_ERROR_COUNT_SQL,
             topicName, publisherName
         );
     }

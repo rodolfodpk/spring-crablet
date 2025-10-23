@@ -1,6 +1,7 @@
 package wallets.unit.features.query;
 import wallets.integration.AbstractWalletIntegrationTest;
 
+import com.crablet.core.EventDeserializer;
 import com.crablet.core.StoredEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -32,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class WalletEdgeCasesTest {
 
     private static final ObjectMapper OBJECT_MAPPER = createObjectMapper();
+    private static final EventDeserializer CONTEXT = WalletTestUtils.createEventDeserializer();
     private WalletStateProjector projector;
 
     private static ObjectMapper createObjectMapper() {
@@ -43,7 +45,7 @@ class WalletEdgeCasesTest {
 
     @BeforeEach
     void setUp() {
-        projector = new WalletStateProjector(OBJECT_MAPPER);
+        projector = new WalletStateProjector();
     }
 
     @ParameterizedTest
@@ -75,7 +77,7 @@ class WalletEdgeCasesTest {
         StoredEvent event = WalletTestUtils.createEvent(opened);
 
         // Act
-        WalletState state = projector.transition(empty, event);
+        WalletState state = projector.transition(empty, event, CONTEXT);
 
         // Assert
         assertThat(state)
@@ -107,7 +109,7 @@ class WalletEdgeCasesTest {
         StoredEvent event = WalletTestUtils.createEvent(transfer);
 
         // Act
-        WalletState newState = projector.transition(initialState, event);
+        WalletState newState = projector.transition(initialState, event, CONTEXT);
 
         // Assert
         assertThat(newState.balance()).isEqualTo(0);
@@ -136,7 +138,7 @@ class WalletEdgeCasesTest {
             StoredEvent event = WalletTestUtils.createEvent(transfer);
 
             // Act
-            WalletState newState = projector.transition(initialState, event);
+            WalletState newState = projector.transition(initialState, event, CONTEXT);
 
             // Assert
             assertThat(newState.balance()).isEqualTo(expectedBalance);
@@ -222,7 +224,7 @@ class WalletEdgeCasesTest {
         StoredEvent event = WalletTestUtils.createEvent(transfer);
 
         // Act
-        WalletState newState = projector.transition(initialState, event);
+        WalletState newState = projector.transition(initialState, event, CONTEXT);
 
         // Assert
         assertThat(newState.balance()).isEqualTo(700);
@@ -241,7 +243,7 @@ class WalletEdgeCasesTest {
         StoredEvent event = WalletTestUtils.createEvent(transfer);
 
         // Act
-        WalletState newState = projector.transition(initialState, event);
+        WalletState newState = projector.transition(initialState, event, CONTEXT);
 
         // Assert
         assertThat(newState.balance()).isEqualTo(700);
@@ -260,7 +262,7 @@ class WalletEdgeCasesTest {
         StoredEvent event = WalletTestUtils.createEvent(transfer);
 
         // Act
-        WalletState newState = projector.transition(initialState, event);
+        WalletState newState = projector.transition(initialState, event, CONTEXT);
 
         // Assert
         assertThat(newState.balance()).isEqualTo(700);
@@ -278,7 +280,7 @@ class WalletEdgeCasesTest {
         StoredEvent event = WalletTestUtils.createEvent(transfer);
 
         // Act
-        WalletState newState = projector.transition(initialState, event);
+        WalletState newState = projector.transition(initialState, event, CONTEXT);
 
         // Assert
         assertThat(newState.balance()).isEqualTo(0);
@@ -298,7 +300,7 @@ class WalletEdgeCasesTest {
         StoredEvent event = WalletTestUtils.createEvent(transfer);
 
         // Act
-        WalletState newState = projector.transition(initialState, event);
+        WalletState newState = projector.transition(initialState, event, CONTEXT);
 
         // Assert
         assertThat(newState.balance()).isEqualTo(0);
@@ -318,7 +320,7 @@ class WalletEdgeCasesTest {
         StoredEvent event = WalletTestUtils.createEvent(transfer);
 
         // Act
-        WalletState newState = projector.transition(initialState, event);
+        WalletState newState = projector.transition(initialState, event, CONTEXT);
 
         // Assert
         assertThat(newState.balance()).isEqualTo(0);
@@ -344,7 +346,7 @@ class WalletEdgeCasesTest {
         // Act
         WalletState currentState = initialState;
         for (StoredEvent event : events) {
-            currentState = projector.transition(currentState, event);
+            currentState = projector.transition(currentState, event, CONTEXT);
         }
 
         // Assert
@@ -369,7 +371,7 @@ class WalletEdgeCasesTest {
         // Act
         WalletState currentState = initialState;
         for (StoredEvent event : events) {
-            currentState = projector.transition(currentState, event);
+            currentState = projector.transition(currentState, event, CONTEXT);
         }
 
         // Assert
@@ -413,7 +415,7 @@ class WalletEdgeCasesTest {
         StoredEvent event = WalletTestUtils.createEvent(singleDeposit);
 
         // Act
-        WalletState finalState = projector.transition(initialState, event);
+        WalletState finalState = projector.transition(initialState, event, CONTEXT);
 
         // Assert
         assertThat(finalState)
@@ -455,7 +457,7 @@ class WalletEdgeCasesTest {
         // Act
         WalletState currentState = initialState;
         for (StoredEvent event : events) {
-            currentState = projector.transition(currentState, event);
+            currentState = projector.transition(currentState, event, CONTEXT);
         }
 
         // Assert
@@ -482,7 +484,7 @@ class WalletEdgeCasesTest {
         StoredEvent validEvent = WalletTestUtils.createEvent(validDeposit);
 
         // Act - Process valid event
-        WalletState stateAfterValid = projector.transition(initialState, validEvent);
+        WalletState stateAfterValid = projector.transition(initialState, validEvent, CONTEXT);
 
         // Assert - Valid event should be processed correctly
         assertThat(stateAfterValid.balance()).isEqualTo(1100);
@@ -506,7 +508,7 @@ class WalletEdgeCasesTest {
         StoredEvent validEvent = WalletTestUtils.createEvent(validDeposit);
 
         // Act
-        WalletState finalState = projector.transition(initialState, validEvent);
+        WalletState finalState = projector.transition(initialState, validEvent, CONTEXT);
 
         // Assert
         assertThat(finalState.balance()).isEqualTo(1100);
@@ -551,7 +553,7 @@ class WalletEdgeCasesTest {
         // Act - Process all events
         WalletState currentState = initialState;
         for (StoredEvent event : events) {
-            currentState = projector.transition(currentState, event);
+            currentState = projector.transition(currentState, event, CONTEXT);
         }
 
         // Assert
@@ -595,7 +597,7 @@ class WalletEdgeCasesTest {
         // Act
         WalletState currentState = initialState;
         for (StoredEvent event : events) {
-            currentState = projector.transition(currentState, event);
+            currentState = projector.transition(currentState, event, CONTEXT);
         }
 
         // Assert
@@ -619,7 +621,7 @@ class WalletEdgeCasesTest {
         StoredEvent event = WalletTestUtils.createEvent(largeDeposit);
 
         // Act
-        WalletState finalState = projector.transition(initialState, event);
+        WalletState finalState = projector.transition(initialState, event, CONTEXT);
 
         // Assert
         assertThat(finalState)
@@ -650,7 +652,7 @@ class WalletEdgeCasesTest {
         // Act
         WalletState currentState = initialState;
         for (StoredEvent event : events) {
-            currentState = projector.transition(currentState, event);
+            currentState = projector.transition(currentState, event, CONTEXT);
         }
 
         // Assert

@@ -44,18 +44,4 @@ public record QueryItem(
     public static QueryItem ofTag(Tag tag) {
         return new QueryItem(List.of(), List.of(tag));
     }
-
-    /**
-     * Check if this query item matches any event types.
-     */
-    public boolean hasEventTypes() {
-        return !eventTypes.isEmpty();
-    }
-
-    /**
-     * Check if this query item matches any tags.
-     */
-    public boolean hasTags() {
-        return !tags.isEmpty();
-    }
 }

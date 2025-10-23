@@ -1,6 +1,5 @@
 package com.crablet.core;
 
-import java.sql.Connection;
 import java.util.List;
 import java.util.function.Function;
 
@@ -56,15 +55,6 @@ public interface EventStore {
             Class<T> stateType,
             List<StateProjector<T>> projectors
     );
-
-    /**
-     * Create a transaction-scoped EventStore that uses the provided connection.
-     * All operations (queries, projections, appends) will use the same transaction.
-     * <p>
-     * Use this method when you need to execute multiple EventStore operations
-     * within the same database transaction for consistency.
-     */
-    EventStore withConnection(Connection connection);
 
     /**
      * Execute operations within a single transaction.

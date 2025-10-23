@@ -1,9 +1,9 @@
 package com.wallets.features.transfer;
 
+import com.crablet.core.EventDeserializer;
 import com.crablet.core.StateProjector;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.event.*;
 import com.wallets.domain.projections.WalletBalanceState;
 import org.springframework.stereotype.Component;
@@ -21,12 +21,10 @@ record TransferState(
 @Component
 public class TransferStateProjector implements StateProjector<TransferState> {
     
-    private final ObjectMapper objectMapper;
     private String fromWalletId;
     private String toWalletId;
     
-    public TransferStateProjector(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public TransferStateProjector() {
     }
     
     public TransferStateProjector forWallets(String fromWalletId, String toWalletId) {
@@ -59,17 +57,13 @@ public class TransferStateProjector implements StateProjector<TransferState> {
     }
     
     @Override
-    public TransferState transition(TransferState current, StoredEvent event) {
-        try {
-            WalletEvent walletEvent = objectMapper.readValue(event.data(), WalletEvent.class);
-            
-            WalletBalanceState fromWallet = updateWalletBalance(current.fromWallet(), fromWalletId, walletEvent);
-            WalletBalanceState toWallet = updateWalletBalance(current.toWallet(), toWalletId, walletEvent);
-            
-            return new TransferState(fromWallet, toWallet);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to deserialize event", e);
-        }
+    public TransferState transition(TransferState current, StoredEvent event, EventDeserializer context) {
+        WalletEvent walletEvent = context.deserialize(event, WalletEvent.class);
+        
+        WalletBalanceState fromWallet = updateWalletBalance(current.fromWallet(), fromWalletId, walletEvent);
+        WalletBalanceState toWallet = updateWalletBalance(current.toWallet(), toWalletId, walletEvent);
+        
+        return new TransferState(fromWallet, toWallet);
     }
     
     private WalletBalanceState updateWalletBalance(WalletBalanceState current, String walletId, WalletEvent event) {

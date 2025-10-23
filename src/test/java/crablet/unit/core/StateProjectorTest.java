@@ -1,5 +1,6 @@
 package crablet.unit.core;
 
+import com.crablet.core.EventDeserializer;
 import com.crablet.core.StateProjector;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
@@ -31,7 +32,7 @@ class StateProjectorTest {
         StoredEvent event = new StoredEvent("WalletOpened", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
-        boolean handles = projector.handles(event);
+        boolean handles = handles(projector, event);
 
         // Then
         assertThat(handles).isTrue();
@@ -49,7 +50,7 @@ class StateProjectorTest {
         StoredEvent event = new StoredEvent("DepositMade", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
-        boolean handles = projector.handles(event);
+        boolean handles = handles(projector, event);
 
         // Then
         assertThat(handles).isFalse();
@@ -67,7 +68,7 @@ class StateProjectorTest {
         StoredEvent event = new StoredEvent("AnyEvent", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
-        boolean handles = projector.handles(event);
+        boolean handles = handles(projector, event);
 
         // Then
         assertThat(handles).isTrue();
@@ -87,7 +88,7 @@ class StateProjectorTest {
         StoredEvent event = new StoredEvent("WalletOpened", List.of(tag1), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
-        boolean handles = projector.handles(event);
+        boolean handles = handles(projector, event);
 
         // Then
         assertThat(handles).isTrue();
@@ -107,7 +108,7 @@ class StateProjectorTest {
         StoredEvent event = new StoredEvent("WalletOpened", List.of(eventTag), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
-        boolean handles = projector.handles(event);
+        boolean handles = handles(projector, event);
 
         // Then
         assertThat(handles).isFalse();
@@ -125,7 +126,7 @@ class StateProjectorTest {
         StoredEvent event = new StoredEvent("AnyEvent", List.of(new Tag("any", "value")), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
-        boolean handles = projector.handles(event);
+        boolean handles = handles(projector, event);
 
         // Then
         assertThat(handles).isTrue();
@@ -144,7 +145,7 @@ class StateProjectorTest {
         StoredEvent event = new StoredEvent("WalletOpened", List.of(tag), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
-        boolean handles = projector.handles(event);
+        boolean handles = handles(projector, event);
 
         // Then
         assertThat(handles).isTrue();
@@ -164,7 +165,7 @@ class StateProjectorTest {
         StoredEvent event = new StoredEvent("WalletOpened", List.of(eventTag), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
-        boolean handles = projector.handles(event);
+        boolean handles = handles(projector, event);
 
         // Then
         assertThat(handles).isFalse();
@@ -183,7 +184,7 @@ class StateProjectorTest {
         StoredEvent event = new StoredEvent("DepositMade", List.of(tag), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
-        boolean handles = projector.handles(event);
+        boolean handles = handles(projector, event);
 
         // Then
         assertThat(handles).isFalse();
@@ -205,7 +206,7 @@ class StateProjectorTest {
         StoredEvent event = new StoredEvent("WalletOpened", List.of(eventTag1, eventTag2), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
-        boolean handles = projector.handles(event);
+        boolean handles = handles(projector, event);
 
         // Then
         assertThat(handles).isTrue();
@@ -224,7 +225,7 @@ class StateProjectorTest {
         StoredEvent event = new StoredEvent("WalletOpened", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
-        boolean handles = projector.handles(event);
+        boolean handles = handles(projector, event);
 
         // Then
         assertThat(handles).isFalse();
@@ -242,7 +243,7 @@ class StateProjectorTest {
         StoredEvent event = new StoredEvent("WalletOpened", List.of(new Tag("wallet", "wallet-123")), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
-        boolean handles = projector.handles(event);
+        boolean handles = handles(projector, event);
 
         // Then
         assertThat(handles).isTrue();
@@ -260,7 +261,7 @@ class StateProjectorTest {
         StoredEvent event = new StoredEvent("AnyEvent", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
-        boolean handles = projector.handles(event);
+        boolean handles = handles(projector, event);
 
         // Then
         assertThat(handles).isTrue();
@@ -278,7 +279,7 @@ class StateProjectorTest {
         StoredEvent event = new StoredEvent("MoneyTransferred", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
-        boolean handles = projector.handles(event);
+        boolean handles = handles(projector, event);
 
         // Then
         assertThat(handles).isTrue();
@@ -296,7 +297,7 @@ class StateProjectorTest {
         StoredEvent event = new StoredEvent("WithdrawalMade", List.of(), "{}".getBytes(), "1", 1L, java.time.Instant.now());
 
         // When
-        boolean handles = projector.handles(event);
+        boolean handles = handles(projector, event);
 
         // Then
         assertThat(handles).isFalse();
@@ -335,8 +336,20 @@ class StateProjectorTest {
         }
 
         @Override
-        public Map<String, Object> transition(Map<String, Object> currentState, StoredEvent event) {
+        public Map<String, Object> transition(Map<String, Object> currentState, StoredEvent event, EventDeserializer context) {
             return currentState;
         }
+    }
+    
+    // Mock EventDeserializer for tests
+    private static final EventDeserializer MOCK_CONTEXT = new EventDeserializer() {
+        @Override
+        public <E> E deserialize(StoredEvent event, Class<E> eventType) {
+            throw new UnsupportedOperationException("Not used in this test");
+        }
+    };
+    
+    private boolean handles(StateProjector<?> projector, StoredEvent event) {
+        return projector.handles(event, MOCK_CONTEXT);
     }
 }

@@ -109,21 +109,23 @@ PUT /api/wallets/w1
 
 ### Package Structure
 
-- **`com.crablet.core`**: Framework-agnostic interfaces (EventStore, CommandExecutor)
-- **`com.crablet.impl`**: Spring Boot implementations (JDBCEventStore, DefaultCommandExecutor)
+- **`com.crablet.core`**: Framework-agnostic interfaces (EventStore, CommandExecutor, EventDeserializer)
+- **`com.crablet.core.impl`**: Spring Boot implementations (JDBCEventStore, DefaultCommandExecutor)
+- **`com.crablet.outbox`**: Outbox pattern interfaces and implementations
 
 ### Cursor Structure
 
 ```java
 // From StoredEvent (most common)
-Cursor cursor = Cursor.from(lastEvent).build();
+Cursor cursor = Cursor.of(event.position(), event.occurredAt(), event.transactionId());
 
-// Or build from scratch
-Cursor cursor = Cursor.builder()
-    .position(42L)
-    .occurredAt(Instant.now())
-    .transactionId("12345")
-    .build();
+// Or use convenience methods
+Cursor cursor = Cursor.of(42L);  // position only, timestamp = now, transactionId = "0"
+Cursor cursor = Cursor.of(42L, Instant.now());  // position + timestamp, transactionId = "0"
+Cursor cursor = Cursor.of(42L, Instant.now(), "12345");  // all fields
+
+// Zero cursor for empty projections
+Cursor cursor = Cursor.zero();
 ```
 
 ### Query Builder
@@ -146,7 +148,7 @@ Generates SQL with:
 
 ```java
 public interface StateProjector<T> {
-    T transition(T currentState, StoredEvent event);
+    T transition(T currentState, StoredEvent event, EventDeserializer deserializer);
     T getInitialState();
     Query getQuery(String entityId);
 }
@@ -155,7 +157,8 @@ public interface StateProjector<T> {
 Usage:
 ```java
 List<StoredEvent> events = eventStore.query(query, cursor);
-WalletState state = projector.project(events);
+EventDeserializer deserializer = // provided by EventStore
+WalletState state = projector.transition(initialState, event, deserializer);
 ```
 
 ### Command Handler Pattern

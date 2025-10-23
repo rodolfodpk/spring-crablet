@@ -1,6 +1,7 @@
 package wallets.unit.features.query;
 import wallets.integration.AbstractWalletIntegrationTest;
 
+import com.crablet.core.EventDeserializer;
 import com.crablet.core.StoredEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -33,6 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class WalletWorkflowTest {
 
     private static final ObjectMapper OBJECT_MAPPER = createObjectMapper();
+    private static final EventDeserializer DESERIALIZER = WalletTestUtils.createEventDeserializer();
     private WalletStateProjector projector;
 
     private static ObjectMapper createObjectMapper() {
@@ -55,7 +57,7 @@ class WalletWorkflowTest {
 
     @BeforeEach
     void setUp() {
-        projector = new WalletStateProjector(OBJECT_MAPPER);
+        projector = new WalletStateProjector();
     }
 
     @Test
@@ -76,7 +78,7 @@ class WalletWorkflowTest {
         // Act
         WalletState currentState = initialState;
         for (StoredEvent event : events) {
-            currentState = projector.transition(currentState, event);
+            currentState = projector.transition(currentState, event, DESERIALIZER);
         }
 
         // Assert
@@ -93,8 +95,8 @@ class WalletWorkflowTest {
     @DisplayName("Should handle transfer workflow with multiple wallets")
     void testTransferWorkflowBusinessRules() {
         // Arrange
-        WalletStateProjector fromProjector = new WalletStateProjector(OBJECT_MAPPER);
-        WalletStateProjector toProjector = new WalletStateProjector(OBJECT_MAPPER);
+        WalletStateProjector fromProjector = new WalletStateProjector();
+        WalletStateProjector toProjector = new WalletStateProjector();
 
         // Initial states
         WalletState fromState = new WalletState("wallet1", "Alice", 1000, Instant.now(), Instant.now());
@@ -105,8 +107,8 @@ class WalletWorkflowTest {
         StoredEvent transferEvent = WalletTestUtils.createEvent(transfer);
 
         // Act
-        WalletState newFromState = fromProjector.transition(fromState, transferEvent);
-        WalletState newToState = toProjector.transition(toState, transferEvent);
+        WalletState newFromState = fromProjector.transition(fromState, transferEvent, DESERIALIZER);
+        WalletState newToState = toProjector.transition(toState, transferEvent, DESERIALIZER);
 
         // Assert
         assertThat(newFromState)
@@ -133,9 +135,9 @@ class WalletWorkflowTest {
     @DisplayName("Should handle complex transfer scenario with multiple transfers")
     void testComplexTransferScenario() {
         // Arrange
-        WalletStateProjector wallet1Projector = new WalletStateProjector(OBJECT_MAPPER);
-        WalletStateProjector wallet2Projector = new WalletStateProjector(OBJECT_MAPPER);
-        WalletStateProjector wallet3Projector = new WalletStateProjector(OBJECT_MAPPER);
+        WalletStateProjector wallet1Projector = new WalletStateProjector();
+        WalletStateProjector wallet2Projector = new WalletStateProjector();
+        WalletStateProjector wallet3Projector = new WalletStateProjector();
 
         // Initial states
         WalletState wallet1State = new WalletState("wallet1", "Alice", 1000, Instant.now(), Instant.now());
@@ -155,9 +157,9 @@ class WalletWorkflowTest {
         WalletState currentWallet3State = wallet3State;
 
         for (StoredEvent event : events) {
-            currentWallet1State = wallet1Projector.transition(currentWallet1State, event);
-            currentWallet2State = wallet2Projector.transition(currentWallet2State, event);
-            currentWallet3State = wallet3Projector.transition(currentWallet3State, event);
+            currentWallet1State = wallet1Projector.transition(currentWallet1State, event, DESERIALIZER);
+            currentWallet2State = wallet2Projector.transition(currentWallet2State, event, DESERIALIZER);
+            currentWallet3State = wallet3Projector.transition(currentWallet3State, event, DESERIALIZER);
         }
 
         // Assert
@@ -176,8 +178,8 @@ class WalletWorkflowTest {
     @DisplayName("Should handle complete workflow scenarios")
     void testWorkflowScenarios(WorkflowScenario scenario) {
         // Arrange
-        WalletStateProjector fromProjector = new WalletStateProjector(OBJECT_MAPPER);
-        WalletStateProjector toProjector = new WalletStateProjector(OBJECT_MAPPER);
+        WalletStateProjector fromProjector = new WalletStateProjector();
+        WalletStateProjector toProjector = new WalletStateProjector();
 
         // Initial states
         WalletState fromState = new WalletState("wallet1", "Alice", scenario.fromBalance(), Instant.now(), Instant.now());
@@ -189,8 +191,8 @@ class WalletWorkflowTest {
         StoredEvent transferEvent = WalletTestUtils.createEvent(transfer);
 
         // Act
-        WalletState newFromState = fromProjector.transition(fromState, transferEvent);
-        WalletState newToState = toProjector.transition(toState, transferEvent);
+        WalletState newFromState = fromProjector.transition(fromState, transferEvent, DESERIALIZER);
+        WalletState newToState = toProjector.transition(toState, transferEvent, DESERIALIZER);
 
         // Assert
         assertThat(scenario).isNotNull();
@@ -227,7 +229,7 @@ class WalletWorkflowTest {
         // Act
         WalletState currentState = initialState;
         for (StoredEvent event : events) {
-            currentState = projector.transition(currentState, event);
+            currentState = projector.transition(currentState, event, DESERIALIZER);
         }
 
         // Assert
@@ -257,7 +259,7 @@ class WalletWorkflowTest {
         // Act
         WalletState currentState = initialState;
         for (StoredEvent event : events) {
-            currentState = projector.transition(currentState, event);
+            currentState = projector.transition(currentState, event, DESERIALIZER);
         }
 
         // Assert
@@ -290,7 +292,7 @@ class WalletWorkflowTest {
         // Act
         WalletState currentState = initialState;
         for (StoredEvent event : events) {
-            currentState = projector.transition(currentState, event);
+            currentState = projector.transition(currentState, event, DESERIALIZER);
         }
 
         // Assert
@@ -317,7 +319,7 @@ class WalletWorkflowTest {
         // Act
         WalletState currentState = initialState;
         for (StoredEvent event : events) {
-            currentState = projector.transition(currentState, event);
+            currentState = projector.transition(currentState, event, DESERIALIZER);
         }
 
         // Assert
@@ -346,7 +348,7 @@ class WalletWorkflowTest {
         // Act
         WalletState currentState = initialState;
         for (StoredEvent event : events) {
-            currentState = projector.transition(currentState, event);
+            currentState = projector.transition(currentState, event, DESERIALIZER);
         }
 
         // Assert

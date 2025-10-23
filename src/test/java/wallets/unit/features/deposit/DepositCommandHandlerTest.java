@@ -42,7 +42,7 @@ class DepositCommandHandlerTest extends AbstractWalletIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        balanceProjector = new WalletBalanceProjector(objectMapper);
+        balanceProjector = new WalletBalanceProjector();
         handler = new com.wallets.features.deposit.DepositCommandHandler(objectMapper, balanceProjector);
     }
 

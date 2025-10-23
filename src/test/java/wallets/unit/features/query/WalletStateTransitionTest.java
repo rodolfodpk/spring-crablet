@@ -1,6 +1,7 @@
 package wallets.unit.features.query;
 import wallets.integration.AbstractWalletIntegrationTest;
 
+import com.crablet.core.EventDeserializer;
 import com.crablet.core.StoredEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -30,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class WalletStateTransitionTest {
 
     private static final ObjectMapper OBJECT_MAPPER = createObjectMapper();
+    private static final EventDeserializer CONTEXT = WalletTestUtils.createEventDeserializer();
     private WalletStateProjector projector;
 
     private static ObjectMapper createObjectMapper() {
@@ -41,7 +43,7 @@ class WalletStateTransitionTest {
 
     @BeforeEach
     void setUp() {
-        projector = new WalletStateProjector(OBJECT_MAPPER);
+        projector = new WalletStateProjector();
     }
 
     @Test
@@ -52,7 +54,7 @@ class WalletStateTransitionTest {
         StoredEvent event = WalletTestUtils.createEvent(opened);
 
         // Act
-        WalletState state = projector.transition(WalletState.empty(), event);
+        WalletState state = projector.transition(WalletState.empty(), event, CONTEXT);
 
         // Assert
         assertThat(state)
@@ -76,7 +78,7 @@ class WalletStateTransitionTest {
         StoredEvent event = WalletTestUtils.createEvent(transfer);
 
         // Act
-        WalletState newState = projector.transition(initialState, event);
+        WalletState newState = projector.transition(initialState, event, CONTEXT);
 
         // Assert
         assertThat(newState)
@@ -100,7 +102,7 @@ class WalletStateTransitionTest {
         StoredEvent event = WalletTestUtils.createEvent(transfer);
 
         // Act
-        WalletState newState = projector.transition(initialState, event);
+        WalletState newState = projector.transition(initialState, event, CONTEXT);
 
         // Assert
         assertThat(newState)
@@ -125,7 +127,7 @@ class WalletStateTransitionTest {
         StoredEvent event = WalletTestUtils.createEvent(deposit);
 
         // Act
-        WalletState newState = projector.transition(initialState, event);
+        WalletState newState = projector.transition(initialState, event, CONTEXT);
 
         // Assert
         assertThat(newState)
@@ -149,7 +151,7 @@ class WalletStateTransitionTest {
         StoredEvent event = WalletTestUtils.createEvent(withdrawal);
 
         // Act
-        WalletState newState = projector.transition(initialState, event);
+        WalletState newState = projector.transition(initialState, event, CONTEXT);
 
         // Assert
         assertThat(newState)
@@ -173,7 +175,7 @@ class WalletStateTransitionTest {
         StoredEvent event = WalletTestUtils.createEvent(otherWallet);
 
         // Act
-        WalletState newState = projector.transition(initialState, event);
+        WalletState newState = projector.transition(initialState, event, CONTEXT);
 
         // Assert
         assertThat(newState).isEqualTo(initialState);
@@ -188,7 +190,7 @@ class WalletStateTransitionTest {
         StoredEvent event = WalletTestUtils.createEvent(opened);
 
         // Act
-        WalletState newState = projector.transition(emptyState, event);
+        WalletState newState = projector.transition(emptyState, event, CONTEXT);
 
         // Assert
         assertThat(newState)
@@ -238,7 +240,7 @@ class WalletStateTransitionTest {
         }
 
         // Act
-        WalletState newState = projector.transition(initialState, event);
+        WalletState newState = projector.transition(initialState, event, CONTEXT);
 
         // Assert
         assertThat(newState.balance()).isEqualTo(expectedBalance);
@@ -269,7 +271,7 @@ class WalletStateTransitionTest {
         // Act
         WalletState currentState = initialState;
         for (StoredEvent event : events) {
-            currentState = projector.transition(currentState, event);
+            currentState = projector.transition(currentState, event, CONTEXT);
         }
 
         // Assert
@@ -300,7 +302,7 @@ class WalletStateTransitionTest {
         // Act
         WalletState currentState = initialState;
         for (StoredEvent event : events) {
-            currentState = projector.transition(currentState, event);
+            currentState = projector.transition(currentState, event, CONTEXT);
         }
 
         // Assert
@@ -326,7 +328,7 @@ class WalletStateTransitionTest {
         // Act
         WalletState currentState = initialState;
         for (StoredEvent event : events) {
-            currentState = projector.transition(currentState, event);
+            currentState = projector.transition(currentState, event, CONTEXT);
         }
 
         // Assert
@@ -354,7 +356,7 @@ class WalletStateTransitionTest {
         // Act
         WalletState currentState = initialState;
         for (StoredEvent event : events) {
-            currentState = projector.transition(currentState, event);
+            currentState = projector.transition(currentState, event, CONTEXT);
         }
 
         // Assert

@@ -1,7 +1,6 @@
 package com.crablet.outbox.impl;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Configuration for an outbox topic.
@@ -31,6 +30,18 @@ public class TopicConfig {
         return publishers;
     }
     
+    public Set<String> getRequiredTags() {
+        return requiredTags;
+    }
+    
+    public Set<String> getAnyOfTags() {
+        return anyOfTags;
+    }
+    
+    public Map<String, String> getExactTags() {
+        return exactTags;
+    }
+    
     /**
      * Check if event tags match this topic's criteria.
      */
@@ -53,38 +64,6 @@ public class TopicConfig {
         }
         
         return true;
-    }
-    
-    /**
-     * Get SQL fragment for filtering events by tag keys.
-     * Uses PostgreSQL array operators for efficiency.
-     */
-    public String getSqlFilter() {
-        if (requiredTags.isEmpty() && anyOfTags.isEmpty() && exactTags.isEmpty()) {
-            return "TRUE"; // Match all
-        }
-        
-        List<String> conditions = new ArrayList<>();
-        
-        // Required tags: ALL must be present
-        for (String tag : requiredTags) {
-            conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE '" + tag + ":%')");
-        }
-        
-        // AnyOf tags: at least ONE must be present
-        if (!anyOfTags.isEmpty()) {
-            String anyOfCondition = anyOfTags.stream()
-                .map(tag -> "t LIKE '" + tag + ":%'")
-                .collect(Collectors.joining(" OR "));
-            conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE " + anyOfCondition + ")");
-        }
-        
-        // Exact matches
-        for (var entry : exactTags.entrySet()) {
-            conditions.add("'" + entry.getKey() + ":" + entry.getValue() + "' = ANY(tags)");
-        }
-        
-        return String.join(" AND ", conditions);
     }
     
     public static Builder builder(String name) {

@@ -58,7 +58,7 @@ make stop
 - **Event Sourcing**: Complete audit trail with state reconstruction
 - **Java 25**: Records, sealed interfaces, virtual threads, pattern matching
 - **Spring Boot**: REST API with PostgreSQL backend
-- **Testing**: 435 tests (369 unit + 66 integration) with Testcontainers
+- **Testing**: 553 tests (all passing) with Testcontainers
 - **Observability**: Prometheus, Grafana, Loki monitoring stack
 
 **📚 [DCB Technical Details](docs/architecture/DCB_AND_CRABLET.md)** | **📚 [Testing Guide](docs/development/README.md#testing-strategy)** | **📚 [Observability](docs/observability/README.md)**

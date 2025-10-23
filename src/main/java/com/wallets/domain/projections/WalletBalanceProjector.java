@@ -1,13 +1,12 @@
 package com.wallets.domain.projections;
 
-import com.crablet.core.Cursor;
 import com.crablet.core.EventStore;
+import com.crablet.core.EventDeserializer;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
 import com.crablet.core.StateProjector;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.WalletQueryPatterns;
 import com.wallets.domain.event.DepositMade;
 import com.wallets.domain.event.MoneyTransferred;
@@ -32,10 +31,7 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
 
     private static final Logger log = LoggerFactory.getLogger(WalletBalanceProjector.class);
 
-    private final ObjectMapper objectMapper;
-
-    public WalletBalanceProjector(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public WalletBalanceProjector() {
     }
 
     @Override
@@ -60,14 +56,9 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
     }
 
     @Override
-    public WalletBalanceState transition(WalletBalanceState currentState, StoredEvent event) {
-        // Parse event data as WalletEvent using sealed interface
-        WalletEvent walletEvent;
-        try {
-            walletEvent = objectMapper.readValue(event.data(), WalletEvent.class);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to deserialize WalletEvent", e);
-        }
+    public WalletBalanceState transition(WalletBalanceState currentState, StoredEvent event, EventDeserializer context) {
+        // Deserialize event data as WalletEvent using sealed interface
+        WalletEvent walletEvent = context.deserialize(event, WalletEvent.class);
 
         // Use pattern matching for type-safe event handling
         return switch (walletEvent) {
