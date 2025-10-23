@@ -44,10 +44,10 @@ public class EventTestHelperImpl implements EventTestHelper {
     };
     
     @Autowired
-    public EventTestHelperImpl(DataSource dataSource, QuerySqlBuilder sqlBuilder, EventStoreConfig config) {
+    public EventTestHelperImpl(DataSource dataSource, EventStoreConfig config) {
         this.dataSource = dataSource;
-        this.sqlBuilder = sqlBuilder;
         this.config = config;
+        this.sqlBuilder = new QuerySqlBuilderImpl();
     }
     
     @Override

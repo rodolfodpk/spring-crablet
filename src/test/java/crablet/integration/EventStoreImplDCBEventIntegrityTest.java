@@ -10,7 +10,6 @@ import com.crablet.core.impl.EventStoreImpl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.crablet.core.ClockProvider;
-import com.crablet.core.QuerySqlBuilder;
 import com.crablet.core.EventTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,16 +42,13 @@ class EventStoreImplDCBEventIntegrityTest extends AbstractCrabletIT {
     private ClockProvider clock;
 
     @Autowired
-    private QuerySqlBuilder sqlBuilder;
-
-    @Autowired
     private EventTestHelper testHelper;
 
     private EventStoreImpl store;
 
     @BeforeEach
     void setUp() {
-        store = new EventStoreImpl(dataSource, objectMapper, config, clock, sqlBuilder);
+        store = new EventStoreImpl(dataSource, objectMapper, config, clock);
     }
 
     @Test

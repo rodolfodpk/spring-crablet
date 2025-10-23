@@ -18,7 +18,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.event.WalletOpened;
 import com.crablet.core.ClockProvider;
-import com.crablet.core.QuerySqlBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,9 +55,6 @@ class EventStoreImplTest extends AbstractCrabletIT {
     
     @Autowired
     private ClockProvider clock;
-
-    @Autowired
-    private QuerySqlBuilder sqlBuilder;
 
     @BeforeEach
     void setUp() {
@@ -553,7 +549,7 @@ class EventStoreImplTest extends AbstractCrabletIT {
     @DisplayName("Should handle database connection errors gracefully")
     void shouldHandleDatabaseConnectionErrorsGracefully() throws JsonProcessingException, SQLException {
         // When & Then - constructor should throw IllegalArgumentException for null DataSource
-        assertThatThrownBy(() -> new EventStoreImpl(null, objectMapper, config, clock, sqlBuilder))
+        assertThatThrownBy(() -> new EventStoreImpl(null, objectMapper, config, clock))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("DataSource must not be null");
     }

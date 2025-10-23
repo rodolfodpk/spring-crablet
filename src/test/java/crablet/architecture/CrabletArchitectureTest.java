@@ -92,6 +92,7 @@ class CrabletArchitectureTest {
                 .that().resideInAPackage("com.crablet.core.impl..")
                 .and().haveSimpleNameEndingWith("Impl")
                 .and().areNotInnerClasses()
+                .and().arePublic() // Exclude package-private classes like QuerySqlBuilderImpl
                 .should().beAnnotatedWith("org.springframework.stereotype.Component");
 
         rule.check(classes);

@@ -96,8 +96,30 @@ public class EventStoreImpl implements EventStore {
         return new StoredEvent(type, tags, data, transactionId, position, occurredAt);
     };
 
+    /**
+     * Singleton EventDeserializer for event deserialization.
+     * Stateless implementation reused across all projections.
+     */
+    private final EventDeserializer eventDeserializer = new EventDeserializerImpl();
+
+    /**
+     * Implementation of EventDeserializer.
+     * Provides deserialization utilities using the shared ObjectMapper.
+     */
+    private class EventDeserializerImpl implements EventDeserializer {
+        @Override
+        public <E> E deserialize(StoredEvent event, Class<E> eventType) {
+            try {
+                return objectMapper.readValue(event.data(), eventType);
+            } catch (java.io.IOException e) {
+                throw new RuntimeException("Failed to deserialize event type=" + 
+                    event.type() + " to " + eventType.getName(), e);
+            }
+        }
+    }
+
     @Autowired
-    public EventStoreImpl(DataSource dataSource, ObjectMapper objectMapper, EventStoreConfig config, ClockProvider clock, QuerySqlBuilder sqlBuilder) {
+    public EventStoreImpl(DataSource dataSource, ObjectMapper objectMapper, EventStoreConfig config, ClockProvider clock) {
         if (dataSource == null) {
             throw new IllegalArgumentException("DataSource must not be null");
         }
@@ -110,14 +132,11 @@ public class EventStoreImpl implements EventStore {
         if (clock == null) {
             throw new IllegalArgumentException("ClockProvider must not be null");
         }
-        if (sqlBuilder == null) {
-            throw new IllegalArgumentException("QuerySqlBuilder must not be null");
-        }
         this.dataSource = dataSource;
         this.objectMapper = objectMapper;
         this.config = config;
         this.clock = clock;
-        this.sqlBuilder = sqlBuilder;
+        this.sqlBuilder = new QuerySqlBuilderImpl();
     }
 
     @Override
@@ -323,22 +342,6 @@ public class EventStoreImpl implements EventStore {
         }
     }
 
-    /**
-     * Implementation of EventDeserializer for JDBC event store.
-     * Provides deserialization utilities using the shared ObjectMapper.
-     */
-    private class JDBCEventDeserializer implements EventDeserializer {
-        @Override
-        public <E> E deserialize(StoredEvent event, Class<E> eventType) {
-            try {
-                return objectMapper.readValue(event.data(), eventType);
-            } catch (java.io.IOException e) {
-                throw new RuntimeException("Failed to deserialize event type=" + 
-                    event.type() + " to " + eventType.getName(), e);
-            }
-        }
-    }
-
     @Override
     public <T> ProjectionResult<T> project(Query query, Cursor after, Class<T> stateType, List<StateProjector<T>> projectors) {
         if (query == null) {
@@ -386,7 +389,7 @@ public class EventStoreImpl implements EventStore {
                     }
                     
                     // Stream and project incrementally
-                    EventDeserializer deserializer = new JDBCEventDeserializer();
+                    EventDeserializer deserializer = this.eventDeserializer;
                     T state = projectors.get(0).getInitialState();
                     Cursor lastCursor = after;
                     
@@ -718,7 +721,7 @@ public class EventStoreImpl implements EventStore {
                 }
                 
                 // Stream and project incrementally
-                EventDeserializer deserializer = new JDBCEventDeserializer();
+                EventDeserializer deserializer = this.eventDeserializer;
                 T state = projectors.get(0).getInitialState();
                 Cursor lastCursor = after;
                 

@@ -1,13 +1,15 @@
 package com.crablet.core.impl;
 
 import com.crablet.core.*;
-import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Component
-public class QuerySqlBuilderImpl implements QuerySqlBuilder {
+/**
+ * Package-private implementation of QuerySqlBuilder.
+ * Directly instantiated by EventStoreImpl and EventTestHelperImpl.
+ */
+class QuerySqlBuilderImpl implements QuerySqlBuilder {
     
     @Override
     public String buildWhereClause(Query query, Cursor after, List<Object> params) {
