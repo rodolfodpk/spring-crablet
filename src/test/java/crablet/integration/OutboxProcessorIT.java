@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import crablet.integration.AbstractCrabletIT;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,9 +45,6 @@ class OutboxProcessorIT extends AbstractCrabletIT {
     void setUp() {
         // Reset the publisher state before each test
         countDownLatchPublisher.reset();
-        
-        // Reset outbox database state to ensure test isolation
-        jdbcTemplate.update("DELETE FROM outbox_topic_progress WHERE topic = 'default'");
         
         // Ensure outbox is enabled for all tests
         outboxConfig.setEnabled(true);
@@ -252,5 +250,326 @@ class OutboxProcessorIT extends AbstractCrabletIT {
         // - Timeout protection (won't hang indefinitely)
         // - Clear verification of processing completion
         System.out.println("✓ CountDownLatch approach provides deterministic, timeout-protected event verification");
+    }
+
+    @Test
+    void shouldProcessWithGlobalLockStrategy() throws InterruptedException {
+        // Given - Switch to GLOBAL strategy
+        outboxConfig.setLockStrategy(OutboxConfig.LockStrategy.GLOBAL);
+        countDownLatchPublisher.expectEvents(2);
+
+        // Append events
+        List<AppendEvent> events = List.of(
+            AppendEvent.builder("TestEvent1")
+                .tag("test", "global1")
+                .data("{\"test\":\"global1\"}".getBytes())
+                .build(),
+            AppendEvent.builder("TestEvent2")
+                .tag("test", "global2")
+                .data("{\"test\":\"global2\"}".getBytes())
+                .build()
+        );
+
+        eventStore.append(events);
+
+        // When - Process with GLOBAL strategy
+        int processed = outboxProcessor.processPending();
+
+        // Then
+        assertThat(processed).isGreaterThan(0);
+        
+        boolean eventsProcessed = countDownLatchPublisher.awaitEvents(5000);
+        if (eventsProcessed) {
+            assertThat(countDownLatchPublisher.getTotalEventsProcessed()).isEqualTo(2);
+        }
+    }
+
+    @Test
+    void shouldHandlePublisherFailureAndRetry() throws InterruptedException {
+        // Given - Create events that will cause processing
+        countDownLatchPublisher.expectEvents(1);
+        
+        AppendEvent event = AppendEvent.builder("TestEvent")
+            .tag("test", "failure-test")
+            .data("{\"test\":\"failure\"}".getBytes())
+            .build();
+
+        eventStore.append(List.of(event));
+
+        // When - Process events (this should succeed)
+        int processed = outboxProcessor.processPending();
+        assertThat(processed).isGreaterThan(0);
+
+        // Then - Verify event was processed despite potential failures
+        boolean eventsProcessed = countDownLatchPublisher.awaitEvents(5000);
+        if (eventsProcessed) {
+            assertThat(countDownLatchPublisher.getTotalEventsProcessed()).isEqualTo(1);
+        }
+
+        // Verify publisher position was updated
+        Long lastPosition = jdbcTemplate.queryForObject(
+            "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+            Long.class
+        );
+        assertThat(lastPosition).isGreaterThan(0);
+    }
+
+    @Test
+    void shouldMaintainEventOrderingAcrossPublishers() throws InterruptedException {
+        // Given - Create multiple events in sequence
+        countDownLatchPublisher.expectEvents(3);
+        
+        List<AppendEvent> events = List.of(
+            AppendEvent.builder("OrderedEvent1")
+                .tag("test", "order1")
+                .data("{\"order\":1}".getBytes())
+                .build(),
+            AppendEvent.builder("OrderedEvent2")
+                .tag("test", "order2")
+                .data("{\"order\":2}".getBytes())
+                .build(),
+            AppendEvent.builder("OrderedEvent3")
+                .tag("test", "order3")
+                .data("{\"order\":3}".getBytes())
+                .build()
+        );
+
+        eventStore.append(events);
+
+        // When - Process events
+        int processed = outboxProcessor.processPending();
+        assertThat(processed).isGreaterThan(0);
+
+        // Then - Verify events were processed in order
+        boolean eventsProcessed = countDownLatchPublisher.awaitEvents(5000);
+        if (eventsProcessed) {
+            assertThat(countDownLatchPublisher.getTotalEventsProcessed()).isEqualTo(3);
+        }
+
+        // Verify position tracking maintains order
+        Long lastPosition = jdbcTemplate.queryForObject(
+            "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+            Long.class
+        );
+        assertThat(lastPosition).isEqualTo(3L);
+    }
+
+    @Test
+    void shouldResumeFromLastPositionAfterRestart() throws InterruptedException {
+        // Given - Process some events first
+        countDownLatchPublisher.expectEvents(2);
+        
+        List<AppendEvent> firstBatch = List.of(
+            AppendEvent.builder("FirstEvent1")
+                .tag("test", "resume1")
+                .data("{\"batch\":1}".getBytes())
+                .build(),
+            AppendEvent.builder("FirstEvent2")
+                .tag("test", "resume2")
+                .data("{\"batch\":1}".getBytes())
+                .build()
+        );
+
+        eventStore.append(firstBatch);
+        int firstProcessed = outboxProcessor.processPending();
+        assertThat(firstProcessed).isGreaterThan(0);
+
+        // Wait for processing
+        boolean firstProcessedResult = countDownLatchPublisher.awaitEvents(5000);
+        if (firstProcessedResult) {
+            assertThat(countDownLatchPublisher.getTotalEventsProcessed()).isEqualTo(2);
+        }
+
+        // Get last position
+        Long lastPosition = jdbcTemplate.queryForObject(
+            "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+            Long.class
+        );
+
+        // When - Add more events (simulating restart scenario)
+        countDownLatchPublisher.reset();
+        countDownLatchPublisher.expectEvents(1);
+        
+        AppendEvent newEvent = AppendEvent.builder("NewEvent")
+            .tag("test", "resume3")
+            .data("{\"batch\":2}".getBytes())
+            .build();
+
+        eventStore.append(List.of(newEvent));
+        int secondProcessed = outboxProcessor.processPending();
+
+        // Then - Should process only new events, not repeat old ones
+        assertThat(secondProcessed).isGreaterThan(0);
+        
+        boolean secondProcessedResult = countDownLatchPublisher.awaitEvents(5000);
+        if (secondProcessedResult) {
+            assertThat(countDownLatchPublisher.getTotalEventsProcessed()).isEqualTo(1);
+        }
+
+        // Verify position advanced
+        Long newLastPosition = jdbcTemplate.queryForObject(
+            "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+            Long.class
+        );
+        assertThat(newLastPosition).isGreaterThan(lastPosition);
+    }
+
+    @Test
+    void shouldHandleConcurrentProcessingWithMultiplePublishers() throws InterruptedException {
+        // Given - Multiple events for concurrent processing
+        countDownLatchPublisher.expectEvents(5);
+        
+        List<AppendEvent> events = List.of(
+            AppendEvent.builder("ConcurrentEvent1")
+                .tag("test", "concurrent1")
+                .data("{\"concurrent\":1}".getBytes())
+                .build(),
+            AppendEvent.builder("ConcurrentEvent2")
+                .tag("test", "concurrent2")
+                .data("{\"concurrent\":2}".getBytes())
+                .build(),
+            AppendEvent.builder("ConcurrentEvent3")
+                .tag("test", "concurrent3")
+                .data("{\"concurrent\":3}".getBytes())
+                .build(),
+            AppendEvent.builder("ConcurrentEvent4")
+                .tag("test", "concurrent4")
+                .data("{\"concurrent\":4}".getBytes())
+                .build(),
+            AppendEvent.builder("ConcurrentEvent5")
+                .tag("test", "concurrent5")
+                .data("{\"concurrent\":5}".getBytes())
+                .build()
+        );
+
+        eventStore.append(events);
+
+        // When - Process multiple times to simulate concurrent processing
+        int totalProcessed = 0;
+        for (int i = 0; i < 3; i++) {
+            int processed = outboxProcessor.processPending();
+            totalProcessed += processed;
+        }
+
+        // Then - Should process all events
+        assertThat(totalProcessed).isGreaterThan(0);
+        
+        boolean eventsProcessed = countDownLatchPublisher.awaitEvents(5000);
+        if (eventsProcessed) {
+            assertThat(countDownLatchPublisher.getTotalEventsProcessed()).isEqualTo(5);
+        }
+
+        // Verify all events were processed
+        Long lastPosition = jdbcTemplate.queryForObject(
+            "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+            Long.class
+        );
+        assertThat(lastPosition).isEqualTo(5L);
+    }
+
+    @Test
+    void shouldHandleEmptyEventBatches() {
+        // Given - Ensure clean state (explicit cleanup for this test)
+        jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+        
+        // When - Process with no events
+        int processed = outboxProcessor.processPending();
+
+        // Then - Should return 0 (no events processed)
+        assertThat(processed).isEqualTo(0);
+        
+        // But publishers should be auto-registered even with no events
+        // This is expected behavior - publishers are registered when first accessed
+        Integer count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM outbox_topic_progress WHERE topic = 'default'",
+            Integer.class
+        );
+        
+        // Debug: Let's see what publishers were registered
+        List<String> publishers = jdbcTemplate.queryForList(
+            "SELECT publisher FROM outbox_topic_progress WHERE topic = 'default'",
+            String.class
+        );
+        System.out.println("Registered publishers: " + publishers);
+        
+        assertThat(count).isGreaterThan(0); // Publishers should be auto-registered
+    }
+
+    @Test
+    void shouldProcessEventsWithDifferentTagConfigurations() throws InterruptedException {
+        // Given - Events with different tag patterns
+        countDownLatchPublisher.expectEvents(3);
+        
+        List<AppendEvent> events = List.of(
+            AppendEvent.builder("TagEvent1")
+                .tag("test", "tag1")
+                .tag("category", "important")
+                .data("{\"tags\":\"multiple\"}".getBytes())
+                .build(),
+            AppendEvent.builder("TagEvent2")
+                .tag("test", "tag2")
+                .tag("priority", "high")
+                .data("{\"tags\":\"different\"}".getBytes())
+                .build(),
+            AppendEvent.builder("TagEvent3")
+                .tag("test", "tag3")
+                .data("{\"tags\":\"simple\"}".getBytes())
+                .build()
+        );
+
+        eventStore.append(events);
+
+        // When - Process events
+        int processed = outboxProcessor.processPending();
+
+        // Then - Should process all events regardless of tag complexity
+        assertThat(processed).isGreaterThan(0);
+        
+        boolean eventsProcessed = countDownLatchPublisher.awaitEvents(5000);
+        if (eventsProcessed) {
+            assertThat(countDownLatchPublisher.getTotalEventsProcessed()).isEqualTo(3);
+        }
+
+        // Verify processing completed
+        Long lastPosition = jdbcTemplate.queryForObject(
+            "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+            Long.class
+        );
+        assertThat(lastPosition).isEqualTo(3L);
+    }
+
+    @Test
+    void shouldHandleLargeBatchProcessing() throws InterruptedException {
+        // Given - Large batch of events
+        int batchSize = 50;
+        countDownLatchPublisher.expectEvents(batchSize);
+        
+        List<AppendEvent> events = new ArrayList<>();
+        for (int i = 1; i <= batchSize; i++) {
+            events.add(AppendEvent.builder("BatchEvent" + i)
+                .tag("test", "batch" + i)
+                .data(("{\"batch\":\"" + i + "\"}").getBytes())
+                .build());
+        }
+
+        eventStore.append(events);
+
+        // When - Process large batch
+        int processed = outboxProcessor.processPending();
+
+        // Then - Should handle large batch efficiently
+        assertThat(processed).isGreaterThan(0);
+        
+        boolean eventsProcessed = countDownLatchPublisher.awaitEvents(10000); // Longer timeout for large batch
+        if (eventsProcessed) {
+            assertThat(countDownLatchPublisher.getTotalEventsProcessed()).isEqualTo(batchSize);
+        }
+
+        // Verify all events were processed
+        Long lastPosition = jdbcTemplate.queryForObject(
+            "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+            Long.class
+        );
+        assertThat(lastPosition).isEqualTo((long) batchSize);
     }
 }

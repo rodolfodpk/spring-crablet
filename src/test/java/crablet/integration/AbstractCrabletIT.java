@@ -77,6 +77,7 @@ public abstract class AbstractCrabletIT {
         // Clean all tables in the correct order to respect foreign key constraints
         jdbcTemplate.execute("TRUNCATE TABLE events CASCADE");
         jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
+        jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
         // Reset the BIGSERIAL sequence for events.position
         jdbcTemplate.execute("ALTER SEQUENCE events_position_seq RESTART WITH 1");
     }
