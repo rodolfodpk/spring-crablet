@@ -141,6 +141,13 @@ Jackson-based serialization:
 - **Slow Tests**: Integration tests (> 1s)
 - **Performance Tests**: Load and stress testing
 
+## Outbox Pattern
+
+Reliable event publishing to external systems using the transactional outbox pattern:
+
+- **[Outbox Pattern Implementation](OUTBOX_PATTERN.md)** - Technical implementation details
+- **[Outbox Pattern Rationale](OUTBOX_RATIONALE.md)** - Design decisions and trade-offs
+
 ## Related Documentation
 
 - [API Reference](../api/README.md) - API documentation
