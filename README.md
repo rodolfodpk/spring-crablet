@@ -66,7 +66,8 @@ make stop
 ## Documentation
 
 - **[Architecture](docs/architecture/README.md)** - DCB pattern, event sourcing, system design
-  - [Outbox Pattern Rationale](docs/architecture/OUTBOX_RATIONALE.md) - Optional API for reliable event publishing to external systems
+  - [Outbox Pattern](docs/architecture/OUTBOX_PATTERN.md) - Complete guide to reliable event publishing
+  - [Outbox Pattern Rationale](docs/architecture/OUTBOX_RATIONALE.md) - Why and when to use the outbox pattern
 - **[Development](docs/development/README.md)** - Setup, testing, coding practices
 - **[API](docs/api/README.md)** - REST endpoints, examples, Swagger
 - **[Security](docs/security/README.md)** - Rate limiting, HTTP/2, input validation
