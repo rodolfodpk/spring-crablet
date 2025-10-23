@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
  * Controls command persistence and transaction isolation levels.
  * <p>
  * Located in crablet.impl since it's a Spring-specific implementation detail
- * used only by implementation classes (JDBCEventStore and DefaultCommandExecutor).
+ * used only by implementation classes (EventStoreImpl and CommandExecutorImpl).
  */
 @Component
 @ConfigurationProperties(prefix = "crablet.eventstore")

@@ -7,7 +7,8 @@ import com.crablet.core.Cursor;
 import com.crablet.core.Query;
 import com.crablet.core.StateProjector;
 import com.crablet.core.Tag;
-import com.crablet.core.impl.JDBCEventStore;
+import com.crablet.core.impl.EventStoreImpl;
+import com.crablet.core.EventTestHelper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,12 +22,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Tests for database-related error handling scenarios.
- * Covers basic error handling in JDBCEventStore.
+ * Covers basic error handling in EventStoreImpl.
  */
 class DatabaseErrorHandlingTest extends AbstractWalletIntegrationTest {
 
     @Autowired
-    private JDBCEventStore eventStore;
+    private EventStoreImpl eventStore;
+
+    @Autowired
+    private EventTestHelper testHelper;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -43,7 +47,7 @@ class DatabaseErrorHandlingTest extends AbstractWalletIntegrationTest {
     @DisplayName("Should handle empty query gracefully")
     void shouldHandleEmptyQueryGracefully() {
         // When & Then
-        assertThatCode(() -> eventStore.query(Query.empty(), null))
+        assertThatCode(() -> testHelper.query(Query.empty(), null))
                 .doesNotThrowAnyException();
     }
 
@@ -83,7 +87,7 @@ class DatabaseErrorHandlingTest extends AbstractWalletIntegrationTest {
     @DisplayName("Should handle query with null query")
     void shouldHandleQueryWithNullQuery() {
         // When & Then
-        assertThatThrownBy(() -> eventStore.query(null, null))
+        assertThatThrownBy(() -> testHelper.query(null, null))
                 .isInstanceOf(Exception.class);
     }
 

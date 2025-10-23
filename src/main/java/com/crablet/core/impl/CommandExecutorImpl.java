@@ -29,16 +29,16 @@ import java.util.stream.Collectors;
  * This is based on the Go implementation's CommandExecutor pattern.
  */
 @Component
-public class DefaultCommandExecutor implements CommandExecutor {
+public class CommandExecutorImpl implements CommandExecutor {
 
-    private static final Logger log = LoggerFactory.getLogger(DefaultCommandExecutor.class);
+    private static final Logger log = LoggerFactory.getLogger(CommandExecutorImpl.class);
 
     private final EventStore eventStore;
     private final Map<String, CommandHandler<?>> handlers;
     private final EventStoreConfig config;
 
     @Autowired
-    public DefaultCommandExecutor(EventStore eventStore, List<CommandHandler<?>> commandHandlers, EventStoreConfig config) {
+    public CommandExecutorImpl(EventStore eventStore, List<CommandHandler<?>> commandHandlers, EventStoreConfig config) {
         this.eventStore = eventStore;
         this.config = config;
 

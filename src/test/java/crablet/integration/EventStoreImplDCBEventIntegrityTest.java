@@ -6,10 +6,12 @@ import com.crablet.core.impl.EventStoreConfig;
 import com.crablet.core.Query;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
-import com.crablet.core.impl.JDBCEventStore;
+import com.crablet.core.impl.EventStoreImpl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.crablet.core.ClockProvider;
+import com.crablet.core.QuerySqlBuilder;
+import com.crablet.core.EventTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +28,7 @@ import static crablet.testutils.DCBTestHelpers.createTestEvent;
  * Tests for DCB event data integrity.
  * Verifies that event type, tags, and JSON data are preserved exactly.
  */
-class JDBCEventStoreDCBEventIntegrityTest extends AbstractCrabletIT {
+class EventStoreImplDCBEventIntegrityTest extends AbstractCrabletIT {
 
     @Autowired
     private DataSource dataSource;
@@ -40,11 +42,17 @@ class JDBCEventStoreDCBEventIntegrityTest extends AbstractCrabletIT {
     @Autowired
     private ClockProvider clock;
 
-    private JDBCEventStore store;
+    @Autowired
+    private QuerySqlBuilder sqlBuilder;
+
+    @Autowired
+    private EventTestHelper testHelper;
+
+    private EventStoreImpl store;
 
     @BeforeEach
     void setUp() {
-        store = new JDBCEventStore(dataSource, objectMapper, config, clock);
+        store = new EventStoreImpl(dataSource, objectMapper, config, clock, sqlBuilder);
     }
 
     @Test
@@ -52,7 +60,7 @@ class JDBCEventStoreDCBEventIntegrityTest extends AbstractCrabletIT {
         AppendEvent event = createTestEvent("MyEventType", "id1");
         store.append(List.of(event));
 
-        List<StoredEvent> stored = store.query(Query.empty(), null);
+        List<StoredEvent> stored = testHelper.query(Query.empty(), null);
         assertThat(stored.get(0).type()).isEqualTo("MyEventType");
     }
 
@@ -66,7 +74,7 @@ class JDBCEventStoreDCBEventIntegrityTest extends AbstractCrabletIT {
                 .build();
         store.append(List.of(event));
 
-        List<StoredEvent> stored = store.query(Query.empty(), null);
+        List<StoredEvent> stored = testHelper.query(Query.empty(), null);
         assertThat(stored.get(0).tags())
                 .containsExactlyInAnyOrder(
                         new Tag("key1", "value1"),
@@ -93,7 +101,7 @@ class JDBCEventStoreDCBEventIntegrityTest extends AbstractCrabletIT {
         AppendEvent event = createTestEvent("TestEvent", complexJson.getBytes());
         store.append(List.of(event));
 
-        List<StoredEvent> stored = store.query(Query.empty(), null);
+        List<StoredEvent> stored = testHelper.query(Query.empty(), null);
         String storedJson = new String(stored.get(0).data());
 
         // Parse and compare (ignoring whitespace)
@@ -117,7 +125,7 @@ class JDBCEventStoreDCBEventIntegrityTest extends AbstractCrabletIT {
         AppendEvent event = createTestEvent("UnicodeEvent", unicodeJson.getBytes(StandardCharsets.UTF_8));
         store.append(List.of(event));
 
-        List<StoredEvent> stored = store.query(Query.empty(), null);
+        List<StoredEvent> stored = testHelper.query(Query.empty(), null);
         String storedJson = new String(stored.get(0).data(), StandardCharsets.UTF_8);
 
         // Verify the JSON is parseable and contains expected data
@@ -137,7 +145,7 @@ class JDBCEventStoreDCBEventIntegrityTest extends AbstractCrabletIT {
         store.append(List.of(event));
         Instant afterAppend = Instant.now().plusSeconds(1);   // Allow 1 second clock skew
 
-        List<StoredEvent> stored = store.query(Query.empty(), null);
+        List<StoredEvent> stored = testHelper.query(Query.empty(), null);
         StoredEvent storedEvent = stored.get(0);
 
         // Verify transaction_id is set (not null/zero)

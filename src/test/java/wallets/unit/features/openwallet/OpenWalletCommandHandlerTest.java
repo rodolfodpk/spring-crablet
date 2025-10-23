@@ -4,6 +4,7 @@ import wallets.integration.AbstractWalletIntegrationTest;
 import com.crablet.core.CommandResult;
 import com.crablet.core.ConcurrencyException;
 import com.crablet.core.EventStore;
+import com.crablet.core.EventTestHelper;
 import com.crablet.core.Query;
 import com.crablet.core.QueryItem;
 import com.crablet.core.StoredEvent;
@@ -36,6 +37,9 @@ class OpenWalletCommandHandlerTest extends AbstractWalletIntegrationTest {
 
     @Autowired
     private EventStore eventStore;
+
+    @Autowired
+    private EventTestHelper testHelper;
 
     @BeforeEach
     void setUp() {
@@ -107,7 +111,7 @@ class OpenWalletCommandHandlerTest extends AbstractWalletIntegrationTest {
                 .isInstanceOf(ConcurrencyException.class);
 
         // Verify only one event exists (no duplicate created)
-        List<StoredEvent> allEvents = eventStore.query(Query.of(
+        List<StoredEvent> allEvents = testHelper.query(Query.of(
                 QueryItem.of(List.of("WalletOpened"), List.of(new Tag("wallet_id", "wallet1")))
         ), null);
         assertThat(allEvents).hasSize(1);

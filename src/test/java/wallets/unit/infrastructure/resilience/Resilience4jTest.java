@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for Resilience4j integration with database operations.
- * Verifies circuit breaker, retry, and timeout behavior for JDBCEventStore.
+ * Verifies circuit breaker, retry, and timeout behavior for EventStoreImpl.
  */
 class Resilience4jTest extends AbstractWalletIntegrationTest {
 

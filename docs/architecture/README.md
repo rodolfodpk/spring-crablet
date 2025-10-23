@@ -16,16 +16,34 @@ The wallet challenge solution implements event sourcing with:
 
 ### EventStore Interface
 
+The primary interface for production event operations:
+
 - **Append**: Store new events with concurrency control
-- **Query**: Retrieve events with filtering and pagination
-- **Projection**: Reconstruct state from events
+- **Projection**: Reconstruct state from events with DCB guarantees
+- **ExecuteInTransaction**: Run operations within a single transaction
+
+**Important**: Use `EventStore` for all production code and command handlers.
+
+### EventTestHelper Interface
+
+A helper interface for testing purposes only:
+
+- **Query**: Retrieve raw events directly from the store
+- **Warning**: This bypasses DCB concurrency control and should NOT be used in production
+
+**Use Cases**:
+- Integration tests that need to verify event storage
+- Debugging tools to inspect event store contents
+- Migration scripts that need to read events directly
+
+**For production use**, use `EventStore.project()` instead, which provides proper state projection with DCB concurrency control.
 
 ## Package Structure
 
 ### Crablet Library
 
-- **`com.crablet.core`**: Pure interfaces (EventStore, CommandExecutor, domain models) - no Spring dependencies
-- **`com.crablet.impl`**: Spring implementations (JDBCEventStore, DefaultCommandExecutor, EventStoreConfig)
+- **`com.crablet.core`**: Pure interfaces (EventStore, EventTestHelper, CommandExecutor, domain models) - no Spring dependencies
+- **`com.crablet.impl`**: Spring implementations (EventStoreImpl, EventTestHelperImpl, CommandExecutorImpl, ClockProviderImpl, EventStoreConfig)
 
 Architecture tests enforce this separation to keep core contracts framework-agnostic.
 

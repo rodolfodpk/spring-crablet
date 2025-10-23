@@ -2,6 +2,7 @@ package wallets.integration.crosscutting.concurrency;
 
 import com.crablet.core.CommandExecutor;
 import com.crablet.core.EventStore;
+import com.crablet.core.EventTestHelper;
 import com.crablet.core.Query;
 import com.crablet.core.StoredEvent;
 import com.wallets.domain.WalletQueryPatterns;
@@ -36,6 +37,9 @@ class WalletDCBComplianceIT extends AbstractWalletIntegrationTest {
     private EventStore eventStore;
 
     @Autowired
+    private EventTestHelper testHelper;
+
+    @Autowired
     private OpenWalletCommandHandler openWalletHandler;
 
     @Autowired
@@ -53,7 +57,7 @@ class WalletDCBComplianceIT extends AbstractWalletIntegrationTest {
 
         // Query events for wallet w1
         Query walletQuery = WalletQueryPatterns.singleWalletDecisionModel("w1");
-        List<StoredEvent> events = eventStore.query(walletQuery, null);
+        List<StoredEvent> events = testHelper.query(walletQuery, null);
 
         // Verify ORDER
         assertThat(events).extracting("type")

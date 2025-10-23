@@ -4,6 +4,7 @@ import com.crablet.core.CommandExecutor;
 import com.crablet.core.ConcurrencyException;
 import com.crablet.core.Cursor;
 import com.crablet.core.EventStore;
+import com.crablet.core.EventTestHelper;
 import com.crablet.core.Query;
 import com.crablet.core.QueryItem;
 import com.crablet.core.Tag;
@@ -38,6 +39,9 @@ class OptimisticLockingIT extends AbstractWalletIntegrationTest {
     @Autowired
     private EventStore eventStore;
 
+    @Autowired
+    private EventTestHelper testHelper;
+
     @Test
     @DisplayName("Should validate AppendCondition cursor correctly")
     void shouldValidateAppendConditionCursorCorrectly() {
@@ -49,7 +53,7 @@ class OptimisticLockingIT extends AbstractWalletIntegrationTest {
 
         // Get current cursor
         Query query = Query.of(QueryItem.of(List.of("WalletOpened"), List.of(new Tag("wallet_id", walletId))));
-        List<com.crablet.core.StoredEvent> events = eventStore.query(query, null);
+        List<com.crablet.core.StoredEvent> events = testHelper.query(query, null);
         assertThat(events).hasSize(1);
 
         Cursor currentCursor = Cursor.of(events.get(0).position(), events.get(0).occurredAt(), events.get(0).transactionId());
@@ -62,7 +66,7 @@ class OptimisticLockingIT extends AbstractWalletIntegrationTest {
 
         // Verify deposit was applied
         Query depositQuery = Query.of(QueryItem.of(List.of("DepositMade"), List.of(new Tag("wallet_id", walletId))));
-        List<com.crablet.core.StoredEvent> depositEvents = eventStore.query(depositQuery, null);
+        List<com.crablet.core.StoredEvent> depositEvents = testHelper.query(depositQuery, null);
         assertThat(depositEvents).hasSize(1);
     }
 
@@ -77,7 +81,7 @@ class OptimisticLockingIT extends AbstractWalletIntegrationTest {
 
         // Get initial cursor
         Query query = Query.of(QueryItem.of(List.of("WalletOpened"), List.of(new Tag("wallet_id", walletId))));
-        List<com.crablet.core.StoredEvent> events = eventStore.query(query, null);
+        List<com.crablet.core.StoredEvent> events = testHelper.query(query, null);
         Cursor initialCursor = Cursor.of(events.get(0).position(), events.get(0).occurredAt(), events.get(0).transactionId());
 
         // Make a deposit to advance the cursor
@@ -96,7 +100,7 @@ class OptimisticLockingIT extends AbstractWalletIntegrationTest {
 
         // Verify both deposits were applied
         Query depositQuery = Query.of(QueryItem.of(List.of("DepositMade"), List.of(new Tag("wallet_id", walletId))));
-        List<com.crablet.core.StoredEvent> depositEvents = eventStore.query(depositQuery, null);
+        List<com.crablet.core.StoredEvent> depositEvents = testHelper.query(depositQuery, null);
         assertThat(depositEvents).hasSize(2);
     }
 
@@ -119,7 +123,7 @@ class OptimisticLockingIT extends AbstractWalletIntegrationTest {
 
         // Verify both deposits were applied
         Query depositQuery = Query.of(QueryItem.of(List.of("DepositMade"), List.of(new Tag("wallet_id", walletId))));
-        List<com.crablet.core.StoredEvent> depositEvents = eventStore.query(depositQuery, null);
+        List<com.crablet.core.StoredEvent> depositEvents = testHelper.query(depositQuery, null);
         assertThat(depositEvents).hasSize(2);
     }
 
@@ -158,7 +162,7 @@ class OptimisticLockingIT extends AbstractWalletIntegrationTest {
 
         // Verify at least some operations succeeded
         Query allQuery = Query.of(QueryItem.of(List.of("DepositMade", "WithdrawalMade"), List.of(new Tag("wallet_id", walletId))));
-        List<com.crablet.core.StoredEvent> allEvents = eventStore.query(allQuery, null);
+        List<com.crablet.core.StoredEvent> allEvents = testHelper.query(allQuery, null);
         assertThat(allEvents.size()).isGreaterThanOrEqualTo(1).as("At least one operation should have succeeded");
     }
 
@@ -193,7 +197,7 @@ class OptimisticLockingIT extends AbstractWalletIntegrationTest {
 
         // Verify at least one transfer succeeded
         Query transferQuery = Query.of(QueryItem.of(List.of("MoneyTransferred"), List.of(new Tag("from_wallet_id", wallet1Id))));
-        List<com.crablet.core.StoredEvent> transferEvents = eventStore.query(transferQuery, null);
+        List<com.crablet.core.StoredEvent> transferEvents = testHelper.query(transferQuery, null);
         assertThat(transferEvents.size()).isGreaterThanOrEqualTo(1).as("At least one transfer should have succeeded");
     }
 
@@ -240,7 +244,7 @@ class OptimisticLockingIT extends AbstractWalletIntegrationTest {
 
         // Verify events are consistent
         Query allQuery = Query.of(QueryItem.of(List.of("DepositMade", "WithdrawalMade"), List.of(new Tag("wallet_id", walletId))));
-        List<com.crablet.core.StoredEvent> allEvents = eventStore.query(allQuery, null);
+        List<com.crablet.core.StoredEvent> allEvents = testHelper.query(allQuery, null);
         assertThat(allEvents.size()).isEqualTo(successfulOperations).as("Number of events should match successful operations");
     }
 
@@ -267,7 +271,7 @@ class OptimisticLockingIT extends AbstractWalletIntegrationTest {
                         new Tag("deposit_id", "multi-tag-deposit")
                 )
         ));
-        List<com.crablet.core.StoredEvent> depositEvents = eventStore.query(depositQuery, null);
+        List<com.crablet.core.StoredEvent> depositEvents = testHelper.query(depositQuery, null);
         assertThat(depositEvents).hasSize(1);
 
         // Verify the event has the expected tags
@@ -293,7 +297,7 @@ class OptimisticLockingIT extends AbstractWalletIntegrationTest {
 
         // Verify deposit was applied
         Query depositQuery = Query.of(QueryItem.of(List.of("DepositMade"), List.of(new Tag("wallet_id", walletId))));
-        List<com.crablet.core.StoredEvent> depositEvents = eventStore.query(depositQuery, null);
+        List<com.crablet.core.StoredEvent> depositEvents = testHelper.query(depositQuery, null);
         assertThat(depositEvents).hasSize(1);
     }
 }

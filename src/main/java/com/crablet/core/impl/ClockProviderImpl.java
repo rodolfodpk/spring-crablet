@@ -1,7 +1,7 @@
 package com.crablet.core.impl;
 
 import com.crablet.core.ClockProvider;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -11,8 +11,8 @@ import java.time.ZoneOffset;
  * Clock service implementation for providing consistent timestamps across the application.
  * Allows tests to control time using Clock.fixed() for deterministic behavior.
  */
-@Service
-public class ClockService implements ClockProvider {
+@Component
+public class ClockProviderImpl implements ClockProvider {
     private java.time.Clock clock = java.time.Clock.systemUTC();
     
     /**

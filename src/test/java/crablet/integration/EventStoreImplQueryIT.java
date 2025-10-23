@@ -8,7 +8,8 @@ import com.crablet.core.Query;
 import com.crablet.core.QueryItem;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
-import com.crablet.core.impl.JDBCEventStore;
+import com.crablet.core.impl.EventStoreImpl;
+import com.crablet.core.EventTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,14 +23,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Integration tests for JDBCEventStore query building edge cases.
+ * Integration tests for EventStoreImpl query building edge cases.
  * Tests complex query scenarios that contribute to branch coverage in buildEventQueryWhereClause().
  */
-@DisplayName("JDBCEventStore Query Edge Cases Tests")
-class JDBCEventStoreQueryIT extends AbstractCrabletIT {
+@DisplayName("EventStoreImpl Query Edge Cases Tests")
+class EventStoreImplQueryIT extends AbstractCrabletIT {
 
     @Autowired
-    private JDBCEventStore eventStore;
+    private EventStoreImpl eventStore;
+
+    @Autowired
+    private EventTestHelper testHelper;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -82,7 +86,7 @@ class JDBCEventStoreQueryIT extends AbstractCrabletIT {
         Cursor cursor = Cursor.zero();
 
         // When: query called
-        List<StoredEvent> events = eventStore.query(emptyQuery, cursor);
+        List<StoredEvent> events = testHelper.query(emptyQuery, cursor);
 
         // Then: returns all events, no WHERE clause applied
         assertThat(events).hasSize(4);
@@ -95,7 +99,7 @@ class JDBCEventStoreQueryIT extends AbstractCrabletIT {
         Query query = Query.of(List.of(QueryItem.ofTypes(List.of("WalletOpened"))));
 
         // When: query called with null cursor
-        List<StoredEvent> events = eventStore.query(query, null);
+        List<StoredEvent> events = testHelper.query(query, null);
 
         // Then: returns events from beginning
         assertThat(events).hasSize(2); // 2 WalletOpened events
@@ -111,7 +115,7 @@ class JDBCEventStoreQueryIT extends AbstractCrabletIT {
         Cursor cursor = Cursor.of(1L); // After first event
 
         // When: query called with cursor
-        List<StoredEvent> events = eventStore.query(query, cursor);
+        List<StoredEvent> events = testHelper.query(query, cursor);
 
         // Then: returns events after cursor position
         assertThat(events).hasSize(1); // 1 WalletOpened event after position 1
@@ -127,7 +131,7 @@ class JDBCEventStoreQueryIT extends AbstractCrabletIT {
         ));
 
         // When: query called
-        List<StoredEvent> events = eventStore.query(query, Cursor.zero());
+        List<StoredEvent> events = testHelper.query(query, Cursor.zero());
 
         // Then: applies all filters with AND logic
         assertThat(events).hasSize(1);
@@ -144,7 +148,7 @@ class JDBCEventStoreQueryIT extends AbstractCrabletIT {
         ));
 
         // When: query called
-        List<StoredEvent> events = eventStore.query(query, Cursor.zero());
+        List<StoredEvent> events = testHelper.query(query, Cursor.zero());
 
         // Then: applies both filters correctly
         assertThat(events).hasSize(1);
@@ -162,7 +166,7 @@ class JDBCEventStoreQueryIT extends AbstractCrabletIT {
         ));
 
         // When: query called
-        List<StoredEvent> events = eventStore.query(query, Cursor.zero());
+        List<StoredEvent> events = testHelper.query(query, Cursor.zero());
 
         // Then: returns events matching any query item
         assertThat(events).hasSize(3); // 2 WalletOpened + 1 DepositMade
@@ -180,7 +184,7 @@ class JDBCEventStoreQueryIT extends AbstractCrabletIT {
         ));
 
         // When: query called
-        List<StoredEvent> events = eventStore.query(query, Cursor.zero());
+        List<StoredEvent> events = testHelper.query(query, Cursor.zero());
 
         // Then: applies complex tag filters
         assertThat(events).hasSize(1);
@@ -198,7 +202,7 @@ class JDBCEventStoreQueryIT extends AbstractCrabletIT {
         ));
 
         // When: query called
-        List<StoredEvent> events = eventStore.query(query, Cursor.zero());
+        List<StoredEvent> events = testHelper.query(query, Cursor.zero());
 
         // Then: returns empty list
         assertThat(events).isEmpty();
@@ -213,7 +217,7 @@ class JDBCEventStoreQueryIT extends AbstractCrabletIT {
         ));
 
         // When: query called
-        List<StoredEvent> events = eventStore.query(query, Cursor.zero());
+        List<StoredEvent> events = testHelper.query(query, Cursor.zero());
 
         // Then: filters by tags only
         assertThat(events).hasSize(2); // 2 events with wallet-1 tag
@@ -230,63 +234,12 @@ class JDBCEventStoreQueryIT extends AbstractCrabletIT {
         ));
 
         // When: query called
-        List<StoredEvent> events = eventStore.query(query, Cursor.zero());
+        List<StoredEvent> events = testHelper.query(query, Cursor.zero());
 
         // Then: filters by event types only
         assertThat(events).hasSize(2); // 2 WalletOpened events
         assertThat(events).extracting(StoredEvent::type)
             .containsExactlyInAnyOrder("WalletOpened", "WalletOpened");
-    }
-
-    @Test
-    @DisplayName("Should handle queryAsJsonArray with complex query")
-    void shouldHandleQueryAsJsonArrayWithComplexQuery() {
-        // Given: complex query
-        Query query = Query.of(List.of(
-            QueryItem.of(List.of("WalletOpened", "DepositMade"), 
-                List.of(Tag.of("wallet", "wallet-1")))
-        ));
-
-        // When: queryAsJsonArray called
-        byte[] result = eventStore.queryAsJsonArray(query, Cursor.zero());
-
-        // Then: returns JSON array with matching events
-        String jsonString = new String(result);
-        assertThat(jsonString).contains("wallet-1");
-        assertThat(jsonString).contains("alice");
-        assertThat(jsonString).contains("100");
-    }
-
-    @Test
-    @DisplayName("Should handle queryAsJsonArray with no results")
-    void shouldHandleQueryAsJsonArrayWithNoResults() {
-        // Given: query that matches nothing
-        Query query = Query.of(List.of(
-            QueryItem.ofTypes(List.of("NonExistentEvent"))
-        ));
-
-        // When: queryAsJsonArray called
-        byte[] result = eventStore.queryAsJsonArray(query, Cursor.zero());
-
-        // Then: returns "[]" as bytes
-        assertThat(new String(result)).isEqualTo("[]");
-    }
-
-    @Test
-    @DisplayName("Should handle queryAsJsonArray with cursor")
-    void shouldHandleQueryAsJsonArrayWithCursor() {
-        // Given: query with cursor
-        Query query = Query.of(List.of(QueryItem.ofTypes(List.of("WalletOpened"))));
-        Cursor cursor = Cursor.of(1L); // After first event
-
-        // When: queryAsJsonArray called with cursor
-        byte[] result = eventStore.queryAsJsonArray(query, cursor);
-
-        // Then: returns JSON array with events after cursor
-        String jsonString = new String(result);
-        assertThat(jsonString).contains("wallet-2");
-        assertThat(jsonString).contains("bob");
-        // Should only contain events after position 1
     }
 
     @Test
@@ -296,7 +249,7 @@ class JDBCEventStoreQueryIT extends AbstractCrabletIT {
         Query query = Query.of((List<QueryItem>) null);
 
         // When & Then: should throw EventStoreException due to null items
-        assertThatThrownBy(() -> eventStore.query(query, Cursor.zero()))
+        assertThatThrownBy(() -> testHelper.query(query, Cursor.zero()))
                 .isInstanceOf(EventStoreException.class)
                 .hasMessageContaining("Failed to query events");
     }
@@ -311,7 +264,7 @@ class JDBCEventStoreQueryIT extends AbstractCrabletIT {
         ));
 
         // When: query called
-        List<StoredEvent> events = eventStore.query(query, Cursor.zero());
+        List<StoredEvent> events = testHelper.query(query, Cursor.zero());
 
         // Then: applies mixed filters correctly
         assertThat(events).hasSize(1); // Only WalletOpened with wallet-1 and owner alice

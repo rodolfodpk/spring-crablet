@@ -10,23 +10,6 @@ import java.util.function.Function;
 public interface EventStore {
 
     /**
-     * Query reads events matching the query with optional cursor.
-     * after == null: query from beginning of stream
-     * after != null: query from specified cursor position
-     */
-    List<StoredEvent> query(Query query, Cursor after);
-
-    /**
-     * Query events and return as JSON array for efficient batch deserialization.
-     * Uses PostgreSQL json_agg() to aggregate event data into a single JSON array.
-     * 
-     * @param query The query to filter events
-     * @param after Cursor to query events after (null for all events)
-     * @return JSON array as bytes, or empty array "[]" if no events found
-     */
-    byte[] queryAsJsonArray(Query query, Cursor after);
-
-    /**
      * Append appends events to the store without any consistency/concurrency checks.
      * Use this only when there are no business rules or consistency requirements.
      * For operations that require DCB concurrency control, use appendIf instead.

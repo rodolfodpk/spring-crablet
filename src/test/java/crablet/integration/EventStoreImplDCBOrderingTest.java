@@ -6,9 +6,11 @@ import com.crablet.core.impl.EventStoreConfig;
 import com.crablet.core.Query;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
-import com.crablet.core.impl.JDBCEventStore;
+import com.crablet.core.impl.EventStoreImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.crablet.core.ClockProvider;
+import com.crablet.core.QuerySqlBuilder;
+import com.crablet.core.EventTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +29,7 @@ import static crablet.testutils.DCBTestHelpers.createTestEvent;
  * Tests for DCB event ordering guarantees.
  * Verifies strict event ordering by position and transaction_id.
  */
-class JDBCEventStoreDCBOrderingTest extends AbstractCrabletIT {
+class EventStoreImplDCBOrderingTest extends AbstractCrabletIT {
 
     @Autowired
     private DataSource dataSource;
@@ -41,15 +43,21 @@ class JDBCEventStoreDCBOrderingTest extends AbstractCrabletIT {
     @Autowired
     private ClockProvider clock;
 
-    private JDBCEventStore store;
+    @Autowired
+    private QuerySqlBuilder sqlBuilder;
+
+    @Autowired
+    private EventTestHelper testHelper;
+
+    private EventStoreImpl store;
 
     @BeforeEach
     void setUp() {
-        store = new JDBCEventStore(dataSource, objectMapper, config, clock);
+        store = new EventStoreImpl(dataSource, objectMapper, config, clock, sqlBuilder);
     }
 
     private long getLastPosition() {
-        List<StoredEvent> events = store.query(Query.empty(), null);
+        List<StoredEvent> events = testHelper.query(Query.empty(), null);
         if (events.isEmpty()) {
             return 0L;
         }
@@ -67,7 +75,7 @@ class JDBCEventStoreDCBOrderingTest extends AbstractCrabletIT {
         store.append(events);
 
         // Query back
-        List<StoredEvent> stored = store.query(Query.empty(), null);
+        List<StoredEvent> stored = testHelper.query(Query.empty(), null);
 
         // Verify position sequence (no gaps)
         assertThat(stored).extracting("position")
@@ -83,7 +91,7 @@ class JDBCEventStoreDCBOrderingTest extends AbstractCrabletIT {
         store.append(List.of(createTestEvent("T2_Event1", "id2")));
 
         // Query and verify ordering
-        List<StoredEvent> stored = store.query(Query.empty(), null);
+        List<StoredEvent> stored = testHelper.query(Query.empty(), null);
 
         // Verify sorted by (transaction_id, position)
         assertThat(stored).isSortedAccordingTo(
@@ -111,7 +119,7 @@ class JDBCEventStoreDCBOrderingTest extends AbstractCrabletIT {
         assertThat(position3).isGreaterThan(position2);
 
         // Verify query returns in correct order
-        List<StoredEvent> stored = store.query(Query.empty(), null);
+        List<StoredEvent> stored = testHelper.query(Query.empty(), null);
         assertThat(stored).extracting("type")
                 .containsExactly("Batch1_Event1", "Batch2_Event1", "Batch3_Event1");
     }
@@ -137,7 +145,7 @@ class JDBCEventStoreDCBOrderingTest extends AbstractCrabletIT {
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
         // Verify total count
-        List<StoredEvent> stored = store.query(Query.empty(), null);
+        List<StoredEvent> stored = testHelper.query(Query.empty(), null);
         assertThat(stored).hasSize(threadCount * eventsPerThread);
 
         // Verify no gaps in position sequence
@@ -153,7 +161,7 @@ class JDBCEventStoreDCBOrderingTest extends AbstractCrabletIT {
         // Verify events within same thread maintain order
         for (int threadId = 0; threadId < threadCount; threadId++) {
             Query threadQuery = Query.forEventAndTag("Thread" + threadId + "_Event0", "thread_id", String.valueOf(threadId));
-            List<StoredEvent> threadEvents = store.query(threadQuery, null);
+            List<StoredEvent> threadEvents = testHelper.query(threadQuery, null);
 
             // At least verify we found events for this thread
             assertThat(threadEvents).isNotEmpty();

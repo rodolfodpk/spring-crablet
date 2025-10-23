@@ -2,6 +2,7 @@ package wallets.integration.features.transfer;
 
 import com.crablet.core.CommandExecutor;
 import com.crablet.core.EventStore;
+import com.crablet.core.EventTestHelper;
 import com.crablet.core.Query;
 import com.crablet.core.QueryItem;
 import com.crablet.core.StoredEvent;
@@ -40,6 +41,9 @@ public class TransferIT extends AbstractWalletIntegrationTest {
 
     @Autowired
     private EventStore eventStore;
+
+    @Autowired
+    private EventTestHelper testHelper;
 
     @BeforeEach
     void setUp() {
@@ -82,12 +86,12 @@ public class TransferIT extends AbstractWalletIntegrationTest {
         commandExecutor.executeCommand(cmd);
 
         // Then - verify event was created
-        var events = eventStore.query(Query.empty(), null);
+        var events = testHelper.query(Query.empty(), null);
         assertThat(events).hasSize(1);
         assertThat(events.get(0).type()).isEqualTo("WalletOpened");
 
         // Verify specific query
-        var walletEvents = eventStore.query(Query.of(QueryItem.ofType("WalletOpened")), null);
+        var walletEvents = testHelper.query(Query.of(QueryItem.ofType("WalletOpened")), null);
         assertThat(walletEvents).hasSize(1);
         StoredEvent event = walletEvents.get(0);
         assertThat(event.type()).isEqualTo("WalletOpened");
@@ -110,7 +114,7 @@ public class TransferIT extends AbstractWalletIntegrationTest {
                 .isInstanceOf(com.crablet.core.ConcurrencyException.class);
 
         // Verify only one event exists (duplicate prevented)
-        var events = eventStore.query(Query.empty(), null);
+        var events = testHelper.query(Query.empty(), null);
         assertThat(events).hasSize(1);
         assertThat(events.get(0).type()).isEqualTo("WalletOpened");
     }
@@ -132,7 +136,7 @@ public class TransferIT extends AbstractWalletIntegrationTest {
         commandExecutor.executeCommand(transferCmd);
 
         // Then - Query all events after transfer
-        var events = eventStore.query(Query.empty(), null);
+        var events = testHelper.query(Query.empty(), null);
 
         // Verify transfer event was created
         long transferEvents = events.stream()
@@ -159,7 +163,7 @@ public class TransferIT extends AbstractWalletIntegrationTest {
 
         // Then - Verify transfer event was stored
         Query query = Query.of(QueryItem.ofType("MoneyTransferred"));
-        var events = eventStore.query(query, null);
+        var events = testHelper.query(query, null);
 
         assertThat(events).hasSize(1);
         StoredEvent event = events.get(0);
@@ -227,7 +231,7 @@ public class TransferIT extends AbstractWalletIntegrationTest {
 
         // Then - Verify all events were stored
         Query allEventsQuery = Query.empty();
-        var events = eventStore.query(allEventsQuery, null);
+        var events = testHelper.query(allEventsQuery, null);
 
         assertThat(events).hasSize(4); // 2 WalletOpened + 2 MoneyTransferred
 

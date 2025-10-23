@@ -2,7 +2,7 @@ package crablet.testutils;
 
 import com.crablet.core.AppendEvent;
 import com.crablet.core.Cursor;
-import com.crablet.core.EventStore;
+import com.crablet.core.EventTestHelper;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,8 +52,8 @@ public class DCBTestHelpers {
     /**
      * Gets the cursor after the last event in the store.
      */
-    public static Cursor getCursorAfterLastEvent(EventStore store) {
-        List<StoredEvent> events = store.query(com.crablet.core.Query.empty(), null);
+    public static Cursor getCursorAfterLastEvent(EventTestHelper testHelper) {
+        List<StoredEvent> events = testHelper.query(com.crablet.core.Query.empty(), null);
         if (events.isEmpty()) {
             return Cursor.zero();
         }

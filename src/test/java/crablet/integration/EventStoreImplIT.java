@@ -12,11 +12,13 @@ import com.crablet.core.QueryItem;
 import com.crablet.core.StateProjector;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
-import com.crablet.core.impl.JDBCEventStore;
+import com.crablet.core.impl.EventStoreImpl;
+import com.crablet.core.EventTestHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.event.WalletOpened;
 import com.crablet.core.ClockProvider;
+import com.crablet.core.QuerySqlBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,13 +34,16 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Unit tests for JDBCEventStore edge cases and error handling.
+ * Unit tests for EventStoreImpl edge cases and error handling.
  * Tests database-specific functionality, connection handling, and error scenarios.
  */
-class JDBCEventStoreTest extends AbstractCrabletIT {
+class EventStoreImplTest extends AbstractCrabletIT {
 
     @Autowired
-    private JDBCEventStore eventStore;
+    private EventStoreImpl eventStore;
+
+    @Autowired
+    private EventTestHelper testHelper;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -51,6 +56,9 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
     
     @Autowired
     private ClockProvider clock;
+
+    @Autowired
+    private QuerySqlBuilder sqlBuilder;
 
     @BeforeEach
     void setUp() {
@@ -149,7 +157,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
     @DisplayName("Should handle query with null query parameter")
     void shouldHandleQueryWithNullQueryParameter() {
         // When & Then
-        assertThatThrownBy(() -> eventStore.query(null, null))
+        assertThatThrownBy(() -> testHelper.query(null, null))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Failed to query events");
     }
@@ -161,7 +169,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
         Query emptyQuery = Query.empty();
 
         // When
-        List<StoredEvent> events = eventStore.query(emptyQuery, null);
+        List<StoredEvent> events = testHelper.query(emptyQuery, null);
 
         // Then
         assertThat(events).isNotNull();
@@ -180,7 +188,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
         ));
 
         // When
-        List<StoredEvent> events = eventStore.query(complexQuery, null);
+        List<StoredEvent> events = testHelper.query(complexQuery, null);
 
         // Then
         assertThat(events).isNotNull();
@@ -195,7 +203,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
         Cursor cursor = Cursor.of(0L, Instant.now());
 
         // When
-        List<StoredEvent> events = eventStore.query(query, cursor);
+        List<StoredEvent> events = testHelper.query(query, cursor);
 
         // Then
         assertThat(events).isNotNull();
@@ -313,7 +321,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
         });
 
         // Then - Verify event was stored
-        List<StoredEvent> events = eventStore.query(Query.empty(), null);
+        List<StoredEvent> events = testHelper.query(Query.empty(), null);
         assertThat(events).isNotEmpty();
     }
 
@@ -545,7 +553,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
     @DisplayName("Should handle database connection errors gracefully")
     void shouldHandleDatabaseConnectionErrorsGracefully() throws JsonProcessingException, SQLException {
         // When & Then - constructor should throw IllegalArgumentException for null DataSource
-        assertThatThrownBy(() -> new JDBCEventStore(null, objectMapper, config, clock))
+        assertThatThrownBy(() -> new EventStoreImpl(null, objectMapper, config, clock, sqlBuilder))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("DataSource must not be null");
     }
@@ -573,7 +581,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
         ));
 
         // When & Then - PostgreSQL handles this gracefully, so no exception is thrown
-        assertThatCode(() -> eventStore.query(problematicQuery, null))
+        assertThatCode(() -> testHelper.query(problematicQuery, null))
                 .doesNotThrowAnyException();
     }
 
@@ -595,7 +603,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
         assertThat(result).isEqualTo("success");
         
         // Verify event was appended
-        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        List<StoredEvent> events = testHelper.query(Query.of(List.of()), Cursor.zero());
         assertThat(events).hasSize(1);
     }
 
@@ -615,7 +623,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
         assertThat(result).isEqualTo("success");
         
         // Verify event was appended
-        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        List<StoredEvent> events = testHelper.query(Query.of(List.of()), Cursor.zero());
         assertThat(events).hasSize(1);
     }
 
@@ -635,7 +643,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
         assertThat(result).isEqualTo("success");
         
         // Verify event was appended
-        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        List<StoredEvent> events = testHelper.query(Query.of(List.of()), Cursor.zero());
         assertThat(events).hasSize(1);
     }
 
@@ -655,7 +663,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
         assertThat(result).isEqualTo("success");
         
         // Verify event was appended
-        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        List<StoredEvent> events = testHelper.query(Query.of(List.of()), Cursor.zero());
         assertThat(events).hasSize(1);
     }
 
@@ -676,7 +684,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
         assertThat(result).isEqualTo("success");
         
         // Verify event was appended
-        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        List<StoredEvent> events = testHelper.query(Query.of(List.of()), Cursor.zero());
         assertThat(events).hasSize(1);
     }
 
@@ -696,7 +704,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
           .hasMessage("Test error");
 
         // Then: no events should be persisted (rollback occurred)
-        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        List<StoredEvent> events = testHelper.query(Query.of(List.of()), Cursor.zero());
         assertThat(events).isEmpty();
     }
 
@@ -717,7 +725,7 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
         assertThat(result).isEqualTo("success");
         
         // Verify event was appended
-        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        List<StoredEvent> events = testHelper.query(Query.of(List.of()), Cursor.zero());
         assertThat(events).hasSize(1);
     }
 
@@ -742,53 +750,105 @@ class JDBCEventStoreTest extends AbstractCrabletIT {
         assertThat(result).isEqualTo("success");
         
         // Verify both events were appended
-        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        List<StoredEvent> events = testHelper.query(Query.of(List.of()), Cursor.zero());
         assertThat(events).hasSize(2);
     }
 
     @Test
-    @DisplayName("Should handle transaction with query operations")
-    void shouldHandleTransactionWithQueryOperations() {
+    @DisplayName("Should handle transaction with append operations")
+    void shouldHandleTransactionWithAppendOperations() {
         // Given: events to append
         AppendEvent event = AppendEvent.builder("TestEvent").data("{}").build();
 
-        // When: executeInTransaction with query operations
+        // When: executeInTransaction with append operations
         Integer result = eventStore.executeInTransaction(store -> {
             store.append(List.of(event));
-            
-            // Query within transaction
-            List<StoredEvent> events = store.query(Query.of(List.of()), Cursor.zero());
-            return events.size();
+            return 1;
         });
 
         // Then: transaction succeeds and returns correct count
         assertThat(result).isEqualTo(1);
         
         // Verify event was appended
-        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        List<StoredEvent> events = testHelper.query(Query.of(List.of()), Cursor.zero());
         assertThat(events).hasSize(1);
     }
 
     @Test
-    @DisplayName("Should handle transaction with queryAsJsonArray operations")
-    void shouldHandleTransactionWithQueryAsJsonArrayOperations() {
+    @DisplayName("Should handle transaction with appendIf operations")
+    void shouldHandleTransactionWithAppendIfOperations() {
         // Given: events to append
         AppendEvent event = AppendEvent.builder("TestEvent").data("{}").build();
 
-        // When: executeInTransaction with queryAsJsonArray operations
+        // When: executeInTransaction with appendIf operations
+        Integer result = eventStore.executeInTransaction(store -> {
+            store.appendIf(List.of(event), AppendCondition.of(Cursor.zero()));
+            return 1;
+        });
+
+        // Then: transaction succeeds and returns correct count
+        assertThat(result).isEqualTo(1);
+        
+        // Verify event was appended
+        List<StoredEvent> events = testHelper.query(Query.of(List.of()), Cursor.zero());
+        assertThat(events).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("Should handle transaction with projection operations")
+    void shouldHandleTransactionWithProjectionOperations() {
+        // Given: events to append
+        AppendEvent event = AppendEvent.builder("TestEvent").data("{}").build();
+
+        // When: executeInTransaction with projection operations
         Integer result = eventStore.executeInTransaction(store -> {
             store.append(List.of(event));
             
-            // QueryAsJsonArray within transaction
-            byte[] jsonArray = store.queryAsJsonArray(Query.of(List.of()), Cursor.zero());
-            return jsonArray.length;
+            // Project within transaction
+            ProjectionResult<Void> projection = store.project(
+                Query.of(List.of()),
+                Cursor.zero(),
+                Void.class,
+                List.of(new TestProjector())
+            );
+            return 1;
         });
 
-        // Then: transaction succeeds and returns JSON array length
-        assertThat(result).isGreaterThan(0);
+        // Then: transaction succeeds and returns correct count
+        assertThat(result).isEqualTo(1);
         
         // Verify event was appended
-        List<StoredEvent> events = eventStore.query(Query.of(List.of()), Cursor.zero());
+        List<StoredEvent> events = testHelper.query(Query.of(List.of()), Cursor.zero());
         assertThat(events).hasSize(1);
+    }
+
+    /**
+     * Simple test projector for transaction tests.
+     */
+    private static class TestProjector implements StateProjector<Void> {
+        @Override
+        public String getId() {
+            return "test";
+        }
+
+        @Override
+        public List<String> getEventTypes() {
+            return List.of();
+        }
+
+        @Override
+        public List<Tag> getTags() {
+            return List.of();
+        }
+
+        @Override
+        public Void getInitialState() {
+            return null;
+        }
+
+        @Override
+        public Void transition(Void currentState, StoredEvent event, EventDeserializer deserializer) {
+            return null;
+        }
     }
 }

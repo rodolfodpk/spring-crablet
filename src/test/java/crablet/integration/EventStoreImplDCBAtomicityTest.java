@@ -9,9 +9,11 @@ import com.crablet.core.impl.EventStoreConfig;
 import com.crablet.core.Query;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
-import com.crablet.core.impl.JDBCEventStore;
+import com.crablet.core.impl.EventStoreImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.crablet.core.ClockProvider;
+import com.crablet.core.QuerySqlBuilder;
+import com.crablet.core.EventTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Tests for DCB atomicity guarantees.
  * Verifies that cursor and condition checks happen atomically in a single database snapshot.
  */
-class JDBCEventStoreDCBAtomicityTest extends AbstractCrabletIT {
+class EventStoreImplDCBAtomicityTest extends AbstractCrabletIT {
 
     @Autowired
     private DataSource dataSource;
@@ -48,11 +50,17 @@ class JDBCEventStoreDCBAtomicityTest extends AbstractCrabletIT {
     @Autowired
     private ClockProvider clock;
 
-    private JDBCEventStore store;
+    @Autowired
+    private QuerySqlBuilder sqlBuilder;
+
+    @Autowired
+    private EventTestHelper testHelper;
+
+    private EventStoreImpl store;
 
     @BeforeEach
     void setUp() {
-        store = new JDBCEventStore(dataSource, objectMapper, config, clock);
+        store = new EventStoreImpl(dataSource, objectMapper, config, clock, sqlBuilder);
     }
 
     @Test
@@ -64,7 +72,7 @@ class JDBCEventStoreDCBAtomicityTest extends AbstractCrabletIT {
         store.append(List.of(event1));
 
         // Get cursor after first event
-        List<StoredEvent> events = store.query(Query.empty(), null);
+        List<StoredEvent> events = testHelper.query(Query.empty(), null);
         Cursor cursor = Cursor.of(events.get(0).position(), events.get(0).occurredAt(), events.get(0).transactionId());
 
         // Another thread appends event2 (violates cursor)
@@ -91,7 +99,7 @@ class JDBCEventStoreDCBAtomicityTest extends AbstractCrabletIT {
         AppendEvent event1 = createTestEvent("Event1", new Tag("status", "pending"));
         store.append(List.of(event1));
 
-        List<StoredEvent> events = store.query(Query.empty(), null);
+        List<StoredEvent> events = testHelper.query(Query.empty(), null);
         Cursor cursor = Cursor.of(events.get(0).position(), events.get(0).occurredAt(), events.get(0).transactionId());
 
         // Create condition that would pass if checked separately

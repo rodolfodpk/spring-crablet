@@ -90,11 +90,8 @@ class CrabletArchitectureTest {
     void crablet_impl_should_have_spring_annotations() {
         ArchRule rule = classes()
                 .that().resideInAPackage("com.crablet.core.impl..")
-                .and().haveSimpleNameEndingWith("EventStore")
+                .and().haveSimpleNameEndingWith("Impl")
                 .and().areNotInnerClasses()
-                .or().haveSimpleNameEndingWith("CommandExecutor")
-                .and().resideInAPackage("com.crablet.core.impl..")
-                .or().haveSimpleNameEndingWith("Config")
                 .should().beAnnotatedWith("org.springframework.stereotype.Component");
 
         rule.check(classes);
@@ -104,7 +101,8 @@ class CrabletArchitectureTest {
     void crablet_implementations_should_implement_core_interfaces() {
         ArchRule rule = classes()
                 .that().resideInAPackage("com.crablet.core.impl..")
-                .and().haveSimpleNameEndingWith("EventStore")
+                .and().haveSimpleNameEndingWith("Impl")
+                .and().haveSimpleName("EventStoreImpl")
                 .should().implement("com.crablet.core.EventStore");
 
         rule.check(classes);
@@ -114,7 +112,7 @@ class CrabletArchitectureTest {
     void crablet_command_executor_should_implement_core_interface() {
         ArchRule rule = classes()
                 .that().resideInAPackage("com.crablet.core.impl..")
-                .and().haveSimpleNameEndingWith("CommandExecutor")
+                .and().haveSimpleName("CommandExecutorImpl")
                 .should().implement("com.crablet.core.CommandExecutor");
 
         rule.check(classes);
@@ -138,7 +136,8 @@ class CrabletArchitectureTest {
                 .orShould().haveSimpleNameEndingWith("Builder")
                 .orShould().haveSimpleNameEndingWith("Violation")
                 .orShould().haveSimpleNameEndingWith("Item")
-                .orShould().haveSimpleNameEndingWith("Context");
+                .orShould().haveSimpleNameEndingWith("Context")
+                .orShould().haveSimpleNameEndingWith("TestHelper");
 
         rule.check(classes);
     }
