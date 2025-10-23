@@ -11,10 +11,9 @@ public CommandResult handleTransfer(TransferCommand command) {
     CommandResult result = transferHandler.handle(eventStore, command);
     
     // External publishing - what if this fails?
-    kafkaPublisher.publish(new MoneyTransferredEvent(command));
-    kafkaPublisher.publish(new WithdrawalMadeEvent(command));
-    kafkaPublisher.publish(new DepositMadeEvent(command));
-    webhookPublisher.notify(command);
+    // Events are already stored, but external publishing can fail independently
+    kafkaPublisher.publish(result.events());
+    webhookPublisher.notify(result.events());
 }
 ```
 
