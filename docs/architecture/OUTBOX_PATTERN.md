@@ -1,30 +1,40 @@
-# Outbox Pattern Implementation
+# Outbox Pattern for DCB Event Sourcing
 
 ## Overview
 
-Transactional outbox pattern for reliable event publishing to external systems.
+The outbox pattern provides **reliable event publishing** for DCB-based event sourcing. It ensures events are published to external systems (Kafka, webhooks, analytics) with the same transactional guarantees as your DCB operations.
 
-## Guarantees
+## DCB Integration
 
-- At-least-once delivery (events may be published multiple times)
-- Global ordering (events published in exact position order)
-- Transactional consistency (outbox updated atomically with events)
+### How It Works with DCB
 
-## Architecture
+```java
+@Transactional
+public CommandResult handleDeposit(DepositCommand command) {
+    // 1. DCB: Read current state with cursor
+    ProjectionResult<WalletBalanceState> projection = 
+        balanceProjector.projectWalletBalance(eventStore, command.walletId(), decisionModel);
+    
+    // 2. Business logic
+    DepositMade deposit = DepositMade.of(/* ... */);
+    
+    // 3. DCB: Append event with concurrency control
+    AppendEvent event = AppendEvent.builder("DepositMade")
+        .tag("wallet_id", command.walletId())
+        .data(serializeEvent(deposit))
+        .build();
+    
+    AppendCondition condition = decisionModel
+        .toAppendCondition(projection.cursor())
+        .build();
+    
+    // 4. Event stored atomically with DCB consistency
+    // 5. Outbox automatically publishes to external systems
+    return CommandResult.of(List.of(event), condition);
+}
+```
 
-### Components
-
-1. **Publisher Progress Table**: Tracks last published position per publisher
-2. **Processor**: Polls events after last position, publishes via configured publishers
-3. **Publishers**: Abstract interface for Kafka, NATS, webhooks, etc
-
-### Publishing Flow
-
-1. Event appended to events table
-2. Background processor polls events after publisher's last position (every 1s)
-3. Processor fetches events (WHERE position > last_position)
-4. Processor publishes batch to all configured publishers
-5. Processor updates publisher's last_position
+**Key Point**: Events are stored with DCB transactional guarantees, then outbox publishes them reliably to external systems.
 
 ## Configuration
 
@@ -32,82 +42,26 @@ Transactional outbox pattern for reliable event publishing to external systems.
 # Enable outbox processing
 crablet.outbox.enabled=true
 
-# Batch size for polling
-crablet.outbox.batch-size=100
+# Topic routing (matches DCB event tags)
+crablet.outbox.topics.wallet-events.required-tags=walletId
+crablet.outbox.topics.wallet-events.publishers=KafkaPublisher,WebhookPublisher
 
-# Polling interval (milliseconds)
-crablet.outbox.polling-interval-ms=1000
-
-# Max retries before marking as FAILED
-crablet.outbox.max-retries=3
-
-# Enable log publisher (for testing)
-crablet.outbox.publishers.log.enabled=true
+crablet.outbox.topics.payment-events.any-of-tags=paymentId,transferId
+crablet.outbox.topics.payment-events.publishers=AnalyticsPublisher
 ```
 
-## Transaction Isolation
+## Publishers
 
-The outbox processor uses **READ COMMITTED** isolation level (PostgreSQL default).
+### Available Publishers
+- `LogPublisher` - Development/testing
+- `TestPublisher` - Integration tests  
+- `StatisticsPublisher` - Monitoring
+- `GlobalStatisticsPublisher` - Always-on stats
 
-**Why READ COMMITTED is sufficient:**
-1. Advisory locks in `append_events_if` serialize event appends per stream
-2. Position values are gap-free due to serialized inserts
-3. Processor polls every 1 second (eventual consistency is acceptable)
-4. Even if a transaction delays commit, processor sees it on next poll
-
-**No gap problem:** Since `append_events_if` uses `pg_advisory_xact_lock()`, concurrent appends are serialized, ensuring position values increment without gaps. This guarantees global ordering.
-
-**Pause/Resume Publishers:**
-
-Via REST API:
-```bash
-# Get all publisher statuses
-curl http://localhost:8080/api/outbox/publishers
-
-# Get specific publisher status
-curl http://localhost:8080/api/outbox/publishers/LogPublisher
-
-# Pause a publisher
-curl -X POST http://localhost:8080/api/outbox/publishers/LogPublisher/pause
-
-# Resume a publisher
-curl -X POST http://localhost:8080/api/outbox/publishers/LogPublisher/resume
-
-# Reset a failed publisher
-curl -X POST http://localhost:8080/api/outbox/publishers/LogPublisher/reset
-
-# Get publisher lag
-curl http://localhost:8080/api/outbox/publishers/lag
-```
-
-Via SQL (direct database access):
-```sql
--- Pause a publisher (stops processing)
-UPDATE outbox_publisher_progress 
-SET status = 'PAUSED' 
-WHERE publisher_name = 'LogPublisher';
-
--- Resume a publisher
-UPDATE outbox_publisher_progress 
-SET status = 'ACTIVE' 
-WHERE publisher_name = 'LogPublisher';
-
--- Reset a failed publisher
-UPDATE outbox_publisher_progress 
-SET status = 'ACTIVE', 
-    error_count = 0, 
-    last_error = NULL 
-WHERE publisher_name = 'LogPublisher';
-```
-
-## Custom Publishers
-
-Implement `OutboxPublisher` interface:
-
+### Custom Publishers
 ```java
 @Component
 public class KafkaPublisher implements OutboxPublisher {
-    
     @Override
     public void publishBatch(List<StoredEvent> events) throws PublishException {
         // Publish to Kafka
@@ -125,31 +79,57 @@ public class KafkaPublisher implements OutboxPublisher {
 }
 ```
 
-## Management Service
+## Management
 
-The `OutboxManagementService` provides high-level operations for managing publishers:
+### REST API
+```bash
+# Pause/resume publishers
+curl -X POST http://localhost:8080/api/outbox/publishers/KafkaPublisher/pause
+curl -X POST http://localhost:8080/api/outbox/publishers/KafkaPublisher/resume
 
-### Service Operations
+# Check publisher status
+curl http://localhost:8080/api/outbox/publishers/KafkaPublisher
+curl http://localhost:8080/api/outbox/publishers/lag
+```
 
-- `pausePublisher(String publisherName)` - Pause a publisher
-- `resumePublisher(String publisherName)` - Resume a publisher  
-- `resetPublisher(String publisherName)` - Reset a failed publisher
-- `getPublisherStatus(String publisherName)` - Get status of specific publisher
-- `getAllPublisherStatus()` - Get status of all publishers
-- `getPublisherLag()` - Get lag information for all publishers
-- `publisherExists(String publisherName)` - Check if publisher exists
+### SQL Management
+```sql
+-- Pause publisher
+UPDATE outbox_publisher_progress 
+SET status = 'PAUSED' 
+WHERE publisher_name = 'KafkaPublisher';
 
-### REST API Endpoints
+-- Reset failed publisher
+UPDATE outbox_publisher_progress 
+SET status = 'ACTIVE', error_count = 0, last_error = NULL 
+WHERE publisher_name = 'KafkaPublisher';
+```
 
-- `GET /api/outbox/publishers` - List all publishers
-- `GET /api/outbox/publishers/{name}` - Get specific publisher status
-- `POST /api/outbox/publishers/{name}/pause` - Pause publisher
-- `POST /api/outbox/publishers/{name}/resume` - Resume publisher
-- `POST /api/outbox/publishers/{name}/reset` - Reset publisher
-- `GET /api/outbox/publishers/lag` - Get publisher lag
+## Guarantees
 
-## Monitoring
+- **Transactional Consistency**: Events published atomically with DCB operations
+- **At-Least-Once Delivery**: Events may be published multiple times (idempotent consumers required)
+- **Global Ordering**: Events published in exact position order
+- **Independent Publishers**: Each publisher tracks its own progress per topic
 
-- Publisher progress: `SELECT * FROM outbox_publisher_progress`
-- Failed publishers: `SELECT * FROM outbox_publisher_progress WHERE status = 'FAILED'`
-- Publisher lag: `SELECT publisher_name, last_position, MAX(position) as current_position FROM outbox_publisher_progress, events GROUP BY publisher_name, last_position`
+## When to Use
+
+✅ **Use when you need external event publishing:**
+- Event-driven microservices
+- Analytics and reporting
+- Integration with external systems
+- CQRS read model updates
+
+❌ **Don't use for:**
+- Internal-only event sourcing (DCB alone is sufficient)
+- High-frequency, low-latency events
+- Exactly-once delivery requirements
+
+## Performance
+
+- **Polling Interval**: 1 second (configurable)
+- **Batch Size**: 100 events (configurable)
+- **Isolation**: READ COMMITTED (sufficient due to DCB advisory locks)
+- **Scalability**: Multiple processors can run simultaneously
+
+The outbox pattern adds reliable external publishing to your DCB event sourcing without compromising the core DCB guarantees.
