@@ -73,6 +73,64 @@ crablet.outbox.topics.payment-events.any-of-tags=payment_id,transfer_id
 crablet.outbox.topics.payment-events.publishers=AnalyticsPublisher
 ```
 
+## Leader Election
+
+The outbox system uses **PostgreSQL advisory locks** for leader election, ensuring only one instance processes each publisher at a time.
+
+### How It Works
+
+#### GLOBAL Strategy
+```sql
+-- Single lock for all publishers
+SELECT pg_try_advisory_lock(4856221667890123456);
+```
+- **One lock** across all instances
+- **Winner takes all** - single instance processes all publishers
+- **Simple but limited** - no horizontal scaling
+
+#### PER_TOPIC_PUBLISHER Strategy  
+```sql
+-- Separate lock per (topic, publisher) pair
+SELECT pg_try_advisory_lock(('crablet-outbox-pair-' + topic + '-' + publisher).hashCode());
+```
+- **Multiple locks** - one per (topic, publisher) pair
+- **Distributed ownership** - different instances can own different pairs
+- **Horizontal scaling** - add more instances to handle more publishers
+
+### Lock Acquisition Process
+
+1. **Startup**: Each instance tries to acquire locks for configured pairs
+2. **Non-blocking**: `pg_try_advisory_lock()` returns immediately (no waiting)
+3. **Success**: Instance becomes leader for that pair
+4. **Failure**: Another instance already owns that pair
+5. **Crash Recovery**: PostgreSQL automatically releases locks when connection drops
+
+### Example: 3 Instances, 6 Publisher Pairs
+
+```
+Instance A startup:
+✓ wallet-events:KafkaPublisher     (acquired)
+✓ payment-events:AnalyticsPublisher (acquired)
+✗ wallet-events:WebhookPublisher   (owned by Instance B)
+
+Instance B startup:  
+✗ wallet-events:KafkaPublisher     (owned by Instance A)
+✓ wallet-events:WebhookPublisher   (acquired)
+✓ user-events:EmailPublisher       (acquired)
+
+Instance C startup:
+✗ payment-events:AnalyticsPublisher (owned by Instance A)
+✓ audit-events:LogPublisher        (acquired)
+✓ metrics-events:StatsPublisher    (acquired)
+```
+
+### Benefits
+
+- **Automatic Failover**: If Instance A crashes, its locks are released and other instances can acquire them
+- **No Split-Brain**: PostgreSQL ensures only one instance can hold a lock
+- **Zero Configuration**: No external coordination service needed
+- **Database Integration**: Leverages existing PostgreSQL infrastructure
+
 ## Publishers
 
 ### Available Publishers
