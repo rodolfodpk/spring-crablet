@@ -39,10 +39,10 @@ jobs:
           cache: 'maven'  # Caches ~/.m2/repository
 
       - name: Build with Maven
-        run: mvn -B clean package --file pom.xml
+        run: mvn -B clean install --file pom.xml
 
       - name: Generate JaCoCo Coverage Report
-        run: mvn -B jacoco:report --file pom.xml
+        run: mvn -B jacoco:report-aggregate --file pom.xml
 
       - name: Generate Coverage Badges
         if: github.ref == 'refs/heads/main'
@@ -50,9 +50,9 @@ jobs:
           # Create badges directory if it doesn't exist
           mkdir -p .github/badges
           
-          # Extract coverage values from JaCoCo XML report using grep (correctly extract report-level counters)
-          COVERAGE_MISSED=$(grep -o '<counter type="LINE" missed="[0-9]*" covered="[0-9]*"/><counter type="COMPLEXITY"' target/site/jacoco/jacoco.xml | tail -1 | grep -o 'missed="[0-9]*"' | grep -o '[0-9]*')
-          COVERAGE_COVERED=$(grep -o '<counter type="LINE" missed="[0-9]*" covered="[0-9]*"/><counter type="COMPLEXITY"' target/site/jacoco/jacoco.xml | tail -1 | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*')
+          # Extract coverage values from JaCoCo aggregated XML report
+          COVERAGE_MISSED=$(grep -o '<counter type="LINE" missed="[0-9]*" covered="[0-9]*"/><counter type="COMPLEXITY"' target/site/jacoco-aggregate/jacoco.xml | tail -1 | grep -o 'missed="[0-9]*"' | grep -o '[0-9]*')
+          COVERAGE_COVERED=$(grep -o '<counter type="LINE" missed="[0-9]*" covered="[0-9]*"/><counter type="COMPLEXITY"' target/site/jacoco-aggregate/jacoco.xml | tail -1 | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*')
           
           # Calculate coverage percentage
           COVERAGE_TOTAL=$((COVERAGE_MISSED + COVERAGE_COVERED))
@@ -74,9 +74,9 @@ jobs:
           # Generate coverage badge
           curl -s "https://img.shields.io/badge/coverage-${COVERAGE_PERCENT}%25-${COLOR}" > .github/badges/jacoco.svg
           
-          # Extract branch coverage values from JaCoCo XML report using grep (correctly extract report-level counters)
-          BRANCH_MISSED=$(grep -o '<counter type="BRANCH" missed="[0-9]*" covered="[0-9]*"/><counter type="LINE"' target/site/jacoco/jacoco.xml | tail -1 | grep -o 'missed="[0-9]*"' | grep -o '[0-9]*')
-          BRANCH_COVERED=$(grep -o '<counter type="BRANCH" missed="[0-9]*" covered="[0-9]*"/><counter type="LINE"' target/site/jacoco/jacoco.xml | tail -1 | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*')
+          # Extract branch coverage values from JaCoCo aggregated XML report
+          BRANCH_MISSED=$(grep -o '<counter type="BRANCH" missed="[0-9]*" covered="[0-9]*"/><counter type="LINE"' target/site/jacoco-aggregate/jacoco.xml | tail -1 | grep -o 'missed="[0-9]*"' | grep -o '[0-9]*')
+          BRANCH_COVERED=$(grep -o '<counter type="BRANCH" missed="[0-9]*" covered="[0-9]*"/><counter type="LINE"' target/site/jacoco-aggregate/jacoco.xml | tail -1 | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*')
           
           # Calculate branch coverage percentage
           BRANCH_TOTAL=$((BRANCH_MISSED + BRANCH_COVERED))
