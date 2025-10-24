@@ -14,6 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import crablet.integration.AbstractCrabletIT;
 
 import java.util.List;
@@ -26,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Tests error scenarios that contribute to low branch coverage in appendIf() and other methods.
  */
 @DisplayName("EventStoreImpl Error Handling Tests")
+@ActiveProfiles("test-no-outbox")
 class EventStoreImplErrorHandlingIT extends AbstractCrabletIT {
 
     @Autowired

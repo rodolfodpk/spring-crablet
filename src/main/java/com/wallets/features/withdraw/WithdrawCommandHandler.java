@@ -7,8 +7,6 @@ import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
-import com.crablet.core.QueryBuilder;
-import com.crablet.core.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.WalletQueryPatterns;
 import com.wallets.domain.WalletTags;

@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -32,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Tests for DCB atomicity guarantees.
  * Verifies that cursor and condition checks happen atomically in a single database snapshot.
  */
+@ActiveProfiles("test-no-outbox")
 class EventStoreImplDCBAtomicityTest extends AbstractCrabletIT {
 
     @Autowired

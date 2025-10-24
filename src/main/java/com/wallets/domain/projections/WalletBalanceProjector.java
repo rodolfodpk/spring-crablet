@@ -1,7 +1,7 @@
 package com.wallets.domain.projections;
 
-import com.crablet.core.EventStore;
 import com.crablet.core.EventDeserializer;
+import com.crablet.core.EventStore;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
 import com.crablet.core.StateProjector;

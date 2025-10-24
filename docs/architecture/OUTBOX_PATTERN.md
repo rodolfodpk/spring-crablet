@@ -77,7 +77,7 @@ crablet.outbox.topics.payment-events.publishers=AnalyticsPublisher
 
 The outbox system uses **PostgreSQL advisory locks** for leader election, ensuring only one instance processes each publisher at a time.
 
-### How It Works
+### Lock Strategies
 
 #### GLOBAL Strategy
 ```sql
@@ -87,6 +87,7 @@ SELECT pg_try_advisory_lock(4856221667890123456);
 - **One lock** across all instances
 - **Winner takes all** - single instance processes all publishers
 - **Simple but limited** - no horizontal scaling
+- **Use case**: Simple deployments with 1-2 instances
 
 #### PER_TOPIC_PUBLISHER Strategy  
 ```sql
@@ -96,6 +97,9 @@ SELECT pg_try_advisory_lock(('crablet-outbox-pair-' + topic + '-' + publisher).h
 - **Multiple locks** - one per (topic, publisher) pair
 - **Distributed ownership** - different instances can own different pairs
 - **Horizontal scaling** - add more instances to handle more publishers
+- **Use case**: High-volume deployments with multiple instances
+
+**Note**: Both strategies track position independently per (topic, publisher) pair in the database - only the lock granularity differs.
 
 ### Lock Acquisition Process
 

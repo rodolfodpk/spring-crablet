@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.TestPropertySource;
 import crablet.integration.AbstractCrabletIT;
 
 import java.util.List;
@@ -19,6 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Integration tests for GlobalStatisticsPublisher.
  */
+@TestPropertySource(properties = {
+    "spring.config.import=classpath:application-test-with-outbox-per-topic-publisher.properties"
+})
 class GlobalStatisticsIT extends AbstractCrabletIT {
     
     @Autowired

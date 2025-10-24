@@ -1,40 +1,40 @@
 # Performance Test Summary
 
-Generated on: Tue Oct 21 14:34:12 -03 2025
+Generated on: Thu Oct 23 19:27:50 -03 2025
 
 ## Test Results
 
 ### Wallet Creation Load Test
 
 [0;32m✅[0m Test completed successfully
-- **Operations completed**: 2698
-- **95th percentile response time**: 499.35ms
+- **Operations completed**: 37084
+- **95th percentile response time**: 37.42ms
 - **Error rate**: 0.00%
-- **Throughput**: 54 requests/second
+- **Throughput**: 742 requests/second
 
 ### Deposit Operations Test
 
 [0;32m✅[0m Test completed successfully
-- **Operations completed**: 4519
-- **95th percentile response time**: 145.57ms
+- **Operations completed**: 26170
+- **95th percentile response time**: 27.77ms
 - **Error rate**: 0.00%
-- **Throughput**: 90 requests/second
+- **Throughput**: 523 requests/second
 
 ### Withdrawal Operations Test
 
 [0;32m✅[0m Test completed successfully
-- **Operations completed**: 4784
-- **95th percentile response time**: 136.81ms
-- **Error rate**: 0.02%
-- **Throughput**: 96 requests/second
+- **Operations completed**: 21770
+- **95th percentile response time**: 36.12ms
+- **Error rate**: 0.00%
+- **Throughput**: 435 requests/second
 
 ### Transfer Operations Test
 
 [0;32m✅[0m Test completed successfully
-- **Operations completed**: 3862
-- **95th percentile response time**: 164.38ms
-- **Error rate**: 0.07%
-- **Throughput**: 77 requests/second
+- **Operations completed**: 25208
+- **95th percentile response time**: 27.35ms
+- **Error rate**: 98.59%
+- **Throughput**: 504 requests/second
 
 ### History Query Test
 

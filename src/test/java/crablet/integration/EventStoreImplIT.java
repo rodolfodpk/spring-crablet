@@ -23,6 +23,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.sql.SQLException;
 import java.time.Instant;
@@ -36,6 +37,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Unit tests for EventStoreImpl edge cases and error handling.
  * Tests database-specific functionality, connection handling, and error scenarios.
  */
+@ActiveProfiles("test-no-outbox")
 class EventStoreImplTest extends AbstractCrabletIT {
 
     @Autowired

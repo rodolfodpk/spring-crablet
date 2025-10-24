@@ -15,16 +15,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Integration tests for lock acquisition at startup.
- * Tests verify that locks are acquired at startup and held persistently.
+ * Abstract base class for lock acquisition integration tests.
+ * Contains all test logic that will be inherited by concrete test classes
+ * for each lock strategy (GLOBAL and PER_TOPIC_PUBLISHER).
  */
-@TestPropertySource(properties = {
-    "crablet.outbox.enabled=true",
-    "crablet.outbox.lock-strategy=PER_TOPIC_PUBLISHER",
-    "crablet.outbox.topics.default.required-tags=test",
-    "crablet.outbox.topics.default.publishers=LogPublisher,TestPublisher"
-})
-class OutboxLockAcquisitionIT extends AbstractCrabletIT {
+abstract class AbstractOutboxLockAcquisitionIT extends AbstractCrabletIT {
     
     @Autowired
     private EventStore eventStore;
@@ -71,8 +66,8 @@ class OutboxLockAcquisitionIT extends AbstractCrabletIT {
             Integer.class
         );
         
-        // Should have at least 2 publishers (LogPublisher and TestPublisher)
-        assertThat(lockCount).isGreaterThanOrEqualTo(2);
+        // Should have at least 1 publisher registered
+        assertThat(lockCount).isGreaterThanOrEqualTo(1);
     }
     
     @Test

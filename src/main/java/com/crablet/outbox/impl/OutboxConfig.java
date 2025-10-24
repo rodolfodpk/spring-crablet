@@ -40,8 +40,7 @@ public class OutboxConfig {
     private TopicConfigurationProperties topicConfigurationProperties;
     
     public enum LockStrategy {
-        GLOBAL,         // Single lock for all publishers (default)
-        PER_TOPIC,      // One lock per topic (horizontal scaling)
+        GLOBAL,              // Single lock for all publishers (default)
         PER_TOPIC_PUBLISHER  // One lock per (topic, publisher) pair (maximum scalability)
     }
     

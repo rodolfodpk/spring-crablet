@@ -9,15 +9,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * Base class for wallet application integration tests.
+ * Base class for wallet application integration tests with outbox enabled.
  * Extends Crablet framework test infrastructure and adds wallet-specific setup.
- * Uses no-outbox profile for faster domain-focused tests.
+ * Use this base class when testing outbox event publishing behavior.
  */
 @SpringBootTest(classes = Application.class, 
                 webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
                 properties = "spring.profiles.active=test")
-@ActiveProfiles("test-no-outbox")
-public abstract class AbstractWalletIntegrationTest extends AbstractCrabletIT {
+@ActiveProfiles("test")  // Uses default test profile with outbox enabled
+public abstract class AbstractWalletIntegrationTestWithOutbox extends AbstractCrabletIT {
     
     @Autowired
     private ClockProvider clock;
@@ -28,3 +28,4 @@ public abstract class AbstractWalletIntegrationTest extends AbstractCrabletIT {
         clock.resetToSystemClock();
     }
 }
+

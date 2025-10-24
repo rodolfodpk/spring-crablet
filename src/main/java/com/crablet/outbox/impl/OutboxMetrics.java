@@ -1,6 +1,8 @@
 package com.crablet.outbox.impl;
 
-import io.micrometer.core.instrument.*;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.MeterBinder;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;

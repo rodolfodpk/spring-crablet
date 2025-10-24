@@ -146,9 +146,9 @@ class AppendConditionTest {
         // When
         AppendCondition condition = AppendCondition.of(afterCursor, failIfEventsMatch);
 
-        // Then
+        // Then - Record auto-generates toString() in format "RecordName[field1=value1, field2=value2]"
         assertThat(condition.toString())
-                .contains("AppendCondition{")
+                .contains("AppendCondition[")
                 .contains("afterCursor=")
                 .contains("stateChanged=");
     }

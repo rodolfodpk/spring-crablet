@@ -4,7 +4,11 @@ import com.crablet.core.EventDeserializer;
 import com.crablet.core.StateProjector;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
-import com.wallets.domain.event.*;
+import com.wallets.domain.event.DepositMade;
+import com.wallets.domain.event.MoneyTransferred;
+import com.wallets.domain.event.WalletEvent;
+import com.wallets.domain.event.WalletOpened;
+import com.wallets.domain.event.WithdrawalMade;
 import com.wallets.domain.projections.WalletBalanceState;
 import org.springframework.stereotype.Component;
 

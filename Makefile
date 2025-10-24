@@ -83,8 +83,8 @@ start-test:
 		fi; \
 		sleep 1; \
 	done
-	@echo "🚀 Starting Spring Boot application with TEST profile..."
-	mvn spring-boot:run -Dspring-boot.run.profiles=test > app.log 2>&1 &
+	@echo "🚀 Starting Spring Boot application with TEST profile (no outbox)..."
+	mvn spring-boot:run -Dspring-boot.run.profiles=test-no-outbox > app.log 2>&1 &
 	@echo "⏳ Waiting for application to be ready..."
 	@for i in $$(seq 1 30); do \
 		if curl -s http://localhost:8080/actuator/health >/dev/null 2>&1; then \
@@ -162,8 +162,8 @@ perf-setup:
 	done
 	@echo "🗄️ Running database migrations..."
 	mvn flyway:migrate -Dflyway.url=jdbc:postgresql://localhost:5432/crablet -Dflyway.user=crablet -Dflyway.password=crablet >/dev/null 2>&1
-	@echo "🚀 Starting Spring Boot application with TEST profile (rate limiting disabled)..."
-	mvn spring-boot:run -Dspring-boot.run.profiles=test > perf-app.log 2>&1 &
+	@echo "🚀 Starting Spring Boot application with TEST profile (no outbox, rate limiting disabled)..."
+	mvn spring-boot:run -Dspring-boot.run.profiles=test-no-outbox > perf-app.log 2>&1 &
 	@echo "⏳ Waiting for application to be ready..."
 	@for i in $$(seq 1 30); do \
 		if curl -s http://localhost:8080/actuator/health >/dev/null 2>&1; then \

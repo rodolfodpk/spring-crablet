@@ -1,9 +1,11 @@
 package crablet.integration;
 import com.crablet.core.EventStore;
 import com.Application;
+import crablet.testutils.TestPublisherConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -17,6 +19,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  */
 @SpringBootTest(classes = Application.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "spring.profiles.active=test")
 @Testcontainers
+@Import(TestPublisherConfiguration.class)
 public abstract class AbstractCrabletIT {
 
     // Shared container instance across all test classes

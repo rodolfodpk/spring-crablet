@@ -1,4 +1,4 @@
-package com.crablet.outbox.impl.publishers;
+package crablet.testutils;
 
 import com.crablet.core.StoredEvent;
 import com.crablet.outbox.OutboxPublisher;
@@ -10,8 +10,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Test publisher that uses CountDownLatch to verify exact event processing counts.
+ * Test-only publisher that uses CountDownLatch to verify exact event processing counts.
  * Useful for integration tests to ensure deterministic behavior.
+ * <p>
+ * This publisher is only available in test scope and should NOT be used in production.
  */
 @Component
 public class CountDownLatchPublisher implements OutboxPublisher {
@@ -96,3 +98,4 @@ public class CountDownLatchPublisher implements OutboxPublisher {
         return PublishMode.BATCH;
     }
 }
+

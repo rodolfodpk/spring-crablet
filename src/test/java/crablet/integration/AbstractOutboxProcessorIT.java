@@ -1,11 +1,10 @@
 package crablet.integration;
-import static crablet.testutils.DCBTestHelpers.*;
 
 import com.crablet.core.EventStore;
 import com.crablet.core.AppendEvent;
 import com.crablet.outbox.impl.JDBCOutboxProcessor;
 import com.crablet.outbox.impl.OutboxConfig;
-import com.crablet.outbox.impl.publishers.CountDownLatchPublisher;
+import crablet.testutils.CountDownLatchPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,13 +17,12 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@TestPropertySource(properties = {
-    "crablet.outbox.enabled=true",
-    "crablet.outbox.lock-strategy=PER_TOPIC_PUBLISHER",
-    "crablet.outbox.topics.default.required-tags=test",
-    "crablet.outbox.topics.default.publishers=CountDownLatchPublisher,TestPublisher,LogPublisher"
-})
-class OutboxProcessorIT extends AbstractCrabletIT {
+/**
+ * Abstract base class for OutboxProcessor integration tests.
+ * Contains all test logic that will be inherited by concrete test classes
+ * for each lock strategy (GLOBAL and PER_TOPIC_PUBLISHER).
+ */
+abstract class AbstractOutboxProcessorIT extends AbstractCrabletIT {
     
     @Autowired
     private EventStore eventStore;
@@ -250,38 +248,6 @@ class OutboxProcessorIT extends AbstractCrabletIT {
         // - Timeout protection (won't hang indefinitely)
         // - Clear verification of processing completion
         System.out.println("✓ CountDownLatch approach provides deterministic, timeout-protected event verification");
-    }
-
-    @Test
-    void shouldProcessWithGlobalLockStrategy() throws InterruptedException {
-        // Given - Switch to GLOBAL strategy
-        outboxConfig.setLockStrategy(OutboxConfig.LockStrategy.GLOBAL);
-        countDownLatchPublisher.expectEvents(2);
-
-        // Append events
-        List<AppendEvent> events = List.of(
-            AppendEvent.builder("TestEvent1")
-                .tag("test", "global1")
-                .data("{\"test\":\"global1\"}".getBytes())
-                .build(),
-            AppendEvent.builder("TestEvent2")
-                .tag("test", "global2")
-                .data("{\"test\":\"global2\"}".getBytes())
-                .build()
-        );
-
-        eventStore.append(events);
-
-        // When - Process with GLOBAL strategy
-        int processed = outboxProcessor.processPending();
-
-        // Then
-        assertThat(processed).isGreaterThan(0);
-        
-        boolean eventsProcessed = countDownLatchPublisher.awaitEvents(5000);
-        if (eventsProcessed) {
-            assertThat(countDownLatchPublisher.getTotalEventsProcessed()).isEqualTo(2);
-        }
     }
 
     @Test

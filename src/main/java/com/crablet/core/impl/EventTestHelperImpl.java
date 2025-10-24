@@ -1,13 +1,21 @@
 package com.crablet.core.impl;
 
-import com.crablet.core.*;
+import com.crablet.core.Cursor;
+import com.crablet.core.EventStoreException;
+import com.crablet.core.EventTestHelper;
+import com.crablet.core.Query;
+import com.crablet.core.QuerySqlBuilder;
+import com.crablet.core.StoredEvent;
+import com.crablet.core.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;

@@ -13,6 +13,7 @@ import com.crablet.core.EventTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ActiveProfiles;
 
 import javax.sql.DataSource;
 import java.util.Comparator;
@@ -28,6 +29,7 @@ import static crablet.testutils.DCBTestHelpers.createTestEvent;
  * Tests for DCB event ordering guarantees.
  * Verifies strict event ordering by position and transaction_id.
  */
+@ActiveProfiles("test-no-outbox")
 class EventStoreImplDCBOrderingTest extends AbstractCrabletIT {
 
     @Autowired

@@ -61,7 +61,7 @@ public record Cursor(SequenceNumber position, Instant occurredAt, String transac
      */
     public boolean isBefore(Cursor other) {
         if (!this.position.equals(other.position)) {
-            return this.position.isLessThan(other.position);
+            return this.position.value() < other.position.value();
         }
         return this.occurredAt.isBefore(other.occurredAt);
     }
@@ -71,7 +71,7 @@ public record Cursor(SequenceNumber position, Instant occurredAt, String transac
      */
     public boolean isAfter(Cursor other) {
         if (!this.position.equals(other.position)) {
-            return this.position.isGreaterThan(other.position);
+            return this.position.value() > other.position.value();
         }
         return this.occurredAt.isAfter(other.occurredAt);
     }

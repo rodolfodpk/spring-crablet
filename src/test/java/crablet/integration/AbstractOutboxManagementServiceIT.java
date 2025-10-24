@@ -9,13 +9,19 @@ import com.crablet.outbox.impl.OutboxManagementService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.TestPropertySource;
 import crablet.integration.AbstractCrabletIT;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class OutboxManagementServiceIT extends AbstractCrabletIT {
+/**
+ * Abstract base class for OutboxManagementService integration tests.
+ * Contains all test logic that will be inherited by concrete test classes
+ * for each lock strategy (GLOBAL and PER_TOPIC_PUBLISHER).
+ */
+abstract class AbstractOutboxManagementServiceIT extends AbstractCrabletIT {
     
     @Autowired
     private EventStore eventStore;

@@ -14,6 +14,7 @@ import com.crablet.core.EventTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ActiveProfiles;
 
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
@@ -27,6 +28,7 @@ import static crablet.testutils.DCBTestHelpers.createTestEvent;
  * Tests for DCB event data integrity.
  * Verifies that event type, tags, and JSON data are preserved exactly.
  */
+@ActiveProfiles("test-no-outbox")
 class EventStoreImplDCBEventIntegrityTest extends AbstractCrabletIT {
 
     @Autowired
