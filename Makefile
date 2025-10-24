@@ -177,15 +177,25 @@ perf-setup:
 		fi; \
 		sleep 2; \
 	done
+	@sleep 5
 	@echo "✅ Performance test environment ready!"
 
 perf-seed:
-	@echo "🌱 Seeding test data (1000 success wallets + 10 insufficient wallets)..."
-	cd performance-tests && k6 run setup/seed-success-data.js --console-output /tmp/seed-console.log
-	@grep "WALLET_DATA:" /tmp/seed-console.log | head -1 | sed 's/.*WALLET_DATA://' | sed 's/\\"/"/g' > performance-tests/setup/verified-wallets.json || echo '{"wallets":[],"count":0,"timestamp":0}' > performance-tests/setup/verified-wallets.json
-	@echo "🌱 Seeding insufficient balance wallets..."
-	cd performance-tests && k6 run setup/seed-insufficient-data.js --console-output /tmp/seed-insufficient-console.log
-	@echo "✅ Test data seeded successfully!"
+	@echo "🌱 Seeding test data for all scenarios..."
+	@echo "🧹 Cleaning up old test data..."
+	cd performance-tests && ./setup/cleanup-data.sh
+	@echo "🌱 Seeding transfer success wallets (500 wallets)..."
+	cd performance-tests && k6 run setup/seed-transfer-success-data.js --console-output /tmp/seed-transfer-success-console.log || (echo "❌ Transfer success seeding failed" && exit 1)
+	@echo "🌱 Seeding insufficient balance wallets (100 wallets)..."
+	cd performance-tests && k6 run setup/seed-insufficient-data.js --console-output /tmp/seed-insufficient-console.log || (echo "❌ Insufficient seeding failed" && exit 1)
+	@echo "🌱 Seeding concurrency wallets (50 wallets)..."
+	cd performance-tests && k6 run setup/seed-concurrency-data.js --console-output /tmp/seed-concurrency-console.log || (echo "❌ Concurrency seeding failed" && exit 1)
+	@echo "🌱 Seeding general success wallets (1000 wallets)..."
+	cd performance-tests && k6 run setup/seed-success-data.js --console-output /tmp/seed-success-console.log || (echo "❌ General seeding failed" && exit 1)
+	@grep "WALLET_DATA:" /tmp/seed-success-console.log | head -1 | sed 's/.*WALLET_DATA://' | sed 's/\\"/"/g' > performance-tests/setup/verified-wallets.json || echo '{"wallets":[],"count":0,"timestamp":0}' > performance-tests/setup/verified-wallets.json
+	@echo "🔍 Validating seeded data..."
+	cd performance-tests/setup && ./validate-wallets.sh
+	@echo "✅ Test data seeded and validated successfully!"
 
 perf-run-all:
 	@echo "🧪 Running all k6 performance tests..."

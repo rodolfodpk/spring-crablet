@@ -1,6 +1,9 @@
 import http from 'k6/http';
 import {check, sleep} from 'k6';
-import {config, getRandomBalance, getWalletId} from '../config-concurrency.js';
+import {config, getRandomBalance, getWalletId} from '../config-transfer-success.js';
+
+// Track successfully created wallets
+let verifiedWallets = [];
 
 export let options = {
     vus: 1,
@@ -12,7 +15,7 @@ export let options = {
 };
 
 export default function () {
-    console.info(`🌱 Seeding ${config.WALLET_POOL_SIZE} wallets for concurrency conflict tests...`);
+    console.info(`🌱 Seeding ${config.WALLET_POOL_SIZE} wallets for transfer success tests...`);
     let createdWallets = 0;
     let failedWallets = 0;
 
@@ -20,7 +23,7 @@ export default function () {
         const walletId = getWalletId(i);
         const initialBalance = getRandomBalance();
         const payload = JSON.stringify({
-            owner: `concurrency-success-user-${String(i).padStart(3, '0')}`,
+            owner: `transfer-success-user-${String(i).padStart(3, '0')}`,
             initialBalance: initialBalance
         });
 
@@ -33,18 +36,28 @@ export default function () {
         });
 
         if (response.status === 201 || response.status === 200) {
+            verifiedWallets.push(walletId);
             createdWallets++;
         } else {
             failedWallets++;
             console.error(`Failed to create wallet ${walletId}: ${response.status} - ${response.body}`);
         }
 
-        sleep(0.1); // Small sleep to avoid overwhelming the server during setup
+        if (i % 100 === 0) {
+            console.info(`Created ${createdWallets}/${config.WALLET_POOL_SIZE} wallets...`);
+        }
+        sleep(0.01); // Small sleep to avoid overwhelming the server during setup
     }
 
-    console.info(`🎯 Concurrency suite seeding completed: ${createdWallets} wallets created, ${failedWallets} failed`);
+    console.info(`🎯 Transfer success suite seeding completed: ${createdWallets} wallets created, ${failedWallets} failed`);
+    console.info(`📊 Verified wallet pool: ${verifiedWallets.length} wallets available for testing`);
+
     check(failedWallets === 0, {
         'All wallets created successfully': () => failedWallets === 0,
+    });
+
+    check(verifiedWallets.length >= 100, {
+        'Minimum wallet pool size': () => verifiedWallets.length >= 100,
     });
 
     // Verify API is healthy after seeding
@@ -52,4 +65,14 @@ export default function () {
     check(healthResponse, {
         'API is healthy after seeding': (r) => r.status === 200 && JSON.parse(r.body).status === 'UP',
     });
+
+    // Output verified wallets as JSON for shell redirection
+    const walletData = {
+        wallets: verifiedWallets,
+        count: verifiedWallets.length,
+        timestamp: Date.now()
+    };
+
+    console.info(`💾 WALLET_DATA:${JSON.stringify(walletData)}`);
 }
+

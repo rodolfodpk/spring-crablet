@@ -4,13 +4,14 @@ export const config = {
         WALLET: '/api/wallets',
         TRANSFER: '/api/wallets/transfer',
         DEPOSIT: '/api/wallets/{walletId}/deposit',
-        HISTORY: '/api/wallets/{walletId}/history',
+        EVENTS: '/api/wallets/{walletId}/events',
+        COMMANDS: '/api/wallets/{walletId}/commands',
         HEALTH: '/actuator/health'
     },
-    WALLET_POOL_SIZE: 50,  // Increased for better concurrency testing
-    WALLET_PREFIX: 'concurrency-wallet-',
-    INITIAL_BALANCE_MIN: 200000,  // Very high balances for high-frequency conflicts
-    INITIAL_BALANCE_MAX: 500000,
+    WALLET_POOL_SIZE: 500,  // Dedicated pool for transfer tests
+    WALLET_PREFIX: 'transfer-success-wallet-',
+    INITIAL_BALANCE_MIN: 100000,   // Higher balances to prevent depletion
+    INITIAL_BALANCE_MAX: 200000,  // Double the range for more headroom
     TRANSFER_AMOUNT_MIN: 50,
     TRANSFER_AMOUNT_MAX: 200
 };
@@ -37,3 +38,4 @@ export function getWalletRangeForVU(vuId, totalVUs) {
     const endIndex = Math.min(vuId * walletsPerVU, config.WALLET_POOL_SIZE);
     return {startIndex, endIndex};
 }
+

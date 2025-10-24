@@ -14,18 +14,18 @@ export let options = {
 };
 
 export default function () {
-    // Use a subset of wallets to reduce contention (similar to concurrency test)
-    // Use wallets 1-200 for transfers (5 users, ~40 wallets per user)
-    const wallet1Index = Math.floor(Math.random() * 200) + 1;
-    let wallet2Index = Math.floor(Math.random() * 200) + 1;
+    // Use transfer-success pool (500 wallets with 100K-200K balance)
+    // Much larger pool reduces contention and prevents balance depletion
+    const wallet1Index = Math.floor(Math.random() * 500) + 1;
+    let wallet2Index = Math.floor(Math.random() * 500) + 1;
 
     // Ensure we have different wallets
     while (wallet2Index === wallet1Index) {
-        wallet2Index = Math.floor(Math.random() * 200) + 1;
+        wallet2Index = Math.floor(Math.random() * 500) + 1;
     }
 
-    const fromWalletId = `success-wallet-${String(wallet1Index).padStart(3, '0')}`;
-    const toWalletId = `success-wallet-${String(wallet2Index).padStart(3, '0')}`;
+    const fromWalletId = `transfer-success-wallet-${String(wallet1Index).padStart(3, '0')}`;
+    const toWalletId = `transfer-success-wallet-${String(wallet2Index).padStart(3, '0')}`;
 
     // Perform transfer with random amount between 50-200
     const transferAmount = Math.floor(Math.random() * 151) + 50; // 50-200 range

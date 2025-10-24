@@ -14,8 +14,8 @@ export let options = {
 };
 
 export default function () {
-    // Use wallets from the insufficient-balance seed (wallets 1-10 with balances 100-500)
-    const walletIndex = Math.floor(Math.random() * 10) + 1;
+    // Use wallets from the insufficient-balance seed (wallets 1-100 with balances 10-50)
+    const walletIndex = Math.floor(Math.random() * 100) + 1;
     const walletId = `insufficient-wallet-${String(walletIndex).padStart(3, '0')}`;
 
     // Get a different wallet for transfer (use wallets from successful seed)
@@ -23,7 +23,7 @@ export default function () {
     const toWalletId = `success-wallet-${String(toWalletIndex).padStart(3, '0')}`;
 
     // Attempt a transfer with amount higher than balance (should fail with 400)
-    const transferAmount = 400; // Higher than the max initial balance (500)
+    const transferAmount = 200; // Higher than the max initial balance (50)
     const transferId = `insufficient-transfer-${__VU}-${__ITER}-${Date.now()}`;
 
     const transferPayload = JSON.stringify({

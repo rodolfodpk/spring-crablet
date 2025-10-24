@@ -7,10 +7,10 @@ export const config = {
         HISTORY: '/api/wallets/{walletId}/history',
         HEALTH: '/actuator/health'
     },
-    WALLET_POOL_SIZE: 10,
+    WALLET_POOL_SIZE: 100,  // Increase pool size for more predictable failures
     WALLET_PREFIX: 'insufficient-wallet-',
-    INITIAL_BALANCE_MIN: 100,
-    INITIAL_BALANCE_MAX: 500,
+    INITIAL_BALANCE_MIN: 10,   // Very low balances to ensure failures
+    INITIAL_BALANCE_MAX: 50,   // Max balance still below transfer amount
     TRANSFER_AMOUNT_MIN: 200,  // Intentionally higher than balance
     TRANSFER_AMOUNT_MAX: 500
 };

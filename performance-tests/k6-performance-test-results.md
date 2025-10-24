@@ -30,9 +30,10 @@ The performance tests are now run using the **Makefile** (`make perf-test`) that
 
 - **Complete Cleanup**: Stops all containers, kills processes, frees ports
 - **PostgreSQL Validation**: Waits for container health and validates connections
-- **Application Validation**: Waits for Spring Boot to be healthy (status="UP")
-- **Automatic Seeding**: Seeds 1000 wallets before running tests
-- **Error Handling**: Continues on failures and reports results
+- **Application Validation**: Waits for Spring Boot to be healthy (status="UP") + 5-second initialization delay
+- **Automatic Seeding**: Seeds 4 dedicated wallet pools (1,650 total wallets) before running tests
+- **Seed Data Validation**: Verifies all wallet pools exist before tests run (fail-fast on missing data)
+- **Error Handling**: Fail-fast with clear error messages for seeding failures
 - **Automatic Cleanup**: Ensures cleanup runs even on script failure
 
 ### Test Execution
@@ -50,6 +51,16 @@ make perf-cleanup  # Cleanup environment
 # Quick test (wallet creation only)
 make perf-quick
 ```
+
+## Latest Test Results (October 23, 2025)
+
+**Wallet Creation**: 22,169 requests, 443 req/s, p95=75.7ms, 0% errors
+
+**Deposit**: 17,905 requests, 358 req/s, p95=38.75ms, 0% errors
+
+**Withdrawal**: 14,588 requests, 292 req/s, p95=44.83ms, 0% errors
+
+**Transfer**: 24,137 requests, 483 req/s, p95=19.23ms, 88.8% errors (expected DCB conflicts)
 
 ## Recent Updates (October 2025)
 

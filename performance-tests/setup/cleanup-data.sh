@@ -63,60 +63,37 @@ execute_sql() {
     fi
 }
 
-# Clean up events table
-EVENTS_SQL="
-DELETE FROM events 
-WHERE (
-    -- Events for performance test wallets
-    tags @> ARRAY['wallet_id=$WALLET_PREFIX%']::TEXT[] OR
-    tags @> ARRAY['from_wallet_id=$WALLET_PREFIX%']::TEXT[] OR
-    tags @> ARRAY['to_wallet_id=$WALLET_PREFIX%']::TEXT[] OR
-    -- Transfer events involving performance wallets
-    tags @> ARRAY['transfer_id=transfer-%']::TEXT[] OR
-    tags @> ARRAY['deposit_id=deposit-%']::TEXT[] OR
-    tags @> ARRAY['deposit_id=ensure-balance-%']::TEXT[]
-);
-"
+# Truncate all tables like Java tests do
+# This is simpler and faster than DELETE with WHERE clauses
+EVENTS_SQL="TRUNCATE TABLE events CASCADE"
+COMMANDS_SQL="TRUNCATE TABLE commands CASCADE"
+OUTBOX_SQL="TRUNCATE TABLE outbox_topic_progress CASCADE"
 
-# Clean up commands table
-COMMANDS_SQL="
-DELETE FROM commands 
-WHERE (
-    -- Commands for performance test wallets
-    data->>'walletId' LIKE '$WALLET_PREFIX%' OR
-    data->>'fromWalletId' LIKE '$WALLET_PREFIX%' OR
-    data->>'toWalletId' LIKE '$WALLET_PREFIX%' OR
-    data->>'transferId' LIKE 'transfer-%' OR
-    data->>'depositId' LIKE 'deposit-%' OR
-    data->>'depositId' LIKE 'ensure-balance-%'
-);
-"
+# Reset sequences to start from 1
+SEQUENCE_SQL="ALTER SEQUENCE events_position_seq RESTART WITH 1"
 
 # Execute cleanup
-execute_sql "$EVENTS_SQL" "Cleaning up events table"
-execute_sql "$COMMANDS_SQL" "Cleaning up commands table"
+execute_sql "$EVENTS_SQL" "Truncating events table"
+execute_sql "$COMMANDS_SQL" "Truncating commands table"
+execute_sql "$OUTBOX_SQL" "Truncating outbox_topic_progress table"
+execute_sql "$SEQUENCE_SQL" "Resetting events_position_seq"
 
-# Show cleanup summary
+# Show cleanup summary - just show table counts
 SUMMARY_SQL="
 SELECT 
     'Events' as table_name,
     COUNT(*) as remaining_records
-FROM events 
-WHERE (
-    tags @> ARRAY['wallet_id=$WALLET_PREFIX%']::TEXT[] OR
-    tags @> ARRAY['from_wallet_id=$WALLET_PREFIX%']::TEXT[] OR
-    tags @> ARRAY['to_wallet_id=$WALLET_PREFIX%']::TEXT[]
-)
+FROM events
 UNION ALL
 SELECT 
     'Commands' as table_name,
     COUNT(*) as remaining_records
-FROM commands 
-WHERE (
-    data->>'walletId' LIKE '$WALLET_PREFIX%' OR
-    data->>'fromWalletId' LIKE '$WALLET_PREFIX%' OR
-    data->>'toWalletId' LIKE '$WALLET_PREFIX%'
-);
+FROM commands
+UNION ALL
+SELECT 
+    'Outbox Progress' as table_name,
+    COUNT(*) as remaining_records
+FROM outbox_topic_progress;
 "
 
 print_status "Cleanup summary:"

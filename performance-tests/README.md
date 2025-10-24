@@ -105,22 +105,21 @@ throughput.
 ### Option 1: Using Makefile (Recommended)
 
 ```bash
-# Start application with TEST profile (rate limiting disabled)
-make start-test
-
-# Seed test data (1000 wallets)
-cd performance-tests
-k6 run setup/seed-success-data.js
+# Complete setup with seed data validation
+make perf-setup perf-seed
 
 # Run individual tests
+cd performance-tests
 k6 run simple-deposit-test.js
 k6 run simple-transfer-test.js
 k6 run simple-concurrency-test.js
 
 # Stop application
 cd ..
-make stop
+make perf-cleanup
 ```
+
+**Note**: The `perf-seed` target now includes automatic validation of seeded data. If any wallet pool is missing, the seeding process will fail with a clear error message.
 
 ### Option 2: Using Maven Directly
 
@@ -156,6 +155,35 @@ make perf-test
 | `make perf-setup`   | Setup test environment only                           | None                                                                                                                 |
 | `make perf-seed`    | Seed test data only                                   | None                                                                                                                 |
 | `make perf-cleanup` | Cleanup test environment only                         | None                                                                                                                 |
+
+### Seed Data Validation
+
+The performance test infrastructure now includes automatic seed data validation:
+
+**New Features:**
+
+1. **`validate-wallets.sh` script**: Verifies all 4 wallet pools exist before running tests
+   - Transfer success pool: 500 wallets (100K-200K balance)
+   - Insufficient balance pool: 100 wallets (10-50 balance)
+   - Concurrency pool: 50 wallets (200K-500K balance)
+   - General success pool: 1000 wallets (10K-50K balance)
+
+2. **Fail-fast error handling**: If any seed script fails, the process stops immediately with a clear error message
+
+3. **Startup delay**: Added 5-second delay after application startup to ensure full initialization
+
+**Validation Output Example:**
+
+```
+🔍 Validating seeded wallets...
+  transfer-success-wallet-*:    500 wallets
+  insufficient-wallet-*:    100 wallets
+  concurrency-wallet-*:     50 wallets
+  success-wallet-*:   1000 wallets
+✅ All wallet pools validated
+```
+
+This ensures tests run with fresh, deterministic data and fail immediately if seeding is incomplete.
 
 ### Option 4: Run All Tests Manually
 
