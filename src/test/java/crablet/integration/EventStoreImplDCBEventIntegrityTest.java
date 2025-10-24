@@ -50,7 +50,7 @@ class EventStoreImplDCBEventIntegrityTest extends AbstractCrabletIT {
 
     @BeforeEach
     void setUp() {
-        store = new EventStoreImpl(dataSource, objectMapper, config, clock);
+        store = new EventStoreImpl(dataSource, dataSource, objectMapper, config, clock);
     }
 
     @Test

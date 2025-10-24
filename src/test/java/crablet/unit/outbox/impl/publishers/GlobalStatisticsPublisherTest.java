@@ -29,7 +29,7 @@ class GlobalStatisticsPublisherTest {
     void shouldRecordSingleEvent() {
         // Given
         String topic = "test-topic";
-        String publisherName = "TestPublisher";
+        String publisherName = "CountDownLatchPublisher";
         String eventType = "TestEvent";
         
         // When

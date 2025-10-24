@@ -30,7 +30,7 @@ abstract class AbstractOutboxMetricsIT extends AbstractCrabletIT {
     @Test
     void shouldRecordMetrics() {
         // Record some events
-        outboxMetrics.recordEventsPublished("TestPublisher", 10);
+        outboxMetrics.recordEventsPublished("CountDownLatchPublisher", 10);
         outboxMetrics.recordProcessingCycle();
         outboxMetrics.setLeader(true);
         
@@ -43,7 +43,7 @@ abstract class AbstractOutboxMetricsIT extends AbstractCrabletIT {
     @Test
     void shouldRecordPublisherMetrics() {
         // Start publishing timer
-        var sample = publisherMetrics.startPublishing("TestPublisher");
+        var sample = publisherMetrics.startPublishing("CountDownLatchPublisher");
         
         // Simulate some work
         try {
@@ -53,7 +53,7 @@ abstract class AbstractOutboxMetricsIT extends AbstractCrabletIT {
         }
         
         // Record success
-        publisherMetrics.recordPublishingSuccess("TestPublisher", sample, 5);
+        publisherMetrics.recordPublishingSuccess("CountDownLatchPublisher", sample, 5);
         
         // Verify metrics exist
         assertThat(meterRegistry.find("outbox.publishing.duration").timer()).isNotNull();
@@ -63,7 +63,7 @@ abstract class AbstractOutboxMetricsIT extends AbstractCrabletIT {
     @Test
     void shouldRecordPublisherErrors() {
         // Record an error
-        publisherMetrics.recordPublishingError("TestPublisher");
+        publisherMetrics.recordPublishingError("CountDownLatchPublisher");
         
         // Verify error counter exists
         assertThat(meterRegistry.find("outbox.errors.by_publisher").counter()).isNotNull();

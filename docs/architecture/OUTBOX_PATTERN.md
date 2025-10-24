@@ -153,7 +153,7 @@ Instance C startup:
 
 ### Available Publishers
 - `LogPublisher` - Development/testing
-- `TestPublisher` - Integration tests  
+- `CountDownLatchPublisher` - Integration tests (test-scope only)
 - `StatisticsPublisher` - Monitoring
 - `GlobalStatisticsPublisher` - Always-on stats
 

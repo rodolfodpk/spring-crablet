@@ -5,8 +5,12 @@ import org.springframework.context.annotation.Bean;
 
 /**
  * Test configuration for registering test-only components.
- * This configuration ensures that test components like CountDownLatchPublisher
- * are available in the test context.
+ * <p>
+ * This configuration registers the CountDownLatchPublisher for integration tests.
+ * <p>
+ * Note: Tests may use any publisher implementation. The deleted TestPublisher
+ * should NOT be used and has been replaced by CountDownLatchPublisher in all
+ * test scenarios.
  */
 @TestConfiguration
 public class TestPublisherConfiguration {

@@ -35,7 +35,7 @@ public class TopicConfigurationProperties {
             log.info("No topics configured, creating default topic");
             TopicProperties defaultProps = new TopicProperties();
             defaultProps.setRequiredTags(""); // Empty means match all events
-            defaultProps.setPublishers("LogPublisher,TestPublisher"); // Include available publishers
+            defaultProps.setPublishers("LogPublisher,CountDownLatchPublisher"); // Include available publishers
             topics.put("default", defaultProps);
         }
         

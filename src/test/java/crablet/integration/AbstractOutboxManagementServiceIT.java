@@ -54,24 +54,24 @@ abstract class AbstractOutboxManagementServiceIT extends AbstractCrabletIT {
         outboxProcessor.processPending();
         
         // Verify publisher exists
-        assertThat(outboxManagementService.publisherExists("TestPublisher")).isTrue();
+        assertThat(outboxManagementService.publisherExists("CountDownLatchPublisher")).isTrue();
         
         // Pause publisher
-        boolean paused = outboxManagementService.pausePublisher("TestPublisher");
+        boolean paused = outboxManagementService.pausePublisher("CountDownLatchPublisher");
         assertThat(paused).isTrue();
         
         // Verify status is PAUSED
-        OutboxManagementService.PublisherStatus status = outboxManagementService.getPublisherStatus("TestPublisher");
+        OutboxManagementService.PublisherStatus status = outboxManagementService.getPublisherStatus("CountDownLatchPublisher");
         assertThat(status).isNotNull();
         assertThat(status.isPaused()).isTrue();
         assertThat(status.status()).isEqualTo("PAUSED");
         
         // Resume publisher
-        boolean resumed = outboxManagementService.resumePublisher("TestPublisher");
+        boolean resumed = outboxManagementService.resumePublisher("CountDownLatchPublisher");
         assertThat(resumed).isTrue();
         
         // Verify status is ACTIVE
-        status = outboxManagementService.getPublisherStatus("TestPublisher");
+        status = outboxManagementService.getPublisherStatus("CountDownLatchPublisher");
         assertThat(status).isNotNull();
         assertThat(status.isActive()).isTrue();
         assertThat(status.status()).isEqualTo("ACTIVE");
@@ -98,9 +98,9 @@ abstract class AbstractOutboxManagementServiceIT extends AbstractCrabletIT {
         assertThat(statuses).isNotEmpty();
         assertThat(statuses).hasSizeGreaterThanOrEqualTo(1);
         
-        // Verify TestPublisher is in the list
+        // Verify CountDownLatchPublisher is in the list
         boolean testPublisherFound = statuses.stream()
-            .anyMatch(s -> "TestPublisher".equals(s.publisherName()));
+            .anyMatch(s -> "CountDownLatchPublisher".equals(s.publisherName()));
         assertThat(testPublisherFound).isTrue();
     }
     

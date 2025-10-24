@@ -73,6 +73,9 @@ make stop
 - **[Security](docs/security/README.md)** - Rate limiting, HTTP/2, input validation
 - **[Performance](performance-tests/README.md)** - Load testing, benchmarks, optimization
 - **[Observability](docs/observability/README.md)** - Monitoring, metrics, dashboards
+- **[Setup](docs/setup/README.md)** - Installation and configuration
+  - [Read Replicas](docs/setup/READ_REPLICAS.md) - PostgreSQL read replica configuration
+  - [PgBouncer Guide](docs/setup/PGBOUNCER.md) - Connection pooling with PgBouncer
 - **[Available URLs](docs/urls.md)** - Quick reference for all service URLs
 
 ## License

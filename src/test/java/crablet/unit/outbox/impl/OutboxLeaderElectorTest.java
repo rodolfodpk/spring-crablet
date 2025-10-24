@@ -78,7 +78,7 @@ class OutboxLeaderElectorTest extends AbstractCrabletIT {
     @DisplayName("Should acquire pair lock")
     void shouldAcquirePairLock() {
         // Given - A topic-publisher pair
-        TopicPublisherPair pair = new TopicPublisherPair("test-topic", "TestPublisher");
+        TopicPublisherPair pair = new TopicPublisherPair("test-topic", "CountDownLatchPublisher");
         
         // First, create the pair in database
         jdbcTemplate.update(
@@ -99,7 +99,7 @@ class OutboxLeaderElectorTest extends AbstractCrabletIT {
     void shouldDetectStaleHeartbeat() {
         // Given - A pair with stale heartbeat
         String topic = "test-topic";
-        String publisher = "TestPublisher";
+        String publisher = "CountDownLatchPublisher";
         
         jdbcTemplate.update(
             """
@@ -121,7 +121,7 @@ class OutboxLeaderElectorTest extends AbstractCrabletIT {
     void shouldDetectFreshHeartbeat() {
         // Given - A pair with fresh heartbeat
         String topic = "test-topic";
-        String publisher = "TestPublisher";
+        String publisher = "CountDownLatchPublisher";
         
         jdbcTemplate.update(
             """
@@ -142,7 +142,7 @@ class OutboxLeaderElectorTest extends AbstractCrabletIT {
     @DisplayName("Should update heartbeats for owned pairs")
     void shouldUpdateHeartbeats() throws InterruptedException {
         // Given - An owned pair
-        TopicPublisherPair pair = new TopicPublisherPair("test-topic", "TestPublisher");
+        TopicPublisherPair pair = new TopicPublisherPair("test-topic", "CountDownLatchPublisher");
         
         jdbcTemplate.update(
             "INSERT INTO outbox_topic_progress (topic, publisher, last_position, status) VALUES (?, ?, 0, 'ACTIVE')",

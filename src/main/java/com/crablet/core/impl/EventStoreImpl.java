@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 /**
  * JDBC-based implementation of EventStore using PostgreSQL functions.
@@ -81,7 +82,8 @@ public class EventStoreImpl implements EventStore {
     private static final String GET_CURRENT_TRANSACTION_ID_SQL = 
         "SELECT pg_current_xact_id()::TEXT";
 
-    private final DataSource dataSource;
+    private final DataSource writeDataSource;
+    private final DataSource readDataSource;
     private final ObjectMapper objectMapper;
     private final EventStoreConfig config;
     private final ClockProvider clock;
@@ -126,9 +128,17 @@ public class EventStoreImpl implements EventStore {
     }
 
     @Autowired
-    public EventStoreImpl(DataSource dataSource, ObjectMapper objectMapper, EventStoreConfig config, ClockProvider clock) {
-        if (dataSource == null) {
-            throw new IllegalArgumentException("DataSource must not be null");
+    public EventStoreImpl(
+            @Qualifier("primaryDataSource") DataSource writeDataSource,
+            @Qualifier("readDataSource") DataSource readDataSource,
+            ObjectMapper objectMapper,
+            EventStoreConfig config,
+            ClockProvider clock) {
+        if (writeDataSource == null) {
+            throw new IllegalArgumentException("writeDataSource must not be null");
+        }
+        if (readDataSource == null) {
+            throw new IllegalArgumentException("readDataSource must not be null");
         }
         if (objectMapper == null) {
             throw new IllegalArgumentException("ObjectMapper must not be null");
@@ -139,7 +149,8 @@ public class EventStoreImpl implements EventStore {
         if (clock == null) {
             throw new IllegalArgumentException("ClockProvider must not be null");
         }
-        this.dataSource = dataSource;
+        this.writeDataSource = writeDataSource;
+        this.readDataSource = readDataSource;
         this.objectMapper = objectMapper;
         this.config = config;
         this.clock = clock;
@@ -166,7 +177,7 @@ public class EventStoreImpl implements EventStore {
                     .toArray(String[]::new);
 
             // Call append_events_batch function with JSONB[] cast using raw JDBC
-            try (Connection connection = dataSource.getConnection();
+            try (Connection connection = writeDataSource.getConnection();
                  PreparedStatement stmt = connection.prepareStatement(APPEND_EVENTS_BATCH_SQL)) {
 
                 stmt.setArray(1, connection.createArrayOf("varchar", types));
@@ -236,7 +247,7 @@ public class EventStoreImpl implements EventStore {
                     .toArray(String[]::new);
 
             // Call append_events_if with dual conditions
-            try (Connection connection = dataSource.getConnection();
+            try (Connection connection = writeDataSource.getConnection();
                  PreparedStatement stmt = connection.prepareStatement(APPEND_EVENTS_IF_SQL)) {
 
                 stmt.setArray(1, connection.createArrayOf("varchar", types));
@@ -370,7 +381,7 @@ public class EventStoreImpl implements EventStore {
             sql.append(" ORDER BY transaction_id, position ASC");
             
             // Stream with server-side cursor
-            try (Connection connection = dataSource.getConnection()) {
+            try (Connection connection = readDataSource.getConnection()) {
                 connection.setReadOnly(true);  // Read-only operation
                 connection.setAutoCommit(false); // Required for server-side cursor
                 
@@ -550,7 +561,7 @@ public class EventStoreImpl implements EventStore {
 
     @Override
     public <T> T executeInTransaction(Function<EventStore, T> operation) {
-        try (Connection connection = dataSource.getConnection()) {
+        try (Connection connection = writeDataSource.getConnection()) {
             // Apply configured transaction isolation level
             int isolationLevel = mapIsolationLevel(config.getTransactionIsolation());
             connection.setTransactionIsolation(isolationLevel);
@@ -876,7 +887,7 @@ public class EventStoreImpl implements EventStore {
 
     @Override
     public void storeCommand(Command command, String transactionId) {
-        try (Connection connection = dataSource.getConnection()) {
+        try (Connection connection = writeDataSource.getConnection()) {
             storeCommandWithConnection(connection, command, transactionId);
         } catch (SQLException e) {
             throw new EventStoreException("Failed to store command", e);
@@ -885,7 +896,7 @@ public class EventStoreImpl implements EventStore {
 
     @Override
     public String getCurrentTransactionId() {
-        try (Connection connection = dataSource.getConnection()) {
+        try (Connection connection = writeDataSource.getConnection()) {
             return getCurrentTransactionIdWithConnection(connection);
         } catch (SQLException e) {
             throw new EventStoreException("Failed to get current transaction ID", e);

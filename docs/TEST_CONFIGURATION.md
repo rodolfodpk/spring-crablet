@@ -25,7 +25,7 @@ The application has multiple test configuration profiles to support different te
 - **Outbox**: ENABLED (`crablet.outbox.enabled=true`)
 - **Lock Strategy**: `PER_TOPIC_PUBLISHER` - maximum scalability mode
 - **Polling**: 30 seconds (`crablet.outbox.acquisition-retry-interval-ms=30000`)
-- **Publishers**: `CountDownLatchPublisher`, `TestPublisher`, `LogPublisher`
+- **Publishers**: `CountDownLatchPublisher`, `LogPublisher`
 - **Use case**: Test outbox with maximum scalability (one lock per topic-publisher pair)
 - **Lock Granularity**: One lock per (topic, publisher) pair
 - **Scaling**: Maximum parallelism - N topics × M publishers = N×M instances
@@ -35,7 +35,7 @@ The application has multiple test configuration profiles to support different te
 - **Outbox**: ENABLED (`crablet.outbox.enabled=true`)
 - **Lock Strategy**: `GLOBAL` - simple deployment mode
 - **Polling**: 30 seconds (`crablet.outbox.acquisition-retry-interval-ms=30000`)
-- **Publishers**: `CountDownLatchPublisher`, `TestPublisher`, `LogPublisher`
+- **Publishers**: `CountDownLatchPublisher`, `LogPublisher`
 - **Use case**: Test outbox with simple deployment (one instance processes all)
 - **Lock Granularity**: Single global lock
 - **Scaling**: No parallelism - 1 instance processes all topics and publishers

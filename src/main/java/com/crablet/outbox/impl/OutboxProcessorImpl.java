@@ -14,10 +14,12 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -37,6 +39,7 @@ public class OutboxProcessorImpl implements OutboxProcessor {
     // Core dependencies
     private final OutboxConfig config;
     private final JdbcTemplate jdbcTemplate;
+    private final DataSource readDataSource;
     private final OutboxLeaderElector leaderElector;
     
     // Supporting infrastructure
@@ -57,6 +60,7 @@ public class OutboxProcessorImpl implements OutboxProcessor {
     public OutboxProcessorImpl(
             OutboxConfig config,
             JdbcTemplate jdbcTemplate,
+            @Qualifier("readDataSource") DataSource readDataSource,
             List<OutboxPublisher> publishers,
             OutboxLeaderElector leaderElector,
             OutboxMetrics outboxMetrics,
@@ -65,6 +69,7 @@ public class OutboxProcessorImpl implements OutboxProcessor {
             GlobalStatisticsPublisher globalStatistics) {
         this.config = config;
         this.jdbcTemplate = jdbcTemplate;
+        this.readDataSource = readDataSource;
         this.leaderElector = leaderElector;
         this.outboxMetrics = outboxMetrics;
         this.publisherMetrics = publisherMetrics;
@@ -353,7 +358,7 @@ public class OutboxProcessorImpl implements OutboxProcessor {
             LIMIT ?
             """.formatted(sqlFilter);
         
-        try (Connection connection = jdbcTemplate.getDataSource().getConnection()) {
+        try (Connection connection = readDataSource.getConnection()) {
             connection.setReadOnly(true);  // Read-only operation
             connection.setAutoCommit(false);  // For streaming large result sets
             

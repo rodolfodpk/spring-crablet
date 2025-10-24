@@ -548,9 +548,9 @@ class EventStoreImplTest extends AbstractCrabletIT {
     @DisplayName("Should handle database connection errors gracefully")
     void shouldHandleDatabaseConnectionErrorsGracefully() throws JsonProcessingException, SQLException {
         // When & Then - constructor should throw IllegalArgumentException for null DataSource
-        assertThatThrownBy(() -> new EventStoreImpl(null, objectMapper, config, clock))
+        assertThatThrownBy(() -> new EventStoreImpl(null, null, objectMapper, config, clock))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("DataSource must not be null");
+                .hasMessageContaining("writeDataSource must not be null");
     }
 
     @Test

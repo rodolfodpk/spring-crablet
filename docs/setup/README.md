@@ -141,3 +141,5 @@ docker-compose up -d postgres
 - [API Reference](../api/README.md) - API documentation
 - [Development Guide](../development/README.md) - Development practices
 - [Observability](../observability/README.md) - Monitoring setup
+- [Read Replicas](./READ_REPLICAS.md) - PostgreSQL read replica configuration
+- [PgBouncer Guide](./PGBOUNCER.md) - Using PgBouncer for connection pooling

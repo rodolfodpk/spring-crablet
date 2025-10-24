@@ -31,7 +31,7 @@ class OutboxManagementServiceTest {
     @Test
     void shouldPausePublisherSuccessfully() {
         // Given
-        String publisherName = "TestPublisher";
+        String publisherName = "CountDownLatchPublisher";
         when(jdbcTemplate.update(anyString(), eq(publisherName))).thenReturn(1);
 
         // When
@@ -61,7 +61,7 @@ class OutboxManagementServiceTest {
     @Test
     void shouldResumePublisherSuccessfully() {
         // Given
-        String publisherName = "TestPublisher";
+        String publisherName = "CountDownLatchPublisher";
         when(jdbcTemplate.update(anyString(), eq(publisherName))).thenReturn(1);
 
         // When
@@ -78,7 +78,7 @@ class OutboxManagementServiceTest {
     @Test
     void shouldResetPublisherSuccessfully() {
         // Given
-        String publisherName = "TestPublisher";
+        String publisherName = "CountDownLatchPublisher";
         when(jdbcTemplate.update(anyString(), eq(publisherName))).thenReturn(1);
 
         // When
@@ -95,7 +95,7 @@ class OutboxManagementServiceTest {
     @Test
     void shouldCheckPublisherExists() {
         // Given
-        String publisherName = "TestPublisher";
+        String publisherName = "CountDownLatchPublisher";
         when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), eq(publisherName)))
             .thenReturn(1);
 
