@@ -180,9 +180,11 @@ perf-setup:
 	@echo "✅ Performance test environment ready!"
 
 perf-seed:
-	@echo "🌱 Seeding test data (1000 wallets)..."
+	@echo "🌱 Seeding test data (1000 success wallets + 10 insufficient wallets)..."
 	cd performance-tests && k6 run setup/seed-success-data.js --console-output /tmp/seed-console.log
 	@grep "WALLET_DATA:" /tmp/seed-console.log | head -1 | sed 's/.*WALLET_DATA://' | sed 's/\\"/"/g' > performance-tests/setup/verified-wallets.json || echo '{"wallets":[],"count":0,"timestamp":0}' > performance-tests/setup/verified-wallets.json
+	@echo "🌱 Seeding insufficient balance wallets..."
+	cd performance-tests && k6 run setup/seed-insufficient-data.js --console-output /tmp/seed-insufficient-console.log
 	@echo "✅ Test data seeded successfully!"
 
 perf-run-all:
