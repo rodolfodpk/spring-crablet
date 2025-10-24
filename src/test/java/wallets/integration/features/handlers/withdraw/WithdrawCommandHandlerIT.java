@@ -1,5 +1,4 @@
-package wallets.unit.features.withdraw;
-import wallets.integration.AbstractWalletIntegrationTest;
+package wallets.integration.features.handlers.withdraw;
 
 import com.crablet.core.AppendEvent;
 import com.crablet.core.CommandResult;
@@ -27,11 +26,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Test WithdrawCommandHandler with minimal state projection.
+ * Integration tests for WithdrawCommandHandler.
  * <p>
  * DCB Principle: Tests verify that handler projects only balance + existence.
  */
-class WithdrawCommandHandlerTest extends AbstractWalletIntegrationTest {
+@DisplayName("WithdrawCommandHandler Integration Tests")
+class WithdrawCommandHandlerIT extends AbstractWalletIntegrationTest {
 
     private com.wallets.features.withdraw.WithdrawCommandHandler handler;
     @Autowired

@@ -1,5 +1,4 @@
-package wallets.unit.features.deposit;
-import wallets.integration.AbstractWalletIntegrationTest;
+package wallets.integration.features.handlers.deposit;
 
 import com.crablet.core.AppendEvent;
 import com.crablet.core.CommandResult;
@@ -26,11 +25,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Test DepositCommandHandler with minimal state projection.
+ * Integration tests for DepositCommandHandler.
  * <p>
  * DCB Principle: Tests verify that handler projects only balance + existence.
  */
-class DepositCommandHandlerTest extends AbstractWalletIntegrationTest {
+@DisplayName("DepositCommandHandler Integration Tests")
+class DepositCommandHandlerIT extends AbstractWalletIntegrationTest {
 
     private com.wallets.features.deposit.DepositCommandHandler handler;
     @Autowired
@@ -172,3 +172,4 @@ class DepositCommandHandlerTest extends AbstractWalletIntegrationTest {
         assertThat(deposit.description()).isEqualTo(description);
     }
 }
+

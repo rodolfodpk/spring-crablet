@@ -1,5 +1,4 @@
-package wallets.unit.features.openwallet;
-import wallets.integration.AbstractWalletIntegrationTest;
+package wallets.integration.features.handlers.openwallet;
 
 import com.crablet.core.CommandResult;
 import com.crablet.core.ConcurrencyException;
@@ -25,11 +24,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Test OpenWalletCommandHandler with minimal state projection.
+ * Integration tests for OpenWalletCommandHandler.
  * <p>
  * DCB Principle: Tests verify that handler projects only wallet existence (boolean).
  */
-class OpenWalletCommandHandlerTest extends AbstractWalletIntegrationTest {
+@DisplayName("OpenWalletCommandHandler Integration Tests")
+class OpenWalletCommandHandlerIT extends AbstractWalletIntegrationTest {
 
     private com.wallets.features.openwallet.OpenWalletCommandHandler handler;
     @Autowired

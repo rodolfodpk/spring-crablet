@@ -1,5 +1,4 @@
-package wallets.unit.features.transfer;
-import wallets.integration.AbstractWalletIntegrationTest;
+package wallets.integration.features.handlers.transfer;
 
 import com.crablet.core.AppendCondition;
 import com.crablet.core.AppendEvent;
@@ -30,11 +29,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Test TransferMoneyCommandHandler with minimal state projection.
+ * Integration tests for TransferMoneyCommandHandler.
  * <p>
  * DCB Principle: Tests verify that handler projects balances for both wallets.
  */
-class TransferMoneyCommandHandlerTest extends AbstractWalletIntegrationTest {
+@DisplayName("TransferMoneyCommandHandler Integration Tests")
+class TransferMoneyCommandHandlerIT extends AbstractWalletIntegrationTest {
 
     private com.wallets.features.transfer.TransferMoneyCommandHandler handler;
     private TransferStateProjector transferProjector;
