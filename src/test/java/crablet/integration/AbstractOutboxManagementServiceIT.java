@@ -3,7 +3,7 @@ import static crablet.testutils.DCBTestHelpers.*;
 
 import com.crablet.core.EventStore;
 import com.crablet.core.AppendEvent;
-import com.crablet.outbox.impl.JDBCOutboxProcessor;
+import com.crablet.outbox.impl.OutboxProcessorImpl;
 import com.crablet.outbox.impl.OutboxConfig;
 import com.crablet.outbox.impl.OutboxManagementService;
 import org.junit.jupiter.api.Test;
@@ -30,7 +30,7 @@ abstract class AbstractOutboxManagementServiceIT extends AbstractCrabletIT {
     private JdbcTemplate jdbcTemplate;
     
     @Autowired
-    private JDBCOutboxProcessor outboxProcessor;
+    private OutboxProcessorImpl outboxProcessor;
     
     @Autowired
     private OutboxConfig outboxConfig;

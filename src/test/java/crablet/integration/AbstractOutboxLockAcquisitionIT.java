@@ -2,7 +2,7 @@ package crablet.integration;
 
 import com.crablet.core.AppendEvent;
 import com.crablet.core.EventStore;
-import com.crablet.outbox.impl.JDBCOutboxProcessor;
+import com.crablet.outbox.impl.OutboxProcessorImpl;
 import com.crablet.outbox.impl.OutboxConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +28,7 @@ abstract class AbstractOutboxLockAcquisitionIT extends AbstractCrabletIT {
     private JdbcTemplate jdbcTemplate;
     
     @Autowired
-    private JDBCOutboxProcessor outboxProcessor;
+    private OutboxProcessorImpl outboxProcessor;
     
     @Autowired
     private OutboxConfig outboxConfig;

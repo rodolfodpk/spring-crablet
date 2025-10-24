@@ -75,7 +75,21 @@ crablet.outbox.topics.payment-events.publishers=AnalyticsPublisher
 
 ## Leader Election
 
-The outbox system uses **PostgreSQL advisory locks** for leader election, ensuring only one instance processes each publisher at a time.
+The outbox system uses **PostgreSQL advisory locks** for leader election via the `OutboxLeaderElector` component, ensuring only one instance processes each publisher at a time.
+
+### Architecture
+
+- **OutboxLeaderElector**: Manages advisory locks, heartbeats, and leader election state
+- **OutboxProcessorImpl**: Delegates leadership decisions to elector, focuses on event processing
+- **OutboxMetrics**: Tracks leadership state and failover events
+
+The `OutboxLeaderElector` is a package-private Spring component that encapsulates all leader election logic:
+- Advisory lock acquisition and release
+- Heartbeat management for owned pairs
+- Stale leader detection
+- Lock state tracking (`isGlobalLeader`, `ownedPairs`)
+
+This separation allows `OutboxProcessorImpl` to focus solely on event processing while the elector handles distributed coordination.
 
 ### Lock Strategies
 

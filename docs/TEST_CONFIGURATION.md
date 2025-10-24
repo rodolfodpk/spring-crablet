@@ -49,6 +49,14 @@ The application has multiple test configuration profiles to support different te
 - Wallet domain tests (35+ tests) - Extend `AbstractWalletIntegrationTest`
 - Unit tests - No Spring context
 
+## Testing Leader Election
+
+The `OutboxLeaderElector` can be tested independently from event processing:
+- **Unit tests**: `OutboxLeaderElectorTest` for testing lock acquisition, heartbeat management, and state tracking
+- **Integration tests**: `AbstractOutboxLockAcquisitionIT` for testing across lock strategies (GLOBAL and PER_TOPIC_PUBLISHER)
+
+The elector is a Spring-managed component that can be autowired into tests for verification of leader election behavior.
+
 ### Tests WITH Outbox (4 abstract base classes × 2 strategies = 8 test classes)
 
 **Abstract base classes** (contain test logic):

@@ -106,7 +106,7 @@ class OutboxArchitectureTest {
     void outbox_processor_implementations_should_implement_OutboxProcessor() {
         ArchRule rule = classes()
                 .that().resideInAPackage("com.crablet.outbox.impl..")
-                .and().haveSimpleNameEndingWith("Processor")
+                .and().haveSimpleNameEndingWith("ProcessorImpl")
                 .and().areNotInnerClasses()
                 .should().implement("com.crablet.outbox.OutboxProcessor");
 
@@ -144,7 +144,7 @@ class OutboxArchitectureTest {
         ArchRule rule = classes()
                 .that().resideInAPackage("com.crablet.outbox.impl..")
                 .and().areNotInnerClasses()
-                .and().haveSimpleNameEndingWith("Processor")
+                .and().haveSimpleNameEndingWith("ProcessorImpl")
                 .should().beAnnotatedWith("org.springframework.stereotype.Component");
 
         rule.check(classes);
