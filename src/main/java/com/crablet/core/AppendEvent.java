@@ -71,14 +71,4 @@ public record AppendEvent(
     public boolean hasTag(String key, String value) {
         return tags.contains(new Tag(key, value));
     }
-
-    /**
-     * Get the value of a specific tag.
-     */
-    public java.util.Optional<String> getTagValue(String key) {
-        return tags.stream()
-                .filter(tag -> tag.key().equals(key))
-                .map(Tag::value)
-                .findFirst();
-    }
 }

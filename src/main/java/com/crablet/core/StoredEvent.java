@@ -26,16 +26,6 @@ public record StoredEvent(
     }
 
     /**
-     * Get the value of a specific tag.
-     */
-    public java.util.Optional<String> getTagValue(String key) {
-        return tags.stream()
-                .filter(tag -> tag.key().equals(key))
-                .map(Tag::value)
-                .findFirst();
-    }
-
-    /**
      * Check if this event has any of the specified tags.
      */
     public boolean hasAnyTag(List<Tag> targetTags) {
