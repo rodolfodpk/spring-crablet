@@ -47,6 +47,13 @@ import java.util.stream.Collectors;
 /**
  * JDBC-based implementation of EventStore using PostgreSQL functions.
  * This implementation uses the existing PostgreSQL schema and functions.
+ * 
+ * <p><strong>Read/Write Separation:</strong>
+ * <ul>
+ *   <li>Read operations (project) use read-only connections</li>
+ *   <li>Write operations (append, appendIf, storeCommand) use write connections</li>
+ *   <li>Transactions (executeInTransaction) use write connections as they may include writes</li>
+ * </ul>
  */
 @Component
 public class EventStoreImpl implements EventStore {
@@ -364,6 +371,7 @@ public class EventStoreImpl implements EventStore {
             
             // Stream with server-side cursor
             try (Connection connection = dataSource.getConnection()) {
+                connection.setReadOnly(true);  // Read-only operation
                 connection.setAutoCommit(false); // Required for server-side cursor
                 
                 try (PreparedStatement stmt = connection.prepareStatement(
@@ -685,6 +693,16 @@ public class EventStoreImpl implements EventStore {
     /**
      * Private method to project state using a provided connection.
      * Used internally by ConnectionScopedEventStore.
+     * 
+     * <p>Note: Connection is NOT marked read-only since it may be part
+     * of a larger transaction that includes writes (via executeInTransaction).
+     * 
+     * @param connection Existing connection from transaction context
+     * @param query The query to filter events
+     * @param after Cursor to project events after
+     * @param stateType The type of state to project
+     * @param projectors List of projectors to apply
+     * @return ProjectionResult with final state and cursor
      */
     private <T> ProjectionResult<T> projectWithConnection(Connection connection, Query query, Cursor after, Class<T> stateType, List<StateProjector<T>> projectors) {
         try {
