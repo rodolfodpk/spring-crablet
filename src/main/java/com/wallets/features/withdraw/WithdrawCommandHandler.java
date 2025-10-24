@@ -8,6 +8,7 @@ import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
+import com.wallets.domain.WalletEventTypes;
 import com.wallets.domain.WalletQueryPatterns;
 import com.wallets.domain.WalletTags;
 import com.wallets.domain.event.WithdrawalMade;
@@ -71,7 +72,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
                 command.description()
         );
 
-        AppendEvent event = AppendEvent.builder("WithdrawalMade")
+        AppendEvent event = AppendEvent.builder(WalletEventTypes.WITHDRAWAL_MADE)
                 .tag(WalletTags.WALLET_ID, command.walletId())
                 .tag(WalletTags.WITHDRAWAL_ID, command.withdrawalId())
                 .data(withdrawal)

@@ -8,6 +8,7 @@ import com.crablet.core.CommandResult;
 import com.crablet.core.Cursor;
 import com.crablet.core.EventStore;
 import com.crablet.core.Query;
+import com.wallets.domain.WalletEventTypes;
 import com.wallets.domain.WalletTags;
 import com.wallets.domain.event.WalletOpened;
 import org.slf4j.Logger;
@@ -44,7 +45,7 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
                 command.initialBalance()
         );
 
-        AppendEvent event = AppendEvent.builder("WalletOpened")
+        AppendEvent event = AppendEvent.builder(WalletEventTypes.WALLET_OPENED)
                 .tag(WalletTags.WALLET_ID, command.walletId())
                 .data(walletOpened)
                 .build();
@@ -53,7 +54,7 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
         //    Fails if ANY WalletOpened event exists for this wallet_id (idempotency check)
         //    No concurrency check needed for wallet creation - only idempotency matters
         AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
-                .withIdempotencyCheck("WalletOpened", "wallet_id", command.walletId())
+                .withIdempotencyCheck(WalletEventTypes.WALLET_OPENED, WalletTags.WALLET_ID, command.walletId())
                 .build();
 
         // 5. Return - appendIf will:

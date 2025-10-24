@@ -8,6 +8,7 @@ import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
+import com.wallets.domain.WalletEventTypes;
 import com.wallets.domain.WalletQueryPatterns;
 import com.wallets.domain.WalletTags;
 import com.wallets.domain.event.DepositMade;
@@ -65,7 +66,7 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
                 command.description()
         );
 
-        AppendEvent event = AppendEvent.builder("DepositMade")
+        AppendEvent event = AppendEvent.builder(WalletEventTypes.DEPOSIT_MADE)
                 .tag(WalletTags.WALLET_ID, command.walletId())
                 .tag(WalletTags.DEPOSIT_ID, command.depositId())
                 .data(deposit)

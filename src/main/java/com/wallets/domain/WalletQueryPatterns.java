@@ -15,9 +15,9 @@ public class WalletQueryPatterns {
      */
     public static Query singleWalletDecisionModel(String walletId) {
         return QueryBuilder.create()
-                .events("WalletOpened", "DepositMade", "WithdrawalMade").tag(WalletTags.WALLET_ID, walletId)
-                .event("MoneyTransferred", WalletTags.FROM_WALLET_ID, walletId)
-                .event("MoneyTransferred", WalletTags.TO_WALLET_ID, walletId)
+                .events(WalletEventTypes.WALLET_OPENED, WalletEventTypes.DEPOSIT_MADE, WalletEventTypes.WITHDRAWAL_MADE).tag(WalletTags.WALLET_ID, walletId)
+                .event(WalletEventTypes.MONEY_TRANSFERRED, WalletTags.FROM_WALLET_ID, walletId)
+                .event(WalletEventTypes.MONEY_TRANSFERRED, WalletTags.TO_WALLET_ID, walletId)
                 .build();
     }
 
@@ -27,12 +27,12 @@ public class WalletQueryPatterns {
      */
     public static Query transferDecisionModel(String fromWalletId, String toWalletId) {
         return QueryBuilder.create()
-                .events("WalletOpened", "DepositMade", "WithdrawalMade").tag(WalletTags.WALLET_ID, fromWalletId)
-                .event("MoneyTransferred", WalletTags.FROM_WALLET_ID, fromWalletId)
-                .event("MoneyTransferred", WalletTags.TO_WALLET_ID, fromWalletId)
-                .events("WalletOpened", "DepositMade", "WithdrawalMade").tag(WalletTags.WALLET_ID, toWalletId)
-                .event("MoneyTransferred", WalletTags.FROM_WALLET_ID, toWalletId)
-                .event("MoneyTransferred", WalletTags.TO_WALLET_ID, toWalletId)
+                .events(WalletEventTypes.WALLET_OPENED, WalletEventTypes.DEPOSIT_MADE, WalletEventTypes.WITHDRAWAL_MADE).tag(WalletTags.WALLET_ID, fromWalletId)
+                .event(WalletEventTypes.MONEY_TRANSFERRED, WalletTags.FROM_WALLET_ID, fromWalletId)
+                .event(WalletEventTypes.MONEY_TRANSFERRED, WalletTags.TO_WALLET_ID, fromWalletId)
+                .events(WalletEventTypes.WALLET_OPENED, WalletEventTypes.DEPOSIT_MADE, WalletEventTypes.WITHDRAWAL_MADE).tag(WalletTags.WALLET_ID, toWalletId)
+                .event(WalletEventTypes.MONEY_TRANSFERRED, WalletTags.FROM_WALLET_ID, toWalletId)
+                .event(WalletEventTypes.MONEY_TRANSFERRED, WalletTags.TO_WALLET_ID, toWalletId)
                 .build();
     }
 
@@ -42,7 +42,7 @@ public class WalletQueryPatterns {
      */
     public static Query walletExistenceQuery(String walletId) {
         return QueryBuilder.create()
-                .event("WalletOpened", WalletTags.WALLET_ID, walletId)
+                .event(WalletEventTypes.WALLET_OPENED, WalletTags.WALLET_ID, walletId)
                 .build();
     }
 }

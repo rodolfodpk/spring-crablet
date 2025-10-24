@@ -7,6 +7,7 @@ import com.crablet.core.CommandHandler;
 import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
 import com.crablet.core.Query;
+import com.wallets.domain.WalletEventTypes;
 import com.wallets.domain.WalletQueryPatterns;
 import com.wallets.domain.WalletTags;
 import com.wallets.domain.event.MoneyTransferred;
@@ -78,7 +79,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
                 command.description()
         );
 
-        AppendEvent event = AppendEvent.builder("MoneyTransferred")
+        AppendEvent event = AppendEvent.builder(WalletEventTypes.MONEY_TRANSFERRED)
                 .tag(WalletTags.TRANSFER_ID, command.transferId())
                 .tag(WalletTags.FROM_WALLET_ID, command.fromWalletId())
                 .tag(WalletTags.TO_WALLET_ID, command.toWalletId())
