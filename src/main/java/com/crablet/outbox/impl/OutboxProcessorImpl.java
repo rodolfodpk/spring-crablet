@@ -31,14 +31,19 @@ public class OutboxProcessorImpl implements OutboxProcessor {
     
     private static final Logger log = LoggerFactory.getLogger(OutboxProcessorImpl.class);
     
-    private final JdbcTemplate jdbcTemplate;
+    // Core dependencies
     private final OutboxConfig config;
-    private final CircuitBreakerRegistry circuitBreakerRegistry;
+    private final JdbcTemplate jdbcTemplate;
+    private final OutboxLeaderElector leaderElector;
+    
+    // Supporting infrastructure
     private final OutboxMetrics outboxMetrics;
     private final OutboxPublisherMetrics publisherMetrics;
-    private final String instanceId;
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final GlobalStatisticsPublisher globalStatistics;
-    private final OutboxLeaderElector leaderElector;
+    
+    // Derived fields
+    private final String instanceId;
     
     // Track which publishers are available by name
     private final Map<String, OutboxPublisher> publisherByName = new ConcurrentHashMap<>();
@@ -47,22 +52,22 @@ public class OutboxProcessorImpl implements OutboxProcessor {
     private volatile long lastAcquisitionAttemptMs = 0;
     
     public OutboxProcessorImpl(
-            JdbcTemplate jdbcTemplate, 
             OutboxConfig config,
+            JdbcTemplate jdbcTemplate,
             List<OutboxPublisher> publishers,
-            CircuitBreakerRegistry circuitBreakerRegistry,
+            OutboxLeaderElector leaderElector,
             OutboxMetrics outboxMetrics,
             OutboxPublisherMetrics publisherMetrics,
-            GlobalStatisticsPublisher globalStatistics,
-            OutboxLeaderElector leaderElector) {
-        this.jdbcTemplate = jdbcTemplate;
+            CircuitBreakerRegistry circuitBreakerRegistry,
+            GlobalStatisticsPublisher globalStatistics) {
         this.config = config;
-        this.circuitBreakerRegistry = circuitBreakerRegistry;
+        this.jdbcTemplate = jdbcTemplate;
+        this.leaderElector = leaderElector;
         this.outboxMetrics = outboxMetrics;
         this.publisherMetrics = publisherMetrics;
-        this.instanceId = outboxMetrics.getInstanceId();
+        this.circuitBreakerRegistry = circuitBreakerRegistry;
         this.globalStatistics = globalStatistics;
-        this.leaderElector = leaderElector;
+        this.instanceId = outboxMetrics.getInstanceId();
         
         // Build publisher lookup map
         for (OutboxPublisher publisher : publishers) {

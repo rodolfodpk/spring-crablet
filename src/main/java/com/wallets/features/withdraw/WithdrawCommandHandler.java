@@ -8,9 +8,7 @@ import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
-import com.wallets.domain.WalletEventTypes;
 import com.wallets.domain.WalletQueryPatterns;
-import com.wallets.domain.WalletTags;
 import com.wallets.domain.event.WithdrawalMade;
 import com.wallets.domain.exception.InsufficientFundsException;
 import com.wallets.domain.exception.WalletNotFoundException;
@@ -21,6 +19,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+
+import static com.wallets.domain.WalletEventTypes.*;
+import static com.wallets.domain.WalletTags.*;
 
 /**
  * Command handler for withdrawing money from wallets.
@@ -72,9 +73,9 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
                 command.description()
         );
 
-        AppendEvent event = AppendEvent.builder(WalletEventTypes.WITHDRAWAL_MADE)
-                .tag(WalletTags.WALLET_ID, command.walletId())
-                .tag(WalletTags.WITHDRAWAL_ID, command.withdrawalId())
+        AppendEvent event = AppendEvent.builder(WITHDRAWAL_MADE)
+                .tag(WALLET_ID, command.walletId())
+                .tag(WITHDRAWAL_ID, command.withdrawalId())
                 .data(withdrawal)
                 .build();
 

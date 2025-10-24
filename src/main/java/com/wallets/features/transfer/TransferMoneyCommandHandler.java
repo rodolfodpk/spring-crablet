@@ -7,9 +7,7 @@ import com.crablet.core.CommandHandler;
 import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
 import com.crablet.core.Query;
-import com.wallets.domain.WalletEventTypes;
 import com.wallets.domain.WalletQueryPatterns;
-import com.wallets.domain.WalletTags;
 import com.wallets.domain.event.MoneyTransferred;
 import com.wallets.domain.exception.InsufficientFundsException;
 import com.wallets.domain.exception.WalletNotFoundException;
@@ -19,6 +17,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+
+import static com.wallets.domain.WalletEventTypes.*;
+import static com.wallets.domain.WalletTags.*;
 
 /**
  * Command handler for transferring money between wallets.
@@ -79,10 +80,10 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
                 command.description()
         );
 
-        AppendEvent event = AppendEvent.builder(WalletEventTypes.MONEY_TRANSFERRED)
-                .tag(WalletTags.TRANSFER_ID, command.transferId())
-                .tag(WalletTags.FROM_WALLET_ID, command.fromWalletId())
-                .tag(WalletTags.TO_WALLET_ID, command.toWalletId())
+        AppendEvent event = AppendEvent.builder(MONEY_TRANSFERRED)
+                .tag(TRANSFER_ID, command.transferId())
+                .tag(FROM_WALLET_ID, command.fromWalletId())
+                .tag(TO_WALLET_ID, command.toWalletId())
                 .data(transfer)
                 .build();
 

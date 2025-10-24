@@ -282,20 +282,15 @@ public class EventStoreImpl implements EventStore {
                         } catch (ConcurrencyException e) {
                             // Re-throw ConcurrencyException immediately
                             throw e;
-                        } catch (com.fasterxml.jackson.core.JsonProcessingException jsonParseException) {
-                            // If JSON parsing fails, check if it's a simple error message
+                        } catch (Exception parseException) {
+                            // Handle JSON parsing exceptions
+                            // Check if it's a recognizable error message before throwing parsing exception
                             if (jsonResult.contains("AppendIf condition failed") || jsonResult.contains("condition failed")) {
                                 throw new ConcurrencyException("AppendCondition violated: " + jsonResult);
                             }
-                            // If it's not a recognizable error message, rethrow the parsing exception
-                            throw new RuntimeException("Failed to parse JSONB result: " + jsonResult, jsonParseException);
-                        } catch (Exception jsonParseException) {
-                            // Handle other JSON parsing exceptions
-                            log.error("Unexpected JSON parsing error: {}", jsonParseException.getMessage());
-                            if (jsonResult.contains("AppendIf condition failed") || jsonResult.contains("condition failed")) {
-                                throw new ConcurrencyException("AppendCondition violated: " + jsonResult);
-                            }
-                            throw new RuntimeException("Failed to parse JSONB result: " + jsonResult, jsonParseException);
+                            // Log and rethrow parsing exception
+                            log.error("Failed to parse JSONB result: {}", parseException.getMessage());
+                            throw new RuntimeException("Failed to parse JSONB result: " + jsonResult, parseException);
                         }
                     } else {
                         throw new RuntimeException("No result from append_events_if");

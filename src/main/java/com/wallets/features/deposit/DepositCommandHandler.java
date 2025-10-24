@@ -8,9 +8,7 @@ import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
-import com.wallets.domain.WalletEventTypes;
 import com.wallets.domain.WalletQueryPatterns;
-import com.wallets.domain.WalletTags;
 import com.wallets.domain.event.DepositMade;
 import com.wallets.domain.exception.WalletNotFoundException;
 import com.wallets.domain.projections.WalletBalanceProjector;
@@ -20,6 +18,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+
+import static com.wallets.domain.WalletEventTypes.*;
+import static com.wallets.domain.WalletTags.*;
 
 /**
  * Command handler for depositing money into wallets.
@@ -66,9 +67,9 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
                 command.description()
         );
 
-        AppendEvent event = AppendEvent.builder(WalletEventTypes.DEPOSIT_MADE)
-                .tag(WalletTags.WALLET_ID, command.walletId())
-                .tag(WalletTags.DEPOSIT_ID, command.depositId())
+        AppendEvent event = AppendEvent.builder(DEPOSIT_MADE)
+                .tag(WALLET_ID, command.walletId())
+                .tag(DEPOSIT_ID, command.depositId())
                 .data(deposit)
                 .build();
 
