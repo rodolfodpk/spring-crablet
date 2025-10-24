@@ -1,13 +1,13 @@
 package com.wallets.features.openwallet;
 
 import com.crablet.core.AppendCondition;
+import com.crablet.core.AppendConditionBuilder;
 import com.crablet.core.AppendEvent;
 import com.crablet.core.CommandHandler;
 import com.crablet.core.CommandResult;
 import com.crablet.core.Cursor;
 import com.crablet.core.EventStore;
 import com.crablet.core.Query;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.WalletTags;
 import com.wallets.domain.event.WalletOpened;
 import org.slf4j.Logger;
@@ -15,8 +15,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-
-import static com.crablet.core.CommandHandler.serializeEvent;
 
 /**
  * Command handler for opening wallets.
@@ -29,10 +27,7 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
 
     private static final Logger log = LoggerFactory.getLogger(OpenWalletCommandHandler.class);
 
-    private final ObjectMapper objectMapper;
-
-    public OpenWalletCommandHandler(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public OpenWalletCommandHandler() {
     }
 
     @Override
@@ -49,17 +44,15 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
                 command.initialBalance()
         );
 
-        String jsonData = serializeEvent(objectMapper, walletOpened);
         AppendEvent event = AppendEvent.builder("WalletOpened")
                 .tag(WalletTags.WALLET_ID, command.walletId())
-                .data(jsonData)
+                .data(walletOpened)
                 .build();
 
         // 4. Build condition to enforce uniqueness using DCB idempotency pattern
         //    Fails if ANY WalletOpened event exists for this wallet_id (idempotency check)
         //    No concurrency check needed for wallet creation - only idempotency matters
-        AppendCondition condition = Query.empty()
-                .toAppendCondition(Cursor.zero())
+        AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
                 .withIdempotencyCheck("WalletOpened", "wallet_id", command.walletId())
                 .build();
 

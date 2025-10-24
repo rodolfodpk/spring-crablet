@@ -1,12 +1,12 @@
 package com.wallets.features.transfer;
 
 import com.crablet.core.AppendCondition;
+import com.crablet.core.AppendConditionBuilder;
 import com.crablet.core.AppendEvent;
 import com.crablet.core.CommandHandler;
 import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
 import com.crablet.core.Query;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.WalletQueryPatterns;
 import com.wallets.domain.WalletTags;
 import com.wallets.domain.event.MoneyTransferred;
@@ -19,8 +19,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.core.CommandHandler.serializeEvent;
-
 /**
  * Command handler for transferring money between wallets.
  * <p>
@@ -32,12 +30,10 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 
     private static final Logger log = LoggerFactory.getLogger(TransferMoneyCommandHandler.class);
 
-    private final ObjectMapper objectMapper;
     private final WalletBalanceProjector balanceProjector;
     private final TransferStateProjector transferProjector;
 
-    public TransferMoneyCommandHandler(ObjectMapper objectMapper, WalletBalanceProjector balanceProjector, TransferStateProjector transferProjector) {
-        this.objectMapper = objectMapper;
+    public TransferMoneyCommandHandler(WalletBalanceProjector balanceProjector, TransferStateProjector transferProjector) {
         this.balanceProjector = balanceProjector;
         this.transferProjector = transferProjector;
     }
@@ -86,14 +82,13 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
                 .tag(WalletTags.TRANSFER_ID, command.transferId())
                 .tag(WalletTags.FROM_WALLET_ID, command.fromWalletId())
                 .tag(WalletTags.TO_WALLET_ID, command.toWalletId())
-                .data(serializeEvent(objectMapper, transfer))
+                .data(transfer)
                 .build();
 
         // Build condition: decision model only (cursor-based concurrency control)
         // DCB Principle: Cursor check prevents duplicate charges
         // Note: No idempotency check - cursor advancement detects if operation already succeeded
-        AppendCondition condition = transferProjection.decisionModel()
-                .toAppendCondition(transferProjection.cursor())
+        AppendCondition condition = new AppendConditionBuilder(transferProjection.decisionModel(), transferProjection.cursor())
                 .build();
 
         return CommandResult.of(List.of(event), condition);

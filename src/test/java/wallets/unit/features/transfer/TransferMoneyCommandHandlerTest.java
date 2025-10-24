@@ -49,7 +49,7 @@ class TransferMoneyCommandHandlerTest extends AbstractWalletIntegrationTest {
     void setUp() {
         balanceProjector = new WalletBalanceProjector();
         transferProjector = new TransferStateProjector();
-        handler = new com.wallets.features.transfer.TransferMoneyCommandHandler(objectMapper, balanceProjector, transferProjector);
+        handler = new com.wallets.features.transfer.TransferMoneyCommandHandler(balanceProjector, transferProjector);
     }
 
     @Test
@@ -101,7 +101,7 @@ class TransferMoneyCommandHandlerTest extends AbstractWalletIntegrationTest {
                             });
                 });
 
-        MoneyTransferred transfer = WalletTestUtils.deserializeEventData(result.events().get(0).data(), MoneyTransferred.class);
+        MoneyTransferred transfer = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), MoneyTransferred.class);
         assertThat(transfer)
                 .satisfies(t -> {
                     assertThat(t.transferId()).isEqualTo("transfer1");
@@ -231,7 +231,7 @@ class TransferMoneyCommandHandlerTest extends AbstractWalletIntegrationTest {
 
         // Assert
         assertThat(result.events()).hasSize(1);
-        MoneyTransferred transfer = WalletTestUtils.deserializeEventData(result.events().get(0).data(), MoneyTransferred.class);
+        MoneyTransferred transfer = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), MoneyTransferred.class);
         assertThat(transfer.fromBalance()).isEqualTo(0); // 500 - 500
         assertThat(transfer.toBalance()).isEqualTo(700); // 200 + 500
     }
@@ -303,7 +303,7 @@ class TransferMoneyCommandHandlerTest extends AbstractWalletIntegrationTest {
         CommandResult result = handler.handle(eventStore, cmd);
 
         // Assert - verify correct balance calculations
-        MoneyTransferred transfer = WalletTestUtils.deserializeEventData(result.events().get(0).data(), MoneyTransferred.class);
+        MoneyTransferred transfer = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), MoneyTransferred.class);
         assertThat(transfer.fromBalance()).isEqualTo(800); // 1000 - 200
         assertThat(transfer.toBalance()).isEqualTo(700); // 500 + 200
     }
@@ -341,7 +341,7 @@ class TransferMoneyCommandHandlerTest extends AbstractWalletIntegrationTest {
 
         // Assert
         assertThat(result.events()).hasSize(1);
-        MoneyTransferred transfer = WalletTestUtils.deserializeEventData(result.events().get(0).data(), MoneyTransferred.class);
+        MoneyTransferred transfer = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), MoneyTransferred.class);
         assertThat(transfer.fromBalance()).isEqualTo(fromBalance - transferAmount);
         assertThat(transfer.toBalance()).isEqualTo(toBalance + transferAmount);
         assertThat(transfer.description()).isEqualTo(description);

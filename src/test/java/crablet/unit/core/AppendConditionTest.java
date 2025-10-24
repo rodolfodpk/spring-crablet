@@ -59,7 +59,7 @@ class AppendConditionTest {
         // Then
         assertThat(condition.afterCursor()).isEqualTo(Cursor.zero());
         assertThat(condition.stateChanged()).isEqualTo(Query.empty());
-        assertThat(condition.expectsEmptyStream()).isTrue();
+        assertThat(condition.afterCursor().position().value()).isEqualTo(0);
     }
 
     @Test
@@ -165,7 +165,7 @@ class AppendConditionTest {
         AppendCondition nonEmptyStreamCondition = AppendCondition.of(nonZeroCursor);
 
         // Then
-        assertThat(emptyStreamCondition.expectsEmptyStream()).isTrue();
-        assertThat(nonEmptyStreamCondition.expectsEmptyStream()).isFalse();
+        assertThat(emptyStreamCondition.afterCursor().position().value()).isEqualTo(0);
+        assertThat(nonEmptyStreamCondition.afterCursor().position().value()).isNotEqualTo(0);
     }
 }

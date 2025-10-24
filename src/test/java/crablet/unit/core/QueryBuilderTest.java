@@ -84,7 +84,7 @@ class QueryBuilderTest {
         Cursor cursor = Cursor.zero();
 
         // When
-        AppendConditionBuilder builder = query.toAppendCondition(cursor);
+        AppendConditionBuilder builder = new AppendConditionBuilder(query, cursor);
 
         // Then
         assertThat(builder).isNotNull();
@@ -99,8 +99,7 @@ class QueryBuilderTest {
         Cursor cursor = Cursor.zero();
 
         // When
-        AppendCondition condition = decisionModel
-                .toAppendCondition(cursor)
+        AppendCondition condition = new AppendConditionBuilder(decisionModel, cursor)
                 .withIdempotencyCheck("DepositMade", new Tag("deposit_id", "d1"))
                 .build();
 

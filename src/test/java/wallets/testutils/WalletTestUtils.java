@@ -82,6 +82,22 @@ public class WalletTestUtils {
         }
     }
 
+    /**
+     * Deserialize event data from Object to a specific type.
+     * If object is already of type T, cast it directly. Otherwise serialize and deserialize.
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T deserializeEventData(Object data, Class<T> clazz) {
+        try {
+            if (clazz.isInstance(data)) {
+                return (T) data;
+            }
+            return OBJECT_MAPPER.convertValue(data, clazz);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to deserialize event data", e);
+        }
+    }
+
 
     /**
      * Create a WorkflowScenario for parameterized tests.
@@ -92,18 +108,14 @@ public class WalletTestUtils {
 
     /**
      * Create an AppendEvent with tags for testing.
+     * Passes the event object directly to AppendEvent for serialization by EventStore.
      */
     public static AppendEvent createInputEvent(String type, List<Tag> tags, WalletEvent walletEvent) {
-        try {
-            byte[] data = OBJECT_MAPPER.writeValueAsBytes(walletEvent);
-            AppendEvent.Builder builder = AppendEvent.builder(type);
-            for (Tag tag : tags) {
-                builder.tag(tag.key(), tag.value());
-            }
-            return builder.data(data).build();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create append event", e);
+        AppendEvent.Builder builder = AppendEvent.builder(type);
+        for (Tag tag : tags) {
+            builder.tag(tag.key(), tag.value());
         }
+        return builder.data(walletEvent).build();
     }
 
     /**

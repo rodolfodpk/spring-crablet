@@ -23,12 +23,5 @@ public record ExecutionResult(boolean wasIdempotent, String reason) {
     public boolean wasCreated() {
         return !wasIdempotent;
     }
-
-    /**
-     * Get the reason for idempotency, or "NEW_OPERATION" if operation was created.
-     */
-    public String getReason() {
-        return reason != null ? reason : "NEW_OPERATION";
-    }
 }
 

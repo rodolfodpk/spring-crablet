@@ -17,6 +17,7 @@ import com.crablet.core.QuerySqlBuilder;
 import com.crablet.core.StateProjector;
 import com.crablet.core.StoredEvent;
 import com.crablet.core.Tag;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -154,7 +155,7 @@ public class EventStoreImpl implements EventStore {
                     .map(event -> convertTagsToPostgresArray(event.tags()))
                     .toArray(String[]::new);
             String[] dataStrings = events.stream()
-                    .map(event -> new String(event.data(), StandardCharsets.UTF_8))
+                    .map(event -> serializeEventData(event.eventData()))
                     .toArray(String[]::new);
 
             // Call append_events_batch function with JSONB[] cast using raw JDBC
@@ -224,7 +225,7 @@ public class EventStoreImpl implements EventStore {
                     .map(event -> convertTagsToPostgresArray(event.tags()))
                     .toArray(String[]::new);
             String[] dataStrings = events.stream()
-                    .map(event -> new String(event.data()))
+                    .map(event -> serializeEventData(event.eventData()))
                     .toArray(String[]::new);
 
             // Call append_events_if with dual conditions
@@ -439,7 +440,7 @@ public class EventStoreImpl implements EventStore {
                     .map(event -> convertTagsToPostgresArray(event.tags()))
                     .toArray(String[]::new);
             String[] dataStrings = events.stream()
-                    .map(event -> new String(event.data()))
+                    .map(event -> serializeEventData(event.eventData()))
                     .toArray(String[]::new);
 
             stmt.setArray(1, connection.createArrayOf("text", types));
@@ -470,7 +471,7 @@ public class EventStoreImpl implements EventStore {
                     .map(event -> convertTagsToPostgresArray(event.tags()))
                     .toArray(String[]::new);
             String[] dataStrings = events.stream()
-                    .map(event -> new String(event.data()))
+                    .map(event -> serializeEventData(event.eventData()))
                     .toArray(String[]::new);
 
             // Extract concurrency check (with cursor)
@@ -805,6 +806,35 @@ public class EventStoreImpl implements EventStore {
             }
         }
         return sb.append('}').toString();
+    }
+
+    /**
+     * Serialize event data object to JSON string.
+     * Used internally when appending events to convert Object to String.
+     * Serializes using the object's actual type to preserve type information.
+     * If eventData is already a String or byte[], assume it's already JSON and return it as-is.
+     */
+    private String serializeEventData(Object eventData) {
+        // If already a String, assume it's JSON and return as-is
+        if (eventData instanceof String) {
+            return (String) eventData;
+        }
+        
+        // If already a byte[], convert to String (assume it's UTF-8 JSON)
+        if (eventData instanceof byte[]) {
+            return new String((byte[]) eventData, StandardCharsets.UTF_8);
+        }
+        
+        try {
+            // Serialize using the concrete type
+            // This preserves type information including polymorphism discriminators
+            return objectMapper.writerFor(eventData.getClass()).writeValueAsString(eventData);
+        } catch (JsonProcessingException e) {
+            throw new EventStoreException(
+                "Failed to serialize event data: " + eventData.getClass().getName(), 
+                e
+            );
+        }
     }
 
     /**

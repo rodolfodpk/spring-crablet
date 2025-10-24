@@ -50,9 +50,9 @@ class WalletNewCommandsTest extends AbstractWalletIntegrationTest {
     void setUp() {
 
         WalletBalanceProjector balanceProjector = new WalletBalanceProjector();
-        depositHandler = new DepositCommandHandler(objectMapper, balanceProjector);
-        withdrawHandler = new WithdrawCommandHandler(objectMapper, balanceProjector);
-        openHandler = new OpenWalletCommandHandler(objectMapper);
+        depositHandler = new DepositCommandHandler(balanceProjector);
+        withdrawHandler = new WithdrawCommandHandler(balanceProjector);
+        openHandler = new OpenWalletCommandHandler();
     }
 
     @Test
@@ -62,7 +62,7 @@ class WalletNewCommandsTest extends AbstractWalletIntegrationTest {
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
         eventStore.append(List.of(AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", "wallet1")
-                .data(objectMapper.writeValueAsBytes(walletOpened))
+                .data(walletOpened)
                 .build()));
 
         // When: Depositing money
@@ -106,7 +106,7 @@ class WalletNewCommandsTest extends AbstractWalletIntegrationTest {
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
         eventStore.append(List.of(AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", "wallet1")
-                .data(objectMapper.writeValueAsBytes(walletOpened))
+                .data(walletOpened)
                 .build()));
 
         // When: Withdrawing money
@@ -128,7 +128,7 @@ class WalletNewCommandsTest extends AbstractWalletIntegrationTest {
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 100);
         eventStore.append(List.of(AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", "wallet1")
-                .data(objectMapper.writeValueAsBytes(walletOpened))
+                .data(walletOpened)
                 .build()));
 
         // When: Withdrawing more than available

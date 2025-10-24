@@ -44,7 +44,7 @@ class WithdrawCommandHandlerTest extends AbstractWalletIntegrationTest {
     @BeforeEach
     void setUp() {
         balanceProjector = new WalletBalanceProjector();
-        handler = new com.wallets.features.withdraw.WithdrawCommandHandler(objectMapper, balanceProjector);
+        handler = new com.wallets.features.withdraw.WithdrawCommandHandler(balanceProjector);
     }
 
     @Test
@@ -82,7 +82,7 @@ class WithdrawCommandHandlerTest extends AbstractWalletIntegrationTest {
                             });
                 });
 
-        WithdrawalMade withdrawal = WalletTestUtils.deserializeEventData(result.events().get(0).data(), WithdrawalMade.class);
+        WithdrawalMade withdrawal = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), WithdrawalMade.class);
         assertThat(withdrawal)
                 .satisfies(w -> {
                     assertThat(w.withdrawalId()).isEqualTo("withdrawal1");
@@ -164,7 +164,7 @@ class WithdrawCommandHandlerTest extends AbstractWalletIntegrationTest {
 
         // Assert
         assertThat(result.events()).hasSize(1);
-        WithdrawalMade withdrawal = WalletTestUtils.deserializeEventData(result.events().get(0).data(), WithdrawalMade.class);
+        WithdrawalMade withdrawal = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), WithdrawalMade.class);
         assertThat(withdrawal.newBalance()).isEqualTo(0); // 500 - 500
     }
 
@@ -185,7 +185,7 @@ class WithdrawCommandHandlerTest extends AbstractWalletIntegrationTest {
         CommandResult result = handler.handle(eventStore, cmd);
 
         // Assert - verify correct new balance calculation
-        WithdrawalMade withdrawal = WalletTestUtils.deserializeEventData(result.events().get(0).data(), WithdrawalMade.class);
+        WithdrawalMade withdrawal = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), WithdrawalMade.class);
         assertThat(withdrawal.newBalance()).isEqualTo(800); // 1000 - 200
     }
 
@@ -213,7 +213,7 @@ class WithdrawCommandHandlerTest extends AbstractWalletIntegrationTest {
 
         // Assert
         assertThat(result.events()).hasSize(1);
-        WithdrawalMade withdrawal = WalletTestUtils.deserializeEventData(result.events().get(0).data(), WithdrawalMade.class);
+        WithdrawalMade withdrawal = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), WithdrawalMade.class);
         assertThat(withdrawal.newBalance()).isEqualTo(initialBalance - 100);
         assertThat(withdrawal.description()).isEqualTo(description);
     }

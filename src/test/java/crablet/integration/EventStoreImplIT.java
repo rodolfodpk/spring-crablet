@@ -89,15 +89,12 @@ class EventStoreImplTest extends AbstractCrabletIT {
     }
 
     @Test
-    @DisplayName("Should handle events with null data")
+    @DisplayName("Should reject events with null data")
     void shouldHandleEventsWithNullData() {
-        // Given
-        AppendEvent eventWithNullData = AppendEvent.builder("TestEvent").data((byte[]) null).build();
-
-        // When & Then
-        assertThatThrownBy(() -> eventStore.append(List.of(eventWithNullData)))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Failed to append events");
+        // Given & When & Then - should fail at build time
+        assertThatThrownBy(() -> AppendEvent.builder("TestEvent").data((byte[]) null).build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Event data cannot be null");
     }
 
     @Test

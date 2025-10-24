@@ -1,13 +1,13 @@
 package com.wallets.features.withdraw;
 
 import com.crablet.core.AppendCondition;
+import com.crablet.core.AppendConditionBuilder;
 import com.crablet.core.AppendEvent;
 import com.crablet.core.CommandHandler;
 import com.crablet.core.CommandResult;
 import com.crablet.core.EventStore;
 import com.crablet.core.ProjectionResult;
 import com.crablet.core.Query;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wallets.domain.WalletQueryPatterns;
 import com.wallets.domain.WalletTags;
 import com.wallets.domain.event.WithdrawalMade;
@@ -21,8 +21,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.core.CommandHandler.serializeEvent;
-
 /**
  * Command handler for withdrawing money from wallets.
  * <p>
@@ -34,11 +32,9 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 
     private static final Logger log = LoggerFactory.getLogger(WithdrawCommandHandler.class);
 
-    private final ObjectMapper objectMapper;
     private final WalletBalanceProjector balanceProjector;
 
-    public WithdrawCommandHandler(ObjectMapper objectMapper, WalletBalanceProjector balanceProjector) {
-        this.objectMapper = objectMapper;
+    public WithdrawCommandHandler(WalletBalanceProjector balanceProjector) {
         this.balanceProjector = balanceProjector;
     }
 
@@ -78,14 +74,13 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         AppendEvent event = AppendEvent.builder("WithdrawalMade")
                 .tag(WalletTags.WALLET_ID, command.walletId())
                 .tag(WalletTags.WITHDRAWAL_ID, command.withdrawalId())
-                .data(serializeEvent(objectMapper, withdrawal))
+                .data(withdrawal)
                 .build();
 
         // Build condition: decision model only (cursor-based concurrency control)
         // DCB Principle: Cursor check prevents duplicate charges
         // Note: No idempotency check - cursor advancement detects if operation already succeeded
-        AppendCondition condition = decisionModel
-                .toAppendCondition(projection.cursor())
+        AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
                 .build();
 
         return CommandResult.of(List.of(event), condition);

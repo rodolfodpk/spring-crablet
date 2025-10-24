@@ -73,11 +73,4 @@ public record Query(List<QueryItem> items) {
     public int size() {
         return items.size();
     }
-
-    /**
-     * Create an AppendConditionBuilder from this query.
-     */
-    public AppendConditionBuilder toAppendCondition(Cursor cursor) {
-        return new AppendConditionBuilder(this, cursor);
-    }
 }

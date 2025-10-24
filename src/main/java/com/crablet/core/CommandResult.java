@@ -22,10 +22,6 @@ public record CommandResult(
         return new CommandResult(List.of(), AppendCondition.expectEmptyStream(), null);
     }
 
-    public static CommandResult emptyWithReason(String reason) {
-        return new CommandResult(List.of(), AppendCondition.expectEmptyStream(), reason);
-    }
-
     public boolean isEmpty() {
         return events.isEmpty();
     }

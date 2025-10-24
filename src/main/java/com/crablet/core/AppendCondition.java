@@ -42,22 +42,4 @@ public record AppendCondition(
     public static AppendCondition expectEmptyStream() {
         return new AppendCondition(Cursor.zero(), Query.empty(), null);
     }
-
-    /**
-     * Create condition for new streams WITH idempotency protection.
-     * Use when creating the first event in a stream and you want to prevent duplicates.
-     */
-    public static AppendCondition expectEmptyStreamWith(Query idempotencyCheck) {
-        if (idempotencyCheck == null) {
-            throw new IllegalArgumentException("idempotencyCheck cannot be null");
-        }
-        return new AppendCondition(Cursor.zero(), Query.empty(), idempotencyCheck);
-    }
-
-    /**
-     * Check if this condition expects an empty stream (position 0).
-     */
-    public boolean expectsEmptyStream() {
-        return afterCursor.position().value() == 0;
-    }
 }

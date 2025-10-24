@@ -43,7 +43,7 @@ class OpenWalletCommandHandlerTest extends AbstractWalletIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        handler = new com.wallets.features.openwallet.OpenWalletCommandHandler(objectMapper);
+        handler = new com.wallets.features.openwallet.OpenWalletCommandHandler();
     }
 
     @Test
@@ -68,7 +68,7 @@ class OpenWalletCommandHandlerTest extends AbstractWalletIntegrationTest {
                             });
                 });
 
-        WalletOpened walletOpened = WalletTestUtils.deserializeEventData(result.events().get(0).data(), WalletOpened.class);
+        WalletOpened walletOpened = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), WalletOpened.class);
         assertThat(walletOpened)
                 .satisfies(wallet -> {
                     assertThat(wallet.walletId()).isEqualTo("wallet1");

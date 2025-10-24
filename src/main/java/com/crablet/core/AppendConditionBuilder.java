@@ -15,7 +15,7 @@ public class AppendConditionBuilder {
     private final List<QueryItem> concurrencyItems = new ArrayList<>();
     private final List<QueryItem> idempotencyItems = new ArrayList<>();
 
-    AppendConditionBuilder(Query decisionModelQuery, Cursor cursor) {
+    public AppendConditionBuilder(Query decisionModelQuery, Cursor cursor) {
         this.decisionModelQuery = decisionModelQuery;
         this.cursor = cursor;
     }

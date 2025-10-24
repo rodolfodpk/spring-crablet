@@ -9,20 +9,22 @@ import java.util.List;
  * <p>
  * Use AppendEvent for events being written to the store via append().
  * Use StoredEvent for events queried from the store via query().
+ * <p>
+ * Event data is passed as an Object and will be serialized by EventStore implementation.
  */
 public record AppendEvent(
         String type,
         List<Tag> tags,
-        byte[] data
+        Object eventData
 ) {
 
     /**
      * Fluent builder for creating AppendEvent with multiple tags.
      */
     public static class Builder {
-        private String type;
+        private final String type;
         private final List<Tag> tags = new ArrayList<>();
-        private byte[] data;
+        private Object eventData;
         
         private Builder(String type) {
             this.type = type;
@@ -37,18 +39,11 @@ public record AppendEvent(
         }
         
         /**
-         * Set the event data from JSON string.
+         * Set the event data as an object.
+         * The object will be serialized by EventStore implementation.
          */
-        public Builder data(String jsonData) {
-            this.data = jsonData.getBytes();
-            return this;
-        }
-        
-        /**
-         * Set the event data from byte array.
-         */
-        public Builder data(byte[] data) {
-            this.data = data;
+        public Builder data(Object eventData) {
+            this.eventData = eventData;
             return this;
         }
         
@@ -56,7 +51,10 @@ public record AppendEvent(
          * Build the AppendEvent.
          */
         public AppendEvent build() {
-            return new AppendEvent(type, List.copyOf(tags), data);
+            if (eventData == null) {
+                throw new IllegalArgumentException("Event data cannot be null");
+            }
+            return new AppendEvent(type, List.copyOf(tags), eventData);
         }
     }
 

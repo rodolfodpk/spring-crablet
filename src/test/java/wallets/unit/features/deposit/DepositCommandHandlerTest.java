@@ -43,7 +43,7 @@ class DepositCommandHandlerTest extends AbstractWalletIntegrationTest {
     @BeforeEach
     void setUp() {
         balanceProjector = new WalletBalanceProjector();
-        handler = new com.wallets.features.deposit.DepositCommandHandler(objectMapper, balanceProjector);
+        handler = new com.wallets.features.deposit.DepositCommandHandler(balanceProjector);
     }
 
     @Test
@@ -81,7 +81,7 @@ class DepositCommandHandlerTest extends AbstractWalletIntegrationTest {
                             });
                 });
 
-        DepositMade deposit = WalletTestUtils.deserializeEventData(result.events().get(0).data(), DepositMade.class);
+        DepositMade deposit = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), DepositMade.class);
         assertThat(deposit)
                 .satisfies(d -> {
                     assertThat(d.depositId()).isEqualTo("deposit1");
@@ -139,7 +139,7 @@ class DepositCommandHandlerTest extends AbstractWalletIntegrationTest {
         CommandResult result = handler.handle(eventStore, cmd);
 
         // Assert - verify correct new balance calculation
-        DepositMade deposit = WalletTestUtils.deserializeEventData(result.events().get(0).data(), DepositMade.class);
+        DepositMade deposit = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), DepositMade.class);
         assertThat(deposit.newBalance()).isEqualTo(1200); // 1000 + 200
     }
 
@@ -167,7 +167,7 @@ class DepositCommandHandlerTest extends AbstractWalletIntegrationTest {
 
         // Assert
         assertThat(result.events()).hasSize(1);
-        DepositMade deposit = WalletTestUtils.deserializeEventData(result.events().get(0).data(), DepositMade.class);
+        DepositMade deposit = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), DepositMade.class);
         assertThat(deposit.newBalance()).isEqualTo(initialBalance + 100);
         assertThat(deposit.description()).isEqualTo(description);
     }

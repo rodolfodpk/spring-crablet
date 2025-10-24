@@ -23,7 +23,6 @@ public class JacksonConfig {
         // Disable timestamp serialization for dates
         mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-
         return mapper;
     }
 }

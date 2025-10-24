@@ -55,24 +55,4 @@ public record Cursor(SequenceNumber position, Instant occurredAt, String transac
     public static Cursor zero() {
         return Cursor.of(SequenceNumber.zero(), Instant.EPOCH, "0");
     }
-
-    /**
-     * Check if this cursor is before another cursor.
-     */
-    public boolean isBefore(Cursor other) {
-        if (!this.position.equals(other.position)) {
-            return this.position.value() < other.position.value();
-        }
-        return this.occurredAt.isBefore(other.occurredAt);
-    }
-
-    /**
-     * Check if this cursor is after another cursor.
-     */
-    public boolean isAfter(Cursor other) {
-        if (!this.position.equals(other.position)) {
-            return this.position.value() > other.position.value();
-        }
-        return this.occurredAt.isAfter(other.occurredAt);
-    }
 }
