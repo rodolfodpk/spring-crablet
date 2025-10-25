@@ -39,9 +39,21 @@ perf-app.log
 logs/
 
 ### Performance Test Results ###
+results/
 performance-tests/results/*.json
 performance-tests/*_results.json
+results/*.json
+*.json
 !performance-tests/results/summary.md
+
+### Wallet example results ###
+wallet-example/performance-tests/results/
+wallet-eventstore-service/performance-tests/results/*.json
+
+### Test results and reports ###
+target/
+**/target/site/
+**/target/surefire-reports/
 
 ### Docker ###
 .docker/
