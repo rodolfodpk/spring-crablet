@@ -44,16 +44,16 @@ jobs:
       - name: Generate JaCoCo Coverage Report
         run: mvn -B jacoco:report-aggregate --file pom.xml
 
-      - name: Generate Coverage Badges
-        if: github.ref == 'refs/heads/main'
+      - name: Display Coverage Summary
+        if: always()
         run: |
-          # Create badges directory if it doesn't exist
-          mkdir -p .github/badges
+          echo "## Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           
-          # Parse JaCoCo XML report using Python (more reliable than grep)
-          python3 << 'EOF'
+          if [ -f "target/site/jacoco-aggregate/jacoco.xml" ]; then
+              python3 << 'EOF'
           import xml.etree.ElementTree as ET
-          import urllib.request
+          import sys
           
           try:
               # Parse the JaCoCo aggregated report
@@ -67,26 +67,10 @@ jobs:
                   missed = int(last_counter.get('missed', 0))
                   covered = int(last_counter.get('covered', 0))
                   total = missed + covered
-                  line_coverage = int((covered / total) * 100) if total > 0 else 0
+                  line_coverage = (covered / total) * 100 if total > 0 else 0
                   
-                  # Determine badge color
-                  if line_coverage >= 90:
-                      color = "brightgreen"
-                  elif line_coverage >= 80:
-                      color = "green"
-                  elif line_coverage >= 70:
-                      color = "yellowgreen"
-                  elif line_coverage >= 60:
-                      color = "yellow"
-                  else:
-                      color = "red"
-                  
-                  # Download coverage badge
-                  urllib.request.urlretrieve(
-                      f"https://img.shields.io/badge/coverage-{line_coverage}%25-{color}",
-                      ".github/badges/jacoco.svg"
-                  )
-                  print(f"Generated coverage badge: {line_coverage}%")
+                  print(f"📊 Line Coverage: {line_coverage:.2f}%")
+                  print(f"   (covered: {covered}, missed: {missed})")
               
               # Get overall branch coverage
               branch_counters = root.findall('.//counter[@type="BRANCH"]')
@@ -95,39 +79,15 @@ jobs:
                   branch_missed = int(last_branch.get('missed', 0))
                   branch_covered = int(last_branch.get('covered', 0))
                   branch_total = branch_missed + branch_covered
-                  branch_coverage = int((branch_covered / branch_total) * 100) if branch_total > 0 else 0
+                  branch_coverage = (branch_covered / branch_total) * 100 if branch_total > 0 else 0
                   
-                  # Determine badge color
-                  if branch_coverage >= 90:
-                      branch_color = "brightgreen"
-                  elif branch_coverage >= 80:
-                      branch_color = "green"
-                  elif branch_coverage >= 70:
-                      branch_color = "yellowgreen"
-                  elif branch_coverage >= 60:
-                      branch_color = "yellow"
-                  else:
-                      branch_color = "red"
-                  
-                  # Download branch coverage badge
-                  urllib.request.urlretrieve(
-                      f"https://img.shields.io/badge/branches-{branch_coverage}%25-{branch_color}",
-                      ".github/badges/branches.svg"
-                  )
-                  print(f"Generated branch coverage badge: {branch_coverage}%")
-              else:
-                  print("No branch coverage data found")
+                  print(f"🌿 Branch Coverage: {branch_coverage:.2f}%")
+                  print(f"   (covered: {branch_covered}, missed: {branch_missed})")
                   
           except Exception as e:
-              print(f"Error generating badges: {e}")
-              exit(1)
+              print(f"Error parsing coverage: {e}")
+              sys.exit(1)
           EOF
-
-      - name: Commit Coverage Badges
-        if: github.ref == 'refs/heads/main'
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add .github/badges/
-          git diff --staged --quiet || git commit -m "Update coverage badges [skip ci]"
-          git push
+          else
+              echo "⚠️ Coverage report not found"
+          fi
