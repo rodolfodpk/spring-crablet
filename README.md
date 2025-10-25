@@ -118,3 +118,4 @@ See [wallet-eventstore-service/performance-tests/README.md](wallet-eventstore-se
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
+# Trigger CI
