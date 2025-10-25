@@ -6,6 +6,11 @@ coverage:
   round: down
   range: "70...100"
   
+  # Only report coverage for library code, not wallet example services
+  ignore:
+    - "wallet-eventstore-service/src/main"
+    - "wallet-outbox-service/src/main"
+  
   status:
     project:
       default:
