@@ -47,13 +47,7 @@ jobs:
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          files: |
-            ./target/site/jacoco-aggregate/jacoco.xml
-            ./crablet-eventstore/target/site/jacoco/jacoco.xml
-            ./crablet-outbox/target/site/jacoco/jacoco.xml
-            ./wallet-eventstore-service/target/site/jacoco/jacoco.xml
-            ./wallet-outbox-service/target/site/jacoco/jacoco.xml
-            ./shared-wallet-domain/target/site/jacoco/jacoco.xml
+          files: ./target/site/jacoco-aggregate/jacoco.xml
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
