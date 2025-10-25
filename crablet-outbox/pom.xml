@@ -14,10 +14,22 @@
     <description>Transactional outbox pattern implementation</description>
     
     <dependencies>
-        <!-- Crablet Core -->
+        <!-- Crablet Event Store -->
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-core</artifactId>
+            <artifactId>crablet-eventstore</artifactId>
+        </dependency>
+        
+        <!-- Spring Boot Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        
+        <!-- Spring Boot JDBC -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
         
         <!-- Resilience4j -->
@@ -48,16 +60,11 @@
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
         
-        <!-- Spring Web (for management controller) -->
+        <!-- PostgreSQL Driver -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        
-        <!-- Spring Boot JDBC -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-jdbc</artifactId>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
         </dependency>
         
         <!-- Test Dependencies -->

@@ -1,6 +1,9 @@
 package com.crablet.outbox.impl;
 
+import com.crablet.outbox.TopicConfig;
 import com.crablet.outbox.TopicPublisherPair;
+import com.crablet.outbox.config.OutboxConfig;
+import com.crablet.outbox.impl.OutboxMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;

@@ -12,10 +12,11 @@
     <description>Multi-module event sourcing library with DCB pattern and outbox support</description>
     
     <modules>
-        <module>crablet-core</module>
+        <module>crablet-eventstore</module>
         <module>crablet-outbox</module>
-        <module>crablet-spring-boot</module>
-        <module>wallet-example</module>
+        <module>shared-wallet-domain</module>
+        <module>wallet-eventstore-service</module>
+        <module>wallet-outbox-service</module>
     </modules>
     
     <properties>
@@ -44,10 +45,10 @@
                 <scope>import</scope>
             </dependency>
             
-            <!-- Crablet Core -->
+            <!-- Crablet Event Store -->
             <dependency>
                 <groupId>com.crablet</groupId>
-                <artifactId>crablet-core</artifactId>
+                <artifactId>crablet-eventstore</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
@@ -58,10 +59,10 @@
                 <version>${project.version}</version>
             </dependency>
             
-            <!-- Crablet Spring Boot -->
+            <!-- Shared Wallet Domain -->
             <dependency>
                 <groupId>com.crablet</groupId>
-                <artifactId>crablet-spring-boot</artifactId>
+                <artifactId>shared-wallet-domain</artifactId>
                 <version>${project.version}</version>
             </dependency>
             

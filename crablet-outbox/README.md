@@ -1,6 +1,6 @@
 # Crablet Outbox
 
-Transactional outbox pattern implementation for reliable event publishing.
+Transactional outbox pattern implementation for reliable event publishing with Spring Boot integration.
 
 ## Overview
 
@@ -14,6 +14,8 @@ Crablet Outbox provides a robust implementation of the transactional outbox patt
 - **Heartbeat Monitoring**: Automatic detection of stale leaders
 - **Metrics**: Comprehensive metrics for monitoring outbox health
 - **Resilience**: Circuit breakers and retries for reliable publishing
+- **Spring Integration**: Ready-to-use Spring Boot components and configuration
+- **Management API**: REST API for monitoring and controlling outbox operations
 
 ## Maven Coordinates
 
@@ -27,10 +29,11 @@ Crablet Outbox provides a robust implementation of the transactional outbox patt
 
 ## Dependencies
 
-- crablet-core
-- Spring Boot JDBC
-- Resilience4j (circuit breakers, retries)
-- Micrometer (metrics)
+- crablet-eventstore
+- Spring Boot Web, JDBC
+- Resilience4j (for circuit breakers and retries)
+- Micrometer (for metrics)
+- PostgreSQL JDBC Driver
 
 ## Quick Start
 

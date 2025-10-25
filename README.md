@@ -6,9 +6,23 @@
 [![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Java 25 implementation of the DCB (Dynamic Consistency Boundary) event sourcing pattern, ported from [crablet](https://github.com/rodolfodpk/crablet) (Kotlin) and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go).
+Java 25 implementation of the DCB (Dynamic Consistency Boundary) event sourcing pattern with microservices architecture, ported from [crablet](https://github.com/rodolfodpk/crablet) (Kotlin) and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go).
 
 **📚 [Project Background](docs/architecture/README.md)** | **📚 [Features](docs/architecture/README.md#features)** | **📚 [Architecture](docs/architecture/README.md)**
+
+## Architecture
+
+This project demonstrates a **microservices architecture** with separate EventStore and Outbox services:
+
+### Services
+- **wallet-eventstore-service** (Port 8080) - Business API for wallet operations
+- **wallet-outbox-service** (Port 8081) - Reliable event publishing with outbox pattern
+- **PostgreSQL** - Shared database for both services
+
+### Libraries
+- **crablet-eventstore** - Event sourcing library with Spring integration
+- **crablet-outbox** - Outbox pattern library with Spring integration  
+- **shared-wallet-domain** - Shared event DTOs for serialization contracts
 
 ## Quick Start
 
@@ -21,34 +35,57 @@ Java 25 implementation of the DCB (Dynamic Consistency Boundary) event sourcing 
 ./mvnw test verify
 ```
 
-### Run the Application
+### Run Microservices Locally
 
 ```bash
-# Start all services (PostgreSQL, Prometheus, Grafana, Loki, Promtail)
+# Start PostgreSQL
 docker-compose up -d
 
-# Start Spring Boot application
+# Start EventStore service
+cd wallet-eventstore-service
 ./mvnw spring-boot:run
 
-# Or use make (does both)
-make start
+# In another terminal, start Outbox service
+cd wallet-outbox-service
+./mvnw spring-boot:run
 ```
 
 **Available URLs after startup**:
-- API: http://localhost:8080/api
+- EventStore API: http://localhost:8080/api
+- Outbox Management API: http://localhost:8081/api/outbox
 - Swagger UI: http://localhost:8080/swagger-ui/index.html
-- Grafana: http://localhost:3000 (admin/admin)
-- Prometheus: http://localhost:9090
+- Health Checks: http://localhost:8080/actuator/health, http://localhost:8081/actuator/health
 
-See [docs/urls.md](docs/urls.md) for complete URL reference.
-
-### Performance Testing (Requires Running Application)
+### Kubernetes Deployment
 
 ```bash
-make start
-make perf-quick
-make stop
+# Deploy to Kubernetes
+kubectl apply -f kubernetes/
+
+# Check deployment
+kubectl get pods
+kubectl get services
 ```
+
+See [kubernetes/README.md](kubernetes/README.md) for detailed deployment instructions.
+
+### Performance Testing
+
+Performance tests are located in `wallet-eventstore-service/performance-tests/` and test the EventStore API:
+
+```bash
+# Navigate to performance tests
+cd wallet-eventstore-service/performance-tests
+
+# Run all performance tests
+./run-all-tests.sh
+
+# Run specific test suites
+./run-success-tests.sh      # Basic wallet operations
+./run-concurrency-test.sh    # Concurrent transfers
+```
+
+See [wallet-eventstore-service/performance-tests/README.md](wallet-eventstore-service/performance-tests/README.md) for detailed documentation.
 
 **📚 [Detailed Setup](docs/setup/README.md)** | **📚 [API Reference](docs/api/README.md)** | **📚 [All URLs](docs/urls.md)**
 
@@ -59,7 +96,7 @@ make stop
 - **Java 25**: Records, sealed interfaces, virtual threads, pattern matching
 - **Spring Boot**: REST API with PostgreSQL backend
 - **Testing**: 553 tests (all passing) with Testcontainers
-- **Observability**: Prometheus, Grafana, Loki monitoring stack
+- **Observability**: Prometheus, Grafana, Loki monitoring stack (monitors both EventStore and Outbox services)
 
 **📚 [DCB Technical Details](docs/architecture/DCB_AND_CRABLET.md)** | **📚 [Testing Guide](docs/development/README.md#testing-strategy)** | **📚 [Observability](docs/observability/README.md)**
 
@@ -71,7 +108,7 @@ make stop
 - **[Development](docs/development/README.md)** - Setup, testing, coding practices
 - **[API](docs/api/README.md)** - REST endpoints, examples, Swagger
 - **[Security](docs/security/README.md)** - Rate limiting, HTTP/2, input validation
-- **[Performance](performance-tests/README.md)** - Load testing, benchmarks, optimization
+- **[Performance](wallet-eventstore-service/performance-tests/README.md)** - Load testing, benchmarks, optimization
 - **[Observability](docs/observability/README.md)** - Monitoring, metrics, dashboards
 - **[Setup](docs/setup/README.md)** - Installation and configuration
   - [Read Replicas](docs/setup/READ_REPLICAS.md) - PostgreSQL read replica configuration
