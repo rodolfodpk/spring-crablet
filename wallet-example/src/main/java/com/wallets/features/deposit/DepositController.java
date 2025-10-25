@@ -2,7 +2,6 @@ package com.wallets.features.deposit;
 
 import com.crablet.core.CommandExecutor;
 import com.crablet.core.ExecutionResult;
-import com.wallets.infrastructure.resilience.WalletRateLimitService;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -20,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>
  * DCB Principle: Single responsibility - handles only deposits.
  * Thin HTTP layer that converts DTOs to commands and delegates to handler.
- * Rate limiting: Global API limit + per-wallet deposit limit.
+ * Rate limiting: Global API limit.
  */
 @RestController
 @RequestMapping("/api/wallets")
@@ -29,13 +28,9 @@ public class DepositController {
     private static final Logger log = LoggerFactory.getLogger(DepositController.class);
 
     private final CommandExecutor commandExecutor;
-    private final WalletRateLimitService rateLimitService;
 
-    public DepositController(
-            CommandExecutor commandExecutor,
-            WalletRateLimitService rateLimitService) {
+    public DepositController(CommandExecutor commandExecutor) {
         this.commandExecutor = commandExecutor;
-        this.rateLimitService = rateLimitService;
     }
 
     /**
@@ -44,7 +39,6 @@ public class DepositController {
      * <p>
      * Rate limits:
      * - Global: 1000 req/sec across all endpoints
-     * - Per-wallet: 50 deposits/minute per wallet
      */
     @PostMapping("/{walletId}/deposit")
     @RateLimiter(name = "globalApi")
@@ -52,32 +46,29 @@ public class DepositController {
             @PathVariable String walletId,
             @Valid @RequestBody DepositRequest request) {
 
-        // Apply per-wallet rate limiting and execute
-        return rateLimitService.executeWithRateLimit(walletId, "deposit", () -> {
-            // Create command from DTO
-            DepositCommand cmd = DepositCommand.of(
-                    request.depositId(),
-                    walletId,
-                    request.amount(),
-                    request.description()
-            );
+        // Create command from DTO
+        DepositCommand cmd = DepositCommand.of(
+                request.depositId(),
+                walletId,
+                request.amount(),
+                request.description()
+        );
 
-            try {
-                // Execute command through CommandExecutor (handles events and command storage)
-                ExecutionResult result = commandExecutor.executeCommand(cmd);
+        try {
+            // Execute command through CommandExecutor (handles events and command storage)
+            ExecutionResult result = commandExecutor.executeCommand(cmd);
 
-                // Return appropriate HTTP status based on execution result
-                return result.wasCreated()
-                        ? ResponseEntity.status(HttpStatus.CREATED).build()
-                        : ResponseEntity.ok().build();
-            } catch (com.crablet.core.ConcurrencyException e) {
-                // DCB idempotency: duplicate operation detected, return 200 OK
-                if (e.getMessage() != null && e.getMessage().toLowerCase().contains("duplicate operation detected")) {
-                    return ResponseEntity.ok().build();
-                }
-                // Re-throw for other concurrency exceptions (409 Conflict)
-                throw e;
+            // Return appropriate HTTP status based on execution result
+            return result.wasCreated()
+                    ? ResponseEntity.status(HttpStatus.CREATED).build()
+                    : ResponseEntity.ok().build();
+        } catch (com.crablet.core.ConcurrencyException e) {
+            // DCB idempotency: duplicate operation detected, return 200 OK
+            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("duplicate operation detected")) {
+                return ResponseEntity.ok().build();
             }
-        });
+            // Re-throw for other concurrency exceptions (409 Conflict)
+            throw e;
+        }
     }
 }

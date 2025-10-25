@@ -4,7 +4,6 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
-import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.timelimiter.TimeLimiter;
@@ -88,52 +87,4 @@ public class ResilienceConfig {
         return RateLimiter.of("globalApi", config);
     }
 
-    /**
-     * Per-wallet operation rate limiter configuration.
-     * Prevents single wallet abuse by limiting operations per minute.
-     */
-    @Bean
-    public RateLimiterConfig perWalletRateLimiterConfig(
-            @Value("${resilience4j.ratelimiter.instances.perWallet.limit-for-period:50}") int limitForPeriod) {
-        return RateLimiterConfig.custom()
-                .limitForPeriod(limitForPeriod)  // Configurable limit
-                .limitRefreshPeriod(Duration.ofMinutes(1))  // per minute
-                .timeoutDuration(Duration.ZERO)  // Fail fast
-                .build();
-    }
-
-    /**
-     * Per-wallet rate limiter registry for dynamic rate limiter creation.
-     */
-    @Bean
-    public RateLimiterRegistry perWalletRateLimiterRegistry(RateLimiterConfig perWalletRateLimiterConfig) {
-        return RateLimiterRegistry.of(perWalletRateLimiterConfig);
-    }
-
-    /**
-     * Transfer-specific rate limiter configuration.
-     * Stricter limits for high-value transfer operations.
-     */
-    @Bean
-    public RateLimiterConfig transferRateLimiterConfig(
-            @Value("${resilience4j.ratelimiter.instances.transfer.limit-for-period:10}") int limitForPeriod) {
-        return RateLimiterConfig.custom()
-                .limitForPeriod(limitForPeriod)  // Configurable limit
-                .limitRefreshPeriod(Duration.ofMinutes(1))  // per minute
-                .timeoutDuration(Duration.ZERO)  // Fail fast
-                .build();
-    }
-
-    /**
-     * Withdrawal rate limiter configuration.
-     */
-    @Bean
-    public RateLimiterConfig withdrawalRateLimiterConfig(
-            @Value("${resilience4j.ratelimiter.instances.withdrawal.limit-for-period:30}") int limitForPeriod) {
-        return RateLimiterConfig.custom()
-                .limitForPeriod(limitForPeriod)  // Configurable limit
-                .limitRefreshPeriod(Duration.ofMinutes(1))  // per minute
-                .timeoutDuration(Duration.ZERO)  // Fail fast
-                .build();
-    }
 }
