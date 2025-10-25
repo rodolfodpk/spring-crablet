@@ -51,4 +51,5 @@ jobs:
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
+          # Token is optional for public repos, but recommended for private repos
           token: ${{ secrets.CODECOV_TOKEN }}
