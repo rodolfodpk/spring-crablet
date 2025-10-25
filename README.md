@@ -55,8 +55,9 @@ cd wallet-outbox-service
 
 Services will start on:
 - **EventStore API**: http://localhost:8080/api
-- **Outbox Management**: http://localhost:8081/api/outbox
-- **Swagger UI**: http://localhost:8080/swagger-ui/index.html
+- **Outbox Management API**: http://localhost:8081/api/outbox
+- **Swagger UI (EventStore)**: http://localhost:8080/swagger-ui/index.html
+- **Swagger UI (Outbox)**: http://localhost:8081/swagger-ui/index.html
 
 See [docs/urls.md](docs/urls.md) for complete URL reference.
 
