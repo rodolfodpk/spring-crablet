@@ -44,6 +44,15 @@ jobs:
       - name: Generate JaCoCo Coverage Report
         run: mvn -B jacoco:report-aggregate --file pom.xml
 
+      - name: Debug JaCoCo Report
+        run: |
+          echo "Checking if report exists..."
+          ls -lh target/site/jacoco-aggregate/ || echo "Report directory not found"
+          echo "Report size:"
+          du -h target/site/jacoco-aggregate/jacoco.xml 2>/dev/null || echo "XML not found"
+          echo "First 20 lines of report:"
+          head -20 target/site/jacoco-aggregate/jacoco.xml || echo "Cannot read report"
+
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
