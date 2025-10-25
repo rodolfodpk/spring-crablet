@@ -50,53 +50,78 @@ jobs:
           # Create badges directory if it doesn't exist
           mkdir -p .github/badges
           
-          # Extract coverage values from JaCoCo aggregated XML report
-          COVERAGE_MISSED=$(grep -o '<counter type="LINE" missed="[0-9]*" covered="[0-9]*"/><counter type="COMPLEXITY"' target/site/jacoco-aggregate/jacoco.xml | tail -1 | grep -o 'missed="[0-9]*"' | grep -o '[0-9]*')
-          COVERAGE_COVERED=$(grep -o '<counter type="LINE" missed="[0-9]*" covered="[0-9]*"/><counter type="COMPLEXITY"' target/site/jacoco-aggregate/jacoco.xml | tail -1 | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*')
+          # Parse JaCoCo XML report using Python (more reliable than grep)
+          python3 << 'EOF'
+          import xml.etree.ElementTree as ET
+          import urllib.request
           
-          # Calculate coverage percentage
-          COVERAGE_TOTAL=$((COVERAGE_MISSED + COVERAGE_COVERED))
-          COVERAGE_PERCENT=$((COVERAGE_COVERED * 100 / COVERAGE_TOTAL))
-          
-          # Determine badge color based on coverage
-          if [ "$COVERAGE_PERCENT" -ge 90 ]; then
-            COLOR="brightgreen"
-          elif [ "$COVERAGE_PERCENT" -ge 80 ]; then
-            COLOR="green"
-          elif [ "$COVERAGE_PERCENT" -ge 70 ]; then
-            COLOR="yellowgreen"
-          elif [ "$COVERAGE_PERCENT" -ge 60 ]; then
-            COLOR="yellow"
-          else
-            COLOR="red"
-          fi
-          
-          # Generate coverage badge
-          curl -s "https://img.shields.io/badge/coverage-${COVERAGE_PERCENT}%25-${COLOR}" > .github/badges/jacoco.svg
-          
-          # Extract branch coverage values from JaCoCo aggregated XML report
-          BRANCH_MISSED=$(grep -o '<counter type="BRANCH" missed="[0-9]*" covered="[0-9]*"/><counter type="LINE"' target/site/jacoco-aggregate/jacoco.xml | tail -1 | grep -o 'missed="[0-9]*"' | grep -o '[0-9]*')
-          BRANCH_COVERED=$(grep -o '<counter type="BRANCH" missed="[0-9]*" covered="[0-9]*"/><counter type="LINE"' target/site/jacoco-aggregate/jacoco.xml | tail -1 | grep -o 'covered="[0-9]*"' | grep -o '[0-9]*')
-          
-          # Calculate branch coverage percentage
-          BRANCH_TOTAL=$((BRANCH_MISSED + BRANCH_COVERED))
-          BRANCH_PERCENT=$((BRANCH_COVERED * 100 / BRANCH_TOTAL))
-          
-          # Determine branch badge color
-          if [ "$BRANCH_PERCENT" -ge 90 ]; then
-            BRANCH_COLOR="brightgreen"
-          elif [ "$BRANCH_PERCENT" -ge 80 ]; then
-            BRANCH_COLOR="green"
-          elif [ "$BRANCH_PERCENT" -ge 70 ]; then
-            BRANCH_COLOR="yellowgreen"
-          elif [ "$BRANCH_PERCENT" -ge 60 ]; then
-            BRANCH_COLOR="yellow"
-          else
-            BRANCH_COLOR="red"
-          fi
-          
-          # Generate branch coverage badge
-          curl -s "https://img.shields.io/badge/branches-${BRANCH_PERCENT}%25-${BRANCH_COLOR}" > .github/badges/branches.svg
+          try:
+              # Parse the JaCoCo aggregated report
+              tree = ET.parse('target/site/jacoco-aggregate/jacoco.xml')
+              root = tree.getroot()
+              
+              # Get overall line coverage
+              line_counters = root.findall('.//counter[@type="LINE"]')
+              if line_counters:
+                  last_counter = line_counters[-1]
+                  missed = int(last_counter.get('missed', 0))
+                  covered = int(last_counter.get('covered', 0))
+                  total = missed + covered
+                  line_coverage = int((covered / total) * 100) if total > 0 else 0
+                  
+                  # Determine badge color
+                  if line_coverage >= 90:
+                      color = "brightgreen"
+                  elif line_coverage >= 80:
+                      color = "green"
+                  elif line_coverage >= 70:
+                      color = "yellowgreen"
+                  elif line_coverage >= 60:
+                      color = "yellow"
+                  else:
+                      color = "red"
+                  
+                  # Download coverage badge
+                  urllib.request.urlretrieve(
+                      f"https://img.shields.io/badge/coverage-{line_coverage}%25-{color}",
+                      ".github/badges/jacoco.svg"
+                  )
+                  print(f"Generated coverage badge: {line_coverage}%")
+              
+              # Get overall branch coverage
+              branch_counters = root.findall('.//counter[@type="BRANCH"]')
+              if branch_counters:
+                  last_branch = branch_counters[-1]
+                  branch_missed = int(last_branch.get('missed', 0))
+                  branch_covered = int(last_branch.get('covered', 0))
+                  branch_total = branch_missed + branch_covered
+                  branch_coverage = int((branch_covered / branch_total) * 100) if branch_total > 0 else 0
+                  
+                  # Determine badge color
+                  if branch_coverage >= 90:
+                      branch_color = "brightgreen"
+                  elif branch_coverage >= 80:
+                      branch_color = "green"
+                  elif branch_coverage >= 70:
+                      branch_color = "yellowgreen"
+                  elif branch_coverage >= 60:
+                      branch_color = "yellow"
+                  else:
+                      branch_color = "red"
+                  
+                  # Download branch coverage badge
+                  urllib.request.urlretrieve(
+                      f"https://img.shields.io/badge/branches-{branch_coverage}%25-{branch_color}",
+                      ".github/badges/branches.svg"
+                  )
+                  print(f"Generated branch coverage badge: {branch_coverage}%")
+              else:
+                  print("No branch coverage data found")
+                  
+          except Exception as e:
+              print(f"Error generating badges: {e}")
+              exit(1)
+          EOF
 
       - name: Commit Coverage Badges
         if: github.ref == 'refs/heads/main'
