@@ -42,21 +42,25 @@ jobs:
         run: mvn -B clean install --file pom.xml
 
       - name: Generate JaCoCo Coverage Report
-        run: mvn -B jacoco:report-aggregate --file pom.xml
+        run: mvn -B clean verify --file pom.xml
 
       - name: Debug JaCoCo Report
         run: |
-          echo "Checking if report exists..."
+          echo "Checking if merged exec exists..."
+          ls -lh target/jacoco-merged.exec || echo "Merged exec not found"
+          echo "Checking if aggregate report exists..."
           ls -lh target/site/jacoco-aggregate/ || echo "Report directory not found"
           echo "Report size:"
           du -h target/site/jacoco-aggregate/jacoco.xml 2>/dev/null || echo "XML not found"
-          echo "First 20 lines of report:"
-          head -20 target/site/jacoco-aggregate/jacoco.xml || echo "Cannot read report"
+          echo "Source files count:"
+          grep -c "sourcefile" target/site/jacoco-aggregate/jacoco.xml 2>/dev/null || echo "Cannot count files"
 
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          files: ./target/site/jacoco-aggregate/jacoco.xml
+          files: |
+            ./target/jacoco-merged.exec
+            ./target/site/jacoco-aggregate/jacoco.xml
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
