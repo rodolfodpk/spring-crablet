@@ -22,7 +22,7 @@ This project demonstrates a **microservices architecture** with separate EventSt
 ### Libraries
 - **crablet-eventstore** - Event sourcing library with Spring integration
 - **crablet-outbox** - Outbox pattern library with Spring integration  
-- **shared-wallet-domain** - Shared event DTOs for serialization contracts
+- **shared-wallet-domain** - Shared wallet domain logic including events, projectors, exceptions, and constants
 
 ## Quick Start
 

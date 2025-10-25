@@ -11,7 +11,7 @@
     
     <artifactId>shared-wallet-domain</artifactId>
     <name>Shared Wallet Domain</name>
-    <description>Shared wallet event DTOs for serialization contracts</description>
+    <description>Shared wallet domain logic including events, projectors, exceptions, and constants</description>
     
     <dependencies>
         <!-- Crablet Event Store -->
