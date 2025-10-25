@@ -2,8 +2,6 @@ package com.crablet.spring.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Configuration properties for read replica support.
@@ -21,16 +19,13 @@ public class ReadReplicaProperties {
     private boolean enabled = false;
     
     /**
-     * Comma-separated list of read replica JDBC URLs.
-     * Example: "jdbc:postgresql://replica1:5432/db,jdbc:postgresql://replica2:5432/db"
+     * Single read replica JDBC URL.
+     * This should point to an external load balancer or AWS RDS read replica endpoint
+     * that handles multiple replicas behind the scenes.
+     * Example: "jdbc:postgresql://read-replica-lb:5432/db"
      */
-    private List<String> urls = new ArrayList<>();
+    private String url;
     
-    /**
-     * Whether to fallback to primary database if all replicas fail.
-     * Default: true (ensures reads always succeed)
-     */
-    private boolean fallbackToPrimary = true;
     
     /**
      * HikariCP connection pool configuration for read replicas.
@@ -45,21 +40,14 @@ public class ReadReplicaProperties {
         this.enabled = enabled;
     }
     
-    public List<String> getUrls() {
-        return urls;
+    public String getUrl() {
+        return url;
     }
     
-    public void setUrls(List<String> urls) {
-        this.urls = urls;
+    public void setUrl(String url) {
+        this.url = url;
     }
     
-    public boolean isFallbackToPrimary() {
-        return fallbackToPrimary;
-    }
-    
-    public void setFallbackToPrimary(boolean fallbackToPrimary) {
-        this.fallbackToPrimary = fallbackToPrimary;
-    }
     
     public HikariProperties getHikari() {
         return hikari;

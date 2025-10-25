@@ -2,7 +2,9 @@
 
 ## Overview
 
-Crablet supports optional PostgreSQL read replicas to enable horizontal read scaling in production environments. This feature routes read operations (event projections) to read replicas while keeping all write operations on the primary database.
+Crablet supports optional PostgreSQL read replicas to enable horizontal read scaling in production environments. This feature routes read operations (event projections) to a read replica while keeping all write operations on the primary database.
+
+**Important:** Load balancing across multiple replicas is handled externally (AWS RDS read replica endpoints, PgBouncer, pgcat, or hardware load balancers). Crablet connects to a single replica URL that points to your load balancing infrastructure.
 
 ## Configuration
 
@@ -14,13 +16,10 @@ Read replicas are **disabled by default**. To enable, add the following to `appl
 # Enable read replica support
 crablet.eventstore.read-replicas.enabled=true
 
-# Comma-separated list of read replica JDBC URLs
-crablet.eventstore.read-replicas.urls=jdbc:postgresql://replica1.aws.com:5432/crablet,jdbc:postgresql://replica2.aws.com:5432/crablet
+# Single read replica JDBC URL (should point to external load balancer)
+crablet.eventstore.read-replicas.url=jdbc:postgresql://read-replica-lb:5432/crablet
 
-# Fallback to primary if all replicas fail (recommended)
-crablet.eventstore.read-replicas.fallback-to-primary=true
-
-# HikariCP pool configuration for replicas
+# HikariCP pool configuration for replica
 crablet.eventstore.read-replicas.hikari.maximum-pool-size=50
 crablet.eventstore.read-replicas.hikari.minimum-idle=10
 ```
@@ -33,12 +32,26 @@ spring.datasource.url=jdbc:postgresql://primary.us-east-1.rds.amazonaws.com:5432
 spring.datasource.username=crablet
 spring.datasource.password=${DB_PASSWORD}
 
-# Read replicas
+# Read replica (AWS RDS read replica endpoint handles load balancing)
 crablet.eventstore.read-replicas.enabled=true
-crablet.eventstore.read-replicas.urls=\
-  jdbc:postgresql://replica-1.us-east-1.rds.amazonaws.com:5432/crablet,\
-  jdbc:postgresql://replica-2.us-east-1.rds.amazonaws.com:5432/crablet
-crablet.eventstore.read-replicas.fallback-to-primary=true
+crablet.eventstore.read-replicas.url=jdbc:postgresql://read-replica-cluster.us-east-1.rds.amazonaws.com:5432/crablet
+```
+
+### External Load Balancing Examples
+
+**AWS RDS Read Replica Endpoint:**
+```properties
+crablet.eventstore.read-replicas.url=jdbc:postgresql://read-replica-cluster.us-east-1.rds.amazonaws.com:5432/crablet
+```
+
+**PgBouncer with Multiple Backends:**
+```properties
+crablet.eventstore.read-replicas.url=jdbc:postgresql://pgbouncer-read:6432/crablet
+```
+
+**pgcat Connection Pooler:**
+```properties
+crablet.eventstore.read-replicas.url=jdbc:postgresql://pgcat-read:5432/crablet
 ```
 
 ### Credentials
@@ -66,12 +79,19 @@ crablet.eventstore.read-replicas.hikari.password=${REPLICA_PASSWORD}
 
 ### Load Balancing
 
-Crablet uses a **simple round-robin** strategy to distribute reads across available replicas. Each `getConnection()` call rotates to the next replica in the list.
+Crablet **does not implement client-side load balancing**. Instead, it connects to a single replica URL that should point to your external load balancing infrastructure.
 
-**Load balancing strategy:**
-1. Try each replica in order (round-robin)
-2. If all replicas fail and `fallback-to-primary=true`, use primary database
-3. If fallback disabled and all replicas fail, throw `SQLException`
+**External load balancing options:**
+1. **AWS RDS Read Replica Endpoint** - AWS handles load balancing across multiple read replicas
+2. **PgBouncer** - Connection pooler with multiple backend servers
+3. **pgcat** - Modern PostgreSQL connection pooler
+4. **Hardware/Software Load Balancer** - HAProxy, NGINX, or cloud load balancers
+
+**Benefits of external load balancing:**
+- ✅ Better failure detection and health checks
+- ✅ More sophisticated load balancing algorithms
+- ✅ Centralized configuration and monitoring
+- ✅ Reduced application complexity
 
 ## Architectural Decision: Two-Step Outbox Query Pattern
 
@@ -164,10 +184,10 @@ INFO - Falling back to primary database
 
 ### Recommendations
 
-1. **Enable fallback** (`fallback-to-primary=true`) for resilience
+1. **Use external load balancing** - AWS RDS read replica endpoints, PgBouncer, or pgcat
 2. **Monitor replication lag** - Keep under 5 seconds for acceptable outbox latency
-3. **Use multiple replicas** for redundancy and capacity
-4. **Consider PgBouncer** for additional load balancing (see [PgBouncer Guide](./PGBOUNCER.md))
+3. **Configure multiple replicas** behind your load balancer for redundancy and capacity
+4. **Consider PgBouncer** for additional connection pooling (see [PgBouncer Guide](./PGBOUNCER.md))
 
 ## Troubleshooting
 
@@ -175,16 +195,17 @@ INFO - Falling back to primary database
 
 **Check:**
 1. `crablet.eventstore.read-replicas.enabled=true` is set
-2. Replica URLs are valid and accessible
+2. Replica URL is valid and accessible
 3. Application logs show "Fetching from read replica"
 
 ### Issue: Connection failures
 
 **Check:**
-1. Network connectivity to replica servers
+1. Network connectivity to replica server
 2. Replica credentials are correct
 3. Firewall rules allow connections
 4. PostgreSQL `pg_hba.conf` allows connections
+5. External load balancer is healthy and routing correctly
 
 ### Issue: Stale data from replicas
 

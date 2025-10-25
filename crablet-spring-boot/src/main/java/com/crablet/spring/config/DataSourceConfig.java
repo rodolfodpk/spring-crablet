@@ -1,6 +1,5 @@
 package com.crablet.spring.config;
 
-import com.crablet.spring.datasource.LoadBalancedDataSource;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -15,21 +14,20 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Configuration for DataSource beans with optional read replica support.
  * <p>
  * Provides three DataSource beans:
  * <ul>
- *   <li><strong>primaryDataSource</strong>: Main database for writes and fallback reads (marked @Primary)</li>
- *   <li><strong>readDataSource</strong>: Load-balanced read replicas (conditional, falls back to primary if disabled)</li>
+ *   <li><strong>primaryDataSource</strong>: Main database for writes (marked @Primary)</li>
+ *   <li><strong>readDataSource</strong>: Read replica database (conditional, falls back to primary if disabled)</li>
  *   <li><strong>jdbcTemplate</strong>: Uses primaryDataSource for outbox and other write operations</li>
  * </ul>
  * <p>
  * When read replicas are disabled (default), readDataSource returns the same instance as primaryDataSource,
- * ensuring seamless backward compatibility.
+ * ensuring seamless backward compatibility. Load balancing across multiple replicas is handled externally
+ * (AWS RDS read replica endpoints, PgBouncer, pgcat, or hardware load balancers).
  */
 @Configuration
 @EnableConfigurationProperties(ReadReplicaProperties.class)
@@ -54,10 +52,10 @@ public class DataSourceConfig {
     }
     
     /**
-     * Read DataSource for read operations, with optional load balancing across replicas.
+     * Read DataSource for read operations, pointing to a single read replica.
      * <p>
-     * <strong>When replicas enabled:</strong> Returns a LoadBalancedDataSource that distributes
-     * reads across multiple replica databases using round-robin.
+     * <strong>When replicas enabled:</strong> Returns a HikariDataSource pointing to the configured
+     * replica URL. Load balancing across multiple replicas is handled externally.
      * <p>
      * <strong>When replicas disabled:</strong> Returns the primaryDataSource for seamless fallback.
      * <p>
@@ -73,41 +71,33 @@ public class DataSourceConfig {
             @Qualifier("primaryDataSource") DataSource primaryDataSource,
             ReadReplicaProperties readReplicaProperties) {
         
-        List<String> replicaUrls = readReplicaProperties.getUrls();
-        if (replicaUrls == null || replicaUrls.isEmpty()) {
+        String replicaUrl = readReplicaProperties.getUrl();
+        if (replicaUrl == null || replicaUrl.trim().isEmpty()) {
             throw new IllegalStateException(
-                "crablet.eventstore.read-replicas.enabled=true but no replica URLs configured");
+                "crablet.eventstore.read-replicas.enabled=true but no replica URL configured");
         }
         
         // Get primary datasource properties for replica configuration
         HikariDataSource primaryHikari = (HikariDataSource) primaryDataSource;
         
-        // Create DataSource for each replica URL
-        List<DataSource> replicaDataSources = new ArrayList<>();
-        for (String url : replicaUrls) {
-            HikariConfig config = new HikariConfig();
-            config.setJdbcUrl(url);
-            // Use primary datasource credentials (or override from properties if specified)
-            config.setUsername(
-                readReplicaProperties.getHikari().getUsername() != null 
-                    ? readReplicaProperties.getHikari().getUsername() 
-                    : primaryHikari.getUsername()
-            );
-            config.setPassword(
-                readReplicaProperties.getHikari().getPassword() != null 
-                    ? readReplicaProperties.getHikari().getPassword() 
-                    : primaryHikari.getPassword()
-            );
-            config.setMaximumPoolSize(readReplicaProperties.getHikari().getMaximumPoolSize());
-            config.setMinimumIdle(readReplicaProperties.getHikari().getMinimumIdle());
-            replicaDataSources.add(new HikariDataSource(config));
-        }
-        
-        return new LoadBalancedDataSource(
-            replicaDataSources,
-            primaryDataSource,
-            readReplicaProperties.isFallbackToPrimary()
+        // Create DataSource for the replica URL
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(replicaUrl);
+        // Use primary datasource credentials (or override from properties if specified)
+        config.setUsername(
+            readReplicaProperties.getHikari().getUsername() != null 
+                ? readReplicaProperties.getHikari().getUsername() 
+                : primaryHikari.getUsername()
         );
+        config.setPassword(
+            readReplicaProperties.getHikari().getPassword() != null 
+                ? readReplicaProperties.getHikari().getPassword() 
+                : primaryHikari.getPassword()
+        );
+        config.setMaximumPoolSize(readReplicaProperties.getHikari().getMaximumPoolSize());
+        config.setMinimumIdle(readReplicaProperties.getHikari().getMinimumIdle());
+        
+        return new HikariDataSource(config);
     }
     
     /**
