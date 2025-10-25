@@ -1,14 +1,20 @@
 # Spring Boot Java DCB Event Sourcing Solution
 
 [![Java CI](https://github.com/rodolfodpk/spring-crablet/actions/workflows/maven.yml/badge.svg)](https://github.com/rodolfodpk/spring-crablet/actions/workflows/maven.yml)
-[![Coverage](.github/badges/jacoco.svg)](https://github.com/rodolfodpk/spring-crablet/actions/workflows/maven.yml)
-[![Branches](.github/badges/branches.svg)](https://github.com/rodolfodpk/spring-crablet/actions/workflows/maven.yml)
+[![codecov](https://codecov.io/gh/rodolfodpk/spring-crablet/branch/main/graph/badge.svg)](https://codecov.io/gh/rodolfodpk/spring-crablet)
 [![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Java 25 implementation of the DCB (Dynamic Consistency Boundary) event sourcing pattern with microservices architecture, ported from [crablet](https://github.com/rodolfodpk/crablet) (Kotlin) and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go).
 
-**📚 [Project Background](docs/architecture/README.md)** | **📚 [Features](docs/architecture/README.md#features)** | **📚 [Architecture](docs/architecture/README.md)**
+## Prerequisites
+
+- Java 25 ([Temurin](https://adoptium.net/) recommended)
+- Maven 3.9+
+- Docker and Docker Compose
+- PostgreSQL 17+ (or use Docker Compose)
+
+[Architecture](docs/architecture/README.md) | [API Reference](docs/api/README.md) | [Development Guide](docs/development/README.md)
 
 ## Architecture
 
@@ -26,16 +32,13 @@ This project demonstrates a **microservices architecture** with separate EventSt
 
 ## Quick Start
 
-### Build and Test (No Application Required)
+### Build and Test
+Tests use Testcontainers (no external dependencies required):
 ```bash
-# Build and run all tests with Testcontainers
 ./mvnw clean install
-
-# Or just run tests
-./mvnw test verify
 ```
 
-### Run Microservices Locally
+### Run Services Locally
 
 ```bash
 # Start PostgreSQL
@@ -50,11 +53,12 @@ cd wallet-outbox-service
 ./mvnw spring-boot:run
 ```
 
-**Available URLs after startup**:
-- EventStore API: http://localhost:8080/api
-- Outbox Management API: http://localhost:8081/api/outbox
-- Swagger UI: http://localhost:8080/swagger-ui/index.html
-- Health Checks: http://localhost:8080/actuator/health, http://localhost:8081/actuator/health
+Services will start on:
+- **EventStore API**: http://localhost:8080/api
+- **Outbox Management**: http://localhost:8081/api/outbox
+- **Swagger UI**: http://localhost:8080/swagger-ui/index.html
+
+See [docs/urls.md](docs/urls.md) for complete URL reference.
 
 ### Kubernetes Deployment
 
@@ -87,8 +91,6 @@ cd wallet-eventstore-service/performance-tests
 
 See [wallet-eventstore-service/performance-tests/README.md](wallet-eventstore-service/performance-tests/README.md) for detailed documentation.
 
-**📚 [Detailed Setup](docs/setup/README.md)** | **📚 [API Reference](docs/api/README.md)** | **📚 [All URLs](docs/urls.md)**
-
 ## Key Components
 
 - **DCB Pattern**: Cursor-based optimistic concurrency control
@@ -98,24 +100,25 @@ See [wallet-eventstore-service/performance-tests/README.md](wallet-eventstore-se
 - **Testing**: 553 tests (all passing) with Testcontainers
 - **Observability**: Prometheus, Grafana, Loki monitoring stack (monitors both EventStore and Outbox services)
 
-**📚 [DCB Technical Details](docs/architecture/DCB_AND_CRABLET.md)** | **📚 [Testing Guide](docs/development/README.md#testing-strategy)** | **📚 [Observability](docs/observability/README.md)**
-
 ## Documentation
 
+### For Developers
+- **[API Reference](docs/api/README.md)** - REST endpoints, request/response examples
+- **[Development Guide](docs/development/README.md)** - Setup, testing, coding practices
 - **[Architecture](docs/architecture/README.md)** - DCB pattern, event sourcing, system design
-  - [Outbox Pattern](docs/architecture/OUTBOX_PATTERN.md) - Complete guide to reliable event publishing
-  - [Outbox Pattern Rationale](docs/architecture/OUTBOX_RATIONALE.md) - Why and when to use the outbox pattern
-- **[Development](docs/development/README.md)** - Setup, testing, coding practices
-- **[API](docs/api/README.md)** - REST endpoints, examples, Swagger
-- **[Security](docs/security/README.md)** - Rate limiting, HTTP/2, input validation
-- **[Performance](wallet-eventstore-service/performance-tests/README.md)** - Load testing, benchmarks, optimization
-- **[Observability](docs/observability/README.md)** - Monitoring, metrics, dashboards
+- **[Available URLs](docs/urls.md)** - Quick reference for all service endpoints
+
+### For Operations
 - **[Setup](docs/setup/README.md)** - Installation and configuration
-  - [Read Replicas](docs/setup/READ_REPLICAS.md) - PostgreSQL read replica configuration
-  - [PgBouncer Guide](docs/setup/PGBOUNCER.md) - Connection pooling with PgBouncer
-- **[Available URLs](docs/urls.md)** - Quick reference for all service URLs
+- **[Observability](docs/observability/README.md)** - Monitoring, metrics, dashboards  
+- **[Performance Testing](wallet-eventstore-service/performance-tests/README.md)** - Load testing and benchmarks
+- **[Security](docs/security/README.md)** - Rate limiting, HTTP/2, input validation
+
+### Advanced Topics
+- [Outbox Pattern](docs/architecture/OUTBOX_PATTERN.md) - Reliable event publishing
+- [Read Replicas](docs/setup/READ_REPLICAS.md) - PostgreSQL read replica configuration
+- [PgBouncer Guide](docs/setup/PGBOUNCER.md) - Connection pooling with PgBouncer
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
-# Trigger CI

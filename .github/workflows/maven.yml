@@ -44,89 +44,11 @@ jobs:
       - name: Generate JaCoCo Coverage Report
         run: mvn -B jacoco:report-aggregate --file pom.xml
 
-      - name: Generate Coverage Badges
-        if: always()
-        run: |
-          mkdir -p .github/badges
-          
-          if [ -f "target/site/jacoco-aggregate/jacoco.xml" ]; then
-              python3 << 'EOF'
-          import xml.etree.ElementTree as ET
-          import sys
-          
-          try:
-              # Parse the JaCoCo aggregated report
-              tree = ET.parse('target/site/jacoco-aggregate/jacoco.xml')
-              root = tree.getroot()
-              
-              # Get overall line coverage
-              line_counters = root.findall('.//counter[@type="LINE"]')
-              if line_counters:
-                  last_counter = line_counters[-1]
-                  missed = int(last_counter.get('missed', 0))
-                  covered = int(last_counter.get('covered', 0))
-                  total = missed + covered
-                  line_coverage = (covered / total) * 100 if total > 0 else 0
-                  
-                  # Generate JaCoCo badge
-                  coverage_pct = int(line_coverage)
-                  color = "brightgreen" if coverage_pct >= 80 else "green" if coverage_pct >= 60 else "yellowgreen" if coverage_pct >= 40 else "yellow" if coverage_pct >= 20 else "red"
-                  
-                  with open('.github/badges/jacoco.svg', 'w') as f:
-                      f.write(f'<svg xmlns="http://www.w3.org/2000/svg" width="126" height="20">')
-                      f.write(f'<linearGradient id="b" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>')
-                      f.write(f'<clipPath id="a"><rect width="126" height="20" rx="3" fill="#fff"/></clipPath>')
-                      f.write(f'<g clip-path="url(#a)"><path fill="#555" d="M0 0h63v20H0z"/><path fill="{color}" d="M63 0h63v20H63z"/><path fill="url(#b)" d="M0 0h126v20H0z"/></g>')
-                      f.write(f'<g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">')
-                      f.write(f'<text x="31.5" y="15" fill="#010101" fill-opacity=".3">coverage</text>')
-                      f.write(f'<text x="31.5" y="14">coverage</text>')
-                      f.write(f'<text x="60" y="15" fill="#010101" fill-opacity=".3">{coverage_pct}%</text>')
-                      f.write(f'<text x="60" y="14">{coverage_pct}%</text>')
-                      f.write(f'</g></svg>')
-                  
-                  print(f"📊 Line Coverage: {line_coverage:.2f}%")
-                  print(f"   (covered: {covered}, missed: {missed})")
-              
-              # Get overall branch coverage
-              branch_counters = root.findall('.//counter[@type="BRANCH"]')
-              if branch_counters:
-                  last_branch = branch_counters[-1]
-                  branch_missed = int(last_branch.get('missed', 0))
-                  branch_covered = int(last_branch.get('covered', 0))
-                  branch_total = branch_missed + branch_covered
-                  branch_coverage = (branch_covered / branch_total) * 100 if branch_total > 0 else 0
-                  
-                  branch_pct = int(branch_coverage)
-                  color = "brightgreen" if branch_pct >= 80 else "green" if branch_pct >= 60 else "yellowgreen" if branch_pct >= 40 else "yellow" if branch_pct >= 20 else "red"
-                  
-                  with open('.github/badges/branches.svg', 'w') as f:
-                      f.write(f'<svg xmlns="http://www.w3.org/2000/svg" width="130" height="20">')
-                      f.write(f'<linearGradient id="b" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>')
-                      f.write(f'<clipPath id="a"><rect width="130" height="20" rx="3" fill="#fff"/></clipPath>')
-                      f.write(f'<g clip-path="url(#a)"><path fill="#555" d="M0 0h69v20H0z"/><path fill="{color}" d="M69 0h61v20H69z"/><path fill="url(#b)" d="M0 0h130v20H0z"/></g>')
-                      f.write(f'<g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">')
-                      f.write(f'<text x="34.5" y="15" fill="#010101" fill-opacity=".3">branches</text>')
-                      f.write(f'<text x="34.5" y="14">branches</text>')
-                      f.write(f'<text x="99.5" y="15" fill="#010101" fill-opacity=".3">{branch_pct}%</text>')
-                      f.write(f'<text x="99.5" y="14">{branch_pct}%</text>')
-                      f.write(f'</g></svg>')
-                  
-                  print(f"🌿 Branch Coverage: {branch_coverage:.2f}%")
-                  print(f"   (covered: {branch_covered}, missed: {branch_missed})")
-                  
-          except Exception as e:
-              print(f"Error parsing coverage: {e}")
-              sys.exit(1)
-          EOF
-          else
-              echo "⚠️ Coverage report not found"
-          fi
-      
-      - name: Commit Badges
-        if: always()
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add .github/badges/
-          git diff --staged --quiet || git commit -m "chore: Update coverage badges [skip ci]"
-          git push
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./target/site/jacoco-aggregate/jacoco.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
