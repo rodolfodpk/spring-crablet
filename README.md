@@ -61,19 +61,6 @@ Services will start on:
 
 See [docs/urls.md](docs/urls.md) for complete URL reference.
 
-### Kubernetes Deployment
-
-```bash
-# Deploy to Kubernetes
-kubectl apply -f kubernetes/
-
-# Check deployment
-kubectl get pods
-kubectl get services
-```
-
-See [kubernetes/README.md](kubernetes/README.md) for detailed deployment instructions.
-
 ### Performance Testing
 
 Performance tests are located in `wallet-eventstore-service/performance-tests/` and test the EventStore API:
