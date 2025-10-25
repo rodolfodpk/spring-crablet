@@ -53,9 +53,6 @@ The test profile sets very high rate limits (effectively disabling them):
 ```properties
 # application-test.properties
 resilience4j.ratelimiter.instances.globalApi.limit-for-period=1000000
-resilience4j.ratelimiter.instances.perWallet.limit-for-period=1000000
-resilience4j.ratelimiter.instances.transfer.limit-for-period=1000000
-resilience4j.ratelimiter.instances.withdrawal.limit-for-period=1000000
 ```
 
 ## Production vs Test Profile

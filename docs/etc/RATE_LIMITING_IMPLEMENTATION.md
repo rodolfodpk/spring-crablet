@@ -16,34 +16,19 @@ application from abuse and resource exhaustion while maintaining excellent perfo
 - **Purpose**: Prevent total system overload
 - **Implementation**: Applied via `@RateLimiter(name = "globalApi")` annotation
 
-#### 2. Per-Wallet Rate Limiting
+#### 2. Rate Limiting Strategy
 
-Dynamic rate limiters created for each wallet-operation combination:
-
-| Operation       | Limit     | Rationale                               |
-|-----------------|-----------|-----------------------------------------|
-| **Deposits**    | 50/minute | Standard operation, moderate protection |
-| **Withdrawals** | 30/minute | More sensitive, tighter control         |
-| **Transfers**   | 10/minute | Most critical, strictest protection     |
+The application uses a **global API rate limiter** (1000 req/sec) to protect against abuse and resource exhaustion across all endpoints. Per-wallet rate limiting has been removed to simplify the architecture.
 
 ### Architecture
 
 #### Components Created
 
-1. **ResilienceConfig.java** (Enhanced)
+1. **ResilienceConfig.java**
     - Global API rate limiter bean
-    - Per-wallet rate limiter configuration beans
-    - Transfer-specific rate limiter config
-    - Withdrawal rate limiter config
-    - Rate limiter registry for dynamic creation
+    - Circuit breaker, retry, and timeout configurations
 
-2. **WalletRateLimitService.java** (New)
-    - Manages dynamic per-wallet rate limiters
-    - Creates rate limiters with wallet-operation keys
-    - Applies operation-specific configurations
-    - Provides convenience methods for execution with rate limiting
-
-3. **RateLimitExceptionHandler.java** (New)
+2. **RateLimitExceptionHandler.java** (New)
     - Global exception handler for `RequestNotPermitted`
     - Returns HTTP 429 with proper headers
     - Consistent error response format
@@ -225,17 +210,12 @@ Defense in depth approach:
 
 ### Environment Configuration
 
-#### Production
+The global API rate limiter is configured in `application.properties`:
 
 ```properties
-resilience4j.ratelimiter.instances.perWallet.limitForPeriod=50
-```
-
-#### Testing/Development
-
-```properties
-# application-test.properties
-resilience4j.ratelimiter.instances.perWallet.limitForPeriod=10000  # Effectively unlimited
+resilience4j.ratelimiter.instances.globalApi.limit-for-period=1000
+resilience4j.ratelimiter.instances.globalApi.limit-refresh-period=1s
+resilience4j.ratelimiter.instances.globalApi.timeout-duration=0ms
 ```
 
 ### Observability
@@ -265,15 +245,13 @@ All criteria met:
 
 ## Files Modified
 
-### Source Code (7 files)
+### Source Code (5 files)
 
-1. `src/main/java/com/wallets/infrastructure/config/ResilienceConfig.java` - Added rate limiter beans
-2. `src/main/java/com/wallets/infrastructure/resilience/WalletRateLimitService.java` - New service
-3. `src/main/java/com/wallets/infrastructure/web/RateLimitExceptionHandler.java` - New handler
-4. `src/main/java/com/wallets/features/deposit/DepositController.java` - Applied rate limiting
-5. `src/main/java/com/wallets/features/withdraw/WithdrawController.java` - Applied rate limiting
-6. `src/main/java/com/wallets/features/transfer/TransferController.java` - Applied rate limiting
-7. `src/main/resources/application.properties` - Added rate limiter configuration
+1. `src/main/java/com/wallets/infrastructure/config/ResilienceConfig.java` - Added global rate limiter bean
+2. `src/main/java/com/wallets/infrastructure/web/RateLimitExceptionHandler.java` - New handler
+3. `src/main/java/com/wallets/features/deposit/DepositController.java` - Applied rate limiting
+4. `src/main/java/com/wallets/features/withdraw/WithdrawController.java` - Applied rate limiting
+5. `src/main/java/com/wallets/features/transfer/TransferController.java` - Applied rate limiting
 
 ### Tests (2 files)
 

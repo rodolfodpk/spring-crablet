@@ -13,14 +13,9 @@ Application-level rate limiting using Resilience4j to protect against abuse and 
 - **Scope**: All API endpoints
 - **Response**: HTTP 429 when exceeded
 
-### Per-Wallet Limits
+### Rate Limiting Strategy
 
-| Operation   | Limit                 | Purpose                                   |
-|-------------|-----------------------|-------------------------------------------|
-| Deposits    | 50/minute per wallet  | Prevent deposit spam                      |
-| Withdrawals | 30/minute per wallet  | Limit withdrawal operations               |
-| Transfers   | 10/minute per wallet  | Strictest limit for high-value operations |
-| Queries     | 100/minute per wallet | Read operation limit                      |
+The application uses a **global API rate limiter** to protect against abuse and resource exhaustion across all endpoints. Per-wallet rate limiting has been removed to simplify the architecture.
 
 ## Configuration
 
@@ -33,18 +28,6 @@ resilience4j.ratelimiter.instances.globalApi.limit-refresh-period=1s
 resilience4j.ratelimiter.instances.globalApi.timeout-duration=0ms
 ```
 
-Per-wallet limits are configured in `ResilienceConfig.java`:
-
-```java
-@Bean
-public RateLimiterConfig perWalletRateLimiterConfig() {
-    return RateLimiterConfig.custom()
-            .limitForPeriod(50)  // 50 operations
-            .limitRefreshPeriod(Duration.ofMinutes(1))  // per minute
-            .timeoutDuration(Duration.ZERO)  // Fail fast
-            .build();
-}
-```
 
 ## Error Response
 
@@ -104,10 +87,9 @@ Rate limiting has **negligible performance impact** (<0.1ms overhead):
 
 ### Components
 
-1. **ResilienceConfig**: Defines rate limiter beans
-2. **WalletRateLimitService**: Manages per-wallet rate limiters dynamically
-3. **RateLimitExceptionHandler**: Converts `RequestNotPermitted` to HTTP 429
-4. **Controllers**: Apply `@RateLimiter` annotation and use service
+1. **ResilienceConfig**: Defines global rate limiter bean
+2. **RateLimitExceptionHandler**: Converts `RequestNotPermitted` to HTTP 429
+3. **Controllers**: Apply `@RateLimiter(name = "globalApi")` annotation
 
 ### Implementation
 
@@ -159,22 +141,16 @@ rate(resilience4j_ratelimiter_calls[5m]) * 100
 
 ## Environment-Specific Configuration
 
-### Production
+The global API rate limiter is configured in `application.properties`:
 
 ```properties
-resilience4j.ratelimiter.instances.perWallet.limitForPeriod=50
-resilience4j.ratelimiter.instances.perWallet.limitRefreshPeriod=1m
+# Global API rate limiter
+resilience4j.ratelimiter.instances.globalApi.limit-for-period=1000
+resilience4j.ratelimiter.instances.globalApi.limit-refresh-period=1s
+resilience4j.ratelimiter.instances.globalApi.timeout-duration=0ms
 ```
 
-### Testing (Higher Limits)
-
-```properties
-# application-test.properties
-resilience4j.ratelimiter.instances.perWallet.limitForPeriod=10000
-resilience4j.ratelimiter.instances.perWallet.limitRefreshPeriod=1m
-```
-
-This ensures k6 performance tests don't trigger rate limiting during load testing.
+For testing, you can increase the limit in `application-test.properties` to avoid triggering rate limits during load testing.
 
 ## Defense in Depth
 
@@ -183,7 +159,7 @@ Application-level rate limiting complements network-level protection:
 | Layer       | Tool             | Purpose                           |
 |-------------|------------------|-----------------------------------|
 | Network     | Kong/API Gateway | DDoS, IP blocking, global limits  |
-| Application | Resilience4j     | Business rules, per-wallet limits |
+| Application | Resilience4j     | Global API rate limiting          |
 | Database    | HikariCP         | Connection pool limits            |
 
 Both layers are recommended for production.
