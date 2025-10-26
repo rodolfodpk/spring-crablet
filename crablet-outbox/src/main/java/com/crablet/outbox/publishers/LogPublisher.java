@@ -1,21 +1,17 @@
 package com.crablet.outbox.publishers;
 
-import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.PublishException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /**
  * Simple log-based publisher for testing/development.
- * Enabled via: crablet.outbox.publishers.log.enabled=true
+ * Users must define as @Bean in Spring configuration.
  */
-@Component
-@ConditionalOnProperty(prefix = "crablet.outbox.publishers.log", name = "enabled", havingValue = "true")
 public class LogPublisher implements OutboxPublisher {
     
     private static final Logger log = LoggerFactory.getLogger(LogPublisher.class);

@@ -4,8 +4,6 @@ import com.crablet.outbox.config.GlobalStatisticsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -23,9 +21,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * 
  * Unlike the regular StatisticsPublisher, this runs globally and is not tied to
  * specific topic configurations.
+ * Users must define as @Bean in Spring configuration.
  */
-@Component
-@ConditionalOnProperty(prefix = "crablet.outbox.global-statistics", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class GlobalStatisticsPublisher {
     
     private static final Logger log = LoggerFactory.getLogger(GlobalStatisticsPublisher.class);

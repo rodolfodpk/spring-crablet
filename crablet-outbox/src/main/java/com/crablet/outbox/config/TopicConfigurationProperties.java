@@ -5,12 +5,14 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@Component
+/**
+ * Topic configuration properties.
+ * Users must define as @Bean in Spring configuration.
+ */
 @ConfigurationProperties(prefix = "crablet.outbox.topics")
 public class TopicConfigurationProperties {
     

@@ -5,107 +5,182 @@
 [![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Java 25 implementation of the DCB (Dynamic Consistency Boundary) event sourcing pattern with microservices architecture, ported from [crablet](https://github.com/rodolfodpk/crablet) (Kotlin) and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go).
+Java 25 implementation of the DCB (Dynamic Consistency Boundary) event sourcing pattern, ported from [crablet](https://github.com/rodolfodpk/crablet) (Kotlin) and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go).
 
-## Prerequisites
+## Overview
 
-- Java 25 ([Temurin](https://adoptium.net/) recommended)
-- Maven 3.9+
-- Docker and Docker Compose
-- PostgreSQL 17+ (or use Docker Compose)
+Crablet is a library-first event sourcing solution with Spring Boot integration. It provides:
 
-[Architecture](docs/architecture/README.md) | [API Reference](docs/api/README.md) | [Development Guide](docs/development/README.md)
+- **Event Sourcing**: Complete audit trail with state reconstruction
+- **DCB Pattern**: Cursor-based optimistic concurrency control without distributed locks
+- **Outbox Pattern**: Reliable event publishing to external systems
+- **Spring Integration**: Ready-to-use Spring Boot components
 
-## Architecture
+## Modules
 
-This project demonstrates a **microservices architecture** with separate EventStore and Outbox services:
-
-### Services
-- **wallet-eventstore-service** (Port 8080) - Business API for wallet operations
-- **wallet-outbox-service** (Port 8081) - Reliable event publishing with outbox pattern
-- **PostgreSQL** - Shared database for both services
-
-### Libraries
-- **crablet-eventstore** - Event sourcing library with Spring integration
-- **crablet-outbox** - Outbox pattern library with Spring integration  
-- **shared-wallet-domain** - Shared wallet domain logic including events, projectors, exceptions, and constants
+- **crablet-eventstore** - Core event sourcing library with DCB support
+- **crablet-outbox** - Transactional outbox pattern for event publishing
 
 ## Quick Start
 
+### Add Dependencies
+
+```xml
+<dependencies>
+    <!-- EventStore -->
+    <dependency>
+        <groupId>com.crablet</groupId>
+        <artifactId>crablet-eventstore</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+    
+    <!-- Outbox (optional) -->
+    <dependency>
+        <groupId>com.crablet</groupId>
+        <artifactId>crablet-outbox</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+</dependencies>
+```
+
 ### Build and Test
+
 Tests use Testcontainers (no external dependencies required):
 ```bash
-./mvnw clean install
+mvn clean install
 ```
 
-### Run Services Locally
+All tests pass (260+ tests with 72% code coverage).
 
-```bash
-# Start PostgreSQL
-docker-compose up -d
+## Complete DCB Workflow
 
-# Start EventStore service
-cd wallet-eventstore-service
-./mvnw spring-boot:run
+Two real examples from our wallet domain showing distinct DCB patterns:
 
-# In another terminal, start Outbox service
-cd wallet-outbox-service
-./mvnw spring-boot:run
+### Example 1: Idempotency Pattern (OpenWallet)
+
+Prevents duplicate wallet creation using `withIdempotencyCheck()`:
+
+```java
+@Override
+public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
+    // Command is already validated at construction with YAVI
+
+    // 2. DCB: NO validation query needed!
+    //    AppendCondition will enforce uniqueness atomically
+
+    // 3. Create event (optimistic - assume wallet doesn't exist)
+    WalletOpened walletOpened = WalletOpened.of(
+            command.walletId(),
+            command.owner(),
+            command.initialBalance()
+    );
+
+    AppendEvent event = AppendEvent.builder(WALLET_OPENED)
+            .tag(WALLET_ID, command.walletId())
+            .data(walletOpened)
+            .build();
+
+    // 4. Build condition to enforce uniqueness using DCB idempotency pattern
+    //    Fails if ANY WalletOpened event exists for this wallet_id (idempotency check)
+    //    No concurrency check needed for wallet creation - only idempotency matters
+    AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
+            .withIdempotencyCheck(WALLET_OPENED, WALLET_ID, command.walletId())
+            .build();
+
+    // 5. Return - appendIf will:
+    //    - Check condition atomically
+    //    - Throw ConcurrencyException if wallet exists
+    //    - Append event if wallet doesn't exist
+    return CommandResult.of(List.of(event), condition);
+}
 ```
 
-Services will start on:
-- **EventStore API**: http://localhost:8080/api
-- **Outbox Management API**: http://localhost:8081/api/outbox
-- **Swagger UI (EventStore)**: http://localhost:8080/swagger-ui/index.html
-- **Swagger UI (Outbox)**: http://localhost:8081/swagger-ui/index.html
+**Key points:**
+- Uses `Query.empty()` + `Cursor.zero()` (no decision model needed)
+- `withIdempotencyCheck()` enforces uniqueness: fails if `WALLET_OPENED` exists for this `wallet_id`
+- Optimistic: creates event first, checks atomically via `appendIf`
 
-See [docs/urls.md](docs/urls.md) for complete URL reference.
+### Example 2: Concurrency Control (Withdraw)
 
-### Performance Testing
+Prevents concurrent balance modifications using cursor-based conflict detection:
 
-Performance tests are located in `wallet-eventstore-service/performance-tests/` and test the EventStore API:
+```java
+@Override
+public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
+    // Command is already validated at construction with YAVI
 
-```bash
-# Navigate to performance tests
-cd wallet-eventstore-service/performance-tests
+    // Use domain-specific decision model query
+    Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
 
-# Run all performance tests
-./run-all-tests.sh
+    // Project state (needed for balance calculation)
+    ProjectionResult<WalletBalanceState> projection =
+            balanceProjector.projectWalletBalance(eventStore, command.walletId(), decisionModel);
+    WalletBalanceState state = projection.state();
 
-# Run specific test suites
-./run-success-tests.sh      # Basic wallet operations
-./run-concurrency-test.sh    # Concurrent transfers
+    if (!state.isExisting()) {
+        log.warn("Withdrawal failed - wallet not found: walletId={}, withdrawalId={}",
+                command.walletId(), command.withdrawalId());
+        throw new WalletNotFoundException(command.walletId());
+    }
+    if (!state.hasSufficientFunds(command.amount())) {
+        log.warn("Withdrawal failed - insufficient funds: walletId={}, balance={}, requested={}",
+                command.walletId(), state.balance(), command.amount());
+        throw new InsufficientFundsException(command.walletId(), state.balance(), command.amount());
+    }
+
+    int newBalance = state.balance() - command.amount();
+
+    WithdrawalMade withdrawal = WithdrawalMade.of(
+            command.withdrawalId(),
+            command.walletId(),
+            command.amount(),
+            newBalance,
+            command.description()
+    );
+
+    AppendEvent event = AppendEvent.builder(WITHDRAWAL_MADE)
+            .tag(WALLET_ID, command.walletId())
+            .tag(WITHDRAWAL_ID, command.withdrawalId())
+            .data(withdrawal)
+            .build();
+
+    // Build condition: decision model only (cursor-based concurrency control)
+    // DCB Principle: Cursor check prevents duplicate charges
+    // Note: No idempotency check - cursor advancement detects if operation already succeeded
+    AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
+            .build();
+
+    return CommandResult.of(List.of(event), condition);
+}
 ```
 
-See [wallet-eventstore-service/performance-tests/README.md](wallet-eventstore-service/performance-tests/README.md) for detailed documentation.
-
-## Key Components
-
-- **DCB Pattern**: Cursor-based optimistic concurrency control
-- **Event Sourcing**: Complete audit trail with state reconstruction
-- **Java 25**: Records, sealed interfaces, virtual threads, pattern matching
-- **Spring Boot**: REST API with PostgreSQL backend
-- **Testing**: 553 tests (all passing) with Testcontainers
-- **Observability**: Prometheus, Grafana, Loki monitoring stack (monitors both EventStore and Outbox services)
+**Key points:**
+- Decision Model: Query for balance-affecting events (`WalletOpened`, `DepositMade`, `WithdrawalMade`)
+- Cursor checks if balance changed concurrently → throws `ConcurrencyException` → `CommandExecutor` retries
+- Business validation: checks sufficient funds before creating event
+- No explicit idempotency check (cursor advancement detects duplicates)
 
 ## Documentation
 
-### For Developers
-- **[API Reference](docs/api/README.md)** - REST endpoints, request/response examples
-- **[Development Guide](docs/development/README.md)** - Setup, testing, coding practices
-- **[Architecture](docs/architecture/README.md)** - DCB pattern, event sourcing, system design
-- **[Available URLs](docs/urls.md)** - Quick reference for all service endpoints
+### Core Documentation
+- **[EventStore README](crablet-eventstore/README.md)** - Event sourcing library guide
+- **[Outbox README](crablet-outbox/README.md)** - Outbox pattern library guide
+- **[DCB Pattern](crablet-eventstore/docs/DCB_AND_CRABLET.md)** - Detailed DCB explanation
 
-### For Operations
-- **[Setup](docs/setup/README.md)** - Installation and configuration
-- **[Observability](docs/observability/README.md)** - Monitoring, metrics, dashboards  
-- **[Performance Testing](wallet-eventstore-service/performance-tests/README.md)** - Load testing and benchmarks
-- **[Security](docs/security/README.md)** - Rate limiting, HTTP/2, input validation
+### Advanced Features
+- **[Read Replicas](crablet-eventstore/docs/READ_REPLICAS.md)** - PostgreSQL read replica configuration
+- **[PgBouncer Guide](crablet-eventstore/docs/PGBOUNCER.md)** - Connection pooling
+- **[EventStore Metrics](crablet-eventstore/docs/METRICS.md)** - EventStore metrics and monitoring
+- **[Outbox Pattern](crablet-outbox/docs/OUTBOX_PATTERN.md)** - Event publishing
+- **[Outbox Metrics](crablet-outbox/docs/OUTBOX_METRICS.md)** - Outbox metrics and monitoring
 
-### Advanced Topics
-- [Outbox Pattern](docs/architecture/OUTBOX_PATTERN.md) - Reliable event publishing
-- [Read Replicas](docs/setup/READ_REPLICAS.md) - PostgreSQL read replica configuration
-- [PgBouncer Guide](docs/setup/PGBOUNCER.md) - Connection pooling with PgBouncer
+## Architecture Highlights
+
+- **DCB Pattern**: Optimistic concurrency control using cursors
+- **Java 25**: Records, sealed interfaces, virtual threads
+- **Spring Boot 3.5**: Full Spring integration
+- **PostgreSQL**: Primary database with optional read replicas
+- **Comprehensive Testing**: 260+ tests, 72% code coverage
 
 ## License
 

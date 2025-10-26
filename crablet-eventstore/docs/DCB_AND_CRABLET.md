@@ -105,12 +105,172 @@ PUT /api/wallets/w1
 → 200 OK (idempotent)
 ```
 
+## DCB Pattern with Wallet Example
+
+This section explains the three key DCB concepts using a concrete wallet withdrawal example.
+
+### Three Key Concepts
+
+#### 1. Decision Model (Query)
+
+The **decision model** is the Query that defines which events affect your business decision.
+
+Example for wallet withdrawal:
+```java
+// Decision model: which events affect withdrawal decisions?
+Query decisionModel = QueryBuilder.create()
+    .hasTag("wallet_id", walletId)
+    .eventNames("WalletOpened", "DepositMade", "WithdrawalMade")
+    .build();
+```
+
+This Query is passed to `AppendConditionBuilder(decisionModel, cursor)` and used for the DCB conflict check.
+
+#### 2. DCB Conflict Detection (stateChanged)
+
+**DCB conflict check** verifies that no events matching the decision model appeared AFTER the cursor.
+
+```java
+// Project with cursor
+ProjectionResult<WalletBalance> result = eventStore.project(
+    decisionModel,
+    cursor,
+    WalletBalance.class,
+    List.of(projector)
+);
+
+// AppendCondition checks if ANY events matching decisionModel appeared after cursor
+AppendCondition condition = new AppendConditionBuilder(decisionModel, result.cursor())
+    .build();
+
+try {
+    eventStore.appendIf(events, condition);
+} catch (ConcurrencyException e) {
+    // Balance changed (deposit/withdrawal happened) - retry with fresh cursor
+    retry();
+}
+```
+
+**How it works:**
+- Cursor captures position when you read balance
+- Another transaction makes a deposit → balance changes
+- Your appendIf checks: "did ANY WalletOpened/DepositMade/WithdrawalMade events appear after position 42?"
+- Answer: yes → throw ConcurrencyException
+- Handler retries with fresh projection
+
+#### 3. Idempotency (alreadyExists)
+
+**Idempotency check** searches ALL events (ignores cursor) to prevent duplicate operations.
+
+```java
+AppendCondition condition = new AppendConditionBuilder(decisionModel, cursor)
+    .withIdempotencyCheck("WithdrawalMade", "withdrawal_id", withdrawalId)
+    .build();
+```
+
+**How it works:**
+- Searches ALL events in database (not just after cursor)
+- Looks for any `WithdrawalMade` event with matching `withdrawal_id` tag
+- If found → return success (idempotent - already processed)
+- If not found → insert event
+
+**Why separate from conflict check:**
+- Conflict check: "did state change since I read it?"
+- Idempotency check: "have I processed this request ID before?"
+
+### Complete Withdrawal Example
+
+```java
+import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.query.*;
+import com.crablet.eventstore.dcb.*;
+
+public class WithdrawCommandHandler {
+    
+    public CommandResult handleWithdraw(String walletId, String withdrawalId, BigDecimal amount) {
+        // 1. Define decision model
+        Query decisionModel = QueryBuilder.create()
+            .hasTag("wallet_id", walletId)
+            .eventNames("WalletOpened", "DepositMade", "WithdrawalMade")
+            .build();
+        
+        // 2. Project current balance with cursor
+        ProjectionResult<WalletBalance> result = eventStore.project(
+            decisionModel,
+            Cursor.zero(),
+            WalletBalance.class,
+            List.of(balanceProjector)
+        );
+        
+        // 3. Business logic
+        if (result.state().amount().compareTo(amount) < 0) {
+            throw new InsufficientFundsException();
+        }
+        
+        // 4. Create event
+        AppendEvent event = AppendEvent.builder("WithdrawalMade")
+            .tag("wallet_id", walletId)
+            .tag("withdrawal_id", withdrawalId)
+            .data(new WithdrawalMade(amount))
+            .build();
+        
+        // 5. Build condition with BOTH checks
+        AppendCondition condition = new AppendConditionBuilder(decisionModel, result.cursor())
+            .withIdempotencyCheck("WithdrawalMade", "withdrawal_id", withdrawalId)
+            .build();
+        
+        // 6. AppendIf validates both conditions
+        try {
+            eventStore.appendIf(List.of(event), condition);
+            return CommandResult.success(event);
+        } catch (ConcurrencyException e) {
+            // Balance changed - retry with fresh projection
+            return handleWithdraw(walletId, withdrawalId, amount);
+        }
+    }
+}
+```
+
+### What Happens in Different Scenarios
+
+**Scenario 1: Normal case**
+- Read balance: $100
+- Check: balance >= $50 ✓
+- AppendIf checks: no events after cursor ✓, no duplicate withdrawal_id ✓
+- Result: withdrawal succeeds
+
+**Scenario 2: Concurrent deposit**
+- Transaction A: reads balance $100 at position 42
+- Transaction B: deposits $50 → position 43
+- Transaction A: tries to withdraw with cursor 42
+- AppendIf checks: found DepositMade at position 43 > 42 ✗
+- Result: ConcurrencyException → retry
+
+**Scenario 3: Duplicate request**
+- First request: withdrawal_id "w-123" succeeds
+- Retry/duplicate request: same withdrawal_id "w-123"
+- AppendIf checks: found WithdrawalMade with withdrawal_id:w-123 ✗
+- Result: Idempotency violation → return success (already processed)
+
+**Scenario 4: Concurrent withdrawals (both insufficient after first)**
+- Balance: $100
+- Transaction A: reads balance $100, withdraws $80
+- Transaction B: reads balance $100, withdraws $80
+- Transaction A: appendIf succeeds (balance was $100)
+- Transaction B: appendIf fails (sees position changed) → retry → sees balance $20 → insufficient funds
+
 ## Implementation Details
 
 ### Package Structure
 
-- **`com.crablet.core`**: Framework-agnostic interfaces (EventStore, CommandExecutor, EventDeserializer)
-- **`com.crablet.core.impl`**: Spring Boot implementations (JDBCEventStore, DefaultCommandExecutor)
+- **`com.crablet.eventstore.store`**: Core interfaces and implementations (EventStore, StoredEvent, AppendEvent)
+- **`com.crablet.eventstore.commands`**: Command handler pattern (Command, CommandHandler, CommandExecutor)
+- **`com.crablet.eventstore.query`**: Querying support (Query, QueryBuilder)
+- **`com.crablet.eventstore.dcb`**: DCB pattern implementation (AppendCondition, Cursor)
+- **`com.crablet.eventstore.config`**: Configuration classes
+- **`com.crablet.eventstore.clock`**: Clock provider for consistent timestamps
 - **`com.crablet.outbox`**: Outbox pattern interfaces and implementations
 
 ### Cursor Structure

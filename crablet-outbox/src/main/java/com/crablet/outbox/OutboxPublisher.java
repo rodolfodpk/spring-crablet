@@ -1,6 +1,6 @@
 package com.crablet.outbox;
 
-import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.store.StoredEvent;
 
 import java.util.List;
 
