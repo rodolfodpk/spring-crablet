@@ -183,11 +183,12 @@
                                         <include>com/wallets/domain/projections/*.java</include>
                                     </includes>
                                 </resource>
-                                <!-- Copy wallet command classes for integration tests -->
+                                <!-- Copy wallet command and handler classes for integration tests -->
                                 <resource>
                                     <directory>../wallet-eventstore-service/src/main/java</directory>
                                     <includes>
                                         <include>com/wallets/features/*/Command.java</include>
+                                        <include>com/wallets/features/*/CommandHandler.java</include>
                                         <include>com/wallets/domain/WalletCommand.java</include>
                                     </includes>
                                 </resource>
