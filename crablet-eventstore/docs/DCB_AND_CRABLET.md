@@ -109,8 +109,12 @@ PUT /api/wallets/w1
 
 ### Package Structure
 
-- **`com.crablet.core`**: Framework-agnostic interfaces (EventStore, CommandExecutor, EventDeserializer)
-- **`com.crablet.core.impl`**: Spring Boot implementations (JDBCEventStore, DefaultCommandExecutor)
+- **`com.crablet.eventstore.store`**: Core interfaces and implementations (EventStore, StoredEvent, AppendEvent)
+- **`com.crablet.eventstore.commands`**: Command handler pattern (Command, CommandHandler, CommandExecutor)
+- **`com.crablet.eventstore.query`**: Querying support (Query, QueryBuilder)
+- **`com.crablet.eventstore.dcb`**: DCB pattern implementation (AppendCondition, Cursor)
+- **`com.crablet.eventstore.config`**: Configuration classes
+- **`com.crablet.eventstore.clock`**: Clock provider for consistent timestamps
 - **`com.crablet.outbox`**: Outbox pattern interfaces and implementations
 
 ### Cursor Structure
