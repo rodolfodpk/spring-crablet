@@ -34,74 +34,89 @@ Crablet EventStore provides the foundational interfaces and Spring implementatio
 - Resilience4j (for circuit breakers and retries)
 - SLF4J (for logging)
 
-## Core Abstractions
+## Complete DCB Workflow Example
 
-### EventStore
-
-The main interface for interacting with the event store:
+This example shows a complete DCB workflow with conflict detection and idempotency:
 
 ```java
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.query.ProjectionResult;
-
-EventStore eventStore = // ... get from Spring context
-
-// Append events (DCB uses tags, not stream IDs)
-List<AppendEvent> events = List.of(
-    AppendEvent.builder("WalletOpened")
-        .tag("wallet_id", "wallet-123")
-        .data(new WalletOpened("Alice", new BigDecimal("1000")))
-        .build()
-);
-eventStore.append(events);
-
-// Project state from events
-Query query = QueryBuilder.create()
-    .hasTag("wallet_id", "wallet-123")
-    .build();
-
-ProjectionResult<WalletBalance> result = eventStore.project(
-    query,
-    Cursor.zero(),
-    WalletBalance.class,
-    List.of(balanceProjector)
-);
-
-// Optimistic concurrency control with DCB
-AppendCondition condition = AppendCondition.of(result.cursor(), query);
-eventStore.appendIf(events, condition);
-```
-
-### Command Handler
-
-Handle commands and produce events:
-
-```java
-import com.crablet.eventstore.commands.CommandHandler;
+import com.crablet.eventstore.dcb.AppendConditionBuilder;
+import com.crablet.eventstore.dcb.ConcurrencyException;
+import com.crablet.eventstore.query.*;
 import com.crablet.eventstore.commands.CommandResult;
-import com.crablet.eventstore.store.AppendEvent;
+import java.math.BigDecimal;
+import java.util.List;
 
 @Component
-public class DepositCommandHandler implements CommandHandler<DepositCommand> {
-    @Override
-    public CommandResult handle(DepositCommand command) {
-        // Business logic
-        DepositMade event = new DepositMade(command.amount());
+public class WithdrawCommandHandler {
+    
+    private final EventStore eventStore;
+    private final WalletBalanceProjector projector;
+    
+    public CommandResult handleWithdrawal(String walletId, String withdrawalId, BigDecimal amount) {
+        // 1. Define decision model: which events affect withdrawal decision?
+        Query decisionModel = QueryBuilder.create()
+            .hasTag("wallet_id", walletId)
+            .eventNames("WalletOpened", "DepositMade", "WithdrawalMade")
+            .build();
         
-        return CommandResult.success(
-            AppendEvent.builder("DepositMade")
-                .tag("wallet_id", command.walletId())
-                .tag("deposit_id", command.depositId())
-                .data(event)
-                .build()
-        );
+        try {
+            // 2. Project current balance with cursor
+            ProjectionResult<WalletBalance> result = eventStore.project(
+                decisionModel,
+                Cursor.zero(),
+                WalletBalance.class,
+                List.of(projector)
+            );
+            
+            WalletBalance balance = result.state();
+            Cursor cursor = result.cursor();
+            
+            // 3. Business logic: check sufficient funds
+            if (balance.amount().compareTo(amount) < 0) {
+                return CommandResult.emptyWithReason("Insufficient funds");
+            }
+            
+            // 4. Create event
+            AppendEvent event = AppendEvent.builder("WithdrawalMade")
+                .tag("wallet_id", walletId)
+                .tag("withdrawal_id", withdrawalId)  // For idempotency
+                .data(new WithdrawalMade(amount))
+                .build();
+            
+            // 5. Build condition with BOTH checks:
+            //    - DCB conflict check: balance changed since cursor?
+            //    - Idempotency check: withdrawal_id already processed?
+            AppendCondition condition = new AppendConditionBuilder(decisionModel, cursor)
+                .withIdempotencyCheck("WithdrawalMade", "withdrawal_id", withdrawalId)
+                .build();
+            
+            // 6. AppendIf validates both conditions before inserting
+            eventStore.appendIf(List.of(event), condition);
+            return CommandResult.success(event);
+            
+        } catch (ConcurrencyException e) {
+            // Balance changed (concurrent deposit/withdrawal) - retry with fresh state
+            return handleWithdrawal(walletId, withdrawalId, amount);
+        }
     }
 }
 ```
 
-### State Projector
+### What This Shows
+
+**Decision Model**: The Query defines which events affect the withdrawal decision (balance-affecting events).
+
+**Conflict Detection**: `AppendCondition` checks if any balance-affecting events appeared after the cursor. If yes, throws `ConcurrencyException` → retry with fresh balance.
+
+**Idempotency**: `withIdempotencyCheck()` searches ALL events for `withdrawal_id`. If found, operation is idempotent (returns success without inserting duplicate).
+
+**Retry Logic**: On conflict, the handler recursively retries with a fresh projection to get the updated balance.
+
+## State Projector
 
 Project current state from events:
 
