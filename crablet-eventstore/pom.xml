@@ -61,6 +61,12 @@
             <artifactId>resilience4j-timelimiter</artifactId>
         </dependency>
         
+        <!-- Micrometer for metrics -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        
         <!-- SLF4J for logging -->
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -93,10 +99,110 @@
             <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <!-- Copy EventStore tests from ../crablet -->
+                    <execution>
+                        <id>copy-eventstore-tests-from-crablet</id>
+                        <phase>generate-test-sources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.basedir}/src/test/java</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>../../crablet/wallet-example/src/test/java</directory>
+                                    <includes>
+                                        <include>com/crablet/integration/EventStore*.java</include>
+                                        <include>com/crablet/integration/AbstractCrabletIT.java</include>
+                                        <include>com/crablet/testutils/DCBTestHelpers.java</include>
+                                    </includes>
+                                    <excludes>
+                                        <exclude>com/crablet/integration/*Outbox*.java</exclude>
+                                        <exclude>com/crablet/integration/GlobalStatisticsIT.java</exclude>
+                                        <exclude>com/crablet/testutils/CountDownLatchPublisher.java</exclude>
+                                        <exclude>com/crablet/testutils/TestConfiguration.java</exclude>
+                                    </excludes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <!-- Copy test resources from ../crablet -->
+                    <execution>
+                        <id>copy-eventstore-test-resources</id>
+                        <phase>generate-test-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.basedir}/src/test/resources</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>../../crablet/wallet-example/src/test/resources</directory>
+                                    <includes>
+                                        <include>application-test*.properties</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <!-- Copy Flyway migrations -->
+                    <execution>
+                        <id>copy-flyway-migrations</id>
+                        <phase>generate-test-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.basedir}/src/test/resources/db/migration</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>../wallet-eventstore-service/src/main/resources/db/migration</directory>
+                                    <includes>
+                                        <include>*.sql</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <!-- Copy wallet domain classes needed by tests -->
+                    <execution>
+                        <id>copy-wallet-domain-classes</id>
+                        <phase>generate-test-sources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.basedir}/src/test/java</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>../shared-wallet-domain/src/main/java</directory>
+                                    <includes>
+                                        <include>com/wallets/domain/event/*.java</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -127,6 +233,14 @@
                                         <include>target/jacoco.exec</include>
                                     </includes>
                                 </fileSet>
+                                <!-- wallet-outbox-service (HAS INTEGRATION TESTS FOR BOTH LIBRARIES) -->
+                                <fileSet>
+                                    <directory>${project.basedir}/../wallet-outbox-service</directory>
+                                    <includes>
+                                        <include>target/jacoco.exec</include>
+                                    </includes>
+                                </fileSet>
+                                <!-- wallet-eventstore-service (future: when tests are added) -->
                                 <fileSet>
                                     <directory>${project.basedir}/../wallet-eventstore-service</directory>
                                     <includes>

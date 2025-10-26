@@ -83,3 +83,20 @@ Thumbs.db
 DebugTest.java
 debug_test.java
 debug*.java
+
+### Auto-generated test files (copied by Maven during build) ###
+crablet-eventstore/src/test/java/com/crablet/integration/
+crablet-eventstore/src/test/java/com/crablet/testutils/
+crablet-eventstore/src/test/java/com/wallets/
+crablet-eventstore/src/test/resources/
+crablet-outbox/src/test/java/com/crablet/integration/
+crablet-outbox/src/test/java/com/crablet/testutils/
+crablet-outbox/src/test/java/com/wallets/
+crablet-outbox/src/test/resources/
+
+# Keep manually created files
+!crablet-eventstore/src/test/java/com/crablet/TestApplication.java
+!crablet-outbox/src/test/java/com/crablet/TestApplication.java
+# Keep unit tests (they match their source package)
+!crablet-eventstore/src/test/java/com/crablet/eventstore/**/*Test.java
+!crablet-outbox/src/test/java/com/crablet/outbox/**/*Test.java

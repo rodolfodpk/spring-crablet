@@ -38,11 +38,14 @@ public class CommandExecutorImpl implements CommandExecutor {
     private final EventStore eventStore;
     private final Map<String, CommandHandler<?>> handlers;
     private final EventStoreConfig config;
+    private final EventStoreMetrics metrics;
 
     @Autowired
-    public CommandExecutorImpl(EventStore eventStore, List<CommandHandler<?>> commandHandlers, EventStoreConfig config) {
+    public CommandExecutorImpl(EventStore eventStore, List<CommandHandler<?>> commandHandlers, 
+                              EventStoreConfig config, EventStoreMetrics metrics) {
         this.eventStore = eventStore;
         this.config = config;
+        this.metrics = metrics;
 
         // Build handler map from Spring-injected list
         this.handlers = commandHandlers.stream()
@@ -96,8 +99,11 @@ public class CommandExecutorImpl implements CommandExecutor {
 
         log.debug("Starting transaction for command: {}", command.getCommandType());
 
+        // Start metrics tracking
+        var sample = metrics.startCommand(command.getCommandType());
+
         try {
-            return eventStore.executeInTransaction(txStore -> {
+            ExecutionResult executionResult = eventStore.executeInTransaction(txStore -> {
                 // Handle command and generate events
                 @SuppressWarnings("unchecked")
                 CommandHandler<Command> typedHandler = (CommandHandler<Command>) handler;
@@ -132,9 +138,16 @@ public class CommandExecutorImpl implements CommandExecutor {
                 }
 
                 // Atomic append with condition (DCB pattern)
+                int eventsCount = result.events().size();
                 if (!result.isEmpty()) {
                     try {
                         txStore.appendIf(result.events(), result.appendCondition());
+                        // Track aggregate events appended
+                        metrics.recordEventsAppended(eventsCount);
+                        // Track event type distribution
+                        for (AppendEvent event : result.events()) {
+                            metrics.recordEventType(event.type());
+                        }
                     } catch (ConcurrencyException e) {
                         // Check if this is an idempotency violation (duplicate operation)
                         if (e.getMessage().toLowerCase().contains("duplicate operation detected")) {
@@ -168,14 +181,32 @@ public class CommandExecutorImpl implements CommandExecutor {
                     return ExecutionResult.created();
                 }
             });
+            
+            // Record success metrics
+            metrics.recordCommandSuccess(command.getCommandType(), sample);
+            
+            // Track idempotent operations separately
+            if (executionResult.wasIdempotent()) {
+                metrics.recordIdempotentOperation(command.getCommandType());
+            }
+            
+            return executionResult;
         } catch (ConcurrencyException e) {
             log.debug("Transaction rolled back for command: {}", command.getCommandType());
+            metrics.recordCommandFailure(command.getCommandType(), "concurrency");
+            metrics.recordConcurrencyViolation();
+            throw e;
+        } catch (InvalidCommandException e) {
+            log.debug("Transaction rolled back for command: {}", command.getCommandType());
+            metrics.recordCommandFailure(command.getCommandType(), "validation");
             throw e;
         } catch (RuntimeException e) {
             log.debug("Transaction rolled back for command: {}", command.getCommandType());
+            metrics.recordCommandFailure(command.getCommandType(), "runtime");
             throw e;
         } catch (Exception e) {
             log.debug("Transaction rolled back for command: {}", command.getCommandType());
+            metrics.recordCommandFailure(command.getCommandType(), "exception");
             throw new RuntimeException("Failed to execute command: " + command.getCommandType(), e);
         }
     }

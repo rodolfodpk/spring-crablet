@@ -23,11 +23,15 @@ Key metrics exposed by the application for monitoring and alerting.
 
 ## Event Store
 
-| Metric                              | Type    | Description            | Tags        |
-|-------------------------------------|---------|------------------------|-------------|
-| `eventstore_operations_total`       | Counter | Event store operations | `operation` |
-| `eventstore_events_appended`        | Counter | Total events written   | -           |
-| `eventstore_concurrency_violations` | Counter | Event store conflicts  | -           |
+| Metric                              | Type    | Description                     | Tags         |
+|-------------------------------------|---------|---------------------------------|--------------|
+| `eventstore.commands.total`         | Counter | Commands executed               | `command_type` |
+| `eventstore.commands.duration`      | Timer   | Command execution latency       | `command_type` |
+| `eventstore.commands.failed`        | Counter | Failed commands                 | `command_type`, `error_type` |
+| `eventstore.commands.idempotent`    | Counter | Idempotent operations (duplicates) | `command_type` |
+| `eventstore.events.appended`        | Counter | Total events written            | -            |
+| `eventstore.events.by_type`         | Counter | Events by type                  | `event_type` |
+| `eventstore.concurrency.violations` | Counter | DCB concurrency conflicts       | -            |
 
 ## Infrastructure Metrics
 
