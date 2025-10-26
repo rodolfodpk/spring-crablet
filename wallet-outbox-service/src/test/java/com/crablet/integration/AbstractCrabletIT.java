@@ -17,7 +17,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * Abstract base class for integration tests using Testcontainers.
  * Provides shared PostgreSQL container lifecycle and database setup.
  */
-@SpringBootTest(classes = OutboxApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "spring.profiles.active=test")
+@SpringBootTest(classes = TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "spring.profiles.active=test")
 @Testcontainers
 @Import(TestConfiguration.class)
 public abstract class AbstractCrabletIT {
