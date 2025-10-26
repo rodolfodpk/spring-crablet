@@ -196,8 +196,17 @@
                             <target>
                                 <replaceregexp 
                                     byline="true"
-                                    match="com\.OutboxApplication"
-                                    replace="com.crablet.TestApplication"
+                                    match="import com\.OutboxApplication;"
+                                    replace="import com.crablet.TestApplication;"
+                                    flags="g">
+                                    <fileset dir="${project.basedir}/src/test/java">
+                                        <include name="**/*.java"/>
+                                    </fileset>
+                                </replaceregexp>
+                                <replaceregexp 
+                                    byline="true"
+                                    match="classes = OutboxApplication\.class"
+                                    replace="classes = TestApplication.class"
                                     flags="g">
                                     <fileset dir="${project.basedir}/src/test/java">
                                         <include name="**/*.java"/>
