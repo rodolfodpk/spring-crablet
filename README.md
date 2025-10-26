@@ -170,8 +170,9 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
 ### Advanced Features
 - **[Read Replicas](crablet-eventstore/docs/READ_REPLICAS.md)** - PostgreSQL read replica configuration
 - **[PgBouncer Guide](crablet-eventstore/docs/PGBOUNCER.md)** - Connection pooling
+- **[EventStore Metrics](crablet-eventstore/docs/METRICS.md)** - EventStore metrics and monitoring
 - **[Outbox Pattern](crablet-outbox/docs/OUTBOX_PATTERN.md)** - Event publishing
-- **[Outbox Metrics](crablet-outbox/docs/OUTBOX_METRICS.md)** - Monitoring
+- **[Outbox Metrics](crablet-outbox/docs/OUTBOX_METRICS.md)** - Outbox metrics and monitoring
 
 ## Architecture Highlights
 
