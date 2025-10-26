@@ -73,15 +73,25 @@ AppendCondition condition = AppendCondition.builder()
 eventStore.appendIf(events, condition);
 ```
 
-### Query Events
+### Query and Project Events
 
 ```java
+// Using EventStore for production (with state projection)
 Query query = QueryBuilder.create()
     .hasTag("wallet_id", "wallet-123")
     .eventNames("DepositMade", "WithdrawalMade")
     .build();
 
-List<StoredEvent> events = eventStore.query(query, null);
+// Project state from events
+ProjectionResult<WalletState> result = eventStore.project(
+    query,
+    Cursor.zero(),  // or use a cursor from last read
+    WalletState.class,
+    List.of(walletProjector)
+);
+
+WalletState state = result.state();
+Cursor newCursor = result.cursor();
 ```
 
 ### Command Handling
