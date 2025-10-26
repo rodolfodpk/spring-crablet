@@ -1,6 +1,6 @@
 package com.crablet.wallet.domain;
 
-import com.crablet.commands.Command;
+import com.crablet.eventstore.commands.Command;
 
 /**
  * Interface for all wallet-related commands.

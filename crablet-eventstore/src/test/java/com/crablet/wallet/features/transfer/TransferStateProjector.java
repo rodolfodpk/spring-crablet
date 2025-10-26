@@ -1,9 +1,9 @@
 package com.crablet.wallet.features.transfer;
 
-import com.crablet.query.EventDeserializer;
-import com.crablet.query.StateProjector;
-import com.crablet.store.StoredEvent;
-import com.crablet.store.Tag;
+import com.crablet.eventstore.query.EventDeserializer;
+import com.crablet.eventstore.query.StateProjector;
+import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.store.Tag;
 import com.crablet.wallet.domain.event.DepositMade;
 import com.crablet.wallet.domain.event.MoneyTransferred;
 import com.crablet.wallet.domain.event.WalletEvent;

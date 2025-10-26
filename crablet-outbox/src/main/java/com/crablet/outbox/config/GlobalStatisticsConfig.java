@@ -1,15 +1,14 @@
 package com.crablet.outbox.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 /**
  * Configuration properties for global outbox statistics tracking.
  * 
  * This configuration controls the global statistics publisher that monitors
  * all events processed across all topics and publishers in the outbox system.
+ * Users must define as @Bean in Spring configuration.
  */
-@Component
 @ConfigurationProperties(prefix = "crablet.outbox.global-statistics")
 public class GlobalStatisticsConfig {
     

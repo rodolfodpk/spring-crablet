@@ -1,9 +1,9 @@
 package com.crablet.integration;
 
-import com.crablet.store.AppendEvent;
-import com.crablet.store.EventStore;
-import com.crablet.outbox.impl.OutboxProcessorImpl;
 import com.crablet.outbox.config.OutboxConfig;
+import com.crablet.outbox.processor.OutboxProcessorImpl;
+import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.store.EventStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

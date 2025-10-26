@@ -1,8 +1,8 @@
 package com.crablet.integration;
 
+import com.crablet.outbox.metrics.OutboxMetrics;
+import com.crablet.outbox.metrics.OutboxPublisherMetrics;
 import io.micrometer.core.instrument.MeterRegistry;
-import com.crablet.outbox.impl.OutboxMetrics;
-import com.crablet.outbox.impl.OutboxPublisherMetrics;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;

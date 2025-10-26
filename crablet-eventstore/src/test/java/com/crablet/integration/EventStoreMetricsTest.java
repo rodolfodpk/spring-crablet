@@ -1,7 +1,7 @@
 package com.crablet.integration;
 
-import com.crablet.commands.CommandExecutor;
-import com.crablet.store.AppendEvent;
+import com.crablet.eventstore.commands.CommandExecutor;
+import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.wallet.domain.event.DepositMade;
 import com.crablet.wallet.domain.event.WalletOpened;
 import com.crablet.wallet.features.deposit.DepositCommand;

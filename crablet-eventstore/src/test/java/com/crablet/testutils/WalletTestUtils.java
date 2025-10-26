@@ -1,9 +1,9 @@
 package com.crablet.testutils;
 
-import com.crablet.store.AppendEvent;
-import com.crablet.query.EventDeserializer;
-import com.crablet.store.StoredEvent;
-import com.crablet.store.Tag;
+import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.query.EventDeserializer;
+import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.store.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;

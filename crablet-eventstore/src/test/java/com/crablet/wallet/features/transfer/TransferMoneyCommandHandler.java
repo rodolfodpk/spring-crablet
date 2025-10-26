@@ -1,12 +1,12 @@
 package com.crablet.wallet.features.transfer;
 
-import com.crablet.dcb.AppendCondition;
-import com.crablet.dcb.AppendConditionBuilder;
-import com.crablet.store.AppendEvent;
-import com.crablet.commands.CommandHandler;
-import com.crablet.commands.CommandResult;
-import com.crablet.store.EventStore;
-import com.crablet.query.Query;
+import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.dcb.AppendConditionBuilder;
+import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.commands.CommandHandler;
+import com.crablet.eventstore.commands.CommandResult;
+import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.query.Query;
 import com.crablet.wallet.domain.WalletQueryPatterns;
 import com.crablet.wallet.domain.event.MoneyTransferred;
 import com.crablet.wallet.domain.exception.InsufficientFundsException;
@@ -113,8 +113,8 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
         transferProjector.forWallets(cmd.fromWalletId(), cmd.toWalletId());
         
         // Use EventStore's streaming projection with new signature
-        com.crablet.query.ProjectionResult<TransferState> result = 
-            store.project(decisionModel, com.crablet.store.Cursor.zero(), TransferState.class, List.of(transferProjector));
+        com.crablet.eventstore.query.ProjectionResult<TransferState> result = 
+            store.project(decisionModel, com.crablet.eventstore.store.Cursor.zero(), TransferState.class, List.of(transferProjector));
         
         return new TransferProjectionResult(result.state(), result.cursor(), decisionModel);
     }
@@ -126,7 +126,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 
     private record TransferProjectionResult(
             TransferState state,
-            com.crablet.store.Cursor cursor,
+            com.crablet.eventstore.store.Cursor cursor,
             Query decisionModel
     ) {
     }

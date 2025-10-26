@@ -1,10 +1,10 @@
 package com.crablet.integration.wallet;
 
-import com.crablet.commands.CommandExecutor;
-import com.crablet.store.EventStore;
-import com.crablet.query.EventTestHelper;
-import com.crablet.query.Query;
-import com.crablet.store.StoredEvent;
+import com.crablet.eventstore.commands.CommandExecutor;
+import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.query.EventTestHelper;
+import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.wallet.domain.WalletQueryPatterns;
 import com.crablet.wallet.domain.event.DepositMade;
 import com.crablet.wallet.domain.event.WalletOpened;

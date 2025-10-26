@@ -1,13 +1,13 @@
 package com.crablet.integration.wallet;
 
-import com.crablet.commands.CommandResult;
-import com.crablet.dcb.ConcurrencyException;
-import com.crablet.store.EventStore;
-import com.crablet.query.EventTestHelper;
-import com.crablet.query.Query;
-import com.crablet.query.QueryItem;
-import com.crablet.store.StoredEvent;
-import com.crablet.store.Tag;
+import com.crablet.eventstore.commands.CommandResult;
+import com.crablet.eventstore.dcb.ConcurrencyException;
+import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.query.EventTestHelper;
+import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.query.QueryItem;
+import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.store.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.crablet.wallet.domain.event.WalletOpened;
 import com.crablet.wallet.features.openwallet.OpenWalletCommand;

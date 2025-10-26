@@ -1,10 +1,10 @@
 package com.crablet.integration.wallet;
 
-import com.crablet.store.AppendEvent;
-import com.crablet.commands.CommandResult;
-import com.crablet.store.EventStore;
-import com.crablet.query.EventTestHelper;
-import com.crablet.store.Tag;
+import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.commands.CommandResult;
+import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.query.EventTestHelper;
+import com.crablet.eventstore.store.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.crablet.wallet.domain.event.WalletOpened;
 import com.crablet.wallet.domain.projections.WalletBalanceProjector;
@@ -194,7 +194,7 @@ class WalletCommandsTest extends com.crablet.integration.AbstractCrabletTest {
         // Then: Wallet should have zero balance
         // Note: WalletState building would require implementing a state projector
         // For now, we just verify the events were created successfully
-        var events = testHelper.query(com.crablet.query.Query.empty(), null);
+        var events = testHelper.query(com.crablet.eventstore.query.Query.empty(), null);
         assertThat(events).hasSize(4); // OpenWallet + Deposit + 2 Withdrawals
     }
 }

@@ -1,5 +1,5 @@
 package com.crablet.integration;
-import com.crablet.store.EventStore;
+import com.crablet.eventstore.store.EventStore;
 import com.crablet.TestApplication;
 import com.crablet.testutils.TestConfiguration;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,7 +1,7 @@
 package com.crablet.wallet.domain;
 
-import com.crablet.query.Query;
-import com.crablet.query.QueryBuilder;
+import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.query.QueryBuilder;
 
 import static com.crablet.wallet.domain.WalletEventTypes.*;
 import static com.crablet.wallet.domain.WalletTags.*;

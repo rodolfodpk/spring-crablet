@@ -1,12 +1,12 @@
 package com.crablet.wallet.domain.projections;
 
-import com.crablet.query.EventDeserializer;
-import com.crablet.store.EventStore;
-import com.crablet.query.ProjectionResult;
-import com.crablet.query.Query;
-import com.crablet.query.StateProjector;
-import com.crablet.store.StoredEvent;
-import com.crablet.store.Tag;
+import com.crablet.eventstore.query.EventDeserializer;
+import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.query.ProjectionResult;
+import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.query.StateProjector;
+import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.store.Tag;
 import com.crablet.wallet.domain.WalletQueryPatterns;
 import com.crablet.wallet.domain.event.DepositMade;
 import com.crablet.wallet.domain.event.MoneyTransferred;
@@ -129,7 +129,7 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
      */
     public ProjectionResult<WalletBalanceState> projectWalletBalance(EventStore store, String walletId, Query query) {
         // Use new signature: query, cursor, stateType, projectors
-        return store.project(query, com.crablet.store.Cursor.zero(), WalletBalanceState.class, List.of(this));
+        return store.project(query, com.crablet.eventstore.store.Cursor.zero(), WalletBalanceState.class, List.of(this));
     }
 
 }

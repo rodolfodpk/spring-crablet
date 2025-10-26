@@ -1,13 +1,11 @@
 package com.crablet.outbox.publishers;
 
-import com.crablet.store.StoredEvent;
+import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.PublishException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -16,8 +14,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-@Component
-@ConditionalOnProperty(prefix = "crablet.outbox.publishers.statistics", name = "enabled", havingValue = "true")
+/**
+ * Publisher that logs statistics about event publishing.
+ * Users must define as @Bean in Spring configuration.
+ */
 public class StatisticsPublisher implements OutboxPublisher {
 
     private static final Logger log = LoggerFactory.getLogger(StatisticsPublisher.class);

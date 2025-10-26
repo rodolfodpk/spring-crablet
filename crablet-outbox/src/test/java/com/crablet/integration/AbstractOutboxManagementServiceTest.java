@@ -1,10 +1,10 @@
 package com.crablet.integration;
 
-import com.crablet.store.EventStore;
-import com.crablet.store.AppendEvent;
-import com.crablet.outbox.impl.OutboxProcessorImpl;
 import com.crablet.outbox.config.OutboxConfig;
-import com.crablet.outbox.impl.OutboxManagementService;
+import com.crablet.outbox.management.OutboxManagementService;
+import com.crablet.outbox.processor.OutboxProcessorImpl;
+import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.store.EventStore;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;

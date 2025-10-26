@@ -5,11 +5,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
-@Component
+/**
+ * Configuration for Outbox behavior.
+ * Users must define as @Bean:
+ * <pre>{@code
+ * @Bean
+ * @ConfigurationProperties(prefix = "crablet.outbox")
+ * public OutboxConfig outboxConfig() {
+ *     return new OutboxConfig();
+ * }
+ * }</pre>
+ */
 @ConfigurationProperties(prefix = "crablet.outbox")
 public class OutboxConfig {
     

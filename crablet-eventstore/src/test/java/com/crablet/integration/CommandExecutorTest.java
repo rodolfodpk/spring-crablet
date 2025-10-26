@@ -1,15 +1,15 @@
 package com.crablet.integration;
 
-import com.crablet.commands.CommandExecutor;
-import com.crablet.commands.ExecutionResult;
-import com.crablet.dcb.ConcurrencyException;
-import com.crablet.query.EventTestHelper;
-import com.crablet.query.Query;
-import com.crablet.store.AppendEvent;
-import com.crablet.store.Cursor;
-import com.crablet.store.EventStore;
-import com.crablet.store.StoredEvent;
-import com.crablet.store.Tag;
+import com.crablet.eventstore.commands.CommandExecutor;
+import com.crablet.eventstore.commands.ExecutionResult;
+import com.crablet.eventstore.dcb.ConcurrencyException;
+import com.crablet.eventstore.query.EventTestHelper;
+import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.store.Tag;
 import com.crablet.wallet.domain.exception.InsufficientFundsException;
 import com.crablet.wallet.domain.exception.WalletNotFoundException;
 import com.crablet.wallet.domain.projections.WalletBalanceProjector;

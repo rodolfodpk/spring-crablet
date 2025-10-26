@@ -1,7 +1,7 @@
 package com.crablet.wallet.domain;
 
-import com.crablet.query.Query;
-import com.crablet.store.Tag;
+import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.store.Tag;
 import com.crablet.wallet.domain.WalletQueryPatterns;
 import org.junit.jupiter.api.Test;
 
