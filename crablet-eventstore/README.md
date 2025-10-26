@@ -36,81 +36,111 @@ Crablet EventStore provides the foundational interfaces and Spring implementatio
 
 ## Complete DCB Workflow Example
 
-This example shows a complete DCB workflow with conflict detection and idempotency:
+Two real examples from our wallet domain showing distinct DCB patterns:
+
+### Example 1: Idempotency Pattern (OpenWallet)
+
+Prevents duplicate wallet creation using `withIdempotencyCheck()`:
 
 ```java
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.Cursor;
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
-import com.crablet.eventstore.dcb.ConcurrencyException;
-import com.crablet.eventstore.query.*;
-import com.crablet.eventstore.commands.CommandResult;
-import java.math.BigDecimal;
-import java.util.List;
+@Override
+public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
+    // Command is already validated at construction with YAVI
 
-@Component
-public class WithdrawCommandHandler {
-    
-    private final EventStore eventStore;
-    private final WalletBalanceProjector projector;
-    
-    public CommandResult handleWithdrawal(String walletId, String withdrawalId, BigDecimal amount) {
-        // 1. Define decision model: which events affect withdrawal decision?
-        Query decisionModel = QueryBuilder.create()
-            .hasTag("wallet_id", walletId)
-            .eventNames("WalletOpened", "DepositMade", "WithdrawalMade")
+    // 2. DCB: NO validation query needed!
+    //    AppendCondition will enforce uniqueness atomically
+
+    // 3. Create event (optimistic - assume wallet doesn't exist)
+    WalletOpened walletOpened = WalletOpened.of(
+            command.walletId(),
+            command.owner(),
+            command.initialBalance()
+    );
+
+    AppendEvent event = AppendEvent.builder(WALLET_OPENED)
+            .tag(WALLET_ID, command.walletId())
+            .data(walletOpened)
             .build();
-        
-        try {
-            // 2. Project current balance with cursor
-            ProjectionResult<WalletBalance> result = eventStore.project(
-                decisionModel,
-                Cursor.zero(),
-                WalletBalance.class,
-                List.of(projector)
-            );
-            
-            WalletBalance balance = result.state();
-            Cursor cursor = result.cursor();
-            
-            // 3. Business logic: check sufficient funds
-            if (balance.amount().compareTo(amount) < 0) {
-                return CommandResult.emptyWithReason("Insufficient funds");
-            }
-            
-            // 4. Create event
-            AppendEvent event = AppendEvent.builder("WithdrawalMade")
-                .tag("wallet_id", walletId)
-                .tag("withdrawal_id", withdrawalId)  // For idempotency
-                .data(new WithdrawalMade(amount))
-                .build();
-            
-            // 5. Build condition with BOTH checks:
-            //    - DCB conflict check: balance changed since cursor?
-            //    - Idempotency check: withdrawal_id already processed?
-            AppendCondition condition = new AppendConditionBuilder(decisionModel, cursor)
-                .withIdempotencyCheck("WithdrawalMade", "withdrawal_id", withdrawalId)
-                .build();
-            
-            // 6. Return result with events and condition
-            // CommandExecutor will call appendIf and handle ConcurrencyException
-            return CommandResult.of(List.of(event), condition);
-        }
-    }
+
+    // 4. Build condition to enforce uniqueness using DCB idempotency pattern
+    //    Fails if ANY WalletOpened event exists for this wallet_id (idempotency check)
+    //    No concurrency check needed for wallet creation - only idempotency matters
+    AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
+            .withIdempotencyCheck(WALLET_OPENED, WALLET_ID, command.walletId())
+            .build();
+
+    // 5. Return - appendIf will:
+    //    - Check condition atomically
+    //    - Throw ConcurrencyException if wallet exists
+    //    - Append event if wallet doesn't exist
+    return CommandResult.of(List.of(event), condition);
 }
 ```
 
-### What This Shows
+**Key points:**
+- Uses `Query.empty()` + `Cursor.zero()` (no decision model needed)
+- `withIdempotencyCheck()` enforces uniqueness: fails if `WALLET_OPENED` exists for this `wallet_id`
+- Optimistic: creates event first, checks atomically via `appendIf`
 
-**Decision Model**: The Query defines which events affect the withdrawal decision (balance-affecting events).
+### Example 2: Concurrency Control (Withdraw)
 
-**Conflict Detection**: `AppendCondition` checks if any balance-affecting events appeared after the cursor. If yes, throws `ConcurrencyException`.
+Prevents concurrent balance modifications using cursor-based conflict detection:
 
-**Idempotency**: `withIdempotencyCheck()` searches ALL events for `withdrawal_id`. If found, operation is idempotent (already processed).
+```java
+@Override
+public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
+    // Command is already validated at construction with YAVI
 
-**CommandExecutor**: The handler returns `CommandResult` with events and condition. `CommandExecutor` calls `appendIf` and handles retries on `ConcurrencyException`.
+    // Use domain-specific decision model query
+    Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
+
+    // Project state (needed for balance calculation)
+    ProjectionResult<WalletBalanceState> projection =
+            balanceProjector.projectWalletBalance(eventStore, command.walletId(), decisionModel);
+    WalletBalanceState state = projection.state();
+
+    if (!state.isExisting()) {
+        log.warn("Withdrawal failed - wallet not found: walletId={}, withdrawalId={}",
+                command.walletId(), command.withdrawalId());
+        throw new WalletNotFoundException(command.walletId());
+    }
+    if (!state.hasSufficientFunds(command.amount())) {
+        log.warn("Withdrawal failed - insufficient funds: walletId={}, balance={}, requested={}",
+                command.walletId(), state.balance(), command.amount());
+        throw new InsufficientFundsException(command.walletId(), state.balance(), command.amount());
+    }
+
+    int newBalance = state.balance() - command.amount();
+
+    WithdrawalMade withdrawal = WithdrawalMade.of(
+            command.withdrawalId(),
+            command.walletId(),
+            command.amount(),
+            newBalance,
+            command.description()
+    );
+
+    AppendEvent event = AppendEvent.builder(WITHDRAWAL_MADE)
+            .tag(WALLET_ID, command.walletId())
+            .tag(WITHDRAWAL_ID, command.withdrawalId())
+            .data(withdrawal)
+            .build();
+
+    // Build condition: decision model only (cursor-based concurrency control)
+    // DCB Principle: Cursor check prevents duplicate charges
+    // Note: No idempotency check - cursor advancement detects if operation already succeeded
+    AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
+            .build();
+
+    return CommandResult.of(List.of(event), condition);
+}
+```
+
+**Key points:**
+- Decision Model: Query for balance-affecting events (`WalletOpened`, `DepositMade`, `WithdrawalMade`)
+- Cursor checks if balance changed concurrently → throws `ConcurrencyException` → `CommandExecutor` retries
+- Business validation: checks sufficient funds before creating event
+- No explicit idempotency check (cursor advancement detects duplicates)
 
 ## Learn More
 
