@@ -1,6 +1,6 @@
 package com.crablet.outbox.publishers;
 
-import com.crablet.eventstore.StoredEvent;
+import com.crablet.store.StoredEvent;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.PublishException;
 import org.slf4j.Logger;

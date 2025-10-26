@@ -1,6 +1,6 @@
 package com.crablet.outbox.impl;
 
-import com.crablet.eventstore.StoredEvent;
+import com.crablet.store.StoredEvent;
 import com.crablet.outbox.OutboxProcessor;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.PublishException;
@@ -65,7 +65,7 @@ public class OutboxProcessorImpl implements OutboxProcessor {
     public OutboxProcessorImpl(
             OutboxConfig config,
             JdbcTemplate jdbcTemplate,
-            @Qualifier("readDataSource") DataSource readDataSource,
+            DataSource readDataSource,
             List<OutboxPublisher> publishers,
             OutboxLeaderElector leaderElector,
             OutboxMetrics outboxMetrics,
@@ -626,13 +626,13 @@ public class OutboxProcessorImpl implements OutboxProcessor {
         );
     }
     
-    private List<com.crablet.eventstore.Tag> parseTagsFromArray(java.sql.Array array) throws SQLException {
+    private List<com.crablet.store.Tag> parseTagsFromArray(java.sql.Array array) throws SQLException {
         if (array == null) {
             return List.of();
         }
         
         String[] tagStrings = (String[]) array.getArray();
-        List<com.crablet.eventstore.Tag> tags = new ArrayList<>();
+        List<com.crablet.store.Tag> tags = new ArrayList<>();
         
         for (String tagStr : tagStrings) {
             // Format: "key:value"
@@ -640,7 +640,7 @@ public class OutboxProcessorImpl implements OutboxProcessor {
             if (colonIndex > 0) {
                 String key = tagStr.substring(0, colonIndex);
                 String value = tagStr.substring(colonIndex + 1);
-                tags.add(new com.crablet.eventstore.Tag(key, value));
+                tags.add(new com.crablet.store.Tag(key, value));
             }
         }
         

@@ -1,6 +1,6 @@
 package com.crablet.testutils;
 
-import com.crablet.eventstore.StoredEvent;
+import com.crablet.store.StoredEvent;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.PublishException;
 import org.springframework.stereotype.Component;
