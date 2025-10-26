@@ -148,6 +148,7 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
 - **[DCB Pattern](docs/DCB_AND_CRABLET.md)** - Detailed explanation with examples
 - **[Testing](TESTING.md)** - Testcontainers setup and test examples
 - **[Database Schema](SCHEMA.md)** - Database tables and functions
+- **[Metrics](docs/METRICS.md)** - EventStore metrics and monitoring
 
 ## License
 
