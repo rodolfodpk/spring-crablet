@@ -116,97 +116,12 @@ public class WithdrawCommandHandler {
 
 **Retry Logic**: On conflict, the handler recursively retries with a fresh projection to get the updated balance.
 
-## State Projector
+## Learn More
 
-Project current state from events:
-
-```java
-import com.crablet.eventstore.query.StateProjector;
-import com.crablet.eventstore.store.StoredEvent;
-import java.util.List;
-
-public class WalletBalanceProjector implements StateProjector<WalletBalance> {
-    @Override
-    public WalletBalance project(List<StoredEvent> events) {
-        return events.stream()
-            .map(e -> (WalletEvent) e.data())
-            .reduce(
-                new WalletBalance(BigDecimal.ZERO), 
-                this::apply, 
-                (a, b) -> b
-            );
-    }
-    
-    private WalletBalance apply(WalletBalance balance, WalletEvent event) {
-        return switch (event) {
-            case WalletOpened e -> new WalletBalance(e.initialBalance());
-            case DepositMade e -> new WalletBalance(balance.amount().add(e.amount()));
-            case WithdrawalMade e -> new WalletBalance(balance.amount().subtract(e.amount()));
-        };
-    }
-}
-```
-
-## DCB Pattern
-
-The Dynamic Consistency Boundary pattern uses cursors and tags for optimistic concurrency control:
-
-```java
-import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.query.QueryBuilder;
-import com.crablet.eventstore.store.Cursor;
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
-
-// 1. Build query using tags (not stream IDs)
-Query query = QueryBuilder.create()
-    .hasTag("wallet_id", walletId)
-    .eventNames("WalletOpened", "DepositMade", "WithdrawalMade")
-    .build();
-
-// 2. Project state with cursor
-ProjectionResult<WalletBalance> result = eventStore.project(
-    query,
-    Cursor.zero(),  // or cursor from previous read
-    WalletBalance.class,
-    List.of(projector)
-);
-
-// 3. Append with condition to prevent concurrent modifications
-AppendCondition condition = new AppendConditionBuilder(query, result.cursor())
-    .build();
-
-eventStore.appendIf(newEvents, condition);
-```
-
-## Querying Events
-
-Query events by tag and event name:
-
-```java
-import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.query.QueryBuilder;
-
-// Query by tag
-Query query = QueryBuilder.create()
-    .hasTag("wallet_id", "wallet-123")
-    .build();
-
-// Query by event names
-Query query = QueryBuilder.create()
-    .eventNames("DepositMade", "WithdrawalMade")
-    .build();
-
-// Query by tag and event names
-Query query = QueryBuilder.create()
-    .hasTag("wallet_id", "wallet-123")
-    .eventNames("DepositMade")
-    .build();
-```
-
-## Documentation
-
-- [DCB Pattern](docs/DCB_AND_CRABLET.md) - Detailed explanation of the Dynamic Consistency Boundary pattern
+- **[Getting Started](GETTING_STARTED.md)** - Complete integration guide with wallet example
+- **[DCB Pattern](docs/DCB_AND_CRABLET.md)** - Detailed explanation with examples
+- **[Testing](TESTING.md)** - Testcontainers setup and test examples
+- **[Database Schema](SCHEMA.md)** - Database tables and functions
 
 ## License
 
