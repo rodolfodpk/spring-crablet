@@ -189,6 +189,7 @@
                                     <includes>
                                         <include>com/wallets/features/*/Command.java</include>
                                         <include>com/wallets/features/*/CommandHandler.java</include>
+                                        <include>com/wallets/features/*/StateProjector.java</include>
                                         <include>com/wallets/domain/WalletCommand.java</include>
                                     </includes>
                                 </resource>
