@@ -1,6 +1,6 @@
 package com.crablet.integration;
 import com.crablet.eventstore.EventStore;
-import com.crablet.TestApplication;
+import com.OutboxApplication;
 import com.crablet.testutils.TestConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +17,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * Abstract base class for integration tests using Testcontainers.
  * Provides shared PostgreSQL container lifecycle and database setup.
  */
-@SpringBootTest(classes = TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "spring.profiles.active=test")
+@SpringBootTest(classes = OutboxApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "spring.profiles.active=test")
 @Testcontainers
 @Import(TestConfiguration.class)
 public abstract class AbstractCrabletIT {
