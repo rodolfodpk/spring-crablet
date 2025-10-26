@@ -108,13 +108,13 @@ public class WithdrawCommandHandler {
                 .withIdempotencyCheck("WithdrawalMade", "withdrawal_id", withdrawalId)
                 .build();
             
-            // 6. AppendIf validates both conditions
-            eventStore.appendIf(List.of(event), condition);
-            return CommandResult.success(event);
+            // 6. Return result with events and condition
+            // CommandExecutor will call appendIf and handle ConcurrencyException
+            return CommandResult.of(List.of(event), condition);
             
-        } catch (ConcurrencyException e) {
-            // Balance changed concurrently - retry with fresh state
-            return handleWithdrawal(walletId, withdrawalId, amount);
+        } catch (RuntimeException e) {
+            // Re-throw infrastructure errors
+            throw e;
         }
     }
 }
@@ -122,9 +122,9 @@ public class WithdrawCommandHandler {
 
 **What this demonstrates:**
 - **Decision Model**: Query defines which events affect business decisions
-- **Conflict Detection**: Checks if balance changed since cursor → throws `ConcurrencyException` → retry
-- **Idempotency**: `withdrawal_id` prevents duplicate operations even on retry
-- **Retry Logic**: Handles concurrent modifications by re-projecting with fresh cursor
+- **Conflict Detection**: Checks if balance changed since cursor → `CommandExecutor` calls appendIf
+- **Idempotency**: `withdrawal_id` prevents duplicate operations
+- **CommandExecutor**: Handles the actual appendIf call and retries on `ConcurrencyException`
 
 ## Documentation
 
