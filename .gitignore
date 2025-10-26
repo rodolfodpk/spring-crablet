@@ -48,6 +48,7 @@ performance-tests/*_results.json
 results/*.json
 *.json
 !performance-tests/results/summary.md
+!observability/**/*.json
 
 ### Wallet example results ###
 wallet-example/performance-tests/results/

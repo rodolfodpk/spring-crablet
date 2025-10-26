@@ -1,0 +1,204 @@
+{
+  "dashboard": {
+    "title": "EventStore Monitoring",
+    "tags": ["eventstore", "crablet", "commands"],
+    "timezone": "browser",
+    "refresh": "5s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Command Throughput",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(eventstore_commands_total[1m])",
+            "legendFormat": "{{command_type}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Commands/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Command Duration (p95)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(eventstore_commands_duration_bucket[1m]))",
+            "legendFormat": "{{command_type}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Events Appended Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(eventstore_events_appended[1m])",
+            "legendFormat": "Events/sec",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Events/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Concurrency Violations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(eventstore_concurrency_violations[1m])",
+            "legendFormat": "Violations/sec",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Violations/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Command Failures by Type",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(eventstore_commands_failed[1m])",
+            "legendFormat": "{{command_type}}.{{error_type}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Failures/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 6,
+        "title": "Total Commands Processed",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(eventstore_commands_total[5m]))",
+            "legendFormat": "Last 5min",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      },
+      {
+        "id": 7,
+        "title": "Event Type Distribution",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(eventstore_events_by_type_total[1m])",
+            "legendFormat": "{{event_type}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Events/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        }
+      },
+      {
+        "id": 8,
+        "title": "Idempotent Operations (Duplicates)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(eventstore_commands_idempotent_total[1m])",
+            "legendFormat": "{{command_type}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Duplicates/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+    }
+  }
+}
+
