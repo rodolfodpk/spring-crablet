@@ -99,6 +99,12 @@
             <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- YAVI for command validation in wallet tests -->
+        <dependency>
+            <groupId>am.ik.yavi</groupId>
+            <artifactId>yavi</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -118,32 +124,7 @@
                 <artifactId>maven-resources-plugin</artifactId>
                 <executions>
                     <!-- Copy EventStore tests from ../crablet -->
-                    <execution>
-                        <id>copy-eventstore-tests-from-crablet</id>
-                        <phase>generate-test-sources</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${project.basedir}/src/test/java</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>../../crablet/wallet-example/src/test/java</directory>
-                                    <includes>
-                                        <include>com/crablet/integration/EventStore*.java</include>
-                                        <include>com/crablet/integration/AbstractCrabletIT.java</include>
-                                        <include>com/crablet/testutils/DCBTestHelpers.java</include>
-                                    </includes>
-                                    <excludes>
-                                        <exclude>com/crablet/integration/*Outbox*.java</exclude>
-                                        <exclude>com/crablet/integration/GlobalStatisticsIT.java</exclude>
-                                        <exclude>com/crablet/testutils/CountDownLatchPublisher.java</exclude>
-                                        <exclude>com/crablet/testutils/TestConfiguration.java</exclude>
-                                    </excludes>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
+                    <!-- Removed: copy-eventstore-tests-from-crablet - these tests need Spring Boot app context -->
                     <!-- Copy test resources from ../crablet -->
                     <execution>
                         <id>copy-eventstore-test-resources</id>
@@ -182,6 +163,7 @@
                             </resources>
                         </configuration>
                     </execution>
+                    <!-- Removed: copy-wallet-integration-tests - tests now copied manually with proper package fixes -->
                     <!-- Copy wallet domain classes needed by tests -->
                     <execution>
                         <id>copy-wallet-domain-classes</id>
@@ -195,7 +177,18 @@
                                 <resource>
                                     <directory>../shared-wallet-domain/src/main/java</directory>
                                     <includes>
+                                        <include>com/wallets/domain/*.java</include>
                                         <include>com/wallets/domain/event/*.java</include>
+                                        <include>com/wallets/domain/exception/*.java</include>
+                                        <include>com/wallets/domain/projections/*.java</include>
+                                    </includes>
+                                </resource>
+                                <!-- Copy wallet command classes for integration tests -->
+                                <resource>
+                                    <directory>../wallet-eventstore-service/src/main/java</directory>
+                                    <includes>
+                                        <include>com/wallets/features/*/Command.java</include>
+                                        <include>com/wallets/domain/WalletCommand.java</include>
                                     </includes>
                                 </resource>
                             </resources>
