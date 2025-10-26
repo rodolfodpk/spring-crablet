@@ -7,105 +7,120 @@
 
 Java 25 implementation of the DCB (Dynamic Consistency Boundary) event sourcing pattern with microservices architecture, ported from [crablet](https://github.com/rodolfodpk/crablet) (Kotlin) and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go).
 
-## Prerequisites
+## Overview
 
-- Java 25 ([Temurin](https://adoptium.net/) recommended)
-- Maven 3.9+
-- Docker and Docker Compose
-- PostgreSQL 17+ (or use Docker Compose)
+Crablet is a library-first event sourcing solution with Spring Boot integration. It provides:
 
-[Architecture](docs/architecture/README.md) | [API Reference](docs/api/README.md) | [Development Guide](docs/development/README.md)
+- **Event Sourcing**: Complete audit trail with state reconstruction
+- **DCB Pattern**: Cursor-based optimistic concurrency control without distributed locks
+- **Outbox Pattern**: Reliable event publishing to external systems
+- **Spring Integration**: Ready-to-use Spring Boot components
 
-## Architecture
+## Modules
 
-This project demonstrates a **microservices architecture** with separate EventStore and Outbox services:
-
-### Services
-- **wallet-eventstore-service** (Port 8080) - Business API for wallet operations
-- **wallet-outbox-service** (Port 8081) - Reliable event publishing with outbox pattern
-- **PostgreSQL** - Shared database for both services
-
-### Libraries
-- **crablet-eventstore** - Event sourcing library with Spring integration
-- **crablet-outbox** - Outbox pattern library with Spring integration  
-- **shared-wallet-domain** - Shared wallet domain logic including events, projectors, exceptions, and constants
+- **crablet-eventstore** - Core event sourcing library with DCB support
+- **crablet-outbox** - Transactional outbox pattern for event publishing
 
 ## Quick Start
 
+### Add Dependencies
+
+```xml
+<dependencies>
+    <!-- EventStore -->
+    <dependency>
+        <groupId>com.crablet</groupId>
+        <artifactId>crablet-eventstore</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+    
+    <!-- Outbox (optional) -->
+    <dependency>
+        <groupId>com.crablet</groupId>
+        <artifactId>crablet-outbox</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+</dependencies>
+```
+
 ### Build and Test
+
 Tests use Testcontainers (no external dependencies required):
 ```bash
-./mvnw clean install
+mvn clean install
 ```
 
-### Run Services Locally
+All tests pass (260+ tests with 72% code coverage).
 
-```bash
-# Start PostgreSQL
-docker-compose up -d
+## Features
 
-# Start EventStore service
-cd wallet-eventstore-service
-./mvnw spring-boot:run
+### Event Store
 
-# In another terminal, start Outbox service
-cd wallet-outbox-service
-./mvnw spring-boot:run
+```java
+// Append events
+List<AppendEvent> events = List.of(
+    AppendEvent.builder("WalletOpened")
+        .tag("wallet_id", "wallet-123")
+        .data(new WalletOpened("Alice"))
+        .build()
+);
+
+AppendCondition condition = AppendCondition.builder()
+    .tags("wallet_id", "wallet-123")
+    .afterCursor(cursor)
+    .build();
+
+eventStore.appendIf(events, condition);
 ```
 
-Services will start on:
-- **EventStore API**: http://localhost:8080/api
-- **Outbox Management API**: http://localhost:8081/api/outbox
-- **Swagger UI (EventStore)**: http://localhost:8080/swagger-ui/index.html
-- **Swagger UI (Outbox)**: http://localhost:8081/swagger-ui/index.html
+### Query Events
 
-See [docs/urls.md](docs/urls.md) for complete URL reference.
+```java
+Query query = QueryBuilder.create()
+    .hasTag("wallet_id", "wallet-123")
+    .eventNames("DepositMade", "WithdrawalMade")
+    .build();
 
-### Performance Testing
-
-Performance tests are located in `wallet-eventstore-service/performance-tests/` and test the EventStore API:
-
-```bash
-# Navigate to performance tests
-cd wallet-eventstore-service/performance-tests
-
-# Run all performance tests
-./run-all-tests.sh
-
-# Run specific test suites
-./run-success-tests.sh      # Basic wallet operations
-./run-concurrency-test.sh    # Concurrent transfers
+List<StoredEvent> events = eventStore.query(query, null);
 ```
 
-See [wallet-eventstore-service/performance-tests/README.md](wallet-eventstore-service/performance-tests/README.md) for detailed documentation.
+### Command Handling
 
-## Key Components
-
-- **DCB Pattern**: Cursor-based optimistic concurrency control
-- **Event Sourcing**: Complete audit trail with state reconstruction
-- **Java 25**: Records, sealed interfaces, virtual threads, pattern matching
-- **Spring Boot**: REST API with PostgreSQL backend
-- **Testing**: 553 tests (all passing) with Testcontainers
-- **Observability**: Prometheus, Grafana, Loki monitoring stack (monitors both EventStore and Outbox services)
+```java
+@Component
+public class DepositCommandHandler implements CommandHandler<DepositCommand> {
+    @Override
+    public CommandResult handle(DepositCommand command) {
+        // Business logic
+        DepositMade event = new DepositMade(command.amount());
+        return CommandResult.success(AppendEvent.builder("DepositMade")
+            .tag("wallet_id", command.walletId())
+            .data(event)
+            .build());
+    }
+}
+```
 
 ## Documentation
 
-### For Developers
-- **[API Reference](docs/api/README.md)** - REST endpoints, request/response examples
-- **[Development Guide](docs/development/README.md)** - Setup, testing, coding practices
-- **[Architecture](docs/architecture/README.md)** - DCB pattern, event sourcing, system design
-- **[Available URLs](docs/urls.md)** - Quick reference for all service endpoints
+### Core Documentation
+- **[EventStore README](crablet-eventstore/README.md)** - Event sourcing library guide
+- **[Outbox README](crablet-outbox/README.md)** - Outbox pattern library guide
+- **[DCB Pattern](crablet-eventstore/docs/DCB_AND_CRABLET.md)** - Detailed DCB explanation
 
-### For Operations
-- **[Setup](docs/setup/README.md)** - Installation and configuration
-- **[Observability](docs/observability/README.md)** - Monitoring, metrics, dashboards  
-- **[Performance Testing](wallet-eventstore-service/performance-tests/README.md)** - Load testing and benchmarks
-- **[Security](docs/security/README.md)** - Rate limiting, HTTP/2, input validation
+### Advanced Features
+- **[Read Replicas](crablet-eventstore/docs/READ_REPLICAS.md)** - PostgreSQL read replica configuration
+- **[PgBouncer Guide](crablet-eventstore/docs/PGBOUNCER.md)** - Connection pooling
+- **[Outbox Pattern](crablet-outbox/docs/OUTBOX_PATTERN.md)** - Event publishing
+- **[Outbox Metrics](crablet-outbox/docs/OUTBOX_METRICS.md)** - Monitoring
 
-### Advanced Topics
-- [Outbox Pattern](docs/architecture/OUTBOX_PATTERN.md) - Reliable event publishing
-- [Read Replicas](docs/setup/READ_REPLICAS.md) - PostgreSQL read replica configuration
-- [PgBouncer Guide](docs/setup/PGBOUNCER.md) - Connection pooling with PgBouncer
+## Architecture Highlights
+
+- **DCB Pattern**: Optimistic concurrency control using cursors
+- **Java 25**: Records, sealed interfaces, virtual threads
+- **Spring Boot 3.5**: Full Spring integration
+- **PostgreSQL**: Primary database with optional read replicas
+- **Comprehensive Testing**: 260+ tests, 72% code coverage
 
 ## License
 
