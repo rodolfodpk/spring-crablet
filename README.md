@@ -57,17 +57,21 @@ All tests pass (260+ tests with 72% code coverage).
 ### Event Store
 
 ```java
-// Append events
+// Append events (DCB uses tags, not stream IDs)
 List<AppendEvent> events = List.of(
     AppendEvent.builder("WalletOpened")
-        .tag("wallet_id", "wallet-123")
+        .tag("wallet_id", "wallet-123")  // Tag-based identification
         .data(new WalletOpened("Alice"))
         .build()
 );
 
+// Simple append (no concurrency control)
+eventStore.append(events);
+
+// Append with DCB concurrency control
 AppendCondition condition = AppendCondition.builder()
     .tags("wallet_id", "wallet-123")
-    .afterCursor(cursor)
+    .afterCursor(cursor)  // Ensures no conflicting events
     .build();
 
 eventStore.appendIf(events, condition);
