@@ -41,16 +41,37 @@ Crablet EventStore provides the foundational interfaces and Spring implementatio
 The main interface for interacting with the event store:
 
 ```java
+import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.query.ProjectionResult;
+
 EventStore eventStore = // ... get from Spring context
 
-// Append events
-eventStore.append("stream-id", events);
+// Append events (DCB uses tags, not stream IDs)
+List<AppendEvent> events = List.of(
+    AppendEvent.builder("WalletOpened")
+        .tag("wallet_id", "wallet-123")
+        .data(new WalletOpened("Alice", new BigDecimal("1000")))
+        .build()
+);
+eventStore.append(events);
 
-// Query events
-eventStore.project(projector, query);
+// Project state from events
+Query query = QueryBuilder.create()
+    .hasTag("wallet_id", "wallet-123")
+    .build();
 
-// Optimistic concurrency control
-eventStore.appendIf("stream-id", events, appendCondition);
+ProjectionResult<WalletBalance> result = eventStore.project(
+    query,
+    Cursor.zero(),
+    WalletBalance.class,
+    List.of(balanceProjector)
+);
+
+// Optimistic concurrency control with DCB
+AppendCondition condition = AppendCondition.of(result.cursor(), query);
+eventStore.appendIf(events, condition);
 ```
 
 ### Command Handler
@@ -58,19 +79,24 @@ eventStore.appendIf("stream-id", events, appendCondition);
 Handle commands and produce events:
 
 ```java
+import com.crablet.eventstore.commands.CommandHandler;
+import com.crablet.eventstore.commands.CommandResult;
+import com.crablet.eventstore.store.AppendEvent;
+
+@Component
 public class DepositCommandHandler implements CommandHandler<DepositCommand> {
     @Override
-    public CommandResult handle(DepositCommand command, StateProjector<WalletBalanceState> projector) {
-        WalletBalanceState state = projector.project(command.walletId());
-        
-        if (state.balance() < 0) {
-            return CommandResult.emptyWithReason("Insufficient funds");
-        }
-        
+    public CommandResult handle(DepositCommand command) {
+        // Business logic
         DepositMade event = new DepositMade(command.amount());
-        return CommandResult.success(AppendEvent.builder()
-            .data(event)
-            .build());
+        
+        return CommandResult.success(
+            AppendEvent.builder("DepositMade")
+                .tag("wallet_id", command.walletId())
+                .tag("deposit_id", command.depositId())
+                .data(event)
+                .build()
+        );
     }
 }
 ```
@@ -80,19 +106,27 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
 Project current state from events:
 
 ```java
-public class WalletBalanceProjector implements StateProjector<WalletBalanceState> {
+import com.crablet.eventstore.query.StateProjector;
+import com.crablet.eventstore.store.StoredEvent;
+import java.util.List;
+
+public class WalletBalanceProjector implements StateProjector<WalletBalance> {
     @Override
-    public WalletBalanceState project(String streamId, List<StoredEvent> events) {
+    public WalletBalance project(List<StoredEvent> events) {
         return events.stream()
-            .map(e -> (WalletEvent) e.eventData())
-            .reduce(new WalletBalanceState(0), this::apply, (a, b) -> b);
+            .map(e -> (WalletEvent) e.data())
+            .reduce(
+                new WalletBalance(BigDecimal.ZERO), 
+                this::apply, 
+                (a, b) -> b
+            );
     }
     
-    private WalletBalanceState apply(WalletBalanceState state, WalletEvent event) {
+    private WalletBalance apply(WalletBalance balance, WalletEvent event) {
         return switch (event) {
-            case DepositMade e -> new WalletBalanceState(state.balance() + e.amount());
-            case WithdrawalMade e -> new WalletBalanceState(state.balance() - e.amount());
-            default -> state;
+            case WalletOpened e -> new WalletBalance(e.initialBalance());
+            case DepositMade e -> new WalletBalance(balance.amount().add(e.amount()));
+            case WithdrawalMade e -> new WalletBalance(balance.amount().subtract(e.amount()));
         };
     }
 }
@@ -100,45 +134,58 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
 
 ## DCB Pattern
 
-The Dynamic Consistency Boundary pattern uses cursors to ensure consistent event ordering:
+The Dynamic Consistency Boundary pattern uses cursors and tags for optimistic concurrency control:
 
 ```java
-// Read events with cursor for consistency check
-Cursor cursor = new Cursor(streamId, lastProcessedSequenceNumber);
-Query query = Query.builder()
-    .streamId(streamId)
-    .fromCursor(cursor)
+import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.query.QueryBuilder;
+import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.dcb.AppendConditionBuilder;
+
+// 1. Build query using tags (not stream IDs)
+Query query = QueryBuilder.create()
+    .hasTag("wallet_id", walletId)
+    .eventNames("WalletOpened", "DepositMade", "WithdrawalMade")
     .build();
 
-// Project state
-WalletBalanceState state = eventStore.project(projector, query);
+// 2. Project state with cursor
+ProjectionResult<WalletBalance> result = eventStore.project(
+    query,
+    Cursor.zero(),  // or cursor from previous read
+    WalletBalance.class,
+    List.of(projector)
+);
 
-// Append with condition to prevent concurrent modifications
-AppendCondition condition = AppendCondition.builder()
-    .expectSequenceNumber(cursor.sequenceNumber())
+// 3. Append with condition to prevent concurrent modifications
+AppendCondition condition = new AppendConditionBuilder(query, result.cursor())
     .build();
 
-eventStore.appendIf(streamId, newEvents, condition);
+eventStore.appendIf(newEvents, condition);
 ```
 
 ## Querying Events
 
-Query events by tag, event name, or stream:
+Query events by tag and event name:
 
 ```java
+import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.query.QueryBuilder;
+
 // Query by tag
-Query query = Query.builder()
-    .hasTag("wallet-id", "wallet-123")
+Query query = QueryBuilder.create()
+    .hasTag("wallet_id", "wallet-123")
     .build();
 
-// Query by event name
-Query query = Query.builder()
-    .eventName("DepositMade")
+// Query by event names
+Query query = QueryBuilder.create()
+    .eventNames("DepositMade", "WithdrawalMade")
     .build();
 
-// Query by stream
-Query query = Query.builder()
-    .streamId("wallet-123")
+// Query by tag and event names
+Query query = QueryBuilder.create()
+    .hasTag("wallet_id", "wallet-123")
+    .eventNames("DepositMade")
     .build();
 ```
 

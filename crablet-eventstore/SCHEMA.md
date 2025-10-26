@@ -1,0 +1,191 @@
+# Database Schema
+
+## Overview
+
+Crablet uses PostgreSQL with two main tables (`events` and `commands`) and two PL/pgSQL functions for inserting events.
+
+## Tables
+
+### events
+
+Stores all events in a single table with tag-based identification.
+
+```sql
+CREATE TABLE events
+(
+    type           VARCHAR(64)              NOT NULL,
+    tags           TEXT[]                   NOT NULL,
+    data           JSON                     NOT NULL,
+    transaction_id xid8                     NOT NULL,
+    position       BIGSERIAL                NOT NULL PRIMARY KEY,
+    occurred_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_event_type_length CHECK (LENGTH(type) <= 64)
+);
+```
+
+**Columns:**
+- `type` - Event type name (e.g., "WalletOpened", "DepositMade")
+- `tags` - Array of key:value tags for querying (e.g., `{"wallet_id:123", "deposit_id:456"}`)
+- `data` - JSON event payload
+- `transaction_id` - PostgreSQL transaction ID (xid8) for ordering guarantees
+- `position` - Auto-incrementing sequence number (primary key)
+- `occurred_at` - Event timestamp
+
+### commands
+
+Stores commands for audit trail and debugging.
+
+```sql
+CREATE TABLE commands
+(
+    transaction_id xid8                     NOT NULL PRIMARY KEY,
+    type           VARCHAR(64)              NOT NULL,
+    data           JSONB                    NOT NULL,
+    metadata       JSONB,
+    occurred_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## Indexes
+
+### Core Indexes
+
+```sql
+-- Transaction and position ordering
+CREATE INDEX idx_events_transaction_position_btree ON events (transaction_id, position);
+
+-- Tag-based queries (GIN index for array containment)
+CREATE INDEX idx_events_tags ON events USING GIN (tags);
+
+-- Event type filtering
+CREATE INDEX idx_events_type ON events (type);
+```
+
+### Optimized Indexes
+
+```sql
+-- DCB query pattern: filter by type, order by position
+CREATE INDEX idx_events_type_position ON events (type, position);
+
+-- Idempotency checks: type + tags containment
+CREATE INDEX idx_events_type_tags_gin ON events (type, tags) 
+    WHERE type IS NOT NULL AND tags IS NOT NULL;
+```
+
+## Functions
+
+### append_events_batch()
+
+Batch inserts events without DCB checks.
+
+```sql
+CREATE OR REPLACE FUNCTION append_events_batch(
+    p_types TEXT[],
+    p_tags TEXT[],
+    p_data JSONB[]
+) RETURNS VOID
+```
+
+Used by `EventStore.append()` for simple event insertion.
+
+### append_events_if()
+
+Inserts events with DCB conflict detection and idempotency checks.
+
+```sql
+CREATE OR REPLACE FUNCTION append_events_if(
+    p_types TEXT[],
+    p_tags TEXT[],
+    p_data JSONB[],
+    p_event_types TEXT[] DEFAULT NULL,
+    p_condition_tags TEXT[] DEFAULT NULL,
+    p_after_cursor_position BIGINT DEFAULT NULL,
+    p_idempotency_types TEXT[] DEFAULT NULL,
+    p_idempotency_tags TEXT[] DEFAULT NULL
+) RETURNS JSONB
+```
+
+**Parameters:**
+- `p_types`, `p_tags`, `p_data` - Events to insert
+- `p_event_types`, `p_condition_tags` - Decision model query (for DCB conflict check)
+- `p_after_cursor_position` - Cursor position (check events after this)
+- `p_idempotency_types`, `p_idempotency_tags` - Idempotency query (check all events)
+
+**Returns:**
+```json
+{
+  "success": true,
+  "message": "events appended successfully",
+  "events_count": 1
+}
+```
+
+Or on conflict/duplicate:
+```json
+{
+  "success": false,
+  "message": "duplicate operation detected",
+  "error_code": "IDEMPOTENCY_VIOLATION"
+}
+```
+
+**Advisory Locks:**
+- Uses `pg_advisory_xact_lock()` to serialize idempotency checks
+- Prevents race conditions where two transactions both see "no duplicate"
+- Lock is automatically released at transaction end
+
+**Concurrency Check:**
+- Checks events AFTER cursor position
+- Only sees snapshot-visible committed events
+- Used by DCB pattern for optimistic locking
+
+**Idempotency Check:**
+- Checks ALL events (ignores cursor)
+- Finds duplicate operations by operation ID tags
+- Example: checking if `withdrawal_id:456` already exists
+
+## Setup
+
+### Using Flyway
+
+Place the schema SQL in `src/main/resources/db/migration/V1__initial_schema.sql`:
+
+```sql
+-- Copy content from crablet-eventstore/src/test/resources/db/migration/V1__go_crablet_schema.sql
+```
+
+### Manual Setup
+
+```bash
+psql -U postgres -d your_database -f schema.sql
+```
+
+### Spring Boot Configuration
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/your_database
+spring.datasource.username=your_user
+spring.datasource.password=your_password
+spring.flyway.enabled=true
+```
+
+## Tag Format
+
+Tags are stored as `TEXT[]` in PostgreSQL with format `key:value`:
+
+```java
+AppendEvent.builder("WalletOpened")
+    .tag("wallet_id", "wallet-123")      // Stored as "wallet_id:wallet-123"
+    .tag("owner_id", "user-456")         // Stored as "owner_id:user-456"
+    .build();
+```
+
+**Querying tags:**
+```sql
+-- Find events with wallet_id
+SELECT * FROM events WHERE tags @> ARRAY['wallet_id:wallet-123'];
+
+-- Find events with multiple tags
+SELECT * FROM events WHERE tags @> ARRAY['wallet_id:wallet-123', 'event_type:deposit'];
+```
+
