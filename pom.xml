@@ -14,9 +14,10 @@
     <modules>
         <module>crablet-eventstore</module>
         <module>crablet-outbox</module>
-        <module>shared-wallet-domain</module>
-        <module>wallet-eventstore-service</module>
-        <module>wallet-outbox-service</module>
+        <!-- Removed application modules - library only -->
+        <!-- <module>shared-wallet-domain</module> -->
+        <!-- <module>wallet-eventstore-service</module> -->
+        <!-- <module>wallet-outbox-service</module> -->
     </modules>
     
     <properties>

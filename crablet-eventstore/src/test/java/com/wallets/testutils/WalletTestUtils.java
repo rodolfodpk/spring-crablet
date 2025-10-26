@@ -1,4 +1,4 @@
-package com.com.com.wallets.testutils;
+package com.wallets.testutils;
 
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventDeserializer;

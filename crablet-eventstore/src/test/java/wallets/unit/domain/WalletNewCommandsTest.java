@@ -195,7 +195,7 @@ class WalletNewCommandsTest extends AbstractWalletIntegrationTest {
         // Then: Wallet should have zero balance
         // Note: WalletState building would require implementing a state projector
         // For now, we just verify the events were created successfully
-        var events = testHelper.query(com.crablet.core.Query.empty(), null);
+        var events = testHelper.query(com.crablet.eventstore.Query.empty(), null);
         assertThat(events).hasSize(4); // OpenWallet + Deposit + 2 Withdrawals
     }
 }

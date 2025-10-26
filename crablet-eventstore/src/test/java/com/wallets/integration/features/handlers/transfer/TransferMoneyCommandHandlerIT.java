@@ -1,4 +1,4 @@
-package wallets.integration.features.handlers.transfer;
+package com.wallets.integration.features.handlers.transfer;
 
 import com.crablet.eventstore.AppendCondition;
 import com.crablet.eventstore.AppendEvent;
@@ -21,7 +21,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import wallets.integration.AbstractWalletIntegrationTest;
-import com.com.com.wallets.testutils.WalletTestUtils;
+import com.wallets.testutils.WalletTestUtils;
 
 import java.util.List;
 

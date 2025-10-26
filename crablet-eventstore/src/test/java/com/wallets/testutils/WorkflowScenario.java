@@ -1,4 +1,4 @@
-package com.com.com.wallets.testutils;
+package com.wallets.testutils;
 
 /**
  * Data class for workflow test scenarios.

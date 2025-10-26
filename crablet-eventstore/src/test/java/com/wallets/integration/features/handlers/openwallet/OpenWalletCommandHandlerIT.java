@@ -1,4 +1,4 @@
-package wallets.integration.features.handlers.openwallet;
+package com.wallets.integration.features.handlers.openwallet;
 
 import com.crablet.eventstore.CommandResult;
 import com.crablet.eventstore.ConcurrencyException;
@@ -16,7 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import wallets.integration.AbstractWalletIntegrationTest;
-import com.com.com.wallets.testutils.WalletTestUtils;
+import com.wallets.testutils.WalletTestUtils;
 
 import java.util.List;
 
