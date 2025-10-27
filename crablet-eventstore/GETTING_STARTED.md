@@ -30,9 +30,11 @@ Quick setup using Flyway:
 </dependency>
 ```
 
-2. Copy schema to `src/main/resources/db/migration/V1__initial_schema.sql`:
-```sql
--- Copy from crablet-eventstore/src/test/resources/db/migration/V1__go_crablet_schema.sql
+2. Copy schema migrations to `src/main/resources/db/migration/`:
+```bash
+# Copy both migration files
+cp crablet-eventstore/src/test/resources/db/migration/V1__eventstore_schema.sql src/main/resources/db/migration/
+cp crablet-eventstore/src/test/resources/db/migration/V2__outbox_schema.sql src/main/resources/db/migration/
 ```
 
 3. Configure database:
