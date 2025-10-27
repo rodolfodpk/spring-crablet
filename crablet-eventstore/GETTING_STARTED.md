@@ -238,48 +238,49 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 }
 ```
 
-## Step 6: Use in REST Controller
+## Step 6: Execute Commands
+
+Use `CommandExecutor` to execute commands with automatic retry and transaction management:
 
 ```java
-package com.example.wallet.api;
+package com.example.wallet.service;
 
-import com.crablet.eventstore.commands.CommandResult;
+import com.crablet.eventstore.commands.CommandExecutor;
+import com.crablet.eventstore.commands.ExecutionResult;
 import com.example.wallet.commands.WithdrawCommand;
-import com.example.wallet.handlers.WithdrawCommandHandler;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
-@RestController
-@RequestMapping("/api/wallets")
-public class WalletController {
+@Service
+public class WalletService {
     
-    private final WithdrawCommandHandler withdrawHandler;
+    private final CommandExecutor commandExecutor;
     
-    public WalletController(WithdrawCommandHandler withdrawHandler) {
-        this.withdrawHandler = withdrawHandler;
+    public WalletService(CommandExecutor commandExecutor) {
+        this.commandExecutor = commandExecutor;
     }
     
-    @PostMapping("/{walletId}/withdrawals")
-    public ResponseEntity<?> withdraw(
-            @PathVariable String walletId,
-            @RequestParam String withdrawalId,
-            @RequestParam BigDecimal amount) {
-        
+    public ExecutionResult withdraw(String walletId, String withdrawalId, BigDecimal amount) {
         WithdrawCommand command = new WithdrawCommand(walletId, withdrawalId, amount);
-        CommandResult result = withdrawHandler.handle(command);
         
-        if (result.success()) {
-            return ResponseEntity.ok(result);
-        } else {
-            return ResponseEntity.badRequest().body(result.reason());
-        }
+        // CommandExecutor automatically handles:
+        // - Transaction management
+        // - Retry on ConcurrencyException
+        // - Command persistence (if enabled)
+        return commandExecutor.executeCommand(command);
     }
 }
 ```
 
-## Step 7: Test with Testcontainers
+The `CommandExecutor` coordinates command execution and retries:
+1. Receives command
+2. Finds handler by command type
+3. Executes handler within a transaction
+4. If `ConcurrencyException` is thrown, retries automatically (up to configured max)
+5. Persists command and events atomically
+
+## Step 6: Test with Testcontainers
 
 See [TESTING.md](TESTING.md) for complete testing guide.
 
