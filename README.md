@@ -56,7 +56,7 @@ All tests pass (260+ tests with 72% code coverage).
 
 Two real examples from our wallet domain showing distinct DCB patterns:
 
-### Example 1: Idempotency Pattern (OpenWallet)
+### OpenWallet - Idempotency Pattern
 
 Prevents duplicate wallet creation using `withIdempotencyCheck()`:
 
@@ -95,12 +95,12 @@ public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
 }
 ```
 
-**Key points:**
+OpenWallet pattern notes:
 - Uses `Query.empty()` + `Cursor.zero()` (no decision model needed)
-- `withIdempotencyCheck()` enforces uniqueness: fails if `WALLET_OPENED` exists for this `wallet_id`
+- `withIdempotencyCheck()` enforces uniqueness: fails if wallet already exists
 - Optimistic: creates event first, checks atomically via `appendIf`
 
-### Example 2: Concurrency Control (Withdraw)
+### Withdraw - Concurrency Control Pattern
 
 Prevents concurrent balance modifications using cursor-based conflict detection:
 
@@ -153,7 +153,7 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
 }
 ```
 
-**Key points:**
+Withdraw pattern notes:
 - Decision Model: Query for balance-affecting events (`WalletOpened`, `DepositMade`, `WithdrawalMade`)
 - Cursor checks if balance changed concurrently → throws `ConcurrencyException` → `CommandExecutor` retries
 - Business validation: checks sufficient funds before creating event
