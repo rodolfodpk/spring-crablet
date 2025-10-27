@@ -256,10 +256,41 @@ WHERE publisher = 'KafkaPublisher';
 
 ## Guarantees
 
+### At-Least-Once Delivery
+
+**The outbox provides At-Least-Once delivery semantics, not Exactly-Once.**
+
+Events may be published multiple times in the following scenarios:
+
+1. **Leader failover during publishing:**
+   - Leader crashes mid-batch
+   - Backup leader starts from last committed position
+   - Some events may be republished
+
+2. **Publisher failure with retry:**
+   - Publisher throws exception during publish
+   - Position not updated (transaction rolled back)
+   - Next cycle retries the same batch
+
+3. **Transactional boundary:**
+   - Events written to events table (COMMIT)
+   - Publisher attempted but network failure
+   - Position not updated, will retry on next cycle
+
+**Consumer requirements:**
+
+- ✅ **Must be idempotent:** Handle duplicate events gracefully
+- ✅ **Must track processed events:** Use event position/ID for deduplication
+- ✅ **Must handle out-of-order scenarios:** Events may arrive out of sequence
+
+**Implementation note:** The outbox updates `last_position` only after successful publish. If publishing fails, the same events will be retried on the next cycle until successful.
+
+### Other Guarantees
+
 - **Transactional Consistency**: Events published atomically with DCB operations
-- **At-Least-Once Delivery**: Events may be published multiple times (idempotent consumers required)
-- **Global Ordering**: Events published in exact position order
+- **Global Ordering**: Events published in exact position order within each publisher
 - **Independent Publishers**: Each publisher tracks its own progress per topic
+- **Automatic Failover**: Publishing continues seamlessly if leader crashes
 
 ## When to Use
 
@@ -271,8 +302,9 @@ WHERE publisher = 'KafkaPublisher';
 
 ❌ **Don't use for:**
 - Internal-only event sourcing (DCB alone is sufficient)
-- High-frequency, low-latency events
-- Exactly-once delivery requirements
+- High-frequency, low-latency events (polling adds latency)
+- Exactly-once delivery requirements (provides at-least-once only)
+- Time-critical events requiring guaranteed delivery (use synchronous publishing instead)
 
 ## Deployment Architecture
 
