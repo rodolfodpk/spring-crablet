@@ -108,6 +108,18 @@ crablet.outbox.enabled=true
 # Override per-publisher if needed
 crablet.outbox.polling-interval-ms=1000
 
+# Batch size: number of events to scan/publish per cycle
+# Default: 100
+crablet.outbox.batch-size=100
+
+# Max retries for failed publish attempts
+# Default: 3
+crablet.outbox.max-retries=3
+
+# Retry delay between failed attempts (milliseconds)
+# Default: 5000
+crablet.outbox.retry-delay-ms=5000
+
 # Topic configuration with per-publisher polling
 crablet.outbox.topics.default.publishers=KafkaPublisher,LogPublisher
 

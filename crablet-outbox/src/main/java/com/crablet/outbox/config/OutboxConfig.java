@@ -25,10 +25,15 @@ public class OutboxConfig {
     private static final Logger log = LoggerFactory.getLogger(OutboxConfig.class);
     
     private boolean enabled = false;
+    // Maximum number of events to fetch and publish per cycle per publisher
     private int batchSize = 100;
-    private int fetchSize = 100;  // PostgreSQL fetch size for result set streaming
+    // PostgreSQL fetch size for result set streaming (performance hint to JDBC driver)
+    private int fetchSize = 100;
+    // Global polling interval in milliseconds (overridable per-publisher)
     private long pollingIntervalMs = 1000;
+    // Maximum retry attempts for failed publish operations
     private int maxRetries = 3;
+    // Delay in milliseconds between retry attempts
     private long retryDelayMs = 5000;
     
     @Autowired

@@ -111,6 +111,27 @@ Each (topic, publisher) pair has its own independent scheduler, providing:
 - **Flexible polling**: Configure per-publisher polling intervals
 - **Clear boundaries**: Each scheduler polls independently
 
+### Batch Processing
+
+The outbox processes events in batches to balance throughput and latency:
+
+- **Default batch size**: 100 events per publisher cycle
+- **Configurable**: `crablet.outbox.batch-size=N`
+- **SQL LIMIT**: Each publisher fetches at most N events after its last position
+- **Per-cycle limit**: If 1000 events are pending, multiple cycles will process them
+
+Example:
+- Last position: 42
+- Batch size: 100
+- Query: `SELECT ... WHERE position > 42 ORDER BY position LIMIT 100`
+- Result: Events 43-142 are published, last position updated to 142
+- Next cycle: Starts from position 142
+
+**Tuning guidance**:
+- **Smaller batches** (10-50): Lower latency, more frequent polling overhead
+- **Default** (100): Balanced for most workloads
+- **Larger batches** (500-1000): Higher throughput, but longer publish cycles
+
 ### Lock Acquisition Process
 
 1. **Startup**: Each instance tries to acquire the global lock
@@ -334,7 +355,7 @@ crablet.outbox.topics.payment-events.publishers=AnalyticsPublisher
 ## Performance
 
 - **Polling Interval**: Configurable per-publisher (default: 1 second)
-- **Batch Size**: 100 events (configurable)
+- **Batch Size**: 100 events per cycle (configurable via `crablet.outbox.batch-size`)
 - **Isolation**: READ COMMITTED (sufficient due to DCB advisory locks)
 - **Scalability**: Supports single instance or multiple instances with automatic failover
 
