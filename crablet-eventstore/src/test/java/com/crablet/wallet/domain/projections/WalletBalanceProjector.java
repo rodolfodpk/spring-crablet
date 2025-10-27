@@ -45,12 +45,6 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
     }
 
     @Override
-    public List<Tag> getTags() {
-        // This projector doesn't filter by specific tags - it processes all wallet events
-        return List.of();
-    }
-
-    @Override
     public WalletBalanceState getInitialState() {
         return new WalletBalanceState("", 0, false);
     }

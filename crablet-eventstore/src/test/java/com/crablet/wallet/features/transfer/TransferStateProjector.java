@@ -3,7 +3,6 @@ package com.crablet.wallet.features.transfer;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.eventstore.store.Tag;
 import com.crablet.wallet.domain.event.DepositMade;
 import com.crablet.wallet.domain.event.MoneyTransferred;
 import com.crablet.wallet.domain.event.WalletEvent;
@@ -45,11 +44,6 @@ public class TransferStateProjector implements StateProjector<TransferState> {
     @Override
     public List<String> getEventTypes() {
         return List.of("WalletOpened", "MoneyTransferred", "DepositMade", "WithdrawalMade");
-    }
-    
-    @Override
-    public List<Tag> getTags() {
-        return List.of(); // Filter by query, not projector
     }
     
     @Override

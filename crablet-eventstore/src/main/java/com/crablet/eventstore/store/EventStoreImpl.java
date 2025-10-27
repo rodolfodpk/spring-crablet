@@ -433,7 +433,7 @@ public class EventStoreImpl implements EventStore {
                             // Apply projectors - pass deserializer
                             // Deserialization errors will bubble up, failing the entire projection
                             for (StateProjector<T> projector : projectors) {
-                                if (projector.handles(event, deserializer)) {
+                                if (handlesEventType(projector, event)) {
                                     state = projector.transition(state, event, deserializer);
                                 }
                             }
@@ -774,7 +774,7 @@ public class EventStoreImpl implements EventStore {
                         
                         // Apply projectors - pass deserializer
                         for (StateProjector<T> projector : projectors) {
-                            if (projector.handles(event, deserializer)) {
+                            if (handlesEventType(projector, event)) {
                                 state = projector.transition(state, event, deserializer);
                             }
                         }
@@ -805,10 +805,18 @@ public class EventStoreImpl implements EventStore {
         }
 
         List<QueryItem> items = projectors.stream()
-                .map(p -> QueryItem.of(p.getEventTypes(), p.getTags()))
+                .map(p -> QueryItem.of(p.getEventTypes(), List.of())) // Tags come from Query, not projector
                 .toList();
 
         return Query.of(items);
+    }
+
+    /**
+     * Check if projector handles this event type.
+     */
+    private <T> boolean handlesEventType(StateProjector<T> projector, StoredEvent event) {
+        List<String> eventTypes = projector.getEventTypes();
+        return eventTypes.isEmpty() || eventTypes.contains(event.type());
     }
 
     /**

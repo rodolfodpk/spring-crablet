@@ -89,7 +89,6 @@ package com.example.wallet.projectors;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.eventstore.store.Tag;
 import com.example.wallet.domain.WalletBalance;
 import com.example.wallet.events.*;
 import org.springframework.stereotype.Component;
@@ -113,15 +112,6 @@ public class WalletBalanceProjector implements StateProjector<WalletBalance> {
     @Override
     public List<String> getEventTypes() {
         return List.of("WalletOpened", "DepositMade", "WithdrawalMade");
-    }
-    
-    @Override
-    public List<Tag> getTags() {
-        // Return empty list because:
-        // 1. Query already filters events by wallet_id tag in SQL
-        // 2. Projector receives only filtered events, no need to filter again
-        // 3. Keeping projector generic lets us reuse it for any wallet
-        return List.of();
     }
     
     @Override
