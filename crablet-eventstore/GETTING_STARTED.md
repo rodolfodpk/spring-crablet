@@ -117,7 +117,9 @@ public class WalletBalanceProjector implements StateProjector<WalletBalance> {
     
     @Override
     public List<Tag> getTags() {
-        return List.of(); // No specific tag filtering
+        // Projector doesn't filter by tags - the Query does that
+        // Query uses wallet_id tag to filter events before projection
+        return List.of();
     }
     
     @Override
@@ -194,12 +196,14 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
     @Override
     public CommandResult handle(WithdrawCommand command) {
         // Define decision model: which events affect withdrawal decision?
+        // This filters events to only those for this wallet
         Query decisionModel = QueryBuilder.create()
-            .hasTag("wallet_id", command.walletId())
+            .hasTag("wallet_id", command.walletId())  // Filter by wallet_id tag
             .eventNames("WalletOpened", "DepositMade", "WithdrawalMade")
             .build();
         
         // 1. Project current balance with cursor
+        // The Query filters events by wallet_id tag before the projector processes them
         ProjectionResult<WalletBalance> result = eventStore.project(
             decisionModel,
             Cursor.zero(),
