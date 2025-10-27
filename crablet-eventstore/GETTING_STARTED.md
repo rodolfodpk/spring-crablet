@@ -117,8 +117,10 @@ public class WalletBalanceProjector implements StateProjector<WalletBalance> {
     
     @Override
     public List<Tag> getTags() {
-        // Projector doesn't filter by tags - the Query does that
-        // Query uses wallet_id tag to filter events before projection
+        // Return empty list because:
+        // 1. Query already filters events by wallet_id tag in SQL
+        // 2. Projector receives only filtered events, no need to filter again
+        // 3. Keeping projector generic lets us reuse it for any wallet
         return List.of();
     }
     
