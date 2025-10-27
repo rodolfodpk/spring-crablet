@@ -6,7 +6,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -38,7 +40,7 @@ public class TopicConfigurationProperties {
             log.info("No topics configured, creating default topic");
             TopicProperties defaultProps = new TopicProperties();
             defaultProps.setRequiredTags(""); // Empty means match all events
-            defaultProps.setPublishers("LogPublisher,CountDownLatchPublisher"); // Include available publishers
+            defaultProps.setPublishers("CountDownLatchPublisher"); // Include available publishers
             topics.put("default", defaultProps);
         }
         
@@ -116,6 +118,7 @@ public class TopicConfigurationProperties {
         private String anyOfTags;
         private Map<String, String> exactTags;
         private String publishers;
+        private List<PublisherProperties> publisherConfigs = new ArrayList<>();
         
         public String getRequiredTags() {
             return requiredTags;
@@ -147,6 +150,35 @@ public class TopicConfigurationProperties {
 
         public void setPublishers(String publishers) {
             this.publishers = publishers;
+        }
+        
+        public List<PublisherProperties> getPublisherConfigs() {
+            return publisherConfigs;
+        }
+        
+        public void setPublisherConfigs(List<PublisherProperties> publisherConfigs) {
+            this.publisherConfigs = publisherConfigs;
+        }
+    }
+    
+    public static class PublisherProperties {
+        private String name;
+        private Long pollingIntervalMs; // Optional, falls back to global
+        
+        public String getName() {
+            return name;
+        }
+        
+        public void setName(String name) {
+            this.name = name;
+        }
+        
+        public Long getPollingIntervalMs() {
+            return pollingIntervalMs;
+        }
+        
+        public void setPollingIntervalMs(Long pollingIntervalMs) {
+            this.pollingIntervalMs = pollingIntervalMs;
         }
     }
 }

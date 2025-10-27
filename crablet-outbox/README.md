@@ -10,7 +10,8 @@ Crablet Outbox provides a robust implementation of the transactional outbox patt
 
 - **Transactional Guarantees**: Events written in the same transaction as your domain events
 - **Multiple Publishers**: Support for multiple publisher implementations per topic
-- **Leader Election**: Distributed leader election with multiple strategies (GLOBAL, PER_TOPIC_PUBLISHER)
+- **Per-Publisher Schedulers**: Independent scheduler per (topic, publisher) for isolation and flexible polling
+- **Leader Election**: Distributed leader election with global lock strategy
 - **Heartbeat Monitoring**: Automatic detection of stale leaders
 - **Metrics**: Comprehensive metrics for monitoring outbox health
 - **Resilience**: Circuit breakers and retries for reliable publishing
@@ -71,33 +72,31 @@ public class KafkaPublisher implements OutboxPublisher {
 Your domain code doesn't need to change - events are automatically picked up and published:
 
 ```java
-// Append events normally
-eventStore.append("wallet-123", events);
+// Append events with tags
+List<Tag> tags = List.of(
+    new Tag("wallet-id", "wallet-123"),
+    new Tag("event-type", "deposit")
+);
+eventStore.append(tags, events);
 
-// Outbox processor will automatically publish them
+// Outbox processor will automatically publish them to configured publishers
 ```
 
-## Lock Strategies
+## Architecture
 
-### GLOBAL
+### Per-Publisher Schedulers
 
-One leader processes all topics:
+Each (topic, publisher) pair gets its own independent scheduler, providing:
 
-```properties
-crablet.outbox.lock-strategy=GLOBAL
-```
+- **Isolation**: One publisher failure doesn't affect others
+- **Flexible Polling**: Per-publisher polling intervals with global fallback
+- **Simpler Debugging**: Clear scheduler boundaries and error tracking
 
-**Use when**: You have a small number of instances and want maximum throughput.
+The outbox uses a global leader lock to coordinate processing across multiple instances:
 
-### PER_TOPIC_PUBLISHER
-
-Separate leader per topic/publisher combination:
-
-```properties
-crablet.outbox.lock-strategy=PER_TOPIC_PUBLISHER
-```
-
-**Use when**: You need fine-grained control and have many instances.
+- **One leader** processes all publishers on all topics
+- **Automatic failover** when leader goes down (PostgreSQL advisory locks release on crash)
+- **No configuration needed** - leader election is transparent
 
 ## Configuration
 
@@ -105,18 +104,18 @@ crablet.outbox.lock-strategy=PER_TOPIC_PUBLISHER
 # Enable/disable outbox
 crablet.outbox.enabled=true
 
-# Polling interval (ISO-8601 duration)
-crablet.outbox.polling-interval=PT5S
+# Global polling interval (milliseconds)
+# Override per-publisher if needed
+crablet.outbox.polling-interval-ms=1000
 
-# Lock strategy
-crablet.outbox.lock-strategy=PER_TOPIC_PUBLISHER
+# Topic configuration with per-publisher polling
+crablet.outbox.topics.default.publishers=KafkaPublisher,LogPublisher
 
-# Heartbeat timeout (ISO-8601 duration)
-crablet.outbox.heartbeat-timeout=PT30S
-
-# Topic configuration
-crablet.outbox.topics.default.publishers=LogPublisher,YourPublisher
-crablet.outbox.topics.default.batch-size=100
+# Optional: Per-publisher configuration
+crablet.outbox.topics.default.publisher-configs[0].name=KafkaPublisher
+crablet.outbox.topics.default.publisher-configs[0].polling-interval-ms=500
+crablet.outbox.topics.default.publisher-configs[1].name=LogPublisher
+crablet.outbox.topics.default.publisher-configs[1].polling-interval-ms=2000
 ```
 
 ## Management API

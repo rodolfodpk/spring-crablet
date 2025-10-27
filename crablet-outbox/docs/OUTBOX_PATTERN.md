@@ -89,65 +89,63 @@ The `OutboxLeaderElector` is a package-private Spring component that encapsulate
 - Stale leader detection
 - Lock state tracking (`isGlobalLeader`, `ownedPairs`)
 
-This separation allows `OutboxProcessorImpl` to focus solely on event processing while the elector handles distributed coordination.
+This separation allows `OutboxProcessorImpl` to focus solely on event processing and per-publisher scheduling while the elector handles distributed coordination.
 
-### Lock Strategies
+### Leader Election
 
-#### GLOBAL Strategy
+#### Global Lock Strategy
 ```sql
--- Single lock for all publishers
+-- Single advisory lock for all publishers
 SELECT pg_try_advisory_lock(4856221667890123456);
 ```
-- **One lock** across all instances
-- **Winner takes all** - single instance processes all publishers
-- **Simple but limited** - no horizontal scaling
-- **Use case**: Simple deployments with 1-2 instances
+- **One leader** processes all publishers across all topics
+- **Automatic failover**: If leader crashes, locks are released and another instance takes over
+- **No configuration needed**: Leader election is transparent
+- **Position tracking**: Each (topic, publisher) pair tracks its progress independently
 
-#### PER_TOPIC_PUBLISHER Strategy  
-```sql
--- Separate lock per (topic, publisher) pair
-SELECT pg_try_advisory_lock(('crablet-outbox-pair-' + topic + '-' + publisher).hashCode());
-```
-- **Multiple locks** - one per (topic, publisher) pair
-- **Distributed ownership** - different instances can own different pairs
-- **Horizontal scaling** - add more instances to handle more publishers
-- **Use case**: High-volume deployments with multiple instances
+### Per-Publisher Schedulers
 
-**Note**: Both strategies track position independently per (topic, publisher) pair in the database - only the lock granularity differs.
+Each (topic, publisher) pair has its own independent scheduler, providing:
+
+- **Isolation**: One publisher failure doesn't affect others
+- **Flexible polling**: Configure per-publisher polling intervals
+- **Clear boundaries**: Each scheduler polls independently
 
 ### Lock Acquisition Process
 
-1. **Startup**: Each instance tries to acquire locks for configured pairs
+1. **Startup**: Each instance tries to acquire the global lock
 2. **Non-blocking**: `pg_try_advisory_lock()` returns immediately (no waiting)
-3. **Success**: Instance becomes leader for that pair
-4. **Failure**: Another instance already owns that pair
+3. **Success**: Instance becomes leader and processes all publishers
+4. **Failure**: Another instance is already the leader
 5. **Crash Recovery**: PostgreSQL automatically releases locks when connection drops
 
-### Example: 3 Instances, 6 Publisher Pairs
+### Example: 3 Instances
 
 ```
 Instance A startup:
-✓ wallet-events:KafkaPublisher     (acquired)
-✓ payment-events:AnalyticsPublisher (acquired)
-✗ wallet-events:WebhookPublisher   (owned by Instance B)
+✓ Global lock acquired → becomes leader
+  - Processes wallet-events:KafkaPublisher
+  - Processes wallet-events:WebhookPublisher  
+  - Processes payment-events:AnalyticsPublisher
 
-Instance B startup:  
-✗ wallet-events:KafkaPublisher     (owned by Instance A)
-✓ wallet-events:WebhookPublisher   (acquired)
-✓ user-events:EmailPublisher       (acquired)
+Instance B startup:
+✗ Global lock already held by Instance A → follower
 
 Instance C startup:
-✗ payment-events:AnalyticsPublisher (owned by Instance A)
-✓ audit-events:LogPublisher        (acquired)
-✓ metrics-events:StatsPublisher    (acquired)
+✗ Global lock already held by Instance A → follower
+
+Instance A crashes:
+✓ PostgreSQL releases lock
+✓ Instance B or C automatically becomes new leader
 ```
 
 ### Benefits
 
-- **Automatic Failover**: If Instance A crashes, its locks are released and other instances can acquire them
-- **No Split-Brain**: PostgreSQL ensures only one instance can hold a lock
+- **Automatic Failover**: If leader crashes, locks are automatically released
+- **No Split-Brain**: PostgreSQL ensures only one instance can hold the lock
 - **Zero Configuration**: No external coordination service needed
 - **Database Integration**: Leverages existing PostgreSQL infrastructure
+- **Simple Architecture**: One lock strategy, easy to understand and debug
 
 ## Publishers
 
@@ -226,33 +224,26 @@ WHERE publisher = 'KafkaPublisher';
 
 ## Deployment Architecture
 
-The outbox processor supports different deployment strategies via lock configuration:
+The outbox uses a **global leader lock** for coordination:
 
-### Single Machine (GLOBAL)
-```properties
-crablet.outbox.lock-strategy=GLOBAL
-```
+- **One leader** processes all publishers across all topics
+- **Automatic failover** when leader crashes
+- **Support for multiple instances** with automatic failover
+- **Each (topic, publisher) pair** has an independent scheduler with configurable polling intervals
+
+### Single Machine Deployment
 - **One instance** handles all publishers
-- **Simple deployment** - single point of processing
-- **Single point of failure** - if instance fails, no publishing until restart
+- **Simple deployment**
+- **Backup instance** automatically takes over if primary crashes
 
-### Multiple Machines (PER_TOPIC_PUBLISHER)
-```properties
-crablet.outbox.lock-strategy=PER_TOPIC_PUBLISHER
-```
-- **N machines** each own specific (topic, publisher) pairs
-- **Distributed processing** - each machine handles its assigned pairs
-- **Fault tolerance** - if one machine fails, others continue processing
-- **Horizontal scaling** - add more machines to handle more publishers
-
-**Example with 3 machines:**
-- Machine A: `wallet-events:KafkaPublisher`, `payment-events:AnalyticsPublisher`
-- Machine B: `wallet-events:WebhookPublisher`, `user-events:EmailPublisher`  
-- Machine C: `audit-events:LogPublisher`, `metrics-events:StatsPublisher`
+### Multiple Machine Deployment
+- **N machines**: one leader, others as backups
+- **Automatic failover**: if leader crashes, another instance becomes leader
+- **Zero downtime**: publishing continues seamlessly after failover
 
 ## Architecture Diagrams
 
-### Simple: Single Machine, Single Publisher
+### Simple: Single Instance, Multiple Publishers
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   Application   │───▶│   Event Store    │───▶│  Outbox Topics  │
@@ -267,12 +258,12 @@ crablet.outbox.lock-strategy=PER_TOPIC_PUBLISHER
 
 Configuration:
 crablet.outbox.enabled=true
-crablet.outbox.lock-strategy=GLOBAL
+crablet.outbox.polling-interval-ms=1000
 crablet.outbox.topics.wallet-events.required-tags=wallet_id
 crablet.outbox.topics.wallet-events.publishers=KafkaPublisher
 ```
 
-### Medium: Single Machine, Multiple Publishers (Fan-out)
+### Fan-out: Single Topic, Multiple Publishers
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   Application   │───▶│   Event Store    │───▶│  Outbox Topics  │
@@ -287,12 +278,12 @@ crablet.outbox.topics.wallet-events.publishers=KafkaPublisher
 
 Configuration:
 crablet.outbox.enabled=true
-crablet.outbox.lock-strategy=GLOBAL
+crablet.outbox.polling-interval-ms=1000
 crablet.outbox.topics.wallet-events.required-tags=wallet_id
 crablet.outbox.topics.wallet-events.publishers=KafkaPublisher,WebhookPublisher
 ```
 
-### Complex: Multiple Machines, Distributed Publishers
+### High Availability: Multiple Instances with Failover
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   Application   │───▶│   Event Store    │───▶│  Outbox Topics  │
@@ -306,27 +297,34 @@ crablet.outbox.topics.wallet-events.publishers=KafkaPublisher,WebhookPublisher
                        └──────────────────┘    │ + Analytics     │
                                                └─────────────────┘
 
-Machine A (wallet-events:KafkaPublisher):
+Multiple instances (e.g., in Kubernetes):
+
+Instance A (leader):
 ┌─────────────────┐    ┌─────────────────┐
-│  Outbox Machine │───▶│     Kafka       │
-│       A         │    │   (wallet evts) │
+│  Outbox (leader)│───▶│  External Systems│
+│     Machine A   │    │  Kafka, Webhooks│
 └─────────────────┘    └─────────────────┘
 
-Machine B (wallet-events:WebhookPublisher):
-┌─────────────────┐    ┌─────────────────┐
-│  Outbox Machine │───▶│   Webhooks      │
-│       B         │    │  (wallet evts)  │
-└─────────────────┘    └─────────────────┘
+Instance B (backup):
+┌─────────────────┐
+│  Outbox (follower)
+│     Machine B
+└─────────────────┘
 
-Machine C (payment-events:AnalyticsPublisher):
-┌─────────────────┐    ┌─────────────────┐
-│  Outbox Machine │───▶│   Analytics     │
-│       C         │    │ (payment evts)  │
-└─────────────────┘    └─────────────────┘
+Instance C (backup):
+┌─────────────────┐
+│  Outbox (follower)
+│     Machine C
+└─────────────────┘
 
-Configuration:
+If Instance A crashes:
+✓ PostgreSQL releases global lock
+✓ Instance B or C becomes new leader automatically
+✓ Publishing continues seamlessly
+
+Configuration (same for all instances):
 crablet.outbox.enabled=true
-crablet.outbox.lock-strategy=PER_TOPIC_PUBLISHER
+crablet.outbox.polling-interval-ms=1000
 crablet.outbox.topics.wallet-events.required-tags=wallet_id
 crablet.outbox.topics.wallet-events.publishers=KafkaPublisher,WebhookPublisher
 crablet.outbox.topics.payment-events.required-tags=payment_id
@@ -335,9 +333,9 @@ crablet.outbox.topics.payment-events.publishers=AnalyticsPublisher
 
 ## Performance
 
-- **Polling Interval**: 5-30 seconds (configurable, default: 1 second)
+- **Polling Interval**: Configurable per-publisher (default: 1 second)
 - **Batch Size**: 100 events (configurable)
 - **Isolation**: READ COMMITTED (sufficient due to DCB advisory locks)
-- **Scalability**: Single machine (GLOBAL) or distributed (PER_TOPIC_PUBLISHER)
+- **Scalability**: Supports single instance or multiple instances with automatic failover
 
 The outbox pattern adds reliable external publishing to your DCB event sourcing without compromising the core DCB guarantees.

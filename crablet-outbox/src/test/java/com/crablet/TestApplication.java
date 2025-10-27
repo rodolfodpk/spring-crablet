@@ -11,6 +11,8 @@ import com.crablet.outbox.metrics.OutboxMetrics;
 import com.crablet.outbox.metrics.OutboxPublisherMetrics;
 import com.crablet.outbox.processor.OutboxProcessorImpl;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
+import com.crablet.outbox.publishing.OutboxPublishingService;
+import com.crablet.outbox.publishing.OutboxPublishingServiceImpl;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.EventStoreConfig;
 import com.crablet.eventstore.store.EventStoreImpl;
@@ -95,19 +97,46 @@ public class TestApplication {
     }
     
     @Bean
+    public OutboxPublishingService outboxPublishingService(
+            OutboxConfig config,
+            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
+            DataSource readDataSource,
+            java.util.List<com.crablet.outbox.OutboxPublisher> publishers,
+            OutboxMetrics outboxMetrics,
+            OutboxPublisherMetrics publisherMetrics,
+            io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitBreakerRegistry,
+            GlobalStatisticsPublisher globalStatistics) {
+        
+        // Build publisher lookup map
+        java.util.Map<String, com.crablet.outbox.OutboxPublisher> publisherByName = new java.util.concurrent.ConcurrentHashMap<>();
+        for (com.crablet.outbox.OutboxPublisher publisher : publishers) {
+            publisherByName.put(publisher.getName(), publisher);
+        }
+        
+        return new OutboxPublishingServiceImpl(
+            config, jdbcTemplate, readDataSource, publisherByName,
+            outboxMetrics, publisherMetrics, circuitBreakerRegistry, globalStatistics
+        );
+    }
+    
+    @Bean
     public OutboxProcessorImpl outboxProcessorImpl(
             OutboxConfig config,
             org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
             DataSource dataSource,
             java.util.List<com.crablet.outbox.OutboxPublisher> publishers,
             OutboxLeaderElector leaderElector,
+            OutboxPublishingService publishingService,
             OutboxMetrics metrics,
             OutboxPublisherMetrics publisherMetrics,
             io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitBreakerRegistry,
-            GlobalStatisticsPublisher globalStatistics) {
+            GlobalStatisticsPublisher globalStatistics,
+            TopicConfigurationProperties topicConfigProperties,
+            org.springframework.scheduling.TaskScheduler taskScheduler) {
         return new OutboxProcessorImpl(config, jdbcTemplate, dataSource, publishers, 
-                                       leaderElector, metrics, publisherMetrics, 
-                                       circuitBreakerRegistry, globalStatistics);
+                                       leaderElector, publishingService, metrics, 
+                                       publisherMetrics, circuitBreakerRegistry, 
+                                       globalStatistics, topicConfigProperties, taskScheduler);
     }
     
     @Bean
