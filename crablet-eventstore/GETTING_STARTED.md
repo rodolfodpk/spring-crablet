@@ -86,11 +86,12 @@ Create projector to build state from events:
 ```java
 package com.example.wallet.projectors;
 
+import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.store.Tag;
 import com.example.wallet.domain.WalletBalance;
 import com.example.wallet.events.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -98,40 +99,45 @@ import java.util.List;
 @Component
 public class WalletBalanceProjector implements StateProjector<WalletBalance> {
     
-    private final ObjectMapper objectMapper;
+    private final EventDeserializer deserializer;
     
-    public WalletBalanceProjector(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public WalletBalanceProjector(EventDeserializer deserializer) {
+        this.deserializer = deserializer;
     }
     
     @Override
-    public WalletBalance project(List<StoredEvent> events) {
-        return events.stream()
-            .map(this::deserializeEvent)
-            .reduce(WalletBalance.zero(), this::apply, (a, b) -> b);
+    public String getId() {
+        return "wallet-balance-projector";
     }
     
-    private WalletEvent deserializeEvent(StoredEvent stored) {
-        try {
-            return switch (stored.type()) {
-                case "WalletOpened" -> 
-                    objectMapper.readValue(stored.data().toString(), WalletOpened.class);
-                case "DepositMade" -> 
-                    objectMapper.readValue(stored.data().toString(), DepositMade.class);
-                case "WithdrawalMade" -> 
-                    objectMapper.readValue(stored.data().toString(), WithdrawalMade.class);
-                default -> throw new IllegalArgumentException("Unknown event type: " + stored.type());
-            };
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to deserialize event", e);
-        }
+    @Override
+    public List<String> getEventTypes() {
+        return List.of("WalletOpened", "DepositMade", "WithdrawalMade");
     }
     
-    private WalletBalance apply(WalletBalance balance, WalletEvent event) {
-        return switch (event) {
-            case WalletOpened e -> new WalletBalance(e.initialBalance());
-            case DepositMade e -> new WalletBalance(balance.amount().add(e.amount()));
-            case WithdrawalMade e -> new WalletBalance(balance.amount().subtract(e.amount()));
+    @Override
+    public List<Tag> getTags() {
+        return List.of(); // No specific tag filtering
+    }
+    
+    @Override
+    public WalletBalance getInitialState() {
+        return new WalletBalance(0, false);
+    }
+    
+    @Override
+    public WalletBalance transition(WalletBalance currentState, StoredEvent event, EventDeserializer context) {
+        // Deserialize event
+        WalletEvent walletEvent = context.deserialize(event, WalletEvent.class);
+        
+        return switch (walletEvent) {
+            case WalletOpened opened -> 
+                new WalletBalance(opened.initialBalance(), true);
+            case DepositMade deposit -> 
+                new WalletBalance(deposit.newBalance(), true);
+            case WithdrawalMade withdrawal -> 
+                new WalletBalance(withdrawal.newBalance(), true);
+            default -> currentState;
         };
     }
 }
@@ -177,15 +183,12 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
     
     private final EventStore eventStore;
     private final WalletBalanceProjector projector;
-    private final ObjectMapper objectMapper;
     
     public WithdrawCommandHandler(
             EventStore eventStore, 
-            WalletBalanceProjector projector,
-            ObjectMapper objectMapper) {
+            WalletBalanceProjector projector) {
         this.eventStore = eventStore;
         this.projector = projector;
-        this.objectMapper = objectMapper;
     }
     
     @Override
@@ -196,45 +199,41 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
             .eventNames("WalletOpened", "DepositMade", "WithdrawalMade")
             .build();
         
-        try {
-            // 1. Project current balance with cursor
-            ProjectionResult<WalletBalance> result = eventStore.project(
-                decisionModel,
-                Cursor.zero(),  // or pass cursor from request
-                WalletBalance.class,
-                List.of(projector)
-            );
-            
-            WalletBalance balance = result.state();
-            Cursor cursor = result.cursor();
-            
-            // 2. Business logic: check sufficient funds
-            if (balance.amount().compareTo(command.amount()) < 0) {
-                return CommandResult.emptyWithReason("Insufficient funds");
-            }
-            
-            // 3. Create event
-            WithdrawalMade event = new WithdrawalMade(command.amount());
-            AppendEvent appendEvent = AppendEvent.builder("WithdrawalMade")
+        // 1. Project current balance with cursor
+        ProjectionResult<WalletBalance> result = eventStore.project(
+            decisionModel,
+            Cursor.zero(),
+            WalletBalance.class,
+            List.of(projector)
+        );
+        
+        WalletBalance balance = result.state();
+        Cursor cursor = result.cursor();
+        
+        // 2. Business logic: check sufficient funds
+        if (balance.amount().compareTo(command.amount()) < 0) {
+            return CommandResult.emptyWithReason("Insufficient funds");
+        }
+        
+        // 3. Create event (simplified for docs)
+        WithdrawalMade event = new WithdrawalMade(command.amount(), command.withdrawalId());
+        List<AppendEvent> events = List.of(
+            AppendEvent.builder("WithdrawalMade")
                 .tag("wallet_id", command.walletId())
                 .tag("withdrawal_id", command.withdrawalId())
-                .data(objectMapper.valueToTree(event))
-                .build();
-            
-            // 4. Build append condition with DCB conflict check + idempotency
-            AppendCondition condition = new AppendConditionBuilder(decisionModel, cursor)
-                .withIdempotencyCheck("WithdrawalMade", "withdrawal_id", command.withdrawalId())
-                .build();
-            
-            // 5. Append with both checks
-            eventStore.appendIf(List.of(appendEvent), condition);
-            
-            return CommandResult.success(appendEvent);
-            
-        } catch (ConcurrencyException e) {
-            // Balance changed since we read it - retry
-            return handle(command);  // Recursive retry
-        }
+                .data(event)
+                .build()
+        );
+        
+        // 4. Build append condition with DCB conflict check + idempotency
+        AppendCondition condition = new AppendConditionBuilder(decisionModel, cursor)
+            .withIdempotencyCheck("WithdrawalMade", "withdrawal_id", command.withdrawalId())
+            .build();
+        
+        // 5. Append with both checks
+        eventStore.appendIf(events, condition);
+        
+        return CommandResult.success(events.get(0));
     }
 }
 ```
