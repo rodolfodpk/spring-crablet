@@ -144,9 +144,8 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
             .data(withdrawal)
             .build();
 
-    // Build condition: decision model only (cursor-based concurrency control)
-    // DCB Principle: Cursor check prevents duplicate charges
-    // Note: No idempotency check - cursor advancement detects if operation already succeeded
+    // Withdrawals are non-commutative - order matters for balance validation
+    // DCB cursor check REQUIRED: prevents concurrent withdrawals exceeding balance
     AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
             .build();
 
@@ -158,7 +157,7 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
 - Decision Model: Query for balance-affecting events (`WalletOpened`, `DepositMade`, `WithdrawalMade`)
 - Cursor checks if balance changed concurrently → throws `ConcurrencyException` → `CommandExecutor` retries
 - Business validation: checks sufficient funds before creating event
-- No explicit idempotency check (cursor advancement detects duplicates)
+- See [Command Patterns Guide](crablet-eventstore/docs/COMMAND_PATTERNS.md) for commutative vs non-commutative operations
 
 ## Documentation
 

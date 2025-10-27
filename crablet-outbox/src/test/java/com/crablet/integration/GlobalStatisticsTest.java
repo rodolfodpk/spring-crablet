@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Integration tests for GlobalStatisticsPublisher.
  */
 @TestPropertySource(properties = {
-    "spring.config.import=classpath:application-test-with-outbox-per-topic-publisher.properties"
+    "spring.config.import=classpath:application-test-with-outbox-global.properties"
 })
 class GlobalStatisticsTest extends AbstractCrabletTest {
     

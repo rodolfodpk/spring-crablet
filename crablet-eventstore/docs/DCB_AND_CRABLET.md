@@ -329,28 +329,19 @@ Complete example showing modern Crablet APIs:
 @Component
 public class DepositCommandHandler implements CommandHandler<DepositCommand> {
     
-    private final ObjectMapper objectMapper;
     private final WalletBalanceProjector balanceProjector;
 
     @Override
     public CommandResult handle(EventStore eventStore, DepositCommand command) {
-        // 1. Define decision model query (what state do we need?)
-        Query decisionModel = QueryBuilder.create()
-            .events("WalletOpened", "DepositMade", "WithdrawalMade")
-            .tag("wallet_id", command.walletId())
-            .event("MoneyTransferred", "from_wallet_id", command.walletId())
-            .event("MoneyTransferred", "to_wallet_id", command.walletId())
-            .build();
-
-        // 2. Project current state
+        // 1. Project current state to validate wallet exists and get balance
         ProjectionResult<WalletBalanceState> projection =
-            balanceProjector.projectWalletBalance(eventStore, command.walletId(), decisionModel);
+            balanceProjector.projectWalletBalance(eventStore, command.walletId());
         
         if (!projection.state().isExisting()) {
             throw new WalletNotFoundException(command.walletId());
         }
 
-        // 3. Business logic
+        // 2. Business logic
         int newBalance = projection.state().balance() + command.amount();
         DepositMade deposit = DepositMade.of(
             command.depositId(),
@@ -360,20 +351,17 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
             command.description()
         );
 
-        // 5. Create event with fluent builder
+        // 3. Create event
         AppendEvent event = AppendEvent.builder("DepositMade")
             .tag("wallet_id", command.walletId())
             .tag("deposit_id", command.depositId())
-            .data(serializeEvent(objectMapper, deposit))
+            .data(deposit)
             .build();
 
-        // 6. Build append condition (DCB enforcement)
-        AppendCondition condition = decisionModel
-            .toAppendCondition(projection.cursor())
-            .build();
-
-        // DCB Principle: Cursor check prevents duplicate charges
-        // Note: No idempotency check - cursor advancement detects if operation already succeeded
+        // 4. Deposits are commutative - no cursor check needed
+        // Order doesn't matter: +$10 then +$20 = +$20 then +$10
+        // Allows parallel deposits without conflicts
+        AppendCondition condition = AppendCondition.empty();
 
         return CommandResult.of(List.of(event), condition);
 }
@@ -381,12 +369,14 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
 
 **Key Points:**
 
-1. **QueryBuilder**: Fluent API for building complex queries
+1. **Simplified API**: No query builder needed for simple commutative operations
 2. **AppendEvent.builder()**: Fluent event creation with inline tags
-3. **AppendCondition**: Enforces concurrency control using decision model cursor
-4. **DCB Concurrency**: Cursor-based conflict detection prevents duplicate charges (409 Conflict via GlobalExceptionHandler)
-5. **DCB Principle**: Condition uses same query as projection for consistency
-6. **Performance**: Operations use cursor-only checks (~4x faster than idempotency checks)
+3. **AppendCondition.empty()**: For commutative operations where order doesn't matter
+4. **Parallel Execution**: Deposits can run in parallel without conflicts
+5. **Idempotency**: Handled via `deposit_id` tag, prevents duplicate deposits
+6. **Performance**: No cursor checks needed for commutative operations
+
+**For non-commutative operations (withdrawals, transfers)**, use `AppendConditionBuilder(decisionModel, cursor)` to detect concurrent balance changes. See [Command Patterns Guide](COMMAND_PATTERNS.md) for complete examples.
 7. **Wallet Creation**: Still uses idempotency checks (no cursor protection available)
 
 ## PostgreSQL Integration
