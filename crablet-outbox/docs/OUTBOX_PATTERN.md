@@ -132,6 +132,37 @@ Example:
 - **Default** (100): Balanced for most workloads
 - **Larger batches** (500-1000): Higher throughput, but longer publish cycles
 
+### Exponential Backoff
+
+To reduce unnecessary polling during idle periods, the outbox uses exponential backoff:
+
+- **Threshold**: After N consecutive empty polls, backoff activates (default: 3)
+- **Multiplier**: Each empty poll doubles the delay (default: 2x)
+- **Max duration**: Capped at configurable seconds (default: 60s)
+- **Reset**: Any successful publish immediately resets to normal polling
+
+Example with 1s polling interval:
+- Polls 1-3 (empty): Normal 1s interval
+- Poll 4 (empty): Skip 1 cycle → 2s effective interval
+- Poll 5 (empty): Skip 3 cycles → 4s effective interval
+- Poll 6 (empty): Skip 7 cycles → 8s effective interval
+- Poll 9+ (empty): Capped at 60s max
+- Any publish: Reset to 1s interval
+
+**Benefits**:
+- Reduces CPU usage during idle periods
+- Reduces database load
+- Maintains responsiveness (max 60s delay)
+- Per-publisher isolation
+
+**Configuration**:
+```properties
+crablet.outbox.backoff.enabled=true
+crablet.outbox.backoff.threshold=3              # Empty polls before backoff starts
+crablet.outbox.backoff.multiplier=2             # Exponential factor (2^n)
+crablet.outbox.backoff.max-seconds=60           # Max backoff duration
+```
+
 ### Lock Acquisition Process
 
 1. **Startup**: Each instance tries to acquire the global lock
