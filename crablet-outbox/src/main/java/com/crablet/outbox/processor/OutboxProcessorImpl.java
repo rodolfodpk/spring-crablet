@@ -20,6 +20,7 @@ import org.springframework.scheduling.TaskScheduler;
 
 import javax.sql.DataSource;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +51,9 @@ public class OutboxProcessorImpl implements OutboxProcessor {
     
     // Track active schedulers
     private final Map<String, ScheduledFuture<?>> activeSchedulers = new ConcurrentHashMap<>();
+    
+    // Track backoff states for each (topic, publisher) pair
+    private final Map<String, BackoffState> backoffStates = new ConcurrentHashMap<>();
     
     public OutboxProcessorImpl(
             OutboxConfig config,
@@ -101,13 +105,24 @@ public class OutboxProcessorImpl implements OutboxProcessor {
             
             for (String publisherName : topicConfig.getPublishers()) {
                 long pollingInterval = getPollingIntervalForPublisher(topicName, publisherName);
+                String schedulerKey = topicName + ":" + publisherName;
+                
+                // Create backoff state if enabled
+                if (config.isBackoffEnabled()) {
+                    BackoffState backoffState = new BackoffState(
+                        config.getBackoffThreshold(),
+                        config.getBackoffMultiplier(),
+                        pollingInterval,
+                        config.getBackoffMaxSeconds()
+                    );
+                    backoffStates.put(schedulerKey, backoffState);
+                }
                 
                 ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(
                     () -> scheduledTask(topicName, publisherName),
                     Duration.ofMillis(pollingInterval)
                 );
                 
-                String schedulerKey = topicName + ":" + publisherName;
                 activeSchedulers.put(schedulerKey, future);
                 log.info("Registered scheduler for ({}, {}) with interval {}ms", 
                     topicName, publisherName, pollingInterval);
@@ -127,6 +142,7 @@ public class OutboxProcessorImpl implements OutboxProcessor {
             }
         });
         activeSchedulers.clear();
+        backoffStates.clear();
         
         // Release global leader lock
         leaderElector.releaseGlobalLeader();
@@ -140,15 +156,36 @@ public class OutboxProcessorImpl implements OutboxProcessor {
             return;
         }
         
+        String key = topicName + ":" + publisherName;
+        BackoffState backoffState = backoffStates.get(key);
+        
+        // Check if we should skip this cycle
+        if (backoffState != null && backoffState.shouldSkip()) {
+            log.trace("Skipping poll for ({}, {}) due to backoff (empty polls: {})", 
+                topicName, publisherName, backoffState.getEmptyPollCount());
+            return;
+        }
+        
         try {
             int published = publishingService.publishForTopicPublisher(topicName, publisherName);
             outboxMetrics.recordProcessingCycle();
-            if (published > 0) {
+            
+            // Update backoff state
+            if (backoffState != null) {
+                if (published > 0) {
+                    backoffState.recordSuccess();
+                    log.debug("Published {} events for ({}, {}) - backoff reset", 
+                        published, topicName, publisherName);
+                } else {
+                    backoffState.recordEmpty();
+                }
+            } else if (published > 0) {
                 log.debug("Published {} events for ({}, {})", published, topicName, publisherName);
             }
         } catch (Exception e) {
             log.error("Error in scheduler for ({}, {})", topicName, publisherName, e);
             outboxMetrics.recordProcessingCycle();
+            // Don't update backoff on errors - let it retry normally
         }
     }
     
@@ -203,5 +240,20 @@ public class OutboxProcessorImpl implements OutboxProcessor {
     @Override
     public void markFailed(long outboxId, String error) {
         // No-op: publisher-offset-tracking updates error_count directly
+    }
+    
+    /**
+     * Get backoff state for a specific publisher (for management/monitoring).
+     */
+    public BackoffState getBackoffState(String topic, String publisher) {
+        String key = topic + ":" + publisher;
+        return backoffStates.get(key);
+    }
+    
+    /**
+     * Get all backoff states (for management/monitoring).
+     */
+    public Map<String, BackoffState> getAllBackoffStates() {
+        return new ConcurrentHashMap<>(backoffStates);
     }
 }

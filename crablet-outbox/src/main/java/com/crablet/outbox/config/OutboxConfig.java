@@ -36,6 +36,12 @@ public class OutboxConfig {
     // Delay in milliseconds between retry attempts
     private long retryDelayMs = 5000;
     
+    // Exponential backoff configuration
+    private boolean backoffEnabled = true;
+    private int backoffThreshold = 3;
+    private int backoffMultiplier = 2;
+    private int backoffMaxSeconds = 60;
+    
     @Autowired
     private TopicConfigurationProperties topicConfigurationProperties;
     
@@ -62,6 +68,38 @@ public class OutboxConfig {
     public long getRetryDelayMs() { return retryDelayMs; }
     public void setRetryDelayMs(long retryDelayMs) { 
         this.retryDelayMs = retryDelayMs; 
+    }
+    
+    public boolean isBackoffEnabled() {
+        return backoffEnabled;
+    }
+    
+    public void setBackoffEnabled(boolean backoffEnabled) {
+        this.backoffEnabled = backoffEnabled;
+    }
+    
+    public int getBackoffThreshold() {
+        return backoffThreshold;
+    }
+    
+    public void setBackoffThreshold(int backoffThreshold) {
+        this.backoffThreshold = backoffThreshold;
+    }
+    
+    public int getBackoffMultiplier() {
+        return backoffMultiplier;
+    }
+    
+    public void setBackoffMultiplier(int backoffMultiplier) {
+        this.backoffMultiplier = backoffMultiplier;
+    }
+    
+    public int getBackoffMaxSeconds() {
+        return backoffMaxSeconds;
+    }
+    
+    public void setBackoffMaxSeconds(int backoffMaxSeconds) {
+        this.backoffMaxSeconds = backoffMaxSeconds;
     }
     
     public Map<String, TopicConfig> getTopics() { 

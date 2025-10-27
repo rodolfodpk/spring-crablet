@@ -77,13 +77,15 @@ public class TestApplication {
     }
     
     @Bean
-    public OutboxManagementService outboxManagementService(org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
-        return new OutboxManagementService(jdbcTemplate);
+    public OutboxManagementService outboxManagementService(
+            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
+            com.crablet.outbox.processor.OutboxProcessorImpl outboxProcessor) {
+        return new OutboxManagementService(jdbcTemplate, outboxProcessor);
     }
     
     @Bean
-    public OutboxMetrics outboxMetrics(OutboxManagementService managementService, org.springframework.core.env.Environment environment) {
-        return new OutboxMetrics(managementService, environment);
+    public OutboxMetrics outboxMetrics(org.springframework.core.env.Environment environment) {
+        return new OutboxMetrics(environment);
     }
     
     @Bean

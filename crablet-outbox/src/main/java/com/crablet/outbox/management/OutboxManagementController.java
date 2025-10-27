@@ -107,4 +107,28 @@ public class OutboxManagementController {
         Map<String, String> leaders = outboxManagementService.getCurrentLeaders();
         return ResponseEntity.ok(leaders);
     }
+    
+    /**
+     * Get backoff information for all publishers.
+     */
+    @GetMapping("/publishers/backoff")
+    public ResponseEntity<Map<String, OutboxManagementService.BackoffInfo>> getBackoffInfo() {
+        Map<String, OutboxManagementService.BackoffInfo> backoffInfo = outboxManagementService.getBackoffInfo();
+        return ResponseEntity.ok(backoffInfo);
+    }
+    
+    /**
+     * Get backoff information for a specific publisher.
+     */
+    @GetMapping("/publishers/{topic}/{publisher}/backoff")
+    public ResponseEntity<OutboxManagementService.BackoffInfo> getPublisherBackoffInfo(
+            @PathVariable String topic,
+            @PathVariable String publisher) {
+        
+        OutboxManagementService.BackoffInfo info = outboxManagementService.getBackoffInfo(topic, publisher);
+        if (info == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(info);
+    }
 }

@@ -120,6 +120,13 @@ crablet.outbox.max-retries=3
 # Default: 5000
 crablet.outbox.retry-delay-ms=5000
 
+# Exponential backoff for idle publishers
+# Reduces polling when no events are pending
+crablet.outbox.backoff.enabled=true
+crablet.outbox.backoff.threshold=3              # Empty polls before backoff starts
+crablet.outbox.backoff.multiplier=2             # Exponential factor (2^n)
+crablet.outbox.backoff.max-seconds=60           # Max backoff duration
+
 # Topic configuration with per-publisher polling
 crablet.outbox.topics.default.publishers=KafkaPublisher,LogPublisher
 

@@ -19,9 +19,11 @@ public class OutboxManagementService {
     private static final Logger log = LoggerFactory.getLogger(OutboxManagementService.class);
     
     private final JdbcTemplate jdbcTemplate;
+    private final com.crablet.outbox.processor.OutboxProcessorImpl outboxProcessor;
     
-    public OutboxManagementService(JdbcTemplate jdbcTemplate) {
+    public OutboxManagementService(JdbcTemplate jdbcTemplate, com.crablet.outbox.processor.OutboxProcessorImpl outboxProcessor) {
         this.jdbcTemplate = jdbcTemplate;
+        this.outboxProcessor = outboxProcessor;
     }
     
     /**
@@ -219,6 +221,40 @@ public class OutboxManagementService {
     }
     
     /**
+     * Get backoff information for all publishers.
+     */
+    public Map<String, BackoffInfo> getBackoffInfo() {
+        Map<String, BackoffInfo> result = new java.util.HashMap<>();
+        
+        Map<String, com.crablet.outbox.processor.BackoffState> backoffStates = outboxProcessor.getAllBackoffStates();
+        for (var entry : backoffStates.entrySet()) {
+            com.crablet.outbox.processor.BackoffState state = entry.getValue();
+            result.put(entry.getKey(), new BackoffInfo(
+                state.getEmptyPollCount(),
+                state.getCurrentSkipCounter()
+            ));
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Get backoff information for a specific publisher.
+     */
+    public BackoffInfo getBackoffInfo(String topic, String publisher) {
+        com.crablet.outbox.processor.BackoffState state = outboxProcessor.getBackoffState(topic, publisher);
+        
+        if (state == null) {
+            return null;
+        }
+        
+        return new BackoffInfo(
+            state.getEmptyPollCount(),
+            state.getCurrentSkipCounter()
+        );
+    }
+    
+    /**
      * Publisher status information.
      */
     public record PublisherStatus(
@@ -240,6 +276,18 @@ public class OutboxManagementService {
         
         public boolean isFailed() {
             return "FAILED".equals(status);
+        }
+    }
+    
+    /**
+     * Backoff information for a publisher.
+     */
+    public record BackoffInfo(
+        int emptyPollCount,
+        int currentSkipCounter
+    ) {
+        public boolean isBackedOff() {
+            return currentSkipCounter > 0;
         }
     }
 }
