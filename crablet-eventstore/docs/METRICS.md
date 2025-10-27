@@ -91,7 +91,7 @@ histogram_quantile(0.99, rate(eventstore.commands.duration_bucket[5m]))
 rate(eventstore.events.by_type[1m])
 ```
 
-### DCB Pattern Monitoring
+### DCB Monitoring
 
 **Concurrency conflicts:**
 ```promql
@@ -267,7 +267,7 @@ EventStore metrics focus on **write path** (commands → events), while Outbox m
 
 ## See Also
 
-- [DCB Pattern](./DCB_AND_CRABLET.md) - Understanding DCB violations
+- [DCB Explained](./DCB_AND_CRABLET.md) - Understanding DCB violations
 - [Command Handling](../../GETTING_STARTED.md#command-handling) - Writing command handlers
 - [Testing](../../TESTING.md) - Testing with metrics
 

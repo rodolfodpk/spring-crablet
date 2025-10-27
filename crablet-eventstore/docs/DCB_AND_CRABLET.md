@@ -1,4 +1,4 @@
-# Dynamic Consistency Boundary (DCB) Pattern
+# Dynamic Consistency Boundary (DCB)
 
 ## Problem Statement
 
@@ -46,7 +46,7 @@ Request B: Read@42 → Check → Conflict (position 43 exists) → 409
 
 ## Architecture: Cursor-Only vs Idempotency
 
-The DCB pattern supports two concurrency control strategies:
+DCB supports two concurrency control strategies:
 
 ### Operations (Deposits, Withdrawals, Transfers)
 - **Strategy**: Cursor-only concurrency control
@@ -105,7 +105,7 @@ PUT /api/wallets/w1
 → 200 OK (idempotent)
 ```
 
-## DCB Pattern with Wallet Example
+## DCB with Wallet Example
 
 This section explains the three key DCB concepts using a concrete wallet withdrawal example.
 
@@ -266,12 +266,12 @@ public class WithdrawCommandHandler {
 ### Package Structure
 
 - **`com.crablet.eventstore.store`**: Core interfaces and implementations (EventStore, StoredEvent, AppendEvent)
-- **`com.crablet.eventstore.commands`**: Command handler pattern (Command, CommandHandler, CommandExecutor)
+- **`com.crablet.eventstore.commands`**: Command handlers (Command, CommandHandler, CommandExecutor)
 - **`com.crablet.eventstore.query`**: Querying support (Query, QueryBuilder)
-- **`com.crablet.eventstore.dcb`**: DCB pattern implementation (AppendCondition, Cursor)
+- **`com.crablet.eventstore.dcb`**: DCB implementation (AppendCondition, Cursor)
 - **`com.crablet.eventstore.config`**: Configuration classes
 - **`com.crablet.eventstore.clock`**: Clock provider for consistent timestamps
-- **`com.crablet.outbox`**: Outbox pattern interfaces and implementations
+- **`com.crablet.outbox`**: Outbox interfaces and implementations
 
 ### Cursor Structure
 
@@ -304,7 +304,7 @@ Generates SQL with:
 - Tag containment checks (`tags @> ?`)
 - Position ordering (`ORDER BY transaction_id, position`)
 
-### State Projector Pattern
+### State Projectors
 
 ```java
 public interface StateProjector<T> {
@@ -321,7 +321,7 @@ EventDeserializer deserializer = // provided by EventStore
 WalletState state = projector.transition(initialState, event, deserializer);
 ```
 
-### Command Handler Pattern
+### Command Handlers
 
 Complete example showing modern Crablet APIs:
 

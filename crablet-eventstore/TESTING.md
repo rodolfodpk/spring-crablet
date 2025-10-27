@@ -248,7 +248,7 @@ class WalletBalanceProjectorTest {
 
 ## EventTestHelper
 
-**Important:** EventTestHelper is for tests only. It bypasses DCB pattern.
+**Important:** EventTestHelper is for tests only. It bypasses DCB.
 
 ```java
 import com.crablet.eventstore.query.EventTestHelper;
@@ -422,6 +422,6 @@ mvn test -Dtest=WithdrawCommandHandlerTest -Dtestcontainers.reuse.enable=true
 ## Next Steps
 
 - Read [GETTING_STARTED.md](GETTING_STARTED.md) for integration examples
-- See [DCB Pattern](docs/DCB_AND_CRABLET.md) for DCB concepts
+- See [DCB Explained](docs/DCB_AND_CRABLET.md) for DCB concepts
 - Check [SCHEMA.md](SCHEMA.md) for database details
 

@@ -331,6 +331,6 @@ AppendCondition condition = new AppendConditionBuilder(decisionModel, projection
 ## Learn More
 
 - [Getting Started Guide](GETTING_STARTED.md) - Complete setup walkthrough
-- [DCB Documentation](DCB_AND_CRABLET.md) - Deep dive into DCB pattern
+- [DCB Documentation](DCB_AND_CRABLET.md) - Deep dive into DCB
 - [Testing Guide](TESTING.md) - How to test command handlers
 

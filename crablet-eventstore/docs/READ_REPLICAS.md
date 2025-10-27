@@ -217,6 +217,6 @@ INFO - Falling back to primary database
 ## See Also
 
 - [PgBouncer Guide](./PGBOUNCER.md) - Using PgBouncer for load balancing
-- [Outbox Pattern](../../architecture/OUTBOX_PATTERN.md) - Understanding outbox implementation
+- [Outbox Implementation](../../crablet-outbox/docs/OUTBOX_PATTERN.md) - Understanding outbox implementation
 - [Performance Optimizations](../../etc/PERFORMANCE_OPTIMIZATIONS.md) - General performance tips
 

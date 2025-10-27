@@ -1,10 +1,10 @@
 # Crablet Outbox
 
-Transactional outbox pattern implementation for reliable event publishing with Spring Boot integration.
+Transactional outbox implementation for reliable event publishing with Spring Boot integration.
 
 ## Overview
 
-Crablet Outbox provides a robust implementation of the transactional outbox pattern, ensuring that events are reliably published from your application to external systems without compromising transactional integrity.
+Crablet Outbox provides a robust transactional outbox implementation, ensuring that events are reliably published from your application to external systems without compromising transactional integrity.
 
 ## Features
 

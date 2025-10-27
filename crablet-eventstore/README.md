@@ -1,16 +1,16 @@
 # Crablet EventStore
 
-Event sourcing library with Dynamic Consistency Boundary (DCB) pattern support and Spring Boot integration.
+Event sourcing library with Dynamic Consistency Boundary (DCB) support and Spring Boot integration.
 
 ## Overview
 
-Crablet EventStore provides the foundational interfaces and Spring implementations for event sourcing in Java applications. It implements the DCB pattern for optimistic concurrency control without requiring distributed locks.
+Crablet EventStore provides the foundational interfaces and Spring implementations for event sourcing in Java applications. It implements DCB for optimistic concurrency control without requiring distributed locks.
 
 ## Features
 
 - **Event Store Interface**: Simple, idiomatic event sourcing API
-- **DCB Pattern**: Optimistic concurrency control using cursors
-- **Type-Safe Commands**: Command handler pattern with automatic projection
+- **DCB**: Optimistic concurrency control using cursors
+- **Type-Safe Commands**: Command handler with automatic projection
 - **Flexible Querying**: Tag-based event querying and filtering
 - **State Projection**: Built-in support for projecting current state from events
 - **Spring Integration**: Ready-to-use Spring Boot components and configuration
@@ -38,7 +38,7 @@ Crablet EventStore provides the foundational interfaces and Spring implementatio
 
 Two real examples from our wallet domain showing distinct DCB patterns:
 
-### Example 1: Idempotency Pattern (OpenWallet)
+### Example 1: OpenWallet (Idempotency)
 
 Prevents duplicate wallet creation using `withIdempotencyCheck()`:
 
@@ -62,7 +62,7 @@ public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
             .data(walletOpened)
             .build();
 
-    // 4. Build condition to enforce uniqueness using DCB idempotency pattern
+    // 4. Build condition to enforce uniqueness using DCB idempotency
     //    Fails if ANY WalletOpened event exists for this wallet_id (idempotency check)
     //    No concurrency check needed for wallet creation - only idempotency matters
     AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
@@ -145,7 +145,7 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
 ## Learn More
 
 - **[Getting Started](GETTING_STARTED.md)** - Complete integration guide with wallet example
-- **[DCB Pattern](docs/DCB_AND_CRABLET.md)** - Detailed explanation with examples
+- **[DCB Explained](docs/DCB_AND_CRABLET.md)** - Detailed explanation with examples
 - **[Testing](TESTING.md)** - Testcontainers setup and test examples
 - **[Database Schema](SCHEMA.md)** - Database tables and functions
 - **[Metrics](docs/METRICS.md)** - EventStore metrics and monitoring

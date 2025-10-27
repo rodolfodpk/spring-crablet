@@ -5,21 +5,21 @@
 [![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A Java 25 library implementing the DCB (Dynamic Consistency Boundary) event sourcing pattern, ported from [crablet](https://github.com/rodolfodpk/crablet) (Kotlin) and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go).
+A Java 25 library implementing DCB (Dynamic Consistency Boundary) event sourcing, ported from [crablet](https://github.com/rodolfodpk/crablet) (Kotlin) and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go).
 
 ## Overview
 
 Crablet is an event sourcing library with Spring Boot integration. It provides:
 
 - **Event Sourcing**: Complete audit trail with state reconstruction
-- **DCB Pattern**: Cursor-based optimistic concurrency control without distributed locks
-- **Outbox Pattern**: Reliable event publishing to external systems
+- **DCB**: Cursor-based optimistic concurrency control without distributed locks
+- **Outbox**: Reliable event publishing to external systems
 - **Spring Integration**: Ready-to-use Spring Boot components
 
 ## Modules
 
 - **crablet-eventstore** - Core event sourcing library with DCB support
-- **crablet-outbox** - Transactional outbox pattern for event publishing
+- **crablet-outbox** - Transactional outbox for event publishing
 
 ## Quick Start
 
@@ -56,7 +56,7 @@ All tests pass (260+ tests with 72% code coverage).
 
 Two real examples from our wallet domain showing distinct DCB patterns:
 
-### OpenWallet - Idempotency Pattern
+### OpenWallet - Idempotency
 
 Prevents duplicate wallet creation using `withIdempotencyCheck()`:
 
@@ -80,7 +80,7 @@ public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
             .data(walletOpened)
             .build();
 
-    // 4. Build condition to enforce uniqueness using DCB idempotency pattern
+    // 4. Build condition to enforce uniqueness using DCB idempotency
     //    Fails if ANY WalletOpened event exists for this wallet_id (idempotency check)
     //    No concurrency check needed for wallet creation - only idempotency matters
     AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
@@ -95,12 +95,12 @@ public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
 }
 ```
 
-OpenWallet pattern notes:
+OpenWallet notes:
 - Uses `Query.empty()` + `Cursor.zero()` (no decision model needed)
 - `withIdempotencyCheck()` enforces uniqueness: fails if wallet already exists
 - Optimistic: creates event first, checks atomically via `appendIf`
 
-### Withdraw - Concurrency Control Pattern
+### Withdraw - Concurrency Control
 
 Prevents concurrent balance modifications using cursor-based conflict detection:
 
@@ -153,7 +153,7 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
 }
 ```
 
-Withdraw pattern notes:
+Withdraw notes:
 - Decision Model: Query for balance-affecting events (`WalletOpened`, `DepositMade`, `WithdrawalMade`)
 - Cursor checks if balance changed concurrently → throws `ConcurrencyException` → `CommandExecutor` retries
 - Business validation: checks sufficient funds before creating event
@@ -163,8 +163,8 @@ Withdraw pattern notes:
 
 ### Core Documentation
 - **[EventStore README](crablet-eventstore/README.md)** - Event sourcing library guide
-- **[Outbox README](crablet-outbox/README.md)** - Outbox pattern library guide
-- **[DCB Pattern](crablet-eventstore/docs/DCB_AND_CRABLET.md)** - Detailed DCB explanation
+- **[Outbox README](crablet-outbox/README.md)** - Outbox library guide
+- **[DCB Explained](crablet-eventstore/docs/DCB_AND_CRABLET.md)** - Detailed DCB explanation
 
 ### Advanced Features
 - **[Read Replicas](crablet-eventstore/docs/READ_REPLICAS.md)** - PostgreSQL read replica configuration
@@ -176,7 +176,7 @@ Withdraw pattern notes:
 
 ## Architecture Highlights
 
-- **DCB Pattern**: Optimistic concurrency control using cursors
+- **DCB**: Optimistic concurrency control using cursors
 - **Java 25**: Records, sealed interfaces, virtual threads
 - **Spring Boot 3.5**: Full Spring integration
 - **PostgreSQL**: Primary database with optional read replicas

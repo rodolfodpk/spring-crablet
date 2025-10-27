@@ -339,7 +339,7 @@ The `Query` passed to `AppendConditionBuilder` that defines which events affect 
 
 ## Next Steps
 
-- Read [DCB Pattern](docs/DCB_AND_CRABLET.md) for detailed explanation
+- Read [DCB Explained](docs/DCB_AND_CRABLET.md) for detailed explanation
 - See [SCHEMA.md](SCHEMA.md) for database details
 - Check [TESTING.md](TESTING.md) for testing patterns
 - Review [README.md](README.md) for API reference

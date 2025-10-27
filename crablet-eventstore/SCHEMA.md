@@ -48,7 +48,7 @@ CREATE TABLE commands
 
 ### outbox_topic_progress
 
-Tracks event publishing progress per topic and publisher for the Outbox pattern.
+Tracks event publishing progress per topic and publisher for the Outbox.
 
 ```sql
 CREATE TABLE outbox_topic_progress (
@@ -182,7 +182,7 @@ Or on conflict/duplicate:
 **Concurrency Check:**
 - Checks events AFTER cursor position
 - Only sees snapshot-visible committed events
-- Used by DCB pattern for optimistic locking
+- Used by DCB for optimistic locking
 
 **Idempotency Check:**
 - Checks ALL events (ignores cursor)
