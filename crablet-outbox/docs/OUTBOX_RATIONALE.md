@@ -35,13 +35,6 @@ public CommandResult handleTransfer(TransferCommand command) {
 }
 ```
 
-## How It Works
-
-1. **DCB stores events** with full transactional consistency
-2. **Outbox processor polls** events after each publisher's last position
-3. **Publishers send** events to external systems (Kafka, webhooks, etc.)
-4. **Progress tracking** ensures no events are lost or duplicated
-
 ## Key Benefits for DCB
 
 ### 1. **Transactional Consistency**
@@ -71,33 +64,32 @@ Each publisher tracks its own progress independently. Multiple publishers per to
 
 ### ❌ **Don't Use Outbox When:**
 - Internal-only event sourcing (DCB alone is sufficient)
-- High-frequency, low-latency requirements
-- Exactly-once delivery requirements
-- Simple CRUD applications
+- High-frequency, low-latency requirements (polling adds 5-30s latency)
+- Exactly-once delivery requirements (provides at-least-once only)
+- Simple CRUD applications (overhead not justified)
 
-## DCB + Outbox Architecture
+## Alternatives Comparison
 
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   DCB Command   │───▶│   Event Store    │───▶│  Outbox Topics  │
-│   Processing    │    │  (Transactional) │    │  (Publishers)   │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                │                        │
-                                ▼                        ▼
-                       ┌──────────────────┐    ┌─────────────────┐
-                       │   State Queries  │    │ External Systems│
-                       │  (Projections)   │    │ (Kafka, Webhooks│
-                       └──────────────────┘    │  Analytics)     │
-                                               └─────────────────┘
-```
+### Synchronous Publishing
+- ❌ Breaks transaction atomicity with DCB operations
+- ❌ External failures affect command processing (retry complexity)
+- ✅ Lower latency (immediate publishing)
 
-## Performance Characteristics
+### Change Data Capture (CDC)
+- ❌ Requires database-level configuration (debezium, wal2json)
+- ❌ Less control over publishing logic and filtering
+- ✅ No application-level polling overhead
+- ⚠️ More complex deployment and monitoring
 
-- **DCB Operations**: ~350 req/s (cursor-only checks)
-- **Outbox Publishing**: 5-30 second polling interval (configurable)
-- **Batch Processing**: 100 events per batch
-- **Scalability**: Single machine (GLOBAL) or distributed (PER_TOPIC_PUBLISHER)
+### Outbox Pattern (This Library)
+- ✅ Transactional consistency with DCB operations
+- ✅ Full control over publishers and routing logic
+- ✅ PostgreSQL advisory locks (no external coordination needed)
+- ✅ Independent publisher progress tracking
+- ⚠️ Polling adds latency (5-30 seconds configurable)
 
-## Conclusion
+## Implementation
 
-The outbox pattern extends DCB's transactional guarantees to external systems, providing reliable event publishing without compromising DCB's consistency model. It's an optional add-on that enhances DCB-based event sourcing for event-driven architectures.
+For complete implementation details, see:
+- **[Outbox Pattern](OUTBOX_PATTERN.md)** - Architecture, configuration, deployment, and troubleshooting
+- **[Outbox Metrics](OUTBOX_METRICS.md)** - Monitoring and observability guide

@@ -560,3 +560,103 @@ crablet.outbox.topics.payment-events.publishers=AnalyticsPublisher
   - Evaluate alternatives (e.g., dedicated event streaming infrastructure)
 
 The outbox pattern adds reliable external publishing to your DCB event sourcing without compromising the core DCB guarantees.
+
+## Troubleshooting
+
+### High Publisher Lag
+
+**Symptoms:** Events not publishing, `outbox_lag` metric increasing
+
+**Causes:**
+- Leader instance down or unhealthy
+- Publisher paused or in FAILED state
+- Database connectivity issues
+- External system (Kafka, webhooks) unavailable
+
+**Resolution:**
+```sql
+-- Check publisher status
+SELECT topic, publisher, status, last_position, error_count, last_error
+FROM outbox_topic_progress;
+
+-- Resume paused publisher
+UPDATE outbox_topic_progress 
+SET status = 'ACTIVE' 
+WHERE publisher = 'KafkaPublisher';
+
+-- Reset failed publisher
+UPDATE outbox_topic_progress 
+SET status = 'ACTIVE', error_count = 0, last_error = NULL 
+WHERE publisher = 'KafkaPublisher';
+```
+
+**Check logs:**
+- Leader election status
+- Publisher error messages
+- Circuit breaker states
+
+### Frequent Leader Changes
+
+**Symptoms:** `outbox_is_leader` metric changing frequently, multiple leadership transitions
+
+**Causes:**
+- Network instability between instances and database
+- Database connection pool exhaustion
+- Instance resource constraints (CPU, memory)
+- PostgreSQL advisory lock timeouts
+
+**Resolution:**
+- Monitor instance health metrics
+- Check network latency to database
+- Increase connection pool size if needed
+- Verify instance resources (CPU < 80%, memory sufficient)
+
+### Events Published Multiple Times
+
+**Symptoms:** Duplicate events in external systems
+
+**Expected behavior:** At-least-once delivery semantics
+
+**Resolution:**
+- This is normal behavior (see Guarantees section)
+- Ensure consumers are idempotent
+- Use event position/ID for deduplication
+- Check consumer logs for duplicate handling
+
+### No Events Being Published
+
+**Symptoms:** `outbox_events_published_total` not increasing, lag growing
+
+**Causes:**
+- All instances are followers (no leader)
+- Outbox disabled in configuration
+- No publishers configured for topics
+- All publishers paused or failed
+
+**Resolution:**
+```bash
+# Check if any instance is leader
+curl http://localhost:8080/actuator/metrics/outbox.is.leader
+
+# Check configuration
+curl http://localhost:8080/actuator/env | grep outbox.enabled
+
+# Check publishers
+curl http://localhost:8080/actuator/outbox/publishers
+```
+
+### Database Connection Errors
+
+**Symptoms:** Publishing stops, connection errors in logs
+
+**Causes:**
+- Database unavailable
+- Connection pool exhausted
+- Network issues
+- Invalid credentials
+
+**Resolution:**
+- Verify database connectivity: `psql -h <host> -U <user> -d <db>`
+- Check connection pool configuration
+- Monitor `spring.datasource.hikari.*` metrics
+- Verify PostgreSQL logs for connection issues
