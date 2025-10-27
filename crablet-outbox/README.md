@@ -84,19 +84,19 @@ eventStore.append(tags, events);
 
 ## Architecture
 
-### Per-Publisher Schedulers
+Crablet Outbox uses:
+- **Per-publisher schedulers**: Independent scheduler per (topic, publisher) pair for isolation and flexible polling
+- **Global leader election**: PostgreSQL advisory locks for automatic failover
+- **At-least-once delivery**: Events may be published multiple times (idempotent consumers required)
 
-Each (topic, publisher) pair gets its own independent scheduler, providing:
+**Recommended deployment:** Run exactly 2 instances (1 leader + 1 backup) for high availability.
 
-- **Isolation**: One publisher failure doesn't affect others
-- **Flexible Polling**: Per-publisher polling intervals with global fallback
-- **Simpler Debugging**: Clear scheduler boundaries and error tracking
+**Scalability:** Optimized for 1-50 topic/publisher pairs.
 
-The outbox uses a global leader lock to coordinate processing across multiple instances:
-
-- **One leader** processes all publishers on all topics
-- **Automatic failover** when leader goes down (PostgreSQL advisory locks release on crash)
-- **No configuration needed** - leader election is transparent
+For detailed architecture, deployment guidance, scalability limits, and trade-offs, see:
+- **[Outbox Pattern](docs/OUTBOX_PATTERN.md)** - Complete architecture and deployment guide
+- **[Outbox Rationale](docs/OUTBOX_RATIONALE.md)** - Why we chose the outbox pattern
+- **[Outbox Metrics](docs/OUTBOX_METRICS.md)** - Metrics reference
 
 ## Configuration
 
@@ -160,12 +160,6 @@ Metrics are automatically exposed via Micrometer:
 - `crablet.outbox.events.failed` - Failed publish attempts
 - `crablet.outbox.polling.duration` - Polling duration
 - `crablet.outbox.leader.heartbeat` - Leader heartbeat timestamp
-
-## Documentation
-
-- [Outbox Pattern](docs/OUTBOX_PATTERN.md) - Detailed explanation of the transactional outbox pattern
-- [Outbox Rationale](docs/OUTBOX_RATIONALE.md) - Why we chose the outbox pattern
-- [Outbox Metrics](docs/OUTBOX_METRICS.md) - Metrics reference
 
 ## License
 
