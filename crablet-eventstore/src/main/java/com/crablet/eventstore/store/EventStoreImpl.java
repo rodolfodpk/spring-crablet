@@ -227,6 +227,14 @@ public class EventStoreImpl implements EventStore {
             return;
         }
 
+        // If condition is empty (no stateChanged query and no idempotency check), use simple append
+        if (condition.stateChanged().items().isEmpty() && 
+            (condition.alreadyExists() == null || condition.alreadyExists().items().isEmpty()) &&
+            condition.afterCursor() != null && condition.afterCursor().position().value() == 0) {
+            append(events);
+            return;
+        }
+
         try {
             // Extract concurrency check (with cursor)
             List<String> concurrencyTypes = condition.stateChanged().items().stream()

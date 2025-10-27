@@ -45,4 +45,13 @@ public record AppendCondition(
     public static AppendCondition expectEmptyStream() {
         return new AppendCondition(Cursor.zero(), Query.empty(), null);
     }
+
+    /**
+     * Create an empty condition for operations that don't need DCB checks.
+     * Use for commutative operations where order doesn't matter (e.g., deposits).
+     * These operations can safely run in parallel without conflicts.
+     */
+    public static AppendCondition empty() {
+        return new AppendCondition(Cursor.zero(), Query.empty(), null);
+    }
 }

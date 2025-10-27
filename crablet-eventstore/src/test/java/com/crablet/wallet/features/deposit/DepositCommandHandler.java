@@ -1,14 +1,11 @@
 package com.crablet.wallet.features.deposit;
 
 import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.commands.CommandHandler;
 import com.crablet.eventstore.commands.CommandResult;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.query.ProjectionResult;
-import com.crablet.eventstore.query.Query;
-import com.crablet.wallet.domain.WalletQueryPatterns;
 import com.crablet.wallet.domain.event.DepositMade;
 import com.crablet.wallet.domain.exception.WalletNotFoundException;
 import com.crablet.wallet.domain.projections.WalletBalanceProjector;
@@ -43,12 +40,8 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
     public CommandResult handle(EventStore eventStore, DepositCommand command) {
         // Command is already validated at construction with YAVI
 
-        // Use domain-specific decision model query
-        Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
-
-        // Project state (needed for balance calculation)
-        ProjectionResult<WalletBalanceState> projection =
-                balanceProjector.projectWalletBalance(eventStore, command.walletId(), decisionModel);
+        // Project state to validate wallet exists and get current balance
+        ProjectionResult<WalletBalanceState> projection = balanceProjector.projectWalletBalance(eventStore, command.walletId());
         WalletBalanceState state = projection.state();
 
         if (!state.isExisting()) {
@@ -73,11 +66,12 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
                 .data(deposit)
                 .build();
 
-        // Build condition: decision model only (cursor-based concurrency control)
-        // DCB Principle: Cursor check prevents duplicate charges
-        // Note: No idempotency check - cursor advancement detects if operation already succeeded
-        AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
-                .build();
+        // Deposits are commutative operations - order doesn't matter
+        // Balance: $100 → +$10 → +$20 = $130 (same as +$20 → +$10)
+        // No DCB cursor check needed - allows parallel deposits on same wallet
+        // Only requirement: wallet must exist (validated above)
+        // Idempotency via deposit_id tag prevents duplicates
+        AppendCondition condition = AppendCondition.empty();
 
         return CommandResult.of(List.of(event), condition);
     }

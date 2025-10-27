@@ -79,9 +79,9 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
                 .data(withdrawal)
                 .build();
 
-        // Build condition: decision model only (cursor-based concurrency control)
-        // DCB Principle: Cursor check prevents duplicate charges
-        // Note: No idempotency check - cursor advancement detects if operation already succeeded
+        // Withdrawals are non-commutative - order matters for balance validation
+        // DCB cursor check REQUIRED: prevents concurrent withdrawals exceeding balance
+        // Example: $100 balance, two $80 withdrawals - both see $100, but only one should succeed
         AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
                 .build();
 

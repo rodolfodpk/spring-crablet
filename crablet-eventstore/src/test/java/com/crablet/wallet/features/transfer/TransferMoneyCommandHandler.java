@@ -87,9 +87,8 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
                 .data(transfer)
                 .build();
 
-        // Build condition: decision model only (cursor-based concurrency control)
-        // DCB Principle: Cursor check prevents duplicate charges
-        // Note: No idempotency check - cursor advancement detects if operation already succeeded
+        // Transfers are non-commutative - order matters for both wallet balances
+        // DCB cursor check REQUIRED: prevents concurrent transfers causing overdrafts
         AppendCondition condition = new AppendConditionBuilder(transferProjection.decisionModel(), transferProjection.cursor())
                 .build();
 
