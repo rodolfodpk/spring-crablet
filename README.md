@@ -1,15 +1,15 @@
-# Spring Boot Java DCB Event Sourcing Solution
+# Crablet: Java DCB Event Sourcing Library
 
 [![Java CI](https://github.com/rodolfodpk/spring-crablet/actions/workflows/maven.yml/badge.svg)](https://github.com/rodolfodpk/spring-crablet/actions/workflows/maven.yml)
 [![codecov](https://codecov.io/gh/rodolfodpk/spring-crablet/branch/main/graph/badge.svg)](https://codecov.io/gh/rodolfodpk/spring-crablet)
 [![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Java 25 implementation of the DCB (Dynamic Consistency Boundary) event sourcing pattern, ported from [crablet](https://github.com/rodolfodpk/crablet) (Kotlin) and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go).
+A Java 25 library implementing the DCB (Dynamic Consistency Boundary) event sourcing pattern, ported from [crablet](https://github.com/rodolfodpk/crablet) (Kotlin) and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go).
 
 ## Overview
 
-Crablet is a library-first event sourcing solution with Spring Boot integration. It provides:
+Crablet is an event sourcing library with Spring Boot integration. It provides:
 
 - **Event Sourcing**: Complete audit trail with state reconstruction
 - **DCB Pattern**: Cursor-based optimistic concurrency control without distributed locks
