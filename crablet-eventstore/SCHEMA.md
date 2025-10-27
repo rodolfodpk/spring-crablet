@@ -2,7 +2,7 @@
 
 ## Overview
 
-Crablet uses PostgreSQL with two main tables (`events` and `commands`) and two PL/pgSQL functions for inserting events.
+Crablet uses PostgreSQL with two main tables (`events` and `commands`), one outbox table (`outbox_topic_progress`), and two PL/pgSQL functions for inserting events.
 
 ## Tables
 
@@ -46,6 +46,49 @@ CREATE TABLE commands
 );
 ```
 
+### outbox_topic_progress
+
+Tracks event publishing progress per topic and publisher for the Outbox pattern.
+
+```sql
+CREATE TABLE outbox_topic_progress (
+    topic              VARCHAR(100)                NOT NULL,
+    publisher           VARCHAR(100)                NOT NULL,
+    last_position      BIGINT                      NOT NULL DEFAULT 0,
+    last_published_at  TIMESTAMP WITH TIME ZONE,
+    status             VARCHAR(20)                 NOT NULL DEFAULT 'ACTIVE',
+    error_count        INT                         NOT NULL DEFAULT 0,
+    last_error         TEXT,
+    updated_at         TIMESTAMP WITH TIME ZONE    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    leader_instance    VARCHAR(255),
+    leader_since       TIMESTAMP WITH TIME ZONE,
+    leader_heartbeat   TIMESTAMP WITH TIME ZONE,
+    
+    CONSTRAINT pk_outbox_topic_progress PRIMARY KEY (topic, publisher),
+    CONSTRAINT chk_status CHECK (status IN ('ACTIVE', 'PAUSED', 'FAILED'))
+);
+```
+
+**Columns:**
+- `topic` - Topic name for event filtering (part of composite primary key)
+- `publisher` - Publisher name (part of composite primary key)
+- `last_position` - Last published event position in the event stream
+- `last_published_at` - Timestamp of last successful publish
+- `status` - Publisher status: 'ACTIVE', 'PAUSED', or 'FAILED'
+- `error_count` - Number of consecutive errors
+- `last_error` - Last error message
+- `updated_at` - Last update timestamp
+- `leader_instance` - Hostname/pod name of the instance holding the lock
+- `leader_since` - When the current instance became the leader
+- `leader_heartbeat` - Last heartbeat timestamp for liveness detection
+
+**Indexes:**
+```sql
+CREATE INDEX idx_topic_status ON outbox_topic_progress(topic, status);
+CREATE INDEX idx_topic_leader ON outbox_topic_progress(topic, leader_instance);
+CREATE INDEX idx_topic_publisher_heartbeat ON outbox_topic_progress(topic, publisher, leader_heartbeat);
+```
+
 ## Indexes
 
 ### Core Indexes
@@ -82,11 +125,12 @@ Batch inserts events without DCB checks.
 CREATE OR REPLACE FUNCTION append_events_batch(
     p_types TEXT[],
     p_tags TEXT[],
-    p_data JSONB[]
+    p_data JSONB[],
+    p_occurred_at TIMESTAMP WITH TIME ZONE
 ) RETURNS VOID
 ```
 
-Used by `EventStore.append()` for simple event insertion.
+Used by `EventStore.append()` for simple event insertion. Supports application-controlled timestamps for deterministic testing.
 
 ### append_events_if()
 
@@ -101,7 +145,8 @@ CREATE OR REPLACE FUNCTION append_events_if(
     p_condition_tags TEXT[] DEFAULT NULL,
     p_after_cursor_position BIGINT DEFAULT NULL,
     p_idempotency_types TEXT[] DEFAULT NULL,
-    p_idempotency_tags TEXT[] DEFAULT NULL
+    p_idempotency_tags TEXT[] DEFAULT NULL,
+    p_occurred_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
 ) RETURNS JSONB
 ```
 
@@ -151,7 +196,7 @@ Or on conflict/duplicate:
 Place the schema SQL in `src/main/resources/db/migration/V1__initial_schema.sql`:
 
 ```sql
--- Copy content from crablet-eventstore/src/test/resources/db/migration/V1__go_crablet_schema.sql
+-- Copy content from crablet-eventstore/src/test/resources/db/migration/V1__eventstore_schema.sql
 ```
 
 ### Manual Setup
