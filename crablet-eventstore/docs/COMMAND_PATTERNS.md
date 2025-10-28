@@ -265,13 +265,15 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
                 cmd.fromWalletId(),
                 cmd.toWalletId()
         );
-        transferProjector.forWallets(cmd.fromWalletId(), cmd.toWalletId());
+        
+        // Create projector instance per projection (immutable, thread-safe)
+        TransferStateProjector projector = new TransferStateProjector(cmd.fromWalletId(), cmd.toWalletId());
         
         ProjectionResult<TransferState> result = store.project(
                 decisionModel, 
                 Cursor.zero(), 
                 TransferState.class, 
-                List.of(transferProjector)
+                List.of(projector)
         );
         
         return new TransferProjectionResult(result.state(), result.cursor(), decisionModel);

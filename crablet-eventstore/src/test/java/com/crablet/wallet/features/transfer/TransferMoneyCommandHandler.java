@@ -11,7 +11,6 @@ import com.crablet.wallet.domain.WalletQueryPatterns;
 import com.crablet.wallet.domain.event.MoneyTransferred;
 import com.crablet.wallet.domain.exception.InsufficientFundsException;
 import com.crablet.wallet.domain.exception.WalletNotFoundException;
-import com.crablet.wallet.domain.projections.WalletBalanceProjector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -32,12 +31,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 
     private static final Logger log = LoggerFactory.getLogger(TransferMoneyCommandHandler.class);
 
-    private final WalletBalanceProjector balanceProjector;
-    private final TransferStateProjector transferProjector;
-
-    public TransferMoneyCommandHandler(WalletBalanceProjector balanceProjector, TransferStateProjector transferProjector) {
-        this.balanceProjector = balanceProjector;
-        this.transferProjector = transferProjector;
+    public TransferMoneyCommandHandler() {
     }
 
     @Override
@@ -108,12 +102,12 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
                 cmd.toWalletId()
         );
         
-        // Configure projector for these specific wallets
-        transferProjector.forWallets(cmd.fromWalletId(), cmd.toWalletId());
+        // Create projector instance per projection (immutable, thread-safe)
+        TransferStateProjector projector = new TransferStateProjector(cmd.fromWalletId(), cmd.toWalletId());
         
         // Use EventStore's streaming projection with new signature
         com.crablet.eventstore.query.ProjectionResult<TransferState> result = 
-            store.project(decisionModel, com.crablet.eventstore.store.Cursor.zero(), TransferState.class, List.of(transferProjector));
+            store.project(decisionModel, com.crablet.eventstore.store.Cursor.zero(), TransferState.class, List.of(projector));
         
         return new TransferProjectionResult(result.state(), result.cursor(), decisionModel);
     }

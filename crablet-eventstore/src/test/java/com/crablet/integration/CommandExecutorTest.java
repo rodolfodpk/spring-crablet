@@ -19,7 +19,6 @@ import com.crablet.wallet.features.openwallet.OpenWalletCommand;
 import com.crablet.wallet.features.openwallet.OpenWalletCommandHandler;
 import com.crablet.wallet.features.transfer.TransferMoneyCommand;
 import com.crablet.wallet.features.transfer.TransferMoneyCommandHandler;
-import com.crablet.wallet.features.transfer.TransferStateProjector;
 import com.crablet.wallet.features.withdraw.WithdrawCommand;
 import com.crablet.wallet.features.withdraw.WithdrawCommandHandler;
 import org.junit.jupiter.api.DisplayName;

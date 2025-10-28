@@ -14,10 +14,8 @@ import com.crablet.wallet.domain.projections.WalletBalanceProjector;
 import com.crablet.wallet.features.deposit.DepositCommandHandler;
 import com.crablet.wallet.features.openwallet.OpenWalletCommandHandler;
 import com.crablet.wallet.features.transfer.TransferMoneyCommandHandler;
-import com.crablet.wallet.features.transfer.TransferStateProjector;
 import com.crablet.wallet.features.withdraw.WithdrawCommandHandler;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -49,20 +47,13 @@ public class TestApplication {
     }
     
     @Bean
-    public TransferMoneyCommandHandler transferMoneyCommandHandler(
-            WalletBalanceProjector balanceProjector,
-            TransferStateProjector transferProjector) {
-        return new TransferMoneyCommandHandler(balanceProjector, transferProjector);
+    public TransferMoneyCommandHandler transferMoneyCommandHandler() {
+        return new TransferMoneyCommandHandler();
     }
     
     @Bean
     public WalletBalanceProjector walletBalanceProjector() {
         return new WalletBalanceProjector();
-    }
-    
-    @Bean
-    public TransferStateProjector transferStateProjector() {
-        return new TransferStateProjector();
     }
     
     @Bean

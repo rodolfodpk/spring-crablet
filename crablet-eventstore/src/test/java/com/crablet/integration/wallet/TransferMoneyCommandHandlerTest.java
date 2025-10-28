@@ -3,17 +3,14 @@ package com.crablet.integration.wallet;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.commands.CommandResult;
-import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.crablet.wallet.domain.event.MoneyTransferred;
 import com.crablet.wallet.domain.event.WalletOpened;
 import com.crablet.wallet.domain.exception.InsufficientFundsException;
 import com.crablet.wallet.domain.exception.WalletNotFoundException;
-import com.crablet.wallet.domain.projections.WalletBalanceProjector;
 import com.crablet.wallet.features.transfer.TransferMoneyCommand;
-import com.crablet.wallet.features.transfer.TransferStateProjector;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,19 +34,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class TransferMoneyCommandHandlerTest extends com.crablet.integration.AbstractCrabletTest {
 
     private com.crablet.wallet.features.transfer.TransferMoneyCommandHandler handler;
-    private TransferStateProjector transferProjector;
     @Autowired
     private ObjectMapper objectMapper;
-    private WalletBalanceProjector balanceProjector;
 
     @Autowired
     private EventStore eventStore;
 
     @BeforeEach
     void setUp() {
-        balanceProjector = new WalletBalanceProjector();
-        transferProjector = new TransferStateProjector();
-        handler = new com.crablet.wallet.features.transfer.TransferMoneyCommandHandler(balanceProjector, transferProjector);
+        handler = new com.crablet.wallet.features.transfer.TransferMoneyCommandHandler();
     }
 
     @Test

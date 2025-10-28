@@ -9,7 +9,6 @@ import com.crablet.wallet.domain.event.WalletEvent;
 import com.crablet.wallet.domain.event.WalletOpened;
 import com.crablet.wallet.domain.event.WithdrawalMade;
 import com.crablet.wallet.domain.projections.WalletBalanceState;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
@@ -21,19 +20,19 @@ record TransferState(
     WalletBalanceState toWallet
 ) {}
 
-@Component
+/**
+ * Projector for transfer operations - projects balances for both wallets.
+ * <p>
+ * Thread-safe: creates immutable instances with wallet IDs in constructor.
+ */
 public class TransferStateProjector implements StateProjector<TransferState> {
     
-    private String fromWalletId;
-    private String toWalletId;
+    private final String fromWalletId;
+    private final String toWalletId;
     
-    public TransferStateProjector() {
-    }
-    
-    public TransferStateProjector forWallets(String fromWalletId, String toWalletId) {
+    public TransferStateProjector(String fromWalletId, String toWalletId) {
         this.fromWalletId = fromWalletId;
         this.toWalletId = toWalletId;
-        return this;
     }
     
     @Override
