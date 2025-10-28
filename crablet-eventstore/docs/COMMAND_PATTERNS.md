@@ -26,11 +26,11 @@ This guide explains when to use DCB cursor checks and when operations can run wi
 
 **DCB Check:** ✅ Required - use `AppendConditionBuilder(decisionModel, cursor)`
 
-## Pattern 1: Commutative Operations (No Cursor Check)
+## Pattern 1: Entity Creation with Idempotency
 
 ### OpenWallet Command
 
-**Why no cursor needed:** Opening a wallet is idempotent - same result regardless of how many times it's called.
+**Why idempotency check needed:** Wallet creation requires uniqueness - no wallet should be created twice. Uses idempotency check (not cursor) because there's no prior state to read.
 
 ```java
 @Component
@@ -38,24 +38,26 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
     
     @Override
     public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
-        // Project to check if wallet already exists
-        Query query = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
-        WalletBalanceState state = balanceProjector.projectWalletBalance(eventStore, command.walletId()).state();
+        // Command is already validated at construction with YAVI
         
-        if (state.isExisting()) {
-            // Wallet already exists - idempotent operation succeeded before
-            log.info("Wallet already exists: {}", command.walletId());
-            return CommandResult.empty();
-        }
+        // Create event (optimistic - assume wallet doesn't exist)
+        WalletOpened walletOpened = WalletOpened.of(
+                command.walletId(),
+                command.owner(),
+                command.initialBalance()
+        );
         
-        // Create open wallet event
         AppendEvent event = AppendEvent.builder(WALLET_OPENED)
                 .tag(WALLET_ID, command.walletId())
-                .data(WalletOpened.of(command.walletId(), command.initialBalance()))
+                .data(walletOpened)
                 .build();
         
-        // No cursor check needed - idempotency via wallet_id tag
-        AppendCondition condition = AppendCondition.empty();
+        // Build condition with idempotency check using DCB pattern
+        // Fails if ANY WalletOpened event exists for this wallet_id
+        // No concurrency check needed - only idempotency matters
+        AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
+                .withIdempotencyCheck(WALLET_OPENED, WALLET_ID, command.walletId())
+                .build();
         
         return CommandResult.of(List.of(event), condition);
     }
@@ -64,8 +66,11 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
 
 **Key Points:**
 - ✅ Idempotent: can run multiple times safely
-- ✅ No cursor check: order doesn't matter
-- ✅ Can run in parallel
+- ✅ Uses `withIdempotencyCheck()`: enforces uniqueness atomically
+- ✅ No cursor check: not needed for wallet creation (no prior state)
+- ✅ Optimistic: creates event first, checks atomically via `appendIf`
+
+## Pattern 2: Commutative Operations (No Cursor Check)
 
 ### Deposit Command
 
@@ -115,7 +120,7 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
 - ✅ No cursor check: parallel deposits don't conflict
 - ✅ Idempotency via `deposit_id` tag
 
-## Pattern 2: Non-Commutative Operations (Cursor Check Required)
+## Pattern 3: Non-Commutative Operations (Cursor Check Required)
 
 ### Withdraw Command
 
@@ -281,17 +286,22 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 
 ## Summary Table
 
-| Operation | Type | Needs Cursor? | Can Run Parallel? | Idempotency |
-|-----------|------|---------------|-------------------|-------------|
-| **OpenWallet** | Idempotent | ❌ | ✅ | wallet_id tag |
-| **Deposit** | Commutative | ❌ | ✅ | deposit_id tag |
-| **Withdraw** | Non-commutative | ✅ | ❌ | withdrawal_id tag |
-| **Transfer** | Non-commutative | ✅ | ❌ | transfer_id tag |
+| Operation | Type | Needs Cursor? | Uses Idempotency Check? | Can Run Parallel? | Idempotency |
+|-----------|------|---------------|-------------------------|-------------------|-------------|
+| **OpenWallet** | Idempotent | ❌ | ✅ | ✅ | wallet_id tag |
+| **Deposit** | Commutative | ❌ | ❌ | ✅ | deposit_id tag |
+| **Withdraw** | Non-commutative | ✅ | ❌ | ❌ | withdrawal_id tag |
+| **Transfer** | Non-commutative | ✅ | ❌ | ❌ | transfer_id tag |
 
 ## When to Use Each Pattern
 
+### Use `withIdempotencyCheck()` When:
+- ✅ Creating new entities with uniqueness requirements (OpenWallet)
+- ✅ No prior state exists to read cursor from
+- ✅ Need to prevent duplicates atomically
+- ✅ Want advisory locks for uniqueness
+
 ### Use `AppendCondition.empty()` When:
-- ✅ Operation is **idempotent** (OpenWallet)
 - ✅ Operation is **commutative** (Deposit)
 - ✅ Result doesn't depend on state values
 - ✅ Want maximum parallel throughput
@@ -303,6 +313,20 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 - ✅ Want **optimistic concurrency control**
 
 ## Common Mistakes
+
+❌ **Not using idempotency check for wallet creation:**
+```java
+// WRONG: No uniqueness check, allows duplicates
+AppendCondition condition = AppendCondition.empty();
+```
+
+✅ **Correct:**
+```java
+// RIGHT: Wallet creation requires idempotency check
+AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
+        .withIdempotencyCheck(WALLET_OPENED, WALLET_ID, walletId)
+        .build();
+```
 
 ❌ **Using cursor for deposits:**
 ```java
