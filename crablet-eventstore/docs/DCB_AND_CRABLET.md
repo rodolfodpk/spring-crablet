@@ -18,7 +18,7 @@ DCB uses cursor-based checks to detect conflicting events since last read.
 1. **Read**: Client reads current state, captures cursor position
 2. **Compute**: Client generates events based on read state
 3. **Append**: Server checks for conflicts before writing
-4. **Retry**: If conflict detected, client retries from step 1
+4. **Exception**: If conflict detected, server throws `ConcurrencyException`, application retries from step 1
 
 ### Conflict Detection Query
 
@@ -40,8 +40,8 @@ Position:  40    41    42    43    44
 Events:    ...   ...   ...   [A]   [B]
 
 Request A: Read@42 → Check → Write@43 (success)
-Request B: Read@42 → Check → Conflict (position 43 exists) → 409
-           Retry: Read@43 → Check → Write@44 (success)
+Request B: Read@42 → Check → Conflict (position 43 exists) → 409 Conflict
+           Application retries: Read@43 → Check → Write@44 (success)
 ```
 
 ## Architecture: Cursor-Only vs Idempotency
@@ -74,7 +74,9 @@ AppendCondition condition = AppendCondition.builder()
 
 Result: Conflicts only detected for events affecting same wallet. Operations on wallet A don't block operations on wallet B.
 
-## Retry Behavior
+## Application Retry Behavior
+
+> **Note**: `CommandExecutor` does not retry automatically. When it throws `ConcurrencyException`, your application layer should implement retry logic (e.g., using Resilience4j).
 
 ### Operations (Cursor-Only)
 ```http
@@ -146,8 +148,8 @@ AppendCondition condition = new AppendConditionBuilder(decisionModel, result.cur
 try {
     eventStore.appendIf(events, condition);
 } catch (ConcurrencyException e) {
-    // Balance changed (deposit/withdrawal happened) - retry with fresh cursor
-    retry();
+    // Balance changed (deposit/withdrawal happened) - throw to application layer
+    throw e;
 }
 ```
 
@@ -156,7 +158,7 @@ try {
 - Another transaction makes a deposit → balance changes
 - Your appendIf checks: "did ANY WalletOpened/DepositMade/WithdrawalMade events appear after position 42?"
 - Answer: yes → throw ConcurrencyException
-- Handler retries with fresh projection
+- Application layer should retry with fresh projection
 
 #### 3. Idempotency (alreadyExists)
 
@@ -222,13 +224,9 @@ public class WithdrawCommandHandler {
             .build();
         
         // 6. AppendIf validates both conditions
-        try {
-            eventStore.appendIf(List.of(event), condition);
-            return CommandResult.success(event);
-        } catch (ConcurrencyException e) {
-            // Balance changed - retry with fresh projection
-            return handleWithdraw(walletId, withdrawalId, amount);
-        }
+        // Note: Does not catch ConcurrencyException - throws to application layer
+        eventStore.appendIf(List.of(event), condition);
+        return CommandResult.success(event);
     }
 }
 ```
@@ -246,11 +244,11 @@ public class WithdrawCommandHandler {
 - Transaction B: deposits $50 → position 43
 - Transaction A: tries to withdraw with cursor 42
 - AppendIf checks: found DepositMade at position 43 > 42 ✗
-- Result: ConcurrencyException → retry
+- Result: ConcurrencyException → application should retry
 
 **Scenario 3: Duplicate request**
 - First request: withdrawal_id "w-123" succeeds
-- Retry/duplicate request: same withdrawal_id "w-123"
+- Duplicate request: same withdrawal_id "w-123"
 - AppendIf checks: found WithdrawalMade with withdrawal_id:w-123 ✗
 - Result: Idempotency violation → return success (already processed)
 
@@ -259,7 +257,7 @@ public class WithdrawCommandHandler {
 - Transaction A: reads balance $100, withdraws $80
 - Transaction B: reads balance $100, withdraws $80
 - Transaction A: appendIf succeeds (balance was $100)
-- Transaction B: appendIf fails (sees position changed) → retry → sees balance $20 → insufficient funds
+- Transaction B: appendIf fails (sees position changed) → application retries → reads fresh balance $20 → insufficient funds
 
 ## Implementation Details
 

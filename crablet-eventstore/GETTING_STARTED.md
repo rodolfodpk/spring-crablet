@@ -238,7 +238,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 
 ## Step 6: Execute Commands
 
-Use `CommandExecutor` to execute commands with automatic retry and transaction management:
+Use `CommandExecutor` to execute commands with transaction management:
 
 ```java
 package com.example.wallet.service;
@@ -262,20 +262,21 @@ public class WalletService {
     public ExecutionResult withdraw(String walletId, String withdrawalId, BigDecimal amount) {
         WithdrawCommand command = new WithdrawCommand(walletId, withdrawalId, amount);
         
-        // CommandExecutor automatically handles:
+        // CommandExecutor handles:
         // - Transaction management
-        // - Retry on ConcurrencyException
         // - Command persistence (if enabled)
+        // Note: On ConcurrencyException, application should implement retry logic
+        // (e.g., using Resilience4j @Retry annotation)
         return commandExecutor.executeCommand(command);
     }
 }
 ```
 
-The `CommandExecutor` coordinates command execution and retries:
+The `CommandExecutor` coordinates command execution:
 1. Receives command
 2. Finds handler by command type
 3. Executes handler within a transaction
-4. If `ConcurrencyException` is thrown, retries automatically (up to configured max)
+4. Throws `ConcurrencyException` if conflict detected (application should implement retry)
 5. Persists command and events atomically
 
 ## Step 6: Test with Testcontainers

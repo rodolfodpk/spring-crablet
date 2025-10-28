@@ -188,7 +188,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 **Key Points:**
 - ❌ Non-commutative: order affects whether operation succeeds
 - ✅ Cursor check: detects if balance changed since projection
-- ❌ Cannot run in parallel on same wallet (DCB detects conflict, retries)
+- ❌ Cannot run in parallel on same wallet (DCB detects conflict, application must retry)
 
 ### Transfer Command
 

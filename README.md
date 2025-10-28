@@ -155,7 +155,7 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
 
 Withdraw notes:
 - Decision Model: Query for balance-affecting events (`WalletOpened`, `DepositMade`, `WithdrawalMade`)
-- Cursor checks if balance changed concurrently → throws `ConcurrencyException` → `CommandExecutor` retries
+- Cursor checks if balance changed concurrently → throws `ConcurrencyException` → application must retry
 - Business validation: checks sufficient funds before creating event
 - See [Command Patterns Guide](crablet-eventstore/docs/COMMAND_PATTERNS.md) for commutative vs non-commutative operations
 
