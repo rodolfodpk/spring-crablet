@@ -80,6 +80,12 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
 @Component
 public class DepositCommandHandler implements CommandHandler<DepositCommand> {
     
+    private final WalletBalanceProjector balanceProjector;
+    
+    public DepositCommandHandler(WalletBalanceProjector balanceProjector) {
+        this.balanceProjector = balanceProjector;
+    }
+    
     @Override
     public CommandResult handle(EventStore eventStore, DepositCommand command) {
         // Project to validate wallet exists and get current balance
@@ -140,6 +146,12 @@ Both threads see same balance ($100), both succeed → Final balance: -$60 ❌
 ```java
 @Component
 public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
+    
+    private final WalletBalanceProjector balanceProjector;
+    
+    public WithdrawCommandHandler(WalletBalanceProjector balanceProjector) {
+        this.balanceProjector = balanceProjector;
+    }
     
     @Override
     public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
@@ -208,6 +220,9 @@ Both succeed → Wallet A: -$40 ❌
 ```java
 @Component
 public class TransferMoneyCommandHandler implements CommandHandler<TransferMoneyCommand> {
+    
+    public TransferMoneyCommandHandler() {
+    }
     
     @Override
     public CommandResult handle(EventStore eventStore, TransferMoneyCommand command) {
@@ -278,6 +293,12 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
         
         return new TransferProjectionResult(result.state(), result.cursor(), decisionModel);
     }
+    
+    private record TransferProjectionResult(
+            TransferState state, 
+            Cursor cursor, 
+            Query decisionModel
+    ) {}
 }
 ```
 

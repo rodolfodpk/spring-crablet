@@ -105,51 +105,62 @@ OpenWallet notes:
 Prevents concurrent balance modifications using cursor-based conflict detection:
 
 ```java
-@Override
-public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
-    // Command is already validated at construction with YAVI
-
-    // Use domain-specific decision model query
-    Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
-
-    // Project state (needed for balance calculation)
-    ProjectionResult<WalletBalanceState> projection =
-            balanceProjector.projectWalletBalance(eventStore, command.walletId(), decisionModel);
-    WalletBalanceState state = projection.state();
-
-    if (!state.isExisting()) {
-        log.warn("Withdrawal failed - wallet not found: walletId={}, withdrawalId={}",
-                command.walletId(), command.withdrawalId());
-        throw new WalletNotFoundException(command.walletId());
+@Component
+public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
+    
+    private static final Logger log = LoggerFactory.getLogger(WithdrawCommandHandler.class);
+    private final WalletBalanceProjector balanceProjector;
+    
+    public WithdrawCommandHandler(WalletBalanceProjector balanceProjector) {
+        this.balanceProjector = balanceProjector;
     }
-    if (!state.hasSufficientFunds(command.amount())) {
-        log.warn("Withdrawal failed - insufficient funds: walletId={}, balance={}, requested={}",
-                command.walletId(), state.balance(), command.amount());
-        throw new InsufficientFundsException(command.walletId(), state.balance(), command.amount());
+    
+    @Override
+    public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
+        // Command is already validated at construction with YAVI
+
+        // Use domain-specific decision model query
+        Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
+
+        // Project state (needed for balance calculation)
+        ProjectionResult<WalletBalanceState> projection =
+                balanceProjector.projectWalletBalance(eventStore, command.walletId(), decisionModel);
+        WalletBalanceState state = projection.state();
+
+        if (!state.isExisting()) {
+            log.warn("Withdrawal failed - wallet not found: walletId={}, withdrawalId={}",
+                    command.walletId(), command.withdrawalId());
+            throw new WalletNotFoundException(command.walletId());
+        }
+        if (!state.hasSufficientFunds(command.amount())) {
+            log.warn("Withdrawal failed - insufficient funds: walletId={}, balance={}, requested={}",
+                    command.walletId(), state.balance(), command.amount());
+            throw new InsufficientFundsException(command.walletId(), state.balance(), command.amount());
+        }
+
+        int newBalance = state.balance() - command.amount();
+
+        WithdrawalMade withdrawal = WithdrawalMade.of(
+                command.withdrawalId(),
+                command.walletId(),
+                command.amount(),
+                newBalance,
+                command.description()
+        );
+
+        AppendEvent event = AppendEvent.builder(WITHDRAWAL_MADE)
+                .tag(WALLET_ID, command.walletId())
+                .tag(WITHDRAWAL_ID, command.withdrawalId())
+                .data(withdrawal)
+                .build();
+
+        // Withdrawals are non-commutative - order matters for balance validation
+        // DCB cursor check REQUIRED: prevents concurrent withdrawals exceeding balance
+        AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
+                .build();
+
+        return CommandResult.of(List.of(event), condition);
     }
-
-    int newBalance = state.balance() - command.amount();
-
-    WithdrawalMade withdrawal = WithdrawalMade.of(
-            command.withdrawalId(),
-            command.walletId(),
-            command.amount(),
-            newBalance,
-            command.description()
-    );
-
-    AppendEvent event = AppendEvent.builder(WITHDRAWAL_MADE)
-            .tag(WALLET_ID, command.walletId())
-            .tag(WITHDRAWAL_ID, command.withdrawalId())
-            .data(withdrawal)
-            .build();
-
-    // Withdrawals are non-commutative - order matters for balance validation
-    // DCB cursor check REQUIRED: prevents concurrent withdrawals exceeding balance
-    AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
-            .build();
-
-    return CommandResult.of(List.of(event), condition);
 }
 ```
 

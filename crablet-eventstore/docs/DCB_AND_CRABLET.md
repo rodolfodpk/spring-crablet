@@ -189,44 +189,60 @@ import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.query.*;
 import com.crablet.eventstore.dcb.*;
 
-public class WithdrawCommandHandler {
+@Component
+public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
     
-    public CommandResult handleWithdraw(String walletId, String withdrawalId, BigDecimal amount) {
+    private final EventStore eventStore;
+    private final WalletBalanceProjector balanceProjector;
+    
+    public WithdrawCommandHandler(EventStore eventStore, WalletBalanceProjector balanceProjector) {
+        this.eventStore = eventStore;
+        this.balanceProjector = balanceProjector;
+    }
+    
+    @Override
+    public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
         // 1. Define decision model
-        Query decisionModel = QueryBuilder.create()
-            .hasTag("wallet_id", walletId)
-            .eventNames("WalletOpened", "DepositMade", "WithdrawalMade")
-            .build();
+        Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
         
         // 2. Project current balance with cursor
-        ProjectionResult<WalletBalance> result = eventStore.project(
-            decisionModel,
-            Cursor.zero(),
-            WalletBalance.class,
-            List.of(balanceProjector)
+        ProjectionResult<WalletBalanceState> result = balanceProjector.projectWalletBalance(
+            eventStore, 
+            command.walletId(), 
+            decisionModel
         );
         
         // 3. Business logic
-        if (result.state().amount().compareTo(amount) < 0) {
-            throw new InsufficientFundsException();
+        if (!result.state().isExisting()) {
+            throw new WalletNotFoundException(command.walletId());
+        }
+        if (!result.state().hasSufficientFunds(command.amount())) {
+            throw new InsufficientFundsException(command.walletId(), 
+                    result.state().balance(), command.amount());
         }
         
+        int newBalance = result.state().balance() - command.amount();
+        
         // 4. Create event
+        WithdrawalMade withdrawal = WithdrawalMade.of(
+            command.withdrawalId(),
+            command.walletId(),
+            command.amount(),
+            newBalance,
+            command.description()
+        );
+        
         AppendEvent event = AppendEvent.builder("WithdrawalMade")
-            .tag("wallet_id", walletId)
-            .tag("withdrawal_id", withdrawalId)
-            .data(new WithdrawalMade(amount))
+            .tag("wallet_id", command.walletId())
+            .tag("withdrawal_id", command.withdrawalId())
+            .data(withdrawal)
             .build();
         
-        // 5. Build condition with BOTH checks
+        // 5. Build condition with cursor check
         AppendCondition condition = new AppendConditionBuilder(decisionModel, result.cursor())
-            .withIdempotencyCheck("WithdrawalMade", "withdrawal_id", withdrawalId)
             .build();
         
-        // 6. AppendIf validates both conditions
-        // Note: Does not catch ConcurrencyException - throws to application layer
-        eventStore.appendIf(List.of(event), condition);
-        return CommandResult.success(event);
+        return CommandResult.of(List.of(event), condition);
     }
 }
 ```
@@ -328,6 +344,10 @@ Complete example showing modern Crablet APIs:
 public class DepositCommandHandler implements CommandHandler<DepositCommand> {
     
     private final WalletBalanceProjector balanceProjector;
+    
+    public DepositCommandHandler(WalletBalanceProjector balanceProjector) {
+        this.balanceProjector = balanceProjector;
+    }
 
     @Override
     public CommandResult handle(EventStore eventStore, DepositCommand command) {
