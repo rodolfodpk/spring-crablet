@@ -47,10 +47,8 @@ class WalletCommandsTest extends com.crablet.integration.AbstractCrabletTest {
 
     @BeforeEach
     void setUp() {
-
-        WalletBalanceProjector balanceProjector = new WalletBalanceProjector();
-        depositHandler = new DepositCommandHandler(balanceProjector);
-        withdrawHandler = new WithdrawCommandHandler(balanceProjector);
+        depositHandler = new DepositCommandHandler();
+        withdrawHandler = new WithdrawCommandHandler();
         openHandler = new OpenWalletCommandHandler();
     }
 

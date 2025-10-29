@@ -10,7 +10,6 @@ import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.EventStoreConfig;
 import com.crablet.eventstore.store.EventStoreImpl;
 import com.crablet.eventstore.store.EventStoreMetrics;
-import com.crablet.wallet.domain.projections.WalletBalanceProjector;
 import com.crablet.wallet.features.deposit.DepositCommandHandler;
 import com.crablet.wallet.features.openwallet.OpenWalletCommandHandler;
 import com.crablet.wallet.features.transfer.TransferMoneyCommandHandler;
@@ -37,23 +36,18 @@ public class TestApplication {
     }
     
     @Bean  
-    public DepositCommandHandler depositCommandHandler(WalletBalanceProjector projector) {
-        return new DepositCommandHandler(projector);
+    public DepositCommandHandler depositCommandHandler() {
+        return new DepositCommandHandler();
     }
     
     @Bean
-    public WithdrawCommandHandler withdrawCommandHandler(WalletBalanceProjector projector) {
-        return new WithdrawCommandHandler(projector);
+    public WithdrawCommandHandler withdrawCommandHandler() {
+        return new WithdrawCommandHandler();
     }
     
     @Bean
     public TransferMoneyCommandHandler transferMoneyCommandHandler() {
         return new TransferMoneyCommandHandler();
-    }
-    
-    @Bean
-    public WalletBalanceProjector walletBalanceProjector() {
-        return new WalletBalanceProjector();
     }
     
     @Bean

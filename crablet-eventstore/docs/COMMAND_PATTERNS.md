@@ -80,16 +80,17 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
 @Component
 public class DepositCommandHandler implements CommandHandler<DepositCommand> {
     
-    private final WalletBalanceProjector balanceProjector;
-    
-    public DepositCommandHandler(WalletBalanceProjector balanceProjector) {
-        this.balanceProjector = balanceProjector;
+    public DepositCommandHandler() {
     }
     
     @Override
     public CommandResult handle(EventStore eventStore, DepositCommand command) {
         // Project to validate wallet exists and get current balance
-        WalletBalanceState state = balanceProjector.projectWalletBalance(eventStore, command.walletId()).state();
+        WalletBalanceProjector projector = new WalletBalanceProjector();
+        Query query = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
+        ProjectionResult<WalletBalanceState> projection = eventStore.project(
+                query, Cursor.zero(), WalletBalanceState.class, List.of(projector));
+        WalletBalanceState state = projection.state();
         
         if (!state.isExisting()) {
             throw new WalletNotFoundException(command.walletId());
@@ -147,10 +148,7 @@ Both threads see same balance ($100), both succeed → Final balance: -$60 ❌
 @Component
 public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
     
-    private final WalletBalanceProjector balanceProjector;
-    
-    public WithdrawCommandHandler(WalletBalanceProjector balanceProjector) {
-        this.balanceProjector = balanceProjector;
+    public WithdrawCommandHandler() {
     }
     
     @Override
@@ -159,8 +157,9 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
         
         // Project state with cursor
-        ProjectionResult<WalletBalanceState> projection = 
-                balanceProjector.projectWalletBalance(eventStore, command.walletId(), decisionModel);
+        WalletBalanceProjector projector = new WalletBalanceProjector();
+        ProjectionResult<WalletBalanceState> projection = eventStore.project(
+                decisionModel, Cursor.zero(), WalletBalanceState.class, List.of(projector));
         WalletBalanceState state = projection.state();
         
         if (!state.isExisting()) {

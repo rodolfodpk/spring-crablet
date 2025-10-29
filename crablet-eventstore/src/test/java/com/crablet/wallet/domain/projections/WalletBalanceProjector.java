@@ -15,18 +15,18 @@ import com.crablet.wallet.domain.event.WalletOpened;
 import com.crablet.wallet.domain.event.WithdrawalMade;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /**
- * Shared wallet balance projection logic for command handlers.
+ * Wallet balance projection logic for command handlers.
  * <p>
  * This class implements the DCB principle by providing a minimal projection
  * that only calculates wallet balance and existence, which is what most
  * command handlers need for business rule validation.
+ * <p>
+ * Not a singleton - create instances as needed. This class is stateless and thread-safe.
  */
-@Component
 public class WalletBalanceProjector implements StateProjector<WalletBalanceState> {
 
     private static final Logger log = LoggerFactory.getLogger(WalletBalanceProjector.class);

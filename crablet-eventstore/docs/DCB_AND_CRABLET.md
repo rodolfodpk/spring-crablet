@@ -192,12 +192,7 @@ import com.crablet.eventstore.dcb.*;
 @Component
 public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
     
-    private final EventStore eventStore;
-    private final WalletBalanceProjector balanceProjector;
-    
-    public WithdrawCommandHandler(EventStore eventStore, WalletBalanceProjector balanceProjector) {
-        this.eventStore = eventStore;
-        this.balanceProjector = balanceProjector;
+    public WithdrawCommandHandler() {
     }
     
     @Override
@@ -206,11 +201,9 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
         
         // 2. Project current balance with cursor
-        ProjectionResult<WalletBalanceState> result = balanceProjector.projectWalletBalance(
-            eventStore, 
-            command.walletId(), 
-            decisionModel
-        );
+        WalletBalanceProjector projector = new WalletBalanceProjector();
+        ProjectionResult<WalletBalanceState> result = eventStore.project(
+                decisionModel, Cursor.zero(), WalletBalanceState.class, List.of(projector));
         
         // 3. Business logic
         if (!result.state().isExisting()) {
@@ -343,17 +336,16 @@ Complete example showing modern Crablet APIs:
 @Component
 public class DepositCommandHandler implements CommandHandler<DepositCommand> {
     
-    private final WalletBalanceProjector balanceProjector;
-    
-    public DepositCommandHandler(WalletBalanceProjector balanceProjector) {
-        this.balanceProjector = balanceProjector;
+    public DepositCommandHandler() {
     }
 
     @Override
     public CommandResult handle(EventStore eventStore, DepositCommand command) {
         // 1. Project current state to validate wallet exists and get balance
-        ProjectionResult<WalletBalanceState> projection =
-            balanceProjector.projectWalletBalance(eventStore, command.walletId());
+        WalletBalanceProjector projector = new WalletBalanceProjector();
+        Query query = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
+        ProjectionResult<WalletBalanceState> projection = eventStore.project(
+                query, Cursor.zero(), WalletBalanceState.class, List.of(projector));
         
         if (!projection.state().isExisting()) {
             throw new WalletNotFoundException(command.walletId());

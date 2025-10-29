@@ -6,6 +6,7 @@ import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.commands.CommandHandler;
 import com.crablet.eventstore.commands.CommandResult;
 import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.wallet.domain.WalletQueryPatterns;
@@ -34,10 +35,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 
     private static final Logger log = LoggerFactory.getLogger(WithdrawCommandHandler.class);
 
-    private final WalletBalanceProjector balanceProjector;
-
-    public WithdrawCommandHandler(WalletBalanceProjector balanceProjector) {
-        this.balanceProjector = balanceProjector;
+    public WithdrawCommandHandler() {
     }
 
     @Override
@@ -48,8 +46,9 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
 
         // Project state (needed for balance calculation)
-        ProjectionResult<WalletBalanceState> projection =
-                balanceProjector.projectWalletBalance(eventStore, command.walletId(), decisionModel);
+        WalletBalanceProjector projector = new WalletBalanceProjector();
+        ProjectionResult<WalletBalanceState> projection = eventStore.project(
+                decisionModel, Cursor.zero(), WalletBalanceState.class, List.of(projector));
         WalletBalanceState state = projection.state();
 
         if (!state.isExisting()) {

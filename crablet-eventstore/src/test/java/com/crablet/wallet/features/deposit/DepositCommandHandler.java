@@ -6,6 +6,9 @@ import com.crablet.eventstore.commands.CommandHandler;
 import com.crablet.eventstore.commands.CommandResult;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.query.ProjectionResult;
+import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.store.Cursor;
+import com.crablet.wallet.domain.WalletQueryPatterns;
 import com.crablet.wallet.domain.event.DepositMade;
 import com.crablet.wallet.domain.exception.WalletNotFoundException;
 import com.crablet.wallet.domain.projections.WalletBalanceProjector;
@@ -30,10 +33,7 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
 
     private static final Logger log = LoggerFactory.getLogger(DepositCommandHandler.class);
 
-    private final WalletBalanceProjector balanceProjector;
-
-    public DepositCommandHandler(WalletBalanceProjector balanceProjector) {
-        this.balanceProjector = balanceProjector;
+    public DepositCommandHandler() {
     }
 
     @Override
@@ -41,7 +41,10 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
         // Command is already validated at construction with YAVI
 
         // Project state to validate wallet exists and get current balance
-        ProjectionResult<WalletBalanceState> projection = balanceProjector.projectWalletBalance(eventStore, command.walletId());
+        WalletBalanceProjector projector = new WalletBalanceProjector();
+        Query query = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
+        ProjectionResult<WalletBalanceState> projection = eventStore.project(
+                query, Cursor.zero(), WalletBalanceState.class, List.of(projector));
         WalletBalanceState state = projection.state();
 
         if (!state.isExisting()) {

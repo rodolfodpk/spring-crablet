@@ -36,15 +36,13 @@ class WithdrawCommandHandlerTest extends com.crablet.integration.AbstractCrablet
     private com.crablet.wallet.features.withdraw.WithdrawCommandHandler handler;
     @Autowired
     private ObjectMapper objectMapper;
-    private WalletBalanceProjector balanceProjector;
 
     @Autowired
     private EventStore eventStore;
 
     @BeforeEach
     void setUp() {
-        balanceProjector = new WalletBalanceProjector();
-        handler = new com.crablet.wallet.features.withdraw.WithdrawCommandHandler(balanceProjector);
+        handler = new com.crablet.wallet.features.withdraw.WithdrawCommandHandler();
     }
 
     @Test
