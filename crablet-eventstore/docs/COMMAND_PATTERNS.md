@@ -7,10 +7,10 @@ This guide explains when to use DCB cursor checks and when operations can run wi
 ## Operation Types
 
 ### Commutative Operations
-**Definition:** Operations where order doesn't matter - final result is the same regardless of execution order.
+**Definition:** Operations that change state, but the order of operations doesn't affect the final result.
 
 **Examples:**
-- Adding money to a wallet (+$10 then +$20 = +$20 then +$10)
+- Adding money to a wallet (changes balance, but +$10 then +$20 = +$20 then +$10)
 - Opening a wallet (idempotent - same result every time)
 - Reading state (doesn't change state)
 
@@ -74,7 +74,7 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
 
 ### Deposit Command
 
-**Why no cursor needed:** Deposits are commutative - order doesn't affect final balance.
+**Why no cursor needed:** Deposits are commutative - they change the balance, but the order of deposits doesn't affect the final result.
 
 ```java
 @Component
@@ -108,11 +108,11 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
         
         AppendEvent event = AppendEvent.builder(DEPOSIT_MADE)
                 .tag(WALLET_ID, command.walletId())
-                .tag(DEPOSIT_ID, command.depositId())
+                .tag(DEPOSIT_ID, command.depositId())  // Optional: for idempotency if command retried
                 .data(deposit)
                 .build();
         
-        // Deposits are commutative - order doesn't matter
+        // Deposits are commutative - they change the balance, but order doesn't affect final result
         // Balance: $100 → +$10 → +$20 = $130 (same as +$20 → +$10)
         // No DCB cursor check needed - allows parallel deposits
         AppendCondition condition = AppendCondition.empty();
@@ -125,7 +125,7 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
 **Key Points:**
 - ✅ Commutative: +$10 then +$20 = +$20 then +$10
 - ✅ No cursor check: parallel deposits don't conflict
-- ✅ Idempotency via `deposit_id` tag
+- ✅ Idempotency via `deposit_id` tag (optional - used to prevent duplicate deposits if command is retried)
 
 ## Pattern 3: Non-Commutative Operations (Cursor Check Required)
 
@@ -182,7 +182,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         
         AppendEvent event = AppendEvent.builder(WITHDRAWAL_MADE)
                 .tag(WALLET_ID, command.walletId())
-                .tag(WITHDRAWAL_ID, command.withdrawalId())
+                .tag(WITHDRAWAL_ID, command.withdrawalId())  // Optional: for idempotency if command retried
                 .data(withdrawal)
                 .build();
         
@@ -258,7 +258,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
         );
         
         AppendEvent event = AppendEvent.builder(MONEY_TRANSFERRED)
-                .tag(TRANSFER_ID, command.transferId())
+                .tag(TRANSFER_ID, command.transferId())  // Optional: for idempotency if command retried
                 .tag(FROM_WALLET_ID, command.fromWalletId())
                 .tag(TO_WALLET_ID, command.toWalletId())
                 .data(transfer)
@@ -310,10 +310,10 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 
 | Operation | Type | Needs Cursor? | Uses Idempotency Check? | Can Run Parallel? | Idempotency |
 |-----------|------|---------------|-------------------------|-------------------|-------------|
-| **OpenWallet** | Idempotent | ❌ | ✅ | ✅ | wallet_id tag |
-| **Deposit** | Commutative | ❌ | ❌ | ✅ | deposit_id tag |
-| **Withdraw** | Non-commutative | ✅ | ❌ | ❌ | withdrawal_id tag |
-| **Transfer** | Non-commutative | ✅ | ❌ | ❌ | transfer_id tag |
+| **OpenWallet** | Idempotent | ❌ | ✅ | ✅ | wallet_id tag (required) |
+| **Deposit** | Commutative | ❌ | ❌ | ✅ | deposit_id tag (optional) |
+| **Withdraw** | Non-commutative | ✅ | ❌ | ❌ | withdrawal_id tag (optional) |
+| **Transfer** | Non-commutative | ✅ | ❌ | ❌ | transfer_id tag (optional) |
 
 ## When to Use Each Pattern
 
@@ -324,8 +324,8 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 - ✅ Want advisory locks for uniqueness
 
 ### Use `AppendCondition.empty()` When:
-- ✅ Operation is **commutative** (Deposit)
-- ✅ Result doesn't depend on state values
+- ✅ Operation is **commutative** (Deposit - order doesn't affect final result)
+- ✅ Result doesn't depend on the **order** of operations
 - ✅ Want maximum parallel throughput
 
 ### Use `AppendConditionBuilder(decisionModel, cursor)` When:
@@ -333,6 +333,23 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 - ✅ Result **depends on current state** (balance checks)
 - ✅ Need to prevent **race conditions** on same resource
 - ✅ Want **optimistic concurrency control**
+
+## Optional Operation ID Tags
+
+Operation IDs like `deposit_id`, `withdrawal_id`, and `transfer_id` are **optional** tags used for idempotency at the application layer. They serve different purposes than DCB's built-in idempotency checks:
+
+- **Operation ID tags** (`deposit_id`, etc.): Optional tags to detect duplicate operations if commands are retried by the application layer (e.g., after network failures). These are stored as event tags and can be queried later to check if an operation was already processed.
+- **DCB Idempotency Check** (`withIdempotencyCheck()`): Atomic database-level check that prevents duplicate entity creation. Used for entity uniqueness (e.g., preventing duplicate wallet creation).
+
+**When to include operation ID tags:**
+- ✅ When your application retries commands after failures
+- ✅ When you need to detect and skip duplicate operations
+- ✅ When commands come from external systems that might retry
+
+**When operation ID tags are not needed:**
+- When commands are idempotent by design (e.g., deposits are commutative)
+- When you rely on DCB cursor checks for concurrency control
+- When duplicate operations are acceptable or handled differently
 
 ## Common Mistakes
 
