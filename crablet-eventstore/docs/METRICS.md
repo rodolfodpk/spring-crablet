@@ -7,12 +7,12 @@ EventStore provides comprehensive metrics for monitoring command execution, even
 ### Command Execution
 
 **Command Counters:**
-- `eventstore.commands.total{command_type}` - Total commands processed by type
-- `eventstore.commands.failed{command_type,error_type}` - Failed commands with error type
-- `eventstore.commands.idempotent{command_type}` - Idempotent operations (duplicate requests handled gracefully)
+- `eventstore.command.total{command_type}` - Total commands processed by type
+- `eventstore.command.failed{command_type,error_type}` - Failed commands with error type
+- `eventstore.command.idempotent{command_type}` - Idempotent operations (duplicate requests handled gracefully)
 
 **Command Timers:**
-- `eventstore.commands.duration{command_type}` - Command execution time by type
+- `eventstore.command.duration{command_type}` - Command execution time by type
 
 ### Event Processing
 
@@ -29,16 +29,16 @@ EventStore provides comprehensive metrics for monitoring command execution, even
 
 ```promql
 # Command execution rate by type
-rate(eventstore.commands.total[1m])
+rate(eventstore.command.total[1m])
 
 # Failed command rate by type
-rate(eventstore.commands.failed[1m])
+rate(eventstore.command.failed[1m])
 
 # Idempotent operation rate
-rate(eventstore.commands.idempotent[1m])
+rate(eventstore.command.idempotent[1m])
 
 # Command execution latency (P95)
-histogram_quantile(0.95, rate(eventstore.commands.duration_bucket[5m]))
+histogram_quantile(0.95, rate(eventstore.command.duration_bucket[5m]))
 
 # Events appended per second
 rate(eventstore.events.appended[1m])
@@ -50,7 +50,7 @@ rate(eventstore.events.by_type[1m])
 rate(eventstore.concurrency.violations[1m])
 
 # Failure rate by error type
-sum by (error_type) (rate(eventstore.commands.failed[1m]))
+sum by (error_type) (rate(eventstore.command.failed[1m]))
 ```
 
 ## Use Cases
@@ -60,7 +60,7 @@ sum by (error_type) (rate(eventstore.commands.failed[1m]))
 **Track throughput:**
 ```promql
 # Total command rate
-sum(rate(eventstore.commands.total[1m]))
+sum(rate(eventstore.command.total[1m]))
 
 # Events per second
 rate(eventstore.events.appended[1m])
@@ -69,10 +69,10 @@ rate(eventstore.events.appended[1m])
 **Monitor errors:**
 ```promql
 # Error rate by command type
-sum by (command_type) (rate(eventstore.commands.failed[1m]))
+sum by (command_type) (rate(eventstore.command.failed[1m]))
 
 # Total error rate
-sum(rate(eventstore.commands.failed[1m]))
+sum(rate(eventstore.command.failed[1m]))
 ```
 
 ### Performance Analysis
@@ -80,9 +80,9 @@ sum(rate(eventstore.commands.failed[1m]))
 **Command latency:**
 ```promql
 # P50, P95, P99 latencies
-histogram_quantile(0.50, rate(eventstore.commands.duration_bucket[5m]))
-histogram_quantile(0.95, rate(eventstore.commands.duration_bucket[5m]))
-histogram_quantile(0.99, rate(eventstore.commands.duration_bucket[5m]))
+histogram_quantile(0.50, rate(eventstore.command.duration_bucket[5m]))
+histogram_quantile(0.95, rate(eventstore.command.duration_bucket[5m]))
+histogram_quantile(0.99, rate(eventstore.command.duration_bucket[5m]))
 ```
 
 **Event processing:**
@@ -99,16 +99,16 @@ rate(eventstore.events.by_type[1m])
 rate(eventstore.concurrency.violations[1m])
 
 # Violations vs successful commands ratio
-rate(eventstore.concurrency.violations[1m]) / rate(eventstore.commands.total[1m])
+rate(eventstore.concurrency.violations[1m]) / rate(eventstore.command.total[1m])
 ```
 
 **Idempotency:**
 ```promql
 # How often are duplicate requests detected?
-rate(eventstore.commands.idempotent[1m])
+rate(eventstore.command.idempotent[1m])
 
 # Idempotency rate by command type
-sum by (command_type) (rate(eventstore.commands.idempotent[1m]))
+sum by (command_type) (rate(eventstore.command.idempotent[1m]))
 ```
 
 ## Alerting
@@ -117,7 +117,7 @@ sum by (command_type) (rate(eventstore.commands.idempotent[1m]))
 
 **High error rate:**
 ```promql
-sum(rate(eventstore.commands.failed[1m])) > 10
+sum(rate(eventstore.command.failed[1m])) > 10
 ```
 
 **High concurrency violation rate:**
@@ -127,7 +127,7 @@ rate(eventstore.concurrency.violations[1m]) > 5
 
 **High command latency:**
 ```promql
-histogram_quantile(0.95, rate(eventstore.commands.duration_bucket[5m])) > 1s
+histogram_quantile(0.95, rate(eventstore.command.duration_bucket[5m])) > 1s
 ```
 
 **Low throughput:**
@@ -219,7 +219,7 @@ High violation rates indicate:
 
 **Check error types:**
 ```promql
-sum by (error_type, command_type) (rate(eventstore.commands.failed[1m]))
+sum by (error_type, command_type) (rate(eventstore.command.failed[1m]))
 ```
 
 **Common issues:**

@@ -3,7 +3,7 @@ package com.crablet.eventstore.store;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.clock.ClockProvider;
-import com.crablet.eventstore.commands.Command;
+import com.crablet.eventstore.command.Command;
 import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.dcb.DCBViolation;

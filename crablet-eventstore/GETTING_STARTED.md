@@ -93,18 +93,11 @@ import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.store.StoredEvent;
 import com.example.wallet.domain.WalletBalance;
 import com.example.wallet.events.*;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Component
+// Not a singleton - create instances as needed. This class is stateless and thread-safe.
 public class WalletBalanceProjector implements StateProjector<WalletBalance> {
-    
-    private final EventDeserializer deserializer;
-    
-    public WalletBalanceProjector(EventDeserializer deserializer) {
-        this.deserializer = deserializer;
-    }
     
     @Override
     public String getId() {
@@ -158,8 +151,8 @@ public record WithdrawCommand(
 ```java
 package com.example.wallet.handlers;
 
-import com.crablet.eventstore.commands.CommandHandler;
-import com.crablet.eventstore.commands.CommandResult;
+import com.crablet.eventstore.command.CommandHandler;
+import com.crablet.eventstore.command.CommandResult;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.dcb.AppendConditionBuilder;
 import com.crablet.eventstore.dcb.ConcurrencyException;
@@ -169,7 +162,6 @@ import com.example.wallet.commands.WithdrawCommand;
 import com.example.wallet.domain.WalletBalance;
 import com.example.wallet.events.WithdrawalMade;
 import com.example.wallet.projectors.WalletBalanceProjector;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -177,18 +169,11 @@ import java.util.List;
 @Component
 public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
     
-    private final EventStore eventStore;
-    private final WalletBalanceProjector projector;
-    
-    public WithdrawCommandHandler(
-            EventStore eventStore, 
-            WalletBalanceProjector projector) {
-        this.eventStore = eventStore;
-        this.projector = projector;
+    public WithdrawCommandHandler() {
     }
     
     @Override
-    public CommandResult handle(WithdrawCommand command) {
+    public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
         // Define decision model: which events affect withdrawal decision?
         // This filters events to only those for this wallet
         Query decisionModel = QueryBuilder.create()
@@ -197,7 +182,8 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
             .build();
         
         // 1. Project current balance with cursor
-        // The Query filters events by wallet_id tag before the projector processes them
+        // Create projector instance inline (not a singleton, thread-safe)
+        WalletBalanceProjector projector = new WalletBalanceProjector();
         ProjectionResult<WalletBalance> result = eventStore.project(
             decisionModel,
             Cursor.zero(),
@@ -210,10 +196,10 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         
         // 2. Business logic: check sufficient funds
         if (balance.amount().compareTo(command.amount()) < 0) {
-            return CommandResult.emptyWithReason("Insufficient funds");
+            throw new InsufficientFundsException(command.walletId(), balance.amount(), command.amount());
         }
         
-        // 3. Create event (simplified for docs)
+        // 3. Create event
         WithdrawalMade event = new WithdrawalMade(command.amount(), command.withdrawalId());
         List<AppendEvent> events = List.of(
             AppendEvent.builder("WithdrawalMade")
@@ -223,15 +209,12 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
                 .build()
         );
         
-        // 4. Build append condition with DCB conflict check + idempotency
+        // 4. Build append condition with DCB cursor check
+        // Note: No idempotency check - cursor advancement detects if operation already succeeded
         AppendCondition condition = new AppendConditionBuilder(decisionModel, cursor)
-            .withIdempotencyCheck("WithdrawalMade", "withdrawal_id", command.withdrawalId())
             .build();
         
-        // 5. Append with both checks
-        eventStore.appendIf(events, condition);
-        
-        return CommandResult.success(events.get(0));
+        return CommandResult.of(events, condition);
     }
 }
 ```
@@ -243,8 +226,8 @@ Use `CommandExecutor` to execute commands with transaction management:
 ```java
 package com.example.wallet.service;
 
-import com.crablet.eventstore.commands.CommandExecutor;
-import com.crablet.eventstore.commands.ExecutionResult;
+import com.crablet.eventstore.command.CommandExecutor;
+import com.crablet.eventstore.command.ExecutionResult;
 import com.example.wallet.commands.WithdrawCommand;
 import org.springframework.stereotype.Service;
 
@@ -320,7 +303,7 @@ class WalletIntegrationTest {
     void testWithdrawal() {
         // Test your handler
         var command = new WithdrawCommand("wallet-123", "w-1", new BigDecimal("100"));
-        var result = withdrawHandler.handle(command);
+        var result = withdrawHandler.handle(eventStore, command);
         
         assertTrue(result.success());
     }
@@ -338,10 +321,20 @@ The `Query` passed to `AppendConditionBuilder` that defines which events affect 
 ### Idempotency Check
 `withIdempotencyCheck()` searches ALL events (ignores cursor) to prevent duplicate operations.
 
+## Example Domains
+
+Working examples are available in the test scope for reference:
+
+- **Wallet Domain** (`com.crablet.examples.wallet`): Complete wallet implementation with deposits, withdrawals, and transfers
+- **Course Subscriptions** (`com.crablet.examples.courses`): Course management with student subscriptions demonstrating multi-entity DCB patterns
+
+These examples demonstrate real-world usage of DCB patterns and can serve as templates for your own implementations.
+
 ## Next Steps
 
 - Read [DCB Explained](docs/DCB_AND_CRABLET.md) for detailed explanation
 - See [SCHEMA.md](SCHEMA.md) for database details
 - Check [TESTING.md](TESTING.md) for testing patterns
 - Review [README.md](README.md) for API reference
+- Explore example domains in test scope for complete working implementations
 

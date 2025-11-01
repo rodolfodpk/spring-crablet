@@ -1,6 +1,6 @@
 package com.crablet.eventstore.dcb;
 
-import com.crablet.eventstore.commands.Command;
+import com.crablet.eventstore.command.Command;
 
 /**
  * Exception thrown when AppendCondition fails due to concurrent modification.

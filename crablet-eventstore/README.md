@@ -150,6 +150,15 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
 - **[Database Schema](SCHEMA.md)** - Database tables and functions
 - **[Metrics](docs/METRICS.md)** - EventStore metrics and monitoring
 
+## Example Domains
+
+Complete working examples are available in the test scope:
+
+- **Wallet Domain** (`com.crablet.examples.wallet`): Simple wallet with deposits, withdrawals, and transfers
+  - Demonstrates: Idempotency, commutative operations, non-commutative operations, multi-entity transfers
+- **Course Subscriptions** (`com.crablet.examples.courses`): Course management with student subscriptions
+  - Demonstrates: Multi-entity constraints, composite projectors, capacity limits, subscription limits
+
 ## License
 
 MIT

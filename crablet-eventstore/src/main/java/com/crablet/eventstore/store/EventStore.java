@@ -1,6 +1,6 @@
 package com.crablet.eventstore.store;
 
-import com.crablet.eventstore.commands.Command;
+import com.crablet.eventstore.command.Command;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;

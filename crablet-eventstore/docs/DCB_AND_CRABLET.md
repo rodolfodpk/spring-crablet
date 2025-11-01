@@ -273,7 +273,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 ### Package Structure
 
 - **`com.crablet.eventstore.store`**: Core interfaces and implementations (EventStore, StoredEvent, AppendEvent)
-- **`com.crablet.eventstore.commands`**: Command handlers (Command, CommandHandler, CommandExecutor)
+- **`com.crablet.eventstore.command`**: Command handlers (Command, CommandHandler, CommandExecutor)
 - **`com.crablet.eventstore.query`**: Querying support (Query, QueryBuilder)
 - **`com.crablet.eventstore.dcb`**: DCB implementation (AppendCondition, Cursor)
 - **`com.crablet.eventstore.config`**: Configuration classes
@@ -387,7 +387,8 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
 6. **Performance**: No cursor checks needed for commutative operations
 
 **For non-commutative operations (withdrawals, transfers)**, use `AppendConditionBuilder(decisionModel, cursor)` to detect concurrent balance changes. See [Command Patterns Guide](COMMAND_PATTERNS.md) for complete examples.
-7. **Wallet Creation**: Still uses idempotency checks (no cursor protection available)
+
+**For multi-entity operations (course subscriptions, multi-wallet transfers)**, use composite projectors to enforce constraints across multiple entities atomically. See `com.crablet.examples.courses` for a complete example of multi-entity constraints using composite projectors.
 
 ## PostgreSQL Integration
 

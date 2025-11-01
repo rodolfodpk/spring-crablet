@@ -36,37 +36,29 @@ This guide shows how to write tests for event sourcing applications using Crable
 
 ### Base Test Class
 
-Create a base class for integration tests:
+Use the framework's base test class for integration tests:
 
 ```java
 package com.example.wallet;
 
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import com.crablet.eventstore.integration.AbstractCrabletTest;
+import com.crablet.eventstore.store.EventStore;
+import org.springframework.beans.factory.annotation.Autowired;
 
-@SpringBootTest
-@Testcontainers
-public abstract class BaseIntegrationTest {
+// AbstractCrabletTest provides:
+// - Shared PostgreSQL Testcontainers container
+// - Automatic Flyway migrations
+// - EventStore and JdbcTemplate autowired
+public class WalletIntegrationTest extends AbstractCrabletTest {
     
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17")
-        .withDatabaseName("test")
-        .withUsername("test")
-        .withPassword("test");
+    @Autowired
+    protected EventStore eventStore;
     
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.flyway.enabled", () -> "true");
-    }
+    // Your test methods here
 }
 ```
+
+Alternatively, create your own base test class following the same pattern. See `com.crablet.eventstore.integration.AbstractCrabletTest` for reference.
 
 ## Integration Test Example
 
@@ -75,13 +67,14 @@ public abstract class BaseIntegrationTest {
 ```java
 package com.example.wallet.handlers;
 
-import com.crablet.eventstore.commands.CommandResult;
+import com.crablet.eventstore.command.CommandResult;
+import com.crablet.eventstore.integration.AbstractCrabletTest;
 import com.crablet.eventstore.query.EventTestHelper;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
 import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
-import com.example.wallet.BaseIntegrationTest;
 import com.example.wallet.commands.WithdrawCommand;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,7 +84,10 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class WithdrawCommandHandlerTest extends BaseIntegrationTest {
+class WithdrawCommandHandlerTest extends AbstractCrabletTest {
+    
+    @Autowired
+    private EventStore eventStore;
     
     @Autowired
     private WithdrawCommandHandler handler;
@@ -111,7 +107,7 @@ class WithdrawCommandHandlerTest extends BaseIntegrationTest {
             withdrawalId, 
             new BigDecimal("50")
         );
-        CommandResult result = handler.handle(command);
+        CommandResult result = handler.handle(eventStore, command);
         
         // Then: withdrawal succeeded
         assertTrue(result.success());
@@ -142,8 +138,8 @@ class WithdrawCommandHandlerTest extends BaseIntegrationTest {
         );
         
         // When: withdraw twice with same ID
-        CommandResult result1 = handler.handle(command);
-        CommandResult result2 = handler.handle(command);
+        CommandResult result1 = handler.handle(eventStore, command);
+        CommandResult result2 = handler.handle(eventStore, command);
         
         // Then: both succeed (idempotent)
         assertTrue(result1.success());
@@ -173,11 +169,12 @@ class WithdrawCommandHandlerTest extends BaseIntegrationTest {
             "withdrawal-insufficient",
             new BigDecimal("200")
         );
-        CommandResult result = handler.handle(command);
+        CommandResult result = handler.handle(eventStore, command);
         
-        // Then: withdrawal failed
-        assertFalse(result.success());
-        assertEquals("Insufficient funds", result.reason());
+        // Then: withdrawal failed (handler throws exception, not returns failure)
+        // Handler will throw InsufficientFundsException
+        assertThrows(InsufficientFundsException.class, 
+            () -> handler.handle(eventStore, command));
     }
     
     private void setupWalletWithBalance(String walletId, BigDecimal balance) {
@@ -303,13 +300,12 @@ void testConcurrentWithdrawals() {
     WithdrawCommand command2 = new WithdrawCommand(walletId, "w-2", new BigDecimal("80"));
     
     // First withdrawal succeeds
-    CommandResult result1 = handler.handle(command1);
+    CommandResult result1 = handler.handle(eventStore, command1);
     assertTrue(result1.success());
     
-    // Second withdrawal retries and fails (insufficient funds after first)
-    CommandResult result2 = handler.handle(command2);
-    assertFalse(result2.success());
-    assertEquals("Insufficient funds", result2.reason());
+    // Second withdrawal fails (insufficient funds after first)
+    assertThrows(InsufficientFundsException.class, 
+        () -> handler.handle(eventStore, command2));
 }
 ```
 
@@ -363,8 +359,8 @@ String withdrawalId = UUID.randomUUID().toString();
 Always test duplicate operations:
 
 ```java
-CommandResult result1 = handler.handle(command);
-CommandResult result2 = handler.handle(command);  // Same command
+CommandResult result1 = handler.handle(eventStore, command);
+CommandResult result2 = handler.handle(eventStore, command);  // Same command
 
 assertTrue(result1.success());
 assertTrue(result2.success());  // Should also succeed (idempotent)
@@ -382,7 +378,7 @@ void testInvalidAmount() {
     );
     
     assertThrows(IllegalArgumentException.class, 
-        () -> handler.handle(command));
+        () -> handler.handle(eventStore, command));
 }
 ```
 
@@ -405,6 +401,26 @@ Always test:
 - Duplicate operations (idempotency)
 - Insufficient balance
 - Invalid input
+
+## Test Structure
+
+The test scope is organized into:
+
+- **Framework Tests** (`com.crablet.eventstore.integration.*`): Integration tests for core EventStore functionality
+  - Base test class: `AbstractCrabletTest`
+  - Test application: `TestApplication`
+- **Example Domains** (`com.crablet.examples.*`): Complete working examples demonstrating DCB patterns
+  - `com.crablet.examples.wallet`: Wallet domain with deposits, withdrawals, transfers
+  - `com.crablet.examples.courses`: Course subscriptions with multi-entity constraints
+  - Each example domain includes:
+    - Domain events, commands, handlers
+    - Projectors and query patterns
+    - Integration tests
+    - Test utilities (in `*.testutils` package):
+      - `com.crablet.examples.wallet.testutils.WalletTestUtils`
+      - `com.crablet.examples.courses.testutils.CourseTestUtils`
+
+These example domains serve as reference implementations and can be used as templates for your own domains.
 
 ## Running Tests
 
