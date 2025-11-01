@@ -306,154 +306,11 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 - ✅ Cursor check: prevents concurrent overdrafts
 - ❌ Cannot run in parallel on same wallets
 
-## Pattern 5: Multi-Entity Constraints (Course Subscriptions)
+### More Complex Multi-Entity Examples
 
-### Subscribe Student to Course Command
+The Transfer pattern above demonstrates the core multi-entity DCB pattern. For examples with more complex business constraints (multiple validation rules, count aggregations, duplicate checks), see:
 
-**Why composite projector needed:** Subscription affects two entities (course and student) with multiple constraints:
-- Course must exist
-- Course must have available capacity
-- Student must not exceed subscription limit
-- Student must not already be subscribed
-
-**Problem without DCB:**
-```
-Course capacity: 10, current subscriptions: 9
-Student subscriptions: 4 (limit: 5)
-
-Thread 1: Subscribes student A to course (sees capacity=1 ✅)
-Thread 2: Subscribes student B to course (sees capacity=1 ✅)
-
-Both succeed → Course oversubscribed: 11 > 10 ❌
-```
-
-**Solution with DCB using composite projector:**
-```java
-import com.crablet.eventstore.command.CommandHandler;
-import com.crablet.eventstore.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
-import com.crablet.eventstore.query.*;
-import com.crablet.eventstore.store.*;
-import org.springframework.stereotype.Component;
-
-@Component
-public class SubscribeStudentToCourseCommandHandler implements CommandHandler<SubscribeStudentToCourseCommand> {
-    
-    private static final int MAX_STUDENT_SUBSCRIPTIONS = 5;
-    
-    public SubscribeStudentToCourseCommandHandler() {
-    }
-    
-    @Override
-    public CommandResult handle(EventStore eventStore, SubscribeStudentToCourseCommand command) {
-        // Use multi-entity decision model query
-        Query decisionModel = CourseQueryPatterns.subscriptionDecisionModel(
-                command.courseId(),
-                command.studentId()
-        );
-
-        // Project state for BOTH entities with cursor using composite projector
-        SubscriptionStateProjector projector = new SubscriptionStateProjector(
-                command.courseId(),
-                command.studentId()
-        );
-        ProjectionResult<SubscriptionState> projection = eventStore.project(
-                decisionModel, Cursor.zero(), SubscriptionState.class, List.of(projector));
-        SubscriptionState state = projection.state();
-
-        // Validate all constraints
-        if (!state.courseExists()) {
-            throw new CourseNotFoundException(command.courseId());
-        }
-
-        if (state.isCourseFull()) {
-            throw new CourseFullException(command.courseId(), 
-                    state.courseSubscriptionsCount(), state.courseCapacity());
-        }
-
-        if (state.studentAlreadySubscribed()) {
-            throw new AlreadySubscribedException(command.studentId(), command.courseId());
-        }
-
-        if (state.hasReachedSubscriptionLimit(MAX_STUDENT_SUBSCRIPTIONS)) {
-            throw new StudentSubscriptionLimitException(command.studentId(), 
-                    state.studentSubscriptionsCount(), MAX_STUDENT_SUBSCRIPTIONS);
-        }
-
-        // Create event with BOTH tags (multi-entity event)
-        StudentSubscribedToCourse subscription = StudentSubscribedToCourse.of(
-                command.studentId(),
-                command.courseId()
-        );
-
-        AppendEvent event = AppendEvent.builder(STUDENT_SUBSCRIBED_TO_COURSE)
-                .tag(COURSE_ID, command.courseId())
-                .tag(STUDENT_ID, command.studentId())
-                .data(subscription)
-                .build();
-
-        // Subscriptions are non-commutative - order matters for both course and student constraints
-        // DCB cursor check REQUIRED: prevents concurrent subscriptions exceeding limits
-        AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
-                .build();
-
-        return CommandResult.of(List.of(event), condition);
-    }
-    
-    // Composite projector: handles events for both course and student
-    static class SubscriptionStateProjector implements StateProjector<SubscriptionState> {
-        private final String courseId;
-        private final String studentId;
-        
-        public SubscriptionStateProjector(String courseId, String studentId) {
-            this.courseId = courseId;
-            this.studentId = studentId;
-        }
-        
-        @Override
-        public SubscriptionState transition(SubscriptionState current, StoredEvent event, EventDeserializer context) {
-            return switch (event.type()) {
-                case "CourseDefined" -> {
-                    CourseDefined courseDefined = context.deserialize(event, CourseDefined.class);
-                    if (courseDefined.courseId().equals(courseId)) {
-                        yield new SubscriptionState(true, courseDefined.capacity(), 
-                                current.courseSubscriptionsCount(), 
-                                current.studentSubscriptionsCount(),
-                                current.studentAlreadySubscribed());
-                    }
-                    yield current;
-                }
-                case "StudentSubscribedToCourse" -> {
-                    StudentSubscribedToCourse subscription = context.deserialize(event, StudentSubscribedToCourse.class);
-                    boolean affectsCourse = subscription.courseId().equals(courseId);
-                    boolean affectsStudent = subscription.studentId().equals(studentId);
-                    yield new SubscriptionState(
-                            current.courseExists(),
-                            current.courseCapacity(),
-                            affectsCourse ? current.courseSubscriptionsCount() + 1 : current.courseSubscriptionsCount(),
-                            affectsStudent ? current.studentSubscriptionsCount() + 1 : current.studentSubscriptionsCount(),
-                            current.studentAlreadySubscribed() || (affectsCourse && affectsStudent)
-                    );
-                }
-                default -> current;
-            };
-        }
-        
-        // ... other projector methods
-    }
-}
-```
-
-**Key Points:**
-- ✅ Multi-entity projection: single projector handles both course and student constraints
-- ✅ Composite state: `SubscriptionState` aggregates constraints for both entities
-- ✅ Atomic validation: all constraints checked atomically before subscription
-- ✅ Cursor check: prevents concurrent subscriptions exceeding limits
-- ✅ Single event: `StudentSubscribedToCourse` tagged with both `course_id` and `student_id`
-- ❌ Cannot run in parallel on same course or same student (DCB detects conflict)
-
-**See full example:** `com.crablet.examples.courses.features.subscribe.SubscribeStudentToCourseCommandHandler`
+- **Course Subscriptions** (`com.crablet.examples.courses.features.subscribe.SubscribeStudentToCourseCommandHandler`): Demonstrates multi-entity constraints with capacity limits, subscription limits, and duplicate subscription checks using a composite projector.
 
 ## Summary Table
 
@@ -463,7 +320,6 @@ public class SubscribeStudentToCourseCommandHandler implements CommandHandler<Su
 | **Deposit** | Commutative | ❌ | ❌ | ✅ | deposit_id tag (optional) |
 | **Withdraw** | Non-commutative | ✅ | ❌ | ❌ | withdrawal_id tag (optional) |
 | **Transfer** | Non-commutative | ✅ | ❌ | ❌ | transfer_id tag (optional) |
-| **Subscribe Course** | Non-commutative (multi-entity) | ✅ | ❌ | ❌ | - |
 
 ## When to Use Each Pattern
 
