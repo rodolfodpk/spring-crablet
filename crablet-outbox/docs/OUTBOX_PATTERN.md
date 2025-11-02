@@ -485,11 +485,33 @@ Recommended deployment: 2 instances
 
 Failure scenario: Instance A crashes
 
-1. PostgreSQL detects connection loss
-2. PostgreSQL releases global lock automatically
-3. Instance B acquires lock within seconds
-4. Instance B becomes leader and starts processing
-5. Zero downtime - publishing continues seamlessly
+**How Instance B Detects the Crash:**
+
+1. **PostgreSQL Automatic Lock Release**: When Instance A crashes, PostgreSQL detects the connection loss and automatically releases all advisory locks held by that connection (including the global outbox lock)
+
+2. **Follower Periodic Retry**: Instance B (follower) periodically attempts to acquire the lock:
+   - On startup: Tries once immediately (`@PostConstruct`)
+   - During scheduled tasks: Retries every polling cycle (default: 1s)
+   - Cooldown mechanism: Prevents redundant retries from multiple schedulers (100ms cooldown)
+
+3. **Lock Acquisition Process**:
+   ```sql
+   -- Instance B periodically tries (non-blocking)
+   SELECT pg_try_advisory_lock(4856221667890123456);
+   -- Returns: false (while Instance A holds it)
+   -- Returns: true (after Instance A crashes and lock is released)
+   ```
+
+4. **Leadership Transition**:
+   - Instance B's `tryAcquireGlobalLeader()` succeeds
+   - `isGlobalLeader` flag set to `true`
+   - Schedulers start processing publishers immediately
+
+5. **Timing**: 
+   - Lock release: Immediate (PostgreSQL detects connection drop)
+   - Detection: Within 1 polling cycle (default: 1 second)
+   - Cooldown: 100ms prevents redundant retries from multiple schedulers
+   - Failover time: ~1-2 seconds total
 
 Configuration (same for both instances):
 crablet.outbox.enabled=true

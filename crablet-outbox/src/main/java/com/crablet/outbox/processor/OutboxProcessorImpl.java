@@ -20,10 +20,8 @@ import org.springframework.scheduling.TaskScheduler;
 
 import javax.sql.DataSource;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
@@ -54,6 +52,10 @@ public class OutboxProcessorImpl implements OutboxProcessor {
     
     // Track backoff states for each (topic, publisher) pair
     private final Map<String, BackoffState> backoffStates = new ConcurrentHashMap<>();
+    
+    // Leader election retry cooldown (prevents redundant retries from multiple schedulers)
+    private volatile long lastLeaderRetryTimestamp = 0;
+    private static final long LEADER_RETRY_COOLDOWN_MS = 100; // Don't retry more than once per 100ms
     
     public OutboxProcessorImpl(
             OutboxConfig config,
@@ -152,8 +154,26 @@ public class OutboxProcessorImpl implements OutboxProcessor {
      * Scheduled task for a specific (topic, publisher) pair.
      */
     private void scheduledTask(String topicName, String publisherName) {
-        if (!config.isEnabled() || !leaderElector.isGlobalLeader()) {
+        if (!config.isEnabled()) {
             return;
+        }
+        
+        // Periodic retry: If not leader, attempt to acquire lock
+        if (!leaderElector.isGlobalLeader()) {
+            long now = System.currentTimeMillis();
+            // Cooldown: Prevent redundant retries from multiple schedulers
+            if (now - lastLeaderRetryTimestamp > LEADER_RETRY_COOLDOWN_MS) {
+                lastLeaderRetryTimestamp = now;
+                boolean acquired = leaderElector.tryAcquireGlobalLeader();
+                if (!acquired) {
+                    log.trace("Not leader, skipping cycle for ({}, {})", topicName, publisherName);
+                    return;
+                }
+                log.info("Became leader, starting to process ({}, {})", topicName, publisherName);
+            } else {
+                // Recently tried, skip this cycle
+                return;
+            }
         }
         
         String key = topicName + ":" + publisherName;
