@@ -57,14 +57,4 @@ public record WithdrawalMade(
                 description
         );
     }
-
-    @Override
-    public String getEventType() {
-        return "WithdrawalMade";
-    }
-
-    @Override
-    public Instant getOccurredAt() {
-        return withdrawnAt;
-    }
 }

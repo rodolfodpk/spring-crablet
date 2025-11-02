@@ -57,14 +57,4 @@ public record DepositMade(
                 description
         );
     }
-
-    @Override
-    public String getEventType() {
-        return "DepositMade";
-    }
-
-    @Override
-    public Instant getOccurredAt() {
-        return depositedAt;
-    }
 }

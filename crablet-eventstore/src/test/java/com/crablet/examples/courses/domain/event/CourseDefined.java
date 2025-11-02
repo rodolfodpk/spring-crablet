@@ -12,7 +12,7 @@ public record CourseDefined(
         @JsonProperty("course_id") String courseId,
         @JsonProperty("capacity") int capacity,
         @JsonProperty("defined_at") Instant definedAt
-) {
+) implements CourseEvent {
 
     public CourseDefined {
         if (courseId == null || courseId.trim().isEmpty()) {

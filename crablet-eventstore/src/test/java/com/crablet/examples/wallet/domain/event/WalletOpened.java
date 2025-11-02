@@ -36,14 +36,4 @@ public record WalletOpened(
     public static WalletOpened of(String walletId, String owner, int initialBalance) {
         return new WalletOpened(walletId, owner, initialBalance, Instant.now());
     }
-
-    @Override
-    public String getEventType() {
-        return "WalletOpened";
-    }
-
-    @Override
-    public Instant getOccurredAt() {
-        return openedAt;
-    }
 }

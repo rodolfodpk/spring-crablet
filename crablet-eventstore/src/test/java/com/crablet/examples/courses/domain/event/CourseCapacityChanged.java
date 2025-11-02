@@ -12,7 +12,7 @@ public record CourseCapacityChanged(
         @JsonProperty("course_id") String courseId,
         @JsonProperty("new_capacity") int newCapacity,
         @JsonProperty("changed_at") Instant changedAt
-) {
+) implements CourseEvent {
 
     public CourseCapacityChanged {
         if (courseId == null || courseId.trim().isEmpty()) {

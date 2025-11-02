@@ -8,7 +8,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.crablet.examples.wallet.domain.event.WalletEvent;
+import com.crablet.examples.wallet.domain.event.WalletOpened;
+import com.crablet.examples.wallet.domain.event.MoneyTransferred;
+import com.crablet.examples.wallet.domain.event.DepositMade;
+import com.crablet.examples.wallet.domain.event.WithdrawalMade;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -36,26 +41,45 @@ public class WalletTestUtils {
         try {
             byte[] data = OBJECT_MAPPER.writeValueAsBytes(walletEvent);
 
-            // Create appropriate tags based on event type
-            List<Tag> tags = switch (walletEvent) {
-                case com.crablet.examples.wallet.domain.event.WalletOpened wo -> List.of(new Tag("wallet_id", wo.walletId()));
-                case com.crablet.examples.wallet.domain.event.MoneyTransferred mt -> List.of(
-                        new Tag("transfer_id", mt.transferId()),
-                        new Tag("from_wallet_id", mt.fromWalletId()),
-                        new Tag("to_wallet_id", mt.toWalletId())
-                );
-                case com.crablet.examples.wallet.domain.event.DepositMade dm -> List.of(new Tag("wallet_id", dm.walletId()));
-                case com.crablet.examples.wallet.domain.event.WithdrawalMade wm -> List.of(new Tag("wallet_id", wm.walletId()));
-                default -> List.of();
-            };
+            // Extract event type, tags, and timestamp in one pattern match
+            String eventType;
+            List<Tag> tags;
+            Instant occurredAt;
+            
+            switch (walletEvent) {
+                case WalletOpened e -> {
+                    eventType = "WalletOpened";
+                    tags = List.of(new Tag("wallet_id", e.walletId()));
+                    occurredAt = e.openedAt();
+                }
+                case MoneyTransferred e -> {
+                    eventType = "MoneyTransferred";
+                    tags = List.of(
+                            new Tag("transfer_id", e.transferId()),
+                            new Tag("from_wallet_id", e.fromWalletId()),
+                            new Tag("to_wallet_id", e.toWalletId())
+                    );
+                    occurredAt = e.transferredAt();
+                }
+                case DepositMade e -> {
+                    eventType = "DepositMade";
+                    tags = List.of(new Tag("wallet_id", e.walletId()));
+                    occurredAt = e.depositedAt();
+                }
+                case WithdrawalMade e -> {
+                    eventType = "WithdrawalMade";
+                    tags = List.of(new Tag("wallet_id", e.walletId()));
+                    occurredAt = e.withdrawnAt();
+                }
+            }
 
             return new StoredEvent(
-                    walletEvent.getEventType(),
+                    eventType,
                     tags,
                     data,
                     "1", // Mock transaction ID
                     1L, // Mock position
-                    walletEvent.getOccurredAt()
+                    occurredAt
             );
         } catch (Exception e) {
             throw new RuntimeException("Failed to create test event", e);
@@ -191,19 +215,5 @@ public class WalletTestUtils {
                 }
             }
         };
-    }
-
-    /**
-     * Assert that two wallet events are equal ignoring timestamps.
-     */
-    public static void assertWalletEventsEqual(WalletEvent expected, WalletEvent actual) {
-        if (expected == null && actual == null) return;
-        if (expected == null || actual == null) {
-            throw new AssertionError("One wallet event is null");
-        }
-
-        if (!expected.getEventType().equals(actual.getEventType())) {
-            throw new AssertionError("Event types differ: expected=" + expected.getEventType() + ", actual=" + actual.getEventType());
-        }
     }
 }

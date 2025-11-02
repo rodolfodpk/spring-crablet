@@ -1,10 +1,7 @@
 package com.crablet.examples.wallet.domain.event;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
-import java.time.Instant;
 
 /**
  * Sealed interface for all wallet-related events.
@@ -23,16 +20,5 @@ import java.time.Instant;
 })
 public sealed interface WalletEvent
         permits WalletOpened, MoneyTransferred, DepositMade, WithdrawalMade {
-
-    /**
-     * Get the event type identifier.
-     */
-    @JsonIgnore
-    String getEventType();
-
-    /**
-     * Get the timestamp when the event occurred.
-     */
-    @JsonIgnore
-    Instant getOccurredAt();
+    // Empty interface - pattern matching works on types, not methods
 }

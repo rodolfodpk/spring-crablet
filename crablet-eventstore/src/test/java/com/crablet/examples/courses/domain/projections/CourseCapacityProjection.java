@@ -3,8 +3,10 @@ package com.crablet.examples.courses.domain.projections;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.examples.courses.domain.event.CourseEvent;
 import com.crablet.examples.courses.domain.event.CourseDefined;
 import com.crablet.examples.courses.domain.event.CourseCapacityChanged;
+import com.crablet.examples.courses.domain.event.StudentSubscribedToCourse;
 
 /**
  * Projector for course capacity.
@@ -32,16 +34,14 @@ public class CourseCapacityProjection implements StateProjector<Integer> {
 
     @Override
     public Integer transition(Integer currentState, StoredEvent event, EventDeserializer context) {
-        return switch (event.type()) {
-            case "CourseDefined" -> {
-                CourseDefined courseDefined = context.deserialize(event, CourseDefined.class);
-                yield courseDefined.capacity();
-            }
-            case "CourseCapacityChanged" -> {
-                CourseCapacityChanged capacityChanged = context.deserialize(event, CourseCapacityChanged.class);
-                yield capacityChanged.newCapacity();
-            }
-            default -> currentState;
+        // Deserialize to sealed interface for type-safe pattern matching
+        CourseEvent courseEvent = context.deserialize(event, CourseEvent.class);
+        
+        // Use pattern matching instead of string-based switch
+        return switch (courseEvent) {
+            case CourseDefined e -> e.capacity();
+            case CourseCapacityChanged e -> e.newCapacity();
+            case StudentSubscribedToCourse _ -> currentState; // Subscription doesn't change capacity
         };
     }
 }

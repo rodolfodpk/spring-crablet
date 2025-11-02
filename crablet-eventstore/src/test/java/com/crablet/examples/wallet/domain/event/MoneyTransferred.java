@@ -69,14 +69,4 @@ public record MoneyTransferred(
                 description
         );
     }
-
-    @Override
-    public String getEventType() {
-        return "MoneyTransferred";
-    }
-
-    @Override
-    public Instant getOccurredAt() {
-        return transferredAt;
-    }
 }

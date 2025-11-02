@@ -13,7 +13,7 @@ public record StudentSubscribedToCourse(
         @JsonProperty("student_id") String studentId,
         @JsonProperty("course_id") String courseId,
         @JsonProperty("subscribed_at") Instant subscribedAt
-) {
+) implements CourseEvent {
 
     public StudentSubscribedToCourse {
         if (studentId == null || studentId.trim().isEmpty()) {
