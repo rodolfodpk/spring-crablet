@@ -53,9 +53,8 @@ public class OutboxProcessorImpl implements OutboxProcessor {
     // Track backoff states for each (topic, publisher) pair
     private final Map<String, BackoffState> backoffStates = new ConcurrentHashMap<>();
     
-    // Leader election retry cooldown (prevents redundant retries from multiple schedulers)
-    private volatile long lastLeaderRetryTimestamp = 0;
-    private static final long LEADER_RETRY_COOLDOWN_MS = 100; // Don't retry more than once per 100ms
+    // Dedicated scheduler for leader election retry
+    private ScheduledFuture<?> leaderRetryScheduler;
     
     public OutboxProcessorImpl(
             OutboxConfig config,
@@ -96,8 +95,16 @@ public class OutboxProcessorImpl implements OutboxProcessor {
             return;
         }
         
-        // Try to acquire global leader lock
-            leaderElector.tryAcquireGlobalLeader();
+        // Try to acquire global leader lock on startup
+        leaderElector.tryAcquireGlobalLeader();
+        
+        // Register dedicated scheduler for leader election retry (for followers)
+        long leaderRetryInterval = config.getLeaderElectionRetryIntervalMs();
+        leaderRetryScheduler = taskScheduler.scheduleAtFixedRate(
+            this::leaderRetryTask,
+            Duration.ofMillis(leaderRetryInterval)
+        );
+        log.info("Registered leader election retry scheduler with interval {}ms", leaderRetryInterval);
         
         // Register one scheduler per (topic, publisher)
         Map<String, TopicConfig> topicConfigs = config.getTopics();
@@ -146,34 +153,40 @@ public class OutboxProcessorImpl implements OutboxProcessor {
         activeSchedulers.clear();
         backoffStates.clear();
         
+        // Cancel leader retry scheduler
+        if (leaderRetryScheduler != null) {
+            leaderRetryScheduler.cancel(false);
+            leaderRetryScheduler = null;
+        }
+        
         // Release global leader lock
         leaderElector.releaseGlobalLeader();
+    }
+    
+    /**
+     * Dedicated task for leader election retry.
+     * Runs periodically to allow followers to detect leader crashes.
+     */
+    private void leaderRetryTask() {
+        if (!config.isEnabled()) {
+            return;
+        }
+        
+        // If not leader, attempt to acquire lock
+        if (!leaderElector.isGlobalLeader()) {
+            boolean acquired = leaderElector.tryAcquireGlobalLeader();
+            if (acquired) {
+                log.info("Became leader after retry - starting to process publishers");
+            }
+        }
     }
     
     /**
      * Scheduled task for a specific (topic, publisher) pair.
      */
     private void scheduledTask(String topicName, String publisherName) {
-        if (!config.isEnabled()) {
+        if (!config.isEnabled() || !leaderElector.isGlobalLeader()) {
             return;
-        }
-        
-        // Periodic retry: If not leader, attempt to acquire lock
-        if (!leaderElector.isGlobalLeader()) {
-            long now = System.currentTimeMillis();
-            // Cooldown: Prevent redundant retries from multiple schedulers
-            if (now - lastLeaderRetryTimestamp > LEADER_RETRY_COOLDOWN_MS) {
-                lastLeaderRetryTimestamp = now;
-                boolean acquired = leaderElector.tryAcquireGlobalLeader();
-                if (!acquired) {
-                    log.trace("Not leader, skipping cycle for ({}, {})", topicName, publisherName);
-                    return;
-                }
-                log.info("Became leader, starting to process ({}, {})", topicName, publisherName);
-            } else {
-                // Recently tried, skip this cycle
-                return;
-            }
         }
         
         String key = topicName + ":" + publisherName;

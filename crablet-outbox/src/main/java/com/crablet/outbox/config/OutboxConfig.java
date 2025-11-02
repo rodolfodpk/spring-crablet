@@ -42,6 +42,9 @@ public class OutboxConfig {
     private int backoffMultiplier = 2;
     private int backoffMaxSeconds = 60;
     
+    // Leader election retry interval in milliseconds (for followers to detect leader crashes)
+    private long leaderElectionRetryIntervalMs = 30000; // Default: 30 seconds
+    
     @Autowired
     private TopicConfigurationProperties topicConfigurationProperties;
     
@@ -100,6 +103,14 @@ public class OutboxConfig {
     
     public void setBackoffMaxSeconds(int backoffMaxSeconds) {
         this.backoffMaxSeconds = backoffMaxSeconds;
+    }
+    
+    public long getLeaderElectionRetryIntervalMs() {
+        return leaderElectionRetryIntervalMs;
+    }
+    
+    public void setLeaderElectionRetryIntervalMs(long leaderElectionRetryIntervalMs) {
+        this.leaderElectionRetryIntervalMs = leaderElectionRetryIntervalMs;
     }
     
     public Map<String, TopicConfig> getTopics() { 

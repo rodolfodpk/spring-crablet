@@ -65,6 +65,10 @@ crablet.outbox.enabled=true
 # Polling interval (milliseconds) - adjust based on requirements
 crablet.outbox.polling-interval-ms=5000
 
+# Leader election retry interval (milliseconds) - how often followers retry acquiring lock
+# Default: 30000 (30 seconds)
+crablet.outbox.leader-election-retry-interval-ms=30000
+
 # Topic routing (matches DCB event tags)
 crablet.outbox.topics.wallet-events.required-tags=wallet_id
 crablet.outbox.topics.wallet-events.publishers=KafkaPublisher
@@ -491,8 +495,8 @@ Failure scenario: Instance A crashes
 
 2. **Follower Periodic Retry**: Instance B (follower) periodically attempts to acquire the lock:
    - On startup: Tries once immediately (`@PostConstruct`)
-   - During scheduled tasks: Retries every polling cycle (default: 1s)
-   - Cooldown mechanism: Prevents redundant retries from multiple schedulers (100ms cooldown)
+   - Dedicated scheduler: Retries at configurable interval (default: 30s)
+   - Independent from publisher schedulers: Leader retry has its own schedule
 
 3. **Lock Acquisition Process**:
    ```sql
@@ -509,9 +513,8 @@ Failure scenario: Instance A crashes
 
 5. **Timing**: 
    - Lock release: Immediate (PostgreSQL detects connection drop)
-   - Detection: Within 1 polling cycle (default: 1 second)
-   - Cooldown: 100ms prevents redundant retries from multiple schedulers
-   - Failover time: ~1-2 seconds total
+   - Detection: Within leader retry interval (default: 30 seconds, configurable)
+   - Failover time: Up to leader retry interval + processing time (~30 seconds default)
 
 Configuration (same for both instances):
 crablet.outbox.enabled=true
