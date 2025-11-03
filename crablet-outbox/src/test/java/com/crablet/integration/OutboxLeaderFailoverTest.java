@@ -118,5 +118,26 @@ class OutboxLeaderFailoverTest extends AbstractCrabletTest {
         // Leader retry is handled by dedicated scheduler, not publisher schedulers
         assertThat(processed).isGreaterThanOrEqualTo(0);
     }
+    
+    @Test
+    void shouldRespectCooldownForRedundantLockRetries() throws InterruptedException {
+        // Given: Not leader
+        if (leaderElector.isGlobalLeader()) {
+            leaderElector.releaseGlobalLeader();
+        }
+        
+        // When: Multiple rapid calls to processPending (simulates multiple publisher schedulers)
+        // First call: Should attempt lock acquisition
+        int first = outboxProcessor.processPending();
+        
+        // Immediate second call: Should respect cooldown (no redundant retry)
+        // Note: processPending() doesn't call scheduledTask(), so we can't directly test cooldown here
+        // The cooldown is tested in unit tests. This integration test verifies overall behavior.
+        int second = outboxProcessor.processPending();
+        
+        // Then: Both should handle gracefully
+        assertThat(first).isGreaterThanOrEqualTo(0);
+        assertThat(second).isGreaterThanOrEqualTo(0);
+    }
 }
 

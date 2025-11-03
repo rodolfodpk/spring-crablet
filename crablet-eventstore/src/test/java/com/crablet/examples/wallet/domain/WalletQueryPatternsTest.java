@@ -2,7 +2,6 @@ package com.crablet.examples.wallet.domain;
 
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.Tag;
-import com.crablet.examples.wallet.domain.WalletQueryPatterns;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

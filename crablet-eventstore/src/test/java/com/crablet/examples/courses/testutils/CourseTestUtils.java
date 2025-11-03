@@ -13,7 +13,6 @@ import com.crablet.examples.courses.domain.event.StudentSubscribedToCourse;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Test utilities for course domain tests.

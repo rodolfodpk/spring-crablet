@@ -5,22 +5,14 @@ import com.crablet.eventstore.command.ExecutionResult;
 import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.query.EventTestHelper;
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.Cursor;
-import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
 import com.crablet.examples.wallet.domain.exception.InsufficientFundsException;
 import com.crablet.examples.wallet.domain.exception.WalletNotFoundException;
-import com.crablet.examples.wallet.domain.projections.WalletBalanceProjector;
 import com.crablet.examples.wallet.features.deposit.DepositCommand;
-import com.crablet.examples.wallet.features.deposit.DepositCommandHandler;
 import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
-import com.crablet.examples.wallet.features.openwallet.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.features.transfer.TransferMoneyCommand;
-import com.crablet.examples.wallet.features.transfer.TransferMoneyCommandHandler;
 import com.crablet.examples.wallet.features.withdraw.WithdrawCommand;
-import com.crablet.examples.wallet.features.withdraw.WithdrawCommandHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,18 +33,6 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
     @Autowired
     private EventTestHelper eventTestHelper;
-
-    @Autowired
-    private OpenWalletCommandHandler openWalletHandler;
-
-    @Autowired
-    private DepositCommandHandler depositHandler;
-
-    @Autowired
-    private WithdrawCommandHandler withdrawHandler;
-
-    @Autowired
-    private TransferMoneyCommandHandler transferHandler;
 
     @Test
     @DisplayName("Should execute open wallet command successfully")

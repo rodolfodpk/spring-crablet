@@ -1,6 +1,5 @@
 package com.crablet.examples.wallet.domain;
 
-import com.crablet.examples.wallet.domain.WalletTags;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

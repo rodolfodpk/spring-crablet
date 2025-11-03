@@ -493,12 +493,16 @@ Failure scenario: Instance A crashes
 
 1. **PostgreSQL Automatic Lock Release**: When Instance A crashes, PostgreSQL detects the connection loss and automatically releases all advisory locks held by that connection (including the global outbox lock)
 
-2. **Follower Periodic Retry**: Instance B (follower) periodically attempts to acquire the lock:
-   - On startup: Tries once immediately (`@PostConstruct`)
-   - Dedicated scheduler: Retries at configurable interval (default: 30s)
-   - Independent from publisher schedulers: Leader retry has its own schedule
+2. **Follower Periodic Retry**: Instance B (follower) periodically attempts to acquire the lock using two mechanisms:
+   - **Dedicated scheduler**: Retries at configurable interval (default: 30s), independent from publisher schedulers
+   - **Publisher scheduler retry**: Each publisher scheduler also retries when not leader, with a cooldown period (default: 5s) to prevent redundant lock acquisition attempts
 
-3. **Lock Acquisition Process**:
+3. **Cooldown Mechanism**: To prevent multiple publisher schedulers from simultaneously attempting lock acquisition:
+   - Each `scheduledTask()` checks if cooldown period has elapsed (5 seconds)
+   - Only one retry attempt per cooldown period across all scheduler tasks
+   - Reduces database load and lock contention
+
+4. **Lock Acquisition Process**:
    ```sql
    -- Instance B periodically tries (non-blocking)
    SELECT pg_try_advisory_lock(4856221667890123456);
@@ -506,15 +510,17 @@ Failure scenario: Instance A crashes
    -- Returns: true (after Instance A crashes and lock is released)
    ```
 
-4. **Leadership Transition**:
+5. **Leadership Transition**:
    - Instance B's `tryAcquireGlobalLeader()` succeeds
    - `isGlobalLeader` flag set to `true`
    - Schedulers start processing publishers immediately
 
-5. **Timing**: 
+6. **Timing**: 
    - Lock release: Immediate (PostgreSQL detects connection drop)
-   - Detection: Within leader retry interval (default: 30 seconds, configurable)
-   - Failover time: Up to leader retry interval + processing time (~30 seconds default)
+   - Detection: Multiple retry points:
+     - Dedicated scheduler: Within configured interval (default: 30 seconds)
+     - Publisher schedulers: Within cooldown period (default: 5 seconds) when they run
+   - Failover time: Typically within 5-30 seconds depending on which scheduler detects first
 
 Configuration (same for both instances):
 crablet.outbox.enabled=true

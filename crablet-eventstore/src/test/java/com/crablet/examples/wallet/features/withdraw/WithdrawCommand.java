@@ -15,13 +15,7 @@ public record WithdrawCommand(
         String description
 ) implements WalletCommand {
 
-    public WithdrawCommand {
-        try {
-            validator.lazy().validated(withdrawalId, walletId, amount, description);
-        } catch (ConstraintViolationsException e) {
-            throw new IllegalArgumentException("Invalid WithdrawCommand: " + e.getMessage(), e);
-        }
-    }    private static Arguments4Validator<String, String, Integer, String, WithdrawCommand> validator =
+    private static Arguments4Validator<String, String, Integer, String, WithdrawCommand> validator =
             Yavi.arguments()
                     ._string("withdrawalId", c -> c.notNull().notBlank())
                     ._string("walletId", c -> c.notNull().notBlank())
@@ -29,23 +23,21 @@ public record WithdrawCommand(
                     ._string("description", c -> c.notNull().notBlank())
                     .apply(WithdrawCommand::new);
 
+    public WithdrawCommand {
+        try {
+            validator.lazy().validated(withdrawalId, walletId, amount, description);
+        } catch (ConstraintViolationsException e) {
+            throw new IllegalArgumentException("Invalid WithdrawCommand: " + e.getMessage(), e);
+        }
+    }
+
     public static WithdrawCommand of(String withdrawalId, String walletId, int amount, String description) {
         return new WithdrawCommand(withdrawalId, walletId, amount, description);
     }
 
     @Override
-    public String getCommandType() {
-        return "withdraw";
-    }
-
-    @Override
     public String getWalletId() {
         return walletId;
-    }
-
-    @Override
-    public String getOperationId() {
-        return withdrawalId;
     }
 
     @Override

@@ -78,11 +78,6 @@ public class ChangeCourseCapacityCommandHandler implements CommandHandler<Change
         return CommandResult.of(List.of(event), condition);
     }
 
-    @Override
-    public String getCommandType() {
-        return "change_course_capacity";
-    }
-
     /**
      * Minimal state for capacity change operations.
      */

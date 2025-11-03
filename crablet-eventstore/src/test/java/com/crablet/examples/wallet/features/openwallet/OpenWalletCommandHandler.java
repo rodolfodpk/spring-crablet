@@ -9,8 +9,6 @@ import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.query.Query;
 import com.crablet.examples.wallet.domain.event.WalletOpened;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -26,8 +24,6 @@ import static com.crablet.examples.wallet.domain.WalletTags.*;
  */
 @Component
 public class OpenWalletCommandHandler implements CommandHandler<OpenWalletCommand> {
-
-    private static final Logger log = LoggerFactory.getLogger(OpenWalletCommandHandler.class);
 
     public OpenWalletCommandHandler() {
     }
@@ -64,11 +60,4 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
         //    - Append event if wallet doesn't exist
         return CommandResult.of(List.of(event), condition);
     }
-
-
-    @Override
-    public String getCommandType() {
-        return "open_wallet";
-    }
-
 }

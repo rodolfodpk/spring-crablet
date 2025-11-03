@@ -114,11 +114,6 @@ public class SubscribeStudentToCourseCommandHandler implements CommandHandler<Su
         return CommandResult.of(List.of(event), condition);
     }
 
-    @Override
-    public String getCommandType() {
-        return "subscribe_student_to_course";
-    }
-
     /**
      * Composite projector for subscription state (all constraints).
      * Not a singleton - create instances as needed per student/course pair.

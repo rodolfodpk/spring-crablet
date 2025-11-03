@@ -88,7 +88,8 @@ public class TestApplication {
     public CommandExecutor commandExecutor(EventStore eventStore, 
                                            java.util.List<com.crablet.eventstore.command.CommandHandler<?>> commandHandlers,
                                            EventStoreConfig config,
-                                           EventStoreMetrics metrics) {
-        return new CommandExecutorImpl(eventStore, commandHandlers, config, metrics);
+                                           EventStoreMetrics metrics,
+                                           com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        return new CommandExecutorImpl(eventStore, commandHandlers, config, metrics, objectMapper);
     }
 }

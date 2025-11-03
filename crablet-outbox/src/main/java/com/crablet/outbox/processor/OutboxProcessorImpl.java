@@ -56,6 +56,10 @@ public class OutboxProcessorImpl implements OutboxProcessor {
     // Dedicated scheduler for leader election retry
     private ScheduledFuture<?> leaderRetryScheduler;
     
+    // Cooldown mechanism for leader retry in scheduledTask
+    private static final long LEADER_RETRY_COOLDOWN_MS = 5000; // 5 seconds cooldown between retries
+    private volatile long lastLeaderRetryTimestamp = 0;
+    
     public OutboxProcessorImpl(
             OutboxConfig config,
             JdbcTemplate jdbcTemplate,
@@ -185,8 +189,24 @@ public class OutboxProcessorImpl implements OutboxProcessor {
      * Scheduled task for a specific (topic, publisher) pair.
      */
     private void scheduledTask(String topicName, String publisherName) {
-        if (!config.isEnabled() || !leaderElector.isGlobalLeader()) {
+        if (!config.isEnabled()) {
             return;
+        }
+        
+        // If not leader, retry lock acquisition with cooldown to prevent redundant retries
+        if (!leaderElector.isGlobalLeader()) {
+            long now = System.currentTimeMillis();
+            if (now - lastLeaderRetryTimestamp >= LEADER_RETRY_COOLDOWN_MS) {
+                lastLeaderRetryTimestamp = now;
+                boolean acquired = leaderElector.tryAcquireGlobalLeader();
+                if (acquired) {
+                    log.info("Became leader after retry in scheduledTask - starting to process publishers");
+                }
+            }
+            // Still return if not leader (either failed to acquire or cooldown active)
+            if (!leaderElector.isGlobalLeader()) {
+                return;
+            }
         }
         
         String key = topicName + ":" + publisherName;

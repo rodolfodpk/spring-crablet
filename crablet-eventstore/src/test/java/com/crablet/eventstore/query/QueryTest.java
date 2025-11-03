@@ -1,6 +1,5 @@
 package com.crablet.eventstore.query;
 
-import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.store.Tag;
 import org.junit.jupiter.api.Test;

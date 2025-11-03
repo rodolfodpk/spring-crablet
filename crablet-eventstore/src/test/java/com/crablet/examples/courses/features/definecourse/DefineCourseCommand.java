@@ -30,10 +30,5 @@ public record DefineCourseCommand(
     public static DefineCourseCommand of(String courseId, int capacity) {
         return new DefineCourseCommand(courseId, capacity);
     }
-
-    @Override
-    public String getCommandType() {
-        return "define_course";
-    }
 }
 

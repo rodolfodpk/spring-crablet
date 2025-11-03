@@ -1,14 +1,12 @@
 package com.crablet.eventstore.integration;
 
 import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.query.EventTestHelper;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.EventStoreException;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
 import com.crablet.examples.wallet.domain.projections.WalletBalanceProjector;

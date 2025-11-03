@@ -52,10 +52,5 @@ public class DefineCourseCommandHandler implements CommandHandler<DefineCourseCo
 
         return CommandResult.of(List.of(event), condition);
     }
-
-    @Override
-    public String getCommandType() {
-        return "define_course";
-    }
 }
 

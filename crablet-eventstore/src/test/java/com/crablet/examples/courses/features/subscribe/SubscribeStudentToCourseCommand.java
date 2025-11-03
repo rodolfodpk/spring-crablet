@@ -30,10 +30,5 @@ public record SubscribeStudentToCourseCommand(
     public static SubscribeStudentToCourseCommand of(String studentId, String courseId) {
         return new SubscribeStudentToCourseCommand(studentId, courseId);
     }
-
-    @Override
-    public String getCommandType() {
-        return "subscribe_student_to_course";
-    }
 }
 

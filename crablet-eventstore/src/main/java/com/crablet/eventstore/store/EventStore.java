@@ -1,6 +1,5 @@
 package com.crablet.eventstore.store;
 
-import com.crablet.eventstore.command.Command;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
@@ -63,11 +62,12 @@ public interface EventStore {
      * Store a command in the database for audit and query purposes.
      * This method stores command metadata alongside events for traceability.
      *
-     * @param command       The command to store
+     * @param commandJson   The command serialized as JSON string
+     * @param commandType   The command type string
      * @param transactionId The transaction ID associated with this command
      * @throws RuntimeException if storage fails
      */
-    void storeCommand(Command command, String transactionId);
+    void storeCommand(String commandJson, String commandType, String transactionId);
 
     /**
      * Get the current transaction ID from the database.

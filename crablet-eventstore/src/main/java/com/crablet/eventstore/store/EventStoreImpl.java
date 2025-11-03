@@ -3,7 +3,6 @@ package com.crablet.eventstore.store;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.clock.ClockProvider;
-import com.crablet.eventstore.command.Command;
 import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.dcb.DCBViolation;
@@ -921,9 +920,9 @@ public class EventStoreImpl implements EventStore {
 
 
     @Override
-    public void storeCommand(Command command, String transactionId) {
+    public void storeCommand(String commandJson, String commandType, String transactionId) {
         try (Connection connection = writeDataSource.getConnection()) {
-            storeCommandWithConnection(connection, command, transactionId);
+            storeCommandWithConnection(connection, commandJson, commandType, transactionId);
         } catch (SQLException e) {
             throw new EventStoreException("Failed to store command", e);
         }
@@ -942,24 +941,21 @@ public class EventStoreImpl implements EventStore {
      * Store a command using a provided connection.
      * Used internally by ConnectionScopedEventStore.
      */
-    private void storeCommandWithConnection(Connection connection, Command command, String transactionId) {
+    private void storeCommandWithConnection(Connection connection, String commandJson, String commandType, String transactionId) {
         try {
-            // Serialize command to JSONB
-            String commandJson = objectMapper.writeValueAsString(command);
-
             try (PreparedStatement stmt = connection.prepareStatement(INSERT_COMMAND_SQL)) {
                 stmt.setString(1, transactionId);
-                stmt.setString(2, command.getCommandType());
+                stmt.setString(2, commandType);
                 stmt.setString(3, commandJson);
 
-                // Create metadata JSON with command type and wallet ID if available
-                String metadataJson = createCommandMetadata(command);
+                // Create metadata JSON with command type
+                String metadataJson = createCommandMetadata(commandType);
                 stmt.setString(4, metadataJson);
                 stmt.setTimestamp(5, java.sql.Timestamp.from(clock.now()));
 
                 stmt.executeUpdate();
             }
-        } catch (SQLException | com.fasterxml.jackson.core.JsonProcessingException e) {
+        } catch (SQLException e) {
             throw new EventStoreException("Failed to store command with connection", e);
         }
     }
@@ -984,18 +980,12 @@ public class EventStoreImpl implements EventStore {
 
     /**
      * Create metadata JSON for a command.
-     * Uses client-provided metadata if available, otherwise creates minimal metadata.
+     * Stores minimal metadata with command type only.
      */
-    private String createCommandMetadata(Command command) {
-        // Use client-provided metadata if available
-        String clientMetadata = command.getMetadata();
-        if (clientMetadata != null && !clientMetadata.trim().isEmpty()) {
-            return clientMetadata;
-        }
-
-        // Fallback to minimal metadata
+    private String createCommandMetadata(String commandType) {
+        // Store minimal metadata (command type only)
         Map<String, Object> metadata = new HashMap<>();
-        metadata.put("command_type", command.getCommandType());
+        metadata.put("command_type", commandType);
 
         try {
             return objectMapper.writeValueAsString(metadata);
@@ -1034,8 +1024,8 @@ public class EventStoreImpl implements EventStore {
         }
 
         @Override
-        public void storeCommand(Command command, String transactionId) {
-            EventStoreImpl.this.storeCommandWithConnection(connection, command, transactionId);
+        public void storeCommand(String commandJson, String commandType, String transactionId) {
+            EventStoreImpl.this.storeCommandWithConnection(connection, commandJson, commandType, transactionId);
         }
 
         @Override

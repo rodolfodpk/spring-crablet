@@ -7,6 +7,10 @@ import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.EventStoreConfig;
 import com.crablet.eventstore.store.EventStoreMetrics;
 import com.crablet.eventstore.store.Tag;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,7 +36,6 @@ class CommandExecutorImplTest {
     @Mock
     private EventStore eventStore;
 
-    @Mock
     private CommandHandler<TestCommand> commandHandler;
 
     @Mock
@@ -40,16 +43,30 @@ class CommandExecutorImplTest {
     
     @Mock
     private EventStoreMetrics metrics;
+    
+    private ObjectMapper objectMapper;
 
     private CommandExecutorImpl commandExecutor;
 
     @BeforeEach
     void setUp() {
-        when(commandHandler.getCommandType()).thenReturn("test_command");
         when(config.isPersistCommands()).thenReturn(true);
         when(config.getTransactionIsolation()).thenReturn("READ_COMMITTED");
         
-        commandExecutor = new CommandExecutorImpl(eventStore, List.of(commandHandler), config, metrics);
+        // Create a real handler instance so CommandTypeResolver can extract the generic type
+        // Use a spy so we can still mock handle() method in tests
+        CommandHandler<TestCommand> handler = new CommandHandler<TestCommand>() {
+            @Override
+            public CommandResult handle(EventStore eventStore, TestCommand command) {
+                return null; // Will be mocked in individual tests
+            }
+        };
+        commandHandler = spy(handler);
+        
+        // Create ObjectMapper for command serialization
+        objectMapper = new ObjectMapper();
+        
+        commandExecutor = new CommandExecutorImpl(eventStore, List.of(commandHandler), config, metrics, objectMapper);
     }
 
     @Test
@@ -60,11 +77,17 @@ class CommandExecutorImplTest {
 
     @Test
     void constructor_WithDuplicateHandlers_ShouldThrowException() {
-        CommandHandler<TestCommand> duplicateHandler = mock(CommandHandler.class);
-        when(duplicateHandler.getCommandType()).thenReturn("test_command");
+        // Create a real handler that will resolve to the same command type
+        CommandHandler<TestCommand> duplicateHandler = new CommandHandler<TestCommand>() {
+            @Override
+            public CommandResult handle(EventStore eventStore, TestCommand command) {
+                return null;
+            }
+        };
 
+        ObjectMapper mapper = new ObjectMapper();
         assertThrows(InvalidCommandException.class, () ->
-                new CommandExecutorImpl(eventStore, List.of(commandHandler, duplicateHandler), config, metrics)
+                new CommandExecutorImpl(eventStore, List.of(commandHandler, duplicateHandler), config, metrics, mapper)
         );
     }
 
@@ -78,7 +101,7 @@ class CommandExecutorImplTest {
     @Test
     void executeCommand_WithNullHandler_ShouldThrowInvalidCommandException() {
         TestCommand command = new TestCommand("test_command", "entity-123");
-        CommandHandler<?> nullHandler = null;
+        CommandHandler<TestCommand> nullHandler = null;
         
         // This test verifies internal validation, not the public API
         assertThrows(InvalidCommandException.class, () ->
@@ -138,8 +161,8 @@ class CommandExecutorImplTest {
         assertTrue(result.wasIdempotent());
         assertFalse(result.wasCreated());
         assertEquals("ALREADY_PROCESSED", result.reason());
-        verify(metrics).recordCommandSuccess(eq(command.getCommandType()), any());
-        verify(metrics).recordIdempotentOperation(eq(command.getCommandType()));
+        verify(metrics).recordCommandSuccess(eq(command.commandType()), any());
+        verify(metrics).recordIdempotentOperation(eq(command.commandType()));
         verify(metrics, never()).recordEventType(anyString());
     }
 
@@ -254,38 +277,9 @@ class CommandExecutorImplTest {
         assertNotNull(result);
         assertTrue(result.wasIdempotent());
         assertEquals("DUPLICATE_OPERATION", result.reason());
-        verify(metrics).recordCommandSuccess(eq(command.getCommandType()), any());
-        verify(metrics).recordIdempotentOperation(eq(command.getCommandType()));
+        verify(metrics).recordCommandSuccess(eq(command.commandType()), any());
+        verify(metrics).recordIdempotentOperation(eq(command.commandType()));
         verify(metrics, never()).recordEventsAppended(anyInt());
-    }
-
-    @Test
-    void executeCommand_WithOpenWalletDuplicate_ShouldThrowConcurrencyException() {
-        // Arrange
-        CommandHandler<TestCommand> walletHandler = mock(CommandHandler.class);
-        when(walletHandler.getCommandType()).thenReturn("open_wallet");
-        CommandExecutorImpl walletCommandExecutor = new CommandExecutorImpl(eventStore, List.of(walletHandler), config, metrics);
-        
-        TestCommand command = new TestCommand("open_wallet", "entity-123");
-        AppendEvent event = AppendEvent.builder("wallet_opened")
-                .tag("entityId", "entity-123")
-                .data("{}")
-                .build();
-        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.expectEmptyStream());
-
-        when(walletHandler.handle(any(), eq(command))).thenReturn(commandResult);
-        when(eventStore.executeInTransaction(any())).thenAnswer(invocation -> {
-            Function<EventStore, ?> callback = invocation.getArgument(0);
-            EventStore txStore = mock(EventStore.class);
-            doThrow(new ConcurrencyException("duplicate operation detected", command))
-                    .when(txStore).appendIf(any(), any());
-            return callback.apply(txStore);
-        });
-
-        // Act & Assert
-        assertThrows(ConcurrencyException.class, () ->
-                walletCommandExecutor.executeCommand(command)
-        );
     }
 
     @Test
@@ -326,25 +320,28 @@ class CommandExecutorImplTest {
     }
 
     /**
-     * Test command implementation for unit tests.
+     * Test command interface for unit tests.
+     * Provides @JsonSubTypes annotation for CommandTypeResolver.
      */
-    private static class TestCommand implements Command {
-        private final String commandType;
-        private final String entityId;
+    @JsonTypeInfo(
+            use = JsonTypeInfo.Id.NAME,
+            include = JsonTypeInfo.As.PROPERTY,
+            property = "commandType"
+    )
+    @JsonSubTypes({
+            @JsonSubTypes.Type(value = TestCommand.class, name = "test_command")
+    })
+    private interface TestCommandInterface {
+    }
 
-        TestCommand(String commandType, String entityId) {
-            this.commandType = commandType;
-            this.entityId = entityId;
-        }
-
-        @Override
-        public String getCommandType() {
-            return commandType;
-        }
-
-        public String getEntityId() {
-            return entityId;
-        }
+    /**
+     * Test command implementation for unit tests.
+     * Simple record with commandType field for Jackson serialization.
+     */
+    private record TestCommand(
+            @JsonProperty("commandType") String commandType,
+            @JsonProperty("entityId") String entityId
+    ) implements TestCommandInterface {
     }
 }
 

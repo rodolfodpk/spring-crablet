@@ -78,9 +78,4 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
 
         return CommandResult.of(List.of(event), condition);
     }
-
-    @Override
-    public String getCommandType() {
-        return "deposit";
-    }
 }

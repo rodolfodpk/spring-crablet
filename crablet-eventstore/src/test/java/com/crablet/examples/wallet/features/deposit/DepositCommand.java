@@ -15,13 +15,7 @@ public record DepositCommand(
         String description
 ) implements WalletCommand {
 
-    public DepositCommand {
-        try {
-            validator.lazy().validated(depositId, walletId, amount, description);
-        } catch (ConstraintViolationsException e) {
-            throw new IllegalArgumentException("Invalid DepositCommand: " + e.getMessage(), e);
-        }
-    }    private static Arguments4Validator<String, String, Integer, String, DepositCommand> validator =
+    private static Arguments4Validator<String, String, Integer, String, DepositCommand> validator =
             Yavi.arguments()
                     ._string("depositId", c -> c.notNull().notBlank())
                     ._string("walletId", c -> c.notNull().notBlank())
@@ -29,13 +23,16 @@ public record DepositCommand(
                     ._string("description", c -> c.notNull().notBlank())
                     .apply(DepositCommand::new);
 
-    public static DepositCommand of(String depositId, String walletId, int amount, String description) {
-        return new DepositCommand(depositId, walletId, amount, description);
+    public DepositCommand {
+        try {
+            validator.lazy().validated(depositId, walletId, amount, description);
+        } catch (ConstraintViolationsException e) {
+            throw new IllegalArgumentException("Invalid DepositCommand: " + e.getMessage(), e);
+        }
     }
 
-    @Override
-    public String getCommandType() {
-        return "deposit";
+    public static DepositCommand of(String depositId, String walletId, int amount, String description) {
+        return new DepositCommand(depositId, walletId, amount, description);
     }
 
     @Override
@@ -44,14 +41,11 @@ public record DepositCommand(
     }
 
     @Override
-    public String getOperationId() {
-        return depositId;
-    }
-
-    @Override
     public int getAmount() {
         return amount;
     }
+
+
 
 
 }

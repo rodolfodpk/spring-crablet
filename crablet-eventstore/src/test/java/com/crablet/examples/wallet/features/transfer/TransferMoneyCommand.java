@@ -16,6 +16,15 @@ public record TransferMoneyCommand(
         String description
 ) implements WalletCommand {
 
+    private static Arguments5Validator<String, String, String, Integer, String, TransferMoneyCommand> validator =
+            Yavi.arguments()
+                    ._string("transferId", c -> c.notNull().notBlank())
+                    ._string("fromWalletId", c -> c.notNull().notBlank())
+                    ._string("toWalletId", c -> c.notNull().notBlank())
+                    ._integer("amount", c -> c.greaterThan(0))
+                    ._string("description", c -> c.notNull().notBlank())
+                    .apply(TransferMoneyCommand::new);
+
     public TransferMoneyCommand {
         try {
             validator.lazy().validated(transferId, fromWalletId, toWalletId, amount, description);
@@ -27,32 +36,15 @@ public record TransferMoneyCommand(
         if (fromWalletId.equals(toWalletId)) {
             throw new IllegalArgumentException("Cannot transfer to the same wallet");
         }
-    }    private static Arguments5Validator<String, String, String, Integer, String, TransferMoneyCommand> validator =
-            Yavi.arguments()
-                    ._string("transferId", c -> c.notNull().notBlank())
-                    ._string("fromWalletId", c -> c.notNull().notBlank())
-                    ._string("toWalletId", c -> c.notNull().notBlank())
-                    ._integer("amount", c -> c.greaterThan(0))
-                    ._string("description", c -> c.notNull().notBlank())
-                    .apply(TransferMoneyCommand::new);
+    }
 
     public static TransferMoneyCommand of(String transferId, String fromWalletId, String toWalletId, int amount, String description) {
         return new TransferMoneyCommand(transferId, fromWalletId, toWalletId, amount, description);
     }
 
     @Override
-    public String getCommandType() {
-        return "transfer_money";
-    }
-
-    @Override
     public String getWalletId() {
         return fromWalletId; // Primary wallet is the source
-    }
-
-    @Override
-    public String getOperationId() {
-        return transferId;
     }
 
     @Override

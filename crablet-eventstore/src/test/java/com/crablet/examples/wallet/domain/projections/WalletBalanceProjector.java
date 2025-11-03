@@ -13,8 +13,6 @@ import com.crablet.examples.wallet.domain.event.MoneyTransferred;
 import com.crablet.examples.wallet.domain.event.WalletEvent;
 import com.crablet.examples.wallet.domain.event.WalletOpened;
 import com.crablet.examples.wallet.domain.event.WithdrawalMade;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -28,8 +26,6 @@ import java.util.List;
  * Not a singleton - create instances as needed. This class is stateless and thread-safe.
  */
 public class WalletBalanceProjector implements StateProjector<WalletBalanceState> {
-
-    private static final Logger log = LoggerFactory.getLogger(WalletBalanceProjector.class);
 
     public WalletBalanceProjector() {
     }

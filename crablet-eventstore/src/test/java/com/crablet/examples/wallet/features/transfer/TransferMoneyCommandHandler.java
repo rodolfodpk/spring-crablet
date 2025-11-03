@@ -112,11 +112,6 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
         return new TransferProjectionResult(result.state(), result.cursor(), decisionModel);
     }
 
-    @Override
-    public String getCommandType() {
-        return "transfer_money";
-    }
-
     private record TransferProjectionResult(
             TransferState state,
             com.crablet.eventstore.store.Cursor cursor,

@@ -1,10 +1,6 @@
 package com.crablet.eventstore.store;
 
 import com.crablet.eventstore.clock.ClockProviderImpl;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.EventStoreConfig;
-import com.crablet.eventstore.store.EventStoreImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.flywaydb.core.Flyway;

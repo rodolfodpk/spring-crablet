@@ -1,10 +1,28 @@
 package com.crablet.examples.courses.domain;
 
-import com.crablet.eventstore.command.Command;
+import com.crablet.examples.courses.features.changecapacity.ChangeCourseCapacityCommand;
+import com.crablet.examples.courses.features.definecourse.DefineCourseCommand;
+import com.crablet.examples.courses.features.subscribe.SubscribeStudentToCourseCommand;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
- * Base interface for course-related commands.
+ * Sealed interface for all course-related commands.
+ * This provides type safety and enables pattern matching.
+ * No methods needed - pattern matching works on types, not methods.
+ * Library code extracts command type from JSON via Jackson polymorphic serialization.
  */
-public interface CourseCommand extends Command {
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "commandType"
+)
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = DefineCourseCommand.class, name = "define_course"),
+        @JsonSubTypes.Type(value = ChangeCourseCapacityCommand.class, name = "change_course_capacity"),
+        @JsonSubTypes.Type(value = SubscribeStudentToCourseCommand.class, name = "subscribe_student_to_course")
+})
+public interface CourseCommand {
+    // Empty interface - pattern matching works on types
 }
 

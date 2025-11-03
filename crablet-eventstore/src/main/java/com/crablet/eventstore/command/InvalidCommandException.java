@@ -7,10 +7,10 @@ package com.crablet.eventstore.command;
  * programming errors (bugs). Includes command context for debugging.
  */
 public class InvalidCommandException extends RuntimeException {
-    public final Command command;
+    public final Object command;
     public final String validationError;
     
-    public InvalidCommandException(String message, Command command) {
+    public InvalidCommandException(String message, Object command) {
         super(message);
         this.command = command;
         this.validationError = message;
@@ -20,5 +20,11 @@ public class InvalidCommandException extends RuntimeException {
         super(message);
         this.command = null;
         this.validationError = validationError;
+    }
+    
+    public InvalidCommandException(String message, Object command, Throwable cause) {
+        super(message, cause);
+        this.command = command;
+        this.validationError = message;
     }
 }

@@ -1,6 +1,5 @@
 package com.crablet.eventstore.store;
 
-import com.crablet.eventstore.store.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

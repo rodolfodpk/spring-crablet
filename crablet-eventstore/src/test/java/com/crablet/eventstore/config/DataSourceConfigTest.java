@@ -2,7 +2,6 @@ package com.crablet.eventstore.config;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;

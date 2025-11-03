@@ -9,17 +9,12 @@ import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.Cursor;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.SequenceNumber;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
 import com.crablet.examples.wallet.domain.event.*;
 import com.crablet.examples.wallet.domain.projections.WalletBalanceProjector;
 import com.crablet.examples.wallet.domain.projections.WalletBalanceState;
-import com.crablet.examples.wallet.features.deposit.DepositCommand;
 import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
-import com.crablet.examples.wallet.features.transfer.TransferMoneyCommand;
-import com.crablet.examples.wallet.features.withdraw.WithdrawCommand;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -278,10 +273,19 @@ class EventStoreTest extends AbstractCrabletTest {
         OpenWalletCommand openCmd = OpenWalletCommand.of("wallet8", "Grace", 1000);
 
         // When: store command
-        String txId = eventStore.executeInTransaction(txEventStore -> {
+        eventStore.executeInTransaction(txEventStore -> {
             String transactionId = txEventStore.getCurrentTransactionId();
-            txEventStore.storeCommand(openCmd, transactionId);
-            return transactionId;
+            // Serialize command and extract type
+            try {
+                String commandJson = objectMapper.writeValueAsString(openCmd);
+                com.fasterxml.jackson.databind.JsonNode jsonNode = objectMapper.readTree(commandJson);
+                com.fasterxml.jackson.databind.JsonNode commandTypeNode = jsonNode.get("commandType");
+                String commandType = commandTypeNode != null ? commandTypeNode.asText() : null;
+                txEventStore.storeCommand(commandJson, commandType, transactionId);
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                throw new RuntimeException("Failed to serialize command", e);
+            }
+            return transactionId; // Return value required by Function interface
         });
 
         // Then: verify command stored

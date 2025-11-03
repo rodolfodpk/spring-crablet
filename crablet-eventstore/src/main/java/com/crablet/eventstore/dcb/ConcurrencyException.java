@@ -1,7 +1,5 @@
 package com.crablet.eventstore.dcb;
 
-import com.crablet.eventstore.command.Command;
-
 /**
  * Exception thrown when AppendCondition fails due to concurrent modification.
  * This is equivalent to go-crablet's concurrency violation handling.
@@ -11,7 +9,7 @@ import com.crablet.eventstore.command.Command;
  * - InvalidCommandException - for validation errors
  */
 public class ConcurrencyException extends RuntimeException {
-    public final Command command;
+    public final Object command;
     public final DCBViolation violation;
 
     public ConcurrencyException(String message) {
@@ -20,19 +18,19 @@ public class ConcurrencyException extends RuntimeException {
         this.violation = null;
     }
 
-    public ConcurrencyException(String message, Command command) {
+    public ConcurrencyException(String message, Object command) {
         super(message);
         this.command = command;
         this.violation = null;
     }
 
-    public ConcurrencyException(String message, Command command, Throwable cause) {
+    public ConcurrencyException(String message, Object command, Throwable cause) {
         super(message, cause);
         this.command = command;
         this.violation = null;
     }
 
-    public ConcurrencyException(String message, Command command, DCBViolation violation) {
+    public ConcurrencyException(String message, Object command, DCBViolation violation) {
         super(message);
         this.command = command;
         this.violation = violation;

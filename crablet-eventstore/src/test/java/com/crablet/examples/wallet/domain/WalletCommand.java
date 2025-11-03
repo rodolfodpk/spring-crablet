@@ -1,13 +1,30 @@
 package com.crablet.examples.wallet.domain;
 
-import com.crablet.eventstore.command.Command;
+import com.crablet.examples.wallet.features.deposit.DepositCommand;
+import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
+import com.crablet.examples.wallet.features.transfer.TransferMoneyCommand;
+import com.crablet.examples.wallet.features.withdraw.WithdrawCommand;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
- * Interface for all wallet-related commands.
- * This provides type safety for wallet operations and polymorphic methods
- * to eliminate instanceof checks.
+ * Sealed interface for all wallet-related commands.
+ * This provides type safety and enables pattern matching.
+ * No methods needed - pattern matching works on types, not methods.
+ * Library code extracts command type from JSON via Jackson polymorphic serialization.
  */
-public interface WalletCommand extends Command {
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "commandType"
+)
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = DepositCommand.class, name = "deposit"),
+        @JsonSubTypes.Type(value = WithdrawCommand.class, name = "withdraw"),
+        @JsonSubTypes.Type(value = TransferMoneyCommand.class, name = "transfer_money"),
+        @JsonSubTypes.Type(value = OpenWalletCommand.class, name = "open_wallet")
+})
+public interface WalletCommand {
 
     /**
      * Get the wallet ID associated with this command.
@@ -16,16 +33,6 @@ public interface WalletCommand extends Command {
      * @return the primary wallet ID for this command
      */
     String getWalletId();
-
-    /**
-     * Get the operation ID for this command (deposit ID, withdrawal ID, transfer ID, etc.).
-     * This is used for idempotency and duplicate detection.
-     *
-     * @return the operation ID, or null if not applicable
-     */
-    default String getOperationId() {
-        return null;
-    }
 
     /**
      * Get the amount for this command.

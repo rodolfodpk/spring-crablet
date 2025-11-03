@@ -8,7 +8,7 @@ import com.crablet.eventstore.store.EventStore;
  * <p>
  * Generic interface for type-safe command handling with self-identification.
  */
-public interface CommandHandler<T extends Command> {
+public interface CommandHandler<T> {
 
     /**
      * Handle a command following DCB pattern.
@@ -27,12 +27,4 @@ public interface CommandHandler<T extends Command> {
      * @return CommandResult with events and append condition
      */
     CommandResult handle(EventStore eventStore, T command);
-
-    /**
-     * Get the command type this handler processes.
-     * Used for handler registry and routing.
-     *
-     * @return Command type string (e.g., "open_wallet", "deposit")
-     */
-    String getCommandType();
 }

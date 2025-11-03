@@ -30,10 +30,5 @@ public record ChangeCourseCapacityCommand(
     public static ChangeCourseCapacityCommand of(String courseId, int newCapacity) {
         return new ChangeCourseCapacityCommand(courseId, newCapacity);
     }
-
-    @Override
-    public String getCommandType() {
-        return "change_course_capacity";
-    }
 }
 

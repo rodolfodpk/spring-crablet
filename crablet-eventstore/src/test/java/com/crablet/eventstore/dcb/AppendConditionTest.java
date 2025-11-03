@@ -1,6 +1,5 @@
 package com.crablet.eventstore.dcb;
 
-import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;

@@ -86,9 +86,4 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 
         return CommandResult.of(List.of(event), condition);
     }
-
-    @Override
-    public String getCommandType() {
-        return "withdraw";
-    }
 }
