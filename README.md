@@ -23,25 +23,9 @@ Crablet is an event sourcing library with Spring Boot integration. It provides:
 
 ## Quick Start
 
-### Add Dependencies
-
-```xml
-<dependencies>
-    <!-- EventStore -->
-    <dependency>
-        <groupId>com.crablet</groupId>
-        <artifactId>crablet-eventstore</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
-    </dependency>
-    
-    <!-- Outbox (optional) -->
-    <dependency>
-        <groupId>com.crablet</groupId>
-        <artifactId>crablet-outbox</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
-    </dependency>
-</dependencies>
-```
+See module READMEs for dependency information:
+- **[EventStore Setup](crablet-eventstore/README.md#maven-coordinates)** - Add eventstore dependency
+- **[Outbox Setup](crablet-outbox/README.md#maven-coordinates)** - Add outbox dependency (optional)
 
 ### Build and Test
 

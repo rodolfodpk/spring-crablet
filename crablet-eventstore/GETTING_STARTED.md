@@ -2,19 +2,9 @@
 
 This guide walks you through integrating Crablet EventStore into your application using the wallet domain as an example.
 
-## Step 1: Add Dependency
+Add the dependency as shown in the [EventStore README](README.md#maven-coordinates).
 
-Add to your `pom.xml`:
-
-```xml
-<dependency>
-    <groupId>com.crablet</groupId>
-    <artifactId>crablet-eventstore</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-</dependency>
-```
-
-## Step 2: Set Up Database
+## Step 1: Set Up Database
 
 ### Create Database Schema
 
@@ -45,7 +35,7 @@ spring.datasource.password=postgres
 spring.flyway.enabled=true
 ```
 
-## Step 3: Define Domain Events
+## Step 2: Define Domain Events
 
 Create domain event records:
 
@@ -61,7 +51,7 @@ public record DepositMade(BigDecimal amount) implements WalletEvent {}
 public record WithdrawalMade(BigDecimal amount) implements WalletEvent {}
 ```
 
-## Step 4: Create State and Projector
+## Step 3: Create State and Projector
 
 Define wallet balance state:
 
@@ -132,7 +122,7 @@ public class WalletBalanceProjector implements StateProjector<WalletBalance> {
 }
 ```
 
-## Step 4.5: Create Command Interface with Jackson Annotations
+## Step 3.5: Create Command Interface with Jackson Annotations
 
 Commands must be part of a `@JsonSubTypes` hierarchy for automatic type extraction:
 
@@ -166,7 +156,7 @@ public record OpenWalletCommand(String walletId, String owner, BigDecimal initia
 
 **Important:** The `name` in `@JsonSubTypes.Type` must match the command type used in your application. This is the single source of truth for command types.
 
-## Step 5: Write Command Handler with DCB
+## Step 4: Write Command Handler with DCB
 
 Create command and handler:
 
@@ -253,7 +243,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 }
 ```
 
-## Step 6: Execute Commands
+## Step 5: Execute Commands
 
 Use `CommandExecutor` to execute commands with transaction management:
 
