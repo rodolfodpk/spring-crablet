@@ -142,7 +142,7 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
 
 **Key points:**
 - Decision Model: Query for balance-affecting events (`WalletOpened`, `DepositMade`, `WithdrawalMade`)
-- Cursor checks if balance changed concurrently → throws `ConcurrencyException` → `CommandExecutor` retries
+- Cursor checks if balance changed concurrently → throws `ConcurrencyException` (application layer handles retry if needed)
 - Business validation: checks sufficient funds before creating event
 - No explicit idempotency check (cursor advancement detects duplicates)
 
