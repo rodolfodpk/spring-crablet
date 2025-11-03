@@ -167,4 +167,75 @@ class AppendConditionTest {
         assertThat(emptyStreamCondition.afterCursor().position().value()).isEqualTo(0);
         assertThat(nonEmptyStreamCondition.afterCursor().position().value()).isNotEqualTo(0);
     }
+
+    @Test
+    @DisplayName("Should create AppendCondition with idempotency check")
+    void shouldCreateAppendConditionWithIdempotencyCheck() {
+        // Given
+        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
+        Query stateChangedQuery = Query.empty();
+        Query alreadyExistsQuery = Query.empty();
+
+        // When
+        AppendCondition condition = AppendCondition.of(cursor, stateChangedQuery, alreadyExistsQuery);
+
+        // Then
+        assertThat(condition.afterCursor()).isEqualTo(cursor);
+        assertThat(condition.stateChanged()).isEqualTo(stateChangedQuery);
+        assertThat(condition.alreadyExists()).isEqualTo(alreadyExistsQuery);
+    }
+
+    @Test
+    @DisplayName("Should throw exception when stateChangedQuery is null")
+    void shouldThrowExceptionWhenStateChangedQueryIsNull() {
+        // Given
+        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
+
+        // When & Then
+        assertThatThrownBy(() -> AppendCondition.of(cursor, null, Query.empty()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("stateChangedQuery cannot be null");
+    }
+
+    @Test
+    @DisplayName("Should allow null alreadyExistsQuery")
+    void shouldAllowNullAlreadyExistsQuery() {
+        // Given
+        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
+        Query stateChangedQuery = Query.empty();
+
+        // When
+        AppendCondition condition = AppendCondition.of(cursor, stateChangedQuery, null);
+
+        // Then
+        assertThat(condition.alreadyExists()).isNull();
+    }
+
+    @Test
+    @DisplayName("Should create AppendCondition with cursor at zero")
+    void shouldCreateAppendConditionWithCursorAtZero() {
+        // Given
+        Cursor zeroCursor = Cursor.zero();
+        Query query = Query.empty();
+
+        // When
+        AppendCondition condition = AppendCondition.of(zeroCursor, query);
+
+        // Then
+        assertThat(condition.afterCursor().position().value()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("Should create AppendCondition with cursor at max value")
+    void shouldCreateAppendConditionWithCursorAtMaxValue() {
+        // Given
+        Cursor maxCursor = Cursor.of(SequenceNumber.of(Long.MAX_VALUE), Instant.now(), "tx-123");
+        Query query = Query.empty();
+
+        // When
+        AppendCondition condition = AppendCondition.of(maxCursor, query);
+
+        // Then
+        assertThat(condition.afterCursor().position().value()).isEqualTo(Long.MAX_VALUE);
+    }
 }
