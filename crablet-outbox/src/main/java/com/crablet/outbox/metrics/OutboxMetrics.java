@@ -89,23 +89,31 @@ public class OutboxMetrics implements MeterBinder {
     }
     
     public void recordEventsPublished(String publisherName, int count) {
-        eventsPublishedTotal.increment(count);
+        if (eventsPublishedTotal != null) {
+            eventsPublishedTotal.increment(count);
+        }
     }
     
     public void recordProcessingCycle() {
-        processingCyclesTotal.increment();
+        if (processingCyclesTotal != null) {
+            processingCyclesTotal.increment();
+        }
     }
     
     public void recordError(String publisherName) {
-        errorsTotal.increment();
+        if (errorsTotal != null) {
+            errorsTotal.increment();
+        }
     }
     
     public void recordAutoPause(String topic, String publisher, int errorCount, String lastError) {
-        Counter.builder("outbox.auto_pause_total")
-            .tag("topic", topic)
-            .tag("publisher", publisher)
-            .register(registry)
-            .increment();
+        if (registry != null) {
+            Counter.builder("outbox.auto_pause_total")
+                .tag("topic", topic)
+                .tag("publisher", publisher)
+                .register(registry)
+                .increment();
+        }
     }
     
     public void setLeader(boolean leader) {

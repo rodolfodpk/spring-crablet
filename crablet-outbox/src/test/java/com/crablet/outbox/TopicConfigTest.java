@@ -1,6 +1,5 @@
 package com.crablet.outbox;
 
-import com.crablet.outbox.TopicConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
