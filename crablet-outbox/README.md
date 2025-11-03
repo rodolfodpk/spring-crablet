@@ -1,6 +1,6 @@
 # Crablet Outbox
 
-Transactional outbox implementation for reliable event publishing with Spring Boot integration.
+Light framework component for transactional outbox event publishing with DCB event sourcing and Spring Boot integration.
 
 ## Overview
 

@@ -1,25 +1,39 @@
-# Crablet: Java DCB Event Sourcing Library
+# Crablet: Java DCB Event Sourcing Light Framework
 
 [![Java CI](https://github.com/rodolfodpk/spring-crablet/actions/workflows/maven.yml/badge.svg)](https://github.com/rodolfodpk/spring-crablet/actions/workflows/maven.yml)
 [![codecov](https://codecov.io/gh/rodolfodpk/spring-crablet/branch/main/graph/badge.svg)](https://codecov.io/gh/rodolfodpk/spring-crablet)
 [![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A Java 25 library implementing DCB (Dynamic Consistency Boundary) event sourcing, ported from [crablet](https://github.com/rodolfodpk/crablet) (Kotlin) and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go).
+A Java 25 light framework for DCB (Dynamic Consistency Boundary) event sourcing, ported from [crablet](https://github.com/rodolfodpk/crablet) (Kotlin) and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go).
 
 ## Overview
 
-Crablet is an event sourcing library with Spring Boot integration. It provides:
+Crablet is a lightweight event sourcing framework with Spring Boot integration. It provides both framework-style command handling and library-style direct EventStore access.
 
 - **Event Sourcing**: Complete audit trail with state reconstruction
 - **DCB**: Cursor-based optimistic concurrency control without distributed locks
 - **Outbox**: Reliable event publishing to external systems
 - **Spring Integration**: Ready-to-use Spring Boot components
 
+## Framework vs Library
+
+Crablet is a **light framework** that can also be used as a **library**:
+
+- **Framework Mode**: Implement `CommandHandler<T>` interfaces for automatic discovery and orchestration
+- **Library Mode**: Use `EventStore` directly for full control over event operations
+
+**Why "Light"?**
+- Minimal required components (just `CommandHandler` interface)
+- Small API surface (3-4 interfaces)
+- No heavy conventions or configuration
+- Most components are optional
+- Easy to customize and extend
+
 ## Modules
 
-- **crablet-eventstore** - Core event sourcing library with DCB support
-- **crablet-outbox** - Transactional outbox for event publishing
+- **crablet-eventstore** - Core event sourcing light framework with DCB support
+- **crablet-outbox** - Light framework component for transactional outbox event publishing
 
 ## Quick Start
 

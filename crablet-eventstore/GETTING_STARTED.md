@@ -4,6 +4,22 @@ This guide walks you through integrating Crablet EventStore into your applicatio
 
 Add the dependency as shown in the [EventStore README](README.md#maven-coordinates).
 
+## Framework or Library?
+
+Crablet is a **light framework** that supports two usage modes:
+
+1. **Framework Mode** (recommended): Implement `CommandHandler<T>` for automatic discovery and orchestration
+2. **Library Mode**: Use `EventStore` directly for full control over event operations
+
+This guide focuses on **framework mode**. See the [README](README.md) for library usage examples.
+
+**Why "Light"?**
+- Minimal required components (just `CommandHandler<T>` interface)
+- Small API surface (3-4 interfaces)
+- No heavy conventions or complex configuration
+- Most components are optional
+- Easy to customize and extend
+
 ## Step 1: Set Up Database
 
 ### Create Database Schema

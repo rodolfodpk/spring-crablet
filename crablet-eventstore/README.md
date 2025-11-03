@@ -1,10 +1,20 @@
 # Crablet EventStore
 
-Event sourcing library with Dynamic Consistency Boundary (DCB) support and Spring Boot integration.
+Light event sourcing framework with Dynamic Consistency Boundary (DCB) support and Spring Boot integration. Use as a framework for command handling or as a library for direct EventStore access.
 
 ## Overview
 
-Crablet EventStore provides the foundational interfaces and Spring implementations for event sourcing in Java applications. It implements DCB for optimistic concurrency control without requiring distributed locks.
+Crablet EventStore provides both framework and library capabilities:
+
+- **Framework**: Automatic command handler discovery and orchestration via `CommandHandler<T>`
+- **Library**: Direct `EventStore` access for full control over event operations
+- **DCB**: Optimistic concurrency control without distributed locks
+
+**Light Framework Benefits:**
+- Minimal required components (just `CommandHandler<T>` interface)
+- Small API surface (3-4 interfaces)
+- Most components optional (can use `EventStore` directly)
+- Easy to customize and extend
 
 ## Features
 
@@ -19,6 +29,51 @@ Crablet EventStore provides the foundational interfaces and Spring implementatio
 - **State Projection**: Built-in support for projecting current state from events
 - **Spring Integration**: Ready-to-use Spring Boot components and configuration
 - **Read Replicas**: Optional PostgreSQL read replica support for horizontal scaling
+
+## Framework or Library?
+
+Crablet EventStore supports two usage modes:
+
+### Framework Mode (Recommended)
+
+Implement `CommandHandler<T>` interfaces for automatic discovery:
+
+```java
+@Component
+public class DepositCommandHandler implements CommandHandler<DepositCommand> {
+    @Override
+    public CommandResult handle(EventStore eventStore, DepositCommand command) {
+        // Framework automatically discovers and calls this
+    }
+}
+```
+
+**Benefits:**
+- Automatic handler discovery via Spring
+- Type-safe command handling
+- Transaction lifecycle management
+- Minimal boilerplate
+
+### Library Mode
+
+Use `EventStore` directly for full control:
+
+```java
+@Autowired
+private EventStore eventStore;
+
+public void myCustomOperation() {
+    // Direct access, no framework required
+    eventStore.append(events);
+    ProjectionResult<State> result = eventStore.project(query, cursor, State.class, projectors);
+}
+```
+
+**Benefits:**
+- Full control over operations
+- No framework overhead
+- No required interfaces
+- Flexible for custom use cases
 
 ## Maven Coordinates
 
