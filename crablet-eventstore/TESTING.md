@@ -67,7 +67,7 @@ Alternatively, create your own base test class following the same pattern. See `
 ```java
 package com.example.wallet.handlers;
 
-import com.crablet.eventstore.command.CommandResult;
+import com.crablet.command.CommandResult;
 import com.crablet.eventstore.integration.AbstractCrabletTest;
 import com.crablet.eventstore.query.EventTestHelper;
 import com.crablet.eventstore.query.Query;

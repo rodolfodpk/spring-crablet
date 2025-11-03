@@ -273,7 +273,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 ### Package Structure
 
 - **`com.crablet.eventstore.store`**: Core interfaces and implementations (EventStore, StoredEvent, AppendEvent)
-- **`com.crablet.eventstore.command`**: Command handlers (Command, CommandHandler, CommandExecutor)
+- **`com.crablet.command`**: Command handlers (Command, CommandHandler, CommandExecutor) - see [crablet-command](../crablet-command/README.md) module
 - **`com.crablet.eventstore.query`**: Querying support (Query, QueryBuilder)
 - **`com.crablet.eventstore.dcb`**: DCB implementation (AppendCondition, Cursor)
 - **`com.crablet.eventstore.config`**: Configuration classes

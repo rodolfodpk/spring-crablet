@@ -18,27 +18,29 @@ Crablet is a lightweight event sourcing framework with Spring Boot integration. 
 
 ## Framework vs Library
 
-Crablet is a **light framework** that can also be used as a **library**:
+Crablet provides both framework and library capabilities:
 
-- **Framework Mode**: Implement `CommandHandler<T>` interfaces for automatic discovery and orchestration
-- **Library Mode**: Use `EventStore` directly for full control over event operations
+- **Framework Mode**: Use `crablet-command` module - implement `CommandHandler<T>` interfaces for automatic discovery and orchestration
+- **Library Mode**: Use `crablet-eventstore` module directly - full control over event operations without framework overhead
 
 **Why "Light"?**
-- Minimal required components (just `CommandHandler` interface)
-- Small API surface (3-4 interfaces)
+- Minimal required components (just `CommandHandler` interface for framework mode)
+- Small API surface (3-4 interfaces per module)
 - No heavy conventions or configuration
 - Most components are optional
 - Easy to customize and extend
 
 ## Modules
 
-- **crablet-eventstore** - Core event sourcing light framework with DCB support
+- **crablet-eventstore** - Core event sourcing library with DCB support
+- **crablet-command** - Command handling framework with automatic handler discovery
 - **crablet-outbox** - Light framework component for transactional outbox event publishing
 
 ## Quick Start
 
 See module READMEs for dependency information:
 - **[EventStore Setup](crablet-eventstore/README.md#maven-coordinates)** - Add eventstore dependency
+- **[Command Setup](crablet-command/README.md#maven-coordinates)** - Add command framework dependency (optional)
 - **[Outbox Setup](crablet-outbox/README.md#maven-coordinates)** - Add outbox dependency (optional)
 
 ### Build and Test
@@ -74,6 +76,7 @@ Crablet implements DCB (Dynamic Consistency Boundary) for event sourcing concurr
 
 ### Core Documentation
 - **[EventStore README](crablet-eventstore/README.md)** - Event sourcing library guide
+- **[Command README](crablet-command/README.md)** - Command framework guide
 - **[Outbox README](crablet-outbox/README.md)** - Outbox library guide
 - **[DCB Explained](crablet-eventstore/docs/DCB_AND_CRABLET.md)** - Detailed DCB explanation
 

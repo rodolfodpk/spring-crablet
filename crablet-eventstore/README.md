@@ -1,60 +1,31 @@
 # Crablet EventStore
 
-Light event sourcing framework with Dynamic Consistency Boundary (DCB) support and Spring Boot integration. Use as a framework for command handling or as a library for direct EventStore access.
+Light event sourcing library with Dynamic Consistency Boundary (DCB) support and Spring Boot integration. Use as a library for direct EventStore access.
 
 ## Overview
 
-Crablet EventStore provides both framework and library capabilities:
+Crablet EventStore is a pure event sourcing library:
 
-- **Framework**: Automatic command handler discovery and orchestration via `CommandHandler<T>`
 - **Library**: Direct `EventStore` access for full control over event operations
 - **DCB**: Optimistic concurrency control without distributed locks
+- **Flexible**: Can be used standalone or with command framework
 
-**Light Framework Benefits:**
-- Minimal required components (just `CommandHandler<T>` interface)
-- Small API surface (3-4 interfaces)
-- Most components optional (can use `EventStore` directly)
+**Library Benefits:**
+- Pure library - no framework overhead
+- Full control over operations
+- Small API surface
 - Easy to customize and extend
 
 ## Features
 
 - **Event Store Interface**: Simple, idiomatic event sourcing API
 - **DCB**: Optimistic concurrency control using cursors
-- **Type-Safe Commands**: Command handler with automatic projection
-- **Command Handling**: Automatic handler discovery and type extraction
-  - **Automatic Handler Discovery**: Handlers are auto-discovered via Spring `@Component` annotation
-  - **Type-Safe Registration**: Command types extracted from handler's generic type parameter
-  - **Single Source of Truth**: `@JsonSubTypes` annotation defines command types
 - **Flexible Querying**: Tag-based event querying and filtering
 - **State Projection**: Built-in support for projecting current state from events
 - **Spring Integration**: Ready-to-use Spring Boot components and configuration
 - **Read Replicas**: Optional PostgreSQL read replica support for horizontal scaling
 
-## Framework or Library?
-
-Crablet EventStore supports two usage modes:
-
-### Framework Mode (Recommended)
-
-Implement `CommandHandler<T>` interfaces for automatic discovery:
-
-```java
-@Component
-public class DepositCommandHandler implements CommandHandler<DepositCommand> {
-    @Override
-    public CommandResult handle(EventStore eventStore, DepositCommand command) {
-        // Framework automatically discovers and calls this
-    }
-}
-```
-
-**Benefits:**
-- Automatic handler discovery via Spring
-- Type-safe command handling
-- Transaction lifecycle management
-- Minimal boilerplate
-
-### Library Mode
+## Usage
 
 Use `EventStore` directly for full control:
 
@@ -75,6 +46,8 @@ public void myCustomOperation() {
 - No required interfaces
 - Flexible for custom use cases
 
+**For Command Framework:** Use `crablet-command` module for automatic command handler discovery and orchestration.
+
 ## Maven Coordinates
 
 ```xml
@@ -93,9 +66,9 @@ public void myCustomOperation() {
 - Resilience4j (for circuit breakers and retries)
 - SLF4J (for logging)
 
-## Complete DCB Workflow Example
+## DCB Pattern Examples
 
-Two real examples from our wallet domain showing distinct DCB patterns:
+Examples showing distinct DCB patterns:
 
 ### Example 1: OpenWallet (Idempotency)
 
@@ -203,15 +176,16 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
 
 ## Learn More
 
-- **[Getting Started](GETTING_STARTED.md)** - Complete integration guide with wallet example
+- **[Getting Started](GETTING_STARTED.md)** - Complete integration guide
 - **[DCB Explained](docs/DCB_AND_CRABLET.md)** - Detailed explanation with examples
 - **[Testing](TESTING.md)** - Testcontainers setup and test examples
 - **[Database Schema](SCHEMA.md)** - Database tables and functions
 - **[Metrics](docs/METRICS.md)** - EventStore metrics and monitoring
+- **[Command Framework](../crablet-command/README.md)** - Command handling framework built on EventStore
 
 ## Example Domains
 
-Complete working examples are available in the test scope:
+Complete working examples are available in the test scope (accessible via test-jar):
 
 - **Wallet Domain** (`com.crablet.examples.wallet`): Simple wallet with deposits, withdrawals, and transfers
   - Demonstrates: Idempotency, commutative operations, non-commutative operations, multi-entity transfers
