@@ -1,5 +1,11 @@
-package com.crablet.eventstore.integration;
+package com.crablet.command.integration;
 
+import com.crablet.command.CommandExecutor;
+import com.crablet.command.CommandExecutorImpl;
+import com.crablet.command.handlers.DepositCommandHandler;
+import com.crablet.command.handlers.OpenWalletCommandHandler;
+import com.crablet.command.handlers.TransferMoneyCommandHandler;
+import com.crablet.command.handlers.WithdrawCommandHandler;
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.clock.ClockProviderImpl;
 import com.crablet.eventstore.query.EventTestHelper;
@@ -22,6 +28,26 @@ public class TestApplication {
     
     public static void main(String[] args) {
         SpringApplication.run(TestApplication.class, args);
+    }
+    
+    @Bean
+    public OpenWalletCommandHandler openWalletCommandHandler() {
+        return new OpenWalletCommandHandler();
+    }
+    
+    @Bean  
+    public DepositCommandHandler depositCommandHandler() {
+        return new DepositCommandHandler();
+    }
+    
+    @Bean
+    public WithdrawCommandHandler withdrawCommandHandler() {
+        return new WithdrawCommandHandler();
+    }
+    
+    @Bean
+    public TransferMoneyCommandHandler transferMoneyCommandHandler() {
+        return new TransferMoneyCommandHandler();
     }
     
     @Bean
@@ -57,4 +83,14 @@ public class TestApplication {
     public EventTestHelper eventTestHelper(DataSource dataSource, EventStoreConfig config) {
         return new EventTestHelperImpl(dataSource, config);
     }
+    
+    @Bean
+    public CommandExecutor commandExecutor(EventStore eventStore, 
+                                           java.util.List<com.crablet.command.CommandHandler<?>> commandHandlers,
+                                           EventStoreConfig config,
+                                           EventStoreMetrics metrics,
+                                           com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        return new CommandExecutorImpl(eventStore, commandHandlers, config, metrics, objectMapper);
+    }
 }
+

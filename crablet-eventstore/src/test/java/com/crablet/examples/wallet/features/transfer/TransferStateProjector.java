@@ -13,14 +13,6 @@ import com.crablet.examples.wallet.domain.projections.WalletBalanceState;
 import java.util.List;
 
 /**
- * State for transfer operations - balances for both wallets.
- */
-record TransferState(
-    WalletBalanceState fromWallet,
-    WalletBalanceState toWallet
-) {}
-
-/**
  * Projector for transfer operations - projects balances for both wallets.
  * <p>
  * Thread-safe: creates immutable instances with wallet IDs in constructor.
