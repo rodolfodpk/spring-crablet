@@ -2,16 +2,38 @@
 
 This guide walks you through integrating Crablet EventStore into your application using the wallet domain as an example.
 
-Add the dependency as shown in the [EventStore README](README.md#maven-coordinates).
-
 ## Framework or Library?
 
-Crablet is a **light framework** that supports two usage modes:
+Crablet supports two usage modes:
 
 1. **Framework Mode** (recommended): Implement `CommandHandler<T>` for automatic discovery and orchestration
+   - Requires `crablet-command` module dependency
+   - See [Command Framework README](../crablet-command/README.md) for setup
 2. **Library Mode**: Use `EventStore` directly for full control over event operations
+   - Only requires `crablet-eventstore` module dependency
+   - See [EventStore README](README.md) for library usage examples
 
-This guide focuses on **framework mode**. See the [README](README.md) for library usage examples.
+This guide focuses on **framework mode**. 
+
+### Dependencies
+
+For framework mode, add both dependencies:
+
+```xml
+<dependency>
+    <groupId>com.crablet</groupId>
+    <artifactId>crablet-eventstore</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+</dependency>
+
+<dependency>
+    <groupId>com.crablet</groupId>
+    <artifactId>crablet-command</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+</dependency>
+```
+
+For library mode, only `crablet-eventstore` is needed.
 
 **Why "Light"?**
 - Minimal required components (just `CommandHandler<T>` interface)
@@ -191,8 +213,8 @@ public record WithdrawCommand(
 ```java
 package com.example.wallet.handlers;
 
-import com.crablet.eventstore.command.CommandHandler;
-import com.crablet.eventstore.command.CommandResult;
+import com.crablet.command.CommandHandler;
+import com.crablet.command.CommandResult;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.dcb.AppendConditionBuilder;
 import com.crablet.eventstore.dcb.ConcurrencyException;
@@ -266,8 +288,8 @@ Use `CommandExecutor` to execute commands with transaction management:
 ```java
 package com.example.wallet.service;
 
-import com.crablet.eventstore.command.CommandExecutor;
-import com.crablet.eventstore.command.ExecutionResult;
+import com.crablet.command.CommandExecutor;
+import com.crablet.command.ExecutionResult;
 import com.example.wallet.commands.WithdrawCommand;
 import org.springframework.stereotype.Service;
 
