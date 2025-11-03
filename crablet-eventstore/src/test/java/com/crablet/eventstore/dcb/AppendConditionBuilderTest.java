@@ -1,6 +1,7 @@
 package com.crablet.eventstore.dcb;
 
 import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.SequenceNumber;
 import com.crablet.eventstore.store.Tag;
@@ -8,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -233,6 +235,46 @@ class AppendConditionBuilderTest {
 
         // Then - stateChanged should include decisionModel query
         assertThat(condition.stateChanged()).isEqualTo(decisionModel);
+    }
+
+    @Test
+    @DisplayName("Should build AppendCondition with non-empty decisionModelQuery")
+    void shouldBuildAppendConditionWithNonEmptyDecisionModelQuery() {
+        // Given
+        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
+        Query decisionModel = Query.of(
+                QueryItem.of(List.of("WalletOpened", "DepositMade"), List.of())
+        );
+
+        // When
+        AppendCondition condition = new AppendConditionBuilder(decisionModel, cursor)
+                .build();
+
+        // Then - stateChanged should include decisionModel query items
+        assertThat(condition.stateChanged()).isEqualTo(decisionModel);
+        assertThat(condition.stateChanged().items()).hasSize(1);
+        assertThat(condition.stateChanged().items().get(0).eventTypes()).contains("WalletOpened", "DepositMade");
+    }
+
+    @Test
+    @DisplayName("Should combine non-empty decisionModelQuery with idempotency check")
+    void shouldCombineNonEmptyDecisionModelQueryWithIdempotencyCheck() {
+        // Given
+        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
+        Query decisionModel = Query.of(
+                QueryItem.of(List.of("WalletOpened"), List.of())
+        );
+
+        // When
+        AppendCondition condition = new AppendConditionBuilder(decisionModel, cursor)
+                .withIdempotencyCheck("DepositMade", "deposit_id", "dep-123")
+                .build();
+
+        // Then - stateChanged should preserve decisionModel, alreadyExists should have idempotency check
+        assertThat(condition.stateChanged()).isEqualTo(decisionModel);
+        assertThat(condition.alreadyExists()).isNotNull();
+        assertThat(condition.alreadyExists().items()).hasSize(1);
+        assertThat(condition.alreadyExists().items().get(0).eventTypes()).contains("DepositMade");
     }
 
     @Test

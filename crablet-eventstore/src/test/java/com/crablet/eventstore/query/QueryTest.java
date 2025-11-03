@@ -1,6 +1,5 @@
 package com.crablet.eventstore.query;
 
-import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.store.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -156,5 +155,33 @@ class QueryTest {
         QueryItem item = idempotencyQuery.items().get(0);
         assertThat(item.eventTypes()).containsExactly("DepositMade");
         assertThat(item.tags()).containsExactly(new Tag("deposit_id", "deposit-123"));
+    }
+
+    @Test
+    void shouldReturnSizeOfQueryItems() {
+        // Given
+        Query emptyQuery = Query.empty();
+        Query singleItemQuery = Query.of(QueryItem.ofType("WalletOpened"));
+        Query multipleItemsQuery = Query.of(List.of(
+                QueryItem.ofType("WalletOpened"),
+                QueryItem.ofType("DepositMade"),
+                QueryItem.ofType("WithdrawalMade")
+        ));
+
+        // When & Then
+        assertThat(emptyQuery.size()).isEqualTo(0);
+        assertThat(singleItemQuery.size()).isEqualTo(1);
+        assertThat(multipleItemsQuery.size()).isEqualTo(3);
+    }
+
+    @Test
+    void shouldCheckIsEmptyCorrectly() {
+        // Given
+        Query emptyQuery = Query.empty();
+        Query nonEmptyQuery = Query.of(QueryItem.ofType("WalletOpened"));
+
+        // When & Then
+        assertThat(emptyQuery.isEmpty()).isTrue();
+        assertThat(nonEmptyQuery.isEmpty()).isFalse();
     }
 }

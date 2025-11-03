@@ -3,11 +3,11 @@ package com.crablet.eventstore.query;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.dcb.AppendConditionBuilder;
 import com.crablet.eventstore.store.Cursor;
-import com.crablet.eventstore.query.QueryBuilder;
-import com.crablet.eventstore.query.QueryItem;
+import com.crablet.eventstore.store.SequenceNumber;
 import com.crablet.eventstore.store.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -257,6 +257,26 @@ class QueryBuilderTest {
         // Then
         assertThat(tag.key()).isEqualTo("test_key");
         assertThat(tag.value()).isEqualTo("test_value");
+    }
+
+    @Test
+    void shouldConvertToAppendConditionUsingToAppendConditionMethod() {
+        // Given
+        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
+
+        // When
+        AppendConditionBuilder builder = QueryBuilder.create()
+                .matching(new String[]{"WalletOpened"}, new Tag("wallet_id", "w1"))
+                .toAppendCondition(cursor);
+
+        // Then
+        assertThat(builder).isNotNull();
+        
+        // Verify the built condition
+        AppendCondition condition = builder.build();
+        assertThat(condition.afterCursor()).isEqualTo(cursor);
+        assertThat(condition.stateChanged().items()).hasSize(1);
+        assertThat(condition.stateChanged().items().get(0).eventTypes()).containsExactly("WalletOpened");
     }
 }
 

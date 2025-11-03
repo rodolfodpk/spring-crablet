@@ -18,7 +18,7 @@ public abstract class AbstractCrabletTest {
             .withUsername("postgres")
             .withPassword("postgres")
             .withReuse(true)
-            .withCommand("postgres", "-c", "max_connections=50", "-c", "shared_buffers=128MB", "-c", "work_mem=32MB")
+            .withCommand("postgres", "-c", "max_connections=200", "-c", "shared_buffers=128MB", "-c", "work_mem=32MB")
             .withLabel("testcontainers.reuse", "true");
     static final PostgreSQLContainer<?> postgres = SHARED_POSTGRES;
 
@@ -46,6 +46,9 @@ public abstract class AbstractCrabletTest {
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.flyway.enabled", () -> true);
+        // Reduce connection pool sizes for tests to avoid exhausting PostgreSQL max_connections
+        registry.add("spring.datasource.hikari.maximum-pool-size", () -> 5);
+        registry.add("spring.datasource.hikari.minimum-idle", () -> 1);
     }
 
     protected static PostgreSQLContainer<?> getPostgresContainer() {

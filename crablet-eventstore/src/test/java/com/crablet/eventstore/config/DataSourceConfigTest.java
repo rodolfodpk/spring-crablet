@@ -1,6 +1,7 @@
 package com.crablet.eventstore.config;
 
 import com.zaxxer.hikari.HikariDataSource;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -9,8 +10,10 @@ import javax.sql.DataSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Test for DataSourceConfig bean creation.
- * Note: Tests that don't require actual database connections only.
+ * Unit tests for DataSourceConfig bean creation.
+ * Tests that don't require actual database connections.
+ * 
+ * Note: Tests requiring database connections are in DataSourceConfigIntegrationTest.
  */
 class DataSourceConfigTest {
     
@@ -88,5 +91,22 @@ class DataSourceConfigTest {
         
         assertEquals(75, hikari.getMaximumPoolSize());
         assertEquals(15, hikari.getMinimumIdle());
+    }
+
+    @Test
+    @DisplayName("readDataSourceWithReplicas should throw ClassCastException when primaryDataSource is not HikariDataSource")
+    void readDataSourceWithReplicas_WhenPrimaryDataSourceNotHikari_ShouldThrowClassCastException() {
+        // Given
+        DataSourceConfig config = new DataSourceConfig();
+        DataSource primaryDataSource = new org.springframework.jdbc.datasource.SimpleDriverDataSource();
+        // SimpleDriverDataSource is not a HikariDataSource
+
+        ReadReplicaProperties replicaProps = new ReadReplicaProperties();
+        replicaProps.setUrl("jdbc:postgresql://replica:5432/db");
+
+        // When & Then - Should throw ClassCastException when casting to HikariDataSource
+        assertThrows(ClassCastException.class, () ->
+                config.readDataSourceWithReplicas(primaryDataSource, replicaProps)
+        );
     }
 }
