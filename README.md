@@ -33,7 +33,7 @@ Crablet provides both framework and library capabilities:
 ## Modules
 
 - **crablet-eventstore** - Core event sourcing library with DCB support
-- **crablet-command** - Command handling framework with automatic handler discovery
+- **crablet-command** - Light command handling framework with automatic handler discovery
 - **crablet-outbox** - Light framework component for transactional outbox event publishing
 
 ## Quick Start
