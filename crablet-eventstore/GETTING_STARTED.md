@@ -132,6 +132,40 @@ public class WalletBalanceProjector implements StateProjector<WalletBalance> {
 }
 ```
 
+## Step 4.5: Create Command Interface with Jackson Annotations
+
+Commands must be part of a `@JsonSubTypes` hierarchy for automatic type extraction:
+
+```java
+package com.example.wallet.commands;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "commandType"
+)
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = OpenWalletCommand.class, name = "open_wallet"),
+        @JsonSubTypes.Type(value = DepositCommand.class, name = "deposit"),
+        @JsonSubTypes.Type(value = WithdrawCommand.class, name = "withdraw")
+})
+public interface WalletCommand {
+    String getWalletId();
+}
+```
+
+Each command record implements this interface:
+
+```java
+public record OpenWalletCommand(String walletId, String owner, BigDecimal initialBalance) 
+        implements WalletCommand {}
+```
+
+**Important:** The `name` in `@JsonSubTypes.Type` must match the command type used in your application. This is the single source of truth for command types.
+
 ## Step 5: Write Command Handler with DCB
 
 Create command and handler:
@@ -257,10 +291,28 @@ public class WalletService {
 
 The `CommandExecutor` coordinates command execution:
 1. Receives command
-2. Finds handler by command type
-3. Executes handler within a transaction
-4. Throws `ConcurrencyException` if conflict detected (application should implement retry)
-5. Persists command and events atomically
+2. Extracts command type from JSON (`commandType` property)
+3. Finds handler automatically (handlers are auto-discovered via Spring `@Component`)
+4. Command type is extracted from handler's generic type parameter (`CommandHandler<T>`)
+5. Executes handler within a transaction
+6. Throws `ConcurrencyException` if conflict detected (application should implement retry)
+7. Persists command and events atomically
+
+**Automatic Handler Registration:**
+- Handlers implementing `CommandHandler<T>` are auto-discovered by Spring
+- Command type is automatically extracted from the handler's generic type parameter
+- Uses reflection to read `@JsonSubTypes` annotation on the command interface
+
+**Example handler registration:**
+```java
+@Component
+public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
+    // Command type "withdraw" is automatically extracted from:
+    // 1. Generic type parameter: CommandHandler<WithdrawCommand>
+    // 2. @JsonSubTypes annotation on WalletCommand interface
+    // 3. Entry matching WithdrawCommand.class with name="withdraw"
+}
+```
 
 ## Step 6: Test with Testcontainers
 

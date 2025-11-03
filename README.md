@@ -50,7 +50,7 @@ Tests use Testcontainers (no external dependencies required):
 mvn clean install
 ```
 
-All tests pass (260+ tests with 72% code coverage).
+All tests pass (260+ tests).
 
 ## DCB Patterns
 
@@ -93,7 +93,7 @@ Crablet implements DCB (Dynamic Consistency Boundary) for event sourcing concurr
 - **Java 25**: Records, sealed interfaces, virtual threads
 - **Spring Boot 3.5**: Full Spring integration
 - **PostgreSQL**: Primary database with optional read replicas
-- **Comprehensive Testing**: 260+ tests, 72% code coverage
+- **Comprehensive Testing**: 260+ tests
 
 ## License
 

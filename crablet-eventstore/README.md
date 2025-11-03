@@ -11,6 +11,10 @@ Crablet EventStore provides the foundational interfaces and Spring implementatio
 - **Event Store Interface**: Simple, idiomatic event sourcing API
 - **DCB**: Optimistic concurrency control using cursors
 - **Type-Safe Commands**: Command handler with automatic projection
+- **Command Handling**: Automatic handler discovery and type extraction
+  - **Automatic Handler Discovery**: Handlers are auto-discovered via Spring `@Component` annotation
+  - **Type-Safe Registration**: Command types extracted from handler's generic type parameter
+  - **Single Source of Truth**: `@JsonSubTypes` annotation defines command types
 - **Flexible Querying**: Tag-based event querying and filtering
 - **State Projection**: Built-in support for projecting current state from events
 - **Spring Integration**: Ready-to-use Spring Boot components and configuration

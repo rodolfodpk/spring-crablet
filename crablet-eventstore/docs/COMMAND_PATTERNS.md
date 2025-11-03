@@ -4,6 +4,65 @@
 
 This guide explains when to use DCB cursor checks and when operations can run without them. Understanding the difference between **commutative** and **non-commutative** operations is key to proper DCB implementation.
 
+## Command Handler Registration
+
+Command handlers are automatically discovered and registered by Spring. Here's how it works:
+
+### 1. Command Interface Setup
+
+Commands must implement an interface annotated with `@JsonSubTypes`:
+
+```java
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "commandType"
+)
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = DepositCommand.class, name = "deposit"),
+        @JsonSubTypes.Type(value = WithdrawCommand.class, name = "withdraw"),
+        @JsonSubTypes.Type(value = OpenWalletCommand.class, name = "open_wallet")
+})
+public interface WalletCommand {
+    String getWalletId();
+}
+```
+
+### 2. Handler Implementation
+
+Handlers implement `CommandHandler<T>` where `T` is the command type:
+
+```java
+@Component
+public class DepositCommandHandler implements CommandHandler<DepositCommand> {
+    @Override
+    public CommandResult handle(EventStore eventStore, DepositCommand command) {
+        // Implementation...
+    }
+}
+```
+
+### 3. Automatic Type Extraction
+
+- **Command type** is automatically extracted from the handler's generic type parameter
+- Uses reflection to find `CommandHandler<T>` interface
+- Reads `@JsonSubTypes` annotation from the command interface
+- Finds entry matching the command class (e.g., `DepositCommand.class`)
+- Uses the `name` from that entry (e.g., `"deposit"`)
+
+The type is extracted automatically at startup using reflection.
+
+### 4. Handler Registration
+
+When `CommandExecutorImpl` is created:
+
+1. Spring injects all `@Component` classes implementing `CommandHandler<?>`
+2. For each handler, extracts command type using reflection
+3. Builds a map: `commandType -> handler`
+4. If duplicate types found, throws `InvalidCommandException` at startup
+
+This ensures type safety and automatic discovery without manual registration.
+
 ## Operation Types
 
 ### Commutative Operations
@@ -64,6 +123,8 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
 }
 ```
 
+**Note:** This handler automatically registers with command type "open_wallet" (extracted from `@JsonSubTypes` annotation).
+
 **Key Points:**
 - ✅ Idempotent: can run multiple times safely
 - ✅ Uses `withIdempotencyCheck()`: enforces uniqueness atomically
@@ -121,6 +182,8 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
     }
 }
 ```
+
+**Note:** This handler automatically registers with command type "deposit" (extracted from `@JsonSubTypes` annotation).
 
 **Key Points:**
 - ✅ Commutative: +$10 then +$20 = +$20 then +$10
@@ -195,6 +258,8 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
     }
 }
 ```
+
+**Note:** This handler automatically registers with command type "withdraw" (extracted from `@JsonSubTypes` annotation).
 
 **Key Points:**
 - ❌ Non-commutative: order affects whether operation succeeds
@@ -300,6 +365,8 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
     ) {}
 }
 ```
+
+**Note:** This handler automatically registers with command type "transfer_money" (extracted from `@JsonSubTypes` annotation).
 
 **Key Points:**
 - ❌ Non-commutative: order matters for both wallets
