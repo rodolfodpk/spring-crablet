@@ -237,9 +237,27 @@
                         <configuration>
                             <fileSets>
                                 <fileSet>
-                                    <directory>${project.basedir}</directory>
+                                    <directory>${project.basedir}/crablet-eventstore</directory>
                                     <includes>
-                                        <include>**/target/jacoco.exec</include>
+                                        <include>target/jacoco.exec</include>
+                                    </includes>
+                                </fileSet>
+                                <fileSet>
+                                    <directory>${project.basedir}/crablet-command</directory>
+                                    <includes>
+                                        <include>target/jacoco.exec</include>
+                                    </includes>
+                                </fileSet>
+                                <fileSet>
+                                    <directory>${project.basedir}/crablet-outbox</directory>
+                                    <includes>
+                                        <include>target/jacoco.exec</include>
+                                    </includes>
+                                </fileSet>
+                                <fileSet>
+                                    <directory>${project.basedir}/crablet-metrics-micrometer</directory>
+                                    <includes>
+                                        <include>target/jacoco.exec</include>
                                     </includes>
                                 </fileSet>
                             </fileSets>

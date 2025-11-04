@@ -9,24 +9,25 @@ A Java 25 light framework for DCB (Dynamic Consistency Boundary) event sourcing,
 
 ## Overview
 
-Crablet is a lightweight event sourcing framework with Spring Boot integration. It provides both framework-style command handling and library-style direct EventStore access.
+Crablet is a lightweight event sourcing framework with Spring Boot integration.
 
 - **Event Sourcing**: Complete audit trail with state reconstruction
 - **DCB**: Cursor-based optimistic concurrency control without distributed locks
 - **Outbox**: Reliable event publishing to external systems
 - **Spring Integration**: Ready-to-use Spring Boot components
 
-## Framework vs Library
+## Framework Features
 
-Crablet provides both framework and library capabilities:
+Crablet is a light framework that provides:
 
-- **Framework Mode**: Use `crablet-command` module - implement `CommandHandler<T>` interfaces for automatic discovery and orchestration
-- **Library Mode**: Use `crablet-eventstore` module directly - full control over event operations without framework overhead
+- **Command Framework**: Use `crablet-command` module - implement `CommandHandler<T>` interfaces for automatic discovery and orchestration
+- **Event Store**: Use `crablet-eventstore` module - core event sourcing library with DCB support
+- **Outbox**: Use `crablet-outbox` module - transactional outbox event publishing
 
 **Why "Light"?**
 - Minimal required components:
-  - **Library mode** (`crablet-eventstore`): 0 interfaces to implement - just inject `EventStore` and use `append()` for basic event storage. Implement [`StateProjector<T>`](crablet-eventstore/README.md) only if you need DCB concurrency control (which requires using `appendIf()` with state projections)
-  - **Framework mode** (`crablet-command`): 1 interface to implement - `CommandHandler<T>` for command handling
+  - **Command Framework** (`crablet-command`): 1 interface to implement - `CommandHandler<T>` for command handling
+  - **Event Store** (`crablet-eventstore`): 0 interfaces to implement - just inject `EventStore` and use `append()` for basic event storage. Implement [`StateProjector<T>`](crablet-eventstore/README.md) only if you need DCB concurrency control (which requires using `appendIf()` with state projections)
   - **Outbox** (`crablet-outbox`): 1 interface to implement - `OutboxPublisher` for event publishing
 - Small API surface (0-1 interfaces to implement per module)
 - No heavy conventions or configuration
