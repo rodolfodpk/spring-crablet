@@ -239,7 +239,7 @@
                                 <fileSet>
                                     <directory>${project.basedir}</directory>
                                     <includes>
-                                        <include>**/*.exec</include>
+                                        <include>**/target/jacoco.exec</include>
                                     </includes>
                                 </fileSet>
                             </fileSets>
@@ -256,7 +256,6 @@
                         <configuration>
                             <dataFile>${project.build.directory}/jacoco-merged.exec</dataFile>
                             <outputDirectory>${project.build.directory}/site/jacoco-aggregate</outputDirectory>
-                            <includeCurrentProject>true</includeCurrentProject>
                         </configuration>
                     </execution>
                 </executions>
