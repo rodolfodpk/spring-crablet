@@ -1,15 +1,11 @@
 package com.crablet.command;
 
-import com.crablet.command.CommandHandler;
-import com.crablet.command.CommandResult;
-import com.crablet.command.ExecutionResult;
-import com.crablet.command.InvalidCommandException;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.EventStoreConfig;
-import com.crablet.eventstore.store.EventStoreMetrics;
 import com.crablet.eventstore.store.Tag;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -29,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 /**
  * Unit tests for CommandExecutorImpl.
@@ -46,7 +43,7 @@ class CommandExecutorImplTest {
     private EventStoreConfig config;
     
     @Mock
-    private EventStoreMetrics metrics;
+    private ClockProvider clock;
     
     private ObjectMapper objectMapper;
 
@@ -70,7 +67,9 @@ class CommandExecutorImplTest {
         // Create ObjectMapper for command serialization
         objectMapper = new ObjectMapper();
         
-        commandExecutor = new CommandExecutorImpl(eventStore, List.of(commandHandler), config, metrics, objectMapper);
+        // Use lenient stubbing since not all tests use the clock
+        lenient().when(clock.now()).thenReturn(java.time.Instant.now());
+        commandExecutor = new CommandExecutorImpl(eventStore, List.of(commandHandler), config, clock, objectMapper);
     }
 
     @Test
@@ -90,8 +89,9 @@ class CommandExecutorImplTest {
         };
 
         ObjectMapper mapper = new ObjectMapper();
+        lenient().when(clock.now()).thenReturn(java.time.Instant.now());
         assertThrows(InvalidCommandException.class, () ->
-                new CommandExecutorImpl(eventStore, List.of(commandHandler, duplicateHandler), config, metrics, mapper)
+                new CommandExecutorImpl(eventStore, List.of(commandHandler, duplicateHandler), config, clock, mapper)
         );
     }
 
@@ -139,9 +139,11 @@ class CommandExecutorImplTest {
         assertTrue(result.wasCreated());
         assertFalse(result.wasIdempotent());
         verify(eventStore).executeInTransaction(any());
-        verify(metrics).recordEventsAppended(1);
-        verify(metrics).recordEventType("test_event");
-        verify(metrics, never()).recordIdempotentOperation(anyString());
+        // Note: Metrics are now published via Spring Events, not direct method calls
+        // verify(metrics).recordEventsAppended(1);
+        // verify(metrics).recordEventType("test_event");
+        // Note: Metrics are now published via Spring Events, not direct method calls
+        // verify(metrics, never()).recordIdempotentOperation(anyString());
     }
 
     @Test
@@ -165,9 +167,11 @@ class CommandExecutorImplTest {
         assertTrue(result.wasIdempotent());
         assertFalse(result.wasCreated());
         assertEquals("ALREADY_PROCESSED", result.reason());
-        verify(metrics).recordCommandSuccess(eq(command.commandType()), any());
-        verify(metrics).recordIdempotentOperation(eq(command.commandType()));
-        verify(metrics, never()).recordEventType(anyString());
+        // Note: Metrics are now published via Spring Events, not direct method calls
+        // verify(metrics).recordCommandSuccess(eq(command.commandType()), any());
+        // verify(metrics).recordIdempotentOperation(eq(command.commandType()));
+        // Note: Metrics are now published via Spring Events, not direct method calls
+        // verify(metrics, never()).recordEventType(anyString());
     }
 
     @Test
@@ -281,9 +285,11 @@ class CommandExecutorImplTest {
         assertNotNull(result);
         assertTrue(result.wasIdempotent());
         assertEquals("DUPLICATE_OPERATION", result.reason());
-        verify(metrics).recordCommandSuccess(eq(command.commandType()), any());
-        verify(metrics).recordIdempotentOperation(eq(command.commandType()));
-        verify(metrics, never()).recordEventsAppended(anyInt());
+        // Note: Metrics are now published via Spring Events, not direct method calls
+        // verify(metrics).recordCommandSuccess(eq(command.commandType()), any());
+        // verify(metrics).recordIdempotentOperation(eq(command.commandType()));
+        // Note: Metrics are now published via Spring Events, not direct method calls
+        // verify(metrics, never()).recordEventsAppended(anyInt());
     }
 
     @Test
@@ -329,7 +335,8 @@ class CommandExecutorImplTest {
     void executeCommand_WithCommandPersistenceDisabled_ShouldNotSerialize() throws Exception {
         // Arrange
         when(config.isPersistCommands()).thenReturn(false);
-        CommandExecutorImpl executor = new CommandExecutorImpl(eventStore, List.of(commandHandler), config, metrics, objectMapper);
+        lenient().when(clock.now()).thenReturn(java.time.Instant.now());
+        CommandExecutorImpl executor = new CommandExecutorImpl(eventStore, List.of(commandHandler), config, clock, objectMapper);
         
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent event = AppendEvent.builder("test_event")
@@ -382,7 +389,8 @@ class CommandExecutorImplTest {
     @Test
     void executeCommand_WithNoHandlersRegistered_ShouldThrowInvalidCommandException() {
         // Arrange
-        CommandExecutorImpl executor = new CommandExecutorImpl(eventStore, List.of(), config, metrics, objectMapper);
+        lenient().when(clock.now()).thenReturn(java.time.Instant.now());
+        CommandExecutorImpl executor = new CommandExecutorImpl(eventStore, List.of(), config, clock, objectMapper);
         TestCommand command = new TestCommand("test_command", "entity-123");
 
         // Act & Assert
@@ -596,8 +604,9 @@ class CommandExecutorImplTest {
                 commandExecutor.executeCommand(command)
         );
         assertFalse(exception.getMessage().toLowerCase().contains("duplicate"));
-        verify(metrics).recordCommandFailure(eq("test_command"), eq("concurrency"));
-        verify(metrics).recordConcurrencyViolation();
+        // Note: Metrics are now published via Spring Events, not direct method calls
+        // verify(metrics).recordCommandFailure(eq("test_command"), eq("concurrency"));
+        // verify(metrics).recordConcurrencyViolation();
     }
 
     @Test
@@ -654,8 +663,10 @@ class CommandExecutorImplTest {
         assertThrows(RuntimeException.class, () ->
                 commandExecutor.executeCommand(command)
         );
-        verify(metrics).recordCommandFailure(eq("test_command"), eq("runtime"));
-        verify(metrics, never()).recordCommandSuccess(anyString(), any());
+        // Note: Metrics are now published via Spring Events, not direct method calls
+        // verify(metrics).recordCommandFailure(eq("test_command"), eq("runtime"));
+        // Note: Metrics are now published via Spring Events, not direct method calls
+        // verify(metrics, never()).recordCommandSuccess(anyString(), any());
     }
 
     @Test
@@ -676,8 +687,9 @@ class CommandExecutorImplTest {
         assertThrows(InvalidCommandException.class, () ->
                 commandExecutor.executeCommand(command)
         );
-        verify(metrics).recordCommandFailure(eq("test_command"), eq("validation"));
-        verify(metrics, never()).recordCommandSuccess(anyString(), any());
+        // Note: Metrics are now published via Spring Events, not direct method calls
+        // verify(metrics).recordCommandFailure(eq("test_command"), eq("validation"));
+        // verify(metrics, never()).recordCommandSuccess(anyString(), any());
     }
 
     @Test
@@ -695,8 +707,9 @@ class CommandExecutorImplTest {
         assertThrows(RuntimeException.class, () ->
                 commandExecutor.executeCommand(command)
         );
-        verify(metrics, never()).recordCommandSuccess(anyString(), any());
-        verify(metrics).recordCommandFailure(eq("test_command"), anyString());
+        // Note: Metrics are now published via Spring Events, not direct method calls
+        // verify(metrics, never()).recordCommandSuccess(anyString(), any());
+        // verify(metrics).recordCommandFailure(eq("test_command"), anyString());
     }
 
     @Test
@@ -717,8 +730,9 @@ class CommandExecutorImplTest {
 
         // Assert
         assertTrue(result.wasIdempotent());
-        verify(metrics).recordCommandSuccess(eq("test_command"), any());
-        verify(metrics).recordIdempotentOperation(eq("test_command"));
+        // Note: Metrics are now published via Spring Events, not direct method calls
+        // verify(metrics).recordCommandSuccess(eq("test_command"), any());
+        // verify(metrics).recordIdempotentOperation(eq("test_command"));
     }
 
     /**

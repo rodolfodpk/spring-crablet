@@ -3,8 +3,6 @@ package com.crablet.outbox.processor;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.config.TopicConfigurationProperties;
 import com.crablet.outbox.leader.OutboxLeaderElector;
-import com.crablet.outbox.metrics.OutboxMetrics;
-import com.crablet.outbox.metrics.OutboxPublisherMetrics;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
 import com.crablet.outbox.publishing.OutboxPublishingService;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -52,12 +50,6 @@ class OutboxProcessorImplCooldownTest {
     private OutboxPublishingService publishingService;
 
     @Mock
-    private OutboxMetrics outboxMetrics;
-
-    @Mock
-    private OutboxPublisherMetrics publisherMetrics;
-
-    @Mock
     private CircuitBreakerRegistry circuitBreakerRegistry;
 
     @Mock
@@ -85,8 +77,6 @@ class OutboxProcessorImplCooldownTest {
             List.of(),
             leaderElector,
             publishingService,
-            outboxMetrics,
-            publisherMetrics,
             circuitBreakerRegistry,
             globalStatistics,
             topicConfigProperties,
@@ -192,7 +182,6 @@ class OutboxProcessorImplCooldownTest {
         // Then: Should acquire lock and process events
         verify(leaderElector, times(1)).tryAcquireGlobalLeader();
         verify(publishingService, times(1)).publishForTopicPublisher("topic1", "publisher1");
-        verify(outboxMetrics, times(1)).recordProcessingCycle();
     }
 
     @Test
@@ -265,7 +254,6 @@ class OutboxProcessorImplCooldownTest {
         // Then: Should process events without retrying lock
         verify(leaderElector, never()).tryAcquireGlobalLeader();
         verify(publishingService, times(1)).publishForTopicPublisher("topic1", "publisher1");
-        verify(outboxMetrics, times(1)).recordProcessingCycle();
     }
 }
 

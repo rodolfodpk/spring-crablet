@@ -1,7 +1,5 @@
 package com.crablet.eventstore.clock;
 
-import com.crablet.eventstore.clock.ClockProvider;
-
 import java.time.Instant;
 
 /**

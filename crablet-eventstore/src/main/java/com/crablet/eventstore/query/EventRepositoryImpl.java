@@ -17,23 +17,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Implementation of EventTestHelper.
+ * Implementation of EventRepository.
  * <p>
- * <strong>IMPORTANT: This helper is for testing purposes only.</strong>
- * Do not use in production code or command handlers.
+ * This repository provides direct access to raw events and bypasses the DCB pattern.
+ * It is optional and free for use anywhere in your application.
  * <p>
  * Uses {@link QuerySqlBuilder} to generate SQL WHERE clauses dynamically.
  * <p>
  * <strong>Spring Integration:</strong>
- * Users must define as @Bean in test configurations:
+ * Users can define as @Bean when needed:
  * <pre>{@code
  * @Bean
- * public EventTestHelper eventTestHelper(DataSource dataSource, EventStoreConfig config) {
- *     return new EventTestHelperImpl(dataSource, config);
+ * public EventRepository eventRepository(DataSource dataSource, EventStoreConfig config) {
+ *     return new EventRepositoryImpl(dataSource, config);
  * }
  * }</pre>
  */
-public class EventTestHelperImpl implements EventTestHelper {
+public class EventRepositoryImpl implements EventRepository {
     
     private final DataSource dataSource;
     private final QuerySqlBuilder sqlBuilder;
@@ -55,7 +55,7 @@ public class EventTestHelperImpl implements EventTestHelper {
         return new StoredEvent(type, tags, data, transactionId, position, occurredAt);
     };
     
-    public EventTestHelperImpl(DataSource dataSource, EventStoreConfig config) {
+    public EventRepositoryImpl(DataSource dataSource, EventStoreConfig config) {
         this.dataSource = dataSource;
         this.config = config;
         this.sqlBuilder = new QuerySqlBuilderImpl();

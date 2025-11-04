@@ -1,6 +1,5 @@
 package com.crablet.examples.wallet.testutils;
 
-import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
@@ -14,9 +13,7 @@ import com.crablet.examples.wallet.domain.event.DepositMade;
 import com.crablet.examples.wallet.domain.event.WithdrawalMade;
 
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Test utilities for wallet domain tests.
@@ -87,15 +84,6 @@ public class WalletTestUtils {
     }
 
     /**
-     * Create a list of Events from WalletEvents for testing.
-     */
-    public static List<StoredEvent> createEventList(WalletEvent... events) {
-        return Arrays.stream(events)
-                .map(WalletTestUtils::createEvent)
-                .collect(Collectors.toList());
-    }
-
-    /**
      * Deserialize event data to a specific type.
      */
     public static <T> T deserializeEventData(byte[] data, Class<T> clazz) {
@@ -121,83 +109,6 @@ public class WalletTestUtils {
             throw new RuntimeException("Failed to deserialize event data", e);
         }
     }
-
-
-    /**
-     * Create a WorkflowScenario for parameterized tests.
-     */
-    public static WorkflowScenario createWorkflowScenario(String name, int fromBalance, int toBalance, int transferAmount) {
-        return new WorkflowScenario(name, fromBalance, toBalance, transferAmount);
-    }
-
-    /**
-     * Create an AppendEvent with tags for testing.
-     * Passes the event object directly to AppendEvent for serialization by EventStore.
-     */
-    public static AppendEvent createInputEvent(String type, List<Tag> tags, WalletEvent walletEvent) {
-        AppendEvent.Builder builder = AppendEvent.builder(type);
-        for (Tag tag : tags) {
-            builder.tag(tag.key(), tag.value());
-        }
-        return builder.data(walletEvent).build();
-    }
-
-    /**
-     * Create a simple AppendEvent without tags for testing.
-     */
-    public static AppendEvent createInputEvent(String type, WalletEvent walletEvent) {
-        return createInputEvent(type, List.of(), walletEvent);
-    }
-
-    /**
-     * Create a Tag for testing.
-     */
-    public static Tag createTag(String key, String value) {
-        return new Tag(key, value);
-    }
-
-    /**
-     * Create a list of Tags for testing.
-     */
-    public static List<Tag> createTagList(Tag... tags) {
-        return Arrays.asList(tags);
-    }
-
-    /**
-     * Create a wallet ID for testing.
-     */
-    public static String createWalletId(String prefix) {
-        return prefix + "_" + System.currentTimeMillis();
-    }
-
-    /**
-     * Create a transfer ID for testing.
-     */
-    public static String createTransferId(String prefix) {
-        return prefix + "_" + System.currentTimeMillis();
-    }
-
-    /**
-     * Create a test owner name.
-     */
-    public static String createOwnerName(String prefix) {
-        return prefix + "_Owner";
-    }
-
-    /**
-     * Create a test description.
-     */
-    public static String createDescription(String prefix) {
-        return prefix + "_Description";
-    }
-
-    /**
-     * Create a test reason.
-     */
-    public static String createReason(String prefix) {
-        return prefix + "_Reason";
-    }
-
     // Note: WalletState assertion method removed as WalletState is now package-private
     // Tests should be moved to the same package or use public APIs
 

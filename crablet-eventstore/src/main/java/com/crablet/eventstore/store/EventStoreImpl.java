@@ -1,22 +1,16 @@
 package com.crablet.eventstore.store;
 
 import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.dcb.ConcurrencyException;
-import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.dcb.DCBViolation;
 import com.crablet.eventstore.query.EventDeserializer;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.EventStoreException;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.query.QuerySqlBuilder;
 import com.crablet.eventstore.query.QuerySqlBuilderImpl;
 import com.crablet.eventstore.query.StateProjector;
-import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.eventstore.store.Tag;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -25,7 +19,11 @@ import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.RowMapper;
+import com.crablet.eventstore.metrics.EventsAppendedMetric;
+import com.crablet.eventstore.metrics.EventTypeMetric;
+import com.crablet.eventstore.metrics.ConcurrencyViolationMetric;
 
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
@@ -106,6 +104,9 @@ public class EventStoreImpl implements EventStore {
     private final EventStoreConfig config;
     private final ClockProvider clock;
     private final QuerySqlBuilder sqlBuilder;
+    
+    @Autowired(required = false)
+    private ApplicationEventPublisher eventPublisher;
 
     /**
      * Singleton RowMapper for StoredEvent objects.
@@ -204,6 +205,14 @@ public class EventStoreImpl implements EventStore {
                 stmt.setTimestamp(4, java.sql.Timestamp.from(clock.now()));
 
                 stmt.execute();
+            }
+            
+            // Publish metrics events
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new EventsAppendedMetric(events.size()));
+                for (AppendEvent event : events) {
+                    eventPublisher.publishEvent(new EventTypeMetric(event.type()));
+                }
             }
         } catch (SQLException e) {
             // Handle PostgreSQL function errors like go-crablet does
@@ -341,8 +350,20 @@ public class EventStoreImpl implements EventStore {
                     }
                 }
             }
+            
+            // Publish metrics events after successful append
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new EventsAppendedMetric(events.size()));
+                for (AppendEvent event : events) {
+                    eventPublisher.publishEvent(new EventTypeMetric(event.type()));
+                }
+            }
 
         } catch (ConcurrencyException e) {
+            // Publish concurrency violation metric
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new ConcurrencyViolationMetric());
+            }
             throw e;
         } catch (RuntimeException e) {
             // Re-throw ConcurrencyException if it's wrapped in RuntimeException

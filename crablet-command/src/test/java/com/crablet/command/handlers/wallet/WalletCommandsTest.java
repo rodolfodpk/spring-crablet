@@ -3,7 +3,7 @@ package com.crablet.command.handlers.wallet;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
 import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.query.EventTestHelper;
+import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.store.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.crablet.examples.wallet.domain.event.WalletOpened;
@@ -43,7 +43,7 @@ class WalletCommandsTest extends com.crablet.eventstore.integration.AbstractCrab
     private EventStore eventStore;
 
     @Autowired
-    private EventTestHelper testHelper;
+    private EventRepository testHelper;
 
     @BeforeEach
     void setUp() {

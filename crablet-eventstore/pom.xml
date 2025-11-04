@@ -61,12 +61,6 @@
             <artifactId>resilience4j-timelimiter</artifactId>
         </dependency>
         
-        <!-- Micrometer for metrics -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
-        
         <!-- SLF4J for logging -->
         <dependency>
             <groupId>org.slf4j</groupId>

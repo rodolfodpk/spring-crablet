@@ -5,10 +5,9 @@ import com.crablet.eventstore.clock.ClockProviderImpl;
 import com.crablet.outbox.config.GlobalStatisticsConfig;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.config.TopicConfigurationProperties;
+import com.crablet.outbox.InstanceIdProvider;
 import com.crablet.outbox.leader.OutboxLeaderElector;
 import com.crablet.outbox.management.OutboxManagementService;
-import com.crablet.outbox.metrics.OutboxMetrics;
-import com.crablet.outbox.metrics.OutboxPublisherMetrics;
 import com.crablet.outbox.processor.OutboxProcessorImpl;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
 import com.crablet.outbox.publishing.OutboxPublishingService;
@@ -17,7 +16,6 @@ import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.EventStoreConfig;
 import com.crablet.eventstore.store.EventStoreImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -84,18 +82,16 @@ public class TestApplication {
     }
     
     @Bean
-    public OutboxMetrics outboxMetrics(org.springframework.core.env.Environment environment) {
-        return new OutboxMetrics(environment);
+    public InstanceIdProvider instanceIdProvider(org.springframework.core.env.Environment environment) {
+        return new InstanceIdProvider(environment);
     }
     
     @Bean
-    public OutboxPublisherMetrics outboxPublisherMetrics(MeterRegistry registry) {
-        return new OutboxPublisherMetrics(registry);
-    }
-    
-    @Bean
-    public OutboxLeaderElector outboxLeaderElector(org.springframework.jdbc.core.JdbcTemplate jdbcTemplate, OutboxConfig config, OutboxMetrics metrics) {
-        return new OutboxLeaderElector(jdbcTemplate, config, metrics);
+    public OutboxLeaderElector outboxLeaderElector(
+            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate, 
+            OutboxConfig config,
+            InstanceIdProvider instanceIdProvider) {
+        return new OutboxLeaderElector(jdbcTemplate, config, instanceIdProvider);
     }
     
     @Bean
@@ -104,8 +100,8 @@ public class TestApplication {
             org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
             DataSource readDataSource,
             java.util.List<com.crablet.outbox.OutboxPublisher> publishers,
-            OutboxMetrics outboxMetrics,
-            OutboxPublisherMetrics publisherMetrics,
+            InstanceIdProvider instanceIdProvider,
+            com.crablet.eventstore.clock.ClockProvider clock,
             io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitBreakerRegistry,
             GlobalStatisticsPublisher globalStatistics) {
         
@@ -117,7 +113,7 @@ public class TestApplication {
         
         return new OutboxPublishingServiceImpl(
             config, jdbcTemplate, readDataSource, publisherByName,
-            outboxMetrics, publisherMetrics, circuitBreakerRegistry, globalStatistics
+            instanceIdProvider, clock, circuitBreakerRegistry, globalStatistics
         );
     }
     
@@ -129,15 +125,13 @@ public class TestApplication {
             java.util.List<com.crablet.outbox.OutboxPublisher> publishers,
             OutboxLeaderElector leaderElector,
             OutboxPublishingService publishingService,
-            OutboxMetrics metrics,
-            OutboxPublisherMetrics publisherMetrics,
             io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitBreakerRegistry,
             GlobalStatisticsPublisher globalStatistics,
             TopicConfigurationProperties topicConfigProperties,
             org.springframework.scheduling.TaskScheduler taskScheduler) {
         return new OutboxProcessorImpl(config, jdbcTemplate, dataSource, publishers, 
-                                       leaderElector, publishingService, metrics, 
-                                       publisherMetrics, circuitBreakerRegistry, 
+                                       leaderElector, publishingService, 
+                                       circuitBreakerRegistry, 
                                        globalStatistics, topicConfigProperties, taskScheduler);
     }
     

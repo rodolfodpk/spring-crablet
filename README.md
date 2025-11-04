@@ -38,6 +38,7 @@ Crablet provides both framework and library capabilities:
 - **crablet-eventstore** - Core event sourcing library with DCB support
 - **crablet-command** - Light command handling framework with automatic handler discovery
 - **crablet-outbox** - Light framework component for transactional outbox event publishing
+- **crablet-metrics-micrometer** - Micrometer metrics collector for event-driven metrics (optional)
 
 ## Quick Start
 
@@ -45,6 +46,7 @@ See module READMEs for dependency information:
 - **[EventStore Setup](crablet-eventstore/README.md#maven-coordinates)** - Add eventstore dependency
 - **[Command Setup](crablet-command/README.md#maven-coordinates)** - Add command framework dependency (optional)
 - **[Outbox Setup](crablet-outbox/README.md#maven-coordinates)** - Add outbox dependency (optional)
+- **[Metrics Setup](crablet-metrics-micrometer/README.md#maven-coordinates)** - Add metrics collector dependency (optional)
 
 ### Build and Test
 
@@ -81,6 +83,7 @@ Crablet implements DCB (Dynamic Consistency Boundary) for event sourcing concurr
 - **[EventStore README](crablet-eventstore/README.md)** - Event sourcing library guide
 - **[Command README](crablet-command/README.md)** - Command framework guide
 - **[Outbox README](crablet-outbox/README.md)** - Outbox library guide
+- **[Metrics README](crablet-metrics-micrometer/README.md)** - Metrics collector guide
 - **[DCB Explained](crablet-eventstore/docs/DCB_AND_CRABLET.md)** - Detailed DCB explanation
 
 ### Advanced Features

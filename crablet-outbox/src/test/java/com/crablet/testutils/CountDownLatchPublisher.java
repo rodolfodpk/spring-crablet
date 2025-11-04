@@ -74,7 +74,7 @@ public class CountDownLatchPublisher implements OutboxPublisher {
         
         // Only process events if we have a latch set up (i.e., a test is expecting events)
         if (latch != null) {
-            int currentTotal = totalEventsProcessed.addAndGet(batchSize);
+            totalEventsProcessed.addAndGet(batchSize);
             
             // Count down the latch for each event
             for (int i = 0; i < batchSize; i++) {

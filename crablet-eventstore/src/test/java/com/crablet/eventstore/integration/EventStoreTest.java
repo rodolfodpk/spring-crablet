@@ -3,7 +3,7 @@ package com.crablet.eventstore.integration;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.query.EventDeserializer;
-import com.crablet.eventstore.query.EventTestHelper;
+import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
@@ -35,7 +35,7 @@ class EventStoreTest extends AbstractCrabletTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private EventTestHelper eventTestHelper;
+    private EventRepository eventRepository;
 
     @Test
     @DisplayName("Should append wallet events without conditions")
@@ -61,7 +61,7 @@ class EventStoreTest extends AbstractCrabletTest {
 
         // Then: verify events were stored
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", "wallet1");
-        List<StoredEvent> storedEvents = eventTestHelper.query(query, null);
+        List<StoredEvent> storedEvents = eventRepository.query(query, null);
         
         assertThat(storedEvents).hasSize(1);
         assertThat(storedEvents.get(0).type()).isEqualTo("WalletOpened");
@@ -109,7 +109,7 @@ class EventStoreTest extends AbstractCrabletTest {
                 List.of("WalletOpened", "DepositMade"),
                 List.of(new Tag("wallet_id", walletId))
         );
-        List<StoredEvent> allEvents = eventTestHelper.query(allWalletEventsQuery, null);
+        List<StoredEvent> allEvents = eventRepository.query(allWalletEventsQuery, null);
         assertThat(allEvents).hasSize(2);
     }
 
@@ -237,7 +237,7 @@ class EventStoreTest extends AbstractCrabletTest {
                 List.of("WalletOpened", "DepositMade"),
                 List.of(new Tag("wallet_id", walletId))
         );
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(2);
     }
 
@@ -262,7 +262,7 @@ class EventStoreTest extends AbstractCrabletTest {
 
         // Then: wallet should not be persisted (rollback successful)
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).isEmpty();
     }
 
@@ -376,7 +376,7 @@ class EventStoreTest extends AbstractCrabletTest {
 
         // When: query and deserialize
         Query query = Query.forEventAndTag("MoneyTransferred", "transfer_id", transferId);
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
 
         // Then: verify complex event structure is preserved
         assertThat(events).hasSize(1);
@@ -427,7 +427,7 @@ class EventStoreTest extends AbstractCrabletTest {
                 QueryItem.of(List.of("DepositMade"), List.of(new Tag("wallet_id", walletId)))
         ));
 
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
 
         // Then: should find both event types
         assertThat(events).hasSize(2);
@@ -452,7 +452,7 @@ class EventStoreTest extends AbstractCrabletTest {
 
         // When: query with empty query
         Query query = Query.empty();
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
 
         // Then: should return all events (including our wallet events)
         assertThat(events.size()).isGreaterThanOrEqualTo(2);
@@ -504,7 +504,7 @@ class EventStoreTest extends AbstractCrabletTest {
 
         // Then: should append successfully
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(1);
     }
 
@@ -576,7 +576,7 @@ class EventStoreTest extends AbstractCrabletTest {
 
         // Then: verify all tags were stored
         Query query = Query.forEventAndTag("MoneyTransferred", "transfer_id", transferId);
-        List<StoredEvent> stored = eventTestHelper.query(query, null);
+        List<StoredEvent> stored = eventRepository.query(query, null);
         
         assertThat(stored).hasSize(1);
         StoredEvent event = stored.get(0);

@@ -2,13 +2,11 @@ package com.crablet.eventstore.integration;
 
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.clock.ClockProviderImpl;
-import com.crablet.eventstore.query.EventTestHelper;
-import com.crablet.eventstore.query.EventTestHelperImpl;
+import com.crablet.eventstore.query.EventRepository;
+import com.crablet.eventstore.query.EventRepositoryImpl;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.EventStoreConfig;
 import com.crablet.eventstore.store.EventStoreImpl;
-import com.crablet.eventstore.store.EventStoreMetrics;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -49,12 +47,8 @@ public class TestApplication {
     }
     
     @Bean
-    public EventStoreMetrics eventStoreMetrics(MeterRegistry registry) {
-        return new EventStoreMetrics(registry);
+    public EventRepository eventRepository(DataSource dataSource, EventStoreConfig config) {
+        return new EventRepositoryImpl(dataSource, config);
     }
     
-    @Bean
-    public EventTestHelper eventTestHelper(DataSource dataSource, EventStoreConfig config) {
-        return new EventTestHelperImpl(dataSource, config);
-    }
 }

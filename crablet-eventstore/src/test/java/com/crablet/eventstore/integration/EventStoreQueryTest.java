@@ -1,6 +1,6 @@
 package com.crablet.eventstore.integration;
 
-import com.crablet.eventstore.query.EventTestHelper;
+import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
@@ -32,7 +32,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
     private EventStore eventStore;
 
     @Autowired
-    private EventTestHelper eventTestHelper;
+    private EventRepository eventRepository;
 
     @Test
     @DisplayName("Should query with cursor pagination")
@@ -62,7 +62,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
                 List.of("WalletOpened", "DepositMade"),
                 List.of(new Tag("wallet_id", walletId))
         );
-        List<StoredEvent> page1 = eventTestHelper.query(query, null);
+        List<StoredEvent> page1 = eventRepository.query(query, null);
         
         assertThat(page1).hasSize(3);
         
@@ -74,7 +74,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
         );
         
         // Query second page from cursor
-        List<StoredEvent> page2 = eventTestHelper.query(query, afterFirst);
+        List<StoredEvent> page2 = eventRepository.query(query, afterFirst);
         
         // Then: should return remaining events
         assertThat(page2).hasSize(1);
@@ -105,7 +105,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
 
         // When: query only deposit events
         Query depositQuery = Query.forEventAndTag("DepositMade", "wallet_id", walletId);
-        List<StoredEvent> deposits = eventTestHelper.query(depositQuery, null);
+        List<StoredEvent> deposits = eventRepository.query(depositQuery, null);
 
         // Then: should only return deposits
         assertThat(deposits).hasSize(1);
@@ -126,7 +126,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
 
         // When: query for non-existent event type
         Query query = Query.forEventAndTag("DepositMade", "wallet_id", walletId);
-        List<StoredEvent> results = eventTestHelper.query(query, null);
+        List<StoredEvent> results = eventRepository.query(query, null);
 
         // Then: should return empty list
         assertThat(results).isEmpty();
@@ -151,7 +151,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
                 "future-tx-id"
         );
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
-        List<StoredEvent> results = eventTestHelper.query(query, futureCursor);
+        List<StoredEvent> results = eventRepository.query(query, futureCursor);
 
         // Then: should return empty list (no events after that cursor)
         assertThat(results).isEmpty();
@@ -182,7 +182,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
                 List.of("DepositMade"),
                 List.of(new Tag("wallet_id", walletId))
         );
-        List<StoredEvent> allResults = eventTestHelper.query(query, null);
+        List<StoredEvent> allResults = eventRepository.query(query, null);
 
         // Then: should return all deposit events
         assertThat(allResults).hasSize(50);
@@ -193,7 +193,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
                 allResults.get(25).occurredAt(),
                 allResults.get(25).transactionId()
         );
-        List<StoredEvent> secondHalf = eventTestHelper.query(query, afterMidpoint);
+        List<StoredEvent> secondHalf = eventRepository.query(query, afterMidpoint);
         
         assertThat(secondHalf).hasSize(24); // 50 total - 25 after cursor = 24 remaining
     }
@@ -218,7 +218,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
 
         // When: query transfer by transfer_id
         Query query = Query.forEventAndTag("MoneyTransferred", "transfer_id", transferId);
-        List<StoredEvent> results = eventTestHelper.query(query, null);
+        List<StoredEvent> results = eventRepository.query(query, null);
 
         // Then: should return transfer event with all tags
         assertThat(results).hasSize(1);
@@ -242,7 +242,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
 
         // When: query with empty items (should match all events)
         Query emptyQuery = Query.empty();
-        List<StoredEvent> allEvents = eventTestHelper.query(emptyQuery, null);
+        List<StoredEvent> allEvents = eventRepository.query(emptyQuery, null);
 
         // Then: should return events (at least our wallet event)
         assertThat(allEvents.size()).isGreaterThanOrEqualTo(1);
@@ -303,7 +303,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
                 QueryItem.of(List.of("WalletOpened"), List.of(new Tag("wallet_id", "wallet-1"))),
                 QueryItem.of(List.of("WalletOpened"), List.of(new Tag("wallet_id", "wallet-2")))
         ));
-        List<StoredEvent> results = eventTestHelper.query(query, null);
+        List<StoredEvent> results = eventRepository.query(query, null);
 
         // Then: should return both wallet events
         assertThat(results).hasSize(2);
@@ -336,7 +336,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
                 List.of("WalletOpened", "DepositMade"),
                 List.of(new Tag("wallet_id", walletId))
         );
-        List<StoredEvent> allEvents = eventTestHelper.query(query, null);
+        List<StoredEvent> allEvents = eventRepository.query(query, null);
         assertThat(allEvents).hasSize(3);
 
         // Use cursor at second event position
@@ -347,7 +347,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
         );
         
         // Query from that cursor
-        List<StoredEvent> afterSecond = eventTestHelper.query(query, cursorAtSecond);
+        List<StoredEvent> afterSecond = eventRepository.query(query, cursorAtSecond);
 
         // Then: should return events after that position
         assertThat(afterSecond).hasSize(1);
