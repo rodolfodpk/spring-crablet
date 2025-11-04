@@ -42,15 +42,5 @@ public class CourseQueryPatterns {
                 .tag(COURSE_ID, courseId)
                 .build();
     }
-
-    /**
-     * Simple query for course existence check.
-     * Used by DefineCourse handler for idempotency check.
-     */
-    public static Query courseExistenceQuery(String courseId) {
-        return QueryBuilder.create()
-                .event(COURSE_DEFINED, COURSE_ID, courseId)
-                .build();
-    }
 }
 

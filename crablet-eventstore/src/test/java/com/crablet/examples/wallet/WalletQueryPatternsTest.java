@@ -72,17 +72,6 @@ class WalletQueryPatternsTest {
     }
 
     @Test
-    void walletExistenceQuery_shouldOnlyCheckWalletOpened() {
-        // When
-        Query query = WalletQueryPatterns.walletExistenceQuery("w1");
-
-        // Then
-        assertThat(query.items()).hasSize(1);
-        assertThat(query.items().get(0).eventTypes()).containsExactly("WalletOpened");
-        assertThat(query.items().get(0).tags()).containsExactly(new Tag("wallet_id", "w1"));
-    }
-
-    @Test
     void transferDecisionModel_shouldWorkWithSameWallet() {
         // When (transfer to self)
         Query query = WalletQueryPatterns.transferDecisionModel("w1", "w1");

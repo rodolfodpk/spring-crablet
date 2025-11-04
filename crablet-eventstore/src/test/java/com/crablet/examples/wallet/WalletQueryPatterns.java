@@ -41,15 +41,5 @@ public class WalletQueryPatterns {
                 .event(MONEY_TRANSFERRED, TO_WALLET_ID, toWalletId)
                 .build();
     }
-
-    /**
-     * Simple query for wallet existence check.
-     * Used by OpenWallet handler.
-     */
-    public static Query walletExistenceQuery(String walletId) {
-        return QueryBuilder.create()
-                .event(WALLET_OPENED, WALLET_ID, walletId)
-                .build();
-    }
 }
 
