@@ -1,5 +1,7 @@
 # Crablet EventStore
 
+[![codecov](https://codecov.io/gh/rodolfodpk/spring-crablet/branch/main/graph/badge.svg?component=module_eventstore)](https://codecov.io/gh/rodolfodpk/spring-crablet)
+
 Light event sourcing library with Dynamic Consistency Boundary (DCB) support and Spring Boot integration. Use as a library for direct EventStore access.
 
 ## Overview

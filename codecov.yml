@@ -22,7 +22,58 @@ coverage:
         threshold: 1%
 
 comment:
-  layout: "reach,diff,flags,tree"
+  layout: "reach,diff,flags,components,tree"
   behavior: default
   require_changes: false
+
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        target: auto
+        branches:
+          - "!main"
+      - type: patch
+        target: auto
+  
+  individual_components:
+    - component_id: module_eventstore
+      name: EventStore
+      paths:
+        - "crablet-eventstore/src/main/**"
+      statuses:
+        - type: project
+          target: auto
+        - type: patch
+          target: auto
+    
+    - component_id: module_command
+      name: Command
+      paths:
+        - "crablet-command/src/main/**"
+      statuses:
+        - type: project
+          target: auto
+        - type: patch
+          target: auto
+    
+    - component_id: module_outbox
+      name: Outbox
+      paths:
+        - "crablet-outbox/src/main/**"
+      statuses:
+        - type: project
+          target: auto
+        - type: patch
+          target: auto
+    
+    - component_id: module_metrics
+      name: Metrics
+      paths:
+        - "crablet-metrics-micrometer/src/main/**"
+      statuses:
+        - type: project
+          target: auto
+        - type: patch
+          target: auto
 

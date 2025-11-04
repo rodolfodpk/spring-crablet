@@ -1,5 +1,7 @@
 # Crablet Command Framework
 
+[![codecov](https://codecov.io/gh/rodolfodpk/spring-crablet/branch/main/graph/badge.svg?component=module_command)](https://codecov.io/gh/rodolfodpk/spring-crablet)
+
 Light command handling framework for event sourcing with automatic handler discovery and Spring Boot integration.
 
 ## Overview

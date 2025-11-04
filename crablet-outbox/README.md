@@ -1,5 +1,7 @@
 # Crablet Outbox
 
+[![codecov](https://codecov.io/gh/rodolfodpk/spring-crablet/branch/main/graph/badge.svg?component=module_outbox)](https://codecov.io/gh/rodolfodpk/spring-crablet)
+
 Light framework component for transactional outbox event publishing with DCB event sourcing and Spring Boot integration.
 
 ## Overview

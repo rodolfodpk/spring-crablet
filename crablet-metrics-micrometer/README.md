@@ -1,5 +1,7 @@
 # Crablet Metrics - Micrometer
 
+[![codecov](https://codecov.io/gh/rodolfodpk/spring-crablet/branch/main/graph/badge.svg?component=module_metrics)](https://codecov.io/gh/rodolfodpk/spring-crablet)
+
 Micrometer metrics collector for Crablet event-driven metrics.
 
 ## Overview
