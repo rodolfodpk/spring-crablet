@@ -39,7 +39,7 @@ jobs:
           cache: 'maven'  # Caches ~/.m2/repository
 
       - name: Build with Maven
-        run: mvn -B clean install --file pom.xml
+        run: mvn -B clean verify --file pom.xml
 
       - name: Debug JaCoCo Report
         run: |
