@@ -61,7 +61,8 @@ public void myCustomOperation() {
 
 ## Dependencies
 
-- Spring Boot Web, JDBC
+- Spring Boot JDBC
+- Spring Boot Web (test scope only - for integration tests)
 - PostgreSQL JDBC Driver
 - Jackson (for JSON serialization)
 - Resilience4j (for circuit breakers and retries)

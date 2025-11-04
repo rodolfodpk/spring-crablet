@@ -49,7 +49,8 @@ Crablet Command provides a lightweight framework for command handling on top of 
 ## Dependencies
 
 - crablet-eventstore (required)
-- Spring Boot Web, JDBC
+- Spring Boot JDBC
+- Spring Boot Web (test scope only - for integration tests)
 - Jackson (for JSON serialization)
 - Resilience4j (for circuit breakers and retries)
 - SLF4J (for logging)
