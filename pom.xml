@@ -237,27 +237,27 @@
                         <configuration>
                             <fileSets>
                                 <fileSet>
-                                    <directory>${project.basedir}/crablet-eventstore</directory>
+                                    <directory>${project.basedir}/crablet-eventstore/target</directory>
                                     <includes>
-                                        <include>target/jacoco.exec</include>
+                                        <include>jacoco.exec</include>
                                     </includes>
                                 </fileSet>
                                 <fileSet>
-                                    <directory>${project.basedir}/crablet-command</directory>
+                                    <directory>${project.basedir}/crablet-command/target</directory>
                                     <includes>
-                                        <include>target/jacoco.exec</include>
+                                        <include>jacoco.exec</include>
                                     </includes>
                                 </fileSet>
                                 <fileSet>
-                                    <directory>${project.basedir}/crablet-outbox</directory>
+                                    <directory>${project.basedir}/crablet-outbox/target</directory>
                                     <includes>
-                                        <include>target/jacoco.exec</include>
+                                        <include>jacoco.exec</include>
                                     </includes>
                                 </fileSet>
                                 <fileSet>
-                                    <directory>${project.basedir}/crablet-metrics-micrometer</directory>
+                                    <directory>${project.basedir}/crablet-metrics-micrometer/target</directory>
                                     <includes>
-                                        <include>target/jacoco.exec</include>
+                                        <include>jacoco.exec</include>
                                     </includes>
                                 </fileSet>
                             </fileSets>
