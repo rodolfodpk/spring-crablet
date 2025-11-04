@@ -43,12 +43,18 @@ jobs:
 
       - name: Debug JaCoCo Report
         run: |
+          echo "Checking for jacoco.exec files in modules..."
+          find . -name "jacoco.exec" -type f || echo "No exec files found"
+          echo ""
           echo "Checking if merged exec exists..."
           ls -lh target/jacoco-merged.exec || echo "Merged exec not found"
+          echo ""
           echo "Checking if aggregate report exists..."
           ls -lh target/site/jacoco-aggregate/ || echo "Report directory not found"
+          echo ""
           echo "Report size:"
           du -h target/site/jacoco-aggregate/jacoco.xml 2>/dev/null || echo "XML not found"
+          echo ""
           echo "Source files count:"
           grep -c "sourcefile" target/site/jacoco-aggregate/jacoco.xml 2>/dev/null || echo "Cannot count files"
 
