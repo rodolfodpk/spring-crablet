@@ -25,10 +25,9 @@ Crablet provides both framework and library capabilities:
 
 **Why "Light"?**
 - Minimal required components:
-  - **Library mode** (`crablet-eventstore`): 0 interfaces to implement - just inject `EventStore` and use it
+  - **Library mode** (`crablet-eventstore`): 0 interfaces to implement - just inject `EventStore` and use `append()` for basic event storage. Implement [`StateProjector<T>`](crablet-eventstore/README.md) only if you need DCB concurrency control (which requires using `appendIf()` with state projections)
   - **Framework mode** (`crablet-command`): 1 interface to implement - `CommandHandler<T>` for command handling
   - **Outbox** (`crablet-outbox`): 1 interface to implement - `OutboxPublisher` for event publishing
-  - Optional: Implement [`StateProjector<T>`](crablet-eventstore/README.md) only if you need state projections
 - Small API surface (0-1 interfaces to implement per module)
 - No heavy conventions or configuration
 - Most components are optional
