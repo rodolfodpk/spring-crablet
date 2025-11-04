@@ -24,10 +24,11 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
         
-        <!-- Spring Boot Web -->
+        <!-- Spring Boot Web (for tests only) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+            <scope>test</scope>
         </dependency>
         
         <!-- Spring Boot JDBC -->
