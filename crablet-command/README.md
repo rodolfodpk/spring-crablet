@@ -13,8 +13,9 @@ Crablet Command provides a lightweight framework for command handling on top of 
 - **DCB Support**: Full support for Dynamic Consistency Boundary pattern
 
 **Light Framework Benefits:**
-- Minimal required components (just `CommandHandler<T>` interface)
-- Small API surface (3-4 interfaces)
+- Required: Implement `CommandHandler<T>` (one per command type)
+- Use: Inject `CommandExecutor` and `EventStore` (provided by framework)
+- Small API surface: 1 interface to implement
 - Easy to customize and extend
 
 ## Features

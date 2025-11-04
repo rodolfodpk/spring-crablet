@@ -36,8 +36,9 @@ For framework mode, add both dependencies:
 For library mode, only `crablet-eventstore` is needed.
 
 **Why "Light"?**
-- Minimal required components (just `CommandHandler<T>` interface)
-- Small API surface (3-4 interfaces)
+- Required: Implement `CommandHandler<T>` (one per command type)
+- Use: Inject `CommandExecutor` and `EventStore` (provided by framework)
+- Small API surface: 1 interface to implement
 - No heavy conventions or complex configuration
 - Most components are optional
 - Easy to customize and extend

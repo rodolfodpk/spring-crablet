@@ -13,7 +13,8 @@ Crablet EventStore is a pure event sourcing library:
 **Library Benefits:**
 - Pure library - no framework overhead
 - Full control over operations
-- Small API surface
+- No required interfaces to implement - just inject `EventStore` and use it
+- Optional: Implement `StateProjector<T>` only if you need state projections
 - Easy to customize and extend
 
 ## Features
