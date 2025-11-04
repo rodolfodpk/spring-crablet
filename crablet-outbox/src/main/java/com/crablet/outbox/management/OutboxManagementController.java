@@ -1,7 +1,5 @@
 package com.crablet.outbox.management;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,8 +17,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/outbox")
 public class OutboxManagementController {
-    
-    private static final Logger log = LoggerFactory.getLogger(OutboxManagementController.class);
     
     private final OutboxManagementService outboxManagementService;
     

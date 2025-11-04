@@ -5,11 +5,12 @@ import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.config.TopicConfigurationProperties;
 import com.crablet.outbox.leader.OutboxLeaderElector;
-import com.crablet.outbox.metrics.OutboxMetrics;
-import com.crablet.outbox.metrics.OutboxPublisherMetrics;
+import com.crablet.outbox.metrics.ProcessingCycleMetric;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
 import com.crablet.outbox.publishing.OutboxPublishingService;
 import com.crablet.outbox.TopicConfig;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -40,9 +41,11 @@ public class OutboxProcessorImpl implements OutboxProcessor {
     private final OutboxPublishingService publishingService;
     
     // Supporting infrastructure
-    private final OutboxMetrics outboxMetrics;
     private final TopicConfigurationProperties topicConfigProperties;
     private final TaskScheduler taskScheduler;
+    
+    @Autowired(required = false)
+    private ApplicationEventPublisher eventPublisher;
     
     // Track which publishers are available by name
     private final Map<String, OutboxPublisher> publisherByName = new ConcurrentHashMap<>();
@@ -67,8 +70,6 @@ public class OutboxProcessorImpl implements OutboxProcessor {
             List<OutboxPublisher> publishers,
             OutboxLeaderElector leaderElector,
             OutboxPublishingService publishingService,
-            OutboxMetrics outboxMetrics,
-            OutboxPublisherMetrics publisherMetrics,
             CircuitBreakerRegistry circuitBreakerRegistry,
             GlobalStatisticsPublisher globalStatistics,
             TopicConfigurationProperties topicConfigProperties,
@@ -76,7 +77,6 @@ public class OutboxProcessorImpl implements OutboxProcessor {
         this.config = config;
         this.leaderElector = leaderElector;
         this.publishingService = publishingService;
-        this.outboxMetrics = outboxMetrics;
         this.topicConfigProperties = topicConfigProperties;
         this.taskScheduler = taskScheduler;
         
@@ -221,7 +221,9 @@ public class OutboxProcessorImpl implements OutboxProcessor {
         
         try {
             int published = publishingService.publishForTopicPublisher(topicName, publisherName);
-            outboxMetrics.recordProcessingCycle();
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new ProcessingCycleMetric());
+            }
             
             // Update backoff state
             if (backoffState != null) {
@@ -237,7 +239,9 @@ public class OutboxProcessorImpl implements OutboxProcessor {
             }
         } catch (Exception e) {
             log.error("Error in scheduler for ({}, {})", topicName, publisherName, e);
-            outboxMetrics.recordProcessingCycle();
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new ProcessingCycleMetric());
+            }
             // Don't update backoff on errors - let it retry normally
         }
     }

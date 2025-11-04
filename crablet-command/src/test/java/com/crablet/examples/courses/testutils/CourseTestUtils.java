@@ -1,6 +1,5 @@
 package com.crablet.examples.courses.testutils;
 
-import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
@@ -11,7 +10,6 @@ import com.crablet.examples.courses.domain.event.CourseDefined;
 import com.crablet.examples.courses.domain.event.CourseCapacityChanged;
 import com.crablet.examples.courses.domain.event.StudentSubscribedToCourse;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -122,52 +120,6 @@ public class CourseTestUtils {
         } catch (Exception e) {
             throw new RuntimeException("Failed to deserialize event data", e);
         }
-    }
-
-    /**
-     * Create an AppendEvent with tags for testing.
-     */
-    public static AppendEvent createInputEvent(String type, List<Tag> tags, Object eventData) {
-        AppendEvent.Builder builder = AppendEvent.builder(type);
-        for (Tag tag : tags) {
-            builder.tag(tag.key(), tag.value());
-        }
-        return builder.data(eventData).build();
-    }
-
-    /**
-     * Create a simple AppendEvent without tags for testing.
-     */
-    public static AppendEvent createInputEvent(String type, Object eventData) {
-        return createInputEvent(type, List.of(), eventData);
-    }
-
-    /**
-     * Create a Tag for testing.
-     */
-    public static Tag createTag(String key, String value) {
-        return new Tag(key, value);
-    }
-
-    /**
-     * Create a list of Tags for testing.
-     */
-    public static List<Tag> createTagList(Tag... tags) {
-        return Arrays.asList(tags);
-    }
-
-    /**
-     * Create a course ID for testing.
-     */
-    public static String createCourseId(String prefix) {
-        return prefix + "_" + System.currentTimeMillis();
-    }
-
-    /**
-     * Create a student ID for testing.
-     */
-    public static String createStudentId(String prefix) {
-        return prefix + "_" + System.currentTimeMillis();
     }
 
     /**

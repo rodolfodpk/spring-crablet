@@ -5,7 +5,7 @@ import com.crablet.command.handlers.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
 import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.integration.AbstractCrabletTest;
-import com.crablet.eventstore.query.EventTestHelper;
+import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.store.EventStore;
@@ -40,7 +40,7 @@ class OpenWalletCommandHandlerTest extends com.crablet.eventstore.integration.Ab
     private EventStore eventStore;
 
     @Autowired
-    private EventTestHelper testHelper;
+    private EventRepository testHelper;
 
     @BeforeEach
     void setUp() {

@@ -5,7 +5,7 @@ import com.crablet.command.handlers.DepositCommandHandler;
 import com.crablet.command.handlers.OpenWalletCommandHandler;
 import com.crablet.command.handlers.WithdrawCommandHandler;
 import com.crablet.eventstore.integration.AbstractCrabletTest;
-import com.crablet.eventstore.query.EventTestHelper;
+import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
@@ -39,7 +39,7 @@ class WalletDCBComplianceTest extends AbstractCrabletTest {
     private EventStore eventStore;
 
     @Autowired
-    private EventTestHelper testHelper;
+    private EventRepository testHelper;
 
     @Autowired
     private OpenWalletCommandHandler openWalletHandler;

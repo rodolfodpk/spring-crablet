@@ -4,7 +4,7 @@ import com.crablet.command.CommandExecutor;
 import com.crablet.command.ExecutionResult;
 import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.integration.AbstractCrabletTest;
-import com.crablet.eventstore.query.EventTestHelper;
+import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
@@ -35,7 +35,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
     private CommandExecutor commandExecutor;
 
     @Autowired
-    private EventTestHelper eventTestHelper;
+    private EventRepository eventRepository;
 
     @Test
     @DisplayName("Should execute open wallet command successfully")
@@ -52,7 +52,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // Verify events persisted
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", "wallet1");
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(1);
         assertThat(events.get(0).type()).isEqualTo("WalletOpened");
     }
@@ -74,7 +74,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // Verify deposit event
         Query query = Query.forEventAndTag("DepositMade", "deposit_id", "deposit1");
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(1);
     }
 
@@ -95,7 +95,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // Verify withdrawal event
         Query query = Query.forEventAndTag("WithdrawalMade", "withdrawal_id", "withdrawal1");
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(1);
     }
 
@@ -122,7 +122,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // Verify transfer event
         Query query = Query.forEventAndTag("MoneyTransferred", "transfer_id", "transfer1");
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(1);
     }
 
@@ -138,7 +138,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // Verify no events were persisted
         Query query = Query.forEventAndTag("DepositMade", "deposit_id", "deposit2");
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).isEmpty();
     }
 
@@ -155,7 +155,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // Verify no withdrawal event
         Query query = Query.forEventAndTag("WithdrawalMade", "withdrawal_id", "withdrawal2");
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).isEmpty();
     }
 
@@ -176,7 +176,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
                 List.of("WalletOpened", "DepositMade", "WithdrawalMade"),
                 List.of(new Tag("wallet_id", walletId))
         );
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(4); // 1 open + 2 deposits + 1 withdrawal
     }
 
@@ -201,7 +201,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
 
         // Then: both should succeed (DCB ensures consistency)
         Query query = Query.forEventAndTag("DepositMade", "wallet_id", walletId);
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(2);
     }
 

@@ -4,8 +4,13 @@ import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.EventStoreConfig;
-import com.crablet.eventstore.store.EventStoreMetrics;
 import com.crablet.eventstore.store.Tag;
+import com.crablet.eventstore.clock.ClockProvider;
+import com.crablet.command.metrics.CommandStartedMetric;
+import com.crablet.command.metrics.CommandSuccessMetric;
+import com.crablet.command.metrics.CommandFailureMetric;
+import com.crablet.command.metrics.IdempotentOperationMetric;
+import org.springframework.context.ApplicationEventPublisher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -50,16 +57,19 @@ public class CommandExecutorImpl implements CommandExecutor {
     private final EventStore eventStore;
     private final Map<String, CommandHandler<?>> handlers;
     private final EventStoreConfig config;
-    private final EventStoreMetrics metrics;
+    private final ClockProvider clock;
     private final ObjectMapper objectMapper;
+    
+    @Autowired(required = false)
+    private ApplicationEventPublisher eventPublisher;
 
     @Autowired
     public CommandExecutorImpl(EventStore eventStore, List<CommandHandler<?>> commandHandlers, 
-                              EventStoreConfig config, EventStoreMetrics metrics,
+                              EventStoreConfig config, ClockProvider clock,
                               ObjectMapper objectMapper) {
         this.eventStore = eventStore;
         this.config = config;
-        this.metrics = metrics;
+        this.clock = clock;
         this.objectMapper = objectMapper;
 
         // Build handler map from Spring-injected list
@@ -170,7 +180,9 @@ public class CommandExecutorImpl implements CommandExecutor {
             }
         } catch (InvalidCommandException e) {
             log.debug("Failed to extract command type: {}", e.getMessage());
-            metrics.recordCommandFailure("unknown", "validation");
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new CommandFailureMetric("unknown", "validation"));
+            }
             throw e;
         } catch (JsonProcessingException e) {
             throw new InvalidCommandException(
@@ -182,8 +194,11 @@ public class CommandExecutorImpl implements CommandExecutor {
 
         log.debug("Starting transaction for command: {}", commandType);
 
-        // Start metrics tracking
-        var sample = metrics.startCommand(commandType);
+        // Start timing with ClockProvider
+        Instant startTime = clock.now();
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new CommandStartedMetric(commandType, startTime));
+        }
 
         try {
             ExecutionResult executionResult = eventStore.executeInTransaction(txStore -> {
@@ -220,16 +235,10 @@ public class CommandExecutorImpl implements CommandExecutor {
                 }
 
                 // Atomic append with condition (DCB pattern)
-                int eventsCount = result.events().size();
                 if (!result.isEmpty()) {
                     try {
                         txStore.appendIf(result.events(), result.appendCondition());
-                        // Track aggregate events appended
-                        metrics.recordEventsAppended(eventsCount);
-                        // Track event type distribution
-                        for (AppendEvent event : result.events()) {
-                            metrics.recordEventType(event.type());
-                        }
+                        // Metrics for events appended and event types are now published by EventStore
                     } catch (ConcurrencyException e) {
                         // Check if this is an idempotency violation (duplicate operation)
                         if (e.getMessage().toLowerCase().contains("duplicate operation detected")) {
@@ -265,31 +274,41 @@ public class CommandExecutorImpl implements CommandExecutor {
                 }
             });
             
-            // Record success metrics
-            metrics.recordCommandSuccess(commandType, sample);
-            
-            // Track idempotent operations separately
-            if (executionResult.wasIdempotent()) {
-                metrics.recordIdempotentOperation(commandType);
+            // Calculate duration and publish success metrics
+            Duration duration = Duration.between(startTime, clock.now());
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new CommandSuccessMetric(commandType, duration));
+                
+                // Track idempotent operations separately
+                if (executionResult.wasIdempotent()) {
+                    eventPublisher.publishEvent(new IdempotentOperationMetric(commandType));
+                }
             }
             
             return executionResult;
         } catch (ConcurrencyException e) {
             log.debug("Transaction rolled back for command: {}", commandType);
-            metrics.recordCommandFailure(commandType, "concurrency");
-            metrics.recordConcurrencyViolation();
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new CommandFailureMetric(commandType, "concurrency"));
+            }
             throw e;
         } catch (InvalidCommandException e) {
             log.debug("Transaction rolled back for command: {}", commandType);
-            metrics.recordCommandFailure(commandType, "validation");
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new CommandFailureMetric(commandType, "validation"));
+            }
             throw e;
         } catch (RuntimeException e) {
             log.debug("Transaction rolled back for command: {}", commandType);
-            metrics.recordCommandFailure(commandType, "runtime");
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new CommandFailureMetric(commandType, "runtime"));
+            }
             throw e;
         } catch (Exception e) {
             log.debug("Transaction rolled back for command: {}", commandType);
-            metrics.recordCommandFailure(commandType, "exception");
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new CommandFailureMetric(commandType, "exception"));
+            }
             throw new RuntimeException("Failed to execute command: " + commandType, e);
         }
     }

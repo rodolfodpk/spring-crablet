@@ -69,7 +69,7 @@ package com.example.wallet.handlers;
 
 import com.crablet.command.CommandResult;
 import com.crablet.eventstore.integration.AbstractCrabletTest;
-import com.crablet.eventstore.query.EventTestHelper;
+import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
 import com.crablet.eventstore.store.Cursor;
@@ -93,7 +93,7 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
     private WithdrawCommandHandler handler;
     
     @Autowired
-    private EventTestHelper eventTestHelper;  // Test-only helper
+    private EventRepository eventRepository;  // Test-only repository
     
     @Test
     void testSuccessfulWithdrawal() {
@@ -119,7 +119,7 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
             .eventNames("WithdrawalMade")
             .build();
         
-        List<StoredEvent> events = eventTestHelper.query(query, Cursor.zero());
+        List<StoredEvent> events = eventRepository.query(query, Cursor.zero());
         assertEquals(1, events.size());
         assertEquals("WithdrawalMade", events.get(0).type());
         assertTrue(events.get(0).tags().contains("withdrawal_id:" + withdrawalId));
@@ -151,7 +151,7 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
             .hasTag("withdrawal_id", withdrawalId)
             .build();
         
-        List<StoredEvent> events = eventTestHelper.query(query, Cursor.zero());
+        List<StoredEvent> events = eventRepository.query(query, Cursor.zero());
         assertEquals(1, events.size(), "Should only store one withdrawal event");
     }
     
@@ -243,19 +243,22 @@ class WalletBalanceProjectorTest {
 }
 ```
 
-## EventTestHelper
+## EventRepository
 
-**Important:** EventTestHelper is for tests only. It bypasses DCB.
+EventRepository provides direct access to raw events, bypassing the DCB pattern.
+It is optional and free for use anywhere in your application.
+
+**Note:** For use cases requiring DCB concurrency control, use `EventStore.project()` instead.
 
 ```java
-import com.crablet.eventstore.query.EventTestHelper;
+import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.StoredEvent;
 
 @Autowired
-private EventTestHelper eventTestHelper;
+private EventRepository eventRepository;
 
 @Test
 void testEventStorage() {
@@ -264,7 +267,7 @@ void testEventStorage() {
         .hasTag("wallet_id", walletId)
         .build();
     
-    List<StoredEvent> events = eventTestHelper.query(query, Cursor.zero());
+    List<StoredEvent> events = eventRepository.query(query, Cursor.zero());
     
     // Assert on raw events
     assertEquals(3, events.size());
@@ -272,18 +275,20 @@ void testEventStorage() {
 }
 ```
 
-### When to Use EventTestHelper
+### When to Use EventRepository
 
 **Use for:**
 - Verifying events were stored
 - Checking event order
 - Inspecting event tags
-- Debugging tests
+- Debugging
+- Migration scripts
+- Any use case where you need direct access to raw events
 
-**Don't use for:**
-- Production code
-- Command handlers (use EventStore.project instead)
-- Business logic
+**Use EventStore.project() instead for:**
+- Command handlers (requires DCB concurrency control)
+- Business logic requiring state projection
+- Use cases where you need concurrency control
 
 ## Testing DCB Conflicts
 
@@ -317,7 +322,7 @@ void testConcurrentWithdrawals() {
 import static org.junit.jupiter.api.Assertions.*;
 
 // Assert event stored
-List<StoredEvent> events = eventTestHelper.query(query, Cursor.zero());
+List<StoredEvent> events = eventRepository.query(query, Cursor.zero());
 assertFalse(events.isEmpty(), "Events should be stored");
 
 // Assert event type

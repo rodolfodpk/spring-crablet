@@ -15,6 +15,7 @@
         <module>crablet-eventstore</module>
         <module>crablet-command</module>
         <module>crablet-outbox</module>
+        <module>crablet-metrics-micrometer</module>
         <!-- Removed application modules - library only -->
         <!-- <module>shared-wallet-domain</module> -->
         <!-- <module>wallet-eventstore-service</module> -->
@@ -65,6 +66,13 @@
             <dependency>
                 <groupId>com.crablet</groupId>
                 <artifactId>crablet-outbox</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            
+            <!-- Crablet Metrics Micrometer -->
+            <dependency>
+                <groupId>com.crablet</groupId>
+                <artifactId>crablet-metrics-micrometer</artifactId>
                 <version>${project.version}</version>
             </dependency>
             

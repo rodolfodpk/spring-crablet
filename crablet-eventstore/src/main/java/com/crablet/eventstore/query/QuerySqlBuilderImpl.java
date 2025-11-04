@@ -1,16 +1,13 @@
 package com.crablet.eventstore.query;
 
 import com.crablet.eventstore.store.Cursor;
-import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.query.QueryItem;
-import com.crablet.eventstore.query.QuerySqlBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Public implementation of QuerySqlBuilder.
- * Directly instantiated by EventStoreImpl and EventTestHelperImpl.
+ * Directly instantiated by EventStoreImpl and EventRepositoryImpl.
  */
 public class QuerySqlBuilderImpl implements QuerySqlBuilder {
     

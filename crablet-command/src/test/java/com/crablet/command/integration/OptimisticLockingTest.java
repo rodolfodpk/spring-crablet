@@ -3,7 +3,7 @@ package com.crablet.command.integration;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.integration.AbstractCrabletTest;
-import com.crablet.eventstore.query.EventTestHelper;
+import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.store.Cursor;
@@ -42,7 +42,7 @@ class OptimisticLockingTest extends AbstractCrabletTest {
     private EventStore eventStore;
 
     @Autowired
-    private EventTestHelper testHelper;
+    private EventRepository testHelper;
 
     @Test
     @DisplayName("Should validate AppendCondition cursor correctly")

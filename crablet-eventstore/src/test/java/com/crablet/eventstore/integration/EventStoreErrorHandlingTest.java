@@ -1,7 +1,7 @@
 package com.crablet.eventstore.integration;
 
 import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.query.EventTestHelper;
+import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.AppendEvent;
@@ -31,7 +31,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
     private EventStore eventStore;
 
     @Autowired
-    private EventTestHelper eventTestHelper;
+    private EventRepository eventRepository;
 
     @Test
     @DisplayName("Should handle AppendIf with current cursor")
@@ -47,7 +47,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
 
         // Get initial cursor
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         Cursor initialCursor = Cursor.of(
                 new com.crablet.eventstore.store.SequenceNumber(events.get(0).position()),
                 events.get(0).occurredAt(),
@@ -65,7 +65,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
         );
 
         // Then: should succeed
-        List<StoredEvent> allEvents = eventTestHelper.query(
+        List<StoredEvent> allEvents = eventRepository.query(
                 Query.forEventsAndTags(
                         List.of("WalletOpened", "DepositMade"),
                         List.of(new Tag("wallet_id", walletId))
@@ -96,7 +96,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
 
         // Then: wallet should not exist (transaction rolled back)
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).isEmpty();
     }
 
@@ -116,7 +116,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
         
         // Then: should work (EventTestHelper.query allows null cursor)
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).isNotEmpty();
     }
 
@@ -136,7 +136,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
 
         // Then: should succeed
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(1);
     }
 
@@ -168,7 +168,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
                 List.of("WalletOpened", "DepositMade"),
                 List.of(new Tag("wallet_id", walletId))
         );
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(6);
     }
 
@@ -243,7 +243,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
 
         // When: query events
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
 
         // Then: tags should be parsed correctly
         assertThat(events).hasSize(1);
@@ -268,7 +268,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
 
         // Then: transaction ID should be captured
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(1);
         assertThat(events.get(0).transactionId()).isNotNull();
     }
@@ -295,7 +295,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
 
         // When: query by transfer_id
         Query query = Query.forEventAndTag("MoneyTransferred", "transfer_id", transferId);
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
 
         // Then: should return event with all tags
         assertThat(events).hasSize(1);
@@ -348,7 +348,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
         ));
 
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         StoredEvent stored = events.get(0);
 
         // When: Attempt to deserialize WalletOpened as DepositMade
@@ -484,7 +484,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
 
         // Then: Should succeed (serialization handles String data)
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(1);
         // JSON field order may vary, so we check that the data contains the walletId
         String storedData = new String(events.get(0).data(), java.nio.charset.StandardCharsets.UTF_8);
@@ -512,7 +512,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
 
         // Then: Should succeed (serialization handles the data correctly)
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
-        List<StoredEvent> events = eventTestHelper.query(query, null);
+        List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(1);
         // Verify the data was stored correctly
         String storedData = new String(events.get(0).data(), java.nio.charset.StandardCharsets.UTF_8);

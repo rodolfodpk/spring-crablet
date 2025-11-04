@@ -5,13 +5,17 @@ import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.PublishException;
 import com.crablet.outbox.TopicConfig;
 import com.crablet.outbox.config.OutboxConfig;
-import com.crablet.outbox.metrics.OutboxMetrics;
-import com.crablet.outbox.metrics.OutboxPublisherMetrics;
+import com.crablet.eventstore.clock.ClockProvider;
+import com.crablet.outbox.InstanceIdProvider;
+import com.crablet.outbox.metrics.EventsPublishedMetric;
+import com.crablet.outbox.metrics.OutboxErrorMetric;
+import com.crablet.outbox.metrics.PublishingDurationMetric;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -21,6 +25,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,10 +45,13 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
     private final JdbcTemplate jdbcTemplate;
     private final DataSource readDataSource;
     private final Map<String, OutboxPublisher> publisherByName;
-    private final OutboxMetrics outboxMetrics;
-    private final OutboxPublisherMetrics publisherMetrics;
+    private final InstanceIdProvider instanceIdProvider;
+    private final ClockProvider clock;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final GlobalStatisticsPublisher globalStatistics;
+    
+    @Autowired(required = false)
+    private ApplicationEventPublisher eventPublisher;
     
     // SQL statements for outbox operations
     private static final String SELECT_STATUS_SQL = 
@@ -79,9 +88,6 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
         WHERE topic = ? AND publisher = ?
         """;
     
-    private static final String SELECT_ERROR_COUNT_SQL = 
-        "SELECT error_count FROM outbox_topic_progress WHERE topic = ? AND publisher = ?";
-    
     private static final String RESET_ERROR_COUNT_SQL = """
         UPDATE outbox_topic_progress
         SET error_count = 0,
@@ -95,16 +101,16 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
             JdbcTemplate jdbcTemplate,
             DataSource readDataSource,
             Map<String, OutboxPublisher> publisherByName,
-            OutboxMetrics outboxMetrics,
-            OutboxPublisherMetrics publisherMetrics,
+            InstanceIdProvider instanceIdProvider,
+            ClockProvider clock,
             CircuitBreakerRegistry circuitBreakerRegistry,
             GlobalStatisticsPublisher globalStatistics) {
         this.config = config;
         this.jdbcTemplate = jdbcTemplate;
         this.readDataSource = readDataSource;
         this.publisherByName = publisherByName;
-        this.outboxMetrics = outboxMetrics;
-        this.publisherMetrics = publisherMetrics;
+        this.instanceIdProvider = instanceIdProvider;
+        this.clock = clock;
         this.circuitBreakerRegistry = circuitBreakerRegistry;
         this.globalStatistics = globalStatistics;
     }
@@ -144,12 +150,16 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
         }
         
         // Publish with resilience
-        Timer.Sample sample = publisherMetrics.startPublishing(publisherName);
+        Instant startTime = clock.now();
         try {
             publishWithResilience(publisher, events);
             updateLastPosition(topicName, publisherName, events.get(events.size() - 1).position());
-            publisherMetrics.recordPublishingSuccess(publisherName, sample, events.size());
-            outboxMetrics.recordEventsPublished(publisherName, events.size());
+            
+            Duration duration = Duration.between(startTime, clock.now());
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new EventsPublishedMetric(publisherName, events.size()));
+                eventPublisher.publishEvent(new PublishingDurationMetric(publisherName, duration));
+            }
             
             // Reset error count on successful publish
             resetErrorCount(topicName, publisherName);
@@ -162,8 +172,9 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
             
             return events.size();
         } catch (Exception e) {
-            publisherMetrics.recordPublishingError(publisherName);
-            outboxMetrics.recordError(publisherName);
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new OutboxErrorMetric(publisherName));
+            }
             incrementErrorCount(topicName, publisherName, e.getMessage());
             throw new RuntimeException("Failed to publish events for pair (" + topicName + ", " + publisherName + ")", e);
         }
@@ -186,7 +197,7 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
         // Auto-register publisher for topic if not exists
         Integer updated = jdbcTemplate.update(
             INSERT_TOPIC_PUBLISHER_SQL,
-            topicName, publisherName, outboxMetrics.getInstanceId()
+            topicName, publisherName, instanceIdProvider.getInstanceId()
         );
         
         if (updated != null && updated > 0) {

@@ -1,10 +1,12 @@
 package com.crablet.outbox.leader;
 
-import com.crablet.outbox.TopicConfig;
 import com.crablet.outbox.config.OutboxConfig;
-import com.crablet.outbox.metrics.OutboxMetrics;
+import com.crablet.outbox.InstanceIdProvider;
+import com.crablet.outbox.metrics.LeadershipMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 
@@ -17,8 +19,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
      * Users must define as @Bean:
      * <pre>{@code
      * @Bean
-     * public OutboxLeaderElector outboxLeaderElector(JdbcTemplate jdbcTemplate, OutboxConfig config, OutboxMetrics metrics) {
-     *     return new OutboxLeaderElector(jdbcTemplate, config, metrics);
+     * public OutboxLeaderElector outboxLeaderElector(JdbcTemplate jdbcTemplate, OutboxConfig config, InstanceIdProvider instanceIdProvider) {
+     *     return new OutboxLeaderElector(jdbcTemplate, config, instanceIdProvider);
      * }
      * }</pre>
      */
@@ -27,40 +29,23 @@ public class OutboxLeaderElector {
     private static final Logger log = LoggerFactory.getLogger(OutboxLeaderElector.class);
     
     private final JdbcTemplate jdbcTemplate;
-    private final OutboxConfig config;
-    private final OutboxMetrics outboxMetrics;
     private final String instanceId;
     
     // Advisory lock key for GLOBAL mode (hash of "crablet-outbox-processor")
     private static final long OUTBOX_LOCK_KEY = 4856221667890123456L;
     
-    // SQL statements for leader election and heartbeat management
-    private static final String RELEASE_PAIR_SQL = """
-        UPDATE outbox_topic_progress
-        SET leader_instance = NULL,
-            leader_heartbeat = NULL,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE topic = ? AND publisher = ? AND leader_instance = ?
-        """;
-
-    private static final String UPDATE_PAIR_HEARTBEAT_SQL = """
-        UPDATE outbox_topic_progress
-        SET leader_heartbeat = CURRENT_TIMESTAMP,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE topic = ? AND publisher = ? AND leader_instance = ?
-        """;
-    
     // Track leadership state
     private volatile boolean isGlobalLeader = false;
+    
+    @Autowired(required = false)
+    private ApplicationEventPublisher eventPublisher;
     
     public OutboxLeaderElector(
             JdbcTemplate jdbcTemplate,
             OutboxConfig config,
-            OutboxMetrics outboxMetrics) {
+            InstanceIdProvider instanceIdProvider) {
         this.jdbcTemplate = jdbcTemplate;
-        this.config = config;
-        this.outboxMetrics = outboxMetrics;
-        this.instanceId = outboxMetrics.getInstanceId();
+        this.instanceId = instanceIdProvider.getInstanceId();
     }
     
     /**
@@ -80,12 +65,16 @@ public class OutboxLeaderElector {
         Boolean lockAcquired = tryAcquireLock(OUTBOX_LOCK_KEY);
         if (Boolean.TRUE.equals(lockAcquired)) {
             isGlobalLeader = true;
-            outboxMetrics.setLeader(true);
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new LeadershipMetric(instanceId, true));
+            }
             log.info("✓ Acquired GLOBAL lock - this instance is the leader");
             return true;
         } else {
             isGlobalLeader = false;
-            outboxMetrics.setLeader(false);
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new LeadershipMetric(instanceId, false));
+            }
             log.info("✗ Another instance holds GLOBAL lock - this instance is follower");
             return false;
         }
@@ -98,7 +87,9 @@ public class OutboxLeaderElector {
         if (isGlobalLeader) {
             releaseLock(OUTBOX_LOCK_KEY);
             isGlobalLeader = false;
-            outboxMetrics.setLeader(false);
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new LeadershipMetric(instanceId, false));
+            }
             log.info("Released GLOBAL lock");
         }
     }
