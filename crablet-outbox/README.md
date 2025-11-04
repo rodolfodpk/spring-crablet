@@ -75,11 +75,14 @@ Your domain code doesn't need to change - events are automatically picked up and
 
 ```java
 // Append events with tags
-List<Tag> tags = List.of(
-    new Tag("wallet-id", "wallet-123"),
-    new Tag("event-type", "deposit")
+List<AppendEvent> events = List.of(
+    AppendEvent.builder("DepositMade")
+        .tag("wallet-id", "wallet-123")
+        .tag("event-type", "deposit")
+        .data(depositData)
+        .build()
 );
-eventStore.append(tags, events);
+eventStore.appendIf(events, AppendCondition.empty());
 
 // Outbox processor will automatically publish them to configured publishers
 ```

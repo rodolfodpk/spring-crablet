@@ -176,11 +176,15 @@ public class EventStoreImpl implements EventStore {
         this.sqlBuilder = new QuerySqlBuilderImpl();
     }
 
-    @Override
+    /**
+     * Package-private method for appending events without concurrency checks.
+     * Used internally by appendIf for optimization and by tests in the same package.
+     * Production code should use appendIf with AppendCondition.empty() instead.
+     */
     @CircuitBreaker(name = "database")
     @Retry(name = "database")
     @TimeLimiter(name = "database")
-    public void append(List<AppendEvent> events) {
+    void append(List<AppendEvent> events) {
         if (events.isEmpty()) {
             return;
         }
@@ -1021,11 +1025,6 @@ public class EventStoreImpl implements EventStore {
 
         public ConnectionScopedEventStore(Connection connection) {
             this.connection = connection;
-        }
-
-        @Override
-        public void append(List<AppendEvent> events) {
-            EventStoreImpl.this.appendWithConnection(connection, events);
         }
 
         @Override

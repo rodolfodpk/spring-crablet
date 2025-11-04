@@ -1,5 +1,6 @@
 package com.crablet.eventstore.integration;
 
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
@@ -55,7 +56,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
                         .data(DepositMade.of("deposit2", walletId, 300, 1800, "Second deposit"))
                         .build()
         );
-        eventStore.append(events);
+        eventStore.appendIf(events, AppendCondition.empty());
 
         // When: query first page
         Query query = Query.forEventsAndTags(
@@ -86,7 +87,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
     void shouldQueryWithTypeAndTagFiltering() {
         // Given: wallet with different event types
         String walletId = "query-wallet-2";
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Bob", 1000))
@@ -101,7 +102,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
                         .tag("withdrawal_id", "withdrawal1")
                         .data(WithdrawalMade.of("withdrawal1", walletId, 200, 1300, "Withdrawal"))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // When: query only deposit events
         Query depositQuery = Query.forEventAndTag("DepositMade", "wallet_id", walletId);
@@ -117,12 +118,12 @@ class EventStoreQueryTest extends AbstractCrabletTest {
     void shouldReturnEmptyResultsWhenNoMatchingEvents() {
         // Given: wallet exists
         String walletId = "query-wallet-3";
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Charlie", 1000))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // When: query for non-existent event type
         Query query = Query.forEventAndTag("DepositMade", "wallet_id", walletId);
@@ -137,12 +138,12 @@ class EventStoreQueryTest extends AbstractCrabletTest {
     void shouldHandleInvalidCursorGracefully() {
         // Given: wallet with one event
         String walletId = "query-wallet-4";
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Diana", 1000))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // When: query with cursor beyond existing events
         Cursor futureCursor = Cursor.of(
@@ -175,7 +176,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
                     .data(DepositMade.of("deposit" + i, walletId, 100, 1000 + i * 100, "Deposit " + i))
                     .build());
         }
-        eventStore.append(events);
+        eventStore.appendIf(events, AppendCondition.empty());
 
         // When: query with cursor pagination
         Query query = Query.forEventsAndTags(
@@ -203,7 +204,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
     void shouldQueryWithMultipleTagFilters() {
         // Given: transfer event with multiple tags
         String transferId = "transfer-1";
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", "wallet-from")
                         .data(WalletOpened.of("wallet-from", "Sender", 2000))
@@ -214,7 +215,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
                         .tag("to_wallet_id", "wallet-to")
                         .data(MoneyTransferred.of(transferId, "wallet-from", "wallet-to", 500, 1500, 2500, "Transfer"))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // When: query transfer by transfer_id
         Query query = Query.forEventAndTag("MoneyTransferred", "transfer_id", transferId);
@@ -233,12 +234,12 @@ class EventStoreQueryTest extends AbstractCrabletTest {
     void shouldHandleQueryWithEmptyQueryItems() {
         // Given: events exist
         String walletId = "query-wallet-6";
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Frank", 1000))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // When: query with empty items (should match all events)
         Query emptyQuery = Query.empty();
@@ -253,7 +254,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
     void shouldProjectWithQueryAndCursor() {
         // Given: wallet with events
         String walletId = "query-wallet-7";
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Grace", 1000))
@@ -263,7 +264,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
                         .tag("deposit_id", "deposit1")
                         .data(DepositMade.of("deposit1", walletId, 500, 1500, "Deposit"))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // When: project with wallet balance projector
         Query query = Query.forEventsAndTags(
@@ -287,7 +288,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
     @DisplayName("Should query with multiple query items")
     void shouldQueryWithMultipleQueryItems() {
         // Given: events with different tags
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", "wallet-1")
                         .data(WalletOpened.of("wallet-1", "Alice", 1000))
@@ -296,7 +297,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
                         .tag("wallet_id", "wallet-2")
                         .data(WalletOpened.of("wallet-2", "Bob", 2000))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // When: query with multiple query items (OR logic)
         Query query = Query.of(List.of(
@@ -314,7 +315,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
     void shouldHandleCursorAtExactPosition() {
         // Given: wallet with multiple events
         String walletId = "query-wallet-8";
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Henry", 1000))
@@ -329,7 +330,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
                         .tag("deposit_id", "deposit2")
                         .data(DepositMade.of("deposit2", walletId, 300, 1800, "Deposit"))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // When: query all events
         Query query = Query.forEventsAndTags(

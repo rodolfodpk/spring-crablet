@@ -1,5 +1,6 @@
 package com.crablet.metrics.micrometer.integration;
 
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.examples.wallet.domain.event.DepositMade;
 import com.crablet.examples.wallet.domain.event.WalletOpened;
@@ -33,7 +34,7 @@ class EventStoreMetricsIntegrationTest extends AbstractMetricsIntegrationTest {
                         .data(WalletOpened.of("wallet1", "Alice", 1000))
                         .build()
         );
-        eventStore.append(events);
+        eventStore.appendIf(events, AppendCondition.empty());
 
         // Then: MicrometerMetricsCollector should have recorded the metric
         Counter finalCounter = meterRegistry.find("eventstore.events.appended").counter();
@@ -45,20 +46,20 @@ class EventStoreMetricsIntegrationTest extends AbstractMetricsIntegrationTest {
     @DisplayName("Should collect event type metrics via Spring Events")
     void shouldCollectEventTypeMetrics() {
         // When: append events with different types
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", "wallet2")
                         .data(WalletOpened.of("wallet2", "Bob", 1000))
                         .build()
-        ));
+        ), AppendCondition.empty());
         
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("DepositMade")
                         .tag("wallet_id", "wallet2")
                         .tag("deposit_id", "deposit1")
                         .data(DepositMade.of("deposit1", "wallet2", 500, 1500, "Test"))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // Then: event type metrics should be recorded
         Counter walletOpenedCounter = meterRegistry.find("eventstore.events.by_type")
@@ -93,7 +94,7 @@ class EventStoreMetricsIntegrationTest extends AbstractMetricsIntegrationTest {
                         .data(DepositMade.of("deposit2", "wallet3", 200, 1200, "Batch"))
                         .build()
         );
-        eventStore.append(events);
+        eventStore.appendIf(events, AppendCondition.empty());
 
         // Then: events.appended should reflect the batch size
         Counter finalCounter = meterRegistry.find("eventstore.events.appended").counter();

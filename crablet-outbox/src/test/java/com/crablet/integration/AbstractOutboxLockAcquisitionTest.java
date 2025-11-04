@@ -2,6 +2,7 @@ package com.crablet.integration;
 
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.processor.OutboxProcessorImpl;
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +50,7 @@ abstract class AbstractOutboxLockAcquisitionTest extends AbstractCrabletTest {
                 .data("{\"test\":\"data1\"}".getBytes())
                 .build()
         );
-        eventStore.append(events);
+        eventStore.appendIf(events, AppendCondition.empty());
         
         // Trigger initial processing to auto-register publishers and acquire locks
         outboxProcessor.processPending();
@@ -83,7 +84,7 @@ abstract class AbstractOutboxLockAcquisitionTest extends AbstractCrabletTest {
                 .build()
         );
         
-        eventStore.append(events);
+        eventStore.appendIf(events, AppendCondition.empty());
         
         // When - Process events (locks already acquired at startup)
         int processed = outboxProcessor.processPending();
@@ -117,7 +118,7 @@ abstract class AbstractOutboxLockAcquisitionTest extends AbstractCrabletTest {
                 .build()
         );
         
-        eventStore.append(events);
+        eventStore.appendIf(events, AppendCondition.empty());
         
         // When - Process events multiple times
         int processed1 = outboxProcessor.processPending();

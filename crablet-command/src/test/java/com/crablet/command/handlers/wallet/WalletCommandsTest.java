@@ -1,5 +1,6 @@
 package com.crablet.command.handlers.wallet;
 
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
 import com.crablet.eventstore.store.EventStore;
@@ -57,10 +58,10 @@ class WalletCommandsTest extends com.crablet.eventstore.integration.AbstractCrab
     void shouldSuccessfullyDepositMoneyIntoExistingWallet() throws Exception {
         // Given: An existing wallet
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
-        eventStore.append(List.of(AppendEvent.builder("WalletOpened")
+        eventStore.appendIf(List.of(AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", "wallet1")
                 .data(walletOpened)
-                .build()));
+                .build()), AppendCondition.empty());
 
         // When: Depositing money
         DepositCommand depositCmd = DepositCommand.of("deposit1", "wallet1", 500, "Salary deposit");
@@ -101,10 +102,10 @@ class WalletCommandsTest extends com.crablet.eventstore.integration.AbstractCrab
     void shouldSuccessfullyWithdrawMoneyFromExistingWallet() throws Exception {
         // Given: An existing wallet with sufficient balance
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
-        eventStore.append(List.of(AppendEvent.builder("WalletOpened")
+        eventStore.appendIf(List.of(AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", "wallet1")
                 .data(walletOpened)
-                .build()));
+                .build()), AppendCondition.empty());
 
         // When: Withdrawing money
         WithdrawCommand withdrawCmd = WithdrawCommand.of("withdrawal1", "wallet1", 300, "Shopping");
@@ -123,10 +124,10 @@ class WalletCommandsTest extends com.crablet.eventstore.integration.AbstractCrab
     void shouldFailToWithdrawMoreThanAvailableBalance() throws Exception {
         // Given: An existing wallet with limited balance
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 100);
-        eventStore.append(List.of(AppendEvent.builder("WalletOpened")
+        eventStore.appendIf(List.of(AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", "wallet1")
                 .data(walletOpened)
-                .build()));
+                .build()), AppendCondition.empty());
 
         // When: Withdrawing more than available
         WithdrawCommand withdrawCmd = WithdrawCommand.of("withdrawal1", "wallet1", 200, "Shopping");

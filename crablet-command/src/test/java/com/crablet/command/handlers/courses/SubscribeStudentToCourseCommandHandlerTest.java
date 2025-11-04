@@ -1,5 +1,6 @@
 package com.crablet.command.handlers.courses;
 
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
 import com.crablet.examples.courses.features.subscribe.SubscribeStudentToCourseCommand;
@@ -52,7 +53,7 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
                 .data(courseEvent.data())
                 .tag("course_id", "c1")
                 .build();
-        eventStore.append(List.of(courseInputEvent));
+        eventStore.appendIf(List.of(courseInputEvent), AppendCondition.empty());
 
         SubscribeStudentToCourseCommand cmd = SubscribeStudentToCourseCommand.of("s1", "c1");
 
@@ -91,7 +92,7 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
                 .data(courseEvent.data())
                 .tag("course_id", "c1")
                 .build();
-        eventStore.append(List.of(courseInputEvent));
+        eventStore.appendIf(List.of(courseInputEvent), AppendCondition.empty());
 
         // Subscribe 3 students (fill the course)
         for (int i = 1; i <= 3; i++) {
@@ -118,7 +119,7 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
                 .data(courseEvent.data())
                 .tag("course_id", "c1")
                 .build();
-        eventStore.append(List.of(courseInputEvent));
+        eventStore.appendIf(List.of(courseInputEvent), AppendCondition.empty());
 
         SubscribeStudentToCourseCommand firstCmd = SubscribeStudentToCourseCommand.of("s1", "c1");
         CommandResult firstResult = handler.handle(eventStore, firstCmd);
@@ -143,7 +144,7 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
                     .data(courseEvent.data())
                     .tag("course_id", "c" + i)
                     .build();
-            eventStore.append(List.of(courseInputEvent));
+            eventStore.appendIf(List.of(courseInputEvent), AppendCondition.empty());
 
             SubscribeStudentToCourseCommand cmd = SubscribeStudentToCourseCommand.of("s1", "c" + i);
             CommandResult result = handler.handle(eventStore, cmd);
@@ -157,7 +158,7 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
                 .data(courseEvent.data())
                 .tag("course_id", "c6")
                 .build();
-        eventStore.append(List.of(courseInputEvent));
+        eventStore.appendIf(List.of(courseInputEvent), AppendCondition.empty());
 
         // Try to subscribe to 6th course (exceeds limit of 5)
         SubscribeStudentToCourseCommand cmd = SubscribeStudentToCourseCommand.of("s1", "c6");

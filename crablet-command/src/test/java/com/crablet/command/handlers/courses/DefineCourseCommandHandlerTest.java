@@ -1,5 +1,6 @@
 package com.crablet.command.handlers.courses;
 
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
 import com.crablet.examples.courses.features.definecourse.DefineCourseCommand;
@@ -74,7 +75,7 @@ class DefineCourseCommandHandlerTest extends AbstractCrabletTest {
                 .data(existingEvent.data())
                 .tag("course_id", "c1")
                 .build();
-        eventStore.append(List.of(existingInputEvent));
+        eventStore.appendIf(List.of(existingInputEvent), AppendCondition.empty());
 
         DefineCourseCommand cmd = DefineCourseCommand.of("c1", 10);
 

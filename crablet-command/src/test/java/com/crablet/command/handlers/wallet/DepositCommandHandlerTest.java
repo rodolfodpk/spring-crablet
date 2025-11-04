@@ -1,5 +1,6 @@
 package com.crablet.command.handlers.wallet;
 
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
 import com.crablet.examples.wallet.features.deposit.DepositCommand;
@@ -55,7 +56,7 @@ class DepositCommandHandlerTest extends com.crablet.eventstore.integration.Abstr
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
                 .build();
-        eventStore.append(List.of(walletInputEvent));
+        eventStore.appendIf(List.of(walletInputEvent), AppendCondition.empty());
 
         DepositCommand cmd = DepositCommand.of("deposit1", "wallet1", 500, "Bonus payment");
 
@@ -131,7 +132,7 @@ class DepositCommandHandlerTest extends com.crablet.eventstore.integration.Abstr
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
                 .build();
-        eventStore.append(List.of(walletInputEvent));
+        eventStore.appendIf(List.of(walletInputEvent), AppendCondition.empty());
 
         // Act - deposit should only project balance + existence, not full WalletState
         DepositCommand cmd = DepositCommand.of("deposit1", "wallet1", 200, "Test deposit");
@@ -157,7 +158,7 @@ class DepositCommandHandlerTest extends com.crablet.eventstore.integration.Abstr
                 .data(walletEvent.data())
                 .tag("wallet_id", walletId)
                 .build();
-        eventStore.append(List.of(walletInputEvent));
+        eventStore.appendIf(List.of(walletInputEvent), AppendCondition.empty());
 
         DepositCommand cmd = DepositCommand.of("deposit1", walletId, 100, description);
 

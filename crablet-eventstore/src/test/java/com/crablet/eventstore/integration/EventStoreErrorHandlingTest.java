@@ -38,12 +38,12 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleAppendIfWithCurrentCursor() {
         // Given: wallet with initial event
         String walletId = "error-wallet-1";
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Alice", 1000))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // Get initial cursor
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
@@ -84,12 +84,12 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
         // When: exception thrown in transaction
         assertThatThrownBy(() ->
                 eventStore.executeInTransaction(txEventStore -> {
-                    txEventStore.append(List.of(
+                    txEventStore.appendIf(List.of(
                             AppendEvent.builder("WalletOpened")
                                     .tag("wallet_id", walletId)
                                     .data(WalletOpened.of(walletId, "Bob", 1000))
                                     .build()
-                    ));
+                    ), AppendCondition.empty());
                     throw new RuntimeException("Simulated error");
                 })
         ).isInstanceOf(RuntimeException.class);
@@ -105,12 +105,12 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleNullCursor() {
         // Given: wallet exists
         String walletId = "error-wallet-3";
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Charlie", 1000))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // When: query with null cursor
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
@@ -127,12 +127,12 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
         String walletId = "error-wallet-4";
         
         // When: append event with valid data
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Diana", 1000))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // Then: should succeed
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
@@ -145,22 +145,22 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleConcurrentAppendsGracefully() {
         // Given: wallet with initial event
         String walletId = "error-wallet-5";
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Eve", 1000))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // When: multiple sequential appends
         for (int i = 1; i <= 5; i++) {
-            eventStore.append(List.of(
+            eventStore.appendIf(List.of(
                     AppendEvent.builder("DepositMade")
                             .tag("wallet_id", walletId)
                             .tag("deposit_id", "deposit" + i)
                             .data(DepositMade.of("deposit" + i, walletId, 100 * i, 1000 + 100 * i, "Deposit " + i))
                             .build()
-            ));
+            ), AppendCondition.empty());
         }
 
         // Then: all events should exist
@@ -199,12 +199,12 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleAppendIfWithFutureCursor() {
         // Given: wallet exists
         String walletId = "error-wallet-7";
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Frank", 1000))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
 
@@ -234,12 +234,12 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleTagParsingForEmptyArrays() {
         // Given: wallet with tags
         String walletId = "error-wallet-8";
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Grace", 1000))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // When: query events
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
@@ -259,12 +259,12 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
         String walletId = "error-wallet-9";
         
         // When: append event
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Henry", 1000))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // Then: transaction ID should be captured
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
@@ -279,7 +279,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
         // Given: transfer event with multiple tags
         String transferId = "error-transfer-1";
         
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", "wallet-from")
                         .data(WalletOpened.of("wallet-from", "Sender", 2000))
@@ -291,7 +291,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
                         .tag("status", "completed")
                         .data(MoneyTransferred.of(transferId, "wallet-from", "wallet-to", 500, 1500, 2500, "Transfer"))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // When: query by transfer_id
         Query query = Query.forEventAndTag("MoneyTransferred", "transfer_id", transferId);
@@ -325,12 +325,12 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
         // When & Then - Should throw EventStoreException on serialization
         // The exception wraps the JsonProcessingException with "Failed to append events"
         assertThatThrownBy(() ->
-                eventStore.append(List.of(
+                eventStore.appendIf(List.of(
                         AppendEvent.builder("CircularEvent")
                                 .tag("event_id", "circular-1")
                                 .data(event) // Will fail to serialize
                                 .build()
-                ))
+                ), AppendCondition.empty())
         ).isInstanceOf(com.crablet.eventstore.store.EventStoreException.class)
          .hasMessageContaining("Failed to append events");
     }
@@ -340,12 +340,12 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
     void shouldThrowExceptionWhenDeserializingToWrongType() {
         // Given: WalletOpened event stored
         String walletId = "deser-wallet-1";
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Alice", 1000))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
         List<StoredEvent> events = eventRepository.query(query, null);
@@ -377,12 +377,12 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
         String walletId = "malformed-wallet-1";
         
         // Store event with valid data first
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Bob", 1000))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // Manually corrupt the data in database
         // We can't directly modify the database in unit tests, but we can test
@@ -424,12 +424,12 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
 
         // When & Then - AppendEvent.builder() throws IllegalArgumentException when data is null
         assertThatThrownBy(() ->
-                eventStore.append(List.of(
+                eventStore.appendIf(List.of(
                         AppendEvent.builder("WalletOpened")
                                 .tag("wallet_id", walletId)
                                 .data((String) null) // Null string - rejected by builder
                                 .build()
-                ))
+                ), AppendCondition.empty())
         ).isInstanceOf(IllegalArgumentException.class)
          .hasMessageContaining("Event data cannot be null");
     }
@@ -475,12 +475,12 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
         String jsonData = "{\"walletId\":\"" + walletId + "\",\"owner\":\"Charlie\",\"initialBalance\":1000}";
 
         // When: Append event with String data
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(jsonData) // String data (already JSON)
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // Then: Should succeed (serialization handles String data)
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
@@ -503,12 +503,12 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
         // Note: AppendEvent.builder().data() accepts Object, EventStoreImpl handles byte[] internally,
         // but we convert to String here to match the API
         String jsonData = new String(jsonBytes, java.nio.charset.StandardCharsets.UTF_8);
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(jsonData) // String data (converted from byte[])
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         // Then: Should succeed (serialization handles the data correctly)
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
@@ -560,12 +560,12 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
     void shouldHandleDeserializationDuringProjectionWithInvalidEventData() {
         // Given: Event with valid structure stored
         String walletId = "projection-deser-wallet-1";
-        eventStore.append(List.of(
+        eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Eve", 1000))
                         .build()
-        ));
+        ), AppendCondition.empty());
 
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
 
@@ -595,12 +595,12 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
         // When & Then - Should throw EventStoreException on serialization
         // The exception wraps the JsonProcessingException with "Failed to append events"
         assertThatThrownBy(() ->
-                eventStore.append(List.of(
+                eventStore.appendIf(List.of(
                         AppendEvent.builder("NonSerializableEvent")
                                 .tag("event_id", "non-serializable-1")
                                 .data(event) // Will fail to serialize (no default constructor + private fields)
                                 .build()
-                ))
+                ), AppendCondition.empty())
         ).isInstanceOf(com.crablet.eventstore.store.EventStoreException.class)
          .hasMessageContaining("Failed to append events");
     }

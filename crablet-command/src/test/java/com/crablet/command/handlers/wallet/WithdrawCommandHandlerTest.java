@@ -1,5 +1,6 @@
 package com.crablet.command.handlers.wallet;
 
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
 import com.crablet.examples.wallet.features.withdraw.WithdrawCommand;
@@ -56,7 +57,7 @@ class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.Abst
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
                 .build();
-        eventStore.append(List.of(walletInputEvent));
+        eventStore.appendIf(List.of(walletInputEvent), AppendCondition.empty());
 
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", "wallet1", 300, "Shopping");
 
@@ -114,7 +115,7 @@ class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.Abst
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
                 .build();
-        eventStore.append(List.of(walletInputEvent));
+        eventStore.appendIf(List.of(walletInputEvent), AppendCondition.empty());
 
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", "wallet1", 200, "Overdraft");
 
@@ -154,7 +155,7 @@ class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.Abst
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
                 .build();
-        eventStore.append(List.of(walletInputEvent));
+        eventStore.appendIf(List.of(walletInputEvent), AppendCondition.empty());
 
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", "wallet1", 500, "Full withdrawal");
 
@@ -177,7 +178,7 @@ class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.Abst
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
                 .build();
-        eventStore.append(List.of(walletInputEvent));
+        eventStore.appendIf(List.of(walletInputEvent), AppendCondition.empty());
 
         // Act - withdrawal should only project balance + existence, not full WalletState
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", "wallet1", 200, "Test withdrawal");
@@ -203,7 +204,7 @@ class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.Abst
                 .data(walletEvent.data())
                 .tag("wallet_id", walletId)
                 .build();
-        eventStore.append(List.of(walletInputEvent));
+        eventStore.appendIf(List.of(walletInputEvent), AppendCondition.empty());
 
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", walletId, 100, description);
 

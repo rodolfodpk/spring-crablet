@@ -1,5 +1,6 @@
 package com.crablet.metrics.micrometer.integration;
 
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.examples.wallet.domain.event.WalletOpened;
 import com.crablet.outbox.OutboxPublisher;
@@ -37,7 +38,7 @@ class OutboxMetricsIntegrationTest extends AbstractMetricsIntegrationTest {
                         .data(WalletOpened.of("wallet1", "Alice", 1000))
                         .build()
         );
-        eventStore.append(events);
+        eventStore.appendIf(events, AppendCondition.empty());
 
         // Verify initial state
         Counter publishedCounter = meterRegistry.find("outbox.events.published")

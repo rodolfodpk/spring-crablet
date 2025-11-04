@@ -1,5 +1,6 @@
 package com.crablet.command.handlers.courses;
 
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
 import com.crablet.examples.courses.features.changecapacity.ChangeCourseCapacityCommand;
@@ -47,7 +48,7 @@ class ChangeCourseCapacityCommandHandlerTest extends AbstractCrabletTest {
                 .data(courseEvent.data())
                 .tag("course_id", "c1")
                 .build();
-        eventStore.append(List.of(courseInputEvent));
+        eventStore.appendIf(List.of(courseInputEvent), AppendCondition.empty());
 
         ChangeCourseCapacityCommand cmd = ChangeCourseCapacityCommand.of("c1", 15);
 
@@ -84,7 +85,7 @@ class ChangeCourseCapacityCommandHandlerTest extends AbstractCrabletTest {
                 .data(courseEvent.data())
                 .tag("course_id", "c1")
                 .build();
-        eventStore.append(List.of(courseInputEvent));
+        eventStore.appendIf(List.of(courseInputEvent), AppendCondition.empty());
 
         ChangeCourseCapacityCommand cmd = ChangeCourseCapacityCommand.of("c1", 10);
 

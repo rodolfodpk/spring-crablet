@@ -14,16 +14,10 @@ import java.util.function.Function;
 public interface EventStore {
 
     /**
-     * Append appends events to the store without any consistency/concurrency checks.
-     * Use this only when there are no business rules or consistency requirements.
-     * For operations that require DCB concurrency control, use appendIf instead.
-     */
-    void append(List<AppendEvent> events);
-
-    /**
      * AppendIf appends events to the store with explicit DCB concurrency control.
      * This method makes it clear when consistency/concurrency checks are required.
      * Use this for operations that need to ensure data hasn't changed since projection.
+     * For simple appends without concurrency checks, use AppendCondition.empty().
      */
     void appendIf(List<AppendEvent> events, AppendCondition condition);
 

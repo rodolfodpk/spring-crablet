@@ -65,7 +65,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
                 .tag("wallet_id", "wallet2")
                 .build();
 
-        eventStore.append(List.of(fromWalletInputEvent, toWalletInputEvent));
+        eventStore.appendIf(List.of(fromWalletInputEvent, toWalletInputEvent), AppendCondition.empty());
 
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", "wallet1", "wallet2", 300, "Payment");
 
@@ -118,7 +118,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
                 .data(toWalletEvent.data())
                 .tag("wallet_id", "wallet1")
                 .build();
-        eventStore.append(List.of(toWalletInputEvent));
+        eventStore.appendIf(List.of(toWalletInputEvent), AppendCondition.empty());
 
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", "nonexistent", "wallet2", 100, "Payment");
 
@@ -138,7 +138,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
                 .data(fromWalletEvent.data())
                 .tag("wallet_id", "wallet1")
                 .build();
-        eventStore.append(List.of(fromWalletInputEvent));
+        eventStore.appendIf(List.of(fromWalletInputEvent), AppendCondition.empty());
 
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", "wallet1", "nonexistent", 100, "Payment");
 
@@ -167,7 +167,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
                 .tag("wallet_id", "wallet2")
                 .build();
 
-        eventStore.append(List.of(fromWalletInputEvent, toWalletInputEvent));
+        eventStore.appendIf(List.of(fromWalletInputEvent, toWalletInputEvent), AppendCondition.empty());
 
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", "wallet1", "wallet2", 200, "Payment");
 
@@ -216,7 +216,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
                 .tag("wallet_id", "wallet2")
                 .build();
 
-        eventStore.append(List.of(fromWalletInputEvent, toWalletInputEvent));
+        eventStore.appendIf(List.of(fromWalletInputEvent, toWalletInputEvent), AppendCondition.empty());
 
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", "wallet1", "wallet2", 500, "Full transfer");
 
@@ -249,7 +249,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
                 .tag("wallet_id", "wallet2")
                 .build();
 
-        eventStore.append(List.of(fromWalletInputEvent, toWalletInputEvent));
+        eventStore.appendIf(List.of(fromWalletInputEvent, toWalletInputEvent), AppendCondition.empty());
 
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", "wallet1", "wallet2", 300, "Payment");
 
@@ -290,7 +290,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
                 .tag("wallet_id", "wallet2")
                 .build();
 
-        eventStore.append(List.of(fromWalletInputEvent, toWalletInputEvent));
+        eventStore.appendIf(List.of(fromWalletInputEvent, toWalletInputEvent), AppendCondition.empty());
 
         // Act - transfer should only project balances for both wallets, not full WalletState
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", "wallet1", "wallet2", 200, "Test transfer");
@@ -326,7 +326,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
                 .tag("wallet_id", toWalletId)
                 .build();
 
-        eventStore.append(List.of(fromWalletInputEvent, toWalletInputEvent));
+        eventStore.appendIf(List.of(fromWalletInputEvent, toWalletInputEvent), AppendCondition.empty());
 
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", fromWalletId, toWalletId, transferAmount, description);
 

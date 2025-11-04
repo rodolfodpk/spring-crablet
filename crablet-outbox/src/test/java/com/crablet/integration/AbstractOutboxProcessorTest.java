@@ -1,5 +1,6 @@
 package com.crablet.integration;
 
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.processor.OutboxProcessorImpl;
 import com.crablet.eventstore.store.AppendEvent;
@@ -57,7 +58,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
             .data("{\"test\":\"data\"}".getBytes())
             .build();
         
-        eventStore.append(List.of(event));
+        eventStore.appendIf(List.of(event), AppendCondition.empty());
         
         // Process outbox
         outboxProcessor.processPending();
@@ -102,7 +103,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
             .data("{\"test\":\"data\"}".getBytes())
             .build();
         
-        eventStore.append(List.of(event));
+        eventStore.appendIf(List.of(event), AppendCondition.empty());
         
         // Process outbox
         int processed = outboxProcessor.processPending();
@@ -158,7 +159,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
                 .build()
         );
         
-        eventStore.append(events);
+        eventStore.appendIf(events, AppendCondition.empty());
         
         // Process outbox
         int processed = outboxProcessor.processPending();
@@ -213,7 +214,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
                 .build()
         );
         
-        eventStore.append(events);
+        eventStore.appendIf(events, AppendCondition.empty());
         
         // Process outbox
         int processed = outboxProcessor.processPending();
@@ -262,7 +263,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
             .data("{\"test\":\"failure\"}".getBytes())
             .build();
 
-        eventStore.append(List.of(event));
+        eventStore.appendIf(List.of(event), AppendCondition.empty());
 
         // When - Process events (this should succeed)
         int processed = outboxProcessor.processPending();
@@ -302,7 +303,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
                 .build()
         );
 
-        eventStore.append(events);
+        eventStore.appendIf(events, AppendCondition.empty());
 
         // When - Process events
         int processed = outboxProcessor.processPending();
@@ -338,7 +339,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
                 .build()
         );
 
-        eventStore.append(firstBatch);
+        eventStore.appendIf(firstBatch, AppendCondition.empty());
         int firstProcessed = outboxProcessor.processPending();
         assertThat(firstProcessed).isGreaterThan(0);
 
@@ -363,7 +364,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
             .data("{\"batch\":2}".getBytes())
             .build();
 
-        eventStore.append(List.of(newEvent));
+        eventStore.appendIf(List.of(newEvent), AppendCondition.empty());
         int secondProcessed = outboxProcessor.processPending();
 
         // Then - Should process only new events, not repeat old ones
@@ -410,7 +411,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
                 .build()
         );
 
-        eventStore.append(events);
+        eventStore.appendIf(events, AppendCondition.empty());
 
         // When - Process multiple times to simulate concurrent processing
         int totalProcessed = 0;
@@ -485,7 +486,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
                 .build()
         );
 
-        eventStore.append(events);
+        eventStore.appendIf(events, AppendCondition.empty());
 
         // When - Process events
         int processed = outboxProcessor.processPending();
@@ -520,7 +521,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
                 .build());
         }
 
-        eventStore.append(events);
+        eventStore.appendIf(events, AppendCondition.empty());
 
         // When - Process large batch
         int processed = outboxProcessor.processPending();

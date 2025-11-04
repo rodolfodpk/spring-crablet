@@ -130,7 +130,7 @@ CREATE OR REPLACE FUNCTION append_events_batch(
 ) RETURNS VOID
 ```
 
-Used by `EventStore.append()` for simple event insertion. Supports application-controlled timestamps for deterministic testing.
+Used internally by `EventStore.appendIf()` (via the package-private `append()` method) for simple event insertion. Supports application-controlled timestamps for deterministic testing.
 
 ### append_events_if()
 

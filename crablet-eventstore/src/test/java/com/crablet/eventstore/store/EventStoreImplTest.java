@@ -1,5 +1,6 @@
 package com.crablet.eventstore.store;
 
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.clock.ClockProviderImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -101,7 +102,7 @@ class EventStoreImplTest {
                 .build();
 
         // When - This call should be tracked by JaCoCo
-        assertDoesNotThrow(() -> eventStore.append(List.of(appendEvent)));
+        assertDoesNotThrow(() -> eventStore.appendIf(List.of(appendEvent), AppendCondition.empty()));
 
         // Then - Event was persisted successfully
         assertTrue(true, "Event appended without exception");
@@ -129,7 +130,7 @@ class EventStoreImplTest {
         );
 
         // When
-        assertDoesNotThrow(() -> eventStore.append(events));
+        assertDoesNotThrow(() -> eventStore.appendIf(events, AppendCondition.empty()));
 
         // Then
         assertTrue(true, "Multiple events appended without exception");
@@ -149,7 +150,7 @@ class EventStoreImplTest {
                     .data(event)
                     .build();
 
-            txEventStore.append(List.of(appendEvent));
+            txEventStore.appendIf(List.of(appendEvent), AppendCondition.empty());
             return testId;
         });
 

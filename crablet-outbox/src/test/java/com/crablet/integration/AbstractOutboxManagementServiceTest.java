@@ -3,6 +3,7 @@ package com.crablet.integration;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.management.OutboxManagementService;
 import com.crablet.outbox.processor.OutboxProcessorImpl;
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import org.junit.jupiter.api.Test;
@@ -45,7 +46,7 @@ abstract class AbstractOutboxManagementServiceTest extends AbstractCrabletTest {
             .data("{\"test\":\"pause\"}".getBytes())
             .build();
         
-        eventStore.append(List.of(event));
+        eventStore.appendIf(List.of(event), AppendCondition.empty());
         
         // Process to register publisher
         outboxProcessor.processPending();
@@ -84,7 +85,7 @@ abstract class AbstractOutboxManagementServiceTest extends AbstractCrabletTest {
             .data("{\"test\":\"status\"}".getBytes())
             .build();
         
-        eventStore.append(List.of(event));
+        eventStore.appendIf(List.of(event), AppendCondition.empty());
         
         // Process to register publishers
         outboxProcessor.processPending();

@@ -1,5 +1,6 @@
 package com.crablet.integration;
 
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.outbox.config.OutboxConfig;
@@ -76,7 +77,7 @@ class GlobalStatisticsTest extends AbstractCrabletTest {
         );
         
         // When
-        eventStore.append(events);
+        eventStore.appendIf(events, AppendCondition.empty());
         int processed = outboxProcessor.processPending();
         
         // Then
@@ -116,7 +117,7 @@ class GlobalStatisticsTest extends AbstractCrabletTest {
         );
         
         // When
-        eventStore.append(events);
+        eventStore.appendIf(events, AppendCondition.empty());
         int processed = outboxProcessor.processPending();
         
         // Then
@@ -143,7 +144,7 @@ class GlobalStatisticsTest extends AbstractCrabletTest {
         );
         
         // When - process first batch
-        eventStore.append(firstBatch);
+        eventStore.appendIf(firstBatch, AppendCondition.empty());
         int firstProcessed = outboxProcessor.processPending();
         
         // Then - verify initial statistics
@@ -160,7 +161,7 @@ class GlobalStatisticsTest extends AbstractCrabletTest {
         );
         
         // When - process second batch
-        eventStore.append(secondBatch);
+        eventStore.appendIf(secondBatch, AppendCondition.empty());
         int secondProcessed = outboxProcessor.processPending();
         
         // Then - verify accumulated statistics
