@@ -1,5 +1,7 @@
 package com.crablet.examples.wallet.period;
 
+import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
+import com.crablet.eventstore.period.PeriodType;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.examples.wallet.WalletQueryPatterns;
 import com.crablet.examples.wallet.projections.WalletBalanceProjector;

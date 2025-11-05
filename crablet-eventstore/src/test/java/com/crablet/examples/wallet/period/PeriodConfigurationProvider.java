@@ -1,5 +1,7 @@
 package com.crablet.examples.wallet.period;
 
+import com.crablet.eventstore.period.PeriodConfig;
+import com.crablet.eventstore.period.PeriodType;
 import org.springframework.stereotype.Component;
 
 /**
@@ -7,6 +9,12 @@ import org.springframework.stereotype.Component;
  * <p>
  * Reads {@link PeriodConfig} annotation from command classes or their parent interfaces
  * to determine the period type for wallet operations.
+ * <p>
+ * This is an <strong>opt-in feature</strong>. Commands without {@link PeriodConfig}
+ * annotation default to {@link PeriodType#NONE} (no period segmentation) and work normally.
+ * <p>
+ * This is an example implementation for the wallet domain. Users implementing
+ * the closing books pattern can create their own PeriodConfigurationProvider.
  */
 @Component
 public class PeriodConfigurationProvider {
@@ -18,10 +26,10 @@ public class PeriodConfigurationProvider {
      * 1. The command class itself
      * 2. Parent interfaces (e.g., WalletCommand interface)
      * <p>
-     * Returns MONTHLY as default if no annotation is found.
+     * Returns NONE as default if no annotation is found.
      *
      * @param commandClass The command class to check
-     * @return The period type configured for this command, or MONTHLY if not specified
+     * @return The period type configured for this command, or NONE if not specified
      */
     public PeriodType getPeriodType(Class<?> commandClass) {
         // Check command class itself
@@ -38,8 +46,8 @@ public class PeriodConfigurationProvider {
             }
         }
 
-        // Default to MONTHLY
-        return PeriodType.MONTHLY;
+        // Default to NONE
+        return PeriodType.NONE;
     }
 }
 

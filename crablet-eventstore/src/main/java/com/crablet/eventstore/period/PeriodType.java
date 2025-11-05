@@ -1,37 +1,36 @@
-package com.crablet.examples.wallet.period;
+package com.crablet.eventstore.period;
 
 /**
- * Enum representing different period types for wallet statement segmentation.
- * Used in the closing the books pattern to segment wallet events by time periods.
+ * Enum representing different period types for event segmentation.
+ * <p>
+ * Used in the closing the books pattern to segment events by time periods.
+ * Period segmentation is an event organization strategy that allows queries
+ * to filter events by time periods, improving performance for large event histories.
  */
 public enum PeriodType {
     /**
      * Hourly statements - creates a new statement period each hour.
-     * Statement ID format: wallet:{walletId}:{year}-{month}-{day}-{hour}
      */
     HOURLY,
     
     /**
      * Daily statements - creates a new statement period each day.
-     * Statement ID format: wallet:{walletId}:{year}-{month}-{day}
      */
     DAILY,
     
     /**
      * Monthly statements - creates a new statement period each month.
-     * Statement ID format: wallet:{walletId}:{year}-{month}
-     * This is the default period type.
      */
     MONTHLY,
     
     /**
      * Yearly statements - creates a new statement period each year.
-     * Statement ID format: wallet:{walletId}:{year}
      */
     YEARLY,
     
     /**
      * No period segmentation - all events are in a single period.
+     * This is the default when no period configuration is specified.
      * Used when closing the books pattern is not needed.
      */
     NONE

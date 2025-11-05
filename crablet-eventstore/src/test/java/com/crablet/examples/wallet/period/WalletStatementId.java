@@ -1,5 +1,6 @@
 package com.crablet.examples.wallet.period;
 
+import com.crablet.eventstore.period.PeriodType;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;

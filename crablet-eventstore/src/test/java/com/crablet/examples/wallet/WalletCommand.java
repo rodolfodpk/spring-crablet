@@ -1,7 +1,7 @@
 package com.crablet.examples.wallet;
 
-import com.crablet.examples.wallet.period.PeriodConfig;
-import com.crablet.examples.wallet.period.PeriodType;
+import com.crablet.eventstore.period.PeriodConfig;
+import com.crablet.eventstore.period.PeriodType;
 import com.crablet.examples.wallet.features.deposit.DepositCommand;
 import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
 import com.crablet.examples.wallet.features.transfer.TransferMoneyCommand;

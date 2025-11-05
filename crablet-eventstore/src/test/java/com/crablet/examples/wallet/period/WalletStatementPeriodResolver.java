@@ -1,5 +1,6 @@
 package com.crablet.examples.wallet.period;
 
+import com.crablet.eventstore.period.PeriodType;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.dcb.AppendConditionBuilder;
 import com.crablet.eventstore.dcb.ConcurrencyException;
