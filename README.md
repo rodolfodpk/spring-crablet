@@ -26,8 +26,8 @@ Crablet is a light framework that provides:
 
 **Why "Light"?**
 - Minimal required components:
-  - **Event Store** (`crablet-eventstore`): 0 interfaces to implement - just inject `EventStore` and use `appendIf(..., AppendCondition.empty())` for simple event storage. Implement [`StateProjector<T>`](crablet-eventstore/README.md) only if you need to project state from events (e.g., for business rule validation or DCB concurrency control)
-  - **Command Framework** (`crablet-command`): 1 interface to implement - `CommandHandler<T>` for command handling
+  - **Event Store** (`crablet-eventstore`): 0 interfaces to implement - just inject `EventStore` and use `appendIf(..., AppendCondition.empty())`. Optional: typically 0-1 `StateProjector<T>` per domain (shared) or more if needed
+  - **Command Framework** (`crablet-command`): 1 `CommandHandler<T>` per command type + typically 0-1 `StateProjector<T>` per domain (shared) or 1 per command if needed
   - **Outbox** (`crablet-outbox`): 1 interface to implement - `OutboxPublisher` for event publishing
 - Small API surface (0-1 interfaces to implement per module)
 - No heavy conventions or configuration
