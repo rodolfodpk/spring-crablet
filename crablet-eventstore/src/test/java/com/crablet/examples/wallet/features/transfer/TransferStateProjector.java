@@ -3,12 +3,12 @@ package com.crablet.examples.wallet.features.transfer;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.examples.wallet.domain.event.DepositMade;
-import com.crablet.examples.wallet.domain.event.MoneyTransferred;
-import com.crablet.examples.wallet.domain.event.WalletEvent;
-import com.crablet.examples.wallet.domain.event.WalletOpened;
-import com.crablet.examples.wallet.domain.event.WithdrawalMade;
-import com.crablet.examples.wallet.domain.projections.WalletBalanceState;
+import com.crablet.examples.wallet.event.DepositMade;
+import com.crablet.examples.wallet.event.MoneyTransferred;
+import com.crablet.examples.wallet.event.WalletEvent;
+import com.crablet.examples.wallet.event.WalletOpened;
+import com.crablet.examples.wallet.event.WithdrawalMade;
+import com.crablet.examples.wallet.projections.WalletBalanceState;
 
 import java.util.List;
 

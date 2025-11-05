@@ -1,10 +1,10 @@
-package com.crablet.examples.wallet.domain;
+package com.crablet.examples.wallet;
 
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
 
-import static com.crablet.examples.wallet.domain.WalletEventTypes.*;
-import static com.crablet.examples.wallet.domain.WalletTags.*;
+import static com.crablet.examples.wallet.WalletEventTypes.*;
+import static com.crablet.examples.wallet.WalletTags.*;
 
 /**
  * Reusable query patterns for wallet operations.

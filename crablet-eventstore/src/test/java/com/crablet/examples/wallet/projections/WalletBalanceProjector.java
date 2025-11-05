@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain.projections;
+package com.crablet.examples.wallet.projections;
 
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.store.EventStore;
@@ -6,14 +6,13 @@ import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.examples.wallet.domain.event.DepositMade;
-import com.crablet.examples.wallet.domain.event.MoneyTransferred;
-import com.crablet.examples.wallet.domain.event.WalletEvent;
-import com.crablet.examples.wallet.domain.event.WalletOpened;
-import com.crablet.examples.wallet.domain.event.WalletStatementClosed;
-import com.crablet.examples.wallet.domain.event.WalletStatementOpened;
-import com.crablet.examples.wallet.domain.event.WithdrawalMade;
-import com.crablet.examples.wallet.domain.projections.WalletBalanceState;
+import com.crablet.examples.wallet.event.DepositMade;
+import com.crablet.examples.wallet.event.MoneyTransferred;
+import com.crablet.examples.wallet.event.WalletEvent;
+import com.crablet.examples.wallet.event.WalletOpened;
+import com.crablet.examples.wallet.event.WalletStatementClosed;
+import com.crablet.examples.wallet.event.WalletStatementOpened;
+import com.crablet.examples.wallet.event.WithdrawalMade;
 
 import java.util.List;
 
@@ -129,3 +128,4 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
     }
 
 }
+

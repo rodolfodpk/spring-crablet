@@ -9,7 +9,7 @@ import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
-import com.crablet.examples.wallet.domain.event.WalletOpened;
+import com.crablet.examples.wallet.event.WalletOpened;
 import com.crablet.command.handlers.wallet.WalletTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -6,17 +6,17 @@ import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
 import com.crablet.examples.wallet.features.deposit.DepositCommand;
 import com.crablet.eventstore.store.EventStore;
-import com.crablet.examples.wallet.domain.event.DepositMade;
-import com.crablet.examples.wallet.domain.exception.WalletNotFoundException;
-import com.crablet.examples.wallet.domain.period.WalletPeriodHelper;
+import com.crablet.examples.wallet.event.DepositMade;
+import com.crablet.examples.wallet.exception.WalletNotFoundException;
+import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.examples.wallet.domain.WalletEventTypes.*;
-import static com.crablet.examples.wallet.domain.WalletTags.*;
+import static com.crablet.examples.wallet.WalletEventTypes.*;
+import static com.crablet.examples.wallet.WalletTags.*;
 
 /**
  * Command handler for depositing money into wallets.

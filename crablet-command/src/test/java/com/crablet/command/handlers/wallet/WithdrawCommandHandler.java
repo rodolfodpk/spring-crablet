@@ -8,19 +8,19 @@ import com.crablet.command.CommandResult;
 import com.crablet.examples.wallet.features.withdraw.WithdrawCommand;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.query.Query;
-import com.crablet.examples.wallet.domain.WalletQueryPatterns;
-import com.crablet.examples.wallet.domain.event.WithdrawalMade;
-import com.crablet.examples.wallet.domain.exception.InsufficientFundsException;
-import com.crablet.examples.wallet.domain.exception.WalletNotFoundException;
-import com.crablet.examples.wallet.domain.period.WalletPeriodHelper;
+import com.crablet.examples.wallet.WalletQueryPatterns;
+import com.crablet.examples.wallet.event.WithdrawalMade;
+import com.crablet.examples.wallet.exception.InsufficientFundsException;
+import com.crablet.examples.wallet.exception.WalletNotFoundException;
+import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.examples.wallet.domain.WalletEventTypes.*;
-import static com.crablet.examples.wallet.domain.WalletTags.*;
+import static com.crablet.examples.wallet.WalletEventTypes.*;
+import static com.crablet.examples.wallet.WalletTags.*;
 
 /**
  * Command handler for withdrawing money from wallets.

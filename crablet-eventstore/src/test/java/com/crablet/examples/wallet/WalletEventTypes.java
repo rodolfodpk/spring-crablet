@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain;
+package com.crablet.examples.wallet;
 
 /**
  * Constants for wallet domain event type names.

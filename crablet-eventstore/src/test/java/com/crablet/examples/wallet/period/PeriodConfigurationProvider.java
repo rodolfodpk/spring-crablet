@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain.period;
+package com.crablet.examples.wallet.period;
 
 import org.springframework.stereotype.Component;
 

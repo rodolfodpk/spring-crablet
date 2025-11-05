@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain.period;
+package com.crablet.examples.wallet.period;
 
 import java.time.Instant;
 import java.time.LocalDate;

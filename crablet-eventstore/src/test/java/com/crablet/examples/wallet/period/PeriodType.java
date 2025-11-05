@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain.period;
+package com.crablet.examples.wallet.period;
 
 /**
  * Enum representing different period types for wallet statement segmentation.

@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain.period;
+package com.crablet.examples.wallet.period;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

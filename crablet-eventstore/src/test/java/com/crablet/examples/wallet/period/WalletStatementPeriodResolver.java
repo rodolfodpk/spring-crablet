@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain.period;
+package com.crablet.examples.wallet.period;
 
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.dcb.AppendConditionBuilder;
@@ -11,11 +11,11 @@ import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.examples.wallet.domain.WalletQueryPatterns;
-import com.crablet.examples.wallet.domain.event.WalletStatementClosed;
-import com.crablet.examples.wallet.domain.event.WalletStatementOpened;
-import com.crablet.examples.wallet.domain.projections.WalletBalanceProjector;
-import com.crablet.examples.wallet.domain.projections.WalletBalanceState;
+import com.crablet.examples.wallet.WalletQueryPatterns;
+import com.crablet.examples.wallet.event.WalletStatementClosed;
+import com.crablet.examples.wallet.event.WalletStatementOpened;
+import com.crablet.examples.wallet.projections.WalletBalanceProjector;
+import com.crablet.examples.wallet.projections.WalletBalanceState;
 import com.crablet.eventstore.clock.ClockProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -26,8 +26,8 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 
-import static com.crablet.examples.wallet.domain.WalletEventTypes.*;
-import static com.crablet.examples.wallet.domain.WalletTags.*;
+import static com.crablet.examples.wallet.WalletEventTypes.*;
+import static com.crablet.examples.wallet.WalletTags.*;
 
 /**
  * Wallet-specific period resolver for closing the books pattern.

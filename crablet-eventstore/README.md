@@ -16,7 +16,7 @@ Crablet EventStore is a pure event sourcing library:
 - Pure library - no framework overhead
 - Full control over operations
 - No required interfaces to implement - just inject `EventStore` and use `appendIf(..., AppendCondition.empty())` for simple event storage
-- Optional: Implement `StateProjector<T>` if you need DCB concurrency control (which requires using `appendIf()` with state projections)
+- Optional: Implement `StateProjector<T>` if you need to project state from events (e.g., for business rule validation or DCB concurrency control)
 - Easy to customize and extend
 
 ## Features

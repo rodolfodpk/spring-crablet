@@ -1,9 +1,9 @@
-package com.crablet.examples.wallet.domain.period;
+package com.crablet.examples.wallet.period;
 
 import com.crablet.eventstore.store.EventStore;
-import com.crablet.examples.wallet.domain.WalletQueryPatterns;
-import com.crablet.examples.wallet.domain.projections.WalletBalanceProjector;
-import com.crablet.examples.wallet.domain.projections.WalletBalanceState;
+import com.crablet.examples.wallet.WalletQueryPatterns;
+import com.crablet.examples.wallet.projections.WalletBalanceProjector;
+import com.crablet.examples.wallet.projections.WalletBalanceState;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.Cursor;

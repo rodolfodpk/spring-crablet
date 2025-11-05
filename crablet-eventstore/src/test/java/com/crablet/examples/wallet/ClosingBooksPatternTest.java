@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain;
+package com.crablet.examples.wallet;
 
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.query.EventRepository;
@@ -9,14 +9,14 @@ import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.integration.AbstractCrabletTest;
-import com.crablet.examples.wallet.domain.event.DepositMade;
-import com.crablet.examples.wallet.domain.event.MoneyTransferred;
-import com.crablet.examples.wallet.domain.event.WalletOpened;
-import com.crablet.examples.wallet.domain.event.WithdrawalMade;
-import com.crablet.examples.wallet.domain.event.WalletStatementOpened;
-import com.crablet.examples.wallet.domain.event.WalletStatementClosed;
-import com.crablet.examples.wallet.domain.projections.WalletBalanceProjector;
-import com.crablet.examples.wallet.domain.projections.WalletBalanceState;
+import com.crablet.examples.wallet.event.DepositMade;
+import com.crablet.examples.wallet.event.MoneyTransferred;
+import com.crablet.examples.wallet.event.WalletOpened;
+import com.crablet.examples.wallet.event.WithdrawalMade;
+import com.crablet.examples.wallet.event.WalletStatementOpened;
+import com.crablet.examples.wallet.event.WalletStatementClosed;
+import com.crablet.examples.wallet.projections.WalletBalanceProjector;
+import com.crablet.examples.wallet.projections.WalletBalanceState;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

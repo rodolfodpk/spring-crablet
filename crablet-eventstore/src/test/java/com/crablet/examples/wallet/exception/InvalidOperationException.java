@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain.exception;
+package com.crablet.examples.wallet.exception;
 
 /**
  * Exception thrown when wallet operations fail validation (negative amounts, invalid parameters, etc.).
@@ -14,3 +14,4 @@ public class InvalidOperationException extends RuntimeException {
         this.reason = reason;
     }
 }
+

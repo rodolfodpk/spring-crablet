@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain;
+package com.crablet.examples.wallet;
 
 /**
  * Constants for wallet domain tag names.
@@ -128,3 +128,4 @@ public final class WalletTags {
     public static final String STATEMENT_ID = "statement_id";
     
 }
+

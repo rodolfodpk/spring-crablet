@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain.event;
+package com.crablet.examples.wallet.event;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -25,3 +25,4 @@ public sealed interface WalletEvent
                 WalletStatementOpened, WalletStatementClosed {
     // Empty interface - pattern matching works on types, not methods
 }
+

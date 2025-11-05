@@ -8,14 +8,14 @@ import com.crablet.command.CommandResult;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.query.Query;
-import com.crablet.examples.wallet.domain.event.WalletOpened;
+import com.crablet.examples.wallet.event.WalletOpened;
 import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.examples.wallet.domain.WalletEventTypes.*;
-import static com.crablet.examples.wallet.domain.WalletTags.*;
+import static com.crablet.examples.wallet.WalletEventTypes.*;
+import static com.crablet.examples.wallet.WalletTags.*;
 
 /**
  * Command handler for opening wallets.

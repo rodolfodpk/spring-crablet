@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain.event;
+package com.crablet.examples.wallet.event;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

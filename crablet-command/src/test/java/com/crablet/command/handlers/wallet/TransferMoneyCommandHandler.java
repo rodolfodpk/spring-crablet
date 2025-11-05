@@ -8,12 +8,12 @@ import com.crablet.command.CommandResult;
 import com.crablet.examples.wallet.features.transfer.TransferMoneyCommand;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.query.Query;
-import com.crablet.examples.wallet.domain.WalletQueryPatterns;
-import com.crablet.examples.wallet.domain.event.MoneyTransferred;
-import com.crablet.examples.wallet.domain.exception.InsufficientFundsException;
-import com.crablet.examples.wallet.domain.exception.WalletNotFoundException;
-import com.crablet.examples.wallet.domain.period.WalletPeriodHelper;
-import com.crablet.examples.wallet.domain.period.WalletPeriodHelper.PeriodProjectionResult;
+import com.crablet.examples.wallet.WalletQueryPatterns;
+import com.crablet.examples.wallet.event.MoneyTransferred;
+import com.crablet.examples.wallet.exception.InsufficientFundsException;
+import com.crablet.examples.wallet.exception.WalletNotFoundException;
+import com.crablet.examples.wallet.period.WalletPeriodHelper;
+import com.crablet.examples.wallet.period.WalletPeriodHelper.PeriodProjectionResult;
 import com.crablet.examples.wallet.features.transfer.TransferState;
 import com.crablet.examples.wallet.features.transfer.TransferStateProjector;
 import org.slf4j.Logger;
@@ -22,8 +22,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.examples.wallet.domain.WalletEventTypes.*;
-import static com.crablet.examples.wallet.domain.WalletTags.*;
+import static com.crablet.examples.wallet.WalletEventTypes.*;
+import static com.crablet.examples.wallet.WalletTags.*;
 
 /**
  * Command handler for transferring money between wallets.

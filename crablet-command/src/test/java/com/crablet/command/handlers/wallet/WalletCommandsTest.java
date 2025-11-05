@@ -6,8 +6,8 @@ import com.crablet.command.CommandResult;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.store.Tag;
-import com.crablet.examples.wallet.domain.event.WalletOpened;
-import com.crablet.examples.wallet.domain.period.WalletPeriodHelper;
+import com.crablet.examples.wallet.event.WalletOpened;
+import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.features.deposit.DepositCommand;
 import com.crablet.command.handlers.wallet.DepositCommandHandler;
 import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
@@ -84,7 +84,7 @@ class WalletCommandsTest extends com.crablet.eventstore.integration.AbstractCrab
 
         // Then: Should throw exception
         assertThatThrownBy(() -> depositHandler.handle(eventStore, depositCmd))
-                .isInstanceOf(com.crablet.examples.wallet.domain.exception.WalletNotFoundException.class)
+                .isInstanceOf(com.crablet.examples.wallet.exception.WalletNotFoundException.class)
                 .hasMessage("Wallet not found: nonexistent");
     }
 
@@ -135,7 +135,7 @@ class WalletCommandsTest extends com.crablet.eventstore.integration.AbstractCrab
 
         // Then: Should throw exception
         assertThatThrownBy(() -> withdrawHandler.handle(eventStore, withdrawCmd))
-                .isInstanceOf(com.crablet.examples.wallet.domain.exception.InsufficientFundsException.class)
+                .isInstanceOf(com.crablet.examples.wallet.exception.InsufficientFundsException.class)
                 .hasMessage("Insufficient funds in wallet wallet1: balance 100, requested 200");
     }
 
