@@ -10,17 +10,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.crablet.examples.wallet.domain.event.WalletOpened;
 import com.crablet.examples.wallet.domain.projections.WalletBalanceProjector;
 import com.crablet.examples.wallet.features.deposit.DepositCommand;
-import com.crablet.command.handlers.DepositCommandHandler;
+import com.crablet.command.handlers.wallet.DepositCommandHandler;
 import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
-import com.crablet.command.handlers.OpenWalletCommandHandler;
+import com.crablet.command.handlers.wallet.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.features.withdraw.WithdrawCommand;
-import com.crablet.command.handlers.WithdrawCommandHandler;
+import com.crablet.command.handlers.wallet.WithdrawCommandHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import com.crablet.eventstore.integration.AbstractCrabletTest;
 
 import java.util.List;
@@ -32,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Integration tests for wallet commands: DepositCommand, WithdrawCommand.
  */
 @DisplayName("Wallet Commands Integration Tests")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class WalletCommandsTest extends com.crablet.eventstore.integration.AbstractCrabletTest {
 
     private DepositCommandHandler depositHandler;

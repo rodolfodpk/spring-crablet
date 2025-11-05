@@ -1,9 +1,9 @@
-package com.crablet.command.integration;
+package com.crablet.command.handlers.wallet.integration;
 
 import com.crablet.command.CommandExecutor;
-import com.crablet.command.handlers.DepositCommandHandler;
-import com.crablet.command.handlers.OpenWalletCommandHandler;
-import com.crablet.command.handlers.WithdrawCommandHandler;
+import com.crablet.command.handlers.wallet.DepositCommandHandler;
+import com.crablet.command.handlers.wallet.OpenWalletCommandHandler;
+import com.crablet.command.handlers.wallet.WithdrawCommandHandler;
 import com.crablet.eventstore.integration.AbstractCrabletTest;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
@@ -29,7 +29,7 @@ import static com.crablet.eventstore.integration.DCBTestHelpers.deserialize;
  * Integration tests for DCB compliance with wallet domain operations.
  * Verifies that DCB guarantees are maintained for real wallet business logic.
  */
-@SpringBootTest(classes = TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class WalletDCBComplianceTest extends AbstractCrabletTest {
 
     @Autowired

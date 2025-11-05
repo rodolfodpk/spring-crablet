@@ -1,42 +1,37 @@
-package com.crablet.examples.wallet.testutils;
+package com.crablet.command.handlers.wallet;
 
-import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.crablet.examples.wallet.domain.event.WalletEvent;
 import com.crablet.examples.wallet.domain.event.WalletOpened;
 import com.crablet.examples.wallet.domain.event.MoneyTransferred;
 import com.crablet.examples.wallet.domain.event.DepositMade;
 import com.crablet.examples.wallet.domain.event.WithdrawalMade;
+import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.List;
 
 /**
- * Test utilities for wallet domain tests.
+ * Test utilities for wallet command handler tests.
  * Provides helper methods for creating test data and assertions.
  */
+@Component
 public class WalletTestUtils {
 
-    // Static singleton ObjectMapper to avoid expensive creation on every call
-    private static final ObjectMapper OBJECT_MAPPER = createObjectMapper();
+    private final ObjectMapper objectMapper;
 
-    private static ObjectMapper createObjectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        return mapper;
+    public WalletTestUtils(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
     }
 
     /**
      * Create a StoredEvent from a WalletEvent for testing.
      */
-    public static StoredEvent createEvent(WalletEvent walletEvent) {
+    public StoredEvent createEvent(WalletEvent walletEvent) {
         try {
-            byte[] data = OBJECT_MAPPER.writeValueAsBytes(walletEvent);
+            byte[] data = objectMapper.writeValueAsBytes(walletEvent);
 
             // Extract event type, tags, and timestamp in one pattern match
             String eventType;
@@ -86,9 +81,9 @@ public class WalletTestUtils {
     /**
      * Deserialize event data to a specific type.
      */
-    public static <T> T deserializeEventData(byte[] data, Class<T> clazz) {
+    public <T> T deserializeEventData(byte[] data, Class<T> clazz) {
         try {
-            return OBJECT_MAPPER.readValue(data, clazz);
+            return objectMapper.readValue(data, clazz);
         } catch (Exception e) {
             throw new RuntimeException("Failed to deserialize event data", e);
         }
@@ -99,32 +94,15 @@ public class WalletTestUtils {
      * If object is already of type T, cast it directly. Otherwise serialize and deserialize.
      */
     @SuppressWarnings("unchecked")
-    public static <T> T deserializeEventData(Object data, Class<T> clazz) {
+    public <T> T deserializeEventData(Object data, Class<T> clazz) {
         try {
             if (clazz.isInstance(data)) {
                 return (T) data;
             }
-            return OBJECT_MAPPER.convertValue(data, clazz);
+            return objectMapper.convertValue(data, clazz);
         } catch (Exception e) {
             throw new RuntimeException("Failed to deserialize event data", e);
         }
     }
-    // Note: WalletState assertion method removed as WalletState is now package-private
-    // Tests should be moved to the same package or use public APIs
-
-    /**
-     * Create a test EventDeserializer for deserializing events.
-     */
-    public static EventDeserializer createEventDeserializer() {
-        return new EventDeserializer() {
-            @Override
-            public <E> E deserialize(StoredEvent event, Class<E> eventType) {
-                try {
-                    return OBJECT_MAPPER.readValue(event.data(), eventType);
-                } catch (Exception e) {
-                    throw new RuntimeException("Failed to deserialize event", e);
-                }
-            }
-        };
-    }
 }
+

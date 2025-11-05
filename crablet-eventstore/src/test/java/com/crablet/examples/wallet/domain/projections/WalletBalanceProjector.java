@@ -6,13 +6,15 @@ import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.eventstore.store.Tag;
 import com.crablet.examples.wallet.domain.WalletQueryPatterns;
 import com.crablet.examples.wallet.domain.event.DepositMade;
 import com.crablet.examples.wallet.domain.event.MoneyTransferred;
 import com.crablet.examples.wallet.domain.event.WalletEvent;
 import com.crablet.examples.wallet.domain.event.WalletOpened;
 import com.crablet.examples.wallet.domain.event.WithdrawalMade;
+import com.crablet.examples.wallet.domain.projections.WalletBalanceState;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
@@ -37,7 +39,7 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
 
     @Override
     public List<String> getEventTypes() {
-        return List.of("WalletOpened", "MoneyTransferred", "DepositMade", "WithdrawalMade");
+        return List.of("WalletStatementOpened", "WalletOpened", "MoneyTransferred", "DepositMade", "WithdrawalMade");
     }
 
     @Override
@@ -47,16 +49,27 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
 
     @Override
     public WalletBalanceState transition(WalletBalanceState currentState, StoredEvent event, EventDeserializer context) {
+        // Handle WalletStatementOpened FIRST - sets opening balance for the period
+        if ("WalletStatementOpened".equals(event.type())) {
+            // Extract walletId and openingBalance from JSON
+            String walletId = extractWalletIdFromStatement(event);
+            int openingBalance = extractOpeningBalanceFromStatement(event);
+            return new WalletBalanceState(walletId, openingBalance, true);
+        }
+        
         // Deserialize event data as WalletEvent using sealed interface
         WalletEvent walletEvent = context.deserialize(event, WalletEvent.class);
 
         // Use pattern matching for type-safe event handling
         return switch (walletEvent) {
-            case WalletOpened opened -> new WalletBalanceState(
+            case WalletOpened opened -> {
+                // Only use WalletOpened if we don't already have a state (no statement opened yet)
+                yield currentState.isExisting() ? currentState : new WalletBalanceState(
                     opened.walletId(),
                     opened.initialBalance(),
                     true
-            );
+                );
+            }
 
             case MoneyTransferred transfer -> {
                 // Check if this transfer affects the current wallet
@@ -91,6 +104,33 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
 
             default -> currentState; // Event not relevant
         };
+    }
+    
+    /**
+     * Extract wallet ID from WalletStatementOpened event data.
+     * Uses JSON parsing to extract the wallet_id field.
+     */
+    private String extractWalletIdFromStatement(StoredEvent event) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode jsonNode = mapper.readTree(event.data());
+            return jsonNode.get("walletId").asText();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to extract walletId from WalletStatementOpened", e);
+        }
+    }
+    
+    /**
+     * Extract opening balance from WalletStatementOpened event data.
+     */
+    private int extractOpeningBalanceFromStatement(StoredEvent event) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode jsonNode = mapper.readTree(event.data());
+            return jsonNode.get("openingBalance").asInt();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to extract openingBalance from WalletStatementOpened", e);
+        }
     }
 
     /**

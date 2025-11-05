@@ -4,7 +4,7 @@ import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
 import com.crablet.examples.wallet.features.transfer.TransferMoneyCommand;
-import com.crablet.command.handlers.TransferMoneyCommandHandler;
+import com.crablet.command.handlers.wallet.TransferMoneyCommandHandler;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.examples.wallet.domain.event.MoneyTransferred;
@@ -18,8 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import com.crablet.eventstore.integration.AbstractCrabletTest;
-import com.crablet.examples.wallet.testutils.WalletTestUtils;
+import com.crablet.command.handlers.wallet.WalletTestUtils;
 
 import java.util.List;
 
@@ -32,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * DCB Principle: Tests verify that handler projects balances for both wallets.
  */
 @DisplayName("TransferMoneyCommandHandler Integration Tests")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration.AbstractCrabletTest {
 
     private TransferMoneyCommandHandler handler;
@@ -40,6 +42,9 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
 
     @Autowired
     private EventStore eventStore;
+    
+    @Autowired
+    private WalletTestUtils walletTestUtils;
 
     @BeforeEach
     void setUp() {
@@ -53,8 +58,8 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
         WalletOpened fromWallet = WalletOpened.of("wallet1", "Alice", 1000);
         WalletOpened toWallet = WalletOpened.of("wallet2", "Bob", 500);
 
-        StoredEvent fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
-        StoredEvent toWalletEvent = WalletTestUtils.createEvent(toWallet);
+        StoredEvent fromWalletEvent = walletTestUtils.createEvent(fromWallet);
+        StoredEvent toWalletEvent = walletTestUtils.createEvent(toWallet);
 
         AppendEvent fromWalletInputEvent = AppendEvent.builder(fromWalletEvent.type())
                 .data(fromWalletEvent.data())
@@ -95,7 +100,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
                             });
                 });
 
-        MoneyTransferred transfer = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), MoneyTransferred.class);
+        MoneyTransferred transfer = walletTestUtils.deserializeEventData(result.events().get(0).eventData(), MoneyTransferred.class);
         assertThat(transfer)
                 .satisfies(t -> {
                     assertThat(t.transferId()).isEqualTo("transfer1");
@@ -113,7 +118,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
     void testHandleTransferMoney_SourceWalletNotFound() {
         // Arrange - create only destination wallet
         WalletOpened toWallet = WalletOpened.of("wallet2", "Bob", 500);
-        StoredEvent toWalletEvent = WalletTestUtils.createEvent(toWallet);
+        StoredEvent toWalletEvent = walletTestUtils.createEvent(toWallet);
         AppendEvent toWalletInputEvent = AppendEvent.builder(toWalletEvent.type())
                 .data(toWalletEvent.data())
                 .tag("wallet_id", "wallet1")
@@ -133,7 +138,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
     void testHandleTransferMoney_DestinationWalletNotFound() {
         // Arrange - create only source wallet
         WalletOpened fromWallet = WalletOpened.of("wallet1", "Alice", 1000);
-        StoredEvent fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
+        StoredEvent fromWalletEvent = walletTestUtils.createEvent(fromWallet);
         AppendEvent fromWalletInputEvent = AppendEvent.builder(fromWalletEvent.type())
                 .data(fromWalletEvent.data())
                 .tag("wallet_id", "wallet1")
@@ -155,8 +160,8 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
         WalletOpened fromWallet = WalletOpened.of("wallet1", "Alice", 100);
         WalletOpened toWallet = WalletOpened.of("wallet2", "Bob", 500);
 
-        StoredEvent fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
-        StoredEvent toWalletEvent = WalletTestUtils.createEvent(toWallet);
+        StoredEvent fromWalletEvent = walletTestUtils.createEvent(fromWallet);
+        StoredEvent toWalletEvent = walletTestUtils.createEvent(toWallet);
 
         AppendEvent fromWalletInputEvent = AppendEvent.builder(fromWalletEvent.type())
                 .data(fromWalletEvent.data())
@@ -204,8 +209,8 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
         WalletOpened fromWallet = WalletOpened.of("wallet1", "Alice", 500);
         WalletOpened toWallet = WalletOpened.of("wallet2", "Bob", 200);
 
-        StoredEvent fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
-        StoredEvent toWalletEvent = WalletTestUtils.createEvent(toWallet);
+        StoredEvent fromWalletEvent = walletTestUtils.createEvent(fromWallet);
+        StoredEvent toWalletEvent = walletTestUtils.createEvent(toWallet);
 
         AppendEvent fromWalletInputEvent = AppendEvent.builder(fromWalletEvent.type())
                 .data(fromWalletEvent.data())
@@ -225,7 +230,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
 
         // Assert
         assertThat(result.events()).hasSize(1);
-        MoneyTransferred transfer = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), MoneyTransferred.class);
+        MoneyTransferred transfer = walletTestUtils.deserializeEventData(result.events().get(0).eventData(), MoneyTransferred.class);
         assertThat(transfer.fromBalance()).isEqualTo(0); // 500 - 500
         assertThat(transfer.toBalance()).isEqualTo(700); // 200 + 500
     }
@@ -237,8 +242,8 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
         WalletOpened fromWallet = WalletOpened.of("wallet1", "Alice", 1000);
         WalletOpened toWallet = WalletOpened.of("wallet2", "Bob", 500);
 
-        StoredEvent fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
-        StoredEvent toWalletEvent = WalletTestUtils.createEvent(toWallet);
+        StoredEvent fromWalletEvent = walletTestUtils.createEvent(fromWallet);
+        StoredEvent toWalletEvent = walletTestUtils.createEvent(toWallet);
 
         AppendEvent fromWalletInputEvent = AppendEvent.builder(fromWalletEvent.type())
                 .data(fromWalletEvent.data())
@@ -278,8 +283,8 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
         WalletOpened fromWallet = WalletOpened.of("wallet1", "Alice", 1000);
         WalletOpened toWallet = WalletOpened.of("wallet2", "Bob", 500);
 
-        StoredEvent fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
-        StoredEvent toWalletEvent = WalletTestUtils.createEvent(toWallet);
+        StoredEvent fromWalletEvent = walletTestUtils.createEvent(fromWallet);
+        StoredEvent toWalletEvent = walletTestUtils.createEvent(toWallet);
 
         AppendEvent fromWalletInputEvent = AppendEvent.builder(fromWalletEvent.type())
                 .data(fromWalletEvent.data())
@@ -297,7 +302,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
         CommandResult result = handler.handle(eventStore, cmd);
 
         // Assert - verify correct balance calculations
-        MoneyTransferred transfer = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), MoneyTransferred.class);
+        MoneyTransferred transfer = walletTestUtils.deserializeEventData(result.events().get(0).eventData(), MoneyTransferred.class);
         assertThat(transfer.fromBalance()).isEqualTo(800); // 1000 - 200
         assertThat(transfer.toBalance()).isEqualTo(700); // 500 + 200
     }
@@ -314,8 +319,8 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
         WalletOpened fromWallet = WalletOpened.of(fromWalletId, "Alice", fromBalance);
         WalletOpened toWallet = WalletOpened.of(toWalletId, "Bob", toBalance);
 
-        StoredEvent fromWalletEvent = WalletTestUtils.createEvent(fromWallet);
-        StoredEvent toWalletEvent = WalletTestUtils.createEvent(toWallet);
+        StoredEvent fromWalletEvent = walletTestUtils.createEvent(fromWallet);
+        StoredEvent toWalletEvent = walletTestUtils.createEvent(toWallet);
 
         AppendEvent fromWalletInputEvent = AppendEvent.builder(fromWalletEvent.type())
                 .data(fromWalletEvent.data())
@@ -335,7 +340,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.eventstore.integration
 
         // Assert
         assertThat(result.events()).hasSize(1);
-        MoneyTransferred transfer = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), MoneyTransferred.class);
+        MoneyTransferred transfer = walletTestUtils.deserializeEventData(result.events().get(0).eventData(), MoneyTransferred.class);
         assertThat(transfer.fromBalance()).isEqualTo(fromBalance - transferAmount);
         assertThat(transfer.toBalance()).isEqualTo(toBalance + transferAmount);
         assertThat(transfer.description()).isEqualTo(description);

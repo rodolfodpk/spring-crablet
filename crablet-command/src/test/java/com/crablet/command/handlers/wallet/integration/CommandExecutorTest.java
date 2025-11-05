@@ -1,4 +1,4 @@
-package com.crablet.command.integration;
+package com.crablet.command.handlers.wallet.integration;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.ExecutionResult;
@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.*;
  * Integration tests for CommandExecutor using wallet commands.
  * Tests end-to-end command execution: CommandExecutor → Handler → EventStore
  */
-@SpringBootTest(classes = TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 @DisplayName("CommandExecutor Integration Tests")
 class CommandExecutorTest extends AbstractCrabletTest {
 

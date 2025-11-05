@@ -2,10 +2,10 @@ package com.crablet.command.integration;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandExecutorImpl;
-import com.crablet.command.handlers.DepositCommandHandler;
-import com.crablet.command.handlers.OpenWalletCommandHandler;
-import com.crablet.command.handlers.TransferMoneyCommandHandler;
-import com.crablet.command.handlers.WithdrawCommandHandler;
+import com.crablet.command.handlers.wallet.DepositCommandHandler;
+import com.crablet.command.handlers.wallet.OpenWalletCommandHandler;
+import com.crablet.command.handlers.wallet.TransferMoneyCommandHandler;
+import com.crablet.command.handlers.wallet.WithdrawCommandHandler;
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.clock.ClockProviderImpl;
 import com.crablet.eventstore.query.EventRepository;
@@ -17,11 +17,17 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
 
 @SpringBootApplication
+@ComponentScan(
+    basePackages = {"com.crablet.command", "com.crablet.eventstore", "com.crablet.examples"},
+    excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = com.crablet.eventstore.integration.TestApplication.class)
+)
 public class TestApplication {
     
     public static void main(String[] args) {

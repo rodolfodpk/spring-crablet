@@ -4,7 +4,7 @@ import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
 import com.crablet.examples.wallet.features.withdraw.WithdrawCommand;
-import com.crablet.command.handlers.WithdrawCommandHandler;
+import com.crablet.command.handlers.wallet.WithdrawCommandHandler;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,8 +19,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import com.crablet.eventstore.integration.AbstractCrabletTest;
-import com.crablet.examples.wallet.testutils.WalletTestUtils;
+import com.crablet.command.handlers.wallet.WalletTestUtils;
 
 import java.util.List;
 
@@ -33,6 +34,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * DCB Principle: Tests verify that handler projects only balance + existence.
  */
 @DisplayName("WithdrawCommandHandler Integration Tests")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.AbstractCrabletTest {
 
     private WithdrawCommandHandler handler;
@@ -41,6 +43,9 @@ class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.Abst
 
     @Autowired
     private EventStore eventStore;
+    
+    @Autowired
+    private WalletTestUtils walletTestUtils;
 
     @BeforeEach
     void setUp() {
@@ -52,7 +57,7 @@ class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.Abst
     void testHandleWithdraw_Success() {
         // Arrange - create wallet first
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
-        StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
+        StoredEvent walletEvent = walletTestUtils.createEvent(walletOpened);
         AppendEvent walletInputEvent = AppendEvent.builder(walletEvent.type())
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
@@ -82,7 +87,7 @@ class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.Abst
                             });
                 });
 
-        WithdrawalMade withdrawal = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), WithdrawalMade.class);
+        WithdrawalMade withdrawal = walletTestUtils.deserializeEventData(result.events().get(0).eventData(), WithdrawalMade.class);
         assertThat(withdrawal)
                 .satisfies(w -> {
                     assertThat(w.withdrawalId()).isEqualTo("withdrawal1");
@@ -110,7 +115,7 @@ class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.Abst
     void testHandleWithdraw_InsufficientFunds() {
         // Arrange - create wallet with low balance
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 100);
-        StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
+        StoredEvent walletEvent = walletTestUtils.createEvent(walletOpened);
         AppendEvent walletInputEvent = AppendEvent.builder(walletEvent.type())
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
@@ -150,7 +155,7 @@ class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.Abst
     void testHandleWithdraw_ExactBalance() {
         // Arrange - create wallet with exact balance
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 500);
-        StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
+        StoredEvent walletEvent = walletTestUtils.createEvent(walletOpened);
         AppendEvent walletInputEvent = AppendEvent.builder(walletEvent.type())
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
@@ -164,7 +169,7 @@ class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.Abst
 
         // Assert
         assertThat(result.events()).hasSize(1);
-        WithdrawalMade withdrawal = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), WithdrawalMade.class);
+        WithdrawalMade withdrawal = walletTestUtils.deserializeEventData(result.events().get(0).eventData(), WithdrawalMade.class);
         assertThat(withdrawal.newBalance()).isEqualTo(0); // 500 - 500
     }
 
@@ -173,7 +178,7 @@ class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.Abst
     void testProjectMinimalState() {
         // Arrange - create wallet with multiple events
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
-        StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
+        StoredEvent walletEvent = walletTestUtils.createEvent(walletOpened);
         AppendEvent walletInputEvent = AppendEvent.builder(walletEvent.type())
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
@@ -185,7 +190,7 @@ class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.Abst
         CommandResult result = handler.handle(eventStore, cmd);
 
         // Assert - verify correct new balance calculation
-        WithdrawalMade withdrawal = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), WithdrawalMade.class);
+        WithdrawalMade withdrawal = walletTestUtils.deserializeEventData(result.events().get(0).eventData(), WithdrawalMade.class);
         assertThat(withdrawal.newBalance()).isEqualTo(800); // 1000 - 200
     }
 
@@ -199,7 +204,7 @@ class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.Abst
     void testWithdrawalScenarios(String walletId, String owner, int initialBalance, String description) {
         // Arrange - create wallet
         WalletOpened walletOpened = WalletOpened.of(walletId, owner, initialBalance);
-        StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
+        StoredEvent walletEvent = walletTestUtils.createEvent(walletOpened);
         AppendEvent walletInputEvent = AppendEvent.builder(walletEvent.type())
                 .data(walletEvent.data())
                 .tag("wallet_id", walletId)
@@ -213,7 +218,7 @@ class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.Abst
 
         // Assert
         assertThat(result.events()).hasSize(1);
-        WithdrawalMade withdrawal = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), WithdrawalMade.class);
+        WithdrawalMade withdrawal = walletTestUtils.deserializeEventData(result.events().get(0).eventData(), WithdrawalMade.class);
         assertThat(withdrawal.newBalance()).isEqualTo(initialBalance - 100);
         assertThat(withdrawal.description()).isEqualTo(description);
     }

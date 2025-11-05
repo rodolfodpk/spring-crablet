@@ -1,7 +1,7 @@
 package com.crablet.command.handlers.wallet;
 
 import com.crablet.command.CommandResult;
-import com.crablet.command.handlers.OpenWalletCommandHandler;
+import com.crablet.command.handlers.wallet.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
 import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.integration.AbstractCrabletTest;
@@ -12,12 +12,13 @@ import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
 import com.crablet.examples.wallet.domain.event.WalletOpened;
-import com.crablet.examples.wallet.testutils.WalletTestUtils;
+import com.crablet.command.handlers.wallet.WalletTestUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 
@@ -30,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * DCB Principle: Tests verify that handler projects only wallet existence (boolean).
  */
 @DisplayName("OpenWalletCommandHandler Integration Tests")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class OpenWalletCommandHandlerTest extends com.crablet.eventstore.integration.AbstractCrabletTest {
 
     private OpenWalletCommandHandler handler;
@@ -41,6 +43,9 @@ class OpenWalletCommandHandlerTest extends com.crablet.eventstore.integration.Ab
 
     @Autowired
     private EventRepository testHelper;
+    
+    @Autowired
+    private WalletTestUtils walletTestUtils;
 
     @BeforeEach
     void setUp() {
@@ -69,7 +74,7 @@ class OpenWalletCommandHandlerTest extends com.crablet.eventstore.integration.Ab
                             });
                 });
 
-        WalletOpened walletOpened = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), WalletOpened.class);
+        WalletOpened walletOpened = walletTestUtils.deserializeEventData(result.events().get(0).eventData(), WalletOpened.class);
         assertThat(walletOpened)
                 .satisfies(wallet -> {
                     assertThat(wallet.walletId()).isEqualTo("wallet1");

@@ -11,11 +11,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
 
 @SpringBootApplication
+@ComponentScan(basePackages = {"com.crablet.eventstore", "com.crablet.examples"})
 public class TestApplication {
     
     public static void main(String[] args) {

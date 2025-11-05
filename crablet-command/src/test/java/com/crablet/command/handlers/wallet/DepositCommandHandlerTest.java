@@ -4,7 +4,7 @@ import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
 import com.crablet.examples.wallet.features.deposit.DepositCommand;
-import com.crablet.command.handlers.DepositCommandHandler;
+import com.crablet.command.handlers.wallet.DepositCommandHandler;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,7 +19,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.crablet.eventstore.integration.AbstractCrabletTest;
-import com.crablet.examples.wallet.testutils.WalletTestUtils;
+import com.crablet.command.handlers.wallet.WalletTestUtils;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 
@@ -32,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * DCB Principle: Tests verify that handler projects only balance + existence.
  */
 @DisplayName("DepositCommandHandler Integration Tests")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class DepositCommandHandlerTest extends com.crablet.eventstore.integration.AbstractCrabletTest {
 
     private DepositCommandHandler handler;
@@ -40,6 +42,9 @@ class DepositCommandHandlerTest extends com.crablet.eventstore.integration.Abstr
 
     @Autowired
     private EventStore eventStore;
+    
+    @Autowired
+    private WalletTestUtils walletTestUtils;
 
     @BeforeEach
     void setUp() {
@@ -51,7 +56,7 @@ class DepositCommandHandlerTest extends com.crablet.eventstore.integration.Abstr
     void testHandleDeposit_Success() {
         // Arrange - create wallet first
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
-        StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
+        StoredEvent walletEvent = walletTestUtils.createEvent(walletOpened);
         AppendEvent walletInputEvent = AppendEvent.builder(walletEvent.type())
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
@@ -81,7 +86,7 @@ class DepositCommandHandlerTest extends com.crablet.eventstore.integration.Abstr
                             });
                 });
 
-        DepositMade deposit = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), DepositMade.class);
+        DepositMade deposit = walletTestUtils.deserializeEventData(result.events().get(0).eventData(), DepositMade.class);
         assertThat(deposit)
                 .satisfies(d -> {
                     assertThat(d.depositId()).isEqualTo("deposit1");
@@ -127,7 +132,7 @@ class DepositCommandHandlerTest extends com.crablet.eventstore.integration.Abstr
     void testProjectMinimalState() {
         // Arrange - create wallet with multiple events
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
-        StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
+        StoredEvent walletEvent = walletTestUtils.createEvent(walletOpened);
         AppendEvent walletInputEvent = AppendEvent.builder(walletEvent.type())
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
@@ -139,7 +144,7 @@ class DepositCommandHandlerTest extends com.crablet.eventstore.integration.Abstr
         CommandResult result = handler.handle(eventStore, cmd);
 
         // Assert - verify correct new balance calculation
-        DepositMade deposit = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), DepositMade.class);
+        DepositMade deposit = walletTestUtils.deserializeEventData(result.events().get(0).eventData(), DepositMade.class);
         assertThat(deposit.newBalance()).isEqualTo(1200); // 1000 + 200
     }
 
@@ -153,7 +158,7 @@ class DepositCommandHandlerTest extends com.crablet.eventstore.integration.Abstr
     void testDepositScenarios(String walletId, String owner, int initialBalance, String description) {
         // Arrange - create wallet
         WalletOpened walletOpened = WalletOpened.of(walletId, owner, initialBalance);
-        StoredEvent walletEvent = WalletTestUtils.createEvent(walletOpened);
+        StoredEvent walletEvent = walletTestUtils.createEvent(walletOpened);
         AppendEvent walletInputEvent = AppendEvent.builder(walletEvent.type())
                 .data(walletEvent.data())
                 .tag("wallet_id", walletId)
@@ -167,7 +172,7 @@ class DepositCommandHandlerTest extends com.crablet.eventstore.integration.Abstr
 
         // Assert
         assertThat(result.events()).hasSize(1);
-        DepositMade deposit = WalletTestUtils.deserializeEventData(result.events().get(0).eventData(), DepositMade.class);
+        DepositMade deposit = walletTestUtils.deserializeEventData(result.events().get(0).eventData(), DepositMade.class);
         assertThat(deposit.newBalance()).isEqualTo(initialBalance + 100);
         assertThat(deposit.description()).isEqualTo(description);
     }

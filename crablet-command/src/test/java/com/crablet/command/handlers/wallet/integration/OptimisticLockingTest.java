@@ -1,4 +1,4 @@
-package com.crablet.command.integration;
+package com.crablet.command.handlers.wallet.integration;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.dcb.ConcurrencyException;
@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 4. Retry logic verification
  * 5. Verify 409 CONFLICT HTTP response
  */
-@SpringBootTest(classes = TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class OptimisticLockingTest extends AbstractCrabletTest {
 
     @Autowired

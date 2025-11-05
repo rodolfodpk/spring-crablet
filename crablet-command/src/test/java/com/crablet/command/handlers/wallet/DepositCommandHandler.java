@@ -1,4 +1,4 @@
-package com.crablet.command.handlers;
+package com.crablet.command.handlers.wallet;
 
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
