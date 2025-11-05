@@ -9,6 +9,52 @@ Event sourcing systems require concurrency control to prevent inconsistent state
 - Request B: Transfer $500 (reads position 42)
 - Both see sufficient balance, both succeed → balance: -$100 (invalid)
 
+## What is DCB?
+
+Dynamic Consistency Boundaries (DCB) redefine consistency granularity in event-sourced systems, moving from fixed aggregates (event streams) to dynamically defined consistency boundaries based on criteria (queries).
+
+### Traditional Approach: Aggregates as Consistency Boundaries
+
+- Events organized into streams (one stream per aggregate)
+- Consistency boundary = aggregate boundary
+- Changing boundaries requires refactoring streams
+- Some business rules span multiple aggregates
+
+### DCB Approach: Criteria-Based Consistency Boundaries
+
+- Consistency boundary = events matching your criteria (decision model)
+- Boundaries defined dynamically per operation
+- Flexible refactoring without stream changes
+- Single event can belong to multiple consistency boundaries
+
+**Broader Applicability:** DCB applies to any messaging system with append-only log and pub/sub characteristics, not limited to event sourcing. Useful for any system with position-based deduplication.
+
+### Architectural Insight: Bounded Context vs Aggregate
+
+When organizing event streams, consider aligning streams with **Bounded Contexts** (sub-domains) rather than individual Aggregates. Within a Bounded Context, you can use DCB to maintain flexible consistency boundaries:
+
+- **Bounded Context scope**: Store all events for a sub-domain in one stream
+- **DCB within context**: Define consistency boundaries dynamically per operation
+- **Benefit**: More flexible than strict aggregate boundaries, easier to refactor
+
+This is architectural guidance, not a requirement. DCB works regardless of how you organize your streams.
+
+## Benefits of DCB
+
+DCB provides several advantages over traditional aggregate-based consistency:
+
+✅ **Reduces events needed to rehydrate state** - Fine-grained filtering based on criteria means you only process events relevant to your decision, dramatically reducing event consumption for large histories.
+
+✅ **Eliminates need for eventual consistency techniques** - Business rules that span multiple aggregates can be enforced with immediate consistency by defining criteria that include events from multiple entities.
+
+✅ **Reduces append contention** - Smaller, finely-defined consistency boundaries have less chance of conflicting, enabling better parallel execution.
+
+✅ **Flexible refactoring** - Adjusting consistency boundaries doesn't require stream restructuring. Your event stream stays intact; you just change the criteria used for different operations.
+
+✅ **Less upfront design pressure** - You can refine consistency boundaries as you learn more about your domain, without costly migrations.
+
+**Performance Impact:** These benefits translate to real performance gains. See [Performance Characteristics](#performance-characteristics) section for measured improvements.
+
 ## DCB Mechanism
 
 DCB uses cursor-based checks to detect conflicting events since last read.
@@ -74,6 +120,32 @@ AppendCondition condition = AppendCondition.builder()
 
 Result: Conflicts only detected for events affecting same wallet. Operations on wallet A don't block operations on wallet B.
 
+**Multi-dimensional scoping:** Events tagged with multiple entity identifiers can belong to multiple consistency boundaries simultaneously. See [Multi-Entity Consistency](#multi-entity-consistency) section for examples.
+
+## Multi-Entity Consistency
+
+DCB enables events to belong to multiple consistency boundaries simultaneously through multi-tag events. This allows enforcing consistency rules that span multiple entities.
+
+### Example: Money Transfer
+
+A `MoneyTransferred` event affects both source and destination wallets:
+
+```java
+AppendEvent transfer = AppendEvent.builder("MoneyTransferred")
+    .tag("from_wallet_id", "wallet1")  // Part of wallet1's consistency boundary
+    .tag("to_wallet_id", "wallet2")    // Part of wallet2's consistency boundary
+    .build();
+```
+
+When querying for either wallet's state, the transfer event is included. This enables:
+- Atomic consistency checks across both wallets
+- No need for process managers or eventual consistency
+- Single operation enforces constraints on multiple entities
+
+### Example: Course Subscription
+
+See `com.crablet.examples.courses` for a complete example where a `StudentSubscribedToCourse` event is tagged with both `studentId` and `courseId`, enabling consistency checks across student subscription limits and course capacity constraints atomically.
+
 ## Application Retry Behavior
 
 > **Note**: `CommandExecutor` does not retry automatically. When it throws `ConcurrencyException`, your application layer should implement retry logic (e.g., using Resilience4j).
@@ -113,9 +185,9 @@ This section explains the three key DCB concepts using a concrete wallet withdra
 
 ### Three Key Concepts
 
-#### 1. Decision Model (Query)
+#### 1. Decision Model (Query / Criteria)
 
-The **decision model** is the Query that defines which events affect your business decision.
+The **decision model** (also called **criteria** in DCB literature) is the Query that defines which events affect your business decision. This Query dynamically defines your consistency boundary for this operation.
 
 Example for wallet withdrawal:
 ```java
@@ -126,7 +198,7 @@ Query decisionModel = QueryBuilder.create()
     .build();
 ```
 
-This Query is passed to `AppendConditionBuilder(decisionModel, cursor)` and used for the DCB conflict check.
+This Query is passed to `AppendConditionBuilder(decisionModel, cursor)` and used for the DCB conflict check. The decision model determines which events must be checked for conflicts - if any events matching this criteria appeared after your cursor, a conflict is detected.
 
 #### 2. DCB Conflict Detection (stateChanged)
 
@@ -437,6 +509,19 @@ Measured on this codebase (October 2025):
 
 **Key Performance Insights:**
 - **Operations**: ~4x improvement by removing advisory locks, using cursor-only concurrency control
+- **Reduced Event Consumption**: Fine-grained criteria means fewer events to process for state projection (see [Benefits of DCB](#benefits-of-dcb))
+- **Reduced Contention**: Smaller consistency boundaries reduce append conflicts (see [Benefits of DCB](#benefits-of-dcb))
 - **Wallet Creation**: Maintains idempotency (no cursor protection available)
 - **Conflict Detection**: Zero false positives (entity scoping prevents unrelated conflicts)
 - **Safety**: Money protected by cursor checks, no duplicate charges possible
+
+## References and Further Reading
+
+### Dynamic Consistency Boundaries
+- **[Dynamic Consistency Boundaries](https://javapro.io/2025/10/28/dynamic-consistency-boundaries/)** by Milan Savic (JAVAPRO International, October 2025)
+  - Comprehensive explanation of DCB concepts, benefits, and architectural insights
+  - Explains DCB as moving from aggregates to dynamically defined consistency boundaries
+  - Discusses benefits: reduced event consumption, flexible refactoring, reduced contention
+  - Provides architectural insights on Bounded Contexts vs Aggregates
+  - Includes practical examples of criteria-based querying
+  - This documentation incorporates insights from this article while maintaining Crablet-specific implementation details and examples.
