@@ -4,15 +4,14 @@ import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
 import com.crablet.examples.wallet.features.withdraw.WithdrawCommand;
-import com.crablet.command.handlers.wallet.WithdrawCommandHandler;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.crablet.examples.wallet.domain.event.WalletOpened;
 import com.crablet.examples.wallet.domain.event.WithdrawalMade;
 import com.crablet.examples.wallet.domain.exception.InsufficientFundsException;
 import com.crablet.examples.wallet.domain.exception.WalletNotFoundException;
-import com.crablet.examples.wallet.domain.projections.WalletBalanceProjector;
+import com.crablet.examples.wallet.domain.period.WalletPeriodHelper;
+import com.crablet.command.handlers.wallet.WalletTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,8 +19,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import com.crablet.eventstore.integration.AbstractCrabletTest;
-import com.crablet.command.handlers.wallet.WalletTestUtils;
 
 import java.util.List;
 
@@ -38,18 +35,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.AbstractCrabletTest {
 
     private WithdrawCommandHandler handler;
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private EventStore eventStore;
     
     @Autowired
     private WalletTestUtils walletTestUtils;
+    
+    @Autowired
+    private WalletPeriodHelper periodHelper;
 
     @BeforeEach
     void setUp() {
-        handler = new WithdrawCommandHandler();
+        handler = new WithdrawCommandHandler(periodHelper);
     }
 
     @Test
@@ -74,17 +72,15 @@ class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.Abst
         assertThat(result.events().get(0))
                 .satisfies(event -> {
                     assertThat(event.type()).isEqualTo("WithdrawalMade");
-                    assertThat(event.tags()).hasSize(2);
-                    assertThat(event.tags().get(0))
-                            .satisfies(tag -> {
-                                assertThat(tag.key()).isEqualTo("wallet_id");
-                                assertThat(tag.value()).isEqualTo("wallet1");
-                            });
-                    assertThat(event.tags().get(1))
-                            .satisfies(tag -> {
-                                assertThat(tag.key()).isEqualTo("withdrawal_id");
-                                assertThat(tag.value()).isEqualTo("withdrawal1");
-                            });
+                    // Period-aware events now include year, month, day, hour tags in addition to wallet_id and withdrawal_id
+                    assertThat(event.tags()).hasSizeGreaterThanOrEqualTo(2);
+                    assertThat(event.tags()).anyMatch(tag -> 
+                        "wallet_id".equals(tag.key()) && "wallet1".equals(tag.value()));
+                    assertThat(event.tags()).anyMatch(tag -> 
+                        "withdrawal_id".equals(tag.key()) && "withdrawal1".equals(tag.value()));
+                    // Verify period tags are present
+                    assertThat(event.tags()).anyMatch(tag -> "year".equals(tag.key()));
+                    assertThat(event.tags()).anyMatch(tag -> "month".equals(tag.key()));
                 });
 
         WithdrawalMade withdrawal = walletTestUtils.deserializeEventData(result.events().get(0).eventData(), WithdrawalMade.class);

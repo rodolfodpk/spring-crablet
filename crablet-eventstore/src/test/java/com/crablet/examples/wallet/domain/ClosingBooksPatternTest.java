@@ -4,7 +4,6 @@ import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.query.QueryBuilder;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.EventStore;
@@ -14,13 +13,14 @@ import com.crablet.examples.wallet.domain.event.DepositMade;
 import com.crablet.examples.wallet.domain.event.MoneyTransferred;
 import com.crablet.examples.wallet.domain.event.WalletOpened;
 import com.crablet.examples.wallet.domain.event.WithdrawalMade;
+import com.crablet.examples.wallet.domain.event.WalletStatementOpened;
+import com.crablet.examples.wallet.domain.event.WalletStatementClosed;
 import com.crablet.examples.wallet.domain.projections.WalletBalanceProjector;
 import com.crablet.examples.wallet.domain.projections.WalletBalanceState;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,56 +52,11 @@ class ClosingBooksPatternTest extends AbstractCrabletTest {
     private com.crablet.eventstore.clock.ClockProvider clockProvider;
     
     /**
-     * Statement opened event - marks the start of a new period.
-     */
-    record WalletStatementOpened(
-        String walletId,
-        String statementId,
-        int month,
-        int year,
-        int openingBalance,
-        Instant openedAt
-    ) {}
-    
-    /**
-     * Statement closed event - marks the end of a period.
-     */
-    record WalletStatementClosed(
-        String walletId,
-        String statementId,
-        int month,
-        int year,
-        int openingBalance,
-        int closingBalance,
-        Instant closedAt
-    ) {}
-    
-    /**
      * Query for wallet events in a specific period.
      * Only returns events with matching period tags (year, month).
      */
     private Query walletPeriodQuery(String walletId, int year, int month) {
-        String yearStr = String.valueOf(year);
-        String monthStr = String.valueOf(month);
-        
-        com.crablet.eventstore.store.Tag walletTag = new com.crablet.eventstore.store.Tag("wallet_id", walletId);
-        com.crablet.eventstore.store.Tag yearTag = new com.crablet.eventstore.store.Tag("year", yearStr);
-        com.crablet.eventstore.store.Tag monthTag = new com.crablet.eventstore.store.Tag("month", monthStr);
-        com.crablet.eventstore.store.Tag fromWalletTag = new com.crablet.eventstore.store.Tag("from_wallet_id", walletId);
-        com.crablet.eventstore.store.Tag toWalletTag = new com.crablet.eventstore.store.Tag("to_wallet_id", walletId);
-        
-        return QueryBuilder.create()
-            // Statement opened event
-            .matching(new String[]{"WalletStatementOpened"}, walletTag, yearTag, monthTag)
-            // Statement closed event
-            .matching(new String[]{"WalletStatementClosed"}, walletTag, yearTag, monthTag)
-            // Wallet events
-            .matching(new String[]{"WalletOpened", "DepositMade", "WithdrawalMade"}, walletTag, yearTag, monthTag)
-            // Transfers FROM wallet
-            .matching(new String[]{"MoneyTransferred"}, fromWalletTag, yearTag, monthTag)
-            // Transfers TO wallet
-            .matching(new String[]{"MoneyTransferred"}, toWalletTag, yearTag, monthTag)
-            .build();
+        return WalletQueryPatterns.singleWalletPeriodDecisionModel(walletId, year, month);
     }
     
     @Test
@@ -147,14 +102,15 @@ class ClosingBooksPatternTest extends AbstractCrabletTest {
                 .tag("statement_id", "wallet:" + walletId + ":2024-01")
                 .tag("year", "2024")
                 .tag("month", "1")
-                .data(new WalletStatementClosed(
+                .data(WalletStatementClosed.of(
                     walletId,
                     "wallet:" + walletId + ":2024-01",
-                    1,
                     2024,
+                    1,   // month
+                    null, // day
+                    null, // hour
                     1000,  // opening
-                    1300,  // closing
-                    clockProvider.now()
+                    1300   // closing
                 ))
                 .build()
         ), AppendCondition.empty());
@@ -167,13 +123,14 @@ class ClosingBooksPatternTest extends AbstractCrabletTest {
                 .tag("statement_id", "wallet:" + walletId + ":2024-02")
                 .tag("year", "2024")
                 .tag("month", "2")
-                .data(new WalletStatementOpened(
+                .data(WalletStatementOpened.of(
                     walletId,
                     "wallet:" + walletId + ":2024-02",
-                    2,
                     2024,
-                    1300,  // Opening balance from January closing
-                    clockProvider.now()
+                    2,    // month
+                    null, // day
+                    null, // hour
+                    1300  // Opening balance from January closing
                 ))
                 .build()
         ), AppendCondition.empty());
@@ -204,13 +161,17 @@ class ClosingBooksPatternTest extends AbstractCrabletTest {
         Query febQuery = walletPeriodQuery(walletId, 2024, 2);
         List<StoredEvent> febEvents = eventRepository.query(febQuery, null);
         
-        // Should only have February events
-        assertThat(febEvents).hasSize(3); // StatementOpened, DepositMade, WithdrawalMade
+        // Should only have February events (period query includes WalletOpened for wallet existence)
+        assertThat(febEvents).hasSize(4); // WalletOpened, StatementOpened, DepositMade, WithdrawalMade
         assertThat(febEvents).extracting(StoredEvent::type)
-            .containsExactly("WalletStatementOpened", "DepositMade", "WithdrawalMade");
+            .containsExactly("WalletOpened", "WalletStatementOpened", "DepositMade", "WithdrawalMade");
         
-        // Verify no January events
+        // Verify no January events (except WalletOpened which is included for wallet existence)
         assertThat(febEvents).noneMatch(e -> {
+            // WalletOpened is included for wallet existence, so skip it
+            if ("WalletOpened".equals(e.type())) {
+                return false;
+            }
             boolean hasMonth1 = e.tags().stream()
                 .anyMatch(t -> "month".equals(t.key()) && "1".equals(t.value()));
             return hasMonth1;
@@ -220,13 +181,17 @@ class ClosingBooksPatternTest extends AbstractCrabletTest {
         Query janQuery = walletPeriodQuery(walletId, 2024, 1);
         List<StoredEvent> janEvents = eventRepository.query(janQuery, null);
         
-        // Should only have January events
-        assertThat(janEvents).hasSize(4); // WalletOpened, DepositMade, WithdrawalMade, StatementClosed
+        // Should only have January events (period query includes WalletOpened for wallet existence)
+        assertThat(janEvents).hasSize(3); // WalletOpened, DepositMade, WithdrawalMade
         assertThat(janEvents).extracting(StoredEvent::type)
-            .contains("WalletOpened", "DepositMade", "WithdrawalMade", "WalletStatementClosed");
+            .contains("WalletOpened", "DepositMade", "WithdrawalMade");
         
-        // Verify no February events
+        // Verify no February events (except WalletOpened which is included for wallet existence)
         assertThat(janEvents).noneMatch(e -> {
+            // WalletOpened is included for wallet existence, so skip it
+            if ("WalletOpened".equals(e.type())) {
+                return false;
+            }
             boolean hasMonth2 = e.tags().stream()
                 .anyMatch(t -> "month".equals(t.key()) && "2".equals(t.value()));
             return hasMonth2;
@@ -245,13 +210,14 @@ class ClosingBooksPatternTest extends AbstractCrabletTest {
                 .tag("statement_id", "wallet:" + walletId + ":2024-02")
                 .tag("year", "2024")
                 .tag("month", "2")
-                .data(new WalletStatementOpened(
+                .data(WalletStatementOpened.of(
                     walletId,
                     "wallet:" + walletId + ":2024-02",
-                    2,
                     2024,
-                    2000,  // Opening balance
-                    clockProvider.now()
+                    2,    // month
+                    null, // day
+                    null, // hour
+                    2000  // Opening balance
                 ))
                 .build()
         ), AppendCondition.empty());
@@ -307,13 +273,14 @@ class ClosingBooksPatternTest extends AbstractCrabletTest {
                 .tag("statement_id", "wallet:" + walletId + ":2024-02")
                 .tag("year", "2024")
                 .tag("month", "2")
-                .data(new WalletStatementOpened(
+                .data(WalletStatementOpened.of(
                     walletId,
                     "wallet:" + walletId + ":2024-02",
-                    2,
                     2024,
-                    1000,  // Opening balance
-                    clockProvider.now()
+                    2,    // month
+                    null, // day
+                    null, // hour
+                    1000  // Opening balance
                 ))
                 .build()
         ), AppendCondition.empty());
@@ -380,13 +347,14 @@ class ClosingBooksPatternTest extends AbstractCrabletTest {
                 .tag("statement_id", "wallet:" + wallet1 + ":2024-02")
                 .tag("year", "2024")
                 .tag("month", "2")
-                .data(new WalletStatementOpened(
+                .data(WalletStatementOpened.of(
                     wallet1,
                     "wallet:" + wallet1 + ":2024-02",
-                    2,
                     2024,
-                    1000,  // Opening balance
-                    clockProvider.now()
+                    2,    // month
+                    null, // day
+                    null, // hour
+                    1000  // Opening balance
                 ))
                 .build()
         ), AppendCondition.empty());
@@ -397,13 +365,14 @@ class ClosingBooksPatternTest extends AbstractCrabletTest {
                 .tag("statement_id", "wallet:" + wallet2 + ":2024-02")
                 .tag("year", "2024")
                 .tag("month", "2")
-                .data(new WalletStatementOpened(
+                .data(WalletStatementOpened.of(
                     wallet2,
                     "wallet:" + wallet2 + ":2024-02",
-                    2,
                     2024,
-                    500,  // Opening balance
-                    clockProvider.now()
+                    2,    // month
+                    null, // day
+                    null, // hour
+                    500  // Opening balance
                 ))
                 .build()
         ), AppendCondition.empty());
@@ -414,8 +383,10 @@ class ClosingBooksPatternTest extends AbstractCrabletTest {
                 .tag("transfer_id", "t1")
                 .tag("from_wallet_id", wallet1)
                 .tag("to_wallet_id", wallet2)
-                .tag("year", "2024")
-                .tag("month", "2")
+                .tag("from_year", "2024")
+                .tag("from_month", "2")
+                .tag("to_year", "2024")
+                .tag("to_month", "2")
                 .data(MoneyTransferred.of(
                     "t1",
                     wallet1,

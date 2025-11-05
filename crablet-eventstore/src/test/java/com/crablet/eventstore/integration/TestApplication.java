@@ -7,6 +7,10 @@ import com.crablet.eventstore.query.EventRepositoryImpl;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.EventStoreConfig;
 import com.crablet.eventstore.store.EventStoreImpl;
+import com.crablet.examples.wallet.domain.period.PeriodConfigurationProvider;
+import com.crablet.examples.wallet.domain.period.WalletPeriodHelper;
+import com.crablet.examples.wallet.domain.period.WalletStatementPeriodResolver;
+import com.crablet.examples.wallet.domain.projections.WalletBalanceProjector;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -36,6 +40,32 @@ public class TestApplication {
         return new ClockProviderImpl();
     }
     
+    @Bean
+    public WalletBalanceProjector walletBalanceProjector() {
+        return new WalletBalanceProjector();
+    }
+    
+    @Bean
+    public PeriodConfigurationProvider periodConfigurationProvider() {
+        return new PeriodConfigurationProvider();
+    }
+    
+    @Bean
+    public WalletStatementPeriodResolver walletStatementPeriodResolver(
+            EventRepository eventRepository,
+            ClockProvider clock,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            WalletBalanceProjector balanceProjector) {
+        return new WalletStatementPeriodResolver(eventRepository, clock, objectMapper, balanceProjector);
+    }
+    
+    @Bean
+    public WalletPeriodHelper walletPeriodHelper(
+            WalletStatementPeriodResolver periodResolver,
+            PeriodConfigurationProvider configProvider,
+            WalletBalanceProjector balanceProjector) {
+        return new WalletPeriodHelper(periodResolver, configProvider, balanceProjector);
+    }
     
     @Bean
     @Primary

@@ -6,9 +6,8 @@ import com.crablet.command.CommandResult;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.store.Tag;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.crablet.examples.wallet.domain.event.WalletOpened;
-import com.crablet.examples.wallet.domain.projections.WalletBalanceProjector;
+import com.crablet.examples.wallet.domain.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.features.deposit.DepositCommand;
 import com.crablet.command.handlers.wallet.DepositCommandHandler;
 import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
@@ -22,7 +21,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import com.crablet.eventstore.integration.AbstractCrabletTest;
 
 import java.util.List;
 
@@ -39,19 +37,20 @@ class WalletCommandsTest extends com.crablet.eventstore.integration.AbstractCrab
     private DepositCommandHandler depositHandler;
     private WithdrawCommandHandler withdrawHandler;
     private OpenWalletCommandHandler openHandler;
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private EventStore eventStore;
 
     @Autowired
     private EventRepository testHelper;
+    
+    @Autowired
+    private WalletPeriodHelper periodHelper;
 
     @BeforeEach
     void setUp() {
-        depositHandler = new DepositCommandHandler();
-        withdrawHandler = new WithdrawCommandHandler();
+        depositHandler = new DepositCommandHandler(periodHelper);
+        withdrawHandler = new WithdrawCommandHandler(periodHelper);
         openHandler = new OpenWalletCommandHandler();
     }
 

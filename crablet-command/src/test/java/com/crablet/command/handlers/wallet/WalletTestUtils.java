@@ -8,6 +8,8 @@ import com.crablet.examples.wallet.domain.event.WalletOpened;
 import com.crablet.examples.wallet.domain.event.MoneyTransferred;
 import com.crablet.examples.wallet.domain.event.DepositMade;
 import com.crablet.examples.wallet.domain.event.WithdrawalMade;
+import com.crablet.examples.wallet.domain.event.WalletStatementOpened;
+import com.crablet.examples.wallet.domain.event.WalletStatementClosed;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -62,6 +64,16 @@ public class WalletTestUtils {
                     eventType = "WithdrawalMade";
                     tags = List.of(new Tag("wallet_id", e.walletId()));
                     occurredAt = e.withdrawnAt();
+                }
+                case WalletStatementOpened e -> {
+                    eventType = "WalletStatementOpened";
+                    tags = List.of(new Tag("wallet_id", e.walletId()), new Tag("statement_id", e.statementId()));
+                    occurredAt = e.openedAt();
+                }
+                case WalletStatementClosed e -> {
+                    eventType = "WalletStatementClosed";
+                    tags = List.of(new Tag("wallet_id", e.walletId()), new Tag("statement_id", e.statementId()));
+                    occurredAt = e.closedAt();
                 }
             }
 

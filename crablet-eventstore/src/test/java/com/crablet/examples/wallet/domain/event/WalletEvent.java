@@ -16,9 +16,12 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = WalletOpened.class, name = "WalletOpened"),
         @JsonSubTypes.Type(value = MoneyTransferred.class, name = "MoneyTransferred"),
         @JsonSubTypes.Type(value = DepositMade.class, name = "DepositMade"),
-        @JsonSubTypes.Type(value = WithdrawalMade.class, name = "WithdrawalMade")
+        @JsonSubTypes.Type(value = WithdrawalMade.class, name = "WithdrawalMade"),
+        @JsonSubTypes.Type(value = WalletStatementOpened.class, name = "WalletStatementOpened"),
+        @JsonSubTypes.Type(value = WalletStatementClosed.class, name = "WalletStatementClosed")
 })
 public sealed interface WalletEvent
-        permits WalletOpened, MoneyTransferred, DepositMade, WithdrawalMade {
+        permits WalletOpened, MoneyTransferred, DepositMade, WithdrawalMade,
+                WalletStatementOpened, WalletStatementClosed {
     // Empty interface - pattern matching works on types, not methods
 }

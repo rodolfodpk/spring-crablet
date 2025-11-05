@@ -1,10 +1,8 @@
 package com.crablet.command.handlers.wallet;
 
 import com.crablet.command.CommandResult;
-import com.crablet.command.handlers.wallet.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
 import com.crablet.eventstore.dcb.ConcurrencyException;
-import com.crablet.eventstore.integration.AbstractCrabletTest;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
@@ -13,7 +11,6 @@ import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
 import com.crablet.examples.wallet.domain.event.WalletOpened;
 import com.crablet.command.handlers.wallet.WalletTestUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,8 +32,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class OpenWalletCommandHandlerTest extends com.crablet.eventstore.integration.AbstractCrabletTest {
 
     private OpenWalletCommandHandler handler;
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private EventStore eventStore;

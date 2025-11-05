@@ -7,15 +7,12 @@ import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
 import com.crablet.examples.wallet.features.withdraw.WithdrawCommand;
 import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.Cursor;
-import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.examples.wallet.domain.WalletQueryPatterns;
 import com.crablet.examples.wallet.domain.event.WithdrawalMade;
 import com.crablet.examples.wallet.domain.exception.InsufficientFundsException;
 import com.crablet.examples.wallet.domain.exception.WalletNotFoundException;
-import com.crablet.examples.wallet.domain.projections.WalletBalanceProjector;
-import com.crablet.examples.wallet.domain.projections.WalletBalanceState;
+import com.crablet.examples.wallet.domain.period.WalletPeriodHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -30,27 +27,27 @@ import static com.crablet.examples.wallet.domain.WalletTags.*;
  * <p>
  * DCB Principle: Projects only wallet balance + existence - minimal state needed.
  * Does not project full WalletState since only balance and existence are required.
+ * <p>
+ * Uses period-aware queries and ensures active period exists before processing.
  */
 @Component
 public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 
     private static final Logger log = LoggerFactory.getLogger(WithdrawCommandHandler.class);
+    private final WalletPeriodHelper periodHelper;
 
-    public WithdrawCommandHandler() {
+    public WithdrawCommandHandler(WalletPeriodHelper periodHelper) {
+        this.periodHelper = periodHelper;
     }
 
     @Override
     public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
         // Command is already validated at construction with YAVI
 
-        // Use domain-specific decision model query
-        Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
-
-        // Project state (needed for balance calculation)
-        WalletBalanceProjector projector = new WalletBalanceProjector();
-        ProjectionResult<WalletBalanceState> projection = eventStore.project(
-                decisionModel, Cursor.zero(), WalletBalanceState.class, List.of(projector));
-        WalletBalanceState state = projection.state();
+        // Ensure active period exists and project balance using period-aware query
+        var periodResult = periodHelper.ensureActivePeriodAndProject(
+                eventStore, command.walletId(), WithdrawCommand.class);
+        var state = periodResult.projection().state();
 
         if (!state.isExisting()) {
             log.warn("Withdrawal failed - wallet not found: walletId={}, withdrawalId={}",
@@ -73,16 +70,36 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
                 command.description()
         );
 
-        AppendEvent event = AppendEvent.builder(WITHDRAWAL_MADE)
+        // Extract period info for tags
+        var periodId = periodResult.periodId();
+        int year = periodId.year();
+        int month = periodId.month() != null ? periodId.month() : 1;
+        Integer day = periodId.day();
+        Integer hour = periodId.hour();
+
+        AppendEvent.Builder eventBuilder = AppendEvent.builder(WITHDRAWAL_MADE)
                 .tag(WALLET_ID, command.walletId())
                 .tag(WITHDRAWAL_ID, command.withdrawalId())
-                .data(withdrawal)
-                .build();
+                .tag(YEAR, String.valueOf(year))
+                .tag(MONTH, String.valueOf(month));
+        
+        if (day != null) {
+            eventBuilder.tag(DAY, String.valueOf(day));
+        }
+        if (hour != null) {
+            eventBuilder.tag(HOUR, String.valueOf(hour));
+        }
+        
+        AppendEvent event = eventBuilder.data(withdrawal).build();
+
+        // Use period-aware decision model query for DCB concurrency control
+        Query decisionModel = WalletQueryPatterns.singleWalletActivePeriodDecisionModel(
+                command.walletId(), year, month);
 
         // Withdrawals are non-commutative - order matters for balance validation
         // DCB cursor check REQUIRED: prevents concurrent withdrawals exceeding balance
         // Example: $100 balance, two $80 withdrawals - both see $100, but only one should succeed
-        AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
+        AppendCondition condition = new AppendConditionBuilder(decisionModel, periodResult.projection().cursor())
                 .build();
 
         return CommandResult.of(List.of(event), condition);
