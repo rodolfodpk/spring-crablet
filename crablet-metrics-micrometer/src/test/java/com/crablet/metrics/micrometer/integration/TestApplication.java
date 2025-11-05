@@ -18,10 +18,16 @@ import com.crablet.outbox.publishing.OutboxPublishingService;
 import com.crablet.outbox.publishing.OutboxPublishingServiceImpl;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandExecutorImpl;
-import com.crablet.command.handlers.DepositCommandHandler;
-import com.crablet.command.handlers.OpenWalletCommandHandler;
-import com.crablet.command.handlers.WithdrawCommandHandler;
-import com.crablet.command.handlers.TransferMoneyCommandHandler;
+import com.crablet.command.handlers.wallet.DepositCommandHandler;
+import com.crablet.command.handlers.wallet.OpenWalletCommandHandler;
+import com.crablet.command.handlers.wallet.WithdrawCommandHandler;
+import com.crablet.command.handlers.wallet.TransferMoneyCommandHandler;
+import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
+import com.crablet.examples.wallet.period.WalletPeriodHelper;
+import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
+import com.crablet.examples.wallet.projections.WalletBalanceProjector;
+import com.crablet.eventstore.query.EventRepository;
+import com.crablet.eventstore.query.EventRepositoryImpl;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.boot.SpringApplication;
@@ -97,6 +103,38 @@ public class TestApplication {
         return new MicrometerMetricsCollector(registry);
     }
     
+    @Bean
+    public EventRepository eventRepository(DataSource dataSource, EventStoreConfig config) {
+        return new EventRepositoryImpl(dataSource, config);
+    }
+    
+    @Bean
+    public WalletBalanceProjector walletBalanceProjector() {
+        return new WalletBalanceProjector();
+    }
+    
+    @Bean
+    public PeriodConfigurationProvider periodConfigurationProvider() {
+        return new PeriodConfigurationProvider();
+    }
+    
+    @Bean
+    public WalletStatementPeriodResolver walletStatementPeriodResolver(
+            EventRepository eventRepository,
+            ClockProvider clock,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            WalletBalanceProjector balanceProjector) {
+        return new WalletStatementPeriodResolver(eventRepository, clock, objectMapper, balanceProjector);
+    }
+    
+    @Bean
+    public WalletPeriodHelper walletPeriodHelper(
+            WalletStatementPeriodResolver periodResolver,
+            PeriodConfigurationProvider configProvider,
+            WalletBalanceProjector balanceProjector) {
+        return new WalletPeriodHelper(periodResolver, configProvider, balanceProjector);
+    }
+    
     // Command handlers for Command metrics integration tests
     @Bean
     public OpenWalletCommandHandler openWalletCommandHandler() {
@@ -104,18 +142,18 @@ public class TestApplication {
     }
     
     @Bean
-    public DepositCommandHandler depositCommandHandler() {
-        return new DepositCommandHandler();
+    public DepositCommandHandler depositCommandHandler(WalletPeriodHelper periodHelper) {
+        return new DepositCommandHandler(periodHelper);
     }
     
     @Bean
-    public WithdrawCommandHandler withdrawCommandHandler() {
-        return new WithdrawCommandHandler();
+    public WithdrawCommandHandler withdrawCommandHandler(WalletPeriodHelper periodHelper) {
+        return new WithdrawCommandHandler(periodHelper);
     }
     
     @Bean
-    public TransferMoneyCommandHandler transferMoneyCommandHandler() {
-        return new TransferMoneyCommandHandler();
+    public TransferMoneyCommandHandler transferMoneyCommandHandler(WalletPeriodHelper periodHelper) {
+        return new TransferMoneyCommandHandler(periodHelper);
     }
     
     @Bean

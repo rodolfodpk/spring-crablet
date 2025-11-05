@@ -4,16 +4,17 @@ import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
 import com.crablet.examples.courses.features.definecourse.DefineCourseCommand;
-import com.crablet.command.handlers.DefineCourseCommandHandler;
+import com.crablet.command.handlers.courses.DefineCourseCommandHandler;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.examples.courses.domain.event.CourseDefined;
 import com.crablet.eventstore.integration.AbstractCrabletTest;
-import com.crablet.examples.courses.testutils.CourseTestUtils;
+import com.crablet.command.handlers.courses.CourseTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 
@@ -26,12 +27,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * DCB Principle: Tests verify idempotency check pattern.
  */
 @DisplayName("DefineCourseCommandHandler Integration Tests")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class DefineCourseCommandHandlerTest extends AbstractCrabletTest {
 
     private DefineCourseCommandHandler handler;
     
     @Autowired
     private EventStore eventStore;
+    
+    @Autowired
+    private CourseTestUtils courseTestUtils;
 
     @BeforeEach
     void setUp() {
@@ -57,7 +62,7 @@ class DefineCourseCommandHandlerTest extends AbstractCrabletTest {
                     assertThat(event.tags().get(0).value()).isEqualTo("c1");
                 });
 
-        CourseDefined courseDefined = CourseTestUtils.deserializeEventData(result.events().get(0).eventData(), CourseDefined.class);
+        CourseDefined courseDefined = courseTestUtils.deserializeEventData(result.events().get(0).eventData(), CourseDefined.class);
         assertThat(courseDefined)
                 .satisfies(c -> {
                     assertThat(c.courseId()).isEqualTo("c1");
@@ -70,7 +75,7 @@ class DefineCourseCommandHandlerTest extends AbstractCrabletTest {
     void testHandleDefineCourse_DuplicateId() {
         // Arrange - create course first
         CourseDefined existing = CourseDefined.of("c1", 5);
-        StoredEvent existingEvent = CourseTestUtils.createEvent(existing);
+        StoredEvent existingEvent = courseTestUtils.createEvent(existing);
         AppendEvent existingInputEvent = AppendEvent.builder(existingEvent.type())
                 .data(existingEvent.data())
                 .tag("course_id", "c1")

@@ -1,4 +1,4 @@
-package com.crablet.command.handlers;
+package com.crablet.command.handlers.wallet;
 
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.dcb.AppendConditionBuilder;
@@ -8,10 +8,12 @@ import com.crablet.command.CommandResult;
 import com.crablet.examples.wallet.features.transfer.TransferMoneyCommand;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.query.Query;
-import com.crablet.examples.wallet.domain.WalletQueryPatterns;
-import com.crablet.examples.wallet.domain.event.MoneyTransferred;
-import com.crablet.examples.wallet.domain.exception.InsufficientFundsException;
-import com.crablet.examples.wallet.domain.exception.WalletNotFoundException;
+import com.crablet.examples.wallet.WalletQueryPatterns;
+import com.crablet.examples.wallet.event.MoneyTransferred;
+import com.crablet.examples.wallet.exception.InsufficientFundsException;
+import com.crablet.examples.wallet.exception.WalletNotFoundException;
+import com.crablet.examples.wallet.period.WalletPeriodHelper;
+import com.crablet.examples.wallet.period.WalletPeriodHelper.PeriodProjectionResult;
 import com.crablet.examples.wallet.features.transfer.TransferState;
 import com.crablet.examples.wallet.features.transfer.TransferStateProjector;
 import org.slf4j.Logger;
@@ -20,29 +22,41 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.examples.wallet.domain.WalletEventTypes.*;
-import static com.crablet.examples.wallet.domain.WalletTags.*;
+import static com.crablet.examples.wallet.WalletEventTypes.*;
+import static com.crablet.examples.wallet.WalletTags.*;
 
 /**
  * Command handler for transferring money between wallets.
  * <p>
  * DCB Principle: Projects balances for both wallets + concurrency control.
  * Keeps complex transfer logic together for atomicity and consistency.
+ * <p>
+ * Uses period-aware queries and ensures active periods exist for both wallets.
+ * Wallets are handled independently - they may be in different periods.
  */
 @Component
 public class TransferMoneyCommandHandler implements CommandHandler<TransferMoneyCommand> {
 
     private static final Logger log = LoggerFactory.getLogger(TransferMoneyCommandHandler.class);
+    private final WalletPeriodHelper periodHelper;
 
-    public TransferMoneyCommandHandler() {
+    public TransferMoneyCommandHandler(WalletPeriodHelper periodHelper) {
+        this.periodHelper = periodHelper;
     }
 
     @Override
     public CommandResult handle(EventStore eventStore, TransferMoneyCommand command) {
         // Command is already validated at construction with YAVI
 
-        // Project state (needed for balance calculation)
-        TransferProjectionResult transferProjection = projectTransferState(eventStore, command);
+        // Ensure active periods exist for both wallets (handled independently)
+        PeriodProjectionResult fromPeriodResult = periodHelper.ensureActivePeriodAndProject(
+                eventStore, command.fromWalletId(), TransferMoneyCommand.class);
+        PeriodProjectionResult toPeriodResult = periodHelper.ensureActivePeriodAndProject(
+                eventStore, command.toWalletId(), TransferMoneyCommand.class);
+
+        // Project transfer state using period-aware query
+        TransferProjectionResult transferProjection = projectTransferState(
+                eventStore, command, fromPeriodResult, toPeriodResult);
         TransferState transferState = transferProjection.state();
 
         if (!transferState.fromWallet().isExisting()) {
@@ -77,33 +91,78 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
                 command.description()
         );
 
-        AppendEvent event = AppendEvent.builder(MONEY_TRANSFERRED)
+        // Extract period info for tags (wallets may be in different periods)
+        var fromPeriodId = fromPeriodResult.periodId();
+        var toPeriodId = toPeriodResult.periodId();
+        int fromYear = fromPeriodId.year();
+        int fromMonth = fromPeriodId.month() != null ? fromPeriodId.month() : 1;
+        Integer fromDay = fromPeriodId.day();
+        Integer fromHour = fromPeriodId.hour();
+        int toYear = toPeriodId.year();
+        int toMonth = toPeriodId.month() != null ? toPeriodId.month() : 1;
+        Integer toDay = toPeriodId.day();
+        Integer toHour = toPeriodId.hour();
+
+        AppendEvent.Builder eventBuilder = AppendEvent.builder(MONEY_TRANSFERRED)
                 .tag(TRANSFER_ID, command.transferId())
                 .tag(FROM_WALLET_ID, command.fromWalletId())
                 .tag(TO_WALLET_ID, command.toWalletId())
-                .data(transfer)
-                .build();
+                .tag(FROM_YEAR, String.valueOf(fromYear))
+                .tag(FROM_MONTH, String.valueOf(fromMonth))
+                .tag(TO_YEAR, String.valueOf(toYear))
+                .tag(TO_MONTH, String.valueOf(toMonth));
+        
+        if (fromDay != null) {
+            eventBuilder.tag(FROM_DAY, String.valueOf(fromDay));
+        }
+        if (fromHour != null) {
+            eventBuilder.tag(FROM_HOUR, String.valueOf(fromHour));
+        }
+        if (toDay != null) {
+            eventBuilder.tag(TO_DAY, String.valueOf(toDay));
+        }
+        if (toHour != null) {
+            eventBuilder.tag(TO_HOUR, String.valueOf(toHour));
+        }
+        
+        AppendEvent event = eventBuilder.data(transfer).build();
 
         // Transfers are non-commutative - order matters for both wallet balances
         // DCB cursor check REQUIRED: prevents concurrent transfers causing overdrafts
-        AppendCondition condition = new AppendConditionBuilder(transferProjection.decisionModel(), transferProjection.cursor())
+        AppendCondition condition = new AppendConditionBuilder(
+                transferProjection.decisionModel(), transferProjection.cursor())
                 .build();
 
         return CommandResult.of(List.of(event), condition);
     }
 
     /**
-     * Project transfer state - balances for both wallets.
+     * Project transfer state - balances for both wallets using period-aware queries.
      * <p>
      * DCB Principle: Projects only what TransferMoneyCommand needs.
      * For transfers, we need balances for both wallets (not full WalletState).
+     * <p>
+     * Creates a combined query that includes events from both wallets' active periods.
      */
-    private TransferProjectionResult projectTransferState(EventStore store, TransferMoneyCommand cmd) {
-        // Use domain-specific query pattern
-        Query decisionModel = WalletQueryPatterns.transferDecisionModel(
-                cmd.fromWalletId(),
-                cmd.toWalletId()
-        );
+    private TransferProjectionResult projectTransferState(
+            EventStore store,
+            TransferMoneyCommand cmd,
+            PeriodProjectionResult fromPeriodResult,
+            PeriodProjectionResult toPeriodResult) {
+        
+        // Create period-aware transfer decision model query
+        // Include events from both wallets' active periods
+        var fromPeriodId = fromPeriodResult.periodId();
+        var toPeriodId = toPeriodResult.periodId();
+        int fromYear = fromPeriodId.year();
+        int fromMonth = fromPeriodId.month() != null ? fromPeriodId.month() : 1;
+        int toYear = toPeriodId.year();
+        int toMonth = toPeriodId.month() != null ? toPeriodId.month() : 1;
+
+        // Use period-aware transfer decision model (combines both wallets' periods)
+        Query decisionModel = WalletQueryPatterns.transferPeriodDecisionModel(
+                cmd.fromWalletId(), fromYear, fromMonth,
+                cmd.toWalletId(), toYear, toMonth);
         
         // Create projector instance per projection (immutable, thread-safe)
         TransferStateProjector projector = new TransferStateProjector(cmd.fromWalletId(), cmd.toWalletId());

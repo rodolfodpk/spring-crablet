@@ -2,7 +2,7 @@ package com.crablet.metrics.micrometer.integration;
 
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.examples.wallet.domain.event.WalletOpened;
+import com.crablet.examples.wallet.event.WalletOpened;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.publishing.OutboxPublishingService;
 import io.micrometer.core.instrument.Counter;

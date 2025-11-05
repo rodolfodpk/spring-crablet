@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain.exception;
+package com.crablet.examples.wallet.exception;
 
 /**
  * Exception thrown when attempting to perform operations on a wallet that does not exist.
@@ -12,3 +12,4 @@ public class WalletNotFoundException extends RuntimeException {
         this.walletId = walletId;
     }
 }
+

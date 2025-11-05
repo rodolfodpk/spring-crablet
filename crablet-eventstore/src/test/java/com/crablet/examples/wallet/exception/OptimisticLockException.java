@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain.exception;
+package com.crablet.examples.wallet.exception;
 
 /**
  * Exception thrown when optimistic concurrency control fails.
@@ -10,3 +10,4 @@ public class OptimisticLockException extends RuntimeException {
         super(message);
     }
 }
+

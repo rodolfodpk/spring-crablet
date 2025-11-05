@@ -146,7 +146,6 @@ public class EventStoreImpl implements EventStore {
         }
     }
 
-    @Autowired
     public EventStoreImpl(
             @Qualifier("primaryDataSource") DataSource writeDataSource,
             @Qualifier("readDataSource") DataSource readDataSource,

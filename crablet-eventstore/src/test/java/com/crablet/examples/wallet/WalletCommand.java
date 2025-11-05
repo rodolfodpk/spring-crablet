@@ -1,5 +1,7 @@
-package com.crablet.examples.wallet.domain;
+package com.crablet.examples.wallet;
 
+import com.crablet.examples.wallet.period.PeriodConfig;
+import com.crablet.examples.wallet.period.PeriodType;
 import com.crablet.examples.wallet.features.deposit.DepositCommand;
 import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
 import com.crablet.examples.wallet.features.transfer.TransferMoneyCommand;
@@ -13,6 +15,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
  * No methods needed - pattern matching works on types, not methods.
  * Library code extracts command type from JSON via Jackson polymorphic serialization.
  */
+@PeriodConfig(PeriodType.MONTHLY)
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.PROPERTY,

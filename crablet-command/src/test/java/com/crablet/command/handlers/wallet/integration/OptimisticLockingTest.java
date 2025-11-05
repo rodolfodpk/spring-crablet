@@ -1,4 +1,4 @@
-package com.crablet.command.integration;
+package com.crablet.command.handlers.wallet.integration;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.dcb.ConcurrencyException;
@@ -6,8 +6,6 @@ import com.crablet.eventstore.integration.AbstractCrabletTest;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
-import com.crablet.eventstore.store.Cursor;
-import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.Tag;
 import com.crablet.examples.wallet.features.deposit.DepositCommand;
 import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
@@ -32,14 +30,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 4. Retry logic verification
  * 5. Verify 409 CONFLICT HTTP response
  */
-@SpringBootTest(classes = TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class OptimisticLockingTest extends AbstractCrabletTest {
 
     @Autowired
     private CommandExecutor commandExecutor;
-
-    @Autowired
-    private EventStore eventStore;
 
     @Autowired
     private EventRepository testHelper;
@@ -57,8 +52,6 @@ class OptimisticLockingTest extends AbstractCrabletTest {
         Query query = Query.of(QueryItem.of(List.of("WalletOpened"), List.of(new Tag("wallet_id", walletId))));
         List<com.crablet.eventstore.store.StoredEvent> events = testHelper.query(query, null);
         assertThat(events).hasSize(1);
-
-        Cursor currentCursor = Cursor.of(events.get(0).position(), events.get(0).occurredAt(), events.get(0).transactionId());
 
         // Create deposit command that should succeed with correct cursor
         DepositCommand depositCommand = DepositCommand.of("deposit-1", walletId, 100, "Test deposit");
@@ -83,8 +76,7 @@ class OptimisticLockingTest extends AbstractCrabletTest {
 
         // Get initial cursor
         Query query = Query.of(QueryItem.of(List.of("WalletOpened"), List.of(new Tag("wallet_id", walletId))));
-        List<com.crablet.eventstore.store.StoredEvent> events = testHelper.query(query, null);
-        Cursor initialCursor = Cursor.of(events.get(0).position(), events.get(0).occurredAt(), events.get(0).transactionId());
+        testHelper.query(query, null);
 
         // Make a deposit to advance the cursor
         DepositCommand firstDeposit = DepositCommand.of("deposit-1", walletId, 100, "First deposit");

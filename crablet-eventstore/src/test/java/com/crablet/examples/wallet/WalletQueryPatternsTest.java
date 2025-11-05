@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain;
+package com.crablet.examples.wallet;
 
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.Tag;

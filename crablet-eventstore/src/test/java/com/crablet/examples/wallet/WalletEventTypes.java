@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain;
+package com.crablet.examples.wallet;
 
 /**
  * Constants for wallet domain event type names.
@@ -35,5 +35,15 @@ public final class WalletEventTypes {
      * Event type for withdrawals from a wallet.
      */
     public static final String WITHDRAWAL_MADE = "WithdrawalMade";
+    
+    /**
+     * Event type for wallet statement period opened.
+     */
+    public static final String WALLET_STATEMENT_OPENED = "WalletStatementOpened";
+    
+    /**
+     * Event type for wallet statement period closed.
+     */
+    public static final String WALLET_STATEMENT_CLOSED = "WalletStatementClosed";
 }
 

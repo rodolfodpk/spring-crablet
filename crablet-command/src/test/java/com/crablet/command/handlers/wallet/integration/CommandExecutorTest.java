@@ -1,15 +1,14 @@
-package com.crablet.command.integration;
+package com.crablet.command.handlers.wallet.integration;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.ExecutionResult;
-import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.integration.AbstractCrabletTest;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
-import com.crablet.examples.wallet.domain.exception.InsufficientFundsException;
-import com.crablet.examples.wallet.domain.exception.WalletNotFoundException;
+import com.crablet.examples.wallet.exception.InsufficientFundsException;
+import com.crablet.examples.wallet.exception.WalletNotFoundException;
 import com.crablet.examples.wallet.features.deposit.DepositCommand;
 import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
 import com.crablet.examples.wallet.features.transfer.TransferMoneyCommand;
@@ -27,7 +26,7 @@ import static org.assertj.core.api.Assertions.*;
  * Integration tests for CommandExecutor using wallet commands.
  * Tests end-to-end command execution: CommandExecutor → Handler → EventStore
  */
-@SpringBootTest(classes = TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 @DisplayName("CommandExecutor Integration Tests")
 class CommandExecutorTest extends AbstractCrabletTest {
 

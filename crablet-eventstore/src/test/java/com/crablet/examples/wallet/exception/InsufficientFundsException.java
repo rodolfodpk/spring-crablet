@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain.exception;
+package com.crablet.examples.wallet.exception;
 
 /**
  * Exception thrown when attempting to withdraw or transfer more money than available in the wallet.
@@ -17,3 +17,4 @@ public class InsufficientFundsException extends RuntimeException {
         this.requestedAmount = requestedAmount;
     }
 }
+

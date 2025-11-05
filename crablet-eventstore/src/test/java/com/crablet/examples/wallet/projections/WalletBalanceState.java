@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain.projections;
+package com.crablet.examples.wallet.projections;
 
 /**
  * Minimal state for wallet balance - only balance + existence.
@@ -23,3 +23,4 @@ public record WalletBalanceState(String walletId, int balance, boolean exists) {
         return exists;
     }
 }
+

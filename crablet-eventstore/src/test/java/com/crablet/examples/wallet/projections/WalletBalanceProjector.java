@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain.projections;
+package com.crablet.examples.wallet.projections;
 
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.store.EventStore;
@@ -6,13 +6,13 @@ import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.eventstore.store.Tag;
-import com.crablet.examples.wallet.domain.WalletQueryPatterns;
-import com.crablet.examples.wallet.domain.event.DepositMade;
-import com.crablet.examples.wallet.domain.event.MoneyTransferred;
-import com.crablet.examples.wallet.domain.event.WalletEvent;
-import com.crablet.examples.wallet.domain.event.WalletOpened;
-import com.crablet.examples.wallet.domain.event.WithdrawalMade;
+import com.crablet.examples.wallet.event.DepositMade;
+import com.crablet.examples.wallet.event.MoneyTransferred;
+import com.crablet.examples.wallet.event.WalletEvent;
+import com.crablet.examples.wallet.event.WalletOpened;
+import com.crablet.examples.wallet.event.WalletStatementClosed;
+import com.crablet.examples.wallet.event.WalletStatementOpened;
+import com.crablet.examples.wallet.event.WithdrawalMade;
 
 import java.util.List;
 
@@ -37,7 +37,7 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
 
     @Override
     public List<String> getEventTypes() {
-        return List.of("WalletOpened", "MoneyTransferred", "DepositMade", "WithdrawalMade");
+        return List.of("WalletStatementOpened", "WalletStatementClosed", "WalletOpened", "MoneyTransferred", "DepositMade", "WithdrawalMade");
     }
 
     @Override
@@ -52,11 +52,25 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
 
         // Use pattern matching for type-safe event handling
         return switch (walletEvent) {
-            case WalletOpened opened -> new WalletBalanceState(
-                    opened.walletId(),
-                    opened.initialBalance(),
-                    true
-            );
+            case WalletStatementOpened opened -> {
+                // WalletStatementOpened sets opening balance, but doesn't indicate wallet existence
+                // Wallet existence is determined by WalletOpened event, not statement events
+                // Preserve existing state's isExisting flag, only update balance and walletId
+                yield new WalletBalanceState(
+                        opened.walletId(),
+                        opened.openingBalance(),
+                        currentState.isExisting() // Preserve existing state
+                );
+            }
+
+            case WalletOpened opened -> {
+                // WalletOpened sets wallet existence - this is the source of truth
+                yield new WalletBalanceState(
+                        opened.walletId(),
+                        opened.initialBalance(),
+                        true // Wallet exists
+                );
+            }
 
             case MoneyTransferred transfer -> {
                 // Check if this transfer affects the current wallet
@@ -89,32 +103,23 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
                     true
             );
 
-            default -> currentState; // Event not relevant
+            case WalletStatementClosed _ -> {
+                // WalletStatementClosed is an audit event - doesn't affect balance projection
+                // Balance projection should use closing balance from the closed event if needed,
+                // but for active period queries, we only see WalletStatementOpened
+                yield currentState;
+            }
         };
     }
 
     /**
-     * Project wallet balance state from event store with cursor for DCB concurrency control.
-     * <p>
-     * This method queries all events that affect a wallet's balance using WalletQueryPatterns
-     * for consistency with DCB decision model queries.
-     *
-     * @param store    The event store to query
-     * @param walletId The wallet ID to project balance for
-     * @return ProjectionResult containing WalletBalanceState and cursor for optimistic locking
-     */
-    public ProjectionResult<WalletBalanceState> projectWalletBalance(EventStore store, String walletId) {
-        // Use WalletQueryPatterns for consistency with DCB decision model queries
-        Query query = WalletQueryPatterns.singleWalletDecisionModel(walletId);
-        return projectWalletBalance(store, walletId, query);
-    }
-
-    /**
      * Project wallet balance using a custom query (DCB pattern with decision model).
+     * <p>
+     * Callers must provide period-aware queries. Period tags are now mandatory.
      *
      * @param store    The event store to query
      * @param walletId The wallet ID to project balance for
-     * @param query    The decision model query to use
+     * @param query    The decision model query to use (must be period-aware)
      * @return ProjectionResult containing WalletBalanceState and cursor for optimistic locking
      */
     public ProjectionResult<WalletBalanceState> projectWalletBalance(EventStore store, String walletId, Query query) {
@@ -123,3 +128,4 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
     }
 
 }
+

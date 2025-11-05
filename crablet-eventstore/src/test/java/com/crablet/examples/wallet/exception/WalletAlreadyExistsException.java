@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain.exception;
+package com.crablet.examples.wallet.exception;
 
 /**
  * Exception thrown when attempting to create a wallet that already exists.
@@ -13,3 +13,4 @@ public class WalletAlreadyExistsException extends RuntimeException {
         this.walletId = walletId;
     }
 }
+

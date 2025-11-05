@@ -3,7 +3,7 @@ package com.crablet.examples.wallet.features.openwallet;
 import am.ik.yavi.arguments.Arguments3Validator;
 import am.ik.yavi.core.ConstraintViolationsException;
 import am.ik.yavi.validator.Yavi;
-import com.crablet.examples.wallet.domain.WalletCommand;
+import com.crablet.examples.wallet.WalletCommand;
 
 /**
  * Command to open a new wallet.

@@ -1,6 +1,6 @@
 package com.crablet.examples.wallet.features.transfer;
 
-import com.crablet.examples.wallet.domain.projections.WalletBalanceState;
+import com.crablet.examples.wallet.projections.WalletBalanceState;
 
 /**
  * State for transfer operations - balances for both wallets.

@@ -1,4 +1,4 @@
-package com.crablet.examples.wallet.domain.exception;
+package com.crablet.examples.wallet.exception;
 
 /**
  * Exception thrown when an operation is attempted with an ID that has already been processed.
@@ -9,3 +9,4 @@ public class DuplicateOperationException extends RuntimeException {
         super(message);
     }
 }
+

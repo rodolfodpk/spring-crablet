@@ -6,7 +6,6 @@ import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.Tag;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 /**
  * Builder for creating AppendCondition with dual conditions.
@@ -16,7 +15,6 @@ import java.util.stream.Stream;
 public class AppendConditionBuilder {
     private final Query decisionModelQuery;
     private final Cursor cursor;
-    private final List<QueryItem> concurrencyItems = new ArrayList<>();
     private final List<QueryItem> idempotencyItems = new ArrayList<>();
 
     public AppendConditionBuilder(Query decisionModelQuery, Cursor cursor) {
@@ -54,9 +52,7 @@ public class AppendConditionBuilder {
      */
     public AppendCondition build() {
         // Concurrency check: decision model query (with cursor)
-        Query stateChangedQuery = Query.of(
-            Stream.concat(decisionModelQuery.items().stream(), concurrencyItems.stream()).toList()
-        );
+        Query stateChangedQuery = decisionModelQuery;
         
         // Idempotency check: separate query (no cursor limit)
         Query alreadyExistsQuery = idempotencyItems.isEmpty() 

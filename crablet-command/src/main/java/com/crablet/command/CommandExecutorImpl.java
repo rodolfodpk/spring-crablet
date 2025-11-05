@@ -63,7 +63,6 @@ public class CommandExecutorImpl implements CommandExecutor {
     @Autowired(required = false)
     private ApplicationEventPublisher eventPublisher;
 
-    @Autowired
     public CommandExecutorImpl(EventStore eventStore, List<CommandHandler<?>> commandHandlers, 
                               EventStoreConfig config, ClockProvider clock,
                               ObjectMapper objectMapper) {

@@ -315,17 +315,29 @@ Generates SQL with:
 
 ```java
 public interface StateProjector<T> {
-    T transition(T currentState, StoredEvent event, EventDeserializer deserializer);
+    String getId();
+    List<String> getEventTypes();
     T getInitialState();
-    Query getQuery(String entityId);
+    T transition(T currentState, StoredEvent event, EventDeserializer deserializer);
 }
 ```
 
 Usage:
 ```java
-List<StoredEvent> events = eventStore.query(query, cursor);
-EventDeserializer deserializer = // provided by EventStore
-WalletState state = projector.transition(initialState, event, deserializer);
+Query query = QueryBuilder.create()
+    .events("WalletOpened", "DepositMade", "WithdrawalMade")
+    .tag("wallet_id", walletId)
+    .build();
+
+ProjectionResult<WalletBalance> result = eventStore.project(
+    query,
+    Cursor.zero(),
+    WalletBalance.class,
+    List.of(new WalletBalanceProjector())
+);
+
+WalletBalance balance = result.state();
+Cursor cursor = result.cursor(); // Use for DCB concurrency control
 ```
 
 ### Command Handlers

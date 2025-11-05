@@ -4,7 +4,7 @@ import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
 import com.crablet.examples.courses.features.subscribe.SubscribeStudentToCourseCommand;
-import com.crablet.command.handlers.SubscribeStudentToCourseCommandHandler;
+import com.crablet.command.handlers.courses.SubscribeStudentToCourseCommandHandler;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.examples.courses.domain.event.CourseDefined;
@@ -14,11 +14,12 @@ import com.crablet.examples.courses.domain.exception.CourseFullException;
 import com.crablet.examples.courses.domain.exception.CourseNotFoundException;
 import com.crablet.examples.courses.domain.exception.StudentSubscriptionLimitException;
 import com.crablet.eventstore.integration.AbstractCrabletTest;
-import com.crablet.examples.courses.testutils.CourseTestUtils;
+import com.crablet.command.handlers.courses.CourseTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 
@@ -31,12 +32,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * DCB Principle: Tests verify multi-entity constraint enforcement.
  */
 @DisplayName("SubscribeStudentToCourseCommandHandler Integration Tests")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
 
     private SubscribeStudentToCourseCommandHandler handler;
     
     @Autowired
     private EventStore eventStore;
+    
+    @Autowired
+    private CourseTestUtils courseTestUtils;
 
     @BeforeEach
     void setUp() {
@@ -48,7 +53,7 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
     void testHandleSubscribe_Success() {
         // Arrange - create course
         CourseDefined courseDefined = CourseDefined.of("c1", 10);
-        StoredEvent courseEvent = CourseTestUtils.createEvent(courseDefined);
+        StoredEvent courseEvent = courseTestUtils.createEvent(courseDefined);
         AppendEvent courseInputEvent = AppendEvent.builder(courseEvent.type())
                 .data(courseEvent.data())
                 .tag("course_id", "c1")
@@ -64,7 +69,7 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
         assertThat(result.events()).hasSize(1);
         assertThat(result.events().get(0).type()).isEqualTo("StudentSubscribedToCourse");
         assertThat(result.events().get(0).tags()).hasSize(2); // course_id and student_id
-        StudentSubscribedToCourse subscription = CourseTestUtils.deserializeEventData(
+        StudentSubscribedToCourse subscription = courseTestUtils.deserializeEventData(
                 result.events().get(0).eventData(), StudentSubscribedToCourse.class);
         assertThat(subscription.studentId()).isEqualTo("s1");
         assertThat(subscription.courseId()).isEqualTo("c1");
@@ -87,7 +92,7 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
     void testHandleSubscribe_CourseFull() {
         // Arrange - create course with capacity 3 and subscribe 3 students
         CourseDefined courseDefined = CourseDefined.of("c1", 3);
-        StoredEvent courseEvent = CourseTestUtils.createEvent(courseDefined);
+        StoredEvent courseEvent = courseTestUtils.createEvent(courseDefined);
         AppendEvent courseInputEvent = AppendEvent.builder(courseEvent.type())
                 .data(courseEvent.data())
                 .tag("course_id", "c1")
@@ -114,7 +119,7 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
     void testHandleSubscribe_AlreadySubscribed() {
         // Arrange - create course and subscribe student
         CourseDefined courseDefined = CourseDefined.of("c1", 10);
-        StoredEvent courseEvent = CourseTestUtils.createEvent(courseDefined);
+        StoredEvent courseEvent = courseTestUtils.createEvent(courseDefined);
         AppendEvent courseInputEvent = AppendEvent.builder(courseEvent.type())
                 .data(courseEvent.data())
                 .tag("course_id", "c1")
@@ -139,7 +144,7 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
         // Arrange - create 5 courses and subscribe student to all
         for (int i = 1; i <= 5; i++) {
             CourseDefined courseDefined = CourseDefined.of("c" + i, 10);
-            StoredEvent courseEvent = CourseTestUtils.createEvent(courseDefined);
+            StoredEvent courseEvent = courseTestUtils.createEvent(courseDefined);
             AppendEvent courseInputEvent = AppendEvent.builder(courseEvent.type())
                     .data(courseEvent.data())
                     .tag("course_id", "c" + i)
@@ -153,7 +158,7 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
 
         // Create 6th course
         CourseDefined courseDefined = CourseDefined.of("c6", 10);
-        StoredEvent courseEvent = CourseTestUtils.createEvent(courseDefined);
+        StoredEvent courseEvent = courseTestUtils.createEvent(courseDefined);
         AppendEvent courseInputEvent = AppendEvent.builder(courseEvent.type())
                 .data(courseEvent.data())
                 .tag("course_id", "c6")
