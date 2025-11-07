@@ -104,9 +104,10 @@ public class TestApplication {
             DataSource dataSource,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             EventStoreConfig config,
-            ClockProvider clock) {
+            ClockProvider clock,
+            org.springframework.context.ApplicationEventPublisher eventPublisher) {
         // Use same datasource for both read and write in tests
-        return new EventStoreImpl(dataSource, dataSource, objectMapper, config, clock);
+        return new EventStoreImpl(dataSource, dataSource, objectMapper, config, clock, eventPublisher);
     }
     
     @Bean
@@ -119,8 +120,9 @@ public class TestApplication {
                                            java.util.List<com.crablet.command.CommandHandler<?>> commandHandlers,
                                            EventStoreConfig config,
                                            ClockProvider clock,
-                                           com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
-        return new CommandExecutorImpl(eventStore, commandHandlers, config, clock, objectMapper);
+                                           com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+                                           org.springframework.context.ApplicationEventPublisher eventPublisher) {
+        return new CommandExecutorImpl(eventStore, commandHandlers, config, clock, objectMapper, eventPublisher);
     }
 }
 

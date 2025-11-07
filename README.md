@@ -16,22 +16,11 @@ Crablet is a lightweight event sourcing framework with Spring Boot integration.
 - **Outbox**: Reliable event publishing to external systems
 - **Spring Integration**: Ready-to-use Spring Boot components
 
-## Framework Features
-
-Crablet is a light framework that provides:
-
-- **Event Store**: Use `crablet-eventstore` module - core event sourcing library with DCB support
-- **Command Framework**: Use `crablet-command` module - implement `CommandHandler<T>` interfaces for automatic discovery and orchestration
-- **Outbox**: Use `crablet-outbox` module - transactional outbox event publishing 
-
 **Why "Light"?**
-- Minimal required components:
-  - **Event Store** (`crablet-eventstore`): 0 interfaces to implement - just inject `EventStore` and use `appendIf(..., AppendCondition.empty())`. Optional: typically 0-1 `StateProjector<T>` per domain (shared) or more if needed
-  - **Command Framework** (`crablet-command`): 1 `CommandHandler<T>` per command type + typically 0-1 `StateProjector<T>` per domain (shared) or 1 per command if needed
-  - **Outbox** (`crablet-outbox`): 1 interface to implement - `OutboxPublisher` for event publishing
-- Small API surface (0-1 interfaces to implement per module)
-- No heavy conventions or configuration
-- Most components are optional
+- Minimal interfaces to implement (0-1 per module)
+- Small API surface
+- Most components optional
+- Metrics enabled by default
 - Easy to customize and extend
 
 ## Modules
@@ -41,40 +30,15 @@ Crablet is a light framework that provides:
 - **crablet-outbox** - Light framework component for transactional outbox event publishing
 - **crablet-metrics-micrometer** - Micrometer metrics collector for event-driven metrics (optional)
 
-## Quick Start
-
-See module READMEs for dependency information:
-- **[EventStore Setup](crablet-eventstore/README.md#maven-coordinates)** - Add eventstore dependency
-- **[Command Setup](crablet-command/README.md#maven-coordinates)** - Add command framework dependency (optional)
-- **[Outbox Setup](crablet-outbox/README.md#maven-coordinates)** - Add outbox dependency (optional)
-- **[Metrics Setup](crablet-metrics-micrometer/README.md#maven-coordinates)** - Add metrics collector dependency (optional)
-
-### Build and Test
-
-Tests use Testcontainers (no external dependencies required):
-```bash
-mvn clean install
-```
-
-All tests pass.
-
-## DCB Patterns
+## DCB Patterns Quick Reference
 
 Crablet implements DCB (Dynamic Consistency Boundary) for event sourcing concurrency control.
-
-### Pattern Types
 
 | Pattern | Use Case | AppendCondition |
 |---------|----------|----------------|
 | **Idempotency Check** | Entity creation (OpenWallet) | `withIdempotencyCheck()` |
 | **Cursor-based Check** | State-dependent ops (Withdraw, Transfer) | `AppendConditionBuilder(decisionModel, cursor)` |
 | **Empty Condition** | Commutative operations (Deposit) | `AppendCondition.empty()` |
-
-### When to Use Each
-
-- **`AppendCondition.empty()`** - For commutative operations where order doesn't matter
-- **`withIdempotencyCheck()`** - For entity creation requiring uniqueness
-- **`AppendConditionBuilder(decisionModel, cursor)`** - For state-dependent operations that need conflict detection
 
 📖 See [Command Patterns Guide](crablet-eventstore/docs/COMMAND_PATTERNS.md) for complete examples and detailed explanations.
 
@@ -102,6 +66,13 @@ Crablet implements DCB (Dynamic Consistency Boundary) for event sourcing concurr
 - **Spring Boot 3.5**: Full Spring integration
 - **PostgreSQL**: Primary database with optional read replicas
 - **Comprehensive Testing**: Full test coverage with unit and integration tests
+
+## Build and Test
+
+Tests use Testcontainers (no external dependencies required):
+```bash
+mvn clean install
+```
 
 ## License
 

@@ -36,15 +36,13 @@ class GlobalStatisticsTest extends AbstractCrabletTest {
     @Autowired
     private OutboxConfig outboxConfig;
     
-    @Autowired(required = false)
+    @Autowired
     private GlobalStatisticsPublisher globalStatistics;
     
     @BeforeEach
     void setUp() {
-        // Reset global statistics if available
-        if (globalStatistics != null) {
-            globalStatistics.reset();
-        }
+        // Reset global statistics
+        globalStatistics.reset();
         
         // Reset outbox database state to ensure test isolation
         jdbcTemplate.update("DELETE FROM outbox_topic_progress WHERE topic = 'default'");

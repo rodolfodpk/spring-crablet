@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.springframework.context.ApplicationEventPublisher;
 
 import javax.sql.DataSource;
 import java.time.Instant;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 /**
  * Direct unit test for EventStoreImpl without Spring framework.
@@ -77,12 +79,14 @@ class EventStoreImplTest {
         com.crablet.eventstore.clock.ClockProvider clockProvider = new ClockProviderImpl();
 
         // Directly instantiate EventStoreImpl - NO SPRING INVOLVEMENT
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
         eventStore = new EventStoreImpl(
                 dataSource,      // writeDataSource
                 dataSource,      // readDataSource
                 objectMapper,
                 config,
-                clockProvider
+                clockProvider,
+                eventPublisher
         );
     }
     

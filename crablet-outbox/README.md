@@ -142,6 +142,26 @@ crablet.outbox.topics.default.publisher-configs[1].name=LogPublisher
 crablet.outbox.topics.default.publisher-configs[1].polling-interval-ms=2000
 ```
 
+## Metrics
+
+Outbox components support metrics collection via Spring's `ApplicationEventPublisher`:
+
+- **Metrics are enabled by default**: Spring Boot automatically provides an `ApplicationEventPublisher` bean
+- **Required parameter**: The `eventPublisher` parameter is required in all outbox component constructors
+- **Automatic metrics collection**: See [crablet-metrics-micrometer](../crablet-metrics-micrometer/README.md) for automatic metrics collection
+
+The following components publish metrics:
+- `OutboxPublishingServiceImpl` - Publishing metrics
+- `OutboxProcessorImpl` - Processing cycle metrics
+- `OutboxLeaderElector` - Leadership metrics
+
+The following metrics are published:
+- `EventsPublishedMetric` - Events published successfully
+- `PublishingDurationMetric` - Time taken to publish events
+- `OutboxErrorMetric` - Publishing errors
+- `ProcessingCycleMetric` - Processing cycle completion
+- `LeadershipMetric` - Leader election changes
+
 ## Management API
 
 The outbox provides a management API for monitoring and control:

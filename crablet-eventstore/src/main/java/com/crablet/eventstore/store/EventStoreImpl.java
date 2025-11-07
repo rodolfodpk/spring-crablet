@@ -18,7 +18,6 @@ import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.RowMapper;
 import com.crablet.eventstore.metrics.EventsAppendedMetric;
@@ -67,8 +66,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
  *             @Qualifier("readDataSource") DataSource readDataSource,
  *             ObjectMapper objectMapper,
  *             EventStoreConfig config,
- *             ClockProvider clock) {
- *         return new EventStoreImpl(writeDataSource, readDataSource, objectMapper, config, clock);
+ *             ClockProvider clock,
+ *             ApplicationEventPublisher eventPublisher) {
+ *         return new EventStoreImpl(writeDataSource, readDataSource, objectMapper, config, clock, eventPublisher);
  *     }
  * }
  * }</pre>
@@ -104,9 +104,7 @@ public class EventStoreImpl implements EventStore {
     private final EventStoreConfig config;
     private final ClockProvider clock;
     private final QuerySqlBuilder sqlBuilder;
-    
-    @Autowired(required = false)
-    private ApplicationEventPublisher eventPublisher;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Singleton RowMapper for StoredEvent objects.
@@ -146,12 +144,25 @@ public class EventStoreImpl implements EventStore {
         }
     }
 
+    /**
+     * Creates a new EventStoreImpl.
+     *
+     * @param writeDataSource data source for write operations
+     * @param readDataSource data source for read operations
+     * @param objectMapper Jackson object mapper for JSON serialization
+     * @param config event store configuration
+     * @param clock clock provider for timestamps
+     * @param eventPublisher event publisher for metrics (required).
+     *                       Spring Boot automatically provides an ApplicationEventPublisher bean.
+     *                       See crablet-metrics-micrometer for automatic metrics collection.
+     */
     public EventStoreImpl(
             @Qualifier("primaryDataSource") DataSource writeDataSource,
             @Qualifier("readDataSource") DataSource readDataSource,
             ObjectMapper objectMapper,
             EventStoreConfig config,
-            ClockProvider clock) {
+            ClockProvider clock,
+            ApplicationEventPublisher eventPublisher) {
         if (writeDataSource == null) {
             throw new IllegalArgumentException("writeDataSource must not be null");
         }
@@ -167,11 +178,15 @@ public class EventStoreImpl implements EventStore {
         if (clock == null) {
             throw new IllegalArgumentException("ClockProvider must not be null");
         }
+        if (eventPublisher == null) {
+            throw new IllegalArgumentException("eventPublisher must not be null");
+        }
         this.writeDataSource = writeDataSource;
         this.readDataSource = readDataSource;
         this.objectMapper = objectMapper;
         this.config = config;
         this.clock = clock;
+        this.eventPublisher = eventPublisher;
         this.sqlBuilder = new QuerySqlBuilderImpl();
     }
 
@@ -211,11 +226,9 @@ public class EventStoreImpl implements EventStore {
             }
             
             // Publish metrics events
-            if (eventPublisher != null) {
-                eventPublisher.publishEvent(new EventsAppendedMetric(events.size()));
-                for (AppendEvent event : events) {
-                    eventPublisher.publishEvent(new EventTypeMetric(event.type()));
-                }
+            eventPublisher.publishEvent(new EventsAppendedMetric(events.size()));
+            for (AppendEvent event : events) {
+                eventPublisher.publishEvent(new EventTypeMetric(event.type()));
             }
         } catch (SQLException e) {
             // Handle PostgreSQL function errors like go-crablet does
@@ -355,18 +368,14 @@ public class EventStoreImpl implements EventStore {
             }
             
             // Publish metrics events after successful append
-            if (eventPublisher != null) {
-                eventPublisher.publishEvent(new EventsAppendedMetric(events.size()));
-                for (AppendEvent event : events) {
-                    eventPublisher.publishEvent(new EventTypeMetric(event.type()));
-                }
+            eventPublisher.publishEvent(new EventsAppendedMetric(events.size()));
+            for (AppendEvent event : events) {
+                eventPublisher.publishEvent(new EventTypeMetric(event.type()));
             }
 
         } catch (ConcurrencyException e) {
             // Publish concurrency violation metric
-            if (eventPublisher != null) {
-                eventPublisher.publishEvent(new ConcurrencyViolationMetric());
-            }
+            eventPublisher.publishEvent(new ConcurrencyViolationMetric());
             throw e;
         } catch (RuntimeException e) {
             // Re-throw ConcurrencyException if it's wrapped in RuntimeException

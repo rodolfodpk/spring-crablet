@@ -45,6 +45,9 @@ class CommandExecutorImplTest {
     @Mock
     private ClockProvider clock;
     
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
+    
     private ObjectMapper objectMapper;
 
     private CommandExecutorImpl commandExecutor;
@@ -69,7 +72,7 @@ class CommandExecutorImplTest {
         
         // Use lenient stubbing since not all tests use the clock
         lenient().when(clock.now()).thenReturn(java.time.Instant.now());
-        commandExecutor = new CommandExecutorImpl(eventStore, List.of(commandHandler), config, clock, objectMapper);
+        commandExecutor = new CommandExecutorImpl(eventStore, List.of(commandHandler), config, clock, objectMapper, eventPublisher);
     }
 
     @Test
@@ -91,7 +94,7 @@ class CommandExecutorImplTest {
         ObjectMapper mapper = new ObjectMapper();
         lenient().when(clock.now()).thenReturn(java.time.Instant.now());
         assertThrows(InvalidCommandException.class, () ->
-                new CommandExecutorImpl(eventStore, List.of(commandHandler, duplicateHandler), config, clock, mapper)
+                new CommandExecutorImpl(eventStore, List.of(commandHandler, duplicateHandler), config, clock, mapper, eventPublisher)
         );
     }
 
@@ -336,7 +339,7 @@ class CommandExecutorImplTest {
         // Arrange
         when(config.isPersistCommands()).thenReturn(false);
         lenient().when(clock.now()).thenReturn(java.time.Instant.now());
-        CommandExecutorImpl executor = new CommandExecutorImpl(eventStore, List.of(commandHandler), config, clock, objectMapper);
+        CommandExecutorImpl executor = new CommandExecutorImpl(eventStore, List.of(commandHandler), config, clock, objectMapper, eventPublisher);
         
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent event = AppendEvent.builder("test_event")
@@ -390,7 +393,7 @@ class CommandExecutorImplTest {
     void executeCommand_WithNoHandlersRegistered_ShouldThrowInvalidCommandException() {
         // Arrange
         lenient().when(clock.now()).thenReturn(java.time.Instant.now());
-        CommandExecutorImpl executor = new CommandExecutorImpl(eventStore, List.of(), config, clock, objectMapper);
+        CommandExecutorImpl executor = new CommandExecutorImpl(eventStore, List.of(), config, clock, objectMapper, eventPublisher);
         TestCommand command = new TestCommand("test_command", "entity-123");
 
         // Act & Assert

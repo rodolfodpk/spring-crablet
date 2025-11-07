@@ -11,7 +11,6 @@ import com.crablet.outbox.metrics.EventsPublishedMetric;
 import com.crablet.outbox.metrics.OutboxErrorMetric;
 import com.crablet.outbox.metrics.PublishingDurationMetric;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
@@ -49,9 +48,7 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
     private final ClockProvider clock;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final GlobalStatisticsPublisher globalStatistics;
-    
-    @Autowired(required = false)
-    private ApplicationEventPublisher eventPublisher;
+    private final ApplicationEventPublisher eventPublisher;
     
     // SQL statements for outbox operations
     private static final String SELECT_STATUS_SQL = 
@@ -96,6 +93,21 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
         WHERE topic = ? AND publisher = ?
         """;
     
+    /**
+     * Creates a new OutboxPublishingServiceImpl.
+     *
+     * @param config outbox configuration
+     * @param jdbcTemplate JDBC template for database operations
+     * @param readDataSource data source for read operations
+     * @param publisherByName map of publisher names to publisher implementations
+     * @param instanceIdProvider provider for instance ID
+     * @param clock clock provider for timestamps
+     * @param circuitBreakerRegistry circuit breaker registry for resilience
+     * @param globalStatistics global statistics publisher (required)
+     * @param eventPublisher event publisher for metrics (required).
+     *                       Spring Boot automatically provides an ApplicationEventPublisher bean.
+     *                       See crablet-metrics-micrometer for automatic metrics collection.
+     */
     public OutboxPublishingServiceImpl(
             OutboxConfig config,
             JdbcTemplate jdbcTemplate,
@@ -104,7 +116,35 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
             InstanceIdProvider instanceIdProvider,
             ClockProvider clock,
             CircuitBreakerRegistry circuitBreakerRegistry,
-            GlobalStatisticsPublisher globalStatistics) {
+            GlobalStatisticsPublisher globalStatistics,
+            ApplicationEventPublisher eventPublisher) {
+        if (config == null) {
+            throw new IllegalArgumentException("config must not be null");
+        }
+        if (jdbcTemplate == null) {
+            throw new IllegalArgumentException("jdbcTemplate must not be null");
+        }
+        if (readDataSource == null) {
+            throw new IllegalArgumentException("readDataSource must not be null");
+        }
+        if (publisherByName == null) {
+            throw new IllegalArgumentException("publisherByName must not be null");
+        }
+        if (instanceIdProvider == null) {
+            throw new IllegalArgumentException("instanceIdProvider must not be null");
+        }
+        if (clock == null) {
+            throw new IllegalArgumentException("clock must not be null");
+        }
+        if (circuitBreakerRegistry == null) {
+            throw new IllegalArgumentException("circuitBreakerRegistry must not be null");
+        }
+        if (globalStatistics == null) {
+            throw new IllegalArgumentException("globalStatistics must not be null");
+        }
+        if (eventPublisher == null) {
+            throw new IllegalArgumentException("eventPublisher must not be null");
+        }
         this.config = config;
         this.jdbcTemplate = jdbcTemplate;
         this.readDataSource = readDataSource;
@@ -113,6 +153,7 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
         this.clock = clock;
         this.circuitBreakerRegistry = circuitBreakerRegistry;
         this.globalStatistics = globalStatistics;
+        this.eventPublisher = eventPublisher;
     }
     
     @Override
@@ -156,25 +197,19 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
             updateLastPosition(topicName, publisherName, events.get(events.size() - 1).position());
             
             Duration duration = Duration.between(startTime, clock.now());
-            if (eventPublisher != null) {
-                eventPublisher.publishEvent(new EventsPublishedMetric(publisherName, events.size()));
-                eventPublisher.publishEvent(new PublishingDurationMetric(publisherName, duration));
-            }
+            eventPublisher.publishEvent(new EventsPublishedMetric(publisherName, events.size()));
+            eventPublisher.publishEvent(new PublishingDurationMetric(publisherName, duration));
             
             // Reset error count on successful publish
             resetErrorCount(topicName, publisherName);
             
             // Record events in global statistics
-            if (globalStatistics != null) {
-                events.forEach(event -> 
-                    globalStatistics.recordEvent(topicName, publisherName, event.type()));
-            }
+            events.forEach(event -> 
+                globalStatistics.recordEvent(topicName, publisherName, event.type()));
             
             return events.size();
         } catch (Exception e) {
-            if (eventPublisher != null) {
-                eventPublisher.publishEvent(new OutboxErrorMetric(publisherName));
-            }
+            eventPublisher.publishEvent(new OutboxErrorMetric(publisherName));
             incrementErrorCount(topicName, publisherName, e.getMessage());
             throw new RuntimeException("Failed to publish events for pair (" + topicName + ", " + publisherName + ")", e);
         }

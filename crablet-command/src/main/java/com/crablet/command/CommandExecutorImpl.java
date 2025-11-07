@@ -16,7 +16,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -44,11 +43,13 @@ import java.util.stream.Collectors;
  *             EventStore eventStore,
  *             List<CommandHandler<?>> commandHandlers,
  *             EventStoreConfig config,
- *             EventStoreMetrics metrics) {
- *         return new CommandExecutorImpl(eventStore, commandHandlers, config, metrics);
- *     }
- * }
- * }</pre>
+ *             ClockProvider clock,
+ *             ObjectMapper objectMapper,
+     *             ApplicationEventPublisher eventPublisher) {
+     *         return new CommandExecutorImpl(eventStore, commandHandlers, config, clock, objectMapper, eventPublisher);
+     *     }
+     * }
+     * }</pre>
  */
 public class CommandExecutorImpl implements CommandExecutor {
 
@@ -59,17 +60,47 @@ public class CommandExecutorImpl implements CommandExecutor {
     private final EventStoreConfig config;
     private final ClockProvider clock;
     private final ObjectMapper objectMapper;
-    
-    @Autowired(required = false)
-    private ApplicationEventPublisher eventPublisher;
+    private final ApplicationEventPublisher eventPublisher;
 
+    /**
+     * Creates a new CommandExecutorImpl.
+     *
+     * @param eventStore the event store for persisting events
+     * @param commandHandlers list of command handlers (auto-discovered by Spring)
+     * @param config event store configuration
+     * @param clock clock provider for timestamps
+     * @param objectMapper Jackson object mapper for JSON serialization
+     * @param eventPublisher event publisher for metrics (required).
+     *                       Spring Boot automatically provides an ApplicationEventPublisher bean.
+     *                       See crablet-metrics-micrometer for automatic metrics collection.
+     */
     public CommandExecutorImpl(EventStore eventStore, List<CommandHandler<?>> commandHandlers, 
                               EventStoreConfig config, ClockProvider clock,
-                              ObjectMapper objectMapper) {
+                              ObjectMapper objectMapper,
+                              ApplicationEventPublisher eventPublisher) {
+        if (eventStore == null) {
+            throw new IllegalArgumentException("eventStore must not be null");
+        }
+        if (commandHandlers == null) {
+            throw new IllegalArgumentException("commandHandlers must not be null");
+        }
+        if (config == null) {
+            throw new IllegalArgumentException("config must not be null");
+        }
+        if (clock == null) {
+            throw new IllegalArgumentException("clock must not be null");
+        }
+        if (objectMapper == null) {
+            throw new IllegalArgumentException("objectMapper must not be null");
+        }
+        if (eventPublisher == null) {
+            throw new IllegalArgumentException("eventPublisher must not be null");
+        }
         this.eventStore = eventStore;
         this.config = config;
         this.clock = clock;
         this.objectMapper = objectMapper;
+        this.eventPublisher = eventPublisher;
 
         // Build handler map from Spring-injected list
         // Extract command type from handler's generic type parameter using reflection
@@ -179,9 +210,7 @@ public class CommandExecutorImpl implements CommandExecutor {
             }
         } catch (InvalidCommandException e) {
             log.debug("Failed to extract command type: {}", e.getMessage());
-            if (eventPublisher != null) {
-                eventPublisher.publishEvent(new CommandFailureMetric("unknown", "validation"));
-            }
+            eventPublisher.publishEvent(new CommandFailureMetric("unknown", "validation"));
             throw e;
         } catch (JsonProcessingException e) {
             throw new InvalidCommandException(
@@ -195,9 +224,7 @@ public class CommandExecutorImpl implements CommandExecutor {
 
         // Start timing with ClockProvider
         Instant startTime = clock.now();
-        if (eventPublisher != null) {
-            eventPublisher.publishEvent(new CommandStartedMetric(commandType, startTime));
-        }
+        eventPublisher.publishEvent(new CommandStartedMetric(commandType, startTime));
 
         try {
             ExecutionResult executionResult = eventStore.executeInTransaction(txStore -> {
@@ -275,39 +302,29 @@ public class CommandExecutorImpl implements CommandExecutor {
             
             // Calculate duration and publish success metrics
             Duration duration = Duration.between(startTime, clock.now());
-            if (eventPublisher != null) {
-                eventPublisher.publishEvent(new CommandSuccessMetric(commandType, duration));
-                
-                // Track idempotent operations separately
-                if (executionResult.wasIdempotent()) {
-                    eventPublisher.publishEvent(new IdempotentOperationMetric(commandType));
-                }
+            eventPublisher.publishEvent(new CommandSuccessMetric(commandType, duration));
+            
+            // Track idempotent operations separately
+            if (executionResult.wasIdempotent()) {
+                eventPublisher.publishEvent(new IdempotentOperationMetric(commandType));
             }
             
             return executionResult;
         } catch (ConcurrencyException e) {
             log.debug("Transaction rolled back for command: {}", commandType);
-            if (eventPublisher != null) {
-                eventPublisher.publishEvent(new CommandFailureMetric(commandType, "concurrency"));
-            }
+            eventPublisher.publishEvent(new CommandFailureMetric(commandType, "concurrency"));
             throw e;
         } catch (InvalidCommandException e) {
             log.debug("Transaction rolled back for command: {}", commandType);
-            if (eventPublisher != null) {
-                eventPublisher.publishEvent(new CommandFailureMetric(commandType, "validation"));
-            }
+            eventPublisher.publishEvent(new CommandFailureMetric(commandType, "validation"));
             throw e;
         } catch (RuntimeException e) {
             log.debug("Transaction rolled back for command: {}", commandType);
-            if (eventPublisher != null) {
-                eventPublisher.publishEvent(new CommandFailureMetric(commandType, "runtime"));
-            }
+            eventPublisher.publishEvent(new CommandFailureMetric(commandType, "runtime"));
             throw e;
         } catch (Exception e) {
             log.debug("Transaction rolled back for command: {}", commandType);
-            if (eventPublisher != null) {
-                eventPublisher.publishEvent(new CommandFailureMetric(commandType, "exception"));
-            }
+            eventPublisher.publishEvent(new CommandFailureMetric(commandType, "exception"));
             throw new RuntimeException("Failed to execute command: " + commandType, e);
         }
     }

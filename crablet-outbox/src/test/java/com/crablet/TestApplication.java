@@ -51,9 +51,10 @@ public class TestApplication {
             DataSource dataSource,
             ObjectMapper objectMapper,
             EventStoreConfig config,
-            ClockProvider clock) {
+            ClockProvider clock,
+            org.springframework.context.ApplicationEventPublisher eventPublisher) {
         // Use same datasource for both read and write in tests
-        return new EventStoreImpl(dataSource, dataSource, objectMapper, config, clock);
+        return new EventStoreImpl(dataSource, dataSource, objectMapper, config, clock, eventPublisher);
     }
     
     @Bean
@@ -90,8 +91,9 @@ public class TestApplication {
     public OutboxLeaderElector outboxLeaderElector(
             org.springframework.jdbc.core.JdbcTemplate jdbcTemplate, 
             OutboxConfig config,
-            InstanceIdProvider instanceIdProvider) {
-        return new OutboxLeaderElector(jdbcTemplate, config, instanceIdProvider);
+            InstanceIdProvider instanceIdProvider,
+            org.springframework.context.ApplicationEventPublisher eventPublisher) {
+        return new OutboxLeaderElector(jdbcTemplate, config, instanceIdProvider, eventPublisher);
     }
     
     @Bean
@@ -103,7 +105,8 @@ public class TestApplication {
             InstanceIdProvider instanceIdProvider,
             com.crablet.eventstore.clock.ClockProvider clock,
             io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitBreakerRegistry,
-            GlobalStatisticsPublisher globalStatistics) {
+            GlobalStatisticsPublisher globalStatistics,
+            org.springframework.context.ApplicationEventPublisher eventPublisher) {
         
         // Build publisher lookup map
         java.util.Map<String, com.crablet.outbox.OutboxPublisher> publisherByName = new java.util.concurrent.ConcurrentHashMap<>();
@@ -112,9 +115,15 @@ public class TestApplication {
         }
         
         return new OutboxPublishingServiceImpl(
-            config, jdbcTemplate, readDataSource, publisherByName,
-            instanceIdProvider, clock, circuitBreakerRegistry, globalStatistics
-        );
+                config,
+                jdbcTemplate,
+                readDataSource,
+                publisherByName,
+                instanceIdProvider,
+                clock,
+                circuitBreakerRegistry,
+                globalStatistics,
+                eventPublisher);
     }
     
     @Bean
@@ -128,11 +137,11 @@ public class TestApplication {
             io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitBreakerRegistry,
             GlobalStatisticsPublisher globalStatistics,
             TopicConfigurationProperties topicConfigProperties,
-            org.springframework.scheduling.TaskScheduler taskScheduler) {
-        return new OutboxProcessorImpl(config, jdbcTemplate, dataSource, publishers, 
-                                       leaderElector, publishingService, 
-                                       circuitBreakerRegistry, 
-                                       globalStatistics, topicConfigProperties, taskScheduler);
+            org.springframework.scheduling.TaskScheduler taskScheduler,
+            org.springframework.context.ApplicationEventPublisher eventPublisher) {
+        return new OutboxProcessorImpl(config, jdbcTemplate, dataSource, publishers,
+                leaderElector, publishingService, circuitBreakerRegistry, globalStatistics,
+                topicConfigProperties, taskScheduler, eventPublisher);
     }
     
     @Bean

@@ -61,6 +61,9 @@ class OutboxProcessorImplCooldownTest {
     @Mock
     private TaskScheduler taskScheduler;
 
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
+
     private OutboxProcessorImpl processor;
 
     @BeforeEach
@@ -80,7 +83,8 @@ class OutboxProcessorImplCooldownTest {
             circuitBreakerRegistry,
             globalStatistics,
             topicConfigProperties,
-            taskScheduler
+            taskScheduler,
+            eventPublisher
         );
     }
 

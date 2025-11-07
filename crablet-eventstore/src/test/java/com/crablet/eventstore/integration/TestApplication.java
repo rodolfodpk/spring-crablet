@@ -73,9 +73,10 @@ public class TestApplication {
             DataSource dataSource,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             EventStoreConfig config,
-            ClockProvider clock) {
+            ClockProvider clock,
+            org.springframework.context.ApplicationEventPublisher eventPublisher) {
         // Use same datasource for both read and write in tests
-        return new EventStoreImpl(dataSource, dataSource, objectMapper, config, clock);
+        return new EventStoreImpl(dataSource, dataSource, objectMapper, config, clock, eventPublisher);
     }
     
     @Bean

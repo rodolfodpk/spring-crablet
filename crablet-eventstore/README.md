@@ -70,6 +70,38 @@ public void myCustomOperation() {
 - Resilience4j (for circuit breakers and retries)
 - SLF4J (for logging)
 
+## Metrics
+
+EventStore supports metrics collection via Spring's `ApplicationEventPublisher`:
+
+- **Metrics are enabled by default**: Spring Boot automatically provides an `ApplicationEventPublisher` bean
+- **Required parameter**: The `eventPublisher` parameter is required in the constructor
+- **Automatic metrics collection**: See [crablet-metrics-micrometer](../crablet-metrics-micrometer/README.md) for automatic metrics collection
+
+Example configuration:
+
+```java
+@Configuration
+public class EventStoreConfig {
+    
+    @Bean
+    public EventStore eventStore(
+            @Qualifier("primaryDataSource") DataSource writeDataSource,
+            @Qualifier("readDataSource") DataSource readDataSource,
+            ObjectMapper objectMapper,
+            EventStoreConfig config,
+            ClockProvider clock,
+            ApplicationEventPublisher eventPublisher) {
+        return new EventStoreImpl(writeDataSource, readDataSource, objectMapper, config, clock, eventPublisher);
+    }
+}
+```
+
+The following metrics are published:
+- `EventsAppendedMetric` - Events appended to the store
+- `EventTypeMetric` - Event types appended
+- `ConcurrencyViolationMetric` - Concurrency violations detected
+
 ## DCB Pattern Examples
 
 Examples showing distinct DCB patterns:

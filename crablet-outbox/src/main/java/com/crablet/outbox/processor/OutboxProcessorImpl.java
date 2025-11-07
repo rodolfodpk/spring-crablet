@@ -9,7 +9,6 @@ import com.crablet.outbox.metrics.ProcessingCycleMetric;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
 import com.crablet.outbox.publishing.OutboxPublishingService;
 import com.crablet.outbox.TopicConfig;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import jakarta.annotation.PostConstruct;
@@ -43,9 +42,7 @@ public class OutboxProcessorImpl implements OutboxProcessor {
     // Supporting infrastructure
     private final TopicConfigurationProperties topicConfigProperties;
     private final TaskScheduler taskScheduler;
-    
-    @Autowired(required = false)
-    private ApplicationEventPublisher eventPublisher;
+    private final ApplicationEventPublisher eventPublisher;
     
     // Track which publishers are available by name
     private final Map<String, OutboxPublisher> publisherByName = new ConcurrentHashMap<>();
@@ -63,6 +60,23 @@ public class OutboxProcessorImpl implements OutboxProcessor {
     private static final long LEADER_RETRY_COOLDOWN_MS = 5000; // 5 seconds cooldown between retries
     private volatile long lastLeaderRetryTimestamp = 0;
     
+    /**
+     * Creates a new OutboxProcessorImpl.
+     *
+     * @param config outbox configuration
+     * @param jdbcTemplate JDBC template for database operations
+     * @param readDataSource data source for read operations
+     * @param publishers list of publisher implementations
+     * @param leaderElector leader election component
+     * @param publishingService publishing service
+     * @param circuitBreakerRegistry circuit breaker registry for resilience
+     * @param globalStatistics global statistics publisher
+     * @param topicConfigProperties topic configuration properties
+     * @param taskScheduler task scheduler for periodic processing
+     * @param eventPublisher event publisher for metrics (required).
+     *                       Spring Boot automatically provides an ApplicationEventPublisher bean.
+     *                       See crablet-metrics-micrometer for automatic metrics collection.
+     */
     public OutboxProcessorImpl(
             OutboxConfig config,
             JdbcTemplate jdbcTemplate,
@@ -73,12 +87,47 @@ public class OutboxProcessorImpl implements OutboxProcessor {
             CircuitBreakerRegistry circuitBreakerRegistry,
             GlobalStatisticsPublisher globalStatistics,
             TopicConfigurationProperties topicConfigProperties,
-            TaskScheduler taskScheduler) {
+            TaskScheduler taskScheduler,
+            ApplicationEventPublisher eventPublisher) {
+        if (config == null) {
+            throw new IllegalArgumentException("config must not be null");
+        }
+        if (jdbcTemplate == null) {
+            throw new IllegalArgumentException("jdbcTemplate must not be null");
+        }
+        if (readDataSource == null) {
+            throw new IllegalArgumentException("readDataSource must not be null");
+        }
+        if (publishers == null) {
+            throw new IllegalArgumentException("publishers must not be null");
+        }
+        if (leaderElector == null) {
+            throw new IllegalArgumentException("leaderElector must not be null");
+        }
+        if (publishingService == null) {
+            throw new IllegalArgumentException("publishingService must not be null");
+        }
+        if (circuitBreakerRegistry == null) {
+            throw new IllegalArgumentException("circuitBreakerRegistry must not be null");
+        }
+        if (globalStatistics == null) {
+            throw new IllegalArgumentException("globalStatistics must not be null");
+        }
+        if (topicConfigProperties == null) {
+            throw new IllegalArgumentException("topicConfigProperties must not be null");
+        }
+        if (taskScheduler == null) {
+            throw new IllegalArgumentException("taskScheduler must not be null");
+        }
+        if (eventPublisher == null) {
+            throw new IllegalArgumentException("eventPublisher must not be null");
+        }
         this.config = config;
         this.leaderElector = leaderElector;
         this.publishingService = publishingService;
         this.topicConfigProperties = topicConfigProperties;
         this.taskScheduler = taskScheduler;
+        this.eventPublisher = eventPublisher;
         
         // Build publisher lookup map
         for (OutboxPublisher publisher : publishers) {
@@ -221,9 +270,7 @@ public class OutboxProcessorImpl implements OutboxProcessor {
         
         try {
             int published = publishingService.publishForTopicPublisher(topicName, publisherName);
-            if (eventPublisher != null) {
-                eventPublisher.publishEvent(new ProcessingCycleMetric());
-            }
+            eventPublisher.publishEvent(new ProcessingCycleMetric());
             
             // Update backoff state
             if (backoffState != null) {
@@ -239,9 +286,7 @@ public class OutboxProcessorImpl implements OutboxProcessor {
             }
         } catch (Exception e) {
             log.error("Error in scheduler for ({}, {})", topicName, publisherName, e);
-            if (eventPublisher != null) {
-                eventPublisher.publishEvent(new ProcessingCycleMetric());
-            }
+            eventPublisher.publishEvent(new ProcessingCycleMetric());
             // Don't update backoff on errors - let it retry normally
         }
     }

@@ -125,9 +125,10 @@ public class CrabletConfig {
             EventStore eventStore,
             List<CommandHandler<?>> commandHandlers,
             EventStoreConfig config,
-            EventStoreMetrics metrics,
-            ObjectMapper objectMapper) {
-        return new CommandExecutorImpl(eventStore, commandHandlers, config, metrics, objectMapper);
+            ClockProvider clock,
+            ObjectMapper objectMapper,
+            ApplicationEventPublisher eventPublisher) {
+        return new CommandExecutorImpl(eventStore, commandHandlers, config, clock, objectMapper, eventPublisher);
     }
 }
 ```
@@ -167,6 +168,20 @@ Crablet Command supports different DCB patterns:
 - **Empty Condition**: `AppendCondition.empty()` for commutative operations
 
 See [Command Patterns Guide](../crablet-eventstore/docs/COMMAND_PATTERNS.md) for complete examples.
+
+## Metrics
+
+CommandExecutor supports metrics collection via Spring's `ApplicationEventPublisher`:
+
+- **Metrics are enabled by default**: Spring Boot automatically provides an `ApplicationEventPublisher` bean
+- **Required parameter**: The `eventPublisher` parameter is required in the constructor
+- **Automatic metrics collection**: See [crablet-metrics-micrometer](../crablet-metrics-micrometer/README.md) for automatic metrics collection
+
+The following metrics are published:
+- `CommandStartedMetric` - Command execution started
+- `CommandSuccessMetric` - Command execution succeeded
+- `CommandFailureMetric` - Command execution failed
+- `IdempotentOperationMetric` - Idempotent operation detected
 
 ## Learn More
 

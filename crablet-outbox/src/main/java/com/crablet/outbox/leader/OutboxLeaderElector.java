@@ -5,7 +5,6 @@ import com.crablet.outbox.InstanceIdProvider;
 import com.crablet.outbox.metrics.LeadershipMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -19,8 +18,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
      * Users must define as @Bean:
      * <pre>{@code
      * @Bean
-     * public OutboxLeaderElector outboxLeaderElector(JdbcTemplate jdbcTemplate, OutboxConfig config, InstanceIdProvider instanceIdProvider) {
-     *     return new OutboxLeaderElector(jdbcTemplate, config, instanceIdProvider);
+     * public OutboxLeaderElector outboxLeaderElector(JdbcTemplate jdbcTemplate, OutboxConfig config, InstanceIdProvider instanceIdProvider, ApplicationEventPublisher eventPublisher) {
+     *     return new OutboxLeaderElector(jdbcTemplate, config, instanceIdProvider, eventPublisher);
      * }
      * }</pre>
      */
@@ -37,15 +36,38 @@ public class OutboxLeaderElector {
     // Track leadership state
     private volatile boolean isGlobalLeader = false;
     
-    @Autowired(required = false)
-    private ApplicationEventPublisher eventPublisher;
+    private final ApplicationEventPublisher eventPublisher;
     
+    /**
+     * Creates a new OutboxLeaderElector.
+     *
+     * @param jdbcTemplate JDBC template for database operations
+     * @param config outbox configuration
+     * @param instanceIdProvider provider for instance ID
+     * @param eventPublisher event publisher for metrics (required).
+     *                       Spring Boot automatically provides an ApplicationEventPublisher bean.
+     *                       See crablet-metrics-micrometer for automatic metrics collection.
+     */
     public OutboxLeaderElector(
             JdbcTemplate jdbcTemplate,
             OutboxConfig config,
-            InstanceIdProvider instanceIdProvider) {
+            InstanceIdProvider instanceIdProvider,
+            ApplicationEventPublisher eventPublisher) {
+        if (jdbcTemplate == null) {
+            throw new IllegalArgumentException("jdbcTemplate must not be null");
+        }
+        if (config == null) {
+            throw new IllegalArgumentException("config must not be null");
+        }
+        if (instanceIdProvider == null) {
+            throw new IllegalArgumentException("instanceIdProvider must not be null");
+        }
+        if (eventPublisher == null) {
+            throw new IllegalArgumentException("eventPublisher must not be null");
+        }
         this.jdbcTemplate = jdbcTemplate;
         this.instanceId = instanceIdProvider.getInstanceId();
+        this.eventPublisher = eventPublisher;
     }
     
     /**
@@ -65,16 +87,12 @@ public class OutboxLeaderElector {
         Boolean lockAcquired = tryAcquireLock(OUTBOX_LOCK_KEY);
         if (Boolean.TRUE.equals(lockAcquired)) {
             isGlobalLeader = true;
-            if (eventPublisher != null) {
-                eventPublisher.publishEvent(new LeadershipMetric(instanceId, true));
-            }
+            eventPublisher.publishEvent(new LeadershipMetric(instanceId, true));
             log.info("✓ Acquired GLOBAL lock - this instance is the leader");
             return true;
         } else {
             isGlobalLeader = false;
-            if (eventPublisher != null) {
-                eventPublisher.publishEvent(new LeadershipMetric(instanceId, false));
-            }
+            eventPublisher.publishEvent(new LeadershipMetric(instanceId, false));
             log.info("✗ Another instance holds GLOBAL lock - this instance is follower");
             return false;
         }
@@ -87,9 +105,7 @@ public class OutboxLeaderElector {
         if (isGlobalLeader) {
             releaseLock(OUTBOX_LOCK_KEY);
             isGlobalLeader = false;
-            if (eventPublisher != null) {
-                eventPublisher.publishEvent(new LeadershipMetric(instanceId, false));
-            }
+            eventPublisher.publishEvent(new LeadershipMetric(instanceId, false));
             log.info("Released GLOBAL lock");
         }
     }
