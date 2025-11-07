@@ -16,19 +16,12 @@ Crablet is a lightweight event sourcing framework with Spring Boot integration.
 - **Outbox**: Reliable event publishing to external systems
 - **Spring Integration**: Ready-to-use Spring Boot components
 
-**Why "Light"?**
-- Minimal interfaces to implement (0-1 per module)
-- Small API surface
-- Most components optional
-- Metrics enabled by default
-- Easy to customize and extend
-
 ## Modules
 
-- **crablet-eventstore** - Core event sourcing library with DCB support
-- **crablet-command** - Light command handling framework with automatic handler discovery
-- **crablet-outbox** - Light framework component for transactional outbox event publishing
-- **crablet-metrics-micrometer** - Micrometer metrics collector for event-driven metrics (optional)
+- **crablet-eventstore** (required) - Core event sourcing library with DCB support
+- **crablet-command** (optional) - Use for automatic command handler discovery and orchestration
+- **crablet-outbox** (optional) - Use for transactional outbox event publishing to external systems
+- **crablet-metrics-micrometer** (optional) - Use for Micrometer metrics collection
 
 ## DCB Patterns Quick Reference
 
