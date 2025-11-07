@@ -518,6 +518,17 @@ Measured on this codebase (October 2025):
 ## References and Further Reading
 
 ### Dynamic Consistency Boundaries
+
+DCB (Dynamic Consistency Boundary) was **introduced by Sara Pellegrini** in her blog post "Killing the Aggregate".
+
+- **[DCB Official Specification](https://dcb.events/)** - Official DCB website and specification
+  - Introduced by Sara Pellegrini in her blog post "Killing the Aggregate"
+  - Comprehensive explanation of DCB concepts, benefits, and implementation details
+  - Includes examples, specification, and related topics
+  
+- **[Dynamic Consistency Boundaries - Presentation](https://www.youtube.com/watch?v=0iP65Durhbs)** by Sara Pellegrini & Milan Savic
+  - Original presentation introducing and explaining the DCB concept
+  
 - **[Dynamic Consistency Boundaries](https://javapro.io/2025/10/28/dynamic-consistency-boundaries/)** by Milan Savic (JAVAPRO International, October 2025)
   - Comprehensive explanation of DCB concepts, benefits, and architectural insights
   - Explains DCB as moving from aggregates to dynamically defined consistency boundaries

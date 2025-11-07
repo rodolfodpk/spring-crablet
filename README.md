@@ -12,7 +12,7 @@ A Java 25 light framework for DCB (Dynamic Consistency Boundary) event sourcing,
 Crablet is a lightweight event sourcing framework with Spring Boot integration.
 
 - **Event Sourcing**: Complete audit trail with state reconstruction
-- **DCB**: Cursor-based optimistic concurrency control without distributed locks
+- **DCB**: Defines consistency boundaries dynamically based on criteria (queries) rather than fixed aggregates. Uses cursors (event positions) to detect concurrent modifications and prevent conflicts - no distributed locks needed
 - **Outbox**: Reliable event publishing to external systems
 - **Spring Integration**: Ready-to-use Spring Boot components
 
@@ -25,7 +25,7 @@ Crablet is a lightweight event sourcing framework with Spring Boot integration.
 
 ## DCB Patterns Quick Reference
 
-Crablet implements DCB (Dynamic Consistency Boundary) for event sourcing concurrency control.
+DCB (Dynamic Consistency Boundary) redefines consistency granularity in event-sourced systems, moving from fixed aggregates (event streams) to dynamically defined consistency boundaries based on criteria (queries). It uses cursors (event positions) to detect concurrent modifications and prevent conflicts - all without distributed locks.
 
 | Pattern | Use Case | AppendCondition |
 |---------|----------|----------------|
@@ -34,6 +34,8 @@ Crablet implements DCB (Dynamic Consistency Boundary) for event sourcing concurr
 | **Empty Condition** | Commutative operations (Deposit) | `AppendCondition.empty()` |
 
 📖 See [Command Patterns Guide](crablet-eventstore/docs/COMMAND_PATTERNS.md) for complete examples and detailed explanations.
+
+**DCB was introduced by [Sara Pellegrini](https://dcb.events/) in her blog post "Killing the Aggregate"**. See the [official DCB specification](https://dcb.events/) and [presentation by Sara Pellegrini & Milan Savic](https://www.youtube.com/watch?v=0iP65Durhbs) for more information.
 
 ## Documentation
 
@@ -54,7 +56,7 @@ Crablet implements DCB (Dynamic Consistency Boundary) for event sourcing concurr
 
 ## Architecture Highlights
 
-- **DCB**: Optimistic concurrency control using cursors
+- **DCB**: Optimistic concurrency control using event position tracking (cursors)
 - **Java 25**: Records, sealed interfaces, virtual threads
 - **Spring Boot 3.5**: Full Spring integration
 - **PostgreSQL**: Primary database with optional read replicas
