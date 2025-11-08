@@ -4,6 +4,13 @@
 
 This guide explains when to use DCB cursor checks and when operations can run without them. Understanding the difference between **commutative** and **non-commutative** operations is key to proper DCB implementation.
 
+**Note:** The examples below show command handlers that return `CommandResult`. The `CommandExecutor` automatically calls `appendIf()` with the events and condition from the result:
+
+```java
+// CommandExecutor internally does:
+String transactionId = eventStore.appendIf(result.events(), result.appendCondition());
+```
+
 ## Command Handler Registration
 
 Command handlers are automatically discovered and registered by Spring. Here's how it works:
@@ -118,6 +125,8 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
                 .withIdempotencyCheck(WALLET_OPENED, WALLET_ID, command.walletId())
                 .build();
         
+        // Return CommandResult - CommandExecutor will call appendIf:
+        //    String transactionId = eventStore.appendIf(List.of(event), condition);
         return CommandResult.of(List.of(event), condition);
     }
 }
@@ -178,6 +187,8 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
         // No DCB cursor check needed - allows parallel deposits
         AppendCondition condition = AppendCondition.empty();
         
+        // Return CommandResult - CommandExecutor will call appendIf:
+        //    String transactionId = eventStore.appendIf(List.of(event), condition);
         return CommandResult.of(List.of(event), condition);
     }
 }
@@ -254,6 +265,8 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
                 .build();
         
+        // Return CommandResult - CommandExecutor will call appendIf:
+        //    String transactionId = eventStore.appendIf(List.of(event), condition);
         return CommandResult.of(List.of(event), condition);
     }
 }
@@ -336,6 +349,8 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
                 transferProjection.cursor()
         ).build();
         
+        // Return CommandResult - CommandExecutor will call appendIf:
+        //    String transactionId = eventStore.appendIf(List.of(event), condition);
         return CommandResult.of(List.of(event), condition);
     }
     

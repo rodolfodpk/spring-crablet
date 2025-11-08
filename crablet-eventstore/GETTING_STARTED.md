@@ -254,6 +254,8 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         AppendCondition condition = new AppendConditionBuilder(decisionModel, cursor)
             .build();
         
+        // Return CommandResult - CommandExecutor will call appendIf:
+        //    String transactionId = eventStore.appendIf(events, condition);
         return CommandResult.of(events, condition);
     }
 }

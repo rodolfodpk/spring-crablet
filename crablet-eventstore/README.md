@@ -99,7 +99,12 @@ The following metrics are published:
 
 ## DCB Pattern Examples
 
-Examples showing distinct DCB patterns:
+Examples showing distinct DCB patterns. These examples show command handlers that return `CommandResult`. The `CommandExecutor` automatically calls `appendIf()` with the events and condition from the result:
+
+```java
+// CommandExecutor internally does:
+String transactionId = eventStore.appendIf(result.events(), result.appendCondition());
+```
 
 ### Example 1: OpenWallet (Idempotency)
 
@@ -132,7 +137,8 @@ public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
             .withIdempotencyCheck(WALLET_OPENED, WALLET_ID, command.walletId())
             .build();
 
-    // 5. Return - appendIf will:
+    // 5. Return CommandResult - CommandExecutor will call appendIf:
+    //    String transactionId = eventStore.appendIf(List.of(event), condition);
     //    - Check condition atomically
     //    - Throw ConcurrencyException if wallet exists
     //    - Append event if wallet doesn't exist
@@ -195,6 +201,11 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
     AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
             .build();
 
+    // Return CommandResult - CommandExecutor will call appendIf:
+    //    String transactionId = eventStore.appendIf(List.of(event), condition);
+    //    - Check condition atomically
+    //    - Throw ConcurrencyException if balance changed concurrently
+    //    - Append event if condition passes
     return CommandResult.of(List.of(event), condition);
 }
 ```

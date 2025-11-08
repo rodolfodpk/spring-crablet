@@ -308,6 +308,8 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         AppendCondition condition = new AppendConditionBuilder(decisionModel, result.cursor())
             .build();
         
+        // Return CommandResult - CommandExecutor will call appendIf:
+        //    String transactionId = eventStore.appendIf(List.of(event), condition);
         return CommandResult.of(List.of(event), condition);
     }
 }
@@ -459,6 +461,8 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
         // Note: AppendCondition.empty() is valid for commutative operations like deposits
         AppendCondition condition = AppendCondition.empty();
 
+        // Return CommandResult - CommandExecutor will call appendIf:
+        //    String transactionId = eventStore.appendIf(List.of(event), condition);
         return CommandResult.of(List.of(event), condition);
 }
 ```
