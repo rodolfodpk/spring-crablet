@@ -50,6 +50,14 @@ public interface EventStore {
      * This is the preferred way to execute transactional operations as it
      * encapsulates all database connection management and ensures proper
      * transaction handling (commit on success, rollback on error).
+     * <p>
+     * <strong>Transaction Guarantees:</strong>
+     * <ul>
+     *   <li>All operations (queries, projections, appends, command storage) use the same database transaction</li>
+     *   <li>All operations see a consistent database snapshot</li>
+     *   <li>All operations commit atomically, or all rollback on error</li>
+     *   <li>The transactionId returned by {@code appendIf()} represents the entire transaction</li>
+     * </ul>
      *
      * @param operation Function that receives a transaction-scoped EventStore
      * @param <T>       Type of result returned by the operation

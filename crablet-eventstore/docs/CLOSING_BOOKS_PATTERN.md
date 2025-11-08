@@ -53,15 +53,22 @@ public interface WalletCommand {
 }
 ```
 
-The `PeriodConfigurationProvider` component reads this annotation to determine the period type for a command. If no annotation is present, it returns `PeriodType.NONE`.
+You implement a `PeriodConfigurationProvider` component that reads this annotation to determine the period type for a command. If no annotation is present, it should return `PeriodType.NONE`.
 
-**Public API:**
+**Framework Public API:**
 - `PeriodType` enum: `crablet-eventstore/src/main/java/com/crablet/eventstore/period/PeriodType.java`
 - `@PeriodConfig` annotation: `crablet-eventstore/src/main/java/com/crablet/eventstore/period/PeriodConfig.java`
 - These are in the eventstore module because period segmentation is fundamentally about event organization and querying.
 
+**Domain-Specific Implementation (You Implement):**
+- `PeriodConfigurationProvider`: Reads `@PeriodConfig` annotation from command classes
+- `PeriodHelper`: Convenience wrapper for period operations (e.g., `WalletPeriodHelper`)
+- `PeriodResolver`: Manages period lifecycle and creates statement events (e.g., `WalletStatementPeriodResolver`)
+- Statement events: Domain events for period boundaries (e.g., `WalletStatementOpened`, `WalletStatementClosed`)
+- Period-aware queries: Query patterns that filter by period tags
+
 **Example Implementation:**
-- `PeriodConfigurationProvider`: `crablet-eventstore/src/test/java/com/crablet/examples/wallet/period/PeriodConfigurationProvider.java` (wallet-specific example)
+See wallet example in tests: `crablet-eventstore/src/test/java/com/crablet/examples/wallet/period/`
 
 **When to use periods:**
 - ✅ Large event histories where querying all events becomes slow
@@ -125,7 +132,7 @@ Command handlers use `WalletPeriodHelper` to ensure an active period exists befo
 ```java
 @Component
 public class DepositCommandHandler implements CommandHandler<DepositCommand> {
-    private final WalletPeriodHelper periodHelper;
+    private final WalletPeriodHelper periodHelper; // Domain-specific helper
     
     @Override
     public CommandResult handle(EventStore eventStore, DepositCommand command) {
@@ -136,17 +143,39 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
         // Project balance for current period only
         var state = periodResult.projection().state();
         
+        // Validate wallet exists
+        if (!state.isExisting()) {
+            throw new WalletNotFoundException(command.walletId());
+        }
+        
         // Create deposit event with period tags
         var periodId = periodResult.periodId();
-        AppendEvent event = AppendEvent.builder("DepositMade")
-            .tag("wallet_id", command.walletId())
-            .tag("year", String.valueOf(periodId.year()))
-            .tag("month", String.valueOf(periodId.month()))
-            // ... add day/hour tags if needed
-            .data(depositEvent)
-            .build();
+        DepositMade deposit = DepositMade.of(
+            command.depositId(), command.walletId(), 
+            command.amount(), state.balance() + command.amount(), 
+            command.description()
+        );
         
-        return CommandResult.of(event);
+        AppendEvent.Builder eventBuilder = AppendEvent.builder("DepositMade")
+            .tag("wallet_id", command.walletId())
+            .tag("deposit_id", command.depositId())
+            .tag("year", String.valueOf(periodId.year()))
+            .tag("month", String.valueOf(periodId.month()));
+        
+        // Add day/hour tags conditionally based on period type
+        if (periodId.day() != null) {
+            eventBuilder.tag("day", String.valueOf(periodId.day()));
+        }
+        if (periodId.hour() != null) {
+            eventBuilder.tag("hour", String.valueOf(periodId.hour()));
+        }
+        
+        AppendEvent event = eventBuilder.data(deposit).build();
+        
+        // Deposits are commutative - use empty condition
+        AppendCondition condition = AppendCondition.empty();
+        
+        return CommandResult.of(List.of(event), condition);
     }
 }
 ```

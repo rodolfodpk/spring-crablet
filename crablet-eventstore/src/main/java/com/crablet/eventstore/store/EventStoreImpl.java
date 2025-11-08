@@ -308,73 +308,21 @@ public class EventStoreImpl implements EventStore {
                 stmt.setTimestamp(9, java.sql.Timestamp.from(clock.now()));
 
                 try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) {
-                        String jsonResult = rs.getString(1);
-
-                        // Handle different return types from PostgreSQL function
-                        if (jsonResult == null || jsonResult.trim().isEmpty()) {
-                            throw new ConcurrencyException("AppendIf condition failed: no result");
-                        }
-
-                        // Try to parse as JSON first
-                        try {
-                            Map<String, Object> result = objectMapper.readValue(jsonResult, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
-                            });
-
-                            // Check result and throw ConcurrencyException if condition failed
-                            Object successObj = result.get("success");
-                            if (successObj instanceof Boolean) {
-                                Boolean success = (Boolean) successObj;
-                                if (!success) {
-                                    // Parse DCB violation details
-                                    String errorCode = (String) result.getOrDefault("error_code", "DCB_VIOLATION");
-                                    String message = (String) result.getOrDefault("message", "append condition violated");
-                                    
-                                    Number matchingCount = (Number) result.get("matching_events_count");
-                                    int matchingEventsCount = matchingCount != null ? matchingCount.intValue() : 0;
-                                    
-                                    // Create DCBViolation with details
-                                    DCBViolation violation = new DCBViolation(errorCode, message, matchingEventsCount);
-                                    
-                                    // Throw with violation details
-                                    throw new ConcurrencyException("AppendCondition violated: " + message, violation);
-                                }
-                                
-                                // Success - extract and return transaction ID
-                                String transactionId = (String) result.get("transaction_id");
-                                if (transactionId == null) {
-                                    log.error("PostgreSQL function returned success but no transaction_id - this should not happen");
-                                    throw new EventStoreException("PostgreSQL function did not return transaction_id");
-                                }
-                                
-                                // Publish metrics events after successful append
-                                eventPublisher.publishEvent(new EventsAppendedMetric(events.size()));
-                                for (AppendEvent event : events) {
-                                    eventPublisher.publishEvent(new EventTypeMetric(event.type()));
-                                }
-                                
-                                return transactionId;
-                            } else {
-                                // Handle case where success is not a boolean
-                                log.warn("Unexpected success value type: {}", successObj);
-                                throw new ConcurrencyException("AppendCondition violated: " + result.get("message"));
-                            }
-                        } catch (ConcurrencyException e) {
-                            // Re-throw ConcurrencyException immediately
-                            throw e;
-                        } catch (Exception parseException) {
-                            // Handle JSON parsing exceptions
-                            // Check if it's a recognizable error message before throwing parsing exception
-                            if (jsonResult.contains("AppendIf condition failed") || jsonResult.contains("condition failed")) {
-                                throw new ConcurrencyException("AppendCondition violated: " + jsonResult);
-                            }
-                            // Log and rethrow parsing exception
-                            log.error("Failed to parse JSONB result: {}", parseException.getMessage());
-                            throw new RuntimeException("Failed to parse JSONB result: " + jsonResult, parseException);
-                        }
-                    } else {
+                    // Fail fast: Check if we have a result
+                    if (!rs.next()) {
                         throw new RuntimeException("No result from append_events_if");
                     }
+                    
+                    String jsonResult = rs.getString(1);
+                    String transactionId = parseAppendResult(jsonResult, events);
+                    
+                    // Publish metrics events after successful append
+                    eventPublisher.publishEvent(new EventsAppendedMetric(events.size()));
+                    for (AppendEvent event : events) {
+                        eventPublisher.publishEvent(new EventTypeMetric(event.type()));
+                    }
+                    
+                    return transactionId;
                 }
             }
 
@@ -382,40 +330,10 @@ public class EventStoreImpl implements EventStore {
             // Publish concurrency violation metric
             eventPublisher.publishEvent(new ConcurrencyViolationMetric());
             throw e;
-        } catch (RuntimeException e) {
-            // Re-throw ConcurrencyException if it's wrapped in RuntimeException
-            if (e instanceof ConcurrencyException) {
-                throw e;
-            }
-            // Handle other RuntimeException
-            throw e;
         } catch (SQLException e) {
-            // Handle PostgreSQL function errors like go-crablet does
-            String sqlState = e.getSQLState();
-
-            // Handle PostgreSQL RAISE EXCEPTION (P0001) - go-crablet style
-            if ("P0001".equals(sqlState)) {
-                String message = e.getMessage();
-                if (message != null && message.contains("AppendIf condition failed")) {
-                    throw new ConcurrencyException("Concurrent modification: " + message);
-                }
-                // Other P0001 errors from PostgreSQL functions
-                throw new ConcurrencyException("PostgreSQL function error: " + message);
-            }
-
-            // Handle other PostgreSQL-specific errors
-            if (sqlState != null && sqlState.startsWith("P")) {
-                throw new EventStoreException("PostgreSQL procedural error (" + sqlState + "): " + e.getMessage(), e);
-            }
-
-            throw new EventStoreException("Failed to append events with condition", e);
+            throw handleSQLException(e);
         } catch (Exception e) {
-            // Fallback: check message content for backward compatibility
-            if (e.getMessage() != null && e.getMessage().contains("AppendIf condition failed")) {
-                throw new ConcurrencyException("Concurrent modification: " + e.getMessage());
-            }
-
-            throw new EventStoreException("Failed to append events", e);
+            throw handleGenericException(e);
         }
     }
 
@@ -598,38 +516,13 @@ public class EventStoreImpl implements EventStore {
             stmt.setTimestamp(9, java.sql.Timestamp.from(clock.now()));
 
             try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    String jsonResult = rs.getString(1);
-                    // Parse JSONB result
-                    try {
-                        Map<String, Object> result = objectMapper.readValue(jsonResult, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
-                        });
-
-                        // Check result and throw ConcurrencyException if condition failed
-                        Object successObj = result.get("success");
-                        if (successObj instanceof Boolean) {
-                            Boolean success = (Boolean) successObj;
-                            if (!success) {
-                                throw new ConcurrencyException("AppendCondition violated: " + result.get("message"));
-                            }
-                            
-                            // Success - extract and return transaction ID
-                            String transactionId = (String) result.get("transaction_id");
-                            if (transactionId == null) {
-                                log.error("PostgreSQL function returned success but no transaction_id - this should not happen");
-                                throw new EventStoreException("PostgreSQL function did not return transaction_id");
-                            }
-                            return transactionId;
-                        } else {
-                            throw new ConcurrencyException("AppendCondition violated: " + result.get("message"));
-                        }
-
-                    } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-                        throw new RuntimeException("Failed to parse JSONB result", e);
-                    }
-                } else {
+                // Fail fast: Check if we have a result
+                if (!rs.next()) {
                     throw new RuntimeException("No result from append_events_if");
                 }
+                
+                String jsonResult = rs.getString(1);
+                return parseAppendResult(jsonResult, null);
             }
         } catch (SQLException e) {
             throw new EventStoreException("Failed to append events with condition using connection", e);
@@ -963,6 +856,114 @@ public class EventStoreImpl implements EventStore {
      * @param tagArray Array of tag strings in format "key=value"
      * @return List of parsed Tag objects
      */
+    /**
+     * Parse the JSON result from append_events_if PostgreSQL function.
+     * Uses fail-fast principles to validate and extract transaction ID.
+     * 
+     * @param jsonResult The JSON string result from PostgreSQL function
+     * @param events The events being appended (null for appendIfWithConnection, used for metrics)
+     * @return The transaction ID from the result
+     * @throws ConcurrencyException if the append condition was violated
+     * @throws EventStoreException if the result is invalid
+     */
+    private String parseAppendResult(String jsonResult, List<AppendEvent> events) {
+        // Fail fast: Validate result exists
+        if (jsonResult == null || jsonResult.trim().isEmpty()) {
+            throw new ConcurrencyException("AppendIf condition failed: no result");
+        }
+        
+        // Try to parse as JSON
+        try {
+            Map<String, Object> result = objectMapper.readValue(jsonResult, 
+                new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+            
+            // Fail fast: Validate success is a boolean
+            Object successObj = result.get("success");
+            if (!(successObj instanceof Boolean)) {
+                log.warn("Unexpected success value type: {}", successObj);
+                throw new ConcurrencyException("AppendCondition violated: " + result.get("message"));
+            }
+            
+            Boolean success = (Boolean) successObj;
+            
+            // Fail fast: Check if condition failed
+            if (!success) {
+                // Parse DCB violation details (only in appendIf, not appendIfWithConnection)
+                if (events != null) {
+                    String errorCode = (String) result.getOrDefault("error_code", "DCB_VIOLATION");
+                    String message = (String) result.getOrDefault("message", "append condition violated");
+                    
+                    Number matchingCount = (Number) result.get("matching_events_count");
+                    int matchingEventsCount = matchingCount != null ? matchingCount.intValue() : 0;
+                    
+                    DCBViolation violation = new DCBViolation(errorCode, message, matchingEventsCount);
+                    throw new ConcurrencyException("AppendCondition violated: " + message, violation);
+                } else {
+                    throw new ConcurrencyException("AppendCondition violated: " + result.get("message"));
+                }
+            }
+            
+            // Success - extract and return transaction ID
+            String transactionId = (String) result.get("transaction_id");
+            
+            // Fail fast: Validate transaction ID exists
+            if (transactionId == null) {
+                log.error("PostgreSQL function returned success but no transaction_id - this should not happen");
+                throw new EventStoreException("PostgreSQL function did not return transaction_id");
+            }
+            
+            return transactionId;
+            
+        } catch (ConcurrencyException e) {
+            // Re-throw ConcurrencyException immediately
+            throw e;
+        } catch (JsonProcessingException e) {
+            // Fail fast: Check if it's a recognizable error message
+            if (jsonResult.contains("AppendIf condition failed") || jsonResult.contains("condition failed")) {
+                throw new ConcurrencyException("AppendCondition violated: " + jsonResult);
+            }
+            
+            // Log and rethrow parsing exception
+            log.error("Failed to parse JSONB result: {}", e.getMessage());
+            throw new RuntimeException("Failed to parse JSONB result: " + jsonResult, e);
+        }
+    }
+    
+    /**
+     * Handle SQLException from append operations with fail-fast error handling.
+     */
+    private RuntimeException handleSQLException(SQLException e) {
+        String sqlState = e.getSQLState();
+        
+        // Fail fast: Handle PostgreSQL RAISE EXCEPTION (P0001)
+        if ("P0001".equals(sqlState)) {
+            String message = e.getMessage();
+            if (message != null && message.contains("AppendIf condition failed")) {
+                return new ConcurrencyException("Concurrent modification: " + message);
+            }
+            return new ConcurrencyException("PostgreSQL function error: " + message);
+        }
+        
+        // Fail fast: Handle other PostgreSQL-specific errors
+        if (sqlState != null && sqlState.startsWith("P")) {
+            return new EventStoreException("PostgreSQL procedural error (" + sqlState + "): " + e.getMessage(), e);
+        }
+        
+        return new EventStoreException("Failed to append events with condition", e);
+    }
+    
+    /**
+     * Handle generic Exception from append operations with fail-fast error handling.
+     */
+    private RuntimeException handleGenericException(Exception e) {
+        // Fail fast: Check for AppendIf condition failure
+        if (e.getMessage() != null && e.getMessage().contains("AppendIf condition failed")) {
+            return new ConcurrencyException("Concurrent modification: " + e.getMessage());
+        }
+        
+        return new EventStoreException("Failed to append events", e);
+    }
+    
     private List<Tag> parseTags(String[] tagArray) {
         List<Tag> tags = new ArrayList<>(tagArray.length);  // Pre-sized to avoid resizing
         for (String tagStr : tagArray) {

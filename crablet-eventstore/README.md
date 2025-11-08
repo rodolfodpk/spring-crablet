@@ -97,6 +97,41 @@ The following metrics are published:
 - `EventTypeMetric` - Event types appended
 - `ConcurrencyViolationMetric` - Concurrency violations detected
 
+## Period Segmentation with @PeriodConfig
+
+Crablet EventStore supports period segmentation via the `@PeriodConfig` annotation for the closing the books pattern. This enables automatic time-based event segmentation to improve query performance for large event histories.
+
+**Quick start:**
+
+```java
+@PeriodConfig(PeriodType.MONTHLY)
+public interface WalletCommand {
+    String getWalletId();
+}
+```
+
+**Benefits:**
+- ✅ **Performance**: Query only current period events instead of full event history
+- ✅ **Flexible**: You implement domain-specific period helpers that read `@PeriodConfig` to create statement events
+- ✅ **Opt-in**: Commands without `@PeriodConfig` default to `NONE` and work normally
+
+**Framework vs. Domain:**
+- **Framework provides**: `@PeriodConfig` annotation and `PeriodType` enum
+- **You implement**: Period helpers, period resolvers, statement events, and period-aware queries (see wallet example in tests)
+
+**Period types:**
+- `PeriodType.MONTHLY` - Monthly statements
+- `PeriodType.DAILY` - Daily statements  
+- `PeriodType.HOURLY` - Hourly statements
+- `PeriodType.YEARLY` - Yearly statements
+- `PeriodType.NONE` - No period segmentation (default)
+
+**Public API:**
+- `@PeriodConfig` annotation: `com.crablet.eventstore.period.PeriodConfig`
+- `PeriodType` enum: `com.crablet.eventstore.period.PeriodType`
+
+See [Closing the Books Pattern Guide](docs/CLOSING_BOOKS_PATTERN.md) for complete documentation.
+
 ## DCB Pattern Examples
 
 Examples showing distinct DCB patterns. These examples show command handlers that return `CommandResult`. The `CommandExecutor` automatically calls `appendIf()` with the events and condition from the result:

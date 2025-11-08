@@ -232,72 +232,31 @@ public class CommandExecutorImpl implements CommandExecutor {
                 // Type-safe invocation: handler is CommandHandler<T>, command is T
                 CommandResult result = handler.handle(txStore, command);
 
-                // Validate generated events - allow empty list for idempotent operations
-                if (result.events() == null) {
-                    throw new InvalidCommandException("Handler returned null events", command);
-                }
+                // Validate command result
+                validateCommandResult(result, command);
 
-                // Validate individual events with enhanced for-loops
-                int eventIndex = 0;
-                for (AppendEvent event : result.events()) {
-                    if (event.type() == null || event.type().isEmpty()) {
-                        throw new InvalidCommandException("Event at index " + eventIndex + " has empty type", command);
-                    }
-
-                    // Validate tags
-                    if (event.tags() != null) {
-                        int tagIndex = 0;
-                        for (Tag tag : event.tags()) {
-                            if (tag.key() == null || tag.key().isEmpty()) {
-                                throw new InvalidCommandException("Empty tag key at index " + tagIndex, command);
-                            }
-                            if (tag.value() == null || tag.value().isEmpty()) {
-                                throw new InvalidCommandException("Empty tag value for key " + tag.key(), command);
-                            }
-                            tagIndex++;
-                        }
-                    }
-                    eventIndex++;
+                // Fail fast: Handle idempotent operations first
+                if (result.isEmpty()) {
+                    return handleIdempotentResult(result, commandType);
                 }
 
                 // Atomic append with condition (DCB pattern)
-                String transactionId = null;
-                if (!result.isEmpty()) {
-                    try {
-                        transactionId = txStore.appendIf(result.events(), result.appendCondition());
-                        // Metrics for events appended and event types are now published by EventStore
-                    } catch (ConcurrencyException e) {
-                        // Check if this is an idempotency violation (duplicate operation)
-                        if (e.getMessage().toLowerCase().contains("duplicate operation detected")) {
-                            // Wallet creation duplicates should throw exception (handled by GlobalExceptionHandler)
-                            if ("open_wallet".equals(commandType)) {
-                                throw new ConcurrencyException(e.getMessage(), command, e);
-                            }
-                            // Other operation duplicates should return idempotent result
-                            log.debug("Transaction committed successfully for command: {} (idempotent - duplicate detected)", commandType);
-                            return ExecutionResult.idempotent("DUPLICATE_OPERATION");
-                        }
-                        // Re-throw other concurrency exceptions (optimistic locking failures)
-                        throw new ConcurrencyException(e.getMessage(), command, e);
-                    }
+                String transactionId;
+                try {
+                    transactionId = txStore.appendIf(result.events(), result.appendCondition());
+                } catch (ConcurrencyException e) {
+                    // Fail fast: Handle idempotent duplicate operations
+                    return handleConcurrencyException(e, commandType, command);
                 }
 
                 // Store command for audit and query purposes (if enabled)
-                if (!result.isEmpty() && config.isPersistCommands() && transactionId != null) {
-                    // commandJson and commandType were extracted earlier (commandJson is final)
+                if (config.isPersistCommands() && transactionId != null) {
                     txStore.storeCommand(commandJson, commandType, transactionId);
                 }
 
-                // Return execution result based on what handler determined
-                boolean wasIdempotent = result.isEmpty();
-                if (wasIdempotent) {
-                    String reason = result.reason() != null ? result.reason() : "DUPLICATE_OPERATION";
-                    log.debug("Transaction committed successfully for command: {} (idempotent)", commandType);
-                    return ExecutionResult.idempotent(reason);
-                } else {
-                    log.debug("Transaction committed successfully for command: {}", commandType);
-                    return ExecutionResult.created();
-                }
+                // Return success result
+                log.debug("Transaction committed successfully for command: {}", commandType);
+                return ExecutionResult.created();
             });
             
             // Calculate duration and publish success metrics
@@ -370,6 +329,73 @@ public class CommandExecutorImpl implements CommandExecutor {
         // 2. Handler registry maps command type string to handler
         // 3. Runtime validation ensures handler can handle this command type
         return (CommandHandler<T>) handler;
+    }
+    
+    /**
+     * Validate command result with fail-fast principles.
+     * Throws immediately on any validation failure.
+     */
+    private <T> void validateCommandResult(CommandResult result, T command) {
+        // Fail fast: Validate events list is not null
+        if (result.events() == null) {
+            throw new InvalidCommandException("Handler returned null events", command);
+        }
+
+        // Validate individual events
+        int eventIndex = 0;
+        for (AppendEvent event : result.events()) {
+            // Fail fast: Validate event type
+            if (event.type() == null || event.type().isEmpty()) {
+                throw new InvalidCommandException("Event at index " + eventIndex + " has empty type", command);
+            }
+
+            // Validate tags
+            if (event.tags() != null) {
+                int tagIndex = 0;
+                for (Tag tag : event.tags()) {
+                    // Fail fast: Validate tag key
+                    if (tag.key() == null || tag.key().isEmpty()) {
+                        throw new InvalidCommandException("Empty tag key at index " + tagIndex, command);
+                    }
+                    // Fail fast: Validate tag value
+                    if (tag.value() == null || tag.value().isEmpty()) {
+                        throw new InvalidCommandException("Empty tag value for key " + tag.key(), command);
+                    }
+                    tagIndex++;
+                }
+            }
+            eventIndex++;
+        }
+    }
+    
+    /**
+     * Handle ConcurrencyException with fail-fast principles.
+     * Returns ExecutionResult for idempotent duplicate operations, throws for others.
+     */
+    private <T> ExecutionResult handleConcurrencyException(ConcurrencyException e, String commandType, T command) {
+        // Fail fast: Check if this is NOT an idempotency violation
+        String message = e.getMessage();
+        if (message == null || !message.toLowerCase().contains("duplicate operation detected")) {
+            throw new ConcurrencyException(message, command, e);
+        }
+        
+        // Fail fast: Wallet creation duplicates should throw exception
+        if ("open_wallet".equals(commandType)) {
+            throw new ConcurrencyException(message, command, e);
+        }
+        
+        // Other operation duplicates should return idempotent result
+        log.debug("Transaction committed successfully for command: {} (idempotent - duplicate detected)", commandType);
+        return ExecutionResult.idempotent("DUPLICATE_OPERATION");
+    }
+    
+    /**
+     * Handle idempotent result with fail-fast principles.
+     */
+    private ExecutionResult handleIdempotentResult(CommandResult result, String commandType) {
+        String reason = result.reason() != null ? result.reason() : "DUPLICATE_OPERATION";
+        log.debug("Transaction committed successfully for command: {} (idempotent)", commandType);
+        return ExecutionResult.idempotent(reason);
     }
 }
 
