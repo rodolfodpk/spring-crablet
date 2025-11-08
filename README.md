@@ -47,7 +47,7 @@ DCB (Dynamic Consistency Boundary) redefines consistency granularity in event-so
 - **[DCB Explained](crablet-eventstore/docs/DCB_AND_CRABLET.md)** - Detailed DCB explanation
 
 ### Advanced Features
-- **[Read Replicas](crablet-eventstore/docs/READ_REPLICAS.md)** - PostgreSQL read replica configuration
+- **[Read Replicas & DataSource Configuration](crablet-eventstore/docs/READ_REPLICAS.md)** - Primary and read replica datasource setup with performance benefits
 - **[PgBouncer Guide](crablet-eventstore/docs/PGBOUNCER.md)** - Connection pooling
 - **[EventStore Metrics](crablet-eventstore/docs/METRICS.md)** - EventStore metrics and monitoring
 - **[Command Patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md)** - Commutative vs non-commutative operations

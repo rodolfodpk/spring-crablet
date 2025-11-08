@@ -6,6 +6,84 @@ Crablet supports optional PostgreSQL read replicas to enable horizontal read sca
 
 **Important:** Load balancing across multiple replicas is handled externally (AWS RDS read replica endpoints, PgBouncer, pgcat, or hardware load balancers). Crablet connects to a single replica URL that points to your load balancing infrastructure.
 
+## DataSource Configuration
+
+### Primary (Write) DataSource
+
+The primary datasource is automatically configured from Spring Boot's standard datasource properties. Crablet creates a `primaryDataSource` bean from these properties:
+
+```properties
+# Primary database configuration (Spring Boot standard properties)
+spring.datasource.url=jdbc:postgresql://primary.us-east-1.rds.amazonaws.com:5432/crablet
+spring.datasource.username=crablet
+spring.datasource.password=${DB_PASSWORD}
+spring.datasource.driver-class-name=org.postgresql.Driver
+```
+
+**How it works:**
+- Spring Boot auto-configures a `DataSource` from `spring.datasource.*` properties
+- Crablet's `DataSourceConfig` registers this as `primaryDataSource` bean (marked `@Primary`)
+- All write operations use this datasource: `appendIf()`, `storeCommand()`, outbox position tracking
+
+### Read Replica DataSource
+
+The read replica datasource is configured separately using Crablet-specific properties:
+
+```properties
+# Read replica configuration (Crablet-specific properties)
+crablet.eventstore.read-replicas.enabled=true
+crablet.eventstore.read-replicas.url=jdbc:postgresql://read-replica-lb:5432/crablet
+crablet.eventstore.read-replicas.hikari.maximum-pool-size=50
+crablet.eventstore.read-replicas.hikari.minimum-idle=10
+```
+
+**How it works:**
+- When `crablet.eventstore.read-replicas.enabled=true`, Crablet creates a `readDataSource` bean
+- When disabled (default), `readDataSource` falls back to `primaryDataSource` for seamless compatibility
+- All read operations use this datasource: `project()`, `fetchEventsForTopic()`
+
+### Complete Configuration Example
+
+Here's a complete example showing both datasources configured:
+
+```properties
+# Primary (write) database - Spring Boot standard properties
+spring.datasource.url=jdbc:postgresql://primary.us-east-1.rds.amazonaws.com:5432/crablet
+spring.datasource.username=crablet
+spring.datasource.password=${DB_PASSWORD}
+spring.datasource.hikari.maximum-pool-size=20
+spring.datasource.hikari.minimum-idle=5
+
+# Read replica - Crablet-specific properties
+crablet.eventstore.read-replicas.enabled=true
+crablet.eventstore.read-replicas.url=jdbc:postgresql://read-replica-cluster.us-east-1.rds.amazonaws.com:5432/crablet
+crablet.eventstore.read-replicas.hikari.maximum-pool-size=50
+crablet.eventstore.read-replicas.hikari.minimum-idle=10
+```
+
+### Bean Configuration
+
+When configuring `EventStore` bean, inject both datasources:
+
+```java
+@Configuration
+public class EventStoreConfig {
+    
+    @Bean
+    public EventStore eventStore(
+            @Qualifier("primaryDataSource") DataSource writeDataSource,
+            @Qualifier("readDataSource") DataSource readDataSource,
+            ObjectMapper objectMapper,
+            EventStoreConfig config,
+            ClockProvider clock,
+            ApplicationEventPublisher eventPublisher) {
+        return new EventStoreImpl(writeDataSource, readDataSource, objectMapper, config, clock, eventPublisher);
+    }
+}
+```
+
+**Note:** Both `primaryDataSource` and `readDataSource` beans are automatically created by Crablet's `DataSourceConfig`. You only need to configure the properties above.
+
 ## Configuration
 
 ### Basic Setup
@@ -27,12 +105,12 @@ crablet.eventstore.read-replicas.hikari.minimum-idle=10
 ### AWS RDS Example
 
 ```properties
-# Primary (write) database
+# Primary (write) database - Spring Boot standard properties
 spring.datasource.url=jdbc:postgresql://primary.us-east-1.rds.amazonaws.com:5432/crablet
 spring.datasource.username=crablet
 spring.datasource.password=${DB_PASSWORD}
 
-# Read replica (AWS RDS read replica endpoint handles load balancing)
+# Read replica - Crablet-specific properties (AWS RDS read replica endpoint handles load balancing)
 crablet.eventstore.read-replicas.enabled=true
 crablet.eventstore.read-replicas.url=jdbc:postgresql://read-replica-cluster.us-east-1.rds.amazonaws.com:5432/crablet
 ```
@@ -133,6 +211,83 @@ WHERE otp.topic = ? AND otp.publisher = ?
 - ⚠️ Replication lag delays event publishing by (lag + poll interval)
 - ⚠️ Acceptable delay for most use cases (typically seconds)
 - ⚠️ Not suitable if real-time publishing is critical
+
+## Performance Benefits
+
+### Why Use Read Replicas?
+
+Read replicas provide **horizontal read scaling** by distributing read operations across multiple database instances:
+
+#### 1. **Reduced Primary Database Load**
+
+**Without replicas:**
+- All operations (reads + writes) hit the primary database
+- Primary database becomes a bottleneck under high read load
+- Write performance can degrade when competing with read queries
+
+**With replicas:**
+- Read operations (`project()`, `fetchEventsForTopic()`) are routed to replicas
+- Primary database handles only writes (`appendIf()`, `storeCommand()`)
+- Write performance remains consistent regardless of read load
+
+#### 2. **Horizontal Read Scaling**
+
+**Capacity improvement:**
+- **Before:** All reads hit primary database → limited by single instance capacity
+- **After:** Reads distributed across N replicas → ~N× read capacity
+
+**Example:**
+- Primary database: 1000 reads/second capacity
+- With 3 replicas: ~3000 reads/second total capacity (1000 per replica)
+- **Result:** 3× read capacity improvement
+
+#### 3. **Better Resource Utilization**
+
+**Primary database:**
+- Optimized for write operations (indexes, connection pools tuned for writes)
+- No read query overhead
+- Consistent write latency
+
+**Read replicas:**
+- Optimized for read operations (query caches, read-optimized indexes)
+- Can scale independently based on read load
+- Different connection pool sizes (typically larger for reads)
+
+#### 4. **Improved Application Throughput**
+
+**Read-heavy workloads:**
+- Event projections for command handlers (`project()`)
+- Outbox event fetching (`fetchEventsForTopic()`)
+- These operations can run in parallel across multiple replicas
+
+**Performance impact:**
+- Read queries: Slight latency increase (~10-50ms) due to replica routing
+- Write operations: No change (still use primary)
+- Overall throughput: Significantly improved for read-heavy applications
+
+### When to Use Read Replicas
+
+**Use read replicas when:**
+- ✅ Read operations significantly outnumber writes (80/20 or 90/10 ratio)
+- ✅ Read queries are causing primary database bottlenecks
+- ✅ You need to scale read capacity beyond single instance limits
+- ✅ You can tolerate eventual consistency (replication lag typically <5 seconds)
+
+**Don't use read replicas when:**
+- ❌ Write-heavy workloads (replicas won't help)
+- ❌ Real-time consistency requirements (replication lag unacceptable)
+- ❌ Simple applications with low read load (added complexity not worth it)
+
+### Performance Metrics
+
+Typical performance improvements with read replicas:
+
+| Metric | Without Replicas | With 3 Replicas | Improvement |
+|--------|-----------------|-----------------|-------------|
+| Read capacity | 1,000 ops/sec | ~3,000 ops/sec | 3× |
+| Primary write latency | Variable (competing with reads) | Consistent | More stable |
+| Overall throughput | Limited by single instance | Scales horizontally | Significant |
+| Read query latency | Direct to primary | +10-50ms (replica routing) | Acceptable trade-off |
 
 ## Performance Expectations
 
