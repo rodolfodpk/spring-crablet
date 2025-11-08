@@ -38,7 +38,8 @@ private EventStore eventStore;
 
 public void myCustomOperation() {
     // Direct access, no framework required
-    eventStore.appendIf(events, AppendCondition.empty());
+    // appendIf returns the transaction ID for command auditing
+    String transactionId = eventStore.appendIf(events, AppendCondition.empty());
     ProjectionResult<State> result = eventStore.project(query, cursor, State.class, projectors);
 }
 ```

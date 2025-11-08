@@ -323,7 +323,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
         event.next = event; // Circular reference
         
         // When & Then - Should throw EventStoreException on serialization
-        // The exception wraps the JsonProcessingException with "Failed to append events"
+        // The exception wraps the JsonProcessingException with "Failed to serialize event data" or "Failed to append events"
         assertThatThrownBy(() ->
                 eventStore.appendIf(List.of(
                         AppendEvent.builder("CircularEvent")
@@ -332,7 +332,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
                                 .build()
                 ), AppendCondition.empty())
         ).isInstanceOf(com.crablet.eventstore.store.EventStoreException.class)
-         .hasMessageContaining("Failed to append events");
+         .hasMessageMatching(".*(Failed to serialize event data|Failed to append events).*");
     }
 
     @Test
@@ -593,7 +593,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
         NonSerializableEvent event = new NonSerializableEvent("non-serializable-1");
 
         // When & Then - Should throw EventStoreException on serialization
-        // The exception wraps the JsonProcessingException with "Failed to append events"
+        // The exception wraps the JsonProcessingException with "Failed to serialize event data" or "Failed to append events"
         assertThatThrownBy(() ->
                 eventStore.appendIf(List.of(
                         AppendEvent.builder("NonSerializableEvent")
@@ -602,7 +602,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
                                 .build()
                 ), AppendCondition.empty())
         ).isInstanceOf(com.crablet.eventstore.store.EventStoreException.class)
-         .hasMessageContaining("Failed to append events");
+         .hasMessageMatching(".*(Failed to serialize event data|Failed to append events).*");
     }
 }
 

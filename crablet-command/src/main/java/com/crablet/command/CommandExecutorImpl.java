@@ -261,9 +261,10 @@ public class CommandExecutorImpl implements CommandExecutor {
                 }
 
                 // Atomic append with condition (DCB pattern)
+                String transactionId = null;
                 if (!result.isEmpty()) {
                     try {
-                        txStore.appendIf(result.events(), result.appendCondition());
+                        transactionId = txStore.appendIf(result.events(), result.appendCondition());
                         // Metrics for events appended and event types are now published by EventStore
                     } catch (ConcurrencyException e) {
                         // Check if this is an idempotency violation (duplicate operation)
@@ -282,8 +283,7 @@ public class CommandExecutorImpl implements CommandExecutor {
                 }
 
                 // Store command for audit and query purposes (if enabled)
-                if (!result.isEmpty() && config.isPersistCommands()) {
-                    String transactionId = txStore.getCurrentTransactionId();
+                if (!result.isEmpty() && config.isPersistCommands() && transactionId != null) {
                     // commandJson and commandType were extracted earlier (commandJson is final)
                     txStore.storeCommand(commandJson, commandType, transactionId);
                 }

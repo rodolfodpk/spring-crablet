@@ -113,14 +113,20 @@ BEGIN
         END,
         
         -- Concurrency check: Only snapshot-visible events after cursor
-        EXISTS (
-            SELECT 1 FROM events e
-            WHERE (p_event_types IS NULL OR e.type = ANY(p_event_types))
-              AND (p_condition_tags IS NULL OR e.tags @> p_condition_tags)
-              AND (p_after_cursor_position IS NULL OR e.position > p_after_cursor_position)
-              AND e.transaction_id < pg_snapshot_xmin(pg_current_snapshot())
-            LIMIT 1
-        )
+        -- Skip check entirely if all concurrency parameters are NULL (empty condition)
+        CASE 
+            WHEN p_event_types IS NULL AND p_condition_tags IS NULL AND p_after_cursor_position IS NULL THEN
+                FALSE  -- No concurrency check needed for empty conditions
+            ELSE
+                EXISTS (
+                    SELECT 1 FROM events e
+                    WHERE (p_event_types IS NULL OR e.type = ANY(p_event_types))
+                      AND (p_condition_tags IS NULL OR e.tags @> p_condition_tags)
+                      AND (p_after_cursor_position IS NULL OR e.position > p_after_cursor_position)
+                      AND e.transaction_id < pg_snapshot_xmin(pg_current_snapshot())
+                    LIMIT 1
+                )
+        END
     INTO v_has_duplicate, v_has_conflict;
 
     -- Check idempotency first (most common failure)
@@ -153,7 +159,8 @@ BEGIN
     RETURN jsonb_build_object(
         'success', true,
         'message', 'events appended successfully',
-        'events_count', array_length(p_types, 1)
+        'events_count', array_length(p_types, 1),
+        'transaction_id', pg_current_xact_id()::TEXT
     );
     
     -- Advisory lock is automatically released at transaction end

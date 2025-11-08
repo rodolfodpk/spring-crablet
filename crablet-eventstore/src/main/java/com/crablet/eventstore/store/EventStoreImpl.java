@@ -95,9 +95,6 @@ public class EventStoreImpl implements EventStore {
         VALUES (?::xid8, ?, ?::jsonb, ?::jsonb, ?::TIMESTAMP WITH TIME ZONE)
         """;
 
-    private static final String GET_CURRENT_TRANSACTION_ID_SQL = 
-        "SELECT pg_current_xact_id()::TEXT";
-
     private final DataSource writeDataSource;
     private final DataSource readDataSource;
     private final ObjectMapper objectMapper;
@@ -246,17 +243,9 @@ public class EventStoreImpl implements EventStore {
     }
 
     @Override
-    public void appendIf(List<AppendEvent> events, AppendCondition condition) {
+    public String appendIf(List<AppendEvent> events, AppendCondition condition) {
         if (events.isEmpty()) {
-            return;
-        }
-
-        // If condition is empty (no stateChanged query and no idempotency check), use simple append
-        if (condition.stateChanged().items().isEmpty() && 
-            (condition.alreadyExists() == null || condition.alreadyExists().items().isEmpty()) &&
-            condition.afterCursor() != null && condition.afterCursor().position().value() == 0) {
-            append(events);
-            return;
+            throw new IllegalArgumentException("Cannot append empty events list");
         }
 
         try {
@@ -297,6 +286,13 @@ public class EventStoreImpl implements EventStore {
                     .map(event -> serializeEventData(event.eventData()))
                     .toArray(String[]::new);
 
+            // Determine cursor position: NULL for empty conditions (no concurrency check), actual value otherwise
+            Long cursorPosition = null;
+            if (!concurrencyTypes.isEmpty() || !concurrencyTags.isEmpty()) {
+                // Only use cursor position if we're actually doing a concurrency check
+                cursorPosition = condition.afterCursor().position().value();
+            }
+
             // Call append_events_if with dual conditions
             try (Connection connection = writeDataSource.getConnection();
                  PreparedStatement stmt = connection.prepareStatement(APPEND_EVENTS_IF_SQL)) {
@@ -306,7 +302,7 @@ public class EventStoreImpl implements EventStore {
                 stmt.setArray(3, connection.createArrayOf("jsonb", dataStrings));
                 stmt.setObject(4, concurrencyTypes.isEmpty() ? null : concurrencyTypes.toArray(new String[0]));
                 stmt.setObject(5, concurrencyTags.isEmpty() ? null : concurrencyTags.toArray(new String[0]));
-                stmt.setObject(6, condition.afterCursor().position().value());
+                stmt.setObject(6, cursorPosition);
                 stmt.setObject(7, idempotencyTypes != null && !idempotencyTypes.isEmpty() ? idempotencyTypes.toArray(new String[0]) : null);
                 stmt.setObject(8, idempotencyTags != null && !idempotencyTags.isEmpty() ? idempotencyTags.toArray(new String[0]) : null);
                 stmt.setTimestamp(9, java.sql.Timestamp.from(clock.now()));
@@ -343,6 +339,21 @@ public class EventStoreImpl implements EventStore {
                                     // Throw with violation details
                                     throw new ConcurrencyException("AppendCondition violated: " + message, violation);
                                 }
+                                
+                                // Success - extract and return transaction ID
+                                String transactionId = (String) result.get("transaction_id");
+                                if (transactionId == null) {
+                                    log.error("PostgreSQL function returned success but no transaction_id - this should not happen");
+                                    throw new EventStoreException("PostgreSQL function did not return transaction_id");
+                                }
+                                
+                                // Publish metrics events after successful append
+                                eventPublisher.publishEvent(new EventsAppendedMetric(events.size()));
+                                for (AppendEvent event : events) {
+                                    eventPublisher.publishEvent(new EventTypeMetric(event.type()));
+                                }
+                                
+                                return transactionId;
                             } else {
                                 // Handle case where success is not a boolean
                                 log.warn("Unexpected success value type: {}", successObj);
@@ -365,12 +376,6 @@ public class EventStoreImpl implements EventStore {
                         throw new RuntimeException("No result from append_events_if");
                     }
                 }
-            }
-            
-            // Publish metrics events after successful append
-            eventPublisher.publishEvent(new EventsAppendedMetric(events.size()));
-            for (AppendEvent event : events) {
-                eventPublisher.publishEvent(new EventTypeMetric(event.type()));
             }
 
         } catch (ConcurrencyException e) {
@@ -531,9 +536,9 @@ public class EventStoreImpl implements EventStore {
      * Private method to append events conditionally using a provided connection.
      * Used internally by ConnectionScopedEventStore.
      */
-    private void appendIfWithConnection(Connection connection, List<AppendEvent> events, AppendCondition condition) {
+    private String appendIfWithConnection(Connection connection, List<AppendEvent> events, AppendCondition condition) {
         if (events.isEmpty()) {
-            return;
+            throw new IllegalArgumentException("Cannot append empty events list");
         }
 
         try (PreparedStatement stmt = connection.prepareStatement(APPEND_EVENTS_IF_CONNECTION_SQL)) {
@@ -575,14 +580,19 @@ public class EventStoreImpl implements EventStore {
                         .toList();
             }
 
-            long position = condition != null ? condition.afterCursor().position().value() : 0L;
+            // Determine cursor position: NULL for empty conditions (no concurrency check), actual value otherwise
+            Long position = null;
+            if (condition != null && (!concurrencyTypes.isEmpty() || !concurrencyTags.isEmpty())) {
+                // Only use cursor position if we're actually doing a concurrency check
+                position = condition.afterCursor().position().value();
+            }
 
             stmt.setArray(1, connection.createArrayOf("text", types));
             stmt.setArray(2, connection.createArrayOf("text", tagArrays));
             stmt.setArray(3, connection.createArrayOf("jsonb", dataStrings));
             stmt.setArray(4, connection.createArrayOf("text", concurrencyTypes.toArray(new String[0])));
             stmt.setArray(5, connection.createArrayOf("text", concurrencyTags.toArray(new String[0])));
-            stmt.setLong(6, position);
+            stmt.setObject(6, position);
             stmt.setArray(7, idempotencyTypes != null && !idempotencyTypes.isEmpty() ? connection.createArrayOf("text", idempotencyTypes.toArray(new String[0])) : null);
             stmt.setArray(8, idempotencyTags != null && !idempotencyTags.isEmpty() ? connection.createArrayOf("text", idempotencyTags.toArray(new String[0])) : null);
             stmt.setTimestamp(9, java.sql.Timestamp.from(clock.now()));
@@ -596,17 +606,35 @@ public class EventStoreImpl implements EventStore {
                         });
 
                         // Check result and throw ConcurrencyException if condition failed
-                        if (!(Boolean) result.get("success")) {
+                        Object successObj = result.get("success");
+                        if (successObj instanceof Boolean) {
+                            Boolean success = (Boolean) successObj;
+                            if (!success) {
+                                throw new ConcurrencyException("AppendCondition violated: " + result.get("message"));
+                            }
+                            
+                            // Success - extract and return transaction ID
+                            String transactionId = (String) result.get("transaction_id");
+                            if (transactionId == null) {
+                                log.error("PostgreSQL function returned success but no transaction_id - this should not happen");
+                                throw new EventStoreException("PostgreSQL function did not return transaction_id");
+                            }
+                            return transactionId;
+                        } else {
                             throw new ConcurrencyException("AppendCondition violated: " + result.get("message"));
                         }
 
                     } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
                         throw new RuntimeException("Failed to parse JSONB result", e);
                     }
+                } else {
+                    throw new RuntimeException("No result from append_events_if");
                 }
             }
         } catch (SQLException e) {
             throw new EventStoreException("Failed to append events with condition using connection", e);
+        } catch (ConcurrencyException e) {
+            throw e;
         }
     }
 
@@ -961,15 +989,6 @@ public class EventStoreImpl implements EventStore {
         }
     }
 
-    @Override
-    public String getCurrentTransactionId() {
-        try (Connection connection = writeDataSource.getConnection()) {
-            return getCurrentTransactionIdWithConnection(connection);
-        } catch (SQLException e) {
-            throw new EventStoreException("Failed to get current transaction ID", e);
-        }
-    }
-
     /**
      * Store a command using a provided connection.
      * Used internally by ConnectionScopedEventStore.
@@ -990,24 +1009,6 @@ public class EventStoreImpl implements EventStore {
             }
         } catch (SQLException e) {
             throw new EventStoreException("Failed to store command with connection", e);
-        }
-    }
-
-    /**
-     * Get current transaction ID using a provided connection.
-     * Used internally by ConnectionScopedEventStore.
-     */
-    private String getCurrentTransactionIdWithConnection(Connection connection) {
-        try {
-            try (PreparedStatement stmt = connection.prepareStatement(GET_CURRENT_TRANSACTION_ID_SQL);
-                 ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getString(1);
-                }
-                throw new RuntimeException("Failed to get transaction ID");
-            }
-        } catch (SQLException e) {
-            throw new EventStoreException("Failed to get current transaction ID with connection", e);
         }
     }
 
@@ -1036,8 +1037,8 @@ public class EventStoreImpl implements EventStore {
         }
 
         @Override
-        public void appendIf(List<AppendEvent> events, AppendCondition condition) {
-            EventStoreImpl.this.appendIfWithConnection(connection, events, condition);
+        public String appendIf(List<AppendEvent> events, AppendCondition condition) {
+            return EventStoreImpl.this.appendIfWithConnection(connection, events, condition);
         }
 
         @Override
@@ -1054,11 +1055,6 @@ public class EventStoreImpl implements EventStore {
         @Override
         public void storeCommand(String commandJson, String commandType, String transactionId) {
             EventStoreImpl.this.storeCommandWithConnection(connection, commandJson, commandType, transactionId);
-        }
-
-        @Override
-        public String getCurrentTransactionId() {
-            return EventStoreImpl.this.getCurrentTransactionIdWithConnection(connection);
         }
     }
 }

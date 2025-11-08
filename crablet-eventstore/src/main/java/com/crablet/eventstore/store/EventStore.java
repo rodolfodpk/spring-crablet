@@ -18,8 +18,14 @@ public interface EventStore {
      * This method makes it clear when consistency/concurrency checks are required.
      * Use this for operations that need to ensure data hasn't changed since projection.
      * For simple appends without concurrency checks, use AppendCondition.empty().
+     * 
+     * @param events The events to append (must not be empty)
+     * @param condition The append condition for concurrency control
+     * @return The transaction ID of the transaction that appended the events (never null for successful append)
+     * @throws IllegalArgumentException if the events list is empty
+     * @throws ConcurrencyException if the append condition is violated
      */
-    void appendIf(List<AppendEvent> events, AppendCondition condition);
+    String appendIf(List<AppendEvent> events, AppendCondition condition);
 
     /**
      * Project projects state from events matching query with cursor.
@@ -62,13 +68,4 @@ public interface EventStore {
      * @throws RuntimeException if storage fails
      */
     void storeCommand(String commandJson, String commandType, String transactionId);
-
-    /**
-     * Get the current transaction ID from the database.
-     * This is used to associate commands with their transaction context.
-     *
-     * @return The current transaction ID as a string
-     * @throws RuntimeException if retrieval fails
-     */
-    String getCurrentTransactionId();
 }

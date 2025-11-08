@@ -218,7 +218,8 @@ AppendCondition condition = new AppendConditionBuilder(decisionModel, result.cur
     .build();
 
 try {
-    eventStore.appendIf(events, condition);
+    String transactionId = eventStore.appendIf(events, condition);
+    // Use transactionId for command auditing if needed
 } catch (ConcurrencyException e) {
     // Balance changed (deposit/withdrawal happened) - throw to application layer
     throw e;

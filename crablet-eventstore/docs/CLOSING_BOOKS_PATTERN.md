@@ -224,7 +224,7 @@ This ensures all tags must match (AND condition) for the event to be included.
 
 ```java
 // January 2024: Wallet opened, deposits, withdrawals
-eventStore.appendIf(List.of(
+String txId1 = eventStore.appendIf(List.of(
     AppendEvent.builder("WalletOpened")
         .tag("wallet_id", "alice")
         .tag("year", "2024")
@@ -236,7 +236,7 @@ eventStore.appendIf(List.of(
 // ... January transactions ...
 
 // End of January: Close statement
-eventStore.appendIf(List.of(
+String txId2 = eventStore.appendIf(List.of(
     AppendEvent.builder("WalletStatementClosed")
         .tag("wallet_id", "alice")
         .tag("statement_id", "wallet:alice:2024-01")
@@ -253,7 +253,7 @@ eventStore.appendIf(List.of(
 ), AppendCondition.empty());
 
 // February 2024: Open new statement
-eventStore.appendIf(List.of(
+String txId3 = eventStore.appendIf(List.of(
     AppendEvent.builder("WalletStatementOpened")
         .tag("wallet_id", "alice")
         .tag("statement_id", "wallet:alice:2024-02")

@@ -116,6 +116,11 @@ public class TestApplication {
     }
     
     @Bean
+    public TestCommandHandler testCommandHandler() {
+        return new TestCommandHandler();
+    }
+    
+    @Bean
     public CommandExecutor commandExecutor(EventStore eventStore, 
                                            java.util.List<com.crablet.command.CommandHandler<?>> commandHandlers,
                                            EventStoreConfig config,

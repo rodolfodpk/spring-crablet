@@ -194,7 +194,11 @@ class WalletCommandsTest extends com.crablet.eventstore.integration.AbstractCrab
         // Then: Wallet should have zero balance
         // Note: WalletState building would require implementing a state projector
         // For now, we just verify the events were created successfully
-        var events = testHelper.query(com.crablet.eventstore.query.Query.empty(), null);
-        assertThat(events).hasSize(4); // OpenWallet + Deposit + 2 Withdrawals
+        // Note: Period helper creates statement events, so we filter to wallet lifecycle events only
+        var allEvents = testHelper.query(com.crablet.eventstore.query.Query.empty(), null);
+        var walletLifecycleEvents = allEvents.stream()
+                .filter(e -> !e.type().startsWith("WalletStatement"))
+                .toList();
+        assertThat(walletLifecycleEvents).hasSize(4); // OpenWallet + Deposit + 2 Withdrawals
     }
 }

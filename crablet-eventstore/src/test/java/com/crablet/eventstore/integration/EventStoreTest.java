@@ -141,13 +141,14 @@ class EventStoreTest extends AbstractCrabletTest {
 
         // Simulate concurrent modification: another deposit happens
         DepositMade concurrentDeposit = DepositMade.of("deposit1", walletId, 500, 1500, "Concurrent deposit");
-        eventStore.appendIf(List.of(
+        String txId = eventStore.appendIf(List.of(
                 AppendEvent.builder("DepositMade")
                         .tag("wallet_id", walletId)
                         .tag("deposit_id", "deposit1")
                         .data(concurrentDeposit)
                         .build()
         ), AppendCondition.empty());
+        assertThat(txId).isNotNull();
 
         // When/Then: try to appendIf with stale cursor (DCB concurrency control)
         WithdrawalMade staleWithdrawal = WithdrawalMade.of("withdrawal1", walletId, 200, 800, "Stale withdrawal");
@@ -217,7 +218,7 @@ class EventStoreTest extends AbstractCrabletTest {
 
         // When: execute wallet opening and deposit in transaction
         String txId = eventStore.executeInTransaction(txEventStore -> {
-            txEventStore.appendIf(List.of(
+            String transactionId = txEventStore.appendIf(List.of(
                     AppendEvent.builder("WalletOpened")
                             .tag("wallet_id", walletId)
                             .data(WalletOpened.of(walletId, "Eve", 1000))
@@ -228,7 +229,7 @@ class EventStoreTest extends AbstractCrabletTest {
                             .data(DepositMade.of("deposit1", walletId, 500, 1500, "Initial deposit"))
                             .build()
             ), AppendCondition.empty());
-            return txEventStore.getCurrentTransactionId();
+            return transactionId;
         });
 
         // Then: both events should be persisted atomically
@@ -274,7 +275,13 @@ class EventStoreTest extends AbstractCrabletTest {
 
         // When: store command
         eventStore.executeInTransaction(txEventStore -> {
-            String transactionId = txEventStore.getCurrentTransactionId();
+            // First append an event to get transaction ID
+            String transactionId = txEventStore.appendIf(List.of(
+                    AppendEvent.builder("WalletOpened")
+                            .tag("wallet_id", "wallet8")
+                            .data(WalletOpened.of("wallet8", "Grace", 1000))
+                            .build()
+            ), AppendCondition.empty());
             // Serialize command and extract type
             try {
                 String commandJson = objectMapper.writeValueAsString(openCmd);
@@ -302,23 +309,25 @@ class EventStoreTest extends AbstractCrabletTest {
     void shouldPaginateWithCursor() {
         // Given: wallet with 5 deposits
         String walletId = "wallet9";
-        eventStore.appendIf(List.of(
+        String walletTxId = eventStore.appendIf(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Henry", 1000))
                         .build()
         ), AppendCondition.empty());
+        assertThat(walletTxId).isNotNull();
         
         int runningBalance = 1000;
         for (int i = 1; i <= 5; i++) {
             runningBalance += i * 100;
-            eventStore.appendIf(List.of(
+            String depositTxId = eventStore.appendIf(List.of(
                     AppendEvent.builder("DepositMade")
                             .tag("wallet_id", walletId)
                             .tag("deposit_id", "deposit" + i)
                             .data(DepositMade.of("deposit" + i, walletId, i * 100, runningBalance, "Deposit " + i))
                             .build()
             ), AppendCondition.empty());
+            assertThat(depositTxId).isNotNull();
         }
 
         // When: project all events
