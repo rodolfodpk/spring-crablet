@@ -106,10 +106,11 @@ class EventStoreImplTest {
                 .build();
 
         // When - This call should be tracked by JaCoCo
-        assertDoesNotThrow(() -> eventStore.appendIf(List.of(appendEvent), AppendCondition.empty()));
+        String transactionId = eventStore.appendIf(List.of(appendEvent), AppendCondition.empty());
 
-        // Then - Event was persisted successfully
-        assertTrue(true, "Event appended without exception");
+        // Then - Event was persisted successfully and transaction ID returned
+        assertNotNull(transactionId);
+        assertFalse(transactionId.isEmpty());
     }
 
     @Test
@@ -134,10 +135,11 @@ class EventStoreImplTest {
         );
 
         // When
-        assertDoesNotThrow(() -> eventStore.appendIf(events, AppendCondition.empty()));
+        String transactionId = eventStore.appendIf(events, AppendCondition.empty());
 
-        // Then
-        assertTrue(true, "Multiple events appended without exception");
+        // Then - Both events were appended and transaction ID returned
+        assertNotNull(transactionId);
+        assertFalse(transactionId.isEmpty());
     }
 
     @Test
@@ -158,9 +160,18 @@ class EventStoreImplTest {
             return testId;
         });
 
-        // Then
+        // Then - Transaction completed and returned correct result
         assertEquals(testId, result);
-        assertTrue(true, "Transaction completed successfully");
+        
+        // Verify event was actually stored
+        com.crablet.eventstore.query.EventRepository eventRepository = 
+            new com.crablet.eventstore.query.EventRepositoryImpl(dataSource, 
+                new EventStoreConfig());
+        com.crablet.eventstore.query.Query query = 
+            com.crablet.eventstore.query.Query.forEventAndTag("TestEvent", "test_id", testId);
+        List<com.crablet.eventstore.store.StoredEvent> storedEvents = 
+            eventRepository.query(query, null);
+        assertEquals(1, storedEvents.size(), "Event should be stored in database");
     }
 }
 
