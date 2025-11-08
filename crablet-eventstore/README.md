@@ -2,22 +2,15 @@
 
 [![codecov](https://codecov.io/gh/rodolfodpk/spring-crablet/branch/main/graph/badge.svg?component=module_eventstore)](https://codecov.io/gh/rodolfodpk/spring-crablet)
 
-Light event sourcing library with Dynamic Consistency Boundary (DCB) support and Spring Boot integration. Use as a library for direct EventStore access.
+Light event sourcing framework with Dynamic Consistency Boundary (DCB) support and Spring Boot integration.
 
 ## Overview
 
-Crablet EventStore is a pure event sourcing library:
+Crablet EventStore is an event sourcing framework with DCB (Dynamic Consistency Boundary) support:
 
-- **Library**: Direct `EventStore` access for full control over event operations
 - **DCB**: Optimistic concurrency control without distributed locks
-- **Flexible**: Can be used standalone or with command framework
-
-**Library Benefits:**
-- Pure library - no framework overhead
-- Full control over operations
-- No required interfaces to implement - just inject `EventStore` and use `appendIf(..., AppendCondition.empty())` for simple event storage
-- Optional: Implement `StateProjector<T>` if you need to project state from events (e.g., for business rule validation or DCB concurrency control)
-- Easy to customize and extend
+- **Event Sourcing**: Complete audit trail with state reconstruction
+- **Spring Integration**: Ready-to-use Spring Boot components
 
 ## Features
 
@@ -30,25 +23,26 @@ Crablet EventStore is a pure event sourcing library:
 
 ## Usage
 
-Use `EventStore` directly for full control:
+Inject `EventStore` and use it directly:
 
 ```java
 @Autowired
 private EventStore eventStore;
 
-public void myCustomOperation() {
-    // Direct access, no framework required
+public void myOperation() {
+    // Project state with DCB pattern
+    Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(walletId);
+    ProjectionResult<WalletBalanceState> projection = eventStore.project(
+        decisionModel, Cursor.zero(), WalletBalanceState.class, List.of(projector)
+    );
+    
+    // Append events with concurrency control
     // appendIf returns the transaction ID for command auditing
-    String transactionId = eventStore.appendIf(events, AppendCondition.empty());
-    ProjectionResult<State> result = eventStore.project(query, cursor, State.class, projectors);
+    String transactionId = eventStore.appendIf(events, 
+        new AppendConditionBuilder(decisionModel, projection.cursor()).build()
+    );
 }
 ```
-
-**Benefits:**
-- Full control over operations
-- No framework overhead
-- No required interfaces
-- Flexible for custom use cases
 
 **For Command Framework:** Use `crablet-command` module for automatic command handler discovery and orchestration.
 

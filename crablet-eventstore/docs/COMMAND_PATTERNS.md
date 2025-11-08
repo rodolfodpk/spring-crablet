@@ -400,6 +400,7 @@ The Transfer pattern above demonstrates the core multi-entity DCB pattern. For e
 - ✅ Operation is **commutative** (Deposit - order doesn't affect final result)
 - ✅ Result doesn't depend on the **order** of operations
 - ✅ Want maximum parallel throughput
+- ⚠️ **Note**: Most examples using `AppendCondition.empty()` are for test setup. In production, use it only for truly commutative operations like deposits.
 
 ### Use `AppendConditionBuilder(decisionModel, cursor)` When:
 - ✅ Operation **order matters** (Withdraw, Transfer)

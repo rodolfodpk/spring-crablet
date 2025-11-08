@@ -165,7 +165,7 @@ Crablet Command supports different DCB patterns:
 
 - **Idempotency Check**: `withIdempotencyCheck()` for entity creation
 - **Cursor-based Check**: `AppendConditionBuilder(decisionModel, cursor)` for state-dependent operations
-- **Empty Condition**: `AppendCondition.empty()` for commutative operations
+- **Empty Condition**: `AppendCondition.empty()` for commutative operations (mainly used in tests)
 
 See [Command Patterns Guide](../crablet-eventstore/docs/COMMAND_PATTERNS.md) for complete examples.
 

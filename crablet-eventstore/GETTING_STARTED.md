@@ -2,22 +2,9 @@
 
 This guide walks you through integrating Crablet EventStore into your application using the wallet domain as an example.
 
-## Framework or Library?
+## Dependencies
 
-Crablet supports two usage modes:
-
-1. **Framework Mode** (recommended): Implement `CommandHandler<T>` for automatic discovery and orchestration
-   - Requires `crablet-command` module dependency
-   - See [Command Framework README](../crablet-command/README.md) for setup
-2. **Library Mode**: Use `EventStore` directly for full control over event operations
-   - Only requires `crablet-eventstore` module dependency
-   - See [EventStore README](README.md) for library usage examples
-
-This guide focuses on **framework mode**. 
-
-### Dependencies
-
-For framework mode, add both dependencies:
+Add both dependencies:
 
 ```xml
 <dependency>
@@ -32,8 +19,6 @@ For framework mode, add both dependencies:
     <version>1.0.0-SNAPSHOT</version>
 </dependency>
 ```
-
-For library mode, only `crablet-eventstore` is needed.
 
 ## Step 1: Set Up Database
 

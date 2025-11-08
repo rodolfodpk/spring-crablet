@@ -31,7 +31,7 @@ DCB (Dynamic Consistency Boundary) redefines consistency granularity in event-so
 |---------|----------|----------------|
 | **Idempotency Check** | Entity creation (OpenWallet) | `withIdempotencyCheck()` |
 | **Cursor-based Check** | State-dependent ops (Withdraw, Transfer) | `AppendConditionBuilder(decisionModel, cursor)` |
-| **Empty Condition** | Commutative operations (Deposit) | `AppendCondition.empty()` |
+| **Empty Condition** | Commutative operations (Deposit) | `AppendCondition.empty()` (mainly for tests) |
 
 📖 See [Command Patterns Guide](crablet-eventstore/docs/COMMAND_PATTERNS.md) for complete examples and detailed explanations.
 

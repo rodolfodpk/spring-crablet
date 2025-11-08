@@ -456,6 +456,7 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
         // 4. Deposits are commutative - no cursor check needed
         // Order doesn't matter: +$10 then +$20 = +$20 then +$10
         // Allows parallel deposits without conflicts
+        // Note: AppendCondition.empty() is valid for commutative operations like deposits
         AppendCondition condition = AppendCondition.empty();
 
         return CommandResult.of(List.of(event), condition);
@@ -464,9 +465,9 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
 
 **Key Points:**
 
-1. **Simplified API**: No query builder needed for simple commutative operations
+1. **Commutative Operations**: Deposits are commutative - order doesn't affect final result
 2. **AppendEvent.builder()**: Fluent event creation with inline tags
-3. **AppendCondition.empty()**: For commutative operations where order doesn't matter
+3. **AppendCondition.empty()**: For commutative operations where order doesn't matter (valid production pattern)
 4. **Parallel Execution**: Deposits can run in parallel without conflicts
 5. **Idempotency**: Handled via `deposit_id` tag, prevents duplicate deposits
 6. **Performance**: No cursor checks needed for commutative operations

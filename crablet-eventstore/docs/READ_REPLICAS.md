@@ -72,7 +72,7 @@ crablet.eventstore.read-replicas.hikari.password=${REPLICA_PASSWORD}
 - `OutboxProcessor.fetchEventsForTopic()` - Fetching events for publishing
 
 **Write Operations (use primary):**
-- `EventStore.appendIf()` - Conditional event writes (use `AppendCondition.empty()` for simple writes)
+- `EventStore.appendIf()` - Conditional event writes with DCB concurrency control
 - `EventStore.storeCommand()` - Storing commands
 - All outbox position tracking and leader election
 
