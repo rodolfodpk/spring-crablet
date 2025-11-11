@@ -1,0 +1,69 @@
+name: Java 25 CI with Maven
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    services:
+      postgres:
+        image: postgres:17.2
+        env:
+          POSTGRES_DB: crablet
+          POSTGRES_USER: crablet
+          POSTGRES_PASSWORD: crablet
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 25 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'  # Caches ~/.m2/repository
+
+      - name: Build with Maven
+        run: mvn -B clean verify --file pom.xml
+
+      - name: Debug JaCoCo Report
+        run: |
+          echo "Checking for jacoco.exec files in modules..."
+          find . -name "jacoco.exec" -type f || echo "No exec files found"
+          echo ""
+          echo "Checking if merged exec exists..."
+          ls -lh target/jacoco-merged.exec || echo "Merged exec not found"
+          echo ""
+          echo "Checking if aggregate report exists..."
+          ls -lh target/site/jacoco-aggregate/ || echo "Report directory not found"
+          echo ""
+          echo "Report size:"
+          du -h target/site/jacoco-aggregate/jacoco.xml 2>/dev/null || echo "XML not found"
+          echo ""
+          echo "Source files count:"
+          grep -c "sourcefile" target/site/jacoco-aggregate/jacoco.xml 2>/dev/null || echo "Cannot count files"
+
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./target/site/jacoco-aggregate/jacoco.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
