@@ -45,6 +45,7 @@ DCB (Dynamic Consistency Boundary) redefines consistency granularity in event-so
 - **[Outbox README](crablet-outbox/README.md)** - Outbox library guide
 - **[Metrics README](crablet-metrics-micrometer/README.md)** - Metrics collector guide
 - **[DCB Explained](crablet-eventstore/docs/DCB_AND_CRABLET.md)** - Detailed DCB explanation
+- **[Testing Guide](crablet-eventstore/TESTING.md)** - Testing strategy, unit tests, and integration tests
 
 ### Advanced Features
 - **[Closing the Books Pattern](crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md)** - Period segmentation using `@PeriodConfig` annotation for performance optimization
