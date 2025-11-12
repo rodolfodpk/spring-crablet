@@ -51,10 +51,10 @@ class WithdrawCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         
         // When
         WithdrawCommand command = WithdrawCommand.of("withdrawal1", "wallet1", 300, "Shopping");
-        List<WithdrawalMade> events = when(handler, command, WithdrawalMade.class);
+        List<Object> events = when(handler, command);
         
         // Then
-        then(events, withdrawal -> {
+        then(events, WithdrawalMade.class, withdrawal -> {
             assertThat(withdrawal.walletId()).isEqualTo("wallet1");
             assertThat(withdrawal.amount()).isEqualTo(300);
             assertThat(withdrawal.newBalance()).isEqualTo(700); // 1000 - 300
@@ -73,7 +73,7 @@ class WithdrawCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         
         // When & Then
         WithdrawCommand command = WithdrawCommand.of("withdrawal1", "wallet1", 200, "Shopping");
-        assertThatThrownBy(() -> when(handler, command, WithdrawalMade.class))
+        assertThatThrownBy(() -> when(handler, command))
             .isInstanceOf(InsufficientFundsException.class)
             .hasMessageContaining("wallet1")
             .hasMessageContaining("100")
@@ -87,7 +87,7 @@ class WithdrawCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         
         // When & Then
         WithdrawCommand command = WithdrawCommand.of("withdrawal1", "wallet1", 100, "Shopping");
-        assertThatThrownBy(() -> when(handler, command, WithdrawalMade.class))
+        assertThatThrownBy(() -> when(handler, command))
             .isInstanceOf(WalletNotFoundException.class)
             .hasMessageContaining("wallet1");
     }
@@ -111,10 +111,10 @@ class WithdrawCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         
         // When
         WithdrawCommand command = WithdrawCommand.of("withdrawal2", "wallet1", 400, "New withdrawal");
-        List<WithdrawalMade> events = when(handler, command, WithdrawalMade.class);
+        List<Object> events = when(handler, command);
         
         // Then
-        then(events, withdrawal -> {
+        then(events, WithdrawalMade.class, withdrawal -> {
             assertThat(withdrawal.amount()).isEqualTo(400);
             assertThat(withdrawal.newBalance()).isEqualTo(900); // 1000 + 500 - 200 - 400
         });
@@ -131,10 +131,10 @@ class WithdrawCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         
         // When - get events with tags
         WithdrawCommand command = WithdrawCommand.of("withdrawal1", "wallet1", 300, "Shopping");
-        List<EventWithTags<WithdrawalMade>> events = whenWithTags(handler, command, WithdrawalMade.class);
+        List<EventWithTags<Object>> events = whenWithTags(handler, command);
         
         // Then - verify business logic AND period tags
-        then(events, (withdrawal, tags) -> {
+        then(events, WithdrawalMade.class, (withdrawal, tags) -> {
             // Business logic
             assertThat(withdrawal.walletId()).isEqualTo("wallet1");
             assertThat(withdrawal.amount()).isEqualTo(300);

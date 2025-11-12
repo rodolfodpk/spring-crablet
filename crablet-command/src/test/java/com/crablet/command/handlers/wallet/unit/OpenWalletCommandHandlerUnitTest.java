@@ -37,10 +37,10 @@ class OpenWalletCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         
         // When
         OpenWalletCommand command = OpenWalletCommand.of("wallet1", "Alice", 1000);
-        List<WalletOpened> events = when(handler, command, WalletOpened.class);
+        List<Object> events = when(handler, command);
         
         // Then
-        then(events, wallet -> {
+        then(events, WalletOpened.class, wallet -> {
             assertThat(wallet.walletId()).isEqualTo("wallet1");
             assertThat(wallet.owner()).isEqualTo("Alice");
             assertThat(wallet.initialBalance()).isEqualTo(1000);
@@ -54,10 +54,10 @@ class OpenWalletCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         
         // When
         OpenWalletCommand command = OpenWalletCommand.of("wallet1", "Bob", 0);
-        List<WalletOpened> events = when(handler, command, WalletOpened.class);
+        List<Object> events = when(handler, command);
         
         // Then
-        then(events, wallet -> {
+        then(events, WalletOpened.class, wallet -> {
             assertThat(wallet.walletId()).isEqualTo("wallet1");
             assertThat(wallet.owner()).isEqualTo("Bob");
             assertThat(wallet.initialBalance()).isEqualTo(0);
@@ -71,10 +71,10 @@ class OpenWalletCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         
         // When - get events with tags
         OpenWalletCommand command = OpenWalletCommand.of("wallet1", "Alice", 1000);
-        List<EventWithTags<WalletOpened>> events = whenWithTags(handler, command, WalletOpened.class);
+        List<EventWithTags<Object>> events = whenWithTags(handler, command);
         
         // Then - verify event data AND tags
-        then(events, (wallet, tags) -> {
+        then(events, WalletOpened.class, (wallet, tags) -> {
             // Event data
             assertThat(wallet.walletId()).isEqualTo("wallet1");
             assertThat(wallet.owner()).isEqualTo("Alice");

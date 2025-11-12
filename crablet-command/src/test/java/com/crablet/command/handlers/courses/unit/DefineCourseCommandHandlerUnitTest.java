@@ -37,10 +37,10 @@ class DefineCourseCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         
         // When
         DefineCourseCommand command = DefineCourseCommand.of("course1", 50);
-        List<CourseDefined> events = when(handler, command, CourseDefined.class);
+        List<Object> events = when(handler, command);
         
         // Then
-        then(events, course -> {
+        then(events, CourseDefined.class, course -> {
             assertThat(course.courseId()).isEqualTo("course1");
             assertThat(course.capacity()).isEqualTo(50);
         });
@@ -53,10 +53,10 @@ class DefineCourseCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         
         // When - get events with tags
         DefineCourseCommand command = DefineCourseCommand.of("course1", 50);
-        List<EventWithTags<CourseDefined>> events = whenWithTags(handler, command, CourseDefined.class);
+        List<EventWithTags<Object>> events = whenWithTags(handler, command);
         
         // Then - verify event data AND tags
-        then(events, (course, tags) -> {
+        then(events, CourseDefined.class, (course, tags) -> {
             // Event data
             assertThat(course.courseId()).isEqualTo("course1");
             assertThat(course.capacity()).isEqualTo(50);

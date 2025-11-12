@@ -27,9 +27,10 @@ import java.util.stream.Collectors;
  *   <li>Direct object access - no serialization overhead</li>
  *   <li>Optional tag assertions for period tests</li>
  *   <li>Pure domain event assertions (not {@code AppendEvent} wrappers)</li>
+ *   <li>Java 25 pattern matching with sealed interfaces - no casting needed</li>
  * </ul>
  * <p>
- * <strong>Usage Pattern:</strong>
+ * <strong>Usage Pattern - Single Event (Convenience API):</strong>
  * <pre>{@code
  * @Test
  * void givenWallet_whenDepositing_thenBalanceIncreases() {
@@ -39,12 +40,12 @@ import java.util.stream.Collectors;
  *         .tag(WALLET_ID, "wallet1")
  *     );
  *     
- *     // When
+ *     // When - returns ALL events (no filtering)
  *     DepositCommand command = DepositCommand.of("dep1", "wallet1", 500, "Bonus");
- *     List<DepositMade> events = when(handler, command, DepositMade.class);
+ *     List<Object> events = when(handler, command);
  *     
- *     // Then
- *     then(events, deposit -> {
+ *     // Then - convenience API extracts type automatically
+ *     then(events, DepositMade.class, deposit -> {
  *         assertThat(deposit.walletId()).isEqualTo("wallet1");
  *         assertThat(deposit.amount()).isEqualTo(500);
  *         assertThat(deposit.newBalance()).isEqualTo(1500);
@@ -52,7 +53,38 @@ import java.util.stream.Collectors;
  * }
  * }</pre>
  * <p>
- * <strong>Period Tests:</strong>
+ * <strong>Usage Pattern - Multiple Events (Pattern Matching with Order Assertions):</strong>
+ * <pre>{@code
+ * @Test
+ * void givenWallet_whenDepositing_thenMultipleEventsGenerated() {
+ *     // Given
+ *     given().event(WALLET_OPENED, builder -> builder
+ *         .data(WalletOpened.of("wallet1", "Alice", 1000))
+ *         .tag(WALLET_ID, "wallet1")
+ *     );
+ *     
+ *     // When
+ *     DepositCommand command = DepositCommand.of("dep1", "wallet1", 500, "Bonus");
+ *     List<Object> events = when(handler, command);
+ *     
+     *     // Then - pattern matching with sealed interface, asserting count and order
+     *     thenMultipleOrdered(events, WalletEvent.class, 2, walletEvents -> {
+ *         switch (at(0, walletEvents)) {
+ *             case DepositMade deposit -> {
+ *                 assertThat(deposit.amount()).isEqualTo(500);
+ *                 assertThat(deposit.newBalance()).isEqualTo(1500);
+ *             }
+ *         }
+ *         switch (at(1, walletEvents)) {
+ *             case WalletStatementOpened statement -> {
+ *                 assertThat(statement.openingBalance()).isEqualTo(1000);
+ *             }
+ *         }
+ *     });
+ * }
+ * }</pre>
+ * <p>
+ * <strong>Period Tests - Single Event With Tags:</strong>
  * <pre>{@code
  * @Test
  * void givenWallet_whenDepositing_thenDepositHasPeriodTags() {
@@ -64,14 +96,43 @@ import java.util.stream.Collectors;
  *         2025, 1
  *     );
  *     
- *     // When - get events with tags
- *     List<EventWithTags<DepositMade>> events = whenWithTags(handler, command, DepositMade.class);
+ *     // When - returns ALL events with tags (no filtering)
+ *     DepositCommand command = DepositCommand.of("dep1", "wallet1", 500, "Bonus");
+ *     List<EventWithTags<Object>> events = whenWithTags(handler, command);
  *     
- *     // Then - verify business logic AND tags
- *     then(events, (deposit, tags) -> {
+ *     // Then - convenience API extracts type automatically
+ *     then(events, DepositMade.class, (deposit, tags) -> {
  *         assertThat(deposit.newBalance()).isEqualTo(1500);
  *         assertThat(tags).containsEntry("year", "2025");
  *         assertThat(tags).containsEntry("month", "1");
+ *     });
+ * }
+ * }</pre>
+ * <p>
+ * <strong>Period Tests - Multiple Events With Tags (Pattern Matching with Order Assertions):</strong>
+ * <pre>{@code
+ * @Test
+ * void givenWallet_whenDepositing_thenMultipleEventsWithTags() {
+ *     // Given
+ *     given().eventWithMonthlyPeriod(...);
+ *     
+ *     // When
+ *     List<EventWithTags<Object>> events = whenWithTags(handler, command);
+ *     
+     *     // Then - pattern matching with sealed interface, asserting count and order (no cast needed!)
+     *     thenMultipleWithTagsOrdered(events, WalletEvent.class, 2, eventWithTagsList -> {
+ *         switch (at(0, eventWithTagsList).event()) {
+ *             case DepositMade deposit -> {
+ *                 assertThat(deposit.amount()).isEqualTo(500);
+ *                 assertThat(at(0, eventWithTagsList).tags()).containsEntry("year", "2025");
+ *             }
+ *         }
+ *         switch (at(1, eventWithTagsList).event()) {
+ *             case WalletStatementOpened statement -> {
+ *                 assertThat(statement.openingBalance()).isEqualTo(1000);
+ *                 assertThat(at(1, eventWithTagsList).tags()).containsEntry("statement_id", "...");
+ *             }
+ *         }
  *     });
  * }
  * }</pre>
@@ -103,37 +164,36 @@ public abstract class AbstractHandlerUnitTest {
     // ========== WHEN Helpers ==========
     
     /**
-     * Execute a command handler and extract pure domain events.
+     * Execute a command handler and return ALL events (no filtering).
+     * Use pattern matching with sealed interfaces for type-safe assertions.
      * 
      * @param handler The command handler to execute
      * @param command The command to execute
-     * @param eventType The domain event type to extract
-     * @param <T> The domain event type
      * @param <C> The command type
-     * @return List of pure domain events (not {@code AppendEvent} wrappers)
+     * @return List of all domain events (not {@code AppendEvent} wrappers)
      */
-    protected <T, C> List<T> when(CommandHandler<C> handler, C command, Class<T> eventType) {
+    protected <C> List<Object> when(CommandHandler<C> handler, C command) {
         CommandResult result = handler.handle(eventStore, command);
-        return extractEvents(result, eventType);
+        return result.events().stream()
+            .map(AppendEvent::eventData)
+            .collect(Collectors.toList());
     }
     
     /**
-     * Execute a command handler and return events with their tags.
+     * Execute a command handler and return ALL events with their tags (no filtering).
      * Useful when you need to assert on both event data and tags (e.g., period tests).
+     * Use pattern matching with sealed interfaces for type-safe assertions.
      * 
      * @param handler The command handler to execute
      * @param command The command to execute
-     * @param eventType The domain event type to extract
-     * @param <T> The domain event type
      * @param <C> The command type
      * @return List of {@code EventWithTags} containing event data and tags Map
      */
-    @SuppressWarnings("unchecked")
-    protected <T, C> List<EventWithTags<T>> whenWithTags(CommandHandler<C> handler, C command, Class<T> eventType) {
+    protected <C> List<EventWithTags<Object>> whenWithTags(CommandHandler<C> handler, C command) {
         CommandResult result = handler.handle(eventStore, command);
         return result.events().stream()
             .map(appendEvent -> {
-                T eventData = (T) appendEvent.eventData(); // Direct cast
+                Object eventData = appendEvent.eventData();
                 Map<String, String> tags = tagsToMap(appendEvent.tags());
                 return new EventWithTags<>(eventData, tags);
             })
@@ -143,64 +203,229 @@ public abstract class AbstractHandlerUnitTest {
     // ========== THEN Helpers ==========
     
     /**
-     * Assert on a single event (pure domain event only).
+     * Assert on a single event (generic, no type extraction).
      * 
      * @param events The events list (should contain exactly one event)
      * @param assertions Consumer for assertions on the event
-     * @param <T> The domain event type
      */
-    protected <T> void then(List<T> events, Consumer<T> assertions) {
+    protected void then(List<Object> events, Consumer<Object> assertions) {
         Assertions.assertThat(events).hasSize(1);
         assertions.accept(events.get(0));
     }
     
     /**
-     * Assert on a single event with tags.
-     * Useful for period tests where you need to verify both event data and tags.
+     * Assert on a single event with type extraction (convenience API).
+     * 
+     * @param events The events list
+     * @param eventType The domain event type to extract
+     * @param assertions Consumer for assertions on the event
+     * @param <T> The domain event type
+     */
+    protected <T> void then(List<Object> events, Class<T> eventType, Consumer<T> assertions) {
+        T event = findEventByType(events, eventType);
+        assertions.accept(event);
+    }
+    
+    /**
+     * Assert on a single event with tags (generic, no type extraction).
      * 
      * @param events The events list (should contain exactly one event)
      * @param assertions BiConsumer for assertions on event and tags Map
-     * @param <T> The domain event type
      */
-    protected <T> void then(List<EventWithTags<T>> events, BiConsumer<T, Map<String, String>> assertions) {
+    protected void then(List<EventWithTags<Object>> events, BiConsumer<Object, Map<String, String>> assertions) {
         Assertions.assertThat(events).hasSize(1);
-        EventWithTags<T> eventWithTags = events.get(0);
+        EventWithTags<Object> eventWithTags = events.get(0);
         assertions.accept(eventWithTags.event(), eventWithTags.tags());
     }
     
     /**
-     * Assert on multiple events.
+     * Assert on a single event with tags and type extraction (convenience API).
+     * Useful for period tests where you need to verify both event data and tags.
+     * 
+     * @param events The events list
+     * @param eventType The domain event type to extract
+     * @param assertions BiConsumer for assertions on event and tags Map
+     * @param <T> The domain event type
+     */
+    protected <T> void then(List<EventWithTags<Object>> events, Class<T> eventType, BiConsumer<T, Map<String, String>> assertions) {
+        EventWithTags<T> eventWithTags = findEventWithTagsByType(events, eventType);
+        assertions.accept(eventWithTags.event(), eventWithTags.tags());
+    }
+    
+    /**
+     * Assert on multiple events (generic).
      * 
      * @param events The events list
      * @param expectedCount Expected number of events
      * @param assertions Consumer for assertions on the events list
-     * @param <T> The domain event type
      */
-    protected <T> void thenMultiple(List<T> events, int expectedCount, Consumer<List<T>> assertions) {
+    protected void thenMultiple(List<Object> events, int expectedCount, Consumer<List<Object>> assertions) {
         Assertions.assertThat(events).hasSize(expectedCount);
         assertions.accept(events);
     }
     
     /**
-     * Assert on multiple events with tags.
+     * Assert on multiple events using pattern matching with sealed interfaces.
+     * Filters events to the sealed interface type and applies pattern matching switch.
+     * Processes each event individually (order not explicitly asserted).
+     * 
+     * @param events The events list
+     * @param sealedInterfaceType The sealed interface type (e.g., WalletEvent.class)
+     * @param expectedCount Expected number of events of this sealed type
+     * @param assertions Consumer that receives each event for pattern matching switch
+     * @param <E> The sealed interface type
+     */
+    protected <E> void thenMultiple(List<Object> events, Class<E> sealedInterfaceType, int expectedCount, Consumer<E> assertions) {
+        List<E> filteredEvents = events.stream()
+            .filter(sealedInterfaceType::isInstance)
+            .map(sealedInterfaceType::cast)
+            .collect(Collectors.toList());
+        Assertions.assertThat(filteredEvents).hasSize(expectedCount);
+        filteredEvents.forEach(assertions);
+    }
+    
+    /**
+     * Assert on multiple events using pattern matching with sealed interfaces, with order assertions.
+     * Filters events to the sealed interface type, asserts count, and provides the full ordered list
+     * for pattern matching switches with indexed access via {@link #at(int, List)}.
+     * 
+     * @param events The events list
+     * @param sealedInterfaceType The sealed interface type (e.g., WalletEvent.class)
+     * @param expectedCount Expected number of events of this sealed type
+     * @param assertions Consumer that receives the full ordered list for pattern matching with order assertions
+     * @param <E> The sealed interface type
+     */
+    protected <E> void thenMultipleOrdered(List<Object> events, Class<E> sealedInterfaceType, int expectedCount, Consumer<List<E>> assertions) {
+        List<E> filteredEvents = events.stream()
+            .filter(sealedInterfaceType::isInstance)
+            .map(sealedInterfaceType::cast)
+            .collect(Collectors.toList());
+        Assertions.assertThat(filteredEvents).hasSize(expectedCount);
+        assertions.accept(filteredEvents);
+    }
+    
+    /**
+     * Assert on multiple events with tags (generic).
      * 
      * @param events The events list
      * @param expectedCount Expected number of events
      * @param assertions Consumer for assertions on the events list
-     * @param <T> The domain event type
      */
-    protected <T> void thenMultipleWithTags(List<EventWithTags<T>> events, int expectedCount, Consumer<List<EventWithTags<T>>> assertions) {
+    protected void thenMultipleWithTags(List<EventWithTags<Object>> events, int expectedCount, Consumer<List<EventWithTags<Object>>> assertions) {
         Assertions.assertThat(events).hasSize(expectedCount);
         assertions.accept(events);
     }
     
+    /**
+     * Assert on multiple events with tags using pattern matching with sealed interfaces.
+     * Filters events to the sealed interface type and applies pattern matching switch.
+     * Processes each event individually (order not explicitly asserted).
+     * 
+     * @param events The events list
+     * @param sealedInterfaceType The sealed interface type (e.g., WalletEvent.class)
+     * @param expectedCount Expected number of events of this sealed type
+     * @param assertions Consumer that receives each EventWithTags for pattern matching switch
+     * @param <E> The sealed interface type
+     */
+    protected <E> void thenMultipleWithTags(List<EventWithTags<Object>> events, Class<E> sealedInterfaceType, int expectedCount, Consumer<EventWithTags<E>> assertions) {
+        List<EventWithTags<E>> filteredEvents = events.stream()
+            .filter(eventWithTags -> sealedInterfaceType.isInstance(eventWithTags.event()))
+            .map(eventWithTags -> new EventWithTags<>(
+                sealedInterfaceType.cast(eventWithTags.event()),
+                eventWithTags.tags()
+            ))
+            .collect(Collectors.toList());
+        Assertions.assertThat(filteredEvents).hasSize(expectedCount);
+        filteredEvents.forEach(assertions);
+    }
+    
+    /**
+     * Assert on multiple events with tags using pattern matching with sealed interfaces, with order assertions.
+     * Filters events to the sealed interface type, asserts count, and provides the full ordered list
+     * for pattern matching switches with indexed access via {@link #at(int, List)}.
+     * 
+     * @param events The events list
+     * @param sealedInterfaceType The sealed interface type (e.g., WalletEvent.class)
+     * @param expectedCount Expected number of events of this sealed type
+     * @param assertions Consumer that receives the full ordered list for pattern matching with order assertions
+     * @param <E> The sealed interface type
+     */
+    protected <E> void thenMultipleWithTagsOrdered(List<EventWithTags<Object>> events, Class<E> sealedInterfaceType, int expectedCount, Consumer<List<EventWithTags<E>>> assertions) {
+        List<EventWithTags<E>> filteredEvents = events.stream()
+            .filter(eventWithTags -> sealedInterfaceType.isInstance(eventWithTags.event()))
+            .map(eventWithTags -> new EventWithTags<>(
+                sealedInterfaceType.cast(eventWithTags.event()),
+                eventWithTags.tags()
+            ))
+            .collect(Collectors.toList());
+        Assertions.assertThat(filteredEvents).hasSize(expectedCount);
+        assertions.accept(filteredEvents);
+    }
+    
     // ========== Helper Methods ==========
     
-    @SuppressWarnings("unchecked")
-    protected <T> List<T> extractEvents(CommandResult result, Class<T> eventType) {
-        return result.events().stream()
-            .map(appendEvent -> (T) appendEvent.eventData()) // Direct cast
+    /**
+     * Extract event at the specified index from the list.
+     * Useful for order assertions with pattern matching switches.
+     * 
+     * @param index The index of the event to extract
+     * @param list The list of events
+     * @param <E> The event type
+     * @return The event at the specified index
+     */
+    protected <E> E at(int index, List<E> list) {
+        return list.get(index);
+    }
+    
+    /**
+     * Find a single event of the specified type from the events list.
+     * 
+     * @param events The events list
+     * @param eventType The domain event type to find
+     * @param <T> The domain event type
+     * @return The single event of the specified type
+     * @throws AssertionError if zero or multiple events of the type are found
+     */
+    protected <T> T findEventByType(List<Object> events, Class<T> eventType) {
+        List<T> matches = events.stream()
+            .filter(eventType::isInstance)
+            .map(eventType::cast)
             .collect(Collectors.toList());
+        
+        if (matches.isEmpty()) {
+            throw new AssertionError("No event of type " + eventType.getSimpleName() + " found in events");
+        }
+        if (matches.size() > 1) {
+            throw new AssertionError("Multiple events of type " + eventType.getSimpleName() + " found: " + matches.size());
+        }
+        return matches.get(0);
+    }
+    
+    /**
+     * Find a single event with tags of the specified type from the events list.
+     * 
+     * @param events The events list
+     * @param eventType The domain event type to find
+     * @param <T> The domain event type
+     * @return The single EventWithTags of the specified type
+     * @throws AssertionError if zero or multiple events of the type are found
+     */
+    protected <T> EventWithTags<T> findEventWithTagsByType(List<EventWithTags<Object>> events, Class<T> eventType) {
+        List<EventWithTags<T>> matches = events.stream()
+            .filter(eventWithTags -> eventType.isInstance(eventWithTags.event()))
+            .map(eventWithTags -> new EventWithTags<>(
+                eventType.cast(eventWithTags.event()),
+                eventWithTags.tags()
+            ))
+            .collect(Collectors.toList());
+        
+        if (matches.isEmpty()) {
+            throw new AssertionError("No event of type " + eventType.getSimpleName() + " found in events");
+        }
+        if (matches.size() > 1) {
+            throw new AssertionError("Multiple events of type " + eventType.getSimpleName() + " found: " + matches.size());
+        }
+        return matches.get(0);
     }
     
     private Map<String, String> tagsToMap(List<Tag> tags) {

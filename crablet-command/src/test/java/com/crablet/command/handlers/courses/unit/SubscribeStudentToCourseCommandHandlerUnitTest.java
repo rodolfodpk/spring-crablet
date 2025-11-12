@@ -51,10 +51,10 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
         
         // When
         SubscribeStudentToCourseCommand command = SubscribeStudentToCourseCommand.of("student1", "course1");
-        List<StudentSubscribedToCourse> events = when(handler, command, StudentSubscribedToCourse.class);
+        List<Object> events = when(handler, command);
         
         // Then
-        then(events, subscription -> {
+        then(events, StudentSubscribedToCourse.class, subscription -> {
             assertThat(subscription.studentId()).isEqualTo("student1");
             assertThat(subscription.courseId()).isEqualTo("course1");
         });
@@ -67,7 +67,7 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
         
         // When & Then
         SubscribeStudentToCourseCommand command = SubscribeStudentToCourseCommand.of("student1", "course1");
-        assertThatThrownBy(() -> when(handler, command, StudentSubscribedToCourse.class))
+        assertThatThrownBy(() -> when(handler, command))
             .isInstanceOf(CourseNotFoundException.class)
             .hasMessageContaining("course1");
     }
@@ -93,7 +93,7 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
         
         // When & Then
         SubscribeStudentToCourseCommand command = SubscribeStudentToCourseCommand.of("student3", "course1");
-        assertThatThrownBy(() -> when(handler, command, StudentSubscribedToCourse.class))
+        assertThatThrownBy(() -> when(handler, command))
             .isInstanceOf(CourseFullException.class)
             .hasMessageContaining("course1");
     }
@@ -114,7 +114,7 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
         
         // When & Then
         SubscribeStudentToCourseCommand command = SubscribeStudentToCourseCommand.of("student1", "course1");
-        assertThatThrownBy(() -> when(handler, command, StudentSubscribedToCourse.class))
+        assertThatThrownBy(() -> when(handler, command))
             .isInstanceOf(AlreadySubscribedException.class)
             .hasMessageContaining("student1")
             .hasMessageContaining("course1");
@@ -161,7 +161,7 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
         
         // When & Then - try to subscribe to 6th course
         SubscribeStudentToCourseCommand command = SubscribeStudentToCourseCommand.of("student1", "course6");
-        assertThatThrownBy(() -> when(handler, command, StudentSubscribedToCourse.class))
+        assertThatThrownBy(() -> when(handler, command))
             .isInstanceOf(StudentSubscriptionLimitException.class)
             .hasMessageContaining("student1");
     }
@@ -177,10 +177,10 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
         
         // When - get events with tags
         SubscribeStudentToCourseCommand command = SubscribeStudentToCourseCommand.of("student1", "course1");
-        List<EventWithTags<StudentSubscribedToCourse>> events = whenWithTags(handler, command, StudentSubscribedToCourse.class);
+        List<EventWithTags<Object>> events = whenWithTags(handler, command);
         
         // Then - verify event data AND tags
-        then(events, (subscription, tags) -> {
+        then(events, StudentSubscribedToCourse.class, (subscription, tags) -> {
             // Event data
             assertThat(subscription.studentId()).isEqualTo("student1");
             assertThat(subscription.courseId()).isEqualTo("course1");

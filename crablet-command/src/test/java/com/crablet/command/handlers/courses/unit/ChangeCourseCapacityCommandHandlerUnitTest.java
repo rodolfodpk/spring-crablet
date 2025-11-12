@@ -47,10 +47,10 @@ class ChangeCourseCapacityCommandHandlerUnitTest extends AbstractHandlerUnitTest
         
         // When
         ChangeCourseCapacityCommand command = ChangeCourseCapacityCommand.of("course1", 100);
-        List<CourseCapacityChanged> events = when(handler, command, CourseCapacityChanged.class);
+        List<Object> events = when(handler, command);
         
         // Then
-        then(events, capacityChanged -> {
+        then(events, CourseCapacityChanged.class, capacityChanged -> {
             assertThat(capacityChanged.courseId()).isEqualTo("course1");
             assertThat(capacityChanged.newCapacity()).isEqualTo(100);
         });
@@ -63,7 +63,7 @@ class ChangeCourseCapacityCommandHandlerUnitTest extends AbstractHandlerUnitTest
         
         // When & Then
         ChangeCourseCapacityCommand command = ChangeCourseCapacityCommand.of("course1", 100);
-        assertThatThrownBy(() -> when(handler, command, CourseCapacityChanged.class))
+        assertThatThrownBy(() -> when(handler, command))
             .isInstanceOf(CourseNotFoundException.class)
             .hasMessageContaining("course1");
     }
@@ -79,7 +79,7 @@ class ChangeCourseCapacityCommandHandlerUnitTest extends AbstractHandlerUnitTest
         
         // When & Then
         ChangeCourseCapacityCommand command = ChangeCourseCapacityCommand.of("course1", 50);
-        assertThatThrownBy(() -> when(handler, command, CourseCapacityChanged.class))
+        assertThatThrownBy(() -> when(handler, command))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("same as the current capacity");
     }
@@ -99,10 +99,10 @@ class ChangeCourseCapacityCommandHandlerUnitTest extends AbstractHandlerUnitTest
         
         // When
         ChangeCourseCapacityCommand command = ChangeCourseCapacityCommand.of("course1", 100);
-        List<CourseCapacityChanged> events = when(handler, command, CourseCapacityChanged.class);
+        List<Object> events = when(handler, command);
         
         // Then
-        then(events, capacityChanged -> {
+        then(events, CourseCapacityChanged.class, capacityChanged -> {
             assertThat(capacityChanged.newCapacity()).isEqualTo(100);
         });
     }

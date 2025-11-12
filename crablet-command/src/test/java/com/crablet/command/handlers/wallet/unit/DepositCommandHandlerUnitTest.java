@@ -56,10 +56,10 @@ class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         
         // When
         DepositCommand command = DepositCommand.of("deposit1", "wallet1", 500, "Bonus payment");
-        List<DepositMade> events = when(handler, command, DepositMade.class);
+        List<Object> events = when(handler, command);
         
         // Then
-        then(events, deposit -> {
+        then(events, DepositMade.class, deposit -> {
             assertThat(deposit.walletId()).isEqualTo("wallet1");
             assertThat(deposit.amount()).isEqualTo(500);
             assertThat(deposit.newBalance()).isEqualTo(1500); // 1000 + 500
@@ -74,7 +74,7 @@ class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         
         // When & Then
         DepositCommand command = DepositCommand.of("deposit1", "wallet1", 500, "Bonus");
-        assertThatThrownBy(() -> when(handler, command, DepositMade.class))
+        assertThatThrownBy(() -> when(handler, command))
             .isInstanceOf(WalletNotFoundException.class)
             .hasMessageContaining("wallet1");
     }
@@ -98,10 +98,10 @@ class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         
         // When
         DepositCommand command = DepositCommand.of("deposit3", "wallet1", 400, "Third deposit");
-        List<DepositMade> events = when(handler, command, DepositMade.class);
+        List<Object> events = when(handler, command);
         
         // Then
-        then(events, deposit -> {
+        then(events, DepositMade.class, deposit -> {
             assertThat(deposit.amount()).isEqualTo(400);
             assertThat(deposit.newBalance()).isEqualTo(1900); // 1000 + 200 + 300 + 400
         });
@@ -118,10 +118,10 @@ class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         
         // When - get events with tags
         DepositCommand command = DepositCommand.of("deposit1", "wallet1", 500, "Bonus");
-        List<EventWithTags<DepositMade>> events = whenWithTags(handler, command, DepositMade.class);
+        List<EventWithTags<Object>> events = whenWithTags(handler, command);
         
         // Then - verify business logic AND period tags
-        then(events, (deposit, tags) -> {
+        then(events, DepositMade.class, (deposit, tags) -> {
             // Business logic
             assertThat(deposit.walletId()).isEqualTo("wallet1");
             assertThat(deposit.amount()).isEqualTo(500);
@@ -159,10 +159,10 @@ class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         
         // When
         DepositCommand command = DepositCommand.of("deposit2", "wallet1", 300, "New deposit");
-        List<DepositMade> events = when(handler, command, DepositMade.class);
+        List<Object> events = when(handler, command);
         
         // Then - balance should include opening balance (1000) + previous deposit (200) + new deposit (300)
-        then(events, deposit -> {
+        then(events, DepositMade.class, deposit -> {
             assertThat(deposit.newBalance()).isEqualTo(1500); // 1000 + 200 + 300
         });
     }
