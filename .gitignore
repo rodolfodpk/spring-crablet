@@ -34,6 +34,7 @@ build/
 
 ### Cursor IDE ###
 .cursor/
+!.cursor/plans/
 
 ### Application Logs ###
 *.log
