@@ -80,9 +80,13 @@ In-memory `EventStore` implementation for unit testing:
 
 BDD-style base class providing:
 - `given()` - Builder callback pattern for event seeding
-- `when()` - Execute handler and extract pure domain events
-- `whenWithTags()` - Execute handler and get events with tags (for period tests)
-- `then()` - Assert on pure domain events (not `AppendEvent` wrappers)
+- `when()` - Execute handler and extract pure domain events (returns `List<Object>`)
+- `whenWithTags()` - Execute handler and get events with tags (returns `List<EventWithTags<Object>>`)
+- `then()` - Assert on single event with type extraction
+- `thenMultipleOrdered()` - Assert on multiple events with count and order using pattern matching
+- `thenMultipleWithTagsOrdered()` - Assert on multiple events with tags, count and order using pattern matching
+- `at()` - Helper method for indexed access to events in lists
+- Pattern matching with sealed interfaces (no casts, no default clauses needed)
 - Domain-agnostic and reusable
 
 #### Domain-Specific Factories
@@ -140,10 +144,10 @@ class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         
         // When
         DepositCommand command = DepositCommand.of("deposit1", "wallet1", 500, "Bonus");
-        List<DepositMade> events = when(handler, command, DepositMade.class);
+        List<Object> events = when(handler, command);
         
         // Then
-        then(events, deposit -> {
+        then(events, DepositMade.class, deposit -> {
             assertThat(deposit.walletId()).isEqualTo("wallet1");
             assertThat(deposit.amount()).isEqualTo(500);
             assertThat(deposit.newBalance()).isEqualTo(1500); // 1000 + 500
@@ -174,10 +178,10 @@ void givenWalletWithPreviousDeposits_whenDepositing_thenBalanceAccumulatesCorrec
     
     // When
     DepositCommand command = DepositCommand.of("deposit2", "wallet1", 300, "Second deposit");
-    List<DepositMade> events = when(handler, command, DepositMade.class);
+    List<Object> events = when(handler, command);
     
     // Then
-    then(events, deposit -> {
+    then(events, DepositMade.class, deposit -> {
         assertThat(deposit.newBalance()).isEqualTo(1500); // 1000 + 200 + 300
     });
 }
@@ -199,10 +203,10 @@ void givenWallet_whenDepositing_thenDepositHasCorrectPeriodTags() {
     
     // When - get events with tags
     DepositCommand command = DepositCommand.of("deposit1", "wallet1", 500, "Bonus");
-    List<EventWithTags<DepositMade>> events = whenWithTags(handler, command, DepositMade.class);
+    List<EventWithTags<Object>> events = whenWithTags(handler, command);
     
     // Then - verify business logic AND period tags
-    then(events, (deposit, tags) -> {
+    then(events, DepositMade.class, (deposit, tags) -> {
         // Business logic
         assertThat(deposit.newBalance()).isEqualTo(1500);
         
@@ -230,13 +234,90 @@ void givenWalletWithInsufficientBalance_whenWithdrawing_thenInsufficientFundsExc
     
     // When & Then
     WithdrawCommand command = WithdrawCommand.of("withdrawal1", "wallet1", 200, "Shopping");
-    assertThatThrownBy(() -> when(handler, command, WithdrawalMade.class))
+    assertThatThrownBy(() -> when(handler, command))
         .isInstanceOf(InsufficientFundsException.class)
         .hasMessageContaining("wallet1");
 }
 ```
 
 **Reference:** `WithdrawCommandHandlerUnitTest.givenWalletWithInsufficientBalance_whenWithdrawing_thenInsufficientFundsException()`
+
+#### Multiple Events with Order Assertions
+
+When a handler generates multiple events, use `thenMultipleOrdered()` to assert both count and order using pattern matching:
+
+```java
+@Test
+@DisplayName("Given wallet, when depositing, then multiple events generated in correct order")
+void givenWallet_whenDepositing_thenMultipleEventsGeneratedInCorrectOrder() {
+    // Given
+    given().event(WALLET_OPENED, builder -> builder
+        .data(WalletOpened.of("wallet1", "Alice", 1000))
+        .tag(WALLET_ID, "wallet1")
+    );
+    
+    // When
+    DepositCommand command = DepositCommand.of("deposit1", "wallet1", 500, "Bonus");
+    List<Object> events = when(handler, command);
+    
+    // Then - assert count and order using pattern matching
+    thenMultipleOrdered(events, WalletEvent.class, 2, walletEvents -> {
+        switch (at(0, walletEvents)) {
+            case DepositMade deposit -> {
+                assertThat(deposit.amount()).isEqualTo(500);
+                assertThat(deposit.newBalance()).isEqualTo(1500);
+            }
+        }
+        switch (at(1, walletEvents)) {
+            case WalletStatementOpened statement -> {
+                assertThat(statement.openingBalance()).isEqualTo(1000);
+            }
+        }
+    });
+}
+```
+
+**Key features:**
+- `thenMultipleOrdered()` asserts both count and order
+- `at(index, list)` helper provides indexed access for order assertions
+- Pattern matching with sealed interfaces (no casts, no default clause needed)
+- Type-safe and compiler-enforced exhaustiveness
+
+**Reference:** See `DepositCommandHandlerUnitTest` for complete examples.
+
+#### Multiple Events with Tags and Order Assertions
+
+For period tests with multiple events, use `thenMultipleWithTagsOrdered()`:
+
+```java
+@Test
+@DisplayName("Given wallet, when depositing, then multiple events with tags in correct order")
+void givenWallet_whenDepositing_thenMultipleEventsWithTagsInCorrectOrder() {
+    // Given
+    given().eventWithMonthlyPeriod(...);
+    
+    // When
+    List<EventWithTags<Object>> events = whenWithTags(handler, command);
+    
+    // Then - assert count, order, and tags using pattern matching
+    thenMultipleWithTagsOrdered(events, WalletEvent.class, 2, eventWithTagsList -> {
+        switch (at(0, eventWithTagsList).event()) {
+            case DepositMade deposit -> {
+                assertThat(deposit.amount()).isEqualTo(500);
+                assertThat(at(0, eventWithTagsList).tags()).containsEntry("year", "2025");
+            }
+        }
+        switch (at(1, eventWithTagsList).event()) {
+            case WalletStatementOpened statement -> {
+                assertThat(statement.openingBalance()).isEqualTo(1000);
+                assertThat(at(1, eventWithTagsList).tags()).containsEntry("statement_id", "...");
+            }
+        }
+    });
+}
+```
+
+**Reference:** See `DepositCommandHandlerUnitTest` for complete examples.
 
 ### Performance Benefits
 
