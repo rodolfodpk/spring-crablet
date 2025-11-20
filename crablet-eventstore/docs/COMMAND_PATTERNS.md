@@ -99,6 +99,9 @@ This ensures type safety and automatic discovery without manual registration.
 **Why idempotency check needed:** Wallet creation requires uniqueness - no wallet should be created twice. Uses idempotency check (not cursor) because there's no prior state to read.
 
 ```java
+import static com.crablet.eventstore.store.EventType.type;
+import com.crablet.examples.wallet.event.WalletOpened;
+
 @Component
 public class OpenWalletCommandHandler implements CommandHandler<OpenWalletCommand> {
     
@@ -113,7 +116,7 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
                 command.initialBalance()
         );
         
-        AppendEvent event = AppendEvent.builder(WALLET_OPENED)
+        AppendEvent event = AppendEvent.builder(type(WalletOpened.class))
                 .tag(WALLET_ID, command.walletId())
                 .data(walletOpened)
                 .build();
@@ -122,7 +125,7 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
         // Fails if ANY WalletOpened event exists for this wallet_id
         // No concurrency check needed - only idempotency matters
         AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
-                .withIdempotencyCheck(WALLET_OPENED, WALLET_ID, command.walletId())
+                .withIdempotencyCheck(type(WalletOpened.class), WALLET_ID, command.walletId())
                 .build();
         
         // Return CommandResult - CommandExecutor will call appendIf:
@@ -147,6 +150,9 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
 **Why no cursor needed:** Deposits are commutative - they change the balance, but the order of deposits doesn't affect the final result.
 
 ```java
+import static com.crablet.eventstore.store.EventType.type;
+import com.crablet.examples.wallet.event.DepositMade;
+
 @Component
 public class DepositCommandHandler implements CommandHandler<DepositCommand> {
     
@@ -176,7 +182,7 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
                 command.description()
         );
         
-        AppendEvent event = AppendEvent.builder(DEPOSIT_MADE)
+        AppendEvent event = AppendEvent.builder(type(DepositMade.class))
                 .tag(WALLET_ID, command.walletId())
                 .tag(DEPOSIT_ID, command.depositId())  // Optional: for idempotency if command retried
                 .data(deposit)
@@ -472,9 +478,12 @@ AppendCondition condition = AppendCondition.empty();
 
 ✅ **Correct:**
 ```java
+import static com.crablet.eventstore.store.EventType.type;
+import com.crablet.examples.wallet.event.WalletOpened;
+
 // RIGHT: Wallet creation requires idempotency check
 AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
-        .withIdempotencyCheck(WALLET_OPENED, WALLET_ID, walletId)
+        .withIdempotencyCheck(type(WalletOpened.class), WALLET_ID, walletId)
         .build();
 ```
 

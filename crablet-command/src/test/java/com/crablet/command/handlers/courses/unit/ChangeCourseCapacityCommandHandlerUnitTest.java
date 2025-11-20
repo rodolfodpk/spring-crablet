@@ -12,8 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static com.crablet.examples.courses.domain.CourseEventTypes.COURSE_DEFINED;
-import static com.crablet.examples.courses.domain.CourseEventTypes.COURSE_CAPACITY_CHANGED;
+import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.courses.domain.CourseTags.COURSE_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,7 +39,7 @@ class ChangeCourseCapacityCommandHandlerUnitTest extends AbstractHandlerUnitTest
     @DisplayName("Given course exists, when changing capacity, then capacity changed event created")
     void givenCourseExists_whenChangingCapacity_thenCapacityChangedEventCreated() {
         // Given
-        given().event(COURSE_DEFINED, builder -> builder
+        given().event(type(CourseDefined.class), builder -> builder
             .data(CourseDefined.of("course1", 50))
             .tag(COURSE_ID, "course1")
         );
@@ -72,7 +71,7 @@ class ChangeCourseCapacityCommandHandlerUnitTest extends AbstractHandlerUnitTest
     @DisplayName("Given course with same capacity, when changing capacity, then illegal argument exception")
     void givenCourseWithSameCapacity_whenChangingCapacity_thenIllegalArgumentException() {
         // Given
-        given().event(COURSE_DEFINED, builder -> builder
+        given().event(type(CourseDefined.class), builder -> builder
             .data(CourseDefined.of("course1", 50))
             .tag(COURSE_ID, "course1")
         );
@@ -88,11 +87,11 @@ class ChangeCourseCapacityCommandHandlerUnitTest extends AbstractHandlerUnitTest
     @DisplayName("Given course with previous capacity changes, when changing capacity, then capacity changed event created")
     void givenCourseWithPreviousCapacityChanges_whenChangingCapacity_thenCapacityChangedEventCreated() {
         // Given
-        given().event(COURSE_DEFINED, builder -> builder
+        given().event(type(CourseDefined.class), builder -> builder
             .data(CourseDefined.of("course1", 50))
             .tag(COURSE_ID, "course1")
         );
-        given().event(COURSE_CAPACITY_CHANGED, builder -> builder
+        given().event(type(CourseCapacityChanged.class), builder -> builder
             .data(CourseCapacityChanged.of("course1", 75))
             .tag(COURSE_ID, "course1")
         );

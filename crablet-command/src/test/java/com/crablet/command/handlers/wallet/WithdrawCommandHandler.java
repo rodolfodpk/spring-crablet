@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.examples.wallet.WalletEventTypes.*;
+import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.*;
 
 /**
@@ -77,7 +77,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         Integer day = periodId.day();
         Integer hour = periodId.hour();
 
-        AppendEvent.Builder eventBuilder = AppendEvent.builder(WITHDRAWAL_MADE)
+        AppendEvent.Builder eventBuilder = AppendEvent.builder(type(WithdrawalMade.class))
                 .tag(WALLET_ID, command.walletId())
                 .tag(WITHDRAWAL_ID, command.withdrawalId())
                 .tag(YEAR, String.valueOf(year))

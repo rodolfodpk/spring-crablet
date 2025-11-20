@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.examples.courses.domain.CourseEventTypes.*;
+import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.courses.domain.CourseTags.*;
 
 /**
@@ -66,7 +66,7 @@ public class ChangeCourseCapacityCommandHandler implements CommandHandler<Change
                 command.newCapacity()
         );
 
-        AppendEvent event = AppendEvent.builder(COURSE_CAPACITY_CHANGED)
+        AppendEvent event = AppendEvent.builder(type(CourseCapacityChanged.class))
                 .tag(COURSE_ID, command.courseId())
                 .data(capacityChanged)
                 .build();
@@ -103,7 +103,10 @@ public class ChangeCourseCapacityCommandHandler implements CommandHandler<Change
 
         @Override
         public java.util.List<String> getEventTypes() {
-            return java.util.List.of("CourseDefined", "CourseCapacityChanged");
+            return java.util.List.of(
+                    type(com.crablet.examples.courses.domain.event.CourseDefined.class),
+                    type(CourseCapacityChanged.class)
+            );
         }
 
         @Override

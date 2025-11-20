@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.examples.wallet.WalletEventTypes.*;
+import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.*;
 
 /**
@@ -103,7 +103,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
         Integer toDay = toPeriodId.day();
         Integer toHour = toPeriodId.hour();
 
-        AppendEvent.Builder eventBuilder = AppendEvent.builder(MONEY_TRANSFERRED)
+        AppendEvent.Builder eventBuilder = AppendEvent.builder(type(MoneyTransferred.class))
                 .tag(TRANSFER_ID, command.transferId())
                 .tag(FROM_WALLET_ID, command.fromWalletId())
                 .tag(TO_WALLET_ID, command.toWalletId())

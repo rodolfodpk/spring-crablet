@@ -15,8 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static com.crablet.examples.courses.domain.CourseEventTypes.COURSE_DEFINED;
-import static com.crablet.examples.courses.domain.CourseEventTypes.STUDENT_SUBSCRIBED_TO_COURSE;
+import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.courses.domain.CourseTags.COURSE_ID;
 import static com.crablet.examples.courses.domain.CourseTags.STUDENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,7 +43,7 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
     @DisplayName("Given course with available capacity, when subscribing student, then subscription event created")
     void givenCourseWithAvailableCapacity_whenSubscribingStudent_thenSubscriptionEventCreated() {
         // Given
-        given().event(COURSE_DEFINED, builder -> builder
+        given().event(type(CourseDefined.class), builder -> builder
             .data(CourseDefined.of("course1", 50))
             .tag(COURSE_ID, "course1")
         );
@@ -76,16 +75,16 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
     @DisplayName("Given course is full, when subscribing student, then course full exception")
     void givenCourseIsFull_whenSubscribingStudent_thenCourseFullException() {
         // Given - course with capacity 2, already 2 subscriptions
-        given().event(COURSE_DEFINED, builder -> builder
+        given().event(type(CourseDefined.class), builder -> builder
             .data(CourseDefined.of("course1", 2))
             .tag(COURSE_ID, "course1")
         );
-        given().event(STUDENT_SUBSCRIBED_TO_COURSE, builder -> builder
+        given().event(type(StudentSubscribedToCourse.class), builder -> builder
             .data(StudentSubscribedToCourse.of("student1", "course1"))
             .tag(COURSE_ID, "course1")
             .tag(STUDENT_ID, "student1")
         );
-        given().event(STUDENT_SUBSCRIBED_TO_COURSE, builder -> builder
+        given().event(type(StudentSubscribedToCourse.class), builder -> builder
             .data(StudentSubscribedToCourse.of("student2", "course1"))
             .tag(COURSE_ID, "course1")
             .tag(STUDENT_ID, "student2")
@@ -102,11 +101,11 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
     @DisplayName("Given student already subscribed, when subscribing again, then already subscribed exception")
     void givenStudentAlreadySubscribed_whenSubscribingAgain_thenAlreadySubscribedException() {
         // Given
-        given().event(COURSE_DEFINED, builder -> builder
+        given().event(type(CourseDefined.class), builder -> builder
             .data(CourseDefined.of("course1", 50))
             .tag(COURSE_ID, "course1")
         );
-        given().event(STUDENT_SUBSCRIBED_TO_COURSE, builder -> builder
+        given().event(type(StudentSubscribedToCourse.class), builder -> builder
             .data(StudentSubscribedToCourse.of("student1", "course1"))
             .tag(COURSE_ID, "course1")
             .tag(STUDENT_ID, "student1")
@@ -124,27 +123,27 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
     @DisplayName("Given student reached subscription limit, when subscribing, then subscription limit exception")
     void givenStudentReachedSubscriptionLimit_whenSubscribing_thenSubscriptionLimitException() {
         // Given - student already subscribed to 5 courses (max limit)
-        given().event(COURSE_DEFINED, builder -> builder
+        given().event(type(CourseDefined.class), builder -> builder
             .data(CourseDefined.of("course1", 50))
             .tag(COURSE_ID, "course1")
         );
-        given().event(COURSE_DEFINED, builder -> builder
+        given().event(type(CourseDefined.class), builder -> builder
             .data(CourseDefined.of("course2", 50))
             .tag(COURSE_ID, "course2")
         );
-        given().event(COURSE_DEFINED, builder -> builder
+        given().event(type(CourseDefined.class), builder -> builder
             .data(CourseDefined.of("course3", 50))
             .tag(COURSE_ID, "course3")
         );
-        given().event(COURSE_DEFINED, builder -> builder
+        given().event(type(CourseDefined.class), builder -> builder
             .data(CourseDefined.of("course4", 50))
             .tag(COURSE_ID, "course4")
         );
-        given().event(COURSE_DEFINED, builder -> builder
+        given().event(type(CourseDefined.class), builder -> builder
             .data(CourseDefined.of("course5", 50))
             .tag(COURSE_ID, "course5")
         );
-        given().event(COURSE_DEFINED, builder -> builder
+        given().event(type(CourseDefined.class), builder -> builder
             .data(CourseDefined.of("course6", 50))
             .tag(COURSE_ID, "course6")
         );
@@ -152,7 +151,7 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
         // Student subscribed to 5 courses
         for (int i = 1; i <= 5; i++) {
             final int courseNum = i;
-            given().event(STUDENT_SUBSCRIBED_TO_COURSE, builder -> builder
+            given().event(type(StudentSubscribedToCourse.class), builder -> builder
                 .data(StudentSubscribedToCourse.of("student1", "course" + courseNum))
                 .tag(COURSE_ID, "course" + courseNum)
                 .tag(STUDENT_ID, "student1")
@@ -170,7 +169,7 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
     @DisplayName("Given valid subscription, when subscribing, then event has correct tags")
     void givenValidSubscription_whenSubscribing_thenEventHasCorrectTags() {
         // Given
-        given().event(COURSE_DEFINED, builder -> builder
+        given().event(type(CourseDefined.class), builder -> builder
             .data(CourseDefined.of("course1", 50))
             .tag(COURSE_ID, "course1")
         );

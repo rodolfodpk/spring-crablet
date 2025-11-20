@@ -16,7 +16,7 @@ import com.crablet.examples.wallet.projections.WalletBalanceState;
 
 import java.util.List;
 
-import static com.crablet.examples.wallet.WalletEventTypes.WALLET_STATEMENT_OPENED;
+import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.STATEMENT_ID;
 import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
 import static com.crablet.examples.wallet.WalletTags.YEAR;
@@ -87,7 +87,7 @@ public class WalletPeriodHelperTestFactory {
         }
         
         private boolean periodExists(EventStore eventStore, WalletStatementId periodId) {
-            Query query = Query.forEventAndTag(WALLET_STATEMENT_OPENED, STATEMENT_ID, periodId.toStreamId());
+            Query query = Query.forEventAndTag(type(WalletStatementOpened.class), STATEMENT_ID, periodId.toStreamId());
             try {
                 WalletBalanceProjector projector = new WalletBalanceProjector();
                 ProjectionResult<WalletBalanceState> result = eventStore.project(
@@ -120,7 +120,7 @@ public class WalletPeriodHelperTestFactory {
                 openingBalance
             );
             
-            AppendEvent.Builder builder = AppendEvent.builder(WALLET_STATEMENT_OPENED)
+            AppendEvent.Builder builder = AppendEvent.builder(type(WalletStatementOpened.class))
                 .data(opened)
                 .tag(STATEMENT_ID, periodId.toStreamId())
                 .tag(WALLET_ID, periodId.walletId())

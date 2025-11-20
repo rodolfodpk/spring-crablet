@@ -15,6 +15,10 @@ import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.examples.wallet.WalletQueryPatterns;
 import com.crablet.examples.wallet.event.WalletStatementClosed;
 import com.crablet.examples.wallet.event.WalletStatementOpened;
+import com.crablet.examples.wallet.event.WalletOpened;
+import com.crablet.examples.wallet.event.DepositMade;
+import com.crablet.examples.wallet.event.WithdrawalMade;
+import com.crablet.examples.wallet.event.MoneyTransferred;
 import com.crablet.examples.wallet.projections.WalletBalanceProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
 import com.crablet.eventstore.clock.ClockProvider;
@@ -27,7 +31,7 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 
-import static com.crablet.examples.wallet.WalletEventTypes.*;
+import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.*;
 
 /**
@@ -104,7 +108,7 @@ public class WalletStatementPeriodResolver {
      */
     private boolean periodExists(EventStore eventStore, WalletStatementId periodId) {
         // Use project to check if events exist - this works within transactions
-        Query query = Query.forEventAndTag("WalletStatementOpened", STATEMENT_ID, periodId.toStreamId());
+        Query query = Query.forEventAndTag(type(WalletStatementOpened.class), STATEMENT_ID, periodId.toStreamId());
         try {
             // Use a simple projector that just checks if any events exist
             ProjectionResult<WalletBalanceState> result = eventStore.project(
@@ -131,7 +135,7 @@ public class WalletStatementPeriodResolver {
         // Since WalletStatementClosed doesn't modify state in projection,
         // we can't rely on state changes. Instead, try to query using EventRepository
         // which should see committed events, and if that fails, try projecting
-        Query query = Query.forEventAndTag("WalletStatementClosed", STATEMENT_ID, periodId.toStreamId());
+        Query query = Query.forEventAndTag(type(WalletStatementClosed.class), STATEMENT_ID, periodId.toStreamId());
         try {
             // Try using EventRepository first (sees committed events)
             List<StoredEvent> events = eventRepository.query(query, null);
@@ -185,8 +189,8 @@ public class WalletStatementPeriodResolver {
         
         // Filter out WalletStatementOpened events - we only care about actual transactions
         return events.stream()
-                .anyMatch(e -> !"WalletStatementOpened".equals(e.type()) && 
-                              !"WalletStatementClosed".equals(e.type()));
+                .anyMatch(e -> !type(WalletStatementOpened.class).equals(e.type()) && 
+                              !type(WalletStatementClosed.class).equals(e.type()));
     }
 
     /**
@@ -223,10 +227,10 @@ public class WalletStatementPeriodResolver {
     private int getInitialBalanceForFirstPeriod(EventStore eventStore, String walletId) {
         // Query all events without period tags (one-time only for first period)
         Query query = QueryBuilder.create()
-                .events(WALLET_OPENED, DEPOSIT_MADE, WITHDRAWAL_MADE)
+                .events(type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class))
                 .tag(WALLET_ID, walletId)
-                .event(MONEY_TRANSFERRED, FROM_WALLET_ID, walletId)
-                .event(MONEY_TRANSFERRED, TO_WALLET_ID, walletId)
+                .event(type(MoneyTransferred.class), FROM_WALLET_ID, walletId)
+                .event(type(MoneyTransferred.class), TO_WALLET_ID, walletId)
                 .build();
 
         ProjectionResult<WalletBalanceState> result = eventStore.project(
@@ -286,7 +290,7 @@ public class WalletStatementPeriodResolver {
     private void appendCloseEvent(EventStore eventStore, WalletStatementId periodId, WalletStatementClosed closeEvent) {
         try {
             byte[] data = objectMapper.writeValueAsBytes(closeEvent);
-            AppendEvent.Builder eventBuilder = AppendEvent.builder("WalletStatementClosed")
+            AppendEvent.Builder eventBuilder = AppendEvent.builder(type(WalletStatementClosed.class))
                     .tag(STATEMENT_ID, periodId.toStreamId())
                     .tag(WALLET_ID, periodId.walletId())
                     .tag(YEAR, String.valueOf(periodId.year()));
@@ -305,7 +309,7 @@ public class WalletStatementPeriodResolver {
 
             // Idempotency check: ensure WalletStatementClosed doesn't already exist for this statement_id
             AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
-                    .withIdempotencyCheck("WalletStatementClosed", STATEMENT_ID, periodId.toStreamId())
+                    .withIdempotencyCheck(type(WalletStatementClosed.class), STATEMENT_ID, periodId.toStreamId())
                     .build();
 
             eventStore.appendIf(List.of(event), condition);
@@ -325,7 +329,7 @@ public class WalletStatementPeriodResolver {
     private void appendOpenEvent(EventStore eventStore, WalletStatementId periodId, WalletStatementOpened openEvent) {
         try {
             byte[] data = objectMapper.writeValueAsBytes(openEvent);
-            AppendEvent.Builder eventBuilder = AppendEvent.builder("WalletStatementOpened")
+            AppendEvent.Builder eventBuilder = AppendEvent.builder(type(WalletStatementOpened.class))
                     .tag(STATEMENT_ID, periodId.toStreamId())
                     .tag(WALLET_ID, periodId.walletId())
                     .tag(YEAR, String.valueOf(periodId.year()));
@@ -344,7 +348,7 @@ public class WalletStatementPeriodResolver {
 
             // Idempotency check: ensure WalletStatementOpened doesn't already exist for this statement_id
             AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
-                    .withIdempotencyCheck("WalletStatementOpened", STATEMENT_ID, periodId.toStreamId())
+                    .withIdempotencyCheck(type(WalletStatementOpened.class), STATEMENT_ID, periodId.toStreamId())
                     .build();
 
             eventStore.appendIf(List.of(event), condition);

@@ -116,7 +116,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static com.crablet.examples.wallet.WalletEventTypes.WALLET_OPENED;
+import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -137,7 +137,7 @@ class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
     @DisplayName("Given wallet with balance, when depositing, then balance increases")
     void givenWalletWithBalance_whenDepositing_thenBalanceIncreases() {
         // Given
-        given().event(WALLET_OPENED, builder -> builder
+        given().event(type(WalletOpened.class), builder -> builder
             .data(WalletOpened.of("wallet1", "Alice", 1000))
             .tag(WALLET_ID, "wallet1")
         );
@@ -171,7 +171,7 @@ void givenWalletWithPreviousDeposits_whenDepositing_thenBalanceAccumulatesCorrec
         .data(WalletOpened.of("wallet1", "Alice", 1000))
         .tag(WALLET_ID, "wallet1")
     );
-    given().event(DEPOSIT_MADE, builder -> builder
+    given().event(type(DepositMade.class), builder -> builder
         .data(DepositMade.of("deposit1", "wallet1", 200, 1200, "First deposit"))
         .tag(WALLET_ID, "wallet1")
     );

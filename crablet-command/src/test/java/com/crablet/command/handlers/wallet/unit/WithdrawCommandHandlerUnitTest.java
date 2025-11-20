@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static com.crablet.examples.wallet.WalletEventTypes.*;
+import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -44,7 +44,7 @@ class WithdrawCommandHandlerUnitTest extends AbstractHandlerUnitTest {
     @DisplayName("Given wallet with sufficient balance, when withdrawing, then balance decreases")
     void givenWalletWithSufficientBalance_whenWithdrawing_thenBalanceDecreases() {
         // Given
-        given().event(WALLET_OPENED, builder -> builder
+        given().event(type(WalletOpened.class), builder -> builder
             .data(WalletOpened.of("wallet1", "Alice", 1000))
             .tag(WALLET_ID, "wallet1")
         );
@@ -66,7 +66,7 @@ class WithdrawCommandHandlerUnitTest extends AbstractHandlerUnitTest {
     @DisplayName("Given wallet with insufficient balance, when withdrawing, then insufficient funds exception")
     void givenWalletWithInsufficientBalance_whenWithdrawing_thenInsufficientFundsException() {
         // Given
-        given().event(WALLET_OPENED, builder -> builder
+        given().event(type(WalletOpened.class), builder -> builder
             .data(WalletOpened.of("wallet1", "Alice", 100))
             .tag(WALLET_ID, "wallet1")
         );
@@ -96,15 +96,15 @@ class WithdrawCommandHandlerUnitTest extends AbstractHandlerUnitTest {
     @DisplayName("Given wallet with previous transactions, when withdrawing, then balance calculates correctly")
     void givenWalletWithPreviousTransactions_whenWithdrawing_thenBalanceCalculatesCorrectly() {
         // Given
-        given().event(WALLET_OPENED, builder -> builder
+        given().event(type(WalletOpened.class), builder -> builder
             .data(WalletOpened.of("wallet1", "Alice", 1000))
             .tag(WALLET_ID, "wallet1")
         );
-        given().event(DEPOSIT_MADE, builder -> builder
+        given().event(type(DepositMade.class), builder -> builder
             .data(DepositMade.of("deposit1", "wallet1", 500, 1500, "Bonus"))
             .tag(WALLET_ID, "wallet1")
         );
-        given().event(WITHDRAWAL_MADE, builder -> builder
+        given().event(type(WithdrawalMade.class), builder -> builder
             .data(WithdrawalMade.of("withdrawal1", "wallet1", 200, 1300, "Previous withdrawal"))
             .tag(WALLET_ID, "wallet1")
         );
@@ -124,7 +124,7 @@ class WithdrawCommandHandlerUnitTest extends AbstractHandlerUnitTest {
     @DisplayName("Given wallet, when withdrawing, then withdrawal has correct period tags")
     void givenWallet_whenWithdrawing_thenWithdrawalHasCorrectPeriodTags() {
         // Given
-        given().event(WALLET_OPENED, builder -> builder
+        given().event(type(WalletOpened.class), builder -> builder
             .data(WalletOpened.of("wallet1", "Alice", 1000))
             .tag(WALLET_ID, "wallet1")
         );
