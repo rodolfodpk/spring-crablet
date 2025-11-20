@@ -99,12 +99,28 @@ DCB supports two concurrency control strategies:
 - **Performance**: ~4x faster (no advisory locks)
 - **Safety**: Cursor advancement prevents duplicate charges
 - **Behavior**: 201 CREATED for all successful requests, 409 Conflict for stale cursors
+- **Why No Locks Needed**: PostgreSQL snapshot isolation handles race conditions - if two transactions both read at cursor position 42, and one writes at 43, the other will see position 43 when it tries to write and detect the conflict
 
 ### Wallet Creation
 - **Strategy**: Idempotency checks (no cursor protection available)
 - **Performance**: Slower but necessary for uniqueness
 - **Safety**: Advisory locks prevent duplicate wallet IDs
 - **Behavior**: 201 CREATED for new wallets, 200 OK for duplicates
+- **Why Advisory Locks Required**: No cursor exists for entity creation, so snapshot isolation cannot prevent the race condition where two transactions both check "does wallet exist?", both see "no", and both create the wallet. Advisory locks serialize the duplicate check to prevent this.
+
+### Comparison: Cursor-Based vs Idempotency Checks
+
+| Aspect | Cursor-Based Checks | Idempotency Checks |
+|--------|-------------------|-------------------|
+| **Use Case** | Operations on existing entities (Withdraw, Transfer) | Creating new entities (OpenWallet) |
+| **What It Checks** | "Has anything changed AFTER cursor position X?" | "Does entity already exist?" |
+| **Advisory Locks** | ❌ Not needed | ✅ Required |
+| **Protection Mechanism** | PostgreSQL snapshot isolation (MVCC) | Advisory locks serialize duplicate checks |
+| **Performance** | ~4x faster (no lock contention) | Slower (lock serialization) |
+| **Race Condition Protection** | Snapshot isolation handles it automatically | Advisory locks prevent both transactions seeing "no duplicate" |
+| **Why Different?** | Can check "has state changed since I read?" | Cannot check prior state (entity doesn't exist yet) |
+
+**Key Insight**: Cursor-based checks can rely on snapshot isolation because they're checking for changes to existing state. Idempotency checks need advisory locks because they're checking for the existence of something that may not exist yet, and snapshot isolation cannot prevent the race condition in this scenario.
 
 ## Entity Scoping
 

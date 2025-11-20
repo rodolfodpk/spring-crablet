@@ -411,6 +411,28 @@ The Transfer pattern above demonstrates the core multi-entity DCB pattern. For e
 - ✅ Need to prevent duplicates atomically
 - ✅ Want advisory locks for uniqueness
 
+**Why Advisory Locks Are Required:**
+
+Idempotency checks use PostgreSQL advisory locks (`pg_advisory_xact_lock()`) to prevent race conditions when checking for duplicate entities. Unlike cursor-based checks, idempotency checks cannot rely on snapshot isolation because there's no prior state (cursor) to check against.
+
+**The Race Condition Problem:**
+```
+Transaction A: Check "wallet exists?" → No → Create wallet
+Transaction B: Check "wallet exists?" → No (A hasn't committed) → Create wallet
+Result: Duplicate wallets created ❌
+```
+
+**How Advisory Locks Solve It:**
+- Advisory lock serializes the duplicate check per operation ID
+- Only one transaction can check "does entity exist?" at a time
+- Lock is automatically released at transaction end
+- Prevents both transactions from seeing "no duplicate" simultaneously
+
+**Performance Trade-off:**
+- Idempotency checks are ~4x slower than cursor-based checks (due to advisory locks)
+- This is necessary for uniqueness - cursor-based checks cannot protect entity creation
+- Use idempotency checks only when needed (entity creation), not for regular operations
+
 ### Use `AppendCondition.empty()` When:
 - ✅ Operation is **commutative** (Deposit - order doesn't affect final result)
 - ✅ Result doesn't depend on the **order** of operations

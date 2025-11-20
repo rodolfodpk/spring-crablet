@@ -179,6 +179,21 @@ Or on conflict/duplicate:
 - Prevents race conditions where two transactions both see "no duplicate"
 - Lock is automatically released at transaction end
 
+**Why Advisory Locks Are Needed for Idempotency:**
+
+Unlike cursor-based concurrency checks, idempotency checks cannot rely on PostgreSQL's snapshot isolation because there's no prior state (cursor) to check against. The race condition occurs when:
+
+1. Transaction A checks "does entity exist?" → No → Proceeds to create
+2. Transaction B checks "does entity exist?" → No (A hasn't committed yet) → Also proceeds to create
+3. Result: Both transactions create the entity → Duplicate ❌
+
+Snapshot isolation doesn't help here because both transactions see the same "entity doesn't exist" state. Advisory locks serialize the duplicate check, ensuring only one transaction can check "does entity exist?" at a time, preventing both from seeing "no duplicate" simultaneously.
+
+**Cursor-Based Checks Don't Need Locks:**
+- Cursor-based checks query "has anything changed AFTER cursor position X?"
+- Snapshot isolation handles this: if transaction A writes at position 43, transaction B will see position 43 when it tries to write and detect the conflict
+- No advisory locks needed - PostgreSQL's MVCC (Multi-Version Concurrency Control) provides the protection
+
 **Concurrency Check:**
 - Checks events AFTER cursor position
 - Only sees snapshot-visible committed events
