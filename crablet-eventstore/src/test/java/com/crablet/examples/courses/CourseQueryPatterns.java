@@ -2,8 +2,9 @@ package com.crablet.examples.courses.domain;
 
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
+import com.crablet.examples.courses.domain.event.*;
 
-import static com.crablet.examples.courses.domain.CourseEventTypes.*;
+import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.courses.domain.CourseTags.*;
 
 /**
@@ -23,12 +24,12 @@ public class CourseQueryPatterns {
     public static Query subscriptionDecisionModel(String courseId, String studentId) {
         return QueryBuilder.create()
                 // Course-side: course definition and capacity changes
-                .events(COURSE_DEFINED, COURSE_CAPACITY_CHANGED)
+                .events(type(CourseDefined.class), type(CourseCapacityChanged.class))
                 .tag(COURSE_ID, courseId)
                 // Course-side: subscriptions to this course (for capacity check)
-                .event(STUDENT_SUBSCRIBED_TO_COURSE, COURSE_ID, courseId)
+                .event(type(StudentSubscribedToCourse.class), COURSE_ID, courseId)
                 // Student-side: subscriptions by this student (for limit check)
-                .event(STUDENT_SUBSCRIBED_TO_COURSE, STUDENT_ID, studentId)
+                .event(type(StudentSubscribedToCourse.class), STUDENT_ID, studentId)
                 .build();
     }
 
@@ -38,7 +39,7 @@ public class CourseQueryPatterns {
      */
     public static Query courseDecisionModel(String courseId) {
         return QueryBuilder.create()
-                .events(COURSE_DEFINED, COURSE_CAPACITY_CHANGED)
+                .events(type(CourseDefined.class), type(CourseCapacityChanged.class))
                 .tag(COURSE_ID, courseId)
                 .build();
     }

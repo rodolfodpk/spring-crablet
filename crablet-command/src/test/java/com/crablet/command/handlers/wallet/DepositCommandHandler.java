@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.examples.wallet.WalletEventTypes.*;
+import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.*;
 
 /**
@@ -68,7 +68,7 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
         Integer day = periodId.day();
         Integer hour = periodId.hour();
 
-        AppendEvent.Builder eventBuilder = AppendEvent.builder(DEPOSIT_MADE)
+        AppendEvent.Builder eventBuilder = AppendEvent.builder(type(DepositMade.class))
                 .tag(WALLET_ID, command.walletId())
                 .tag(DEPOSIT_ID, command.depositId())
                 .tag(YEAR, String.valueOf(year))

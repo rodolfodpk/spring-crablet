@@ -4,6 +4,7 @@ import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
 import com.crablet.command.handlers.wallet.DepositCommandHandler;
 import com.crablet.examples.wallet.event.DepositMade;
 import com.crablet.examples.wallet.event.WalletOpened;
+import com.crablet.examples.wallet.event.WalletStatementOpened;
 import com.crablet.examples.wallet.exception.WalletNotFoundException;
 import com.crablet.examples.wallet.features.deposit.DepositCommand;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
@@ -13,7 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static com.crablet.examples.wallet.WalletEventTypes.*;
+import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -49,7 +50,7 @@ class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
     @DisplayName("Given wallet with balance, when depositing, then balance increases")
     void givenWalletWithBalance_whenDepositing_thenBalanceIncreases() {
         // Given
-        given().event(WALLET_OPENED, builder -> builder
+        given().event(type(WalletOpened.class), builder -> builder
             .data(WalletOpened.of("wallet1", "Alice", 1000))
             .tag(WALLET_ID, "wallet1")
         );
@@ -83,15 +84,15 @@ class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
     @DisplayName("Given wallet with previous deposits, when depositing, then balance accumulates correctly")
     void givenWalletWithPreviousDeposits_whenDepositing_thenBalanceAccumulatesCorrectly() {
         // Given
-        given().event(WALLET_OPENED, builder -> builder
+        given().event(type(WalletOpened.class), builder -> builder
             .data(WalletOpened.of("wallet1", "Alice", 1000))
             .tag(WALLET_ID, "wallet1")
         );
-        given().event(DEPOSIT_MADE, builder -> builder
+        given().event(type(DepositMade.class), builder -> builder
             .data(DepositMade.of("deposit1", "wallet1", 200, 1200, "First deposit"))
             .tag(WALLET_ID, "wallet1")
         );
-        given().event(DEPOSIT_MADE, builder -> builder
+        given().event(type(DepositMade.class), builder -> builder
             .data(DepositMade.of("deposit2", "wallet1", 300, 1500, "Second deposit"))
             .tag(WALLET_ID, "wallet1")
         );
@@ -111,7 +112,7 @@ class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
     @DisplayName("Given wallet, when depositing, then deposit has correct period tags")
     void givenWallet_whenDepositing_thenDepositHasCorrectPeriodTags() {
         // Given - WalletStatementOpened will be created automatically by periodHelper
-        given().event(WALLET_OPENED, builder -> builder
+        given().event(type(WalletOpened.class), builder -> builder
             .data(WalletOpened.of("wallet1", "Alice", 1000))
             .tag(WALLET_ID, "wallet1")
         );
@@ -139,18 +140,18 @@ class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
     @DisplayName("Given wallet with existing period, when depositing, then balance includes opening balance")
     void givenWalletWithExistingPeriod_whenDepositing_thenBalanceIncludesOpeningBalance() {
         // Given - pre-seed WalletStatementOpened for period
-        given().event(WALLET_OPENED, builder -> builder
+        given().event(type(WalletOpened.class), builder -> builder
             .data(WalletOpened.of("wallet1", "Alice", 1000))
             .tag(WALLET_ID, "wallet1")
         );
         given().eventWithMonthlyPeriod(
-            WALLET_STATEMENT_OPENED,
+            type(WalletStatementOpened.class),
             com.crablet.examples.wallet.event.WalletStatementOpened.of(
                 "wallet1", "wallet:wallet1:2025-01", 2025, 1, null, null, 1000),
             "wallet1",
             2025, 1
         );
-        given().event(DEPOSIT_MADE, builder -> builder
+        given().event(type(DepositMade.class), builder -> builder
             .data(DepositMade.of("deposit1", "wallet1", 200, 1200, "Previous deposit"))
             .tag(WALLET_ID, "wallet1")
             .tag("year", "2025")

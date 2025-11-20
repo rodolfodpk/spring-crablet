@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.examples.courses.domain.CourseEventTypes.*;
+import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.courses.domain.CourseTags.*;
 
 /**
@@ -101,7 +101,7 @@ public class SubscribeStudentToCourseCommandHandler implements CommandHandler<Su
                 command.courseId()
         );
 
-        AppendEvent event = AppendEvent.builder(STUDENT_SUBSCRIBED_TO_COURSE)
+        AppendEvent event = AppendEvent.builder(type(StudentSubscribedToCourse.class))
                 .tag(COURSE_ID, command.courseId())
                 .tag(STUDENT_ID, command.studentId())
                 .data(subscription)
@@ -136,7 +136,11 @@ public class SubscribeStudentToCourseCommandHandler implements CommandHandler<Su
 
         @Override
         public java.util.List<String> getEventTypes() {
-            return java.util.List.of("CourseDefined", "CourseCapacityChanged", "StudentSubscribedToCourse");
+            return java.util.List.of(
+                    type(com.crablet.examples.courses.domain.event.CourseDefined.class),
+                    type(com.crablet.examples.courses.domain.event.CourseCapacityChanged.class),
+                    type(StudentSubscribedToCourse.class)
+            );
         }
 
         @Override
@@ -148,7 +152,7 @@ public class SubscribeStudentToCourseCommandHandler implements CommandHandler<Su
         public SubscriptionState transition(SubscriptionState current, com.crablet.eventstore.store.StoredEvent event, 
                                              com.crablet.eventstore.query.EventDeserializer context) {
             return switch (event.type()) {
-                case "CourseDefined" -> {
+                case String s when s.equals(type(com.crablet.examples.courses.domain.event.CourseDefined.class)) -> {
                     com.crablet.examples.courses.domain.event.CourseDefined courseDefined = 
                             context.deserialize(event, com.crablet.examples.courses.domain.event.CourseDefined.class);
                     if (courseDefined.courseId().equals(courseId)) {
@@ -162,7 +166,7 @@ public class SubscribeStudentToCourseCommandHandler implements CommandHandler<Su
                     }
                     yield current;
                 }
-                case "CourseCapacityChanged" -> {
+                case String s when s.equals(type(com.crablet.examples.courses.domain.event.CourseCapacityChanged.class)) -> {
                     com.crablet.examples.courses.domain.event.CourseCapacityChanged capacityChanged = 
                             context.deserialize(event, com.crablet.examples.courses.domain.event.CourseCapacityChanged.class);
                     if (capacityChanged.courseId().equals(courseId)) {
@@ -176,7 +180,7 @@ public class SubscribeStudentToCourseCommandHandler implements CommandHandler<Su
                     }
                     yield current;
                 }
-                case "StudentSubscribedToCourse" -> {
+                case String s when s.equals(type(StudentSubscribedToCourse.class)) -> {
                     com.crablet.examples.courses.domain.event.StudentSubscribedToCourse subscription = 
                             context.deserialize(event, com.crablet.examples.courses.domain.event.StudentSubscribedToCourse.class);
                     

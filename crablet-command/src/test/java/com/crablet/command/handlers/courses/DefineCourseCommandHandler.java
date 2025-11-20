@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.examples.courses.domain.CourseEventTypes.*;
+import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.courses.domain.CourseTags.*;
 
 /**
@@ -39,7 +39,7 @@ public class DefineCourseCommandHandler implements CommandHandler<DefineCourseCo
                 command.capacity()
         );
 
-        AppendEvent event = AppendEvent.builder(COURSE_DEFINED)
+        AppendEvent event = AppendEvent.builder(type(CourseDefined.class))
                 .tag(COURSE_ID, command.courseId())
                 .data(courseDefined)
                 .build();
@@ -48,7 +48,7 @@ public class DefineCourseCommandHandler implements CommandHandler<DefineCourseCo
         // Fails if ANY CourseDefined event exists for this course_id (idempotency check)
         // No concurrency check needed for course creation - only idempotency matters
         AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
-                .withIdempotencyCheck(COURSE_DEFINED, COURSE_ID, command.courseId())
+                .withIdempotencyCheck(type(CourseDefined.class), COURSE_ID, command.courseId())
                 .build();
 
         return CommandResult.of(List.of(event), condition);

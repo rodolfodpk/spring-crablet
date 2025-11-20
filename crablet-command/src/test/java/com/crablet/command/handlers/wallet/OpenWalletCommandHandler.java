@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.examples.wallet.WalletEventTypes.*;
+import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.*;
 
 /**
@@ -43,7 +43,7 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
                 command.initialBalance()
         );
 
-        AppendEvent event = AppendEvent.builder(WALLET_OPENED)
+        AppendEvent event = AppendEvent.builder(type(WalletOpened.class))
                 .tag(WALLET_ID, command.walletId())
                 .data(walletOpened)
                 .build();
@@ -52,7 +52,7 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
         //    Fails if ANY WalletOpened event exists for this wallet_id (idempotency check)
         //    No concurrency check needed for wallet creation - only idempotency matters
         AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
-                .withIdempotencyCheck(WALLET_OPENED, WALLET_ID, command.walletId())
+                .withIdempotencyCheck(type(WalletOpened.class), WALLET_ID, command.walletId())
                 .build();
 
         // 5. Return - appendIf will:

@@ -2,8 +2,9 @@ package com.crablet.examples.wallet;
 
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
+import com.crablet.examples.wallet.event.*;
 
-import static com.crablet.examples.wallet.WalletEventTypes.*;
+import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.*;
 
 /**
@@ -18,10 +19,10 @@ public class WalletQueryPatterns {
      */
     public static Query singleWalletDecisionModel(String walletId) {
         return QueryBuilder.create()
-                .events(WALLET_OPENED, DEPOSIT_MADE, WITHDRAWAL_MADE)
+                .events(type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class))
                 .tag(WALLET_ID, walletId)
-                .event(MONEY_TRANSFERRED, FROM_WALLET_ID, walletId)
-                .event(MONEY_TRANSFERRED, TO_WALLET_ID, walletId)
+                .event(type(MoneyTransferred.class), FROM_WALLET_ID, walletId)
+                .event(type(MoneyTransferred.class), TO_WALLET_ID, walletId)
                 .build();
     }
 
@@ -31,14 +32,14 @@ public class WalletQueryPatterns {
      */
     public static Query transferDecisionModel(String fromWalletId, String toWalletId) {
         return QueryBuilder.create()
-                .events(WALLET_OPENED, DEPOSIT_MADE, WITHDRAWAL_MADE)
+                .events(type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class))
                 .tag(WALLET_ID, fromWalletId)
-                .event(MONEY_TRANSFERRED, FROM_WALLET_ID, fromWalletId)
-                .event(MONEY_TRANSFERRED, TO_WALLET_ID, fromWalletId)
-                .events(WALLET_OPENED, DEPOSIT_MADE, WITHDRAWAL_MADE)
+                .event(type(MoneyTransferred.class), FROM_WALLET_ID, fromWalletId)
+                .event(type(MoneyTransferred.class), TO_WALLET_ID, fromWalletId)
+                .events(type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class))
                 .tag(WALLET_ID, toWalletId)
-                .event(MONEY_TRANSFERRED, FROM_WALLET_ID, toWalletId)
-                .event(MONEY_TRANSFERRED, TO_WALLET_ID, toWalletId)
+                .event(type(MoneyTransferred.class), FROM_WALLET_ID, toWalletId)
+                .event(type(MoneyTransferred.class), TO_WALLET_ID, toWalletId)
                 .build();
     }
 
@@ -58,16 +59,16 @@ public class WalletQueryPatterns {
     public static Query singleWalletPeriodDecisionModel(String walletId, int year, int month) {
         return QueryBuilder.create()
                 // Include WalletOpened to establish wallet existence (no period tags)
-                .event(WALLET_OPENED, WALLET_ID, walletId)
+                .event(type(WalletOpened.class), WALLET_ID, walletId)
                 // Include WalletStatementOpened to get opening balance (all tags must match)
                 .matching(
-                        new String[]{WALLET_STATEMENT_OPENED},
+                        new String[]{type(WalletStatementOpened.class)},
                         QueryBuilder.tag(WALLET_ID, walletId),
                         QueryBuilder.tag(YEAR, String.valueOf(year)),
                         QueryBuilder.tag(MONTH, String.valueOf(month))
                 )
                 // Include transaction events for this period
-                .events(DEPOSIT_MADE, WITHDRAWAL_MADE)
+                .events(type(DepositMade.class), type(WithdrawalMade.class))
                 .tags(
                         QueryBuilder.tag(WALLET_ID, walletId),
                         QueryBuilder.tag(YEAR, String.valueOf(year)),
@@ -75,14 +76,14 @@ public class WalletQueryPatterns {
                 )
                 // Include transfers affecting this wallet in this period (as FROM wallet)
                 .matching(
-                        new String[]{MONEY_TRANSFERRED},
+                        new String[]{type(MoneyTransferred.class)},
                         QueryBuilder.tag(FROM_WALLET_ID, walletId),
                         QueryBuilder.tag(FROM_YEAR, String.valueOf(year)),
                         QueryBuilder.tag(FROM_MONTH, String.valueOf(month))
                 )
                 // Include transfers affecting this wallet in this period (as TO wallet)
                 .matching(
-                        new String[]{MONEY_TRANSFERRED},
+                        new String[]{type(MoneyTransferred.class)},
                         QueryBuilder.tag(TO_WALLET_ID, walletId),
                         QueryBuilder.tag(TO_YEAR, String.valueOf(year)),
                         QueryBuilder.tag(TO_MONTH, String.valueOf(month))
@@ -129,32 +130,32 @@ public class WalletQueryPatterns {
             String toWalletId, int toYear, int toMonth) {
         return QueryBuilder.create()
                 // From wallet's WalletOpened (no period tags)
-                .event(WALLET_OPENED, WALLET_ID, fromWalletId)
+                .event(type(WalletOpened.class), WALLET_ID, fromWalletId)
                 // From wallet's WalletStatementOpened
                 .matching(
-                        new String[]{WALLET_STATEMENT_OPENED},
+                        new String[]{type(WalletStatementOpened.class)},
                         QueryBuilder.tag(WALLET_ID, fromWalletId),
                         QueryBuilder.tag(YEAR, String.valueOf(fromYear)),
                         QueryBuilder.tag(MONTH, String.valueOf(fromMonth))
                 )
                 // From wallet's transaction events
-                .events(DEPOSIT_MADE, WITHDRAWAL_MADE)
+                .events(type(DepositMade.class), type(WithdrawalMade.class))
                 .tags(
                         QueryBuilder.tag(WALLET_ID, fromWalletId),
                         QueryBuilder.tag(YEAR, String.valueOf(fromYear)),
                         QueryBuilder.tag(MONTH, String.valueOf(fromMonth))
                 )
                 // To wallet's WalletOpened (no period tags)
-                .event(WALLET_OPENED, WALLET_ID, toWalletId)
+                .event(type(WalletOpened.class), WALLET_ID, toWalletId)
                 // To wallet's WalletStatementOpened
                 .matching(
-                        new String[]{WALLET_STATEMENT_OPENED},
+                        new String[]{type(WalletStatementOpened.class)},
                         QueryBuilder.tag(WALLET_ID, toWalletId),
                         QueryBuilder.tag(YEAR, String.valueOf(toYear)),
                         QueryBuilder.tag(MONTH, String.valueOf(toMonth))
                 )
                 // To wallet's transaction events
-                .events(DEPOSIT_MADE, WITHDRAWAL_MADE)
+                .events(type(DepositMade.class), type(WithdrawalMade.class))
                 .tags(
                         QueryBuilder.tag(WALLET_ID, toWalletId),
                         QueryBuilder.tag(YEAR, String.valueOf(toYear)),
@@ -162,14 +163,14 @@ public class WalletQueryPatterns {
                 )
                 // Transfer events affecting from wallet (tagged with FROM_YEAR/FROM_MONTH)
                 .matching(
-                        new String[]{MONEY_TRANSFERRED},
+                        new String[]{type(MoneyTransferred.class)},
                         QueryBuilder.tag(FROM_WALLET_ID, fromWalletId),
                         QueryBuilder.tag(FROM_YEAR, String.valueOf(fromYear)),
                         QueryBuilder.tag(FROM_MONTH, String.valueOf(fromMonth))
                 )
                 // Transfer events affecting to wallet (tagged with TO_YEAR/TO_MONTH)
                 .matching(
-                        new String[]{MONEY_TRANSFERRED},
+                        new String[]{type(MoneyTransferred.class)},
                         QueryBuilder.tag(TO_WALLET_ID, toWalletId),
                         QueryBuilder.tag(TO_YEAR, String.valueOf(toYear)),
                         QueryBuilder.tag(TO_MONTH, String.valueOf(toMonth))
