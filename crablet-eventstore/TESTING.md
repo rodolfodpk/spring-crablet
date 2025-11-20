@@ -167,7 +167,7 @@ class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
 @DisplayName("Given wallet with previous deposits, when depositing, then balance accumulates correctly")
 void givenWalletWithPreviousDeposits_whenDepositing_thenBalanceAccumulatesCorrectly() {
     // Given
-    given().event(WALLET_OPENED, builder -> builder
+    given().event(type(WalletOpened.class), builder -> builder
         .data(WalletOpened.of("wallet1", "Alice", 1000))
         .tag(WALLET_ID, "wallet1")
     );
@@ -196,7 +196,7 @@ void givenWalletWithPreviousDeposits_whenDepositing_thenBalanceAccumulatesCorrec
 @DisplayName("Given wallet, when depositing, then deposit has correct period tags")
 void givenWallet_whenDepositing_thenDepositHasCorrectPeriodTags() {
     // Given
-    given().event(WALLET_OPENED, builder -> builder
+    given().event(type(WalletOpened.class), builder -> builder
         .data(WalletOpened.of("wallet1", "Alice", 1000))
         .tag(WALLET_ID, "wallet1")
     );
@@ -227,7 +227,7 @@ void givenWallet_whenDepositing_thenDepositHasCorrectPeriodTags() {
 @DisplayName("Given wallet with insufficient balance, when withdrawing, then insufficient funds exception")
 void givenWalletWithInsufficientBalance_whenWithdrawing_thenInsufficientFundsException() {
     // Given
-    given().event(WALLET_OPENED, builder -> builder
+    given().event(type(WalletOpened.class), builder -> builder
         .data(WalletOpened.of("wallet1", "Alice", 100))
         .tag(WALLET_ID, "wallet1")
     );
@@ -251,7 +251,7 @@ When a handler generates multiple events, use `thenMultipleOrdered()` to assert 
 @DisplayName("Given wallet, when depositing, then multiple events generated in correct order")
 void givenWallet_whenDepositing_thenMultipleEventsGeneratedInCorrectOrder() {
     // Given
-    given().event(WALLET_OPENED, builder -> builder
+    given().event(type(WalletOpened.class), builder -> builder
         .data(WalletOpened.of("wallet1", "Alice", 1000))
         .tag(WALLET_ID, "wallet1")
     );
