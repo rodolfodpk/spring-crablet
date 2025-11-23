@@ -1,8 +1,11 @@
 package com.crablet.integration;
 
+import com.crablet.eventprocessor.leader.LeaderElector;
+import com.crablet.eventprocessor.processor.EventProcessor;
+import com.crablet.outbox.adapter.OutboxProcessorConfig;
+import com.crablet.outbox.adapter.TopicPublisherPair;
 import com.crablet.outbox.config.OutboxConfig;
-import com.crablet.outbox.leader.OutboxLeaderElector;
-import com.crablet.outbox.processor.OutboxProcessorImpl;
+import com.crablet.testutils.EventProcessorTestHelper;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
@@ -12,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,10 +32,13 @@ class OutboxLeaderFailoverTest extends AbstractCrabletTest {
     private EventStore eventStore;
     
     @Autowired
-    private OutboxProcessorImpl outboxProcessor;
+    private EventProcessor<OutboxProcessorConfig, TopicPublisherPair> eventProcessor;
     
     @Autowired
-    private OutboxLeaderElector leaderElector;
+    private Map<TopicPublisherPair, OutboxProcessorConfig> processorConfigs;
+    
+    @Autowired
+    private LeaderElector leaderElector;
     
     @Autowired
     private OutboxConfig outboxConfig;
@@ -48,7 +55,7 @@ class OutboxLeaderFailoverTest extends AbstractCrabletTest {
         
         // When: Process pending (triggers scheduledTask logic)
         // This simulates what happens in scheduled tasks
-        int processed = outboxProcessor.processPending();
+        int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         
         // Then: Should either process (if leader) or skip (if follower)
         // The key is that it doesn't crash and handles both cases
@@ -77,7 +84,7 @@ class OutboxLeaderFailoverTest extends AbstractCrabletTest {
         
         if (acquired) {
             // Now process events (would happen in scheduledTask after becoming leader)
-            int processed = outboxProcessor.processPending();
+            int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
             
             // Then: Should process events
             assertThat(processed).isGreaterThan(0);
@@ -113,7 +120,7 @@ class OutboxLeaderFailoverTest extends AbstractCrabletTest {
         
         // When: Process pending (publishers should not retry, dedicated scheduler handles it)
         // The dedicated leader retry scheduler runs independently
-        int processed = outboxProcessor.processPending();
+        int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         
         // Then: Should handle gracefully (either process if leader, or skip if follower)
         // Leader retry is handled by dedicated scheduler, not publisher schedulers
@@ -127,14 +134,14 @@ class OutboxLeaderFailoverTest extends AbstractCrabletTest {
             leaderElector.releaseGlobalLeader();
         }
         
-        // When: Multiple rapid calls to processPending (simulates multiple publisher schedulers)
+        // When: Multiple rapid calls to processAll (simulates multiple publisher schedulers)
         // First call: Should attempt lock acquisition
-        int first = outboxProcessor.processPending();
+        int first = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         
         // Immediate second call: Should respect cooldown (no redundant retry)
-        // Note: processPending() doesn't call scheduledTask(), so we can't directly test cooldown here
+        // Note: processAll() doesn't call scheduledTask(), so we can't directly test cooldown here
         // The cooldown is tested in unit tests. This integration test verifies overall behavior.
-        int second = outboxProcessor.processPending();
+        int second = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         
         // Then: Both should handle gracefully
         assertThat(first).isGreaterThanOrEqualTo(0);

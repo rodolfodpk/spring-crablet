@@ -10,9 +10,8 @@ import com.crablet.outbox.InstanceIdProvider;
 import com.crablet.outbox.config.GlobalStatisticsConfig;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.config.TopicConfigurationProperties;
-import com.crablet.outbox.leader.OutboxLeaderElector;
-import com.crablet.outbox.management.OutboxManagementService;
-import com.crablet.outbox.processor.OutboxProcessorImpl;
+// OutboxProcessorImpl, OutboxManagementService, and OutboxLeaderElector are now auto-configured
+// when crablet.outbox.enabled=true via OutboxAutoConfiguration
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
 import com.crablet.outbox.publishing.OutboxPublishingService;
 import com.crablet.outbox.publishing.OutboxPublishingServiceImpl;
@@ -174,14 +173,8 @@ public class TestApplication {
         return new InstanceIdProvider(environment);
     }
     
-    @Bean
-    public OutboxLeaderElector outboxLeaderElector(
-            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate, 
-            OutboxConfig config,
-            InstanceIdProvider instanceIdProvider,
-            org.springframework.context.ApplicationEventPublisher eventPublisher) {
-        return new OutboxLeaderElector(jdbcTemplate, config, instanceIdProvider, eventPublisher);
-    }
+    // OutboxLeaderElector is now auto-configured
+    // when crablet.outbox.enabled=true via OutboxAutoConfiguration
     
     @Bean
     public OutboxPublishingService outboxPublishingService(
@@ -207,33 +200,9 @@ public class TestApplication {
         );
     }
     
-    @Bean
-    @org.springframework.boot.autoconfigure.condition.ConditionalOnBean(name = "outboxPublisher")
-    public OutboxProcessorImpl outboxProcessorImpl(
-            OutboxConfig config,
-            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
-            DataSource dataSource,
-            java.util.List<com.crablet.outbox.OutboxPublisher> publishers,
-            OutboxLeaderElector leaderElector,
-            OutboxPublishingService publishingService,
-            io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitBreakerRegistry,
-            GlobalStatisticsPublisher globalStatistics,
-            TopicConfigurationProperties topicConfigProperties,
-            org.springframework.scheduling.TaskScheduler taskScheduler,
-            org.springframework.context.ApplicationEventPublisher eventPublisher) {
-        return new OutboxProcessorImpl(config, jdbcTemplate, dataSource, publishers, 
-                                       leaderElector, publishingService, 
-                                       circuitBreakerRegistry, 
-                                       globalStatistics, topicConfigProperties, taskScheduler, eventPublisher);
-    }
-    
-    @Bean
-    @org.springframework.boot.autoconfigure.condition.ConditionalOnBean(name = "outboxPublisher")
-    public OutboxManagementService outboxManagementService(
-            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
-            OutboxProcessorImpl outboxProcessor) {
-        return new OutboxManagementService(jdbcTemplate, outboxProcessor);
-    }
+    // OutboxProcessorImpl and OutboxManagementService are now auto-configured
+    // when crablet.outbox.enabled=true via OutboxAutoConfiguration
+    // No manual bean configuration needed
     
     @Bean
     public GlobalStatisticsPublisher globalStatisticsPublisher(GlobalStatisticsConfig config) {

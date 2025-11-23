@@ -1,9 +1,9 @@
-package com.crablet.outbox.processor;
+package com.crablet.eventprocessor.backoff;
 
 /**
- * Tracks exponential backoff state for a single (topic, publisher) pair.
+ * Tracks exponential backoff state for a processor instance.
  * <p>
- * After N consecutive empty polls, the publisher starts skipping poll cycles
+ * After N consecutive empty polls, the processor starts skipping poll cycles
  * exponentially to reduce unnecessary database queries during idle periods.
  * Backoff resets immediately when events are found.
  */
@@ -46,7 +46,7 @@ public class BackoffState {
     }
     
     /**
-     * Record a successful publish (events found and published).
+     * Record a successful processing (events found and processed).
      * Resets backoff immediately.
      */
     public void recordSuccess() {
