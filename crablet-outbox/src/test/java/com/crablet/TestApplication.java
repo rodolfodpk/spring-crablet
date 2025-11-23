@@ -6,9 +6,7 @@ import com.crablet.outbox.config.GlobalStatisticsConfig;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.config.TopicConfigurationProperties;
 import com.crablet.outbox.InstanceIdProvider;
-import com.crablet.outbox.leader.OutboxLeaderElector;
-import com.crablet.outbox.management.OutboxManagementService;
-import com.crablet.outbox.processor.OutboxProcessorImpl;
+// Old classes removed - using auto-configuration with generic processor
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
 import com.crablet.outbox.publishing.OutboxPublishingService;
 import com.crablet.outbox.publishing.OutboxPublishingServiceImpl;
@@ -76,73 +74,18 @@ public class TestApplication {
     }
     
     @Bean
-    public OutboxManagementService outboxManagementService(
-            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
-            com.crablet.outbox.processor.OutboxProcessorImpl outboxProcessor) {
-        return new OutboxManagementService(jdbcTemplate, outboxProcessor);
-    }
-    
-    @Bean
     public InstanceIdProvider instanceIdProvider(org.springframework.core.env.Environment environment) {
         return new InstanceIdProvider(environment);
     }
     
-    @Bean
-    public OutboxLeaderElector outboxLeaderElector(
-            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate, 
-            OutboxConfig config,
-            InstanceIdProvider instanceIdProvider,
-            org.springframework.context.ApplicationEventPublisher eventPublisher) {
-        return new OutboxLeaderElector(jdbcTemplate, config, instanceIdProvider, eventPublisher);
-    }
+    // DataSource beans (readDataSource and primaryDataSource) are provided by
+    // com.crablet.eventstore.config.DataSourceConfig from crablet-eventstore module
     
-    @Bean
-    public OutboxPublishingService outboxPublishingService(
-            OutboxConfig config,
-            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
-            DataSource readDataSource,
-            java.util.List<com.crablet.outbox.OutboxPublisher> publishers,
-            InstanceIdProvider instanceIdProvider,
-            com.crablet.eventstore.clock.ClockProvider clock,
-            io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitBreakerRegistry,
-            GlobalStatisticsPublisher globalStatistics,
-            org.springframework.context.ApplicationEventPublisher eventPublisher) {
-        
-        // Build publisher lookup map
-        java.util.Map<String, com.crablet.outbox.OutboxPublisher> publisherByName = new java.util.concurrent.ConcurrentHashMap<>();
-        for (com.crablet.outbox.OutboxPublisher publisher : publishers) {
-            publisherByName.put(publisher.getName(), publisher);
-        }
-        
-        return new OutboxPublishingServiceImpl(
-                config,
-                jdbcTemplate,
-                readDataSource,
-                publisherByName,
-                instanceIdProvider,
-                clock,
-                circuitBreakerRegistry,
-                globalStatistics,
-                eventPublisher);
-    }
-    
-    @Bean
-    public OutboxProcessorImpl outboxProcessorImpl(
-            OutboxConfig config,
-            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
-            DataSource dataSource,
-            java.util.List<com.crablet.outbox.OutboxPublisher> publishers,
-            OutboxLeaderElector leaderElector,
-            OutboxPublishingService publishingService,
-            io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitBreakerRegistry,
-            GlobalStatisticsPublisher globalStatistics,
-            TopicConfigurationProperties topicConfigProperties,
-            org.springframework.scheduling.TaskScheduler taskScheduler,
-            org.springframework.context.ApplicationEventPublisher eventPublisher) {
-        return new OutboxProcessorImpl(config, jdbcTemplate, dataSource, publishers,
-                leaderElector, publishingService, circuitBreakerRegistry, globalStatistics,
-                topicConfigProperties, taskScheduler, eventPublisher);
-    }
+    // OutboxManagementService, OutboxLeaderElector, OutboxPublishingService, and EventProcessor
+    // are now created automatically by OutboxAutoConfiguration when crablet.outbox.enabled=true
+    // 
+    // For tests that need outbox, ensure crablet.outbox.enabled=true in test properties
+    // For tests that don't need outbox, keep crablet.outbox.enabled=false (default)
     
     @Bean
     public GlobalStatisticsPublisher globalStatisticsPublisher(GlobalStatisticsConfig config) {

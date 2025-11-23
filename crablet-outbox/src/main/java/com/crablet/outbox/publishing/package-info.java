@@ -24,7 +24,7 @@
  * <strong>Separation of Concerns:</strong>
  * The publishing service is separated from scheduling logic:
  * <ul>
- *   <li>OutboxProcessorImpl handles scheduling and leader election</li>
+ *   <li>{@link com.crablet.eventprocessor.processor.EventProcessor} handles scheduling and leader election</li>
  *   <li>OutboxPublishingService handles event fetching and publishing</li>
  *   <li>This separation improves testability and maintainability</li>
  * </ul>
@@ -44,7 +44,7 @@
  *   <li>Position is updated after successful publishing</li>
  * </ul>
  *
- * @see com.crablet.outbox.processor.OutboxProcessorImpl
+ * @see com.crablet.eventprocessor.processor.EventProcessor
  * @see com.crablet.outbox.OutboxPublisher
  */
 package com.crablet.outbox.publishing;

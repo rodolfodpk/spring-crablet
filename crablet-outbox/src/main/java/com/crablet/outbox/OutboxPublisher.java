@@ -17,7 +17,7 @@ public interface OutboxPublisher {
     /**
      * Publish a batch of events.
      */
-    void publishBatch(List<StoredEvent> events) throws PublishException;
+    void publishBatch(List<com.crablet.eventstore.store.StoredEvent> events) throws PublishException;
     
     /**
      * Check if publisher is healthy.

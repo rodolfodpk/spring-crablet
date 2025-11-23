@@ -3,9 +3,12 @@ package com.crablet.integration;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventprocessor.processor.EventProcessor;
+import com.crablet.outbox.adapter.OutboxProcessorConfig;
+import com.crablet.outbox.adapter.TopicPublisherPair;
 import com.crablet.outbox.config.OutboxConfig;
-import com.crablet.outbox.processor.OutboxProcessorImpl;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
+import com.crablet.testutils.EventProcessorTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,7 +35,10 @@ class GlobalStatisticsTest extends AbstractCrabletTest {
     private JdbcTemplate jdbcTemplate;
     
     @Autowired
-    private OutboxProcessorImpl outboxProcessor;
+    private EventProcessor<OutboxProcessorConfig, TopicPublisherPair> eventProcessor;
+    
+    @Autowired
+    private Map<TopicPublisherPair, OutboxProcessorConfig> processorConfigs;
     
     @Autowired
     private OutboxConfig outboxConfig;
@@ -76,7 +83,7 @@ class GlobalStatisticsTest extends AbstractCrabletTest {
         
         // When
         eventStore.appendIf(events, AppendCondition.empty());
-        int processed = outboxProcessor.processPending();
+        int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         
         // Then
         assertThat(processed).isGreaterThan(0);
@@ -116,7 +123,7 @@ class GlobalStatisticsTest extends AbstractCrabletTest {
         
         // When
         eventStore.appendIf(events, AppendCondition.empty());
-        int processed = outboxProcessor.processPending();
+        int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         
         // Then
         assertThat(processed).isGreaterThan(0);
@@ -143,7 +150,7 @@ class GlobalStatisticsTest extends AbstractCrabletTest {
         
         // When - process first batch
         eventStore.appendIf(firstBatch, AppendCondition.empty());
-        int firstProcessed = outboxProcessor.processPending();
+        int firstProcessed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         
         // Then - verify initial statistics
         assertThat(firstProcessed).isGreaterThan(0);
@@ -160,7 +167,7 @@ class GlobalStatisticsTest extends AbstractCrabletTest {
         
         // When - process second batch
         eventStore.appendIf(secondBatch, AppendCondition.empty());
-        int secondProcessed = outboxProcessor.processPending();
+        int secondProcessed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         
         // Then - verify accumulated statistics
         assertThat(secondProcessed).isGreaterThan(0);
@@ -183,7 +190,7 @@ class GlobalStatisticsTest extends AbstractCrabletTest {
         long initialTotal = globalStatistics.getTotalEventsProcessed();
         
         // When - process with no events
-        int processed = outboxProcessor.processPending();
+        int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         
         // Then - statistics should remain unchanged
         assertThat(processed).isEqualTo(0);
