@@ -1,59 +1,36 @@
 /**
  * Outbox event processor implementation.
  * <p>
- * This package contains the core implementation of the outbox pattern, including
- * event processing, scheduling, and backoff logic.
+ * This package previously contained the core implementation of the outbox pattern.
+ * The outbox processor has been refactored to use the generic {@link com.crablet.eventprocessor.processor.EventProcessor}
+ * from the {@code crablet-event-processor} module.
  * <p>
- * <strong>Key Components:</strong>
+ * <strong>Current Architecture:</strong>
+ * The outbox now uses the generic event processor infrastructure:
  * <ul>
- *   <li>{@link com.crablet.outbox.processor.OutboxProcessorImpl} - Core implementation of OutboxProcessor</li>
- *   <li>{@link com.crablet.outbox.processor.BackoffState} - Manages exponential backoff for empty polls</li>
+ *   <li>{@link com.crablet.eventprocessor.processor.EventProcessor} - Generic processor interface</li>
+ *   <li>{@link com.crablet.outbox.adapter.OutboxProcessorConfig} - Adapter for outbox-specific configuration</li>
+ *   <li>{@link com.crablet.outbox.adapter.OutboxEventHandler} - Adapter for event handling</li>
+ *   <li>{@link com.crablet.outbox.adapter.OutboxEventFetcher} - Adapter for event fetching</li>
+ *   <li>{@link com.crablet.outbox.adapter.OutboxProgressTracker} - Adapter for progress tracking</li>
  * </ul>
  * <p>
- * <strong>Architecture:</strong>
- * The processor uses one independent scheduler per (topic, publisher) pair:
- * <ul>
- *   <li>Each (topic, publisher) has its own polling interval (configurable per publisher)</li>
- *   <li>Independent schedulers provide better isolation and flexible polling</li>
- *   <li>Backoff state is tracked per (topic, publisher) to reduce unnecessary polling</li>
- * </ul>
- * <p>
- * <strong>Processing Flow:</strong>
- * <ol>
- *   <li>Leader election determines which instance processes publishers</li>
- *   <li>Each scheduler periodically calls the publishing service</li>
- *   <li>Publishing service fetches events, publishes them, and updates position</li>
- *   <li>Backoff state is updated based on whether events were found</li>
- * </ol>
+ * <strong>Spring Integration:</strong>
+ * The outbox processor is automatically configured via {@link com.crablet.outbox.config.OutboxAutoConfiguration}
+ * when {@code crablet.outbox.enabled=true}. No manual bean configuration is required.
  * <p>
  * <strong>Backoff Strategy:</strong>
- * Exponential backoff reduces polling frequency when no events are found:
+ * Exponential backoff is now handled by the generic processor:
  * <ul>
+ *   <li>Backoff state is managed in {@link com.crablet.eventprocessor.backoff.BackoffState}</li>
  *   <li>After a threshold of empty polls, the scheduler skips cycles</li>
  *   <li>Backoff multiplier increases skip duration exponentially</li>
  *   <li>When events are found, backoff is reset</li>
  * </ul>
- * <p>
- * <strong>Spring Integration:</strong>
- * Users must define OutboxProcessorImpl as a Spring bean:
- * <pre>{@code
- * @Bean
- * public OutboxProcessor outboxProcessor(
- *         OutboxConfig config,
- *         JdbcTemplate jdbcTemplate,
- *         DataSource readDataSource,
- *         List<OutboxPublisher> publishers,
- *         OutboxLeaderElector leaderElector,
- *         OutboxPublishingService publishingService,
- *         // ... other dependencies
- * ) {
- *     return new OutboxProcessorImpl(...);
- * }
- * }</pre>
  *
- * @see com.crablet.outbox.OutboxProcessor
- * @see com.crablet.outbox.publishing.OutboxPublishingService
- * @see com.crablet.outbox.leader.OutboxLeaderElector
+ * @see com.crablet.eventprocessor.processor.EventProcessor
+ * @see com.crablet.outbox.config.OutboxAutoConfiguration
+ * @see com.crablet.outbox.adapter
  */
 package com.crablet.outbox.processor;
 

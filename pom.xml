@@ -15,6 +15,8 @@
         <module>crablet-eventstore</module>
         <module>crablet-command</module>
         <module>crablet-outbox</module>
+        <module>crablet-event-processor</module>
+        <module>crablet-views</module>
         <module>crablet-metrics-micrometer</module>
         <!-- Removed application modules - library only -->
         <!-- <module>shared-wallet-domain</module> -->
@@ -28,7 +30,7 @@
         <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>3.5.7</spring-boot.version>
-        <testcontainers.version>1.20.5</testcontainers.version>
+        <testcontainers.version>2.0.2</testcontainers.version>
         <junit.version>6.0.0</junit.version>
         <archunit.version>1.4.1</archunit.version>
         <yavi.version>0.16.0</yavi.version>
@@ -39,6 +41,15 @@
     
     <dependencyManagement>
         <dependencies>
+            <!-- Testcontainers BOM - must come BEFORE Spring Boot BOM to override versions -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            
             <!-- Spring Boot BOM for consistent dependency versions -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -69,6 +80,20 @@
                 <version>${project.version}</version>
             </dependency>
             
+            <!-- Crablet Event Processor -->
+            <dependency>
+                <groupId>com.crablet</groupId>
+                <artifactId>crablet-event-processor</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            
+            <!-- Crablet Views -->
+            <dependency>
+                <groupId>com.crablet</groupId>
+                <artifactId>crablet-views</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            
             <!-- Crablet Metrics Micrometer -->
             <dependency>
                 <groupId>com.crablet</groupId>
@@ -81,15 +106,6 @@
                 <groupId>com.crablet</groupId>
                 <artifactId>shared-wallet-domain</artifactId>
                 <version>${project.version}</version>
-            </dependency>
-            
-            <!-- Testcontainers -->
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>testcontainers-bom</artifactId>
-                <version>${testcontainers.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
             </dependency>
             
             <!-- JUnit -->
@@ -250,6 +266,12 @@
                                 </fileSet>
                                 <fileSet>
                                     <directory>${project.basedir}/crablet-outbox/target</directory>
+                                    <includes>
+                                        <include>jacoco.exec</include>
+                                    </includes>
+                                </fileSet>
+                                <fileSet>
+                                    <directory>${project.basedir}/crablet-event-processor/target</directory>
                                     <includes>
                                         <include>jacoco.exec</include>
                                     </includes>

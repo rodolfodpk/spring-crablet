@@ -5,7 +5,7 @@ import com.crablet.eventstore.metrics.MetricEvent;
 /**
  * Metric event published when outbox leadership status changes.
  * <p>
- * Published by OutboxProcessorImpl and OutboxLeaderElector when leadership changes.
+ * Published by the generic LeaderElector when leadership changes.
  */
 public record LeadershipMetric(String instanceId, boolean isLeader) implements MetricEvent {
     /**

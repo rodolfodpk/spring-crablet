@@ -1,5 +1,7 @@
 package com.crablet.outbox.processor;
 
+import com.crablet.eventprocessor.backoff.BackoffState;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
