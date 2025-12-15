@@ -231,21 +231,24 @@ spring.flyway.enabled=true
 
 ## Tag Format
 
-Tags are stored as `TEXT[]` in PostgreSQL with format `key:value`:
+Tags are stored as `TEXT[]` in PostgreSQL with format `key=value` (using equals sign, not colon):
 
 ```java
 AppendEvent.builder("WalletOpened")
-    .tag("wallet_id", "wallet-123")      // Stored as "wallet_id:wallet-123"
-    .tag("owner_id", "user-456")         // Stored as "owner_id:user-456"
+    .tag("wallet_id", "wallet-123")      // Stored as "wallet_id=wallet-123"
+    .tag("owner_id", "user-456")         // Stored as "owner_id=user-456"
     .build();
 ```
 
 **Querying tags:**
 ```sql
--- Find events with wallet_id
-SELECT * FROM events WHERE tags @> ARRAY['wallet_id:wallet-123'];
+-- Find events with wallet_id using LIKE pattern
+SELECT * FROM events WHERE EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'wallet_id=%');
+
+-- Find events with exact tag match
+SELECT * FROM events WHERE tags @> ARRAY['wallet_id=wallet-123'];
 
 -- Find events with multiple tags
-SELECT * FROM events WHERE tags @> ARRAY['wallet_id:wallet-123', 'event_type:deposit'];
+SELECT * FROM events WHERE tags @> ARRAY['wallet_id=wallet-123', 'event_type=deposit'];
 ```
 

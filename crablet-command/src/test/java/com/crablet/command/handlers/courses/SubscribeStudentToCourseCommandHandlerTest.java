@@ -41,11 +41,14 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
     private EventStore eventStore;
     
     @Autowired
+    private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    
     private CourseTestUtils courseTestUtils;
 
     @BeforeEach
     void setUp() {
         handler = new SubscribeStudentToCourseCommandHandler();
+        courseTestUtils = new CourseTestUtils(objectMapper);
     }
 
     @Test

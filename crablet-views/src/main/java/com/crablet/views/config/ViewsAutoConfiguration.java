@@ -9,7 +9,7 @@ import com.crablet.eventprocessor.management.ProcessorManagementServiceImpl;
 import com.crablet.eventprocessor.processor.EventProcessor;
 import com.crablet.eventprocessor.processor.EventProcessorImpl;
 import com.crablet.eventprocessor.progress.ProgressTracker;
-import com.crablet.outbox.InstanceIdProvider;
+import com.crablet.eventprocessor.InstanceIdProvider;
 import com.crablet.views.ViewProjector;
 import com.crablet.views.adapter.*;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -17,7 +17,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.TaskScheduler;
 
 import javax.sql.DataSource;
@@ -45,11 +44,11 @@ public class ViewsAutoConfiguration {
      */
     @Bean
     public LeaderElector viewsLeaderElector(
-            JdbcTemplate jdbcTemplate,
+            @Qualifier("primaryDataSource") DataSource dataSource,
             InstanceIdProvider instanceIdProvider,
             ApplicationEventPublisher eventPublisher) {
         return new LeaderElectorImpl(
-            jdbcTemplate,
+            dataSource,
             instanceIdProvider.getInstanceId(),
             VIEWS_LOCK_KEY,
             eventPublisher
@@ -60,8 +59,9 @@ public class ViewsAutoConfiguration {
      * Create ViewProgressTracker bean.
      */
     @Bean
-    public ProgressTracker<String> viewProgressTracker(JdbcTemplate jdbcTemplate) {
-        return new ViewProgressTracker(jdbcTemplate);
+    public ProgressTracker<String> viewProgressTracker(
+            @Qualifier("primaryDataSource") DataSource dataSource) {
+        return new ViewProgressTracker(dataSource);
     }
     
     /**
@@ -113,8 +113,8 @@ public class ViewsAutoConfiguration {
     public ProcessorManagementService<String> viewManagementService(
             EventProcessor<ViewProcessorConfig, String> eventProcessor,
             ProgressTracker<String> progressTracker,
-            JdbcTemplate jdbcTemplate) {
-        return new ProcessorManagementServiceImpl<>(eventProcessor, progressTracker, jdbcTemplate);
+            @Qualifier("readDataSource") DataSource readDataSource) {
+        return new ProcessorManagementServiceImpl<>(eventProcessor, progressTracker, readDataSource);
     }
     
     /**

@@ -26,6 +26,12 @@
             <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
         
+        <!-- Spring Core (for Environment in InstanceIdProvider) -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+        </dependency>
+        
         <!-- Spring Boot Web (for management API) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

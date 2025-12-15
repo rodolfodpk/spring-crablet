@@ -17,7 +17,8 @@
  * <ol>
  *   <li>Users create view tables (e.g., wallet_views) using Flyway migrations</li>
  *   <li>Users implement ViewProjector to project events into view tables using JOOQ</li>
- *   <li>Users configure ViewSubscriptionConfig to subscribe to specific event types/tags</li>
+ *   <li>Users configure ViewSubscriptionConfig to subscribe to specific event types/tags
+ *       (tags are stored as "key=value" format in PostgreSQL)</li>
  *   <li>The generic EventProcessor polls events and calls projectors asynchronously</li>
  *   <li>Progress is tracked independently per view in view_progress table</li>
  * </ol>

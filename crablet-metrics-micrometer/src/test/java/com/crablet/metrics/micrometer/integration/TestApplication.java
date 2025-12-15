@@ -6,7 +6,7 @@ import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.EventStoreConfig;
 import com.crablet.eventstore.store.EventStoreImpl;
 import com.crablet.metrics.micrometer.MicrometerMetricsCollector;
-import com.crablet.outbox.InstanceIdProvider;
+import com.crablet.eventprocessor.InstanceIdProvider;
 import com.crablet.outbox.config.GlobalStatisticsConfig;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.config.TopicConfigurationProperties;

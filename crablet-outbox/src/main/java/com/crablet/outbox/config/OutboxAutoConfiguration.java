@@ -10,7 +10,7 @@ import com.crablet.eventprocessor.processor.EventProcessor;
 import com.crablet.eventprocessor.processor.EventProcessorImpl;
 import com.crablet.eventprocessor.progress.ProgressTracker;
 import com.crablet.eventstore.clock.ClockProvider;
-import com.crablet.outbox.InstanceIdProvider;
+import com.crablet.eventprocessor.InstanceIdProvider;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.TopicConfig;
 import com.crablet.outbox.adapter.*;
@@ -23,7 +23,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.TaskScheduler;
 
 import javax.sql.DataSource;
@@ -51,11 +50,11 @@ public class OutboxAutoConfiguration {
      */
     @Bean
     public LeaderElector outboxLeaderElector(
-            JdbcTemplate jdbcTemplate,
+            @Qualifier("primaryDataSource") DataSource dataSource,
             InstanceIdProvider instanceIdProvider,
             ApplicationEventPublisher eventPublisher) {
         return new LeaderElectorImpl(
-            jdbcTemplate,
+            dataSource,
             instanceIdProvider.getInstanceId(),
             OUTBOX_LOCK_KEY,
             eventPublisher
@@ -66,8 +65,9 @@ public class OutboxAutoConfiguration {
      * Create OutboxProgressTracker bean.
      */
     @Bean
-    public ProgressTracker<TopicPublisherPair> outboxProgressTracker(JdbcTemplate jdbcTemplate) {
-        return new OutboxProgressTracker(jdbcTemplate);
+    public ProgressTracker<TopicPublisherPair> outboxProgressTracker(
+            @Qualifier("primaryDataSource") DataSource dataSource) {
+        return new OutboxProgressTracker(dataSource);
     }
     
     /**
@@ -84,11 +84,14 @@ public class OutboxAutoConfiguration {
     /**
      * Create OutboxPublishingService bean.
      * This is still needed for the publishing logic.
+     * 
+     * Note: OutboxPublishingServiceImpl still uses JdbcTemplate internally for some operations.
+     * This is acceptable as it's a legacy class that will be refactored separately.
      */
     @Bean
     public OutboxPublishingService outboxPublishingService(
             OutboxConfig config,
-            JdbcTemplate jdbcTemplate,
+            @Qualifier("primaryDataSource") DataSource writeDataSource,
             @Qualifier("readDataSource") DataSource readDataSource,
             List<OutboxPublisher> publishers,
             InstanceIdProvider instanceIdProvider,
@@ -102,6 +105,11 @@ public class OutboxAutoConfiguration {
         for (OutboxPublisher publisher : publishers) {
             publisherByName.put(publisher.getName(), publisher);
         }
+        
+        // Create JdbcTemplate from DataSource for OutboxPublishingServiceImpl
+        // TODO: Refactor OutboxPublishingServiceImpl to use plain JDBC
+        org.springframework.jdbc.core.JdbcTemplate jdbcTemplate = 
+            new org.springframework.jdbc.core.JdbcTemplate(writeDataSource);
         
         return new OutboxPublishingServiceImpl(
             config,
@@ -175,8 +183,8 @@ public class OutboxAutoConfiguration {
     public ProcessorManagementService<TopicPublisherPair> outboxManagementService(
             EventProcessor<OutboxProcessorConfig, TopicPublisherPair> eventProcessor,
             ProgressTracker<TopicPublisherPair> progressTracker,
-            JdbcTemplate jdbcTemplate) {
-        return new ProcessorManagementServiceImpl<>(eventProcessor, progressTracker, jdbcTemplate);
+            @Qualifier("readDataSource") DataSource readDataSource) {
+        return new ProcessorManagementServiceImpl<>(eventProcessor, progressTracker, readDataSource);
     }
 }
 

@@ -5,7 +5,7 @@ import com.crablet.eventstore.clock.ClockProviderImpl;
 import com.crablet.outbox.config.GlobalStatisticsConfig;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.config.TopicConfigurationProperties;
-import com.crablet.outbox.InstanceIdProvider;
+import com.crablet.eventprocessor.InstanceIdProvider;
 // Old classes removed - using auto-configuration with generic processor
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
 import com.crablet.outbox.publishing.OutboxPublishingService;

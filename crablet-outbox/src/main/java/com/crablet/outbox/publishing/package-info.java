@@ -30,7 +30,8 @@
  * </ul>
  * <p>
  * <strong>Topic Routing:</strong>
- * Events are routed to topics based on tag matching:
+ * Events are routed to topics based on tag matching.
+ * Tags are stored in PostgreSQL as "key=value" format (using equals sign, not colon).
  * <ul>
  *   <li>{@code required-tags} - Events must have all specified tags</li>
  *   <li>{@code any-of-tags} - Events must have at least one of the specified tags</li>

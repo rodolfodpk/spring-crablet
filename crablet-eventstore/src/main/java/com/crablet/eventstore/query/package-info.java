@@ -17,7 +17,7 @@
  * Queries use tag-based filtering to find events:
  * <ul>
  *   <li>Filter by event types (e.g., "DepositMade", "WithdrawalMade")</li>
- *   <li>Filter by tags (e.g., "wallet_id:123", "account_id:456")</li>
+ *   <li>Filter by tags (e.g., "wallet_id=123", "account_id=456") - tags are stored as "key=value" format</li>
  *   <li>Combine multiple criteria with AND/OR logic</li>
  * </ul>
  * <p>
@@ -40,6 +40,7 @@
  * <strong>Usage Example:</strong>
  * <pre>{@code
  * Query decisionModel = Query.forEventAndTag("DepositMade", "wallet_id", walletId);
+ * // Tags are stored as "wallet_id=walletId" in the database
  * ProjectionResult<WalletBalanceState> projection = eventStore.project(
  *     decisionModel, Cursor.zero(), WalletBalanceState.class, List.of(projector)
  * );

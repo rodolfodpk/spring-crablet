@@ -1,4 +1,4 @@
-package com.crablet.outbox;
+package com.crablet.eventprocessor;
 
 import org.springframework.core.env.Environment;
 
@@ -6,8 +6,8 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 /**
- * Provides instance ID for outbox components.
- * Used for leader election and publisher registration.
+ * Provides instance ID for event processors.
+ * Used for leader election and processor registration.
  * <p>
  * Instance ID resolution order:
  * <ol>

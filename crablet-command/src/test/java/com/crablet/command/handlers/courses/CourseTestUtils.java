@@ -6,15 +6,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.crablet.examples.courses.domain.event.CourseDefined;
 import com.crablet.examples.courses.domain.event.CourseCapacityChanged;
 import com.crablet.examples.courses.domain.event.StudentSubscribedToCourse;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /**
  * Test utilities for course command handler tests.
  * Provides helper methods for creating test data and assertions.
+ * Note: This is NOT a Spring component - it's a utility class for tests.
  */
-@Component
 public class CourseTestUtils {
 
     private final ObjectMapper objectMapper;

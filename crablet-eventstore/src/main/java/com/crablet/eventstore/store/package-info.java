@@ -11,7 +11,8 @@
  *   <li>{@link com.crablet.eventstore.store.AppendEvent} - Represents an event to be appended to the store</li>
  *   <li>{@link com.crablet.eventstore.store.StoredEvent} - Represents an event queried from the store</li>
  *   <li>{@link com.crablet.eventstore.store.Cursor} - Represents a position in the event stream</li>
- *   <li>{@link com.crablet.eventstore.store.Tag} - Key-value pair for event identification and querying</li>
+ *   <li>{@link com.crablet.eventstore.store.Tag} - Key-value pair for event identification and querying
+ *       (stored as "key=value" format in PostgreSQL TEXT[])</li>
  *   <li>{@link com.crablet.eventstore.store.EventStoreConfig} - Configuration for EventStore behavior</li>
  * </ul>
  * <p>

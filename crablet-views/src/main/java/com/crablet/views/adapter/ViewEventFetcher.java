@@ -80,8 +80,8 @@ public class ViewEventFetcher implements EventFetcher<String> {
                 }
                 
                 connection.commit();
-                log.debug("Fetched {} events for view {} after position {}", events.size(), viewName, lastPosition);
-                return events;
+        log.debug("Fetched {} events for view {} after position {}", events.size(), viewName, lastPosition);
+        return events;
                 
             } catch (Exception e) {
                 connection.rollback();
@@ -113,14 +113,15 @@ public class ViewEventFetcher implements EventFetcher<String> {
         }
         
         // Required tags: ALL must be present
+        // Tags are stored as "key=value" format (not "key:value")
         for (String tagKey : requiredTags) {
-            conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE '" + tagKey + ":%')");
+            conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE '" + tagKey + "=%')");
         }
         
         // AnyOf tags: at least ONE must be present
         if (!anyOfTags.isEmpty()) {
             String anyOfCondition = anyOfTags.stream()
-                .map(tagKey -> "t LIKE '" + tagKey + ":%'")
+                .map(tagKey -> "t LIKE '" + tagKey + "=%'")
                 .collect(Collectors.joining(" OR "));
             conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE " + anyOfCondition + ")");
         }
@@ -141,11 +142,11 @@ public class ViewEventFetcher implements EventFetcher<String> {
         List<Tag> tags = new ArrayList<>();
         
         for (String tagStr : tagStrings) {
-            // Format: "key:value"
-            int colonIndex = tagStr.indexOf(':');
-            if (colonIndex > 0) {
-                String key = tagStr.substring(0, colonIndex);
-                String value = tagStr.substring(colonIndex + 1);
+            // Format: "key=value" (tags are stored with equals sign, not colon)
+            int equalsIndex = tagStr.indexOf('=');
+            if (equalsIndex > 0) {
+                String key = tagStr.substring(0, equalsIndex);
+                String value = tagStr.substring(equalsIndex + 1);
                 tags.add(new Tag(key, value));
             }
         }

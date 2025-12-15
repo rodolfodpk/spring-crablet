@@ -5,8 +5,12 @@ import com.crablet.eventprocessor.progress.ProcessorStatus;
 import com.crablet.eventprocessor.progress.ProgressTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,15 +27,27 @@ public class ProcessorManagementServiceImpl<T extends com.crablet.eventprocessor
     
     private final EventProcessor<T, I> eventProcessor;
     private final ProgressTracker<I> progressTracker;
-    private final JdbcTemplate jdbcTemplate;
+    private final DataSource readDataSource;
+    
+    private static final String SELECT_MAX_POSITION_SQL = 
+        "SELECT COALESCE(MAX(position), 0) FROM events";
     
     public ProcessorManagementServiceImpl(
             EventProcessor<T, I> eventProcessor,
             ProgressTracker<I> progressTracker,
-            JdbcTemplate jdbcTemplate) {
+            DataSource readDataSource) {
+        if (eventProcessor == null) {
+            throw new IllegalArgumentException("eventProcessor must not be null");
+        }
+        if (progressTracker == null) {
+            throw new IllegalArgumentException("progressTracker must not be null");
+        }
+        if (readDataSource == null) {
+            throw new IllegalArgumentException("readDataSource must not be null");
+        }
         this.eventProcessor = eventProcessor;
         this.progressTracker = progressTracker;
-        this.jdbcTemplate = jdbcTemplate;
+        this.readDataSource = readDataSource;
     }
     
     @Override
@@ -93,19 +109,27 @@ public class ProcessorManagementServiceImpl<T extends com.crablet.eventprocessor
     @Override
     public Long getLag(I processorId) {
         // Get max position from events table
-        Long maxPosition = jdbcTemplate.queryForObject(
-            "SELECT COALESCE(MAX(position), 0) FROM events",
-            Long.class
-        );
-        
-        if (maxPosition == null) {
+        try (Connection connection = readDataSource.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(SELECT_MAX_POSITION_SQL);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            if (rs.next()) {
+                Long maxPosition = rs.getLong(1);
+                if (rs.wasNull()) {
+                    return null;
+                }
+                
+                // Get last processed position from progress tracker
+                long lastPosition = progressTracker.getLastPosition(processorId);
+                
+                return maxPosition - lastPosition;
+            }
+            
             return null;
+        } catch (SQLException e) {
+            log.error("Failed to calculate lag for processor: {}", processorId, e);
+            throw new RuntimeException("Failed to calculate lag for processor: " + processorId, e);
         }
-        
-        // Get last processed position from progress tracker
-        long lastPosition = progressTracker.getLastPosition(processorId);
-        
-        return maxPosition - lastPosition;
     }
     
     @Override

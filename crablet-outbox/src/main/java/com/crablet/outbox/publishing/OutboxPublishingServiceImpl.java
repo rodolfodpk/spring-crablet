@@ -6,7 +6,7 @@ import com.crablet.outbox.PublishException;
 import com.crablet.outbox.TopicConfig;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.eventstore.clock.ClockProvider;
-import com.crablet.outbox.InstanceIdProvider;
+import com.crablet.eventprocessor.InstanceIdProvider;
 import com.crablet.outbox.metrics.EventsPublishedMetric;
 import com.crablet.outbox.metrics.OutboxErrorMetric;
 import com.crablet.outbox.metrics.PublishingDurationMetric;
@@ -357,21 +357,23 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
         List<String> conditions = new ArrayList<>();
         
         // Required tags: ALL must be present
+        // Tags are stored as "key=value" format (not "key:value")
         for (String tag : requiredTags) {
-            conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE '" + tag + ":%')");
+            conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE '" + tag + "=%')");
         }
         
         // AnyOf tags: at least ONE must be present
         if (!anyOfTags.isEmpty()) {
             String anyOfCondition = anyOfTags.stream()
-                .map(tag -> "t LIKE '" + tag + ":%'")
+                .map(tag -> "t LIKE '" + tag + "=%'")
                 .collect(java.util.stream.Collectors.joining(" OR "));
             conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE " + anyOfCondition + ")");
         }
         
         // Exact matches
+        // Tags are stored as "key=value" format (not "key:value")
         for (var entry : exactTags.entrySet()) {
-            conditions.add("'" + entry.getKey() + ":" + entry.getValue() + "' = ANY(tags)");
+            conditions.add("'" + entry.getKey() + "=" + entry.getValue() + "' = ANY(tags)");
         }
         
         return String.join(" AND ", conditions);
@@ -386,11 +388,11 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
         List<com.crablet.eventstore.store.Tag> tags = new ArrayList<>();
         
         for (String tagStr : tagStrings) {
-            // Format: "key:value"
-            int colonIndex = tagStr.indexOf(':');
-            if (colonIndex > 0) {
-                String key = tagStr.substring(0, colonIndex);
-                String value = tagStr.substring(colonIndex + 1);
+            // Format: "key=value" (tags are stored with equals sign, not colon)
+            int equalsIndex = tagStr.indexOf('=');
+            if (equalsIndex > 0) {
+                String key = tagStr.substring(0, equalsIndex);
+                String value = tagStr.substring(equalsIndex + 1);
                 tags.add(new com.crablet.eventstore.store.Tag(key, value));
             }
         }

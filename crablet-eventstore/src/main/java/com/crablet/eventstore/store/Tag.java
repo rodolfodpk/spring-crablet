@@ -5,6 +5,17 @@ import java.util.List;
 /**
  * Tag represents a key-value pair for event metadata.
  * This is a pure data record with no business logic.
+ * 
+ * <p><strong>Storage Format:</strong>
+ * Tags are stored in PostgreSQL as {@code TEXT[]} with format {@code "key=value"} (using equals sign).
+ * When querying tags in SQL, use patterns like {@code LIKE 'key=%'} or exact matches like {@code 'key=value'}.
+ * 
+ * <p><strong>Example:</strong>
+ * <pre>{@code
+ * Tag tag = new Tag("wallet_id", "wallet-123");
+ * // Stored in database as: "wallet_id=wallet-123"
+ * // Query with: WHERE EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'wallet_id=%')
+ * }</pre>
  */
 public record Tag(String key, String value) {
     /**
