@@ -12,7 +12,9 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.TaskScheduler;
 
 import javax.sql.DataSource;
@@ -75,10 +77,22 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
         this.eventPublisher = eventPublisher;
     }
     
-    @PostConstruct
-    public void initializeSchedulers() {
-        System.out.println("[EventProcessorImpl] @PostConstruct initializeSchedulers() called at " + Instant.now());
-        log.info("[EventProcessorImpl] @PostConstruct initializeSchedulers() called at {}", Instant.now());
+    // Track if schedulers have been initialized
+    private volatile boolean schedulersInitialized = false;
+    
+    /**
+     * Initialize schedulers when application is ready.
+     * This ensures all beans (including Flyway) are fully initialized before schedulers start.
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    public void initializeSchedulersOnReady() {
+        if (schedulersInitialized) {
+            log.debug("[EventProcessorImpl] Schedulers already initialized, skipping");
+            return;
+        }
+        
+        System.out.println("[EventProcessorImpl] ApplicationReadyEvent received, initializing schedulers at " + Instant.now());
+        log.info("[EventProcessorImpl] ApplicationReadyEvent received, initializing schedulers at {}", Instant.now());
         
         // Check if any processor is enabled
         boolean anyEnabled = configs.values().stream()
@@ -86,27 +100,30 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
         
         if (!anyEnabled) {
             log.info("No processors enabled, skipping scheduler initialization");
+            schedulersInitialized = true;
             return;
         }
         
-        // Delay scheduler start to ensure database migrations (Flyway) have completed
-        // This prevents race conditions where schedulers try to access tables before they exist
-        long schedulerStartDelayMs = 2000; // 2 seconds delay
-        log.info("[EventProcessorImpl] Delaying scheduler initialization by {}ms to ensure database migrations complete. Current time: {}", 
-                schedulerStartDelayMs, Instant.now());
-        
-        taskScheduler.schedule(() -> {
-            System.out.println("[EventProcessorImpl] Delay completed, starting scheduler initialization at " + Instant.now());
-            log.info("[EventProcessorImpl] Delay completed, starting scheduler initialization at {}", Instant.now());
-            try {
-                doInitializeSchedulers();
-                System.out.println("[EventProcessorImpl] Scheduler initialization completed successfully at " + Instant.now());
-                log.info("[EventProcessorImpl] Scheduler initialization completed successfully at {}", Instant.now());
-            } catch (Exception e) {
-                System.out.println("[EventProcessorImpl] Failed to initialize schedulers after delay: " + e.getMessage());
-                log.error("[EventProcessorImpl] Failed to initialize schedulers after delay", e);
-            }
-        }, Instant.now().plusMillis(schedulerStartDelayMs));
+        try {
+            doInitializeSchedulers();
+            schedulersInitialized = true;
+            System.out.println("[EventProcessorImpl] Scheduler initialization completed successfully at " + Instant.now());
+            log.info("[EventProcessorImpl] Scheduler initialization completed successfully at {}", Instant.now());
+        } catch (Exception e) {
+            System.out.println("[EventProcessorImpl] Failed to initialize schedulers: " + e.getMessage());
+            log.error("[EventProcessorImpl] Failed to initialize schedulers", e);
+        }
+    }
+    
+    /**
+     * @PostConstruct method kept for backward compatibility and manual initialization.
+     * In normal operation, schedulers are initialized via ApplicationReadyEvent.
+     */
+    @PostConstruct
+    public void initializeSchedulers() {
+        // Do nothing here - wait for ApplicationReadyEvent
+        // This method is kept for backward compatibility and manual start() calls
+        log.debug("[EventProcessorImpl] @PostConstruct called, waiting for ApplicationReadyEvent");
     }
     
     private void doInitializeSchedulers() {
@@ -369,8 +386,11 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     public void start() {
         // Reset shuttingDown flag to allow schedulers to run
         shuttingDown = false;
-        // Already started via @PostConstruct, but can be called to restart
-        initializeSchedulers();
+        // Initialize schedulers if not already done (for manual start calls)
+        if (!schedulersInitialized) {
+            log.info("[EventProcessorImpl] Manual start() called, initializing schedulers");
+            initializeSchedulersOnReady();
+        }
     }
     
     @Override

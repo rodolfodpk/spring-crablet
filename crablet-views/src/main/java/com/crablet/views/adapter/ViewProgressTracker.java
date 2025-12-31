@@ -194,6 +194,15 @@ public class ViewProgressTracker implements ProgressTracker<String> {
             stmt.executeUpdate();
             log.debug("[ViewProgressTracker] Successfully auto-registered view: {}", viewName);
         } catch (SQLException e) {
+            // Handle missing table gracefully (Flyway might not have run yet)
+            // This is a defensive measure to handle timing issues during application startup
+            if (e.getMessage() != null && e.getMessage().contains("relation") && 
+                e.getMessage().contains("does not exist")) {
+                log.debug("[ViewProgressTracker] Table view_progress does not exist yet, skipping auto-register for {}: {}. " +
+                         "Table will be created by Flyway, and auto-register will succeed on next call.", 
+                         viewName, e.getMessage());
+                return; // Silently skip - table will be created by Flyway
+            }
             log.error("[ViewProgressTracker] Failed to auto-register view: {} at {}. Error: {}", 
                      viewName, java.time.Instant.now(), e.getMessage(), e);
             throw new RuntimeException("Failed to auto-register view: " + viewName, e);
