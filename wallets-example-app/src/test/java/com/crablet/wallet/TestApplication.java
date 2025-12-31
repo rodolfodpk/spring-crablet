@@ -79,6 +79,22 @@ public class TestApplication {
         return new ObjectMapper();
     }
     
+    /**
+     * Flyway bean to ensure migrations run before tests.
+     * Migrations run immediately when bean is created.
+     * Uses migrations from src/main/resources/db/migration.
+     */
+    @Bean
+    @org.springframework.context.annotation.DependsOn("primaryDataSource")
+    public org.flywaydb.core.Flyway flyway(@org.springframework.beans.factory.annotation.Qualifier("primaryDataSource") DataSource dataSource) {
+        org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load();
+        flyway.migrate();
+        return flyway;
+    }
+    
     public static void main(String[] args) {
         SpringApplication.run(TestApplication.class, args);
     }

@@ -115,4 +115,19 @@ public class TestApplication {
         return new EventRepositoryImpl(dataSource, config);
     }
     
+    /**
+     * Flyway bean to ensure migrations run before tests.
+     * Migrations run immediately when bean is created.
+     */
+    @Bean
+    @org.springframework.context.annotation.DependsOn("primaryDataSource")
+    public org.flywaydb.core.Flyway flyway(javax.sql.DataSource dataSource) {
+        org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load();
+        flyway.migrate();
+        return flyway;
+    }
+    
 }
