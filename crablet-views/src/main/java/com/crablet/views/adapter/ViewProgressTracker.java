@@ -196,15 +196,28 @@ public class ViewProgressTracker implements ProgressTracker<String> {
         } catch (SQLException e) {
             // Handle missing table gracefully (Flyway might not have run yet)
             // This is a defensive measure to handle timing issues during application startup
-            if (e.getMessage() != null && e.getMessage().contains("relation") && 
-                e.getMessage().contains("does not exist")) {
+            String errorMessage = e.getMessage();
+            String sqlState = e.getSQLState();
+            
+            System.out.println("[ViewProgressTracker] SQLException caught for " + viewName + ": message=" + errorMessage + ", sqlState=" + sqlState);
+            
+            // Check for missing table error (PostgreSQL error code 42P01 or message contains "does not exist")
+            boolean isMissingTableError = (errorMessage != null && 
+                (errorMessage.contains("relation") && errorMessage.contains("does not exist"))) ||
+                "42P01".equals(sqlState); // PostgreSQL error code for "undefined_table"
+            
+            System.out.println("[ViewProgressTracker] isMissingTableError=" + isMissingTableError + " for " + viewName);
+            
+            if (isMissingTableError) {
+                System.out.println("[ViewProgressTracker] Handling missing table gracefully for " + viewName);
                 log.debug("[ViewProgressTracker] Table view_progress does not exist yet, skipping auto-register for {}: {}. " +
                          "Table will be created by Flyway, and auto-register will succeed on next call.", 
-                         viewName, e.getMessage());
+                         viewName, errorMessage);
                 return; // Silently skip - table will be created by Flyway
             }
+            System.out.println("[ViewProgressTracker] Throwing RuntimeException for " + viewName);
             log.error("[ViewProgressTracker] Failed to auto-register view: {} at {}. Error: {}", 
-                     viewName, java.time.Instant.now(), e.getMessage(), e);
+                     viewName, java.time.Instant.now(), errorMessage, e);
             throw new RuntimeException("Failed to auto-register view: " + viewName, e);
         }
     }
