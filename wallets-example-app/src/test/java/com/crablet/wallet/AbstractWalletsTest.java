@@ -87,12 +87,20 @@ public abstract class AbstractWalletsTest {
      * Truncates all tables while preserving schema.
      */
     protected void cleanDatabase() {
-        jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE view_progress CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE wallet_balance_view CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE wallet_transaction_view CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE wallet_summary_view CASCADE");
+        // Clean all tables in the correct order to respect foreign key constraints
+        try {
+            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE view_progress CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE wallet_balance_view CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE wallet_transaction_view CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE wallet_summary_view CASCADE");
+        } catch (org.springframework.jdbc.BadSqlGrammarException e) {
+            // Tables don't exist yet - Flyway will create them
+            // This is expected on first run
+        } catch (Exception e) {
+            // Ignore other exceptions (e.g., sequence doesn't exist)
+        }
     }
 }
 

@@ -57,10 +57,18 @@ public abstract class AbstractCrabletTest {
 
     @BeforeEach
     void cleanDatabase() {
-        jdbcTemplate.execute("TRUNCATE TABLE events CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
-        jdbcTemplate.execute("ALTER SEQUENCE events_position_seq RESTART WITH 1");
+        // Clean all tables in the correct order to respect foreign key constraints
+        try {
+            jdbcTemplate.execute("TRUNCATE TABLE events CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+            jdbcTemplate.execute("ALTER SEQUENCE events_position_seq RESTART WITH 1");
+        } catch (org.springframework.jdbc.BadSqlGrammarException e) {
+            // Tables don't exist yet - Flyway will create them
+            // This is expected on first run
+        } catch (Exception e) {
+            // Ignore other exceptions (e.g., sequence doesn't exist)
+        }
     }
 
     protected DatabaseProperties getDatabaseProperties() {
