@@ -4,7 +4,8 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
@@ -29,7 +30,7 @@ import javax.sql.DataSource;
  * (AWS RDS read replica endpoints, PgBouncer, pgcat, or hardware load balancers).
  */
 @Configuration
-@EnableConfigurationProperties(ReadReplicaProperties.class)
+@EnableConfigurationProperties({ReadReplicaProperties.class, DataSourceConfigProperties.class})
 public class DataSourceConfig {
     
     /**
@@ -40,7 +41,8 @@ public class DataSourceConfig {
      */
     @Bean(name = "primaryDataSource")
     @Primary
-    public DataSource primaryDataSource(DataSourceProperties properties) {
+    @ConditionalOnMissingBean(name = "primaryDataSource")
+    public DataSource primaryDataSource(DataSourceConfigProperties properties) {
         return DataSourceBuilder.create()
             .type(HikariDataSource.class)
             .url(properties.getUrl())
