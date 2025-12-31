@@ -30,7 +30,7 @@ import javax.sql.DataSource;
  * (AWS RDS read replica endpoints, PgBouncer, pgcat, or hardware load balancers).
  */
 @Configuration
-@EnableConfigurationProperties({ReadReplicaProperties.class, DataSourceConfigProperties.class, DataSourcePropertiesShim.class})
+@EnableConfigurationProperties({ReadReplicaProperties.class, DataSourceConfigProperties.class})
 public class DataSourceConfig {
     
     /**
