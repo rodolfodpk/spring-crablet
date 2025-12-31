@@ -1,9 +1,10 @@
 package com.crablet.wallet;
 
+import com.crablet.eventstore.config.DataSourceConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 
 /**
  * Test application context for wallets-example-app integration tests.
@@ -12,6 +13,7 @@ import org.springframework.context.annotation.FilterType;
  * ensuring all beans are properly wired and the application can start.
  */
 @SpringBootApplication
+@Import(DataSourceConfig.class)
 @ComponentScan(
     basePackages = {"com.crablet.wallet", "com.crablet"}
 )
