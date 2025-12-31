@@ -182,15 +182,20 @@ public class ViewProgressTracker implements ProgressTracker<String> {
     
     @Override
     public void autoRegister(String viewName, String instanceId) {
+        log.debug("[ViewProgressTracker] autoRegister() called for view: {} at {}", viewName, java.time.Instant.now());
+        
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(AUTO_REGISTER_SQL)) {
             
+            log.debug("[ViewProgressTracker] Executing auto-register SQL for view: {}", viewName);
             stmt.setString(1, viewName);
             stmt.setString(2, instanceId);
             
             stmt.executeUpdate();
+            log.debug("[ViewProgressTracker] Successfully auto-registered view: {}", viewName);
         } catch (SQLException e) {
-            log.error("Failed to auto-register view: {}", viewName, e);
+            log.error("[ViewProgressTracker] Failed to auto-register view: {} at {}. Error: {}", 
+                     viewName, java.time.Instant.now(), e.getMessage(), e);
             throw new RuntimeException("Failed to auto-register view: " + viewName, e);
         }
     }

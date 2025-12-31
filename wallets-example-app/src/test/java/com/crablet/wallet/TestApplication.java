@@ -87,11 +87,14 @@ public class TestApplication {
     @Bean
     @org.springframework.context.annotation.DependsOn("primaryDataSource")
     public org.flywaydb.core.Flyway flyway(@org.springframework.beans.factory.annotation.Qualifier("primaryDataSource") DataSource dataSource) {
+        System.out.println("[TestApplication] Flyway bean creation started at " + java.time.Instant.now());
         org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
                 .load();
+        System.out.println("[TestApplication] Starting Flyway migration at " + java.time.Instant.now());
         flyway.migrate();
+        System.out.println("[TestApplication] Flyway migration completed at " + java.time.Instant.now());
         return flyway;
     }
     

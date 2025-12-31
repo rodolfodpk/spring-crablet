@@ -17,6 +17,7 @@ import org.springframework.scheduling.TaskScheduler;
 
 import javax.sql.DataSource;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -76,6 +77,9 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     
     @PostConstruct
     public void initializeSchedulers() {
+        System.out.println("[EventProcessorImpl] @PostConstruct initializeSchedulers() called at " + Instant.now());
+        log.info("[EventProcessorImpl] @PostConstruct initializeSchedulers() called at {}", Instant.now());
+        
         // Check if any processor is enabled
         boolean anyEnabled = configs.values().stream()
             .anyMatch(ProcessorConfig::isEnabled);
@@ -84,6 +88,29 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             log.info("No processors enabled, skipping scheduler initialization");
             return;
         }
+        
+        // Delay scheduler start to ensure database migrations (Flyway) have completed
+        // This prevents race conditions where schedulers try to access tables before they exist
+        long schedulerStartDelayMs = 2000; // 2 seconds delay
+        log.info("[EventProcessorImpl] Delaying scheduler initialization by {}ms to ensure database migrations complete. Current time: {}", 
+                schedulerStartDelayMs, Instant.now());
+        
+        taskScheduler.schedule(() -> {
+            System.out.println("[EventProcessorImpl] Delay completed, starting scheduler initialization at " + Instant.now());
+            log.info("[EventProcessorImpl] Delay completed, starting scheduler initialization at {}", Instant.now());
+            try {
+                doInitializeSchedulers();
+                System.out.println("[EventProcessorImpl] Scheduler initialization completed successfully at " + Instant.now());
+                log.info("[EventProcessorImpl] Scheduler initialization completed successfully at {}", Instant.now());
+            } catch (Exception e) {
+                System.out.println("[EventProcessorImpl] Failed to initialize schedulers after delay: " + e.getMessage());
+                log.error("[EventProcessorImpl] Failed to initialize schedulers after delay", e);
+            }
+        }, Instant.now().plusMillis(schedulerStartDelayMs));
+    }
+    
+    private void doInitializeSchedulers() {
+        log.info("[EventProcessorImpl] doInitializeSchedulers() called at {}", Instant.now());
         
         // Try to acquire global leader lock on startup
         leaderElector.tryAcquireGlobalLeader();
@@ -118,13 +145,32 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
                 backoffStates.put(processorId, backoffState);
             }
             
-            ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(
-                () -> scheduledTask(processorId),
-                Duration.ofMillis(pollingInterval)
-            );
+            // Schedule with initial delay to ensure database migrations complete
+            // First schedule a one-time task with delay, then schedule the recurring task
+            long initialDelayMs = 2000; // 2 seconds initial delay
+            System.out.println("[EventProcessorImpl] Scheduling processor " + processorId + " with initial delay " + initialDelayMs + "ms at " + Instant.now());
+            log.info("[EventProcessorImpl] Scheduling processor {} with initial delay {}ms at {}", processorId, initialDelayMs, Instant.now());
             
-            activeSchedulers.put(processorId, future);
-            log.info("Registered scheduler for processor {} with interval {}ms", processorId, pollingInterval);
+            // Schedule first execution with delay, then start recurring schedule
+            ScheduledFuture<?> initialTask = taskScheduler.schedule(() -> {
+                System.out.println("[EventProcessorImpl] First scheduled task executing for " + processorId + " at " + Instant.now());
+                log.debug("[EventProcessorImpl] First scheduled task executing for {} at {}", processorId, Instant.now());
+                scheduledTask(processorId);
+                
+                // After first execution, schedule recurring task
+                ScheduledFuture<?> recurringFuture = taskScheduler.scheduleAtFixedRate(
+                    () -> scheduledTask(processorId),
+                    Duration.ofMillis(pollingInterval)
+                );
+                activeSchedulers.put(processorId, recurringFuture);
+                System.out.println("[EventProcessorImpl] Started recurring scheduler for " + processorId + " with interval " + pollingInterval + "ms");
+                log.info("[EventProcessorImpl] Started recurring scheduler for {} with interval {}ms", processorId, pollingInterval);
+            }, Instant.now().plusMillis(initialDelayMs));
+            
+            // Store the initial task future temporarily (will be replaced by recurring future)
+            activeSchedulers.put(processorId, initialTask);
+            log.info("[EventProcessorImpl] Scheduled processor {} with initial delay {}ms, then interval {}ms", 
+                    processorId, initialDelayMs, pollingInterval);
         }
     }
     
@@ -200,6 +246,8 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     }
     
     private void scheduledTask(I processorId) {
+        log.debug("[EventProcessorImpl] scheduledTask() called for processor: {} at {}", processorId, Instant.now());
+        
         // Skip processing if shutting down
         if (shuttingDown) {
             log.trace("Shutting down, skipping scheduled task for {}", processorId);
@@ -237,7 +285,10 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
         }
         
         try {
+            log.debug("[EventProcessorImpl] Calling process() for processor: {} at {}", processorId, Instant.now());
             int processed = process(processorId);
+            log.debug("[EventProcessorImpl] process() completed for processor: {}, processed: {} events at {}", 
+                     processorId, processed, Instant.now());
             eventPublisher.publishEvent(new ProcessingCycleMetric());
             
             // Update backoff state

@@ -119,8 +119,10 @@ public class ViewsAutoConfiguration {
     
     /**
      * Create EventProcessor bean using generic EventProcessorImpl.
+     * Depends on Flyway to ensure database migrations complete before schedulers start.
      */
     @Bean
+    @org.springframework.context.annotation.DependsOn("flyway")
     public EventProcessor<ViewProcessorConfig, String> viewsEventProcessor(
             Map<String, ViewProcessorConfig> processorConfigs,
             LeaderElector leaderElector,
