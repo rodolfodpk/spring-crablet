@@ -14,15 +14,42 @@ import com.crablet.examples.wallet.projections.WalletBalanceProjector;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.crablet.eventstore", "com.crablet.examples"})
+@EnableConfigurationProperties
+@ComponentScan(
+    basePackages = {"com.crablet.eventstore", "com.crablet.examples"},
+    excludeFilters = @ComponentScan.Filter(
+        type = FilterType.REGEX,
+        pattern = "com\\.crablet\\.eventstore\\.config\\.DataSourceConfig"
+    )
+)
 public class TestApplication {
+    
+    /**
+     * Compatibility bean for Spring Boot 4.0.1 auto-configuration bug.
+     * Provides DataSourceProperties bean that auto-configuration expects.
+     */
+    @Bean
+    @ConfigurationProperties(prefix = "spring.datasource")
+    public org.springframework.boot.autoconfigure.jdbc.DataSourceProperties dataSourceProperties() {
+        return new org.springframework.boot.autoconfigure.jdbc.DataSourceProperties();
+    }
+    
+    /**
+     * ObjectMapper bean for JSON serialization.
+     */
+    @Bean
+    public com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
+        return new com.fasterxml.jackson.databind.ObjectMapper();
+    }
     
     public static void main(String[] args) {
         SpringApplication.run(TestApplication.class, args);
