@@ -100,6 +100,13 @@
             <artifactId>yavi</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Shared Examples Domain (for framework tests using wallet/course examples) -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>shared-examples-domain</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>

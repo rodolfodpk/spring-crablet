@@ -70,7 +70,7 @@ public class ViewsAutoConfiguration {
     @Bean
     public EventFetcher<String> viewEventFetcher(
             @Qualifier("readDataSource") DataSource readDataSource,
-            Map<String, ViewSubscriptionConfig> subscriptions) {
+            @Qualifier("viewSubscriptions") Map<String, ViewSubscriptionConfig> subscriptions) {
         return new ViewEventFetcher(readDataSource, subscriptions);
     }
     
@@ -102,7 +102,7 @@ public class ViewsAutoConfiguration {
     @Bean
     public Map<String, ViewProcessorConfig> viewProcessorConfigs(
             ViewsConfig viewsConfig,
-            Map<String, ViewSubscriptionConfig> subscriptions) {
+            @Qualifier("viewSubscriptions") Map<String, ViewSubscriptionConfig> subscriptions) {
         return ViewProcessorConfig.createConfigMap(viewsConfig, subscriptions);
     }
     
@@ -126,7 +126,7 @@ public class ViewsAutoConfiguration {
             LeaderElector leaderElector,
             ProgressTracker<String> progressTracker,
             EventFetcher<String> eventFetcher,
-            EventHandler<String> eventHandler,
+            @Qualifier("viewEventHandler") EventHandler<String> eventHandler,
             @Qualifier("primaryDataSource") DataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher) {

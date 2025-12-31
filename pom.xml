@@ -18,10 +18,10 @@
         <module>crablet-event-processor</module>
         <module>crablet-views</module>
         <module>crablet-metrics-micrometer</module>
-        <!-- Removed application modules - library only -->
-        <!-- <module>shared-wallet-domain</module> -->
-        <!-- <module>wallet-eventstore-service</module> -->
-        <!-- <module>wallet-outbox-service</module> -->
+        <module>wallets-example-app</module>
+        <!-- shared-examples-domain excluded from reactor to avoid cycle -->
+        <!-- Build separately: cd shared-examples-domain && ../mvnw install -->
+        <!-- <module>shared-examples-domain</module> -->
     </modules>
     
     <properties>
@@ -101,10 +101,10 @@
                 <version>${project.version}</version>
             </dependency>
             
-            <!-- Shared Wallet Domain -->
+            <!-- Shared Examples Domain -->
             <dependency>
                 <groupId>com.crablet</groupId>
-                <artifactId>shared-wallet-domain</artifactId>
+                <artifactId>shared-examples-domain</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
@@ -282,11 +282,17 @@
                                         <include>jacoco.exec</include>
                                     </includes>
                                 </fileSet>
+                                <fileSet>
+                                    <directory>${project.basedir}/crablet-views/target</directory>
+                                    <includes>
+                                        <include>jacoco.exec</include>
+                                    </includes>
+                                </fileSet>
                             </fileSets>
                             <destFile>${project.build.directory}/jacoco-merged.exec</destFile>
                         </configuration>
                     </execution>
-                    <!-- Generate aggregate report -->
+                    <!-- Generate aggregate report - report-aggregate automatically finds reports from child modules -->
                     <execution>
                         <id>report-aggregate</id>
                         <phase>verify</phase>
@@ -294,7 +300,6 @@
                             <goal>report-aggregate</goal>
                         </goals>
                         <configuration>
-                            <dataFile>${project.build.directory}/jacoco-merged.exec</dataFile>
                             <outputDirectory>${project.build.directory}/site/jacoco-aggregate</outputDirectory>
                         </configuration>
                     </execution>

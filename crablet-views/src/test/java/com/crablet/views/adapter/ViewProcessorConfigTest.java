@@ -214,8 +214,8 @@ class ViewProcessorConfigTest {
         subscriptions.put("wallet-view", ViewSubscriptionConfig.builder("wallet-view")
                 .eventTypes("WalletOpened")
                 .build());
-        subscriptions.put("order-view", ViewSubscriptionConfig.builder("order-view")
-                .eventTypes("OrderCreated")
+        subscriptions.put("wallet-balance-view", ViewSubscriptionConfig.builder("wallet-balance-view")
+                .eventTypes("DepositMade", "WithdrawalMade")
                 .build());
 
         // When
@@ -224,8 +224,8 @@ class ViewProcessorConfigTest {
         // Then
         assertThat(configs.get("wallet-view").getSubscriptionConfig().getEventTypes())
                 .containsExactly("WalletOpened");
-        assertThat(configs.get("order-view").getSubscriptionConfig().getEventTypes())
-                .containsExactly("OrderCreated");
+        assertThat(configs.get("wallet-balance-view").getSubscriptionConfig().getEventTypes())
+                .containsExactlyInAnyOrder("DepositMade", "WithdrawalMade");
     }
 
     @Test

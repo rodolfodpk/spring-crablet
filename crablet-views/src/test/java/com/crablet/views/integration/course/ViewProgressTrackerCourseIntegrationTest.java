@@ -1,7 +1,8 @@
-package com.crablet.views.integration;
+package com.crablet.views.integration.course;
 
 import com.crablet.eventprocessor.progress.ProcessorStatus;
 import com.crablet.views.adapter.ViewProgressTracker;
+import com.crablet.views.integration.AbstractViewsTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,11 +11,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.sql.DataSource;
 
@@ -24,17 +20,9 @@ import static org.assertj.core.api.Assertions.*;
  * Integration tests for ViewProgressTracker.
  * Tests database persistence, status tracking, and error handling with real PostgreSQL.
  */
-@SpringBootTest(classes = ViewProgressTrackerIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Testcontainers
-@DisplayName("ViewProgressTracker Integration Tests")
-class ViewProgressTrackerIntegrationTest {
-
-    @Container
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17")
-            .withDatabaseName("postgres")
-            .withUsername("postgres")
-            .withPassword("postgres")
-            .withReuse(true);
+@SpringBootTest(classes = ViewProgressTrackerCourseIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@DisplayName("ViewProgressTracker Course Domain Integration Tests")
+class ViewProgressTrackerCourseIntegrationTest extends AbstractViewsTest {
 
     @Autowired
     private DataSource dataSource;
@@ -44,34 +32,10 @@ class ViewProgressTrackerIntegrationTest {
 
     private ViewProgressTracker progressTracker;
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.flyway.enabled", () -> true);
-    }
-
     @BeforeEach
     void setUp() {
-        // Create table if it doesn't exist (Flyway might not have run yet)
-        jdbcTemplate.execute("""
-            CREATE TABLE IF NOT EXISTS view_progress (
-                view_name VARCHAR(255) PRIMARY KEY,
-                instance_id VARCHAR(255),
-                status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
-                last_position BIGINT NOT NULL DEFAULT 0,
-                error_count INTEGER NOT NULL DEFAULT 0,
-                last_error TEXT,
-                last_error_at TIMESTAMP WITH TIME ZONE,
-                last_updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-            )
-            """);
-        
+        cleanDatabase(jdbcTemplate);
         progressTracker = new ViewProgressTracker(dataSource);
-        // Clean view_progress table before each test
-        jdbcTemplate.execute("DELETE FROM view_progress");
     }
 
     @Test
@@ -88,7 +52,7 @@ class ViewProgressTrackerIntegrationTest {
     @DisplayName("Should update progress and persist position")
     void shouldUpdateProgress_AndPersistPosition() {
         // Given
-        String viewName = "wallet-view";
+        String viewName = "course-view";
         long position = 100L;
 
         // When
@@ -103,7 +67,7 @@ class ViewProgressTrackerIntegrationTest {
     @DisplayName("Should update existing progress with ON CONFLICT")
     void shouldUpdateExistingProgress_WithOnConflict() {
         // Given
-        String viewName = "wallet-view";
+        String viewName = "course-view";
         progressTracker.updateProgress(viewName, 50L);
 
         // When - Update to new position
@@ -117,7 +81,7 @@ class ViewProgressTrackerIntegrationTest {
     @DisplayName("Should record error and increment error count")
     void shouldRecordError_AndIncrementErrorCount() {
         // Given
-        String viewName = "wallet-view";
+        String viewName = "course-view";
         progressTracker.autoRegister(viewName, "instance-1");
         int maxErrors = 5;
 
@@ -135,7 +99,7 @@ class ViewProgressTrackerIntegrationTest {
     @DisplayName("Should set status to FAILED when error count exceeds threshold")
     void shouldSetStatusToFailed_WhenErrorCountExceedsThreshold() {
         // Given
-        String viewName = "wallet-view";
+        String viewName = "course-view";
         progressTracker.autoRegister(viewName, "instance-1");
         int maxErrors = 2;
 
@@ -152,7 +116,7 @@ class ViewProgressTrackerIntegrationTest {
     @DisplayName("Should reset error count and set status to ACTIVE")
     void shouldResetErrorCount_AndSetStatusToActive() {
         // Given
-        String viewName = "wallet-view";
+        String viewName = "course-view";
         progressTracker.autoRegister(viewName, "instance-1");
         progressTracker.recordError(viewName, "Error", 2);
         progressTracker.setStatus(viewName, ProcessorStatus.FAILED);
@@ -179,7 +143,7 @@ class ViewProgressTrackerIntegrationTest {
     @DisplayName("Should set status correctly")
     void shouldSetStatus_Correctly() {
         // Given
-        String viewName = "wallet-view";
+        String viewName = "course-view";
         progressTracker.autoRegister(viewName, "instance-1");
 
         // When
@@ -193,7 +157,7 @@ class ViewProgressTrackerIntegrationTest {
     @DisplayName("Should auto-register view with instance ID")
     void shouldAutoRegisterView_WithInstanceId() {
         // Given
-        String viewName = "wallet-view";
+        String viewName = "course-view";
         String instanceId = "instance-123";
 
         // When
@@ -208,7 +172,7 @@ class ViewProgressTrackerIntegrationTest {
     @DisplayName("Should handle duplicate auto-registration with ON CONFLICT DO NOTHING")
     void shouldHandleDuplicateAutoRegistration_WithOnConflictDoNothing() {
         // Given
-        String viewName = "wallet-view";
+        String viewName = "course-view";
         String instanceId = "instance-123";
         progressTracker.autoRegister(viewName, instanceId);
         progressTracker.updateProgress(viewName, 100L);
@@ -224,7 +188,7 @@ class ViewProgressTrackerIntegrationTest {
     @DisplayName("Should handle concurrent updates")
     void shouldHandleConcurrentUpdates() throws InterruptedException {
         // Given
-        String viewName = "wallet-view";
+        String viewName = "course-view";
         progressTracker.autoRegister(viewName, "instance-1");
 
         // When - Simulate concurrent updates
@@ -245,15 +209,19 @@ class ViewProgressTrackerIntegrationTest {
         t2.join();
 
         // Then - Last write should win (database handles concurrency)
+        // Position should be from either thread's final range (100-109 or 200-209)
         long position = progressTracker.getLastPosition(viewName);
-        assertThat(position).isGreaterThanOrEqualTo(200L);
+        assertThat(position)
+            .as("Position should be from thread 1 (100-109) or thread 2 (200-209) range")
+            .isIn(java.util.List.of(100L, 101L, 102L, 103L, 104L, 105L, 106L, 107L, 108L, 109L,
+                                     200L, 201L, 202L, 203L, 204L, 205L, 206L, 207L, 208L, 209L));
     }
 
     @Test
     @DisplayName("Should handle all status values")
     void shouldHandleAllStatusValues() {
         // Given
-        String viewName = "wallet-view";
+        String viewName = "course-view";
         progressTracker.autoRegister(viewName, "instance-1");
 
         // When & Then
@@ -274,9 +242,9 @@ class ViewProgressTrackerIntegrationTest {
             org.springframework.jdbc.datasource.SimpleDriverDataSource dataSource =
                     new org.springframework.jdbc.datasource.SimpleDriverDataSource();
             dataSource.setDriverClass(org.postgresql.Driver.class);
-            dataSource.setUrl(postgres.getJdbcUrl());
-            dataSource.setUsername(postgres.getUsername());
-            dataSource.setPassword(postgres.getPassword());
+            dataSource.setUrl(AbstractViewsTest.postgres.getJdbcUrl());
+            dataSource.setUsername(AbstractViewsTest.postgres.getUsername());
+            dataSource.setPassword(AbstractViewsTest.postgres.getPassword());
             return dataSource;
         }
 

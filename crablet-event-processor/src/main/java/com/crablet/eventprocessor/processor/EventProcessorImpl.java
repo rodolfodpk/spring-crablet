@@ -52,6 +52,9 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     private static final long LEADER_RETRY_COOLDOWN_MS = 5000;
     private volatile long lastLeaderRetryTimestamp = 0;
     
+    // Shutdown flag to prevent processing during shutdown
+    private volatile boolean shuttingDown = false;
+    
     public EventProcessorImpl(
             Map<I, T> configs,
             LeaderElector leaderElector,
@@ -127,6 +130,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     
     @PreDestroy
     public void shutdownSchedulers() {
+        shuttingDown = true;
         log.info("Shutting down {} active schedulers", activeSchedulers.size());
         activeSchedulers.values().forEach(future -> {
             if (future != null) {
@@ -146,7 +150,46 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
         leaderElector.releaseGlobalLeader();
     }
     
+    /**
+     * Checks if an exception is a connection error that occurs during database shutdown.
+     * These are expected during test shutdown when Testcontainers stops the database.
+     */
+    private boolean isShutdownConnectionError(Exception e) {
+        // Check for EOFException (connection closed)
+        if (e.getCause() instanceof java.io.EOFException) {
+            return true;
+        }
+        
+        // Check for PostgreSQL-specific shutdown errors
+        String message = e.getMessage();
+        if (message != null) {
+            String lowerMessage = message.toLowerCase();
+            return lowerMessage.contains("i/o error") ||
+                   lowerMessage.contains("connection has been closed") ||
+                   lowerMessage.contains("terminating connection") ||
+                   lowerMessage.contains("unexpected postmaster exit") ||
+                   lowerMessage.contains("this connection has been closed");
+        }
+        
+        // Check for SQLState codes that indicate connection shutdown
+        if (e instanceof java.sql.SQLException) {
+            String sqlState = ((java.sql.SQLException) e).getSQLState();
+            // 57P01 = terminating connection due to administrator command
+            // 08006 = connection failure
+            if ("57P01".equals(sqlState) || "08006".equals(sqlState)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
     private void leaderRetryTask() {
+        // Skip if shutting down
+        if (shuttingDown) {
+            return;
+        }
+        
         // If not leader, attempt to acquire lock
         if (!leaderElector.isGlobalLeader()) {
             boolean acquired = leaderElector.tryAcquireGlobalLeader();
@@ -157,6 +200,12 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     }
     
     private void scheduledTask(I processorId) {
+        // Skip processing if shutting down
+        if (shuttingDown) {
+            log.trace("Shutting down, skipping scheduled task for {}", processorId);
+            return;
+        }
+        
         T config = configs.get(processorId);
         if (config == null || !config.isEnabled()) {
             return;
@@ -203,7 +252,17 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
                 log.debug("Processed {} events for {}", processed, processorId);
             }
         } catch (Exception e) {
-            log.error("Error in scheduler for {}", processorId, e);
+            // During shutdown, connection errors are expected - suppress or log at trace level
+            if (isShutdownConnectionError(e)) {
+                if (shuttingDown) {
+                    log.trace("Connection error during shutdown for {} (expected): {}", processorId, e.getMessage());
+                } else {
+                    // Database might be shutting down (e.g., in tests) even if we haven't set shuttingDown yet
+                    log.debug("Connection error during database shutdown for {} (expected): {}", processorId, e.getMessage());
+                }
+            } else {
+                log.error("Error in scheduler for {}", processorId, e);
+            }
             eventPublisher.publishEvent(new ProcessingCycleMetric());
             // Don't update backoff on errors - let it retry normally
         }
@@ -211,6 +270,9 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     
     @Override
     public int process(I processorId) {
+        // Note: Manual process() calls should work even during shutdown
+        // The shuttingDown flag only prevents scheduled tasks from running
+        
         T config = configs.get(processorId);
         if (config == null) {
             throw new IllegalArgumentException("Processor not found: " + processorId);
@@ -254,6 +316,8 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     
     @Override
     public void start() {
+        // Reset shuttingDown flag to allow schedulers to run
+        shuttingDown = false;
         // Already started via @PostConstruct, but can be called to restart
         initializeSchedulers();
     }

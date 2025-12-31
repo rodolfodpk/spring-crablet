@@ -72,6 +72,9 @@ public class ViewProcessorConfig implements ProcessorConfig<String> {
     
     /**
      * Create a map of all view names to their ProcessorConfig instances.
+     * <p>
+     * Uses subscription.getViewName() as the key to ensure consistency,
+     * regardless of how the subscriptions map is keyed (bean names vs view names).
      */
     public static Map<String, ViewProcessorConfig> createConfigMap(
             ViewsConfig viewsConfig,
@@ -79,9 +82,10 @@ public class ViewProcessorConfig implements ProcessorConfig<String> {
         
         Map<String, ViewProcessorConfig> configs = new HashMap<>();
         
-        for (var entry : subscriptions.entrySet()) {
-            String viewName = entry.getKey();
-            ViewSubscriptionConfig subscriptionConfig = entry.getValue();
+        for (ViewSubscriptionConfig subscriptionConfig : subscriptions.values()) {
+            // Always use view name from subscription, not the map key
+            // This ensures consistency even if Spring auto-wires Map with bean names as keys
+            String viewName = subscriptionConfig.getViewName();
             
             ViewProcessorConfig config = new ViewProcessorConfig(
                 viewName, viewsConfig, subscriptionConfig);

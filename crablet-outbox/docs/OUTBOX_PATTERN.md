@@ -79,33 +79,17 @@ crablet.outbox.topics.payment-events.publishers=AnalyticsPublisher
 
 ## Leader Election
 
-The outbox system uses **PostgreSQL advisory locks** for leader election via the `OutboxLeaderElector` component, ensuring only one instance processes each publisher at a time.
+The outbox system uses **PostgreSQL advisory locks** for leader election, ensuring only one instance processes each publisher at a time.
 
-### Architecture
+### Overview
 
-- **OutboxLeaderElector**: Manages advisory locks, heartbeats, and leader election state
-- **OutboxProcessorImpl**: Delegates leadership decisions to elector, focuses on event processing
-- **OutboxMetrics**: Tracks leadership state and failover events
-
-The `OutboxLeaderElector` is a package-private Spring component that encapsulates all leader election logic:
-- Advisory lock acquisition and release
-- Heartbeat management for owned pairs
-- Stale leader detection
-- Lock state tracking (`isGlobalLeader`, `ownedPairs`)
-
-This separation allows `OutboxProcessorImpl` to focus solely on event processing and per-publisher scheduling while the elector handles distributed coordination.
-
-### Leader Election
-
-#### Global Lock Strategy
-```sql
--- Single advisory lock for all publishers
-SELECT pg_try_advisory_lock(4856221667890123456);
-```
-- **One leader** processes all publishers across all topics
+- **Global lock strategy**: Single advisory lock for all publishers across all topics
+- **One leader**: Processes all publishers across all topics
 - **Automatic failover**: If leader crashes, locks are released and another instance takes over
 - **No configuration needed**: Leader election is transparent
 - **Position tracking**: Each (topic, publisher) pair tracks its progress independently
+
+For complete leader election documentation including how crashes are detected, how new leaders are elected, failover timing, and deployment recommendations, see [Leader Election Guide](../../LEADER_ELECTION.md).
 
 ### Per-Publisher Schedulers
 
@@ -312,30 +296,36 @@ Events may be published multiple times in the following scenarios:
 
 ## Deployment Architecture
 
-### Recommended Deployment: 2 Instances
+### Recommended Deployment
 
-**Always run exactly 2 instances for optimal balance of performance and reliability:**
+**Single Instance (1 replica):**
+- Works fine in Kubernetes (auto-restart on crash)
+- Brief downtime during pod restart (typically a few seconds to a minute)
+- Suitable for development, staging, or production with acceptable restart downtime
 
+**Multi-Instance (2+ replicas) - Recommended for Production:**
 - **1 primary instance** (leader): Processes all publishers
-- **1 backup instance** (follower): Ready for automatic failover
-- **Purpose of backup**: High availability failover, not load sharing
+- **1+ backup instances** (followers): Ready for automatic failover
+- **Purpose of backup**: Zero-downtime failover, not load sharing
+- **Failover time**: 5-30 seconds (follower takes over immediately)
 
-**Why exactly 2 instances?**
+**Why 2+ instances for production?**
 
-✅ **Reliability**: Automatic failover without single point of failure  
+✅ **Zero-downtime failover**: Follower takes over within 5-30 seconds  
+✅ **Reliability**: No single point of failure  
 ✅ **Simplicity**: No complex quorum or coordination needed  
-✅ **Resource efficiency**: Backup instance uses minimal resources when idle  
+✅ **Resource efficiency**: Backup instances use minimal resources when idle  
 ✅ **Performance**: Leader processes efficiently with dedicated resources  
 
 **Trade-offs:**
 
-| Aspect | 2 Instances | 3+ Instances |
-|--------|-------------|--------------|
-| **Leader processing** | ✅ Sufficient capacity | ⚠️ Wasted capacity (only 1 works) |
-| **Failover speed** | ✅ Fast (immediate) | ✅ Also fast |
-| **Complexity** | ✅ Simple | ⚠️ Unnecessarily complex |
-| **Resource usage** | ✅ Efficient | ⚠️ Wasted resources |
-| **Cost** | ✅ Optimal | ⚠️ Higher (unused instances) |
+| Aspect | 1 Instance | 2 Instances | 3+ Instances |
+|--------|------------|-------------|--------------|
+| **Failover downtime** | ⚠️ Brief (pod restart) | ✅ Zero (5-30s) | ✅ Zero (5-30s) |
+| **Leader processing** | ✅ Sufficient | ✅ Sufficient | ✅ Sufficient |
+| **Complexity** | ✅ Simplest | ✅ Simple | ⚠️ Unnecessarily complex |
+| **Resource usage** | ✅ Most efficient | ✅ Efficient | ⚠️ Wasted resources |
+| **Cost** | ✅ Lowest | ✅ Optimal | ⚠️ Higher (unused instances) |
 
 ### Leader Election
 
@@ -494,8 +484,8 @@ Failure scenario: Instance A crashes
 1. **PostgreSQL Automatic Lock Release**: When Instance A crashes, PostgreSQL detects the connection loss and automatically releases all advisory locks held by that connection (including the global outbox lock)
 
 2. **Follower Periodic Retry**: Instance B (follower) periodically attempts to acquire the lock using two mechanisms:
-   - **Dedicated scheduler**: Retries at configurable interval (default: 30s), independent from publisher schedulers
-   - **Publisher scheduler retry**: Each publisher scheduler also retries when not leader, with a cooldown period (default: 5s) to prevent redundant lock acquisition attempts
+   - **Dedicated scheduler**: Retries every 30 seconds (default, hardcoded), independent from publisher schedulers
+   - **Publisher scheduler retry**: Each publisher scheduler also retries when not leader, with a cooldown period (5 seconds, hardcoded) to prevent redundant lock acquisition attempts
 
 3. **Cooldown Mechanism**: To prevent multiple publisher schedulers from simultaneously attempting lock acquisition:
    - Each `scheduledTask()` checks if cooldown period has elapsed (5 seconds)
@@ -518,9 +508,11 @@ Failure scenario: Instance A crashes
 6. **Timing**: 
    - Lock release: Immediate (PostgreSQL detects connection drop)
    - Detection: Multiple retry points:
-     - Dedicated scheduler: Within configured interval (default: 30 seconds)
-     - Publisher schedulers: Within cooldown period (default: 5 seconds) when they run
+     - Dedicated scheduler: Within 30 seconds (default interval)
+     - Publisher schedulers: Within 5 seconds (cooldown period) when they run
    - Failover time: Typically within 5-30 seconds depending on which scheduler detects first
+
+For complete details on crash detection, failover mechanism, and deployment patterns, see [Leader Election Guide](../../LEADER_ELECTION.md).
 
 Configuration (same for both instances):
 crablet.outbox.enabled=true

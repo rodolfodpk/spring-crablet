@@ -20,6 +20,15 @@
             <artifactId>crablet-eventstore</artifactId>
         </dependency>
         
+        <!-- Crablet Event Store (test-jar) for test resources (Flyway migrations) -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-eventstore</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        
         <!-- Crablet Event Processor -->
         <dependency>
             <groupId>com.crablet</groupId>

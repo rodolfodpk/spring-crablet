@@ -3,6 +3,7 @@ package com.crablet.eventprocessor.processor;
 import com.crablet.eventprocessor.EventFetcher;
 import com.crablet.eventprocessor.EventHandler;
 import com.crablet.eventprocessor.backoff.BackoffState;
+import com.crablet.eventprocessor.integration.AbstractEventProcessorTest;
 import com.crablet.eventprocessor.leader.LeaderElector;
 import com.crablet.eventprocessor.leader.LeaderElectorImpl;
 import com.crablet.eventprocessor.progress.ProgressTracker;
@@ -23,11 +24,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.sql.DataSource;
 import java.util.ArrayList;
@@ -43,16 +39,8 @@ import static org.assertj.core.api.Assertions.*;
  * Tests core processing logic, progress tracking, status handling, and error management with real database.
  */
 @SpringBootTest(classes = EventProcessorImplIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Testcontainers
 @DisplayName("EventProcessorImpl Integration Tests")
-class EventProcessorImplIntegrationTest {
-
-    @Container
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17")
-            .withDatabaseName("postgres")
-            .withUsername("postgres")
-            .withPassword("postgres")
-            .withReuse(true);
+class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
 
     @Autowired
     private EventProcessor<TestProcessorConfig, String> eventProcessor;
@@ -72,31 +60,13 @@ class EventProcessorImplIntegrationTest {
     @Autowired
     private TestEventHandler eventHandler;
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.flyway.enabled", () -> true);
-    }
-
     @BeforeEach
     void setUp() {
         // Stop any running schedulers to prevent background processing
         eventProcessor.stop();
         
         // Clean database to ensure test isolation
-        try {
-            // TRUNCATE with RESTART IDENTITY resets sequences in PostgreSQL
-            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
-        } catch (org.springframework.jdbc.BadSqlGrammarException e) {
-            // Tables don't exist yet - Flyway will create them
-            // This is expected on first run
-        } catch (Exception e) {
-            // Ignore other exceptions (e.g., sequence doesn't exist)
-        }
+        cleanDatabase(jdbcTemplate);
         
         // Reset handler state
         eventHandler.reset();
@@ -569,9 +539,9 @@ class EventProcessorImplIntegrationTest {
             org.springframework.jdbc.datasource.SimpleDriverDataSource dataSource =
                     new org.springframework.jdbc.datasource.SimpleDriverDataSource();
             dataSource.setDriverClass(org.postgresql.Driver.class);
-            dataSource.setUrl(EventProcessorImplIntegrationTest.postgres.getJdbcUrl());
-            dataSource.setUsername(EventProcessorImplIntegrationTest.postgres.getUsername());
-            dataSource.setPassword(EventProcessorImplIntegrationTest.postgres.getPassword());
+            dataSource.setUrl(AbstractEventProcessorTest.postgres.getJdbcUrl());
+            dataSource.setUsername(AbstractEventProcessorTest.postgres.getUsername());
+            dataSource.setPassword(AbstractEventProcessorTest.postgres.getPassword());
             return dataSource;
         }
 

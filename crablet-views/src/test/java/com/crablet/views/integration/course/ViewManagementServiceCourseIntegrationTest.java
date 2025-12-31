@@ -1,9 +1,10 @@
-package com.crablet.views.integration;
+package com.crablet.views.integration.course;
 
 import com.crablet.eventprocessor.management.ProcessorManagementService;
 import com.crablet.eventprocessor.progress.ProcessorStatus;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.views.config.ViewsAutoConfiguration;
+import com.crablet.views.integration.AbstractViewsTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,9 +21,6 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.sql.DataSource;
 
@@ -32,17 +30,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Integration tests for view management service.
  * Tests ProcessorManagementService<String> operations with real database and Spring context.
  */
-@SpringBootTest(classes = ViewManagementServiceIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Testcontainers
-@DisplayName("View Management Service Integration Tests")
-class ViewManagementServiceIntegrationTest {
-
-    @Container
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17")
-            .withDatabaseName("postgres")
-            .withUsername("postgres")
-            .withPassword("postgres")
-            .withReuse(true);
+@SpringBootTest(classes = ViewManagementServiceCourseIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@DisplayName("View Management Service Course Domain Integration Tests")
+class ViewManagementServiceCourseIntegrationTest extends AbstractViewsTest {
 
     @Autowired
     private ProcessorManagementService<String> managementService;
@@ -51,42 +41,21 @@ class ViewManagementServiceIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.flyway.enabled", () -> true);
+    static void configureAdditionalProperties(DynamicPropertyRegistry registry) {
         registry.add("crablet.views.enabled", () -> "true");
     }
 
     @BeforeEach
     void setUp() {
-        // Create view_progress table if needed
-        jdbcTemplate.execute("""
-            CREATE TABLE IF NOT EXISTS view_progress (
-                view_name VARCHAR(255) PRIMARY KEY,
-                instance_id VARCHAR(255),
-                status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
-                last_position BIGINT NOT NULL DEFAULT 0,
-                error_count INTEGER NOT NULL DEFAULT 0,
-                last_error TEXT,
-                last_error_at TIMESTAMP WITH TIME ZONE,
-                last_updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-            )
-            """);
-        
-        // Clean up before each test
-        jdbcTemplate.execute("DELETE FROM view_progress");
+        cleanDatabase(jdbcTemplate);
     }
 
     @Test
     @DisplayName("Should get view status")
     void shouldGetViewStatus() {
         // Given - View is configured in subscription
-        // Note: The processor ID is currently the bean name "testViewSubscription"
-        // This should ideally be the view name "test-view", but using actual behavior for now
-        String processorId = "testViewSubscription";
+        // Processor ID is the view name from the subscription
+        String processorId = "course-view";
         
         // When
         ProcessorStatus status = managementService.getStatus(processorId);
@@ -100,8 +69,8 @@ class ViewManagementServiceIntegrationTest {
     @DisplayName("Should pause and resume view")
     void shouldPauseAndResumeView() {
         // Given - View is configured in subscription
-        // Note: The processor ID is currently the bean name "testViewSubscription"
-        String processorId = "testViewSubscription";
+        // Processor ID is the view name from the subscription
+        String processorId = "course-view";
         
         // Verify processor exists in the configs (getAllStatuses uses configs.keySet())
         var allStatuses = managementService.getAllStatuses();
@@ -125,8 +94,8 @@ class ViewManagementServiceIntegrationTest {
     @DisplayName("Should reset view")
     void shouldResetView() {
         // Given - View is configured in subscription
-        // Note: The processor ID is currently the bean name "testViewSubscription"
-        String processorId = "testViewSubscription";
+        // Processor ID is the view name from the subscription
+        String processorId = "course-view";
         
         // Verify processor exists in the configs (getAllStatuses uses configs.keySet())
         var allStatuses = managementService.getAllStatuses();
@@ -145,8 +114,8 @@ class ViewManagementServiceIntegrationTest {
     @DisplayName("Should get view lag")
     void shouldGetViewLag() {
         // Given - View is configured in subscription
-        // Note: The processor ID is currently the bean name "testViewSubscription"
-        String processorId = "testViewSubscription";
+        // Processor ID is the view name from the subscription
+        String processorId = "course-view";
         
         // When
         Long lag = managementService.getLag(processorId);
@@ -178,9 +147,9 @@ class ViewManagementServiceIntegrationTest {
         var statuses = managementService.getAllStatuses();
         
         // Then - Should contain the configured view
-        // Note: Currently using bean name as processor ID, should ideally be view name
+        // Processor ID is the view name from the subscription
         assertThat(statuses).isNotEmpty();
-        assertThat(statuses).containsKey("testViewSubscription");
+        assertThat(statuses).containsKey("course-view");
     }
 
     @Configuration
@@ -191,9 +160,9 @@ class ViewManagementServiceIntegrationTest {
             org.springframework.jdbc.datasource.SimpleDriverDataSource dataSource =
                     new org.springframework.jdbc.datasource.SimpleDriverDataSource();
             dataSource.setDriverClass(org.postgresql.Driver.class);
-            dataSource.setUrl(postgres.getJdbcUrl());
-            dataSource.setUsername(postgres.getUsername());
-            dataSource.setPassword(postgres.getPassword());
+            dataSource.setUrl(AbstractViewsTest.postgres.getJdbcUrl());
+            dataSource.setUsername(AbstractViewsTest.postgres.getUsername());
+            dataSource.setPassword(AbstractViewsTest.postgres.getPassword());
             return dataSource;
         }
 
@@ -273,8 +242,9 @@ class ViewManagementServiceIntegrationTest {
 
         @Bean
         public com.crablet.views.config.ViewSubscriptionConfig testViewSubscription() {
-            return com.crablet.views.config.ViewSubscriptionConfig.builder("test-view")
-                    .eventTypes("TestEvent")
+            return com.crablet.views.config.ViewSubscriptionConfig.builder("course-view")
+                    .eventTypes("CourseDefined", "StudentSubscribedToCourse")
+                    .requiredTags("course_id")
                     .build();
         }
     }

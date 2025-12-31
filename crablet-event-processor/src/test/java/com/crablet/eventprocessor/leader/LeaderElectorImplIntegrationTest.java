@@ -1,5 +1,6 @@
 package com.crablet.eventprocessor.leader;
 
+import com.crablet.eventprocessor.integration.AbstractEventProcessorTest;
 import com.crablet.eventprocessor.metrics.LeadershipMetric;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -10,11 +11,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.sql.DataSource;
 import java.util.ArrayList;
@@ -31,16 +27,8 @@ import static org.assertj.core.api.Assertions.*;
  * Tests PostgreSQL advisory locks, leader election, and concurrent access with real database.
  */
 @SpringBootTest(classes = LeaderElectorImplIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Testcontainers
 @DisplayName("LeaderElectorImpl Integration Tests")
-class LeaderElectorImplIntegrationTest {
-
-    @Container
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17")
-            .withDatabaseName("postgres")
-            .withUsername("postgres")
-            .withPassword("postgres")
-            .withReuse(true);
+class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
 
     @Autowired
     private DataSource dataSource;
@@ -49,13 +37,6 @@ class LeaderElectorImplIntegrationTest {
     private ApplicationEventPublisher eventPublisher;
 
     private static final long TEST_LOCK_KEY = 1234567890L;
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
 
     @BeforeEach
     void setUp() {

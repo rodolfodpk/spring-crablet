@@ -38,13 +38,47 @@ public class ViewEventFetcher implements EventFetcher<String> {
     }
     
     @Override
-    public List<StoredEvent> fetchEvents(String viewName, long lastPosition, int batchSize) {
-        ViewSubscriptionConfig subscription = subscriptions.get(viewName);
+    public List<StoredEvent> fetchEvents(String processorId, long lastPosition, int batchSize) {
+        // Processor ID might be bean name (e.g., "walletBalanceViewSubscription") 
+        // or view name (e.g., "wallet-balance-view")
+        // Try direct lookup first (by view name)
+        ViewSubscriptionConfig subscription = subscriptions.get(processorId);
+        
+        // If not found, search all subscriptions to find one matching the processor ID
+        // This handles the case where processor ID is a bean name but map is keyed by view name
+        if (subscription == null) {
+            // Try to derive view name from bean name: "walletBalanceViewSubscription" -> "wallet-balance-view"
+            String derivedViewName = null;
+            if (processorId.endsWith("ViewSubscription")) {
+                String base = processorId.replace("ViewSubscription", "");
+                // Convert camelCase to kebab-case: "walletBalance" -> "wallet-balance"
+                derivedViewName = base.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase() + "-view";
+            }
+            
+            // Search all subscriptions
+            for (ViewSubscriptionConfig sub : subscriptions.values()) {
+                String viewName = sub.getViewName();
+                // Try exact match first
+                if (viewName.equals(processorId)) {
+                    subscription = sub;
+                    break;
+                }
+                // Try derived view name match
+                if (derivedViewName != null && viewName.equals(derivedViewName)) {
+                    subscription = sub;
+                    log.debug("Matched processor ID '{}' to view '{}' via derived name '{}'", processorId, viewName, derivedViewName);
+                    break;
+                }
+            }
+        }
         
         if (subscription == null) {
-            log.warn("Subscription not found for view: {}", viewName);
+            log.warn("Subscription not found for processor ID: {} (available keys: {})", processorId, subscriptions.keySet());
             return List.of();
         }
+        
+        // Use the view name from the subscription for logging
+        String viewName = subscription.getViewName();
         
         String sqlFilter = buildSqlFilter(subscription);
         String sql = """
