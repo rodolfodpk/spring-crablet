@@ -182,12 +182,12 @@ public class ViewProgressTracker implements ProgressTracker<String> {
     
     @Override
     public void autoRegister(String viewName, String instanceId) {
-        log.debug("[ViewProgressTracker] autoRegister() called for view: {} at {}", viewName, java.time.Instant.now());
+        log.trace("[ViewProgressTracker] autoRegister() called for view: {} at {}", viewName, java.time.Instant.now());
         
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(AUTO_REGISTER_SQL)) {
             
-            log.debug("[ViewProgressTracker] Executing auto-register SQL for view: {}", viewName);
+            log.trace("[ViewProgressTracker] Executing auto-register SQL for view: {}", viewName);
             stmt.setString(1, viewName);
             stmt.setString(2, instanceId);
             
@@ -199,25 +199,26 @@ public class ViewProgressTracker implements ProgressTracker<String> {
             String errorMessage = e.getMessage();
             String sqlState = e.getSQLState();
             
-            System.out.println("[ViewProgressTracker] SQLException caught for " + viewName + ": message=" + errorMessage + ", sqlState=" + sqlState);
+            log.debug("[ViewProgressTracker] SQLException caught for view: {}, message: {}, sqlState: {}", 
+                     viewName, errorMessage, sqlState);
             
             // Check for missing table error (PostgreSQL error code 42P01 or message contains "does not exist")
             boolean isMissingTableError = (errorMessage != null && 
                 (errorMessage.contains("relation") && errorMessage.contains("does not exist"))) ||
                 "42P01".equals(sqlState); // PostgreSQL error code for "undefined_table"
             
-            System.out.println("[ViewProgressTracker] isMissingTableError=" + isMissingTableError + " for " + viewName);
+            log.debug("[ViewProgressTracker] isMissingTableError={} for view: {}", isMissingTableError, viewName);
             
             if (isMissingTableError) {
-                System.out.println("[ViewProgressTracker] Handling missing table gracefully for " + viewName);
-                log.debug("[ViewProgressTracker] Table view_progress does not exist yet, skipping auto-register for {}: {}. " +
-                         "Table will be created by Flyway, and auto-register will succeed on next call.", 
-                         viewName, errorMessage);
-                return; // Silently skip - table will be created by Flyway
+                log.info("[ViewProgressTracker] Table view_progress does not exist yet for view: {}. " +
+                         "This is expected during application startup before Flyway completes. " +
+                         "Table will be created by Flyway, and auto-register will succeed on next call. " +
+                         "Error: {}", viewName, errorMessage);
+                throw new RuntimeException("Failed to auto-register view: " + viewName + " - table not ready yet", e);
             }
-            System.out.println("[ViewProgressTracker] Throwing RuntimeException for " + viewName);
-            log.error("[ViewProgressTracker] Failed to auto-register view: {} at {}. Error: {}", 
-                     viewName, java.time.Instant.now(), errorMessage, e);
+            
+            log.error("[ViewProgressTracker] Failed to auto-register view: {} at {}. Error: {}, SQLState: {}", 
+                     viewName, java.time.Instant.now(), errorMessage, sqlState, e);
             throw new RuntimeException("Failed to auto-register view: " + viewName, e);
         }
     }
