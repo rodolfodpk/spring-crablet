@@ -73,10 +73,14 @@ public class TestApplication {
     
     /**
      * ObjectMapper bean for JSON serialization.
+     * Registers Java 8 time module for Instant, LocalDateTime, etc.
      */
     @Bean
     public ObjectMapper objectMapper() {
-        return new ObjectMapper();
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
     }
     
     /**
