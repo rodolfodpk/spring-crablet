@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
@@ -26,11 +27,63 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import javax.sql.DataSource;
 
 @SpringBootApplication
+@EnableConfigurationProperties
 @ComponentScan(basePackages = {"com.crablet", "com.crablet.outbox", "com.crablet.eventstore", "com.crablet.eventprocessor"},
-               excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, 
-                                                      classes = {com.crablet.eventstore.integration.TestApplication.class}))
+               excludeFilters = {
+                   @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, 
+                                        classes = {com.crablet.eventstore.integration.TestApplication.class}),
+                   @ComponentScan.Filter(type = FilterType.REGEX, 
+                                        pattern = "com\\.crablet\\.eventstore\\.config\\.DataSourceConfig")
+               })
 @EnableScheduling
 public class TestApplication {
+    
+    /**
+     * Compatibility bean for Spring Boot 4.0.1 auto-configuration bug.
+     * Provides DataSourceProperties bean that auto-configuration expects.
+     */
+    @Bean
+    @ConfigurationProperties(prefix = "spring.datasource")
+    public org.springframework.boot.autoconfigure.jdbc.DataSourceProperties dataSourceProperties() {
+        return new org.springframework.boot.autoconfigure.jdbc.DataSourceProperties();
+    }
+    
+    /**
+     * Primary DataSource bean (required by crablet-views if enabled).
+     */
+    @Bean(name = "primaryDataSource")
+    @Primary
+    @ConfigurationProperties(prefix = "spring.datasource")
+    public DataSource primaryDataSource(org.springframework.boot.autoconfigure.jdbc.DataSourceProperties properties) {
+        return org.springframework.boot.jdbc.DataSourceBuilder.create()
+            .type(com.zaxxer.hikari.HikariDataSource.class)
+            .url(properties.getUrl())
+            .username(properties.getUsername())
+            .password(properties.getPassword())
+            .driverClassName(properties.getDriverClassName())
+            .build();
+    }
+    
+    /**
+     * Read DataSource bean (required by crablet-views if enabled).
+     * For this test app, we use the same DataSource for reads and writes.
+     */
+    @Bean(name = "readDataSource")
+    public DataSource readDataSource(@org.springframework.beans.factory.annotation.Qualifier("primaryDataSource") DataSource primaryDataSource) {
+        return primaryDataSource;
+    }
+    
+    /**
+     * ObjectMapper bean for JSON serialization.
+     * Registers Java 8 time module for Instant, LocalDateTime, etc.
+     */
+    @Bean
+    public ObjectMapper objectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
+    }
     public static void main(String[] args) {
         SpringApplication.run(TestApplication.class, args);
     }
