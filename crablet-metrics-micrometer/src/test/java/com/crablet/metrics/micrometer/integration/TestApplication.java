@@ -50,6 +50,18 @@ public class TestApplication {
         SpringApplication.run(TestApplication.class, args);
     }
     
+    /**
+     * ObjectMapper bean for JSON serialization.
+     * Registers Java 8 time module for Instant, LocalDateTime, etc.
+     */
+    @Bean
+    public com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
+    }
+    
     @Bean
     @ConfigurationProperties(prefix = "crablet.eventstore")
     public EventStoreConfig eventStoreConfig() {
@@ -207,6 +219,28 @@ public class TestApplication {
     @Bean
     public GlobalStatisticsPublisher globalStatisticsPublisher(GlobalStatisticsConfig config) {
         return new GlobalStatisticsPublisher(config);
+    }
+    
+    /**
+     * Flyway bean to ensure migrations run before tests.
+     * Migrations run immediately when bean is created.
+     * Uses migrations from src/test/resources/db/migration.
+     */
+    @Bean
+    public org.flywaydb.core.Flyway flyway(DataSource dataSource) {
+        org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TestApplication.class);
+        log.info("[TestApplication] Flyway bean creation started at {}", java.time.Instant.now());
+        
+        org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load();
+        
+        log.info("[TestApplication] Starting Flyway migration at {}", java.time.Instant.now());
+        flyway.migrate();
+        log.info("[TestApplication] Flyway migration completed at {}", java.time.Instant.now());
+        
+        return flyway;
     }
 }
 

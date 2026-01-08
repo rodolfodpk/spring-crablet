@@ -2,8 +2,8 @@ package com.crablet.metrics.micrometer.integration;
 
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.examples.wallet.event.DepositMade;
-import com.crablet.examples.wallet.event.WalletOpened;
+import com.crablet.examples.wallet.events.DepositMade;
+import com.crablet.examples.wallet.events.WalletOpened;
 import io.micrometer.core.instrument.Counter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

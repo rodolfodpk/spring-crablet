@@ -762,7 +762,7 @@ The test scope is organized into:
 
 - **Example Domains** (`com.crablet.examples.*`): Complete working examples demonstrating DCB patterns
   - `com.crablet.examples.wallet`: Wallet domain with deposits, withdrawals, transfers
-  - `com.crablet.examples.courses`: Course subscriptions with multi-entity constraints
+  - `com.crablet.examples.course`: Course subscriptions with multi-entity constraints
   - Each example domain includes:
     - Domain events, commands, handlers
     - Projectors and query patterns

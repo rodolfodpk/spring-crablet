@@ -47,6 +47,15 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
     
     @BeforeEach
     void setUp() {
+        // Parent's cleanDatabase() runs first and cleans events table, but ensure it's clean
+        // This is idempotent - safe to run multiple times
+        try {
+            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+        } catch (Exception e) {
+            // Ignore if table doesn't exist yet (Flyway will create it)
+        }
+        
         // Reset the publisher state before each test
         countDownLatchPublisher.reset();
         
@@ -262,6 +271,28 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
 
     @Test
     void shouldHandlePublisherFailureAndRetry() throws InterruptedException {
+        // Ensure clean state before starting
+        try {
+            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+        } catch (Exception e) {
+            // Ignore if table doesn't exist yet
+        }
+        
+        // Drain any remaining events from previous tests
+        countDownLatchPublisher.reset();
+        int drained = 0;
+        for (int i = 0; i < 10; i++) {
+            int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
+            if (processed == 0) {
+                break; // No more events to process
+            }
+            drained += processed;
+        }
+        // Wait a bit more to ensure any async processing has completed
+        Thread.sleep(200);
+        countDownLatchPublisher.reset(); // Reset again after draining
+        
         // Given - Create events that will cause processing
         countDownLatchPublisher.expectEvents(1);
         
@@ -292,6 +323,18 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
 
     @Test
     void shouldMaintainEventOrderingAcrossPublishers() throws InterruptedException {
+        // Ensure clean state before starting - do this explicitly to avoid race conditions
+        try {
+            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+        } catch (Exception e) {
+            // Ignore if table doesn't exist yet
+        }
+        countDownLatchPublisher.reset();
+        
+        // Wait a bit to ensure any in-flight processing from previous tests completes
+        Thread.sleep(100);
+        
         // Given - Create multiple events in sequence
         countDownLatchPublisher.expectEvents(3);
         

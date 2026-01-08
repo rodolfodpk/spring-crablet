@@ -35,10 +35,10 @@ help:
 	@echo "  build-reactor - Build all reactor modules (after core and shared are installed)"
 	@echo ""
 	@echo "Application Commands:"
-	@echo "  start       - Start wallet-example application"
+	@echo "  start       - Start wallet-example-app application"
 	@echo "  wallet-dev  - Start wallet development environment (alias for start)"
 	@echo ""
-	@echo "For wallet-specific commands, see: wallet-example/Makefile"
+	@echo "Note: wallet-example-app is a Spring Boot application - use 'mvn spring-boot:run' in wallet-example-app directory"
 
 # Main build command - handles cyclic dependency automatically
 # Note: Uses 'install' which runs unit tests but not integration tests
@@ -108,7 +108,7 @@ clean:
 
 # Application commands
 start:
-	cd wallet-example && $(MAKE) start
+	cd wallet-example-app && ./mvnw spring-boot:run
 
 wallet-dev:
-	cd wallet-example && $(MAKE) dev
+	cd wallet-example-app && ./mvnw spring-boot:run

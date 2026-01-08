@@ -11,7 +11,7 @@
     
     <artifactId>crablet-views</artifactId>
     <name>Crablet Views</name>
-    <description>View projections for materialized read models using JOOQ</description>
+    <description>View projections for materialized read models</description>
     
     <dependencies>
         <!-- Crablet Event Store -->
@@ -45,12 +45,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
-        </dependency>
-        
-        <!-- JOOQ -->
-        <dependency>
-            <groupId>org.jooq</groupId>
-            <artifactId>jooq</artifactId>
         </dependency>
         
         <!-- Spring Boot Configuration Processor -->

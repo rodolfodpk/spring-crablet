@@ -398,7 +398,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 
 The Transfer pattern above demonstrates the core multi-entity DCB pattern. For examples with more complex business constraints (multiple validation rules, count aggregations, duplicate checks), see:
 
-- **Course Subscriptions** (`com.crablet.examples.courses.features.subscribe.SubscribeStudentToCourseCommandHandler`): Demonstrates multi-entity constraints with capacity limits, subscription limits, and duplicate subscription checks using a composite projector.
+- **Course Subscriptions** (`com.crablet.examples.course.features.subscribe.SubscribeStudentToCourseCommandHandler`): Demonstrates multi-entity constraints with capacity limits, subscription limits, and duplicate subscription checks using a composite projector.
 
 ## Summary Table
 

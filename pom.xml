@@ -18,7 +18,7 @@
         <module>crablet-event-processor</module>
         <module>crablet-views</module>
         <module>crablet-metrics-micrometer</module>
-        <module>wallets-example-app</module>
+        <module>wallet-example-app</module>
         <!-- shared-examples-domain excluded from reactor to avoid cycle -->
         <!-- Build separately: cd shared-examples-domain && ../mvnw install -->
         <!-- <module>shared-examples-domain</module> -->

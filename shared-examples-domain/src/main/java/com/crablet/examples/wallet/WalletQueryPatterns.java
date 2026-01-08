@@ -2,7 +2,7 @@ package com.crablet.examples.wallet;
 
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
-import com.crablet.examples.wallet.event.*;
+import com.crablet.examples.wallet.events.*;
 
 import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.*;

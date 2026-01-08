@@ -21,6 +21,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.jdbc.DataSourceBuilder;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
@@ -29,7 +31,7 @@ import org.springframework.context.annotation.Primary;
 import javax.sql.DataSource;
 
 @SpringBootApplication
-@EnableConfigurationProperties
+@EnableConfigurationProperties(DataSourceProperties.class)
 @ComponentScan(
     basePackages = {"com.crablet.command", "com.crablet.eventstore", "com.crablet.examples"},
     excludeFilters = {
@@ -40,23 +42,13 @@ import javax.sql.DataSource;
 public class TestApplication {
     
     /**
-     * Compatibility bean for Spring Boot 4.0.1 auto-configuration bug.
-     * Provides DataSourceProperties bean that auto-configuration expects.
-     */
-    @Bean
-    @ConfigurationProperties(prefix = "spring.datasource")
-    public org.springframework.boot.autoconfigure.jdbc.DataSourceProperties dataSourceProperties() {
-        return new org.springframework.boot.autoconfigure.jdbc.DataSourceProperties();
-    }
-    
-    /**
      * Primary DataSource bean (required by crablet-views if enabled).
+     * DataSourceProperties is auto-configured by Spring Boot via @EnableConfigurationProperties.
      */
     @Bean(name = "primaryDataSource")
     @Primary
-    @ConfigurationProperties(prefix = "spring.datasource")
-    public DataSource primaryDataSource(org.springframework.boot.autoconfigure.jdbc.DataSourceProperties properties) {
-        return org.springframework.boot.jdbc.DataSourceBuilder.create()
+    public DataSource primaryDataSource(DataSourceProperties properties) {
+        return DataSourceBuilder.create()
             .type(com.zaxxer.hikari.HikariDataSource.class)
             .url(properties.getUrl())
             .username(properties.getUsername())

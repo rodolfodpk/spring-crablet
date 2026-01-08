@@ -6,7 +6,7 @@ import com.crablet.command.InvalidCommandException;
 import com.crablet.command.handlers.wallet.DepositCommandHandler;
 import com.crablet.command.handlers.wallet.OpenWalletCommandHandler;
 import com.crablet.command.handlers.courses.DefineCourseCommandHandler;
-import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
+import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.junit.jupiter.api.Test;

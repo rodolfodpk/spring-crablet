@@ -8,8 +8,8 @@ import com.crablet.command.CommandResult;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.query.Query;
-import com.crablet.examples.wallet.event.WalletOpened;
-import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
+import com.crablet.examples.wallet.events.WalletOpened;
+import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

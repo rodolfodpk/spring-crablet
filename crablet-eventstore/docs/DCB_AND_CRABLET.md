@@ -160,7 +160,7 @@ When querying for either wallet's state, the transfer event is included. This en
 
 ### Example: Course Subscription
 
-See `com.crablet.examples.courses` for a complete example where a `StudentSubscribedToCourse` event is tagged with both `studentId` and `courseId`, enabling consistency checks across student subscription limits and course capacity constraints atomically.
+See `com.crablet.examples.course` for a complete example where a `StudentSubscribedToCourse` event is tagged with both `studentId` and `courseId`, enabling consistency checks across student subscription limits and course capacity constraints atomically.
 
 ## Application Retry Behavior
 
@@ -494,7 +494,7 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
 
 **For non-commutative operations (withdrawals, transfers)**, use `AppendConditionBuilder(decisionModel, cursor)` to detect concurrent balance changes. See [Command Patterns Guide](COMMAND_PATTERNS.md) for complete examples.
 
-**For multi-entity operations (course subscriptions, multi-wallet transfers)**, use composite projectors to enforce constraints across multiple entities atomically. See `com.crablet.examples.courses` for a complete example of multi-entity constraints using composite projectors.
+**For multi-entity operations (course subscriptions, multi-wallet transfers)**, use composite projectors to enforce constraints across multiple entities atomically. See `com.crablet.examples.course` for a complete example of multi-entity constraints using composite projectors.
 
 ## PostgreSQL Integration
 

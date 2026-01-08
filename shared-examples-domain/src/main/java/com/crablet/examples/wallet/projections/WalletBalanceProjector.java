@@ -6,13 +6,13 @@ import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.examples.wallet.event.DepositMade;
-import com.crablet.examples.wallet.event.MoneyTransferred;
-import com.crablet.examples.wallet.event.WalletEvent;
-import com.crablet.examples.wallet.event.WalletOpened;
-import com.crablet.examples.wallet.event.WalletStatementClosed;
-import com.crablet.examples.wallet.event.WalletStatementOpened;
-import com.crablet.examples.wallet.event.WithdrawalMade;
+import com.crablet.examples.wallet.events.DepositMade;
+import com.crablet.examples.wallet.events.MoneyTransferred;
+import com.crablet.examples.wallet.events.WalletEvent;
+import com.crablet.examples.wallet.events.WalletOpened;
+import com.crablet.examples.wallet.events.WalletStatementClosed;
+import com.crablet.examples.wallet.events.WalletStatementOpened;
+import com.crablet.examples.wallet.events.WithdrawalMade;
 
 import java.util.List;
 

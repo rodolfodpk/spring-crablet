@@ -49,6 +49,14 @@ class GlobalStatisticsWalletTest extends AbstractCrabletTest {
     
     @BeforeEach
     void setUp() {
+        // Parent's cleanDatabase() runs first and cleans events table, but ensure it's clean
+        // This is idempotent - safe to run multiple times
+        try {
+            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
+        } catch (Exception e) {
+            // Ignore if table doesn't exist yet (Flyway will create it)
+        }
+        
         // Reset global statistics
         globalStatistics.reset();
         

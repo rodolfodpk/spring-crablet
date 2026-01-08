@@ -6,13 +6,13 @@ import com.crablet.command.CommandResult;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.store.Tag;
-import com.crablet.examples.wallet.event.WalletOpened;
+import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
-import com.crablet.examples.wallet.features.deposit.DepositCommand;
+import com.crablet.examples.wallet.commands.DepositCommand;
 import com.crablet.command.handlers.wallet.DepositCommandHandler;
-import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
+import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.command.handlers.wallet.OpenWalletCommandHandler;
-import com.crablet.examples.wallet.features.withdraw.WithdrawCommand;
+import com.crablet.examples.wallet.commands.WithdrawCommand;
 import com.crablet.command.handlers.wallet.WithdrawCommandHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -84,7 +84,7 @@ class WalletCommandsTest extends com.crablet.eventstore.integration.AbstractCrab
 
         // Then: Should throw exception
         assertThatThrownBy(() -> depositHandler.handle(eventStore, depositCmd))
-                .isInstanceOf(com.crablet.examples.wallet.exception.WalletNotFoundException.class)
+                .isInstanceOf(com.crablet.examples.wallet.exceptions.WalletNotFoundException.class)
                 .hasMessage("Wallet not found: nonexistent");
     }
 
@@ -135,7 +135,7 @@ class WalletCommandsTest extends com.crablet.eventstore.integration.AbstractCrab
 
         // Then: Should throw exception
         assertThatThrownBy(() -> withdrawHandler.handle(eventStore, withdrawCmd))
-                .isInstanceOf(com.crablet.examples.wallet.exception.InsufficientFundsException.class)
+                .isInstanceOf(com.crablet.examples.wallet.exceptions.InsufficientFundsException.class)
                 .hasMessage("Insufficient funds in wallet wallet1: balance 100, requested 200");
     }
 

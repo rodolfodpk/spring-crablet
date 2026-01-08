@@ -16,7 +16,7 @@ public record DepositCommand(
 ) implements WalletCommand {
 
     private static Arguments4Validator<String, String, Integer, String, DepositCommand> validator =
-            Yavi.arguments()
+           Yavi .arguments()
                     ._string("depositId", c -> c.notNull().notBlank())
                     ._string("walletId", c -> c.notNull().notBlank())
                     ._integer("amount", c -> c.greaterThan(0))

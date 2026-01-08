@@ -2,13 +2,13 @@ package com.crablet.command.handlers.courses.unit;
 
 import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
 import com.crablet.command.handlers.courses.SubscribeStudentToCourseCommandHandler;
-import com.crablet.examples.courses.domain.event.CourseDefined;
-import com.crablet.examples.courses.domain.event.StudentSubscribedToCourse;
-import com.crablet.examples.courses.domain.exception.AlreadySubscribedException;
-import com.crablet.examples.courses.domain.exception.CourseFullException;
-import com.crablet.examples.courses.domain.exception.CourseNotFoundException;
-import com.crablet.examples.courses.domain.exception.StudentSubscriptionLimitException;
-import com.crablet.examples.courses.features.subscribe.SubscribeStudentToCourseCommand;
+import com.crablet.examples.course.events.CourseDefined;
+import com.crablet.examples.course.events.StudentSubscribedToCourse;
+import com.crablet.examples.course.exceptions.AlreadySubscribedException;
+import com.crablet.examples.course.exceptions.CourseFullException;
+import com.crablet.examples.course.exceptions.CourseNotFoundException;
+import com.crablet.examples.course.exceptions.StudentSubscriptionLimitException;
+import com.crablet.examples.course.commands.SubscribeStudentToCourseCommand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,8 +16,8 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static com.crablet.eventstore.store.EventType.type;
-import static com.crablet.examples.courses.domain.CourseTags.COURSE_ID;
-import static com.crablet.examples.courses.domain.CourseTags.STUDENT_ID;
+import static com.crablet.examples.course.CourseTags.COURSE_ID;
+import static com.crablet.examples.course.CourseTags.STUDENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

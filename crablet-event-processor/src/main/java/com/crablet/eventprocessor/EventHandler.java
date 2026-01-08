@@ -31,6 +31,11 @@ import java.util.List;
  * This is intentional to allow handlers to use their own transaction boundaries.
  * Handlers that need atomicity should manage transactions internally.
  * 
+ * <p><strong>For View Handlers:</strong>
+ * View projectors automatically wrap each batch in a transaction using TransactionTemplate.
+ * If any event in the batch fails, the entire batch is rolled back automatically.
+ * Progress tracking still happens in a separate transaction after handler execution.
+ * 
  * @param <I> Processor identifier type
  */
 public interface EventHandler<I> {

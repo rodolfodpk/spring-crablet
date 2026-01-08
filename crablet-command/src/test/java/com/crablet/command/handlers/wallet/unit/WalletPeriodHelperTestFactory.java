@@ -6,7 +6,7 @@ import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.*;
 import com.crablet.examples.wallet.WalletQueryPatterns;
-import com.crablet.examples.wallet.event.WalletStatementOpened;
+import com.crablet.examples.wallet.events.WalletStatementOpened;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementId;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;

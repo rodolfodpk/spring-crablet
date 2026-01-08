@@ -2,8 +2,8 @@ package com.crablet.command.handlers.courses.unit;
 
 import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
 import com.crablet.command.handlers.courses.DefineCourseCommandHandler;
-import com.crablet.examples.courses.domain.event.CourseDefined;
-import com.crablet.examples.courses.features.definecourse.DefineCourseCommand;
+import com.crablet.examples.course.events.CourseDefined;
+import com.crablet.examples.course.commands.DefineCourseCommand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

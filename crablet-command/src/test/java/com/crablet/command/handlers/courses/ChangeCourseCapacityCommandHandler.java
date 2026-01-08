@@ -5,16 +5,16 @@ import com.crablet.eventstore.dcb.AppendConditionBuilder;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
-import com.crablet.examples.courses.features.changecapacity.ChangeCourseCapacityCommand;
+import com.crablet.examples.course.commands.ChangeCourseCapacityCommand;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
-import com.crablet.examples.courses.domain.CourseQueryPatterns;
-import com.crablet.examples.courses.domain.event.CourseCapacityChanged;
-import com.crablet.examples.courses.domain.exception.CourseNotFoundException;
-import com.crablet.examples.courses.domain.projections.CourseExistsProjection;
-import com.crablet.examples.courses.domain.projections.CourseCapacityProjection;
+import com.crablet.examples.course.CourseQueryPatterns;
+import com.crablet.examples.course.events.CourseCapacityChanged;
+import com.crablet.examples.course.exceptions.CourseNotFoundException;
+import com.crablet.examples.course.projections.CourseExistsProjection;
+import com.crablet.examples.course.projections.CourseCapacityProjection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 import static com.crablet.eventstore.store.EventType.type;
-import static com.crablet.examples.courses.domain.CourseTags.*;
+import static com.crablet.examples.course.CourseTags.*;
 
 /**
  * Command handler for changing course capacity.
@@ -104,7 +104,7 @@ public class ChangeCourseCapacityCommandHandler implements CommandHandler<Change
         @Override
         public java.util.List<String> getEventTypes() {
             return java.util.List.of(
-                    type(com.crablet.examples.courses.domain.event.CourseDefined.class),
+                    type(com.crablet.examples.course.events.CourseDefined.class),
                     type(CourseCapacityChanged.class)
             );
         }

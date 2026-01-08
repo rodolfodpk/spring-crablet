@@ -3,9 +3,9 @@ package com.crablet.command.handlers.courses;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.crablet.examples.courses.domain.event.CourseDefined;
-import com.crablet.examples.courses.domain.event.CourseCapacityChanged;
-import com.crablet.examples.courses.domain.event.StudentSubscribedToCourse;
+import com.crablet.examples.course.events.CourseDefined;
+import com.crablet.examples.course.events.CourseCapacityChanged;
+import com.crablet.examples.course.events.StudentSubscribedToCourse;
 
 import java.util.List;
 

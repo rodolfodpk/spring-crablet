@@ -8,8 +8,6 @@ import com.crablet.outbox.config.TopicConfigurationProperties;
 import com.crablet.eventprocessor.InstanceIdProvider;
 // Old classes removed - using auto-configuration with generic processor
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
-import com.crablet.outbox.publishing.OutboxPublishingService;
-import com.crablet.outbox.publishing.OutboxPublishingServiceImpl;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.EventStoreConfig;
 import com.crablet.eventstore.store.EventStoreImpl;
@@ -18,6 +16,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.jdbc.DataSourceBuilder;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
@@ -27,7 +27,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import javax.sql.DataSource;
 
 @SpringBootApplication
-@EnableConfigurationProperties
+@EnableConfigurationProperties(DataSourceProperties.class)
 @ComponentScan(basePackages = {"com.crablet", "com.crablet.outbox", "com.crablet.eventstore", "com.crablet.eventprocessor"},
                excludeFilters = {
                    @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, 
@@ -39,23 +39,13 @@ import javax.sql.DataSource;
 public class TestApplication {
     
     /**
-     * Compatibility bean for Spring Boot 4.0.1 auto-configuration bug.
-     * Provides DataSourceProperties bean that auto-configuration expects.
-     */
-    @Bean
-    @ConfigurationProperties(prefix = "spring.datasource")
-    public org.springframework.boot.autoconfigure.jdbc.DataSourceProperties dataSourceProperties() {
-        return new org.springframework.boot.autoconfigure.jdbc.DataSourceProperties();
-    }
-    
-    /**
      * Primary DataSource bean (required by crablet-views if enabled).
+     * DataSourceProperties is auto-configured by Spring Boot via @EnableConfigurationProperties.
      */
     @Bean(name = "primaryDataSource")
     @Primary
-    @ConfigurationProperties(prefix = "spring.datasource")
-    public DataSource primaryDataSource(org.springframework.boot.autoconfigure.jdbc.DataSourceProperties properties) {
-        return org.springframework.boot.jdbc.DataSourceBuilder.create()
+    public DataSource primaryDataSource(DataSourceProperties properties) {
+        return DataSourceBuilder.create()
             .type(com.zaxxer.hikari.HikariDataSource.class)
             .url(properties.getUrl())
             .username(properties.getUsername())
@@ -148,5 +138,28 @@ public class TestApplication {
     @Bean
     public GlobalStatisticsPublisher globalStatisticsPublisher(GlobalStatisticsConfig config) {
         return new GlobalStatisticsPublisher(config);
+    }
+    
+    /**
+     * Flyway bean to ensure migrations run before tests.
+     * Migrations run immediately when bean is created.
+     * Uses migrations from src/test/resources/db/migration.
+     */
+    @Bean
+    @org.springframework.context.annotation.DependsOn("primaryDataSource")
+    public org.flywaydb.core.Flyway flyway(@org.springframework.beans.factory.annotation.Qualifier("primaryDataSource") DataSource dataSource) {
+        org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TestApplication.class);
+        log.info("[TestApplication] Flyway bean creation started at {}", java.time.Instant.now());
+        
+        org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load();
+        
+        log.info("[TestApplication] Starting Flyway migration at {}", java.time.Instant.now());
+        flyway.migrate();
+        log.info("[TestApplication] Flyway migration completed at {}", java.time.Instant.now());
+        
+        return flyway;
     }
 }

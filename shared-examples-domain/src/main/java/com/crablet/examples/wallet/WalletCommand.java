@@ -2,10 +2,10 @@ package com.crablet.examples.wallet;
 
 import com.crablet.eventstore.period.PeriodConfig;
 import com.crablet.eventstore.period.PeriodType;
-import com.crablet.examples.wallet.features.deposit.DepositCommand;
-import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
-import com.crablet.examples.wallet.features.transfer.TransferMoneyCommand;
-import com.crablet.examples.wallet.features.withdraw.WithdrawCommand;
+import com.crablet.examples.wallet.commands.DepositCommand;
+import com.crablet.examples.wallet.commands.OpenWalletCommand;
+import com.crablet.examples.wallet.commands.TransferMoneyCommand;
+import com.crablet.examples.wallet.commands.WithdrawCommand;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 

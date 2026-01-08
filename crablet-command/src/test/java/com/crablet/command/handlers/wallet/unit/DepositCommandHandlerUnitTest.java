@@ -2,11 +2,11 @@ package com.crablet.command.handlers.wallet.unit;
 
 import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
 import com.crablet.command.handlers.wallet.DepositCommandHandler;
-import com.crablet.examples.wallet.event.DepositMade;
-import com.crablet.examples.wallet.event.WalletOpened;
-import com.crablet.examples.wallet.event.WalletStatementOpened;
-import com.crablet.examples.wallet.exception.WalletNotFoundException;
-import com.crablet.examples.wallet.features.deposit.DepositCommand;
+import com.crablet.examples.wallet.events.DepositMade;
+import com.crablet.examples.wallet.events.WalletOpened;
+import com.crablet.examples.wallet.events.WalletStatementOpened;
+import com.crablet.examples.wallet.exceptions.WalletNotFoundException;
+import com.crablet.examples.wallet.commands.DepositCommand;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -146,7 +146,7 @@ class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         );
         given().eventWithMonthlyPeriod(
             type(WalletStatementOpened.class),
-            com.crablet.examples.wallet.event.WalletStatementOpened.of(
+            com.crablet.examples.wallet.events.WalletStatementOpened.of(
                 "wallet1", "wallet:wallet1:2025-01", 2025, 1, null, null, 1000),
             "wallet1",
             2025, 1
