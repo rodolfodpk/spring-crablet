@@ -4,31 +4,34 @@
 
 Light framework component for asynchronous view projections using materialized read models with Spring Boot integration.
 
+## Quick Reference
+
+**Choose your approach:**
+
+1. **Using sealed interfaces?** → `AbstractTypedViewProjector<E>` (recommended)
+2. **Simple events without sealed interfaces?** → `AbstractViewProjector`
+3. **Need maximum flexibility?** → Implement `ViewProjector` directly
+
+**Key Features:**
+- ✅ Automatic transaction support (batch atomicity)
+- ✅ Tag-based event subscriptions
+- ✅ Independent progress tracking per view
+- ✅ Leader election for high availability
+- ✅ Idempotent operations required (at-least-once semantics)
+
+📖 **Details:** See [Quick Start](#quick-start) and [Base Classes](#base-classes) sections below.
+
 ## Overview
 
 Crablet Views provides a complete solution for building materialized read models from event streams:
 
-- **Asynchronous Projections**: Events are processed asynchronously using the generic event processor infrastructure
-- **Base Classes**: `AbstractTypedViewProjector` (for sealed interfaces) and `AbstractViewProjector` (non-generic) provide transaction support, automatic deserialization, and error handling
-- **Transaction Support**: Each batch of events is processed atomically - all succeed or all roll back
+- **Asynchronous Projections**: Events processed asynchronously using generic event processor infrastructure
+- **Base Classes**: `AbstractTypedViewProjector` (sealed interfaces) and `AbstractViewProjector` (non-generic) provide transaction support, automatic deserialization, and error handling
+- **Transaction Support**: Each batch processed atomically - all succeed or all roll back
 - **Tag-Based Subscriptions**: Subscribe to events by type and/or tags
-- **Independent Progress Tracking**: Each view tracks its own processing progress independently
+- **Independent Progress Tracking**: Each view tracks its own processing progress
 - **Flexible Database Access**: Use JdbcTemplate (recommended), Spring Data JDBC, JOOQ, or any database access technology
 - **Idempotent Operations**: Built-in support for at-least-once processing semantics
-- **Spring Integration**: Ready-to-use Spring Boot components and auto-configuration
-- **Management API**: REST API for monitoring and controlling view projections
-
-## Features
-
-- **ViewProjector Interface**: Simple interface for projecting events into materialized views
-- **Base Classes**: `AbstractTypedViewProjector` and `AbstractViewProjector` provide transaction support, error handling, and reduce boilerplate
-- **Transaction Support**: Automatic transaction wrapping for batch atomicity (all events succeed or all roll back)
-- **Event Subscription**: Flexible subscription configuration by event type and/or tags
-- **Progress Tracking**: Independent progress tracking per view in `view_progress` table
-- **Leader Election**: Distributed leader election for high availability
-- **Backoff Strategy**: Exponential backoff for error handling
-- **REST API**: Built-in REST endpoints for view management
-- **Spring Auto-Configuration**: Zero-configuration setup when enabled
 
 ## Maven Coordinates
 
@@ -48,7 +51,7 @@ Crablet Views provides a complete solution for building materialized read models
 - Spring Boot JDBC (for database access)
 - PostgreSQL JDBC Driver
 
-**Note:** You can use any database access technology you prefer (JdbcTemplate, Spring Data JDBC, JOOQ, etc.). JdbcTemplate is recommended as the default for its simplicity and excellent PostgreSQL support.
+**Note:** You can use any database access technology. JdbcTemplate is recommended for its simplicity and excellent PostgreSQL support.
 
 ## Quick Start
 
@@ -77,8 +80,6 @@ CREATE TABLE wallet_view (
 ### 3. Implement ViewProjector
 
 **Recommended: Using AbstractTypedViewProjector (with Sealed Interfaces)**
-
-This is the recommended approach when using sealed interfaces for type-safe event handling:
 
 ```java
 @Component
@@ -131,22 +132,92 @@ public class WalletViewProjector extends AbstractTypedViewProjector<WalletEvent>
                 );
                 yield true;
             }
-            default -> false; // Ignore other event types
+            default -> false;
         };
     }
 }
 ```
 
 **Benefits:**
-- ✅ Automatic transaction support (all events in batch processed atomically)
+- ✅ Automatic transaction support (batch atomicity)
 - ✅ Automatic deserialization to typed events
 - ✅ Type-safe pattern matching with sealed interfaces
 - ✅ Built-in error handling and logging
 - ✅ ClockProvider for testability
 
-**Alternative: Using AbstractViewProjector (Non-Generic)**
+### 4. Configure Subscription
 
-For simple cases without sealed interfaces:
+```java
+@Configuration
+public class ViewConfiguration {
+    
+    @Bean
+    public ViewSubscriptionConfig walletViewSubscription() {
+        return ViewSubscriptionConfig.builder("wallet-view")
+            .eventTypes("WalletOpened", "DepositMade", "WithdrawalMade")
+            .requiredTags("wallet-id")
+            .build();
+    }
+}
+```
+
+### 5. Views Are Automatically Processed
+
+The view processor automatically:
+- Polls events from the event store
+- Filters by subscription configuration
+- Calls your `ViewProjector` implementations
+- Tracks progress independently per view
+- Handles errors with exponential backoff
+
+## Base Classes
+
+### AbstractTypedViewProjector (Recommended)
+
+For projects using sealed interfaces (e.g., `WalletEvent`, `CourseEvent`):
+
+```java
+@Component
+public class WalletViewProjector extends AbstractTypedViewProjector<WalletEvent> {
+    
+    public WalletViewProjector(
+            ObjectMapper objectMapper,
+            ClockProvider clockProvider,
+            PlatformTransactionManager transactionManager) {
+        super(objectMapper, clockProvider, transactionManager);
+    }
+    
+    @Override
+    public String getViewName() {
+        return "wallet-view";
+    }
+    
+    @Override
+    protected Class<WalletEvent> getEventType() {
+        return WalletEvent.class;
+    }
+    
+    @Override
+    protected boolean handleEvent(WalletEvent event, StoredEvent storedEvent, JdbcTemplate jdbc) {
+        return switch (event) {
+            case WalletOpened opened -> handleWalletOpened(opened, jdbc);
+            case DepositMade deposit -> handleDepositMade(deposit, jdbc);
+            // ... other event types
+        };
+    }
+}
+```
+
+**Benefits:**
+- ✅ Automatic transaction support (batch atomicity)
+- ✅ Automatic deserialization to typed events
+- ✅ Type-safe pattern matching
+- ✅ Built-in error handling and logging
+- ✅ ClockProvider for testability
+
+### AbstractViewProjector
+
+For projects without sealed interfaces:
 
 ```java
 @Component
@@ -166,7 +237,6 @@ public class SimpleViewProjector extends AbstractViewProjector {
     
     @Override
     protected boolean handleEvent(StoredEvent event, JdbcTemplate jdbc) {
-        // Manual deserialization if needed
         if ("SomeEvent".equals(event.type())) {
             SomeEvent data = deserialize(event, SomeEvent.class);
             // ... handle event
@@ -177,7 +247,13 @@ public class SimpleViewProjector extends AbstractViewProjector {
 }
 ```
 
-**Alternative: Direct ViewProjector Implementation**
+**Benefits:**
+- ✅ Automatic transaction support (batch atomicity)
+- ✅ Built-in error handling and logging
+- ✅ ClockProvider for testability
+- ✅ Works with any event structure
+
+### Direct ViewProjector Implementation
 
 For maximum flexibility, implement `ViewProjector` directly:
 
@@ -201,78 +277,47 @@ public class WalletViewProjector implements ViewProjector {
     @Override
     public int handle(String viewName, List<StoredEvent> events, DataSource writeDataSource) {
         // Manual implementation - no transaction support or base class features
-        // ...
+        // You must handle transactions, deserialization, and error handling yourself
     }
 }
 ```
 
-**Alternative: Using Spring Data JDBC**
+**Note:** Direct implementation requires manual transaction management, deserialization, and error handling. Use base classes unless you have specific requirements.
 
+## Idempotency and Transactions
+
+View projectors **MUST** use idempotent operations since events may be processed multiple times due to at-least-once semantics.
+
+**Transaction Support:**
+- Each batch of events is processed within a single transaction using `TransactionTemplate`
+- Transaction support is built into the base classes - no need to add `@Transactional` annotations
+- If any event in the batch fails, the entire batch is rolled back automatically
+- Progress tracking happens **after** the transaction commits (separate transaction)
+- If progress update fails, events may be reprocessed (hence idempotency requirement)
+
+**Transaction Configuration:**
+- Propagation: `REQUIRED` (joins existing transaction if present, creates new if not)
+- Isolation: `READ_COMMITTED` (database default)
+- Rollback: Automatic on any exception
+
+**Recommended patterns:**
+- Use PostgreSQL `ON CONFLICT` clauses (works great with JdbcTemplate)
+- Use upsert operations
+- Use idempotent updates (e.g., set `new_balance` from event instead of accumulating)
+
+**Example with JdbcTemplate:**
 ```java
-@Component
-public class WalletViewProjector implements ViewProjector {
-    
-    private final WalletViewRepository repository;
-    private final ObjectMapper objectMapper;
-    
-    public WalletViewProjector(WalletViewRepository repository, ObjectMapper objectMapper) {
-        this.repository = repository;
-        this.objectMapper = objectMapper;
-    }
-    
-    // Note: Spring Data JDBC doesn't natively support PostgreSQL ON CONFLICT,
-    // so you may need to use @Query with custom SQL for idempotent upserts
-    // or use JdbcTemplate for those operations
-    
-    // ... implementation
-}
+writeJdbc.update("""
+    INSERT INTO wallet_view (wallet_id, balance, last_updated_at)
+    VALUES (?, ?, ?)
+    ON CONFLICT (wallet_id) 
+    DO UPDATE SET 
+        balance = EXCLUDED.balance,
+        last_updated_at = EXCLUDED.last_updated_at
+    """,
+    walletId, balance, timestamp
+);
 ```
-
-**Alternative: Using JOOQ**
-
-```java
-@Component
-public class WalletViewProjector implements ViewProjector {
-    
-    private final DSLContext dsl;
-    private final ObjectMapper objectMapper;
-    
-    public WalletViewProjector(DSLContext dsl, ObjectMapper objectMapper) {
-        this.dsl = dsl;
-        this.objectMapper = objectMapper;
-    }
-    
-    // Note: Requires JOOQ code generation setup
-    // ... implementation using JOOQ DSL
-}
-```
-
-### 4. Configure Subscription
-
-Create a `ViewSubscriptionConfig` bean to subscribe to events:
-
-```java
-@Configuration
-public class ViewConfiguration {
-    
-    @Bean
-    public ViewSubscriptionConfig walletViewSubscription() {
-        return ViewSubscriptionConfig.builder("wallet-view")
-            .eventTypes("WalletOpened", "DepositMade", "WithdrawalMade", "TransferCompleted")
-            .requiredTags("wallet-id")  // Only process events with wallet-id tag
-            .build();
-    }
-}
-```
-
-### 5. Views Are Automatically Processed
-
-The view processor automatically:
-- Polls events from the event store
-- Filters by subscription configuration (event types and tags)
-- Calls your `ViewProjector` implementations
-- Tracks progress independently per view
-- Handles errors with exponential backoff
 
 ## Architecture
 
@@ -326,142 +371,22 @@ public ViewSubscriptionConfig myViewSubscription() {
 }
 ```
 
-## Base Classes
+## Tag Filtering
 
-The module provides base classes to reduce boilerplate and provide common functionality:
+Tags are stored in PostgreSQL as `"key=value"` format. Subscription filters support:
 
-### AbstractTypedViewProjector (Recommended)
+- **Required Tags**: ALL specified tags must be present
+- **AnyOf Tags**: At least ONE of the specified tags must be present
+- **Event Types**: Filter by event type names
 
-For projects using sealed interfaces (e.g., `WalletEvent`, `CourseEvent`):
-
+**Example:**
 ```java
-@Component
-public class WalletViewProjector extends AbstractTypedViewProjector<WalletEvent> {
-    
-    public WalletViewProjector(
-            ObjectMapper objectMapper,
-            ClockProvider clockProvider,
-            PlatformTransactionManager transactionManager) {
-        super(objectMapper, clockProvider, transactionManager);
-    }
-    
-    @Override
-    public String getViewName() {
-        return "wallet-view";
-    }
-    
-    @Override
-    protected Class<WalletEvent> getEventType() {
-        return WalletEvent.class;
-    }
-    
-    @Override
-    protected boolean handleEvent(WalletEvent event, StoredEvent storedEvent, JdbcTemplate jdbc) {
-        return switch (event) {
-            case WalletOpened opened -> handleWalletOpened(opened, jdbc);
-            case DepositMade deposit -> handleDepositMade(deposit, jdbc);
-            // ... other event types
-        };
-    }
-}
+ViewSubscriptionConfig.builder("course-view")
+    .eventTypes("CourseDefined", "StudentSubscribedToCourse")
+    .requiredTags("course_id")
+    .anyOfTags("region-us", "region-eu")
+    .build();
 ```
-
-**Benefits:**
-- ✅ Automatic transaction support (batch atomicity)
-- ✅ Automatic deserialization to typed events
-- ✅ Type-safe pattern matching
-- ✅ Built-in error handling and logging
-- ✅ ClockProvider for testability
-
-### AbstractViewProjector
-
-For projects without sealed interfaces or when you need more control:
-
-```java
-@Component
-public class SimpleViewProjector extends AbstractViewProjector {
-    
-    public SimpleViewProjector(
-            ObjectMapper objectMapper,
-            ClockProvider clockProvider,
-            PlatformTransactionManager transactionManager) {
-        super(objectMapper, clockProvider, transactionManager);
-    }
-    
-    @Override
-    public String getViewName() {
-        return "simple-view";
-    }
-    
-    @Override
-    protected boolean handleEvent(StoredEvent event, JdbcTemplate jdbc) {
-        // Manual deserialization if needed
-        if ("SomeEvent".equals(event.type())) {
-            SomeEvent data = deserialize(event, SomeEvent.class);
-            // ... handle event
-            return true;
-        }
-        return false;
-    }
-}
-```
-
-**Benefits:**
-- ✅ Automatic transaction support (batch atomicity)
-- ✅ Built-in error handling and logging
-- ✅ ClockProvider for testability
-- ✅ Works with any event structure
-
-## Idempotency and Transactions
-
-View projectors **MUST** use idempotent operations since events may be processed multiple times due to at-least-once semantics.
-
-**Transaction Support:**
-- Each batch of events is processed within a single transaction using `TransactionTemplate`
-- Transaction support is built into the base class - no need to add `@Transactional` annotations
-- If any event in the batch fails, the entire batch is rolled back automatically
-- This ensures atomicity: all events succeed or all fail together
-- Progress tracking happens **after** the transaction commits (separate transaction)
-- If progress update fails, events may be reprocessed (hence idempotency requirement)
-
-**Transaction Configuration:**
-- Propagation: `REQUIRED` (joins existing transaction if present, creates new if not)
-- Isolation: `READ_COMMITTED` (database default)
-- Rollback: Automatic on any exception
-
-**Recommended patterns:**
-- Use PostgreSQL `ON CONFLICT` clauses (works great with JdbcTemplate)
-- Use upsert operations
-- Use idempotent updates (e.g., set `new_balance` from event instead of accumulating)
-
-**Example with JdbcTemplate:**
-```java
-writeJdbc.update("""
-    INSERT INTO wallet_view (wallet_id, balance, last_updated_at)
-    VALUES (?, ?, ?)
-    ON CONFLICT (wallet_id) 
-    DO UPDATE SET 
-        balance = EXCLUDED.balance,
-        last_updated_at = EXCLUDED.last_updated_at
-    """,
-    walletId, balance, timestamp
-);
-```
-
-## Transaction Management
-
-View projectors automatically process each batch within a transaction:
-- **Batch size**: Configurable via `crablet.views.batch-size` (default: 100)
-- **Transaction scope**: All events in a batch are processed atomically
-- **Rollback behavior**: If any event fails, the entire batch is rolled back automatically
-- **Implementation**: Uses Spring's `TransactionTemplate` for explicit transaction management
-- **Isolation level**: `READ_COMMITTED` (configurable via TransactionTemplate)
-
-**Important:**
-- Progress tracking happens in a **separate transaction** after handler execution
-- This design allows handlers to manage their own transaction boundaries
-- If progress update fails, events may be reprocessed (idempotency required)
-- Transaction support is built into `AbstractWalletViewProjector` - no additional configuration needed
 
 ## Management API
 
@@ -498,23 +423,6 @@ Each view tracks its own progress independently in the `view_progress` table:
 - `last_error`: Last error message
 - `instance_id`: Instance processing this view (for leader election)
 
-## Tag Filtering
-
-Tags are stored in PostgreSQL as `"key=value"` format. Subscription filters support:
-
-- **Required Tags**: ALL specified tags must be present
-- **AnyOf Tags**: At least ONE of the specified tags must be present
-- **Event Types**: Filter by event type names
-
-**Example:**
-```java
-ViewSubscriptionConfig.builder("course-view")
-    .eventTypes("CourseDefined", "StudentSubscribedToCourse")
-    .requiredTags("course_id")          // Must have course_id tag
-    .anyOfTags("region-us", "region-eu") // Must have at least one region tag
-    .build();
-```
-
 ## Error Handling
 
 Views use exponential backoff for error recovery:
@@ -548,4 +456,3 @@ See the test files in `src/test/java` for complete examples:
 - [EventStore README](../crablet-eventstore/README.md) - Event sourcing library
 - [Event Processor](../crablet-event-processor/README.md) - Generic event processor infrastructure
 - [Command README](../crablet-command/README.md) - Command framework
-

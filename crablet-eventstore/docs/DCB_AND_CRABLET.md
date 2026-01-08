@@ -1,5 +1,31 @@
 # Dynamic Consistency Boundary (DCB)
 
+## Quick Reference
+
+**DCB in 60 seconds:**
+
+DCB redefines consistency granularity in event-sourced systems, moving from fixed aggregates to dynamically defined consistency boundaries based on criteria (queries).
+
+**How it works:**
+1. Read current state, capture cursor position
+2. Generate events based on read state
+3. Server checks for conflicts before writing (cursor-based)
+4. If conflict detected → `ConcurrencyException`, application retries
+
+**Key Benefits:**
+
+| Benefit | Description |
+|---------|-------------|
+| **Reduces event consumption** | Fine-grained filtering means only process relevant events |
+| **Eliminates eventual consistency** | Business rules spanning multiple aggregates enforced immediately |
+| **Reduces contention** | Smaller boundaries = less conflicts = better parallelism |
+| **Flexible refactoring** | Adjust boundaries without stream restructuring |
+| **Less upfront design pressure** | Refine boundaries as you learn |
+
+**Performance:** ~4x faster for operations using cursor-only checks vs. advisory locks.
+
+📖 **Details:** See [sections below](#what-is-dcb).
+
 ## Problem Statement
 
 Event sourcing systems require concurrency control to prevent inconsistent state. Example scenario:
@@ -13,21 +39,17 @@ Event sourcing systems require concurrency control to prevent inconsistent state
 
 Dynamic Consistency Boundaries (DCB) redefine consistency granularity in event-sourced systems, moving from fixed aggregates (event streams) to dynamically defined consistency boundaries based on criteria (queries).
 
-### Traditional Approach: Aggregates as Consistency Boundaries
+### Traditional vs DCB Approach
 
-- Events organized into streams (one stream per aggregate)
-- Consistency boundary = aggregate boundary
-- Changing boundaries requires refactoring streams
-- Some business rules span multiple aggregates
+| Aspect | Traditional (Aggregates) | DCB (Criteria-Based) |
+|--------|------------------------|---------------------|
+| **Consistency Boundary** | Aggregate boundary | Events matching criteria (decision model) |
+| **Boundary Definition** | Fixed per stream | Dynamic per operation |
+| **Refactoring** | Requires stream restructuring | Change criteria, stream stays intact |
+| **Multi-Aggregate Rules** | Requires eventual consistency | Immediate consistency via multi-entity criteria |
+| **Event Reuse** | One stream per aggregate | Single event can belong to multiple boundaries |
 
-### DCB Approach: Criteria-Based Consistency Boundaries
-
-- Consistency boundary = events matching your criteria (decision model)
-- Boundaries defined dynamically per operation
-- Flexible refactoring without stream changes
-- Single event can belong to multiple consistency boundaries
-
-**Broader Applicability:** DCB applies to any messaging system with append-only log and pub/sub characteristics, not limited to event sourcing. Useful for any system with position-based deduplication.
+**Broader Applicability:** DCB applies to any messaging system with append-only log and pub/sub characteristics, not limited to event sourcing.
 
 ### Architectural Insight: Bounded Context vs Aggregate
 
@@ -38,22 +60,6 @@ When organizing event streams, consider aligning streams with **Bounded Contexts
 - **Benefit**: More flexible than strict aggregate boundaries, easier to refactor
 
 This is architectural guidance, not a requirement. DCB works regardless of how you organize your streams.
-
-## Benefits of DCB
-
-DCB provides several advantages over traditional aggregate-based consistency:
-
-✅ **Reduces events needed to rehydrate state** - Fine-grained filtering based on criteria means you only process events relevant to your decision, dramatically reducing event consumption for large histories.
-
-✅ **Eliminates need for eventual consistency techniques** - Business rules that span multiple aggregates can be enforced with immediate consistency by defining criteria that include events from multiple entities.
-
-✅ **Reduces append contention** - Smaller, finely-defined consistency boundaries have less chance of conflicting, enabling better parallel execution.
-
-✅ **Flexible refactoring** - Adjusting consistency boundaries doesn't require stream restructuring. Your event stream stays intact; you just change the criteria used for different operations.
-
-✅ **Less upfront design pressure** - You can refine consistency boundaries as you learn more about your domain, without costly migrations.
-
-**Performance Impact:** These benefits translate to real performance gains. See [Performance Characteristics](#performance-characteristics) section for measured improvements.
 
 ## DCB Mechanism
 
@@ -76,7 +82,7 @@ AND transaction_id < pg_snapshot_xmin(pg_current_snapshot())
 LIMIT 1
 ```
 
-If count > 0: conflict detected, return 409
+If count > 0: conflict detected, return 409  
 If count = 0: safe to append, write event
 
 ### Example Timeline
@@ -90,25 +96,9 @@ Request B: Read@42 → Check → Conflict (position 43 exists) → 409 Conflict
            Application retries: Read@43 → Check → Write@44 (success)
 ```
 
-## Architecture: Cursor-Only vs Idempotency
+## Cursor-Based vs Idempotency Checks
 
 DCB supports two concurrency control strategies:
-
-### Operations (Deposits, Withdrawals, Transfers)
-- **Strategy**: Cursor-only concurrency control
-- **Performance**: ~4x faster (no advisory locks)
-- **Safety**: Cursor advancement prevents duplicate charges
-- **Behavior**: 201 CREATED for all successful requests, 409 Conflict for stale cursors
-- **Why No Locks Needed**: PostgreSQL snapshot isolation handles race conditions - if two transactions both read at cursor position 42, and one writes at 43, the other will see position 43 when it tries to write and detect the conflict
-
-### Wallet Creation
-- **Strategy**: Idempotency checks (no cursor protection available)
-- **Performance**: Slower but necessary for uniqueness
-- **Safety**: Advisory locks prevent duplicate wallet IDs
-- **Behavior**: 201 CREATED for new wallets, 200 OK for duplicates
-- **Why Advisory Locks Required**: No cursor exists for entity creation, so snapshot isolation cannot prevent the race condition where two transactions both check "does wallet exist?", both see "no", and both create the wallet. Advisory locks serialize the duplicate check to prevent this.
-
-### Comparison: Cursor-Based vs Idempotency Checks
 
 | Aspect | Cursor-Based Checks | Idempotency Checks |
 |--------|-------------------|-------------------|
@@ -117,7 +107,7 @@ DCB supports two concurrency control strategies:
 | **Advisory Locks** | ❌ Not needed | ✅ Required |
 | **Protection Mechanism** | PostgreSQL snapshot isolation (MVCC) | Advisory locks serialize duplicate checks |
 | **Performance** | ~4x faster (no lock contention) | Slower (lock serialization) |
-| **Race Condition Protection** | Snapshot isolation handles it automatically | Advisory locks prevent both transactions seeing "no duplicate" |
+| **Behavior** | 201 CREATED for all successful requests, 409 Conflict for stale cursors | 201 CREATED for new entities, 200 OK for duplicates |
 | **Why Different?** | Can check "has state changed since I read?" | Cannot check prior state (entity doesn't exist yet) |
 
 **Key Insight**: Cursor-based checks can rely on snapshot isolation because they're checking for changes to existing state. Idempotency checks need advisory locks because they're checking for the existence of something that may not exist yet, and snapshot isolation cannot prevent the race condition in this scenario.
@@ -135,8 +125,6 @@ AppendCondition condition = AppendCondition.builder()
 ```
 
 Result: Conflicts only detected for events affecting same wallet. Operations on wallet A don't block operations on wallet B.
-
-**Multi-dimensional scoping:** Events tagged with multiple entity identifiers can belong to multiple consistency boundaries simultaneously. See [Multi-Entity Consistency](#multi-entity-consistency) section for examples.
 
 ## Multi-Entity Consistency
 
@@ -158,15 +146,14 @@ When querying for either wallet's state, the transfer event is included. This en
 - No need for process managers or eventual consistency
 - Single operation enforces constraints on multiple entities
 
-### Example: Course Subscription
-
-See `com.crablet.examples.course` for a complete example where a `StudentSubscribedToCourse` event is tagged with both `studentId` and `courseId`, enabling consistency checks across student subscription limits and course capacity constraints atomically.
+**For more complex examples**, see Course Subscriptions (`com.crablet.examples.course`) which demonstrates capacity limits, subscription limits, and duplicate checks using composite projectors.
 
 ## Application Retry Behavior
 
 > **Note**: `CommandExecutor` does not retry automatically. When it throws `ConcurrencyException`, your application layer should implement retry logic (e.g., using Resilience4j).
 
 ### Operations (Cursor-Only)
+
 ```http
 POST /api/wallets/w1/deposits
 {"deposit_id": "d1", "amount": 100}
@@ -184,6 +171,7 @@ POST /api/wallets/w1/deposits
 ```
 
 ### Wallet Creation (Idempotent)
+
 ```http
 PUT /api/wallets/w1
 {"owner": "Alice", "initial_balance": 1000}
@@ -214,7 +202,7 @@ Query decisionModel = QueryBuilder.create()
     .build();
 ```
 
-This Query is passed to `AppendConditionBuilder(decisionModel, cursor)` and used for the DCB conflict check. The decision model determines which events must be checked for conflicts - if any events matching this criteria appeared after your cursor, a conflict is detected.
+This Query is passed to `AppendConditionBuilder(decisionModel, cursor)` and used for the DCB conflict check.
 
 #### 2. DCB Conflict Detection (stateChanged)
 
@@ -223,10 +211,7 @@ This Query is passed to `AppendConditionBuilder(decisionModel, cursor)` and used
 ```java
 // Project with cursor
 ProjectionResult<WalletBalance> result = eventStore.project(
-    decisionModel,
-    cursor,
-    WalletBalance.class,
-    List.of(projector)
+    decisionModel, cursor, WalletBalance.class, List.of(projector)
 );
 
 // AppendCondition checks if ANY events matching decisionModel appeared after cursor
@@ -235,9 +220,8 @@ AppendCondition condition = new AppendConditionBuilder(decisionModel, result.cur
 
 try {
     String transactionId = eventStore.appendIf(events, condition);
-    // Use transactionId for command auditing if needed
 } catch (ConcurrencyException e) {
-    // Balance changed (deposit/withdrawal happened) - throw to application layer
+    // Balance changed - throw to application layer for retry
     throw e;
 }
 ```
@@ -272,17 +256,8 @@ AppendCondition condition = new AppendConditionBuilder(decisionModel, cursor)
 ### Complete Withdrawal Example
 
 ```java
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.Cursor;
-import com.crablet.eventstore.query.*;
-import com.crablet.eventstore.dcb.*;
-
 @Component
 public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
-    
-    public WithdrawCommandHandler() {
-    }
     
     @Override
     public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
@@ -292,7 +267,8 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         // 2. Project current balance with cursor
         WalletBalanceProjector projector = new WalletBalanceProjector();
         ProjectionResult<WalletBalanceState> result = eventStore.project(
-                decisionModel, Cursor.zero(), WalletBalanceState.class, List.of(projector));
+            decisionModel, Cursor.zero(), WalletBalanceState.class, List.of(projector)
+        );
         
         // 3. Business logic
         if (!result.state().isExisting()) {
@@ -300,18 +276,15 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         }
         if (!result.state().hasSufficientFunds(command.amount())) {
             throw new InsufficientFundsException(command.walletId(), 
-                    result.state().balance(), command.amount());
+                result.state().balance(), command.amount());
         }
         
         int newBalance = result.state().balance() - command.amount();
         
         // 4. Create event
         WithdrawalMade withdrawal = WithdrawalMade.of(
-            command.withdrawalId(),
-            command.walletId(),
-            command.amount(),
-            newBalance,
-            command.description()
+            command.withdrawalId(), command.walletId(), command.amount(),
+            newBalance, command.description()
         );
         
         AppendEvent event = AppendEvent.builder("WithdrawalMade")
@@ -324,8 +297,6 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         AppendCondition condition = new AppendConditionBuilder(decisionModel, result.cursor())
             .build();
         
-        // Return CommandResult - CommandExecutor will call appendIf:
-        //    String transactionId = eventStore.appendIf(List.of(event), condition);
         return CommandResult.of(List.of(event), condition);
     }
 }
@@ -336,7 +307,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 **Scenario 1: Normal case**
 - Read balance: $100
 - Check: balance >= $50 ✓
-- AppendIf checks: no events after cursor ✓, no duplicate withdrawal_id ✓
+- AppendIf checks: no events after cursor ✓
 - Result: withdrawal succeeds
 
 **Scenario 2: Concurrent deposit**
@@ -346,13 +317,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 - AppendIf checks: found DepositMade at position 43 > 42 ✗
 - Result: ConcurrencyException → application should retry
 
-**Scenario 3: Duplicate request**
-- First request: withdrawal_id "w-123" succeeds
-- Duplicate request: same withdrawal_id "w-123"
-- AppendIf checks: found WithdrawalMade with withdrawal_id:w-123 ✗
-- Result: Idempotency violation → return success (already processed)
-
-**Scenario 4: Concurrent withdrawals (both insufficient after first)**
+**Scenario 3: Concurrent withdrawals**
 - Balance: $100
 - Transaction A: reads balance $100, withdraws $80
 - Transaction B: reads balance $100, withdraws $80
@@ -361,16 +326,6 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 
 ## Implementation Details
 
-### Package Structure
-
-- **`com.crablet.eventstore.store`**: Core interfaces and implementations (EventStore, StoredEvent, AppendEvent)
-- **`com.crablet.command`**: Command handlers (Command, CommandHandler, CommandExecutor) - see [crablet-command](../crablet-command/README.md) module
-- **`com.crablet.eventstore.query`**: Querying support (Query, QueryBuilder)
-- **`com.crablet.eventstore.dcb`**: DCB implementation (AppendCondition, Cursor)
-- **`com.crablet.eventstore.config`**: Configuration classes
-- **`com.crablet.eventstore.clock`**: Clock provider for consistent timestamps
-- **`com.crablet.outbox`**: Outbox interfaces and implementations
-
 ### Cursor Structure
 
 ```java
@@ -378,12 +333,9 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 Cursor cursor = Cursor.of(event.position(), event.occurredAt(), event.transactionId());
 
 // Or use convenience methods
-Cursor cursor = Cursor.of(42L);  // position only, timestamp = now, transactionId = "0"
-Cursor cursor = Cursor.of(42L, Instant.now());  // position + timestamp, transactionId = "0"
-Cursor cursor = Cursor.of(42L, Instant.now(), "12345");  // all fields
-
-// Zero cursor for empty projections
-Cursor cursor = Cursor.zero();
+Cursor cursor = Cursor.of(42L);  // position only
+Cursor cursor = Cursor.of(42L, Instant.now());  // position + timestamp
+Cursor cursor = Cursor.zero();  // zero cursor for empty projections
 ```
 
 ### Query Builder
@@ -397,10 +349,7 @@ Query query = QueryBuilder.create()
     .build();
 ```
 
-Generates SQL with:
-- Event type filtering (`type = ANY(?)`)
-- Tag containment checks (`tags @> ?`)
-- Position ordering (`ORDER BY transaction_id, position`)
+Generates SQL with event type filtering, tag containment checks, and position ordering.
 
 ### State Projectors
 
@@ -421,80 +370,12 @@ Query query = QueryBuilder.create()
     .build();
 
 ProjectionResult<WalletBalance> result = eventStore.project(
-    query,
-    Cursor.zero(),
-    WalletBalance.class,
-    List.of(new WalletBalanceProjector())
+    query, Cursor.zero(), WalletBalance.class, List.of(new WalletBalanceProjector())
 );
 
 WalletBalance balance = result.state();
 Cursor cursor = result.cursor(); // Use for DCB concurrency control
 ```
-
-### Command Handlers
-
-Complete example showing modern Crablet APIs:
-
-```java
-@Component
-public class DepositCommandHandler implements CommandHandler<DepositCommand> {
-    
-    public DepositCommandHandler() {
-    }
-
-    @Override
-    public CommandResult handle(EventStore eventStore, DepositCommand command) {
-        // 1. Project current state to validate wallet exists and get balance
-        WalletBalanceProjector projector = new WalletBalanceProjector();
-        Query query = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
-        ProjectionResult<WalletBalanceState> projection = eventStore.project(
-                query, Cursor.zero(), WalletBalanceState.class, List.of(projector));
-        
-        if (!projection.state().isExisting()) {
-            throw new WalletNotFoundException(command.walletId());
-        }
-
-        // 2. Business logic
-        int newBalance = projection.state().balance() + command.amount();
-        DepositMade deposit = DepositMade.of(
-            command.depositId(),
-            command.walletId(),
-            command.amount(),
-            newBalance,
-            command.description()
-        );
-
-        // 3. Create event
-        AppendEvent event = AppendEvent.builder("DepositMade")
-            .tag("wallet_id", command.walletId())
-            .tag("deposit_id", command.depositId())
-            .data(deposit)
-            .build();
-
-        // 4. Deposits are commutative - no cursor check needed
-        // Order doesn't matter: +$10 then +$20 = +$20 then +$10
-        // Allows parallel deposits without conflicts
-        // Note: AppendCondition.empty() is valid for commutative operations like deposits
-        AppendCondition condition = AppendCondition.empty();
-
-        // Return CommandResult - CommandExecutor will call appendIf:
-        //    String transactionId = eventStore.appendIf(List.of(event), condition);
-        return CommandResult.of(List.of(event), condition);
-}
-```
-
-**Key Points:**
-
-1. **Commutative Operations**: Deposits are commutative - order doesn't affect final result
-2. **AppendEvent.builder()**: Fluent event creation with inline tags
-3. **AppendCondition.empty()**: For commutative operations where order doesn't matter (valid production pattern)
-4. **Parallel Execution**: Deposits can run in parallel without conflicts
-5. **Idempotency**: Handled via `deposit_id` tag, prevents duplicate deposits
-6. **Performance**: No cursor checks needed for commutative operations
-
-**For non-commutative operations (withdrawals, transfers)**, use `AppendConditionBuilder(decisionModel, cursor)` to detect concurrent balance changes. See [Command Patterns Guide](COMMAND_PATTERNS.md) for complete examples.
-
-**For multi-entity operations (course subscriptions, multi-wallet transfers)**, use composite projectors to enforce constraints across multiple entities atomically. See `com.crablet.examples.course` for a complete example of multi-entity constraints using composite projectors.
 
 ## PostgreSQL Integration
 
@@ -519,7 +400,7 @@ CREATE FUNCTION append_events_if(
 
 ## Performance Characteristics
 
-Measured on this codebase (October 2025):
+Measured on this codebase:
 
 | Operation | Throughput | p95 Latency | Notes |
 |-----------|------------|-------------|-------|
@@ -531,10 +412,8 @@ Measured on this codebase (October 2025):
 
 **Key Performance Insights:**
 - **Operations**: ~4x improvement by removing advisory locks, using cursor-only concurrency control
-- **Reduced Event Consumption**: Fine-grained criteria means fewer events to process for state projection (see [Benefits of DCB](#benefits-of-dcb))
-- **Reduced Contention**: Smaller consistency boundaries reduce append conflicts (see [Benefits of DCB](#benefits-of-dcb))
-- **Wallet Creation**: Maintains idempotency (no cursor protection available)
-- **Conflict Detection**: Zero false positives (entity scoping prevents unrelated conflicts)
+- **Reduced Event Consumption**: Fine-grained criteria means fewer events to process for state projection
+- **Reduced Contention**: Smaller consistency boundaries reduce append conflicts
 - **Safety**: Money protected by cursor checks, no duplicate charges possible
 
 ## References and Further Reading
@@ -544,17 +423,5 @@ Measured on this codebase (October 2025):
 DCB (Dynamic Consistency Boundary) was **introduced by Sara Pellegrini** in her blog post "Killing the Aggregate".
 
 - **[DCB Official Specification](https://dcb.events/)** - Official DCB website and specification
-  - Introduced by Sara Pellegrini in her blog post "Killing the Aggregate"
-  - Comprehensive explanation of DCB concepts, benefits, and implementation details
-  - Includes examples, specification, and related topics
-  
 - **[Dynamic Consistency Boundaries - Presentation](https://www.youtube.com/watch?v=0iP65Durhbs)** by Sara Pellegrini & Milan Savic
-  - Original presentation introducing and explaining the DCB concept
-  
 - **[Dynamic Consistency Boundaries](https://javapro.io/2025/10/28/dynamic-consistency-boundaries/)** by Milan Savic (JAVAPRO International, October 2025)
-  - Comprehensive explanation of DCB concepts, benefits, and architectural insights
-  - Explains DCB as moving from aggregates to dynamically defined consistency boundaries
-  - Discusses benefits: reduced event consumption, flexible refactoring, reduced contention
-  - Provides architectural insights on Bounded Contexts vs Aggregates
-  - Includes practical examples of criteria-based querying
-  - This documentation incorporates insights from this article while maintaining Crablet-specific implementation details and examples.

@@ -2,6 +2,14 @@
 
 Tests use Testcontainers (no external dependencies required).
 
+## Quick Reference
+
+**TL;DR:** Run `make install` - handles cyclic dependencies automatically.
+
+**Why cyclic dependencies?** `shared-examples-domain` uses framework interfaces (main scope), while framework modules use examples in tests (test scope). This provides consistency and maintainability at the cost of build complexity (handled by Makefile).
+
+📖 **Details:** See [Cyclic Dependencies](#cyclic-dependencies) section below.
+
 ## Quick Start (Recommended)
 
 The easiest way to build the project is using the Makefile, which handles cyclic dependencies automatically:
@@ -26,39 +34,13 @@ This single command will:
 - `shared-examples-domain` depends on `crablet-eventstore` (main scope)
 - `crablet-eventstore` depends on `shared-examples-domain` (test scope)
 
-### Why We Have Cyclic Dependencies
+### Cyclic Dependencies
 
 The cyclic dependency exists because:
+- **`shared-examples-domain` → `crablet-eventstore`**: Example domains use framework interfaces (`StateProjector`, `EventStore`, `Query`) and annotations (`@PeriodConfig`, `@PeriodType`)
+- **`crablet-eventstore` → `shared-examples-domain`**: Framework modules use shared examples in tests for consistency and realistic testing
 
-1. **`shared-examples-domain` → `crablet-eventstore` (main scope)**: The example domains (wallet, course) use framework interfaces and annotations from `crablet-eventstore`:
-   - Framework interfaces: `StateProjector`, `EventStore`, `Query`
-   - Framework annotations: `@PeriodConfig`, `@PeriodType`
-   - These are needed for the example implementations to demonstrate framework usage
-
-2. **`crablet-eventstore` → `shared-examples-domain` (test scope)**: Framework modules use the shared examples in their tests:
-   - `crablet-eventstore` tests use wallet/course examples
-   - `crablet-command` tests use wallet/course examples
-   - `crablet-metrics-micrometer` tests use wallet/course examples
-
-### The Trade-off
-
-**Why we chose this approach:**
-- ✅ **Consistency**: All framework modules test against the same realistic examples (wallet, course domains)
-- ✅ **Maintainability**: Example domains are defined once and reused across all modules
-- ✅ **Realistic Testing**: Tests use complete, realistic domain models rather than minimal test fixtures
-- ✅ **Documentation**: Examples serve as living documentation of framework usage patterns
-
-**The cost:**
-- ⚠️ **Build Complexity**: Requires a specific build order (handled automatically by Makefile)
-- ⚠️ **Reactor Exclusion**: `shared-examples-domain` must be excluded from the Maven reactor build
-- ⚠️ **Manual Build Steps**: Direct Maven usage requires following the correct build sequence
-
-**Alternative approaches we considered:**
-- ❌ **Duplicate examples per module**: Would eliminate the cycle but create maintenance burden and inconsistency
-- ❌ **No shared examples**: Would simplify builds but reduce test quality and documentation value
-- ❌ **Move examples to separate repo**: Would break the cycle but add complexity for contributors
-
-We chose to accept the build complexity in favor of better maintainability and test quality.
+**Trade-off:** Build complexity (requires specific order) vs. maintainability and test quality. The Makefile handles this automatically.
 
 ### Manual Build Steps
 
@@ -113,4 +95,3 @@ To build a specific module:
 ## Maven Wrapper
 
 This project uses the Maven wrapper (`mvnw`) to ensure consistent builds across different environments. All Maven commands should use `./mvnw` instead of `mvn` to use the project's specified Maven version.
-
