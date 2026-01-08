@@ -79,9 +79,11 @@ build-reactor:
 	@./mvnw install
 
 # Build all reactor modules with all tests including integration tests (for CI)
+# Note: Don't clean - build-core and build-shared already installed artifacts to local repo
+# The reactor build will use installed versions and compile fresh for tests
 build-reactor-verify:
 	@echo "Building reactor modules (with all tests including integration tests)..."
-	@./mvnw verify
+	@./mvnw verify -Dmaven.clean.skip=true
 
 # Compile all modules
 compile: build-core build-shared
