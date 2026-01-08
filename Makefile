@@ -61,11 +61,17 @@ ci-verify: build-core build-shared build-reactor-verify
 build-all: install
 
 # Build crablet-eventstore without tests (step 1 of cyclic dependency resolution)
-# Note: -am removed because shared-examples-domain is not in reactor and would cause build to fail
-# -Dmaven.test.skip=true skips both test compilation and test dependency resolution
+# Note: Install parent POM, then minimal stubs for both modules to break circular dependency
+# Then build crablet-eventstore with tests skipped (will replace the stub)
+# -am removed because shared-examples-domain is not in reactor and would cause build to fail
 build-core:
+	@echo "Installing parent POM and minimal stubs to break circular dependency..."
+	@./mvnw install -N -q 2>/dev/null || true
+	@mkdir -p /tmp/crablet-stub && touch /tmp/crablet-stub/empty.jar
+	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-eventstore -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-eventstore/pom.xml -q 2>/dev/null || true
+	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=shared-examples-domain -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=shared-examples-domain/pom.xml -q 2>/dev/null || true
 	@echo "Building crablet-eventstore (main code only, skipping tests)..."
-	@./mvnw clean install -pl crablet-eventstore -Dmaven.test.skip=true
+	@./mvnw clean compile package install -pl crablet-eventstore -DskipTests -Dmaven.test.skip=true
 
 # Build shared-examples-domain (step 2 - depends on crablet-eventstore)
 build-shared:
