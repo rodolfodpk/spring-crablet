@@ -181,7 +181,7 @@ public class SubscribeStudentToCourseCommandHandler implements CommandHandler<Su
                     yield current;
                 }
                 case String s when s.equals(type(StudentSubscribedToCourse.class)) -> {
-                    com.crablet.examples.course.events.StudentSubscribedToCourse subscription = 
+                    com.crablet.examples.course.events.StudentSubscribedToCourse subscription =
                             context.deserialize(event, com.crablet.examples.course.events.StudentSubscribedToCourse.class);
                     
                     boolean affectsCourse = subscription.courseId().equals(courseId);
