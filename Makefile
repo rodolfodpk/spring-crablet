@@ -61,9 +61,11 @@ ci-verify: build-core build-shared build-reactor-verify
 build-all: install
 
 # Build crablet-eventstore without tests (step 1 of cyclic dependency resolution)
+# Note: -am removed because shared-examples-domain is not in reactor and would cause build to fail
+# -Dmaven.test.skip=true skips both test compilation and test dependency resolution
 build-core:
 	@echo "Building crablet-eventstore (main code only, skipping tests)..."
-	@./mvnw clean install -pl crablet-eventstore -am -DskipTests
+	@./mvnw clean install -pl crablet-eventstore -Dmaven.test.skip=true
 
 # Build shared-examples-domain (step 2 - depends on crablet-eventstore)
 build-shared:
