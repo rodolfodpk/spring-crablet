@@ -35,6 +35,9 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import javax.sql.DataSource;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Test application for metrics integration tests.
@@ -169,7 +172,7 @@ public class TestApplication {
     @Bean
     public CommandExecutor commandExecutor(
             EventStore eventStore,
-            java.util.List<com.crablet.command.CommandHandler<?>> handlers,
+            List<com.crablet.command.CommandHandler<?>> handlers,
             ClockProvider clock,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             org.springframework.context.ApplicationEventPublisher eventPublisher) {
@@ -191,7 +194,7 @@ public class TestApplication {
             OutboxConfig config,
             org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
             DataSource readDataSource,
-            java.util.List<com.crablet.outbox.OutboxPublisher> publishers,
+            List<com.crablet.outbox.OutboxPublisher> publishers,
             InstanceIdProvider instanceIdProvider,
             ClockProvider clock,
             io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitBreakerRegistry,
@@ -199,7 +202,7 @@ public class TestApplication {
             org.springframework.context.ApplicationEventPublisher eventPublisher) {
         
         // Build publisher lookup map
-        java.util.Map<String, com.crablet.outbox.OutboxPublisher> publisherByName = new java.util.concurrent.ConcurrentHashMap<>();
+        Map<String, com.crablet.outbox.OutboxPublisher> publisherByName = new ConcurrentHashMap<>();
         for (com.crablet.outbox.OutboxPublisher publisher : publishers) {
             publisherByName.put(publisher.getName(), publisher);
         }

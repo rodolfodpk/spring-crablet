@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -78,7 +79,7 @@ public class WalletController {
                 request.walletId(),
                 request.owner(),
                 request.initialBalance(),
-                java.time.Instant.now()
+                Instant.now()
         );
         
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -123,7 +124,7 @@ public class WalletController {
                 walletId,
                 null, // Owner not available in deposit endpoint
                 request.amount(), // Simplified - would query view for actual balance
-                java.time.Instant.now()
+                Instant.now()
         );
         
         return ResponseEntity.ok(response);
@@ -168,7 +169,7 @@ public class WalletController {
                 walletId,
                 null, // Owner not available in withdrawal endpoint
                 0, // Simplified - would query view for actual balance
-                java.time.Instant.now()
+                Instant.now()
         );
         
         return ResponseEntity.ok(response);

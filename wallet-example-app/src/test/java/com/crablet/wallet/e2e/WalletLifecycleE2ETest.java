@@ -17,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -58,11 +59,11 @@ class WalletLifecycleE2ETest extends AbstractWalletE2ETest {
     
     @Autowired
     @Qualifier("viewProcessorConfigs")
-    private java.util.Map<String, ViewProcessorConfig> processorConfigs;
+    private Map<String, ViewProcessorConfig> processorConfigs;
     
     @Autowired
     @Qualifier("viewSubscriptions")
-    private java.util.Map<String, com.crablet.views.config.ViewSubscriptionConfig> subscriptions;
+    private Map<String, com.crablet.views.config.ViewSubscriptionConfig> subscriptions;
     
     /**
      * Process all views to ensure they're up to date.
@@ -258,8 +259,8 @@ class WalletLifecycleE2ETest extends AbstractWalletE2ETest {
                 .value(response -> {
                     assertThat(response.get("walletId")).isEqualTo(WALLET_ID);
                     @SuppressWarnings("unchecked")
-                    java.util.List<Map<String, Object>> transactions = 
-                        (java.util.List<Map<String, Object>>) response.get("transactions");
+                    List<Map<String, Object>> transactions = 
+                        (List<Map<String, Object>>) response.get("transactions");
                     assertThat(transactions).isNotNull();
                     assertThat(transactions.size()).isGreaterThanOrEqualTo(2);
                 });
@@ -287,12 +288,12 @@ class WalletLifecycleE2ETest extends AbstractWalletE2ETest {
                     Object totalWithdrawals = response.get("totalWithdrawals");
                     Object currentBalance = response.get("currentBalance");
                     
-                    assertThat(java.math.BigDecimal.valueOf(((Number) totalDeposits).doubleValue()))
-                        .isEqualByComparingTo(java.math.BigDecimal.valueOf(50));
-                    assertThat(java.math.BigDecimal.valueOf(((Number) totalWithdrawals).doubleValue()))
-                        .isEqualByComparingTo(java.math.BigDecimal.valueOf(30));
-                    assertThat(java.math.BigDecimal.valueOf(((Number) currentBalance).doubleValue()))
-                        .isEqualByComparingTo(java.math.BigDecimal.valueOf(120));
+                    assertThat(BigDecimal.valueOf(((Number) totalDeposits).doubleValue()))
+                        .isEqualByComparingTo(BigDecimal.valueOf(50));
+                    assertThat(BigDecimal.valueOf(((Number) totalWithdrawals).doubleValue()))
+                        .isEqualByComparingTo(BigDecimal.valueOf(30));
+                    assertThat(BigDecimal.valueOf(((Number) currentBalance).doubleValue()))
+                        .isEqualByComparingTo(BigDecimal.valueOf(120));
                 });
         });
     }

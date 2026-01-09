@@ -19,6 +19,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.TaskScheduler;
 
 import javax.sql.DataSource;
+import java.io.EOFException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -257,7 +258,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
      */
     private boolean isShutdownConnectionError(Exception e) {
         // Check for EOFException (connection closed)
-        if (e.getCause() instanceof java.io.EOFException) {
+        if (e.getCause() instanceof EOFException) {
             return true;
         }
         

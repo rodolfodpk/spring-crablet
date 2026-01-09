@@ -102,8 +102,8 @@ public class ChangeCourseCapacityCommandHandler implements CommandHandler<Change
         }
 
         @Override
-        public java.util.List<String> getEventTypes() {
-            return java.util.List.of(
+        public List<String> getEventTypes() {
+            return List.of(
                     type(com.crablet.examples.course.events.CourseDefined.class),
                     type(CourseCapacityChanged.class)
             );

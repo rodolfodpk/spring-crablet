@@ -7,6 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
+import java.io.PrintWriter;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -279,12 +280,12 @@ class ViewEventHandlerTest {
         }
 
         @Override
-        public java.io.PrintWriter getLogWriter() {
+        public PrintWriter getLogWriter() {
             throw new UnsupportedOperationException("Not implemented for test");
         }
 
         @Override
-        public void setLogWriter(java.io.PrintWriter out) {
+        public void setLogWriter(PrintWriter out) {
             throw new UnsupportedOperationException("Not implemented for test");
         }
 

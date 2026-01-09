@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of OutboxPublishingService.
@@ -366,7 +367,7 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
         if (!anyOfTags.isEmpty()) {
             String anyOfCondition = anyOfTags.stream()
                 .map(tag -> "t LIKE '" + tag + "=%'")
-                .collect(java.util.stream.Collectors.joining(" OR "));
+                .collect(Collectors.joining(" OR "));
             conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE " + anyOfCondition + ")");
         }
         

@@ -21,6 +21,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.function.Function;
 
 import static com.crablet.examples.wallet.WalletTags.DAY;
 import static com.crablet.examples.wallet.WalletTags.FROM_DAY;
@@ -303,7 +304,7 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
     /**
      * Extract tag value from tags list.
      */
-    private <T> T extractTagValue(List<Tag> tags, String tagKey, java.util.function.Function<String, T> parser) {
+    private <T> T extractTagValue(List<Tag> tags, String tagKey, Function<String, T> parser) {
         for (Tag tag : tags) {
             if (tag.key().equals(tagKey)) {
                 try {

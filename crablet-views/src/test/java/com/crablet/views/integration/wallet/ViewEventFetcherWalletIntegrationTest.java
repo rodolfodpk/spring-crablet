@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -183,7 +184,7 @@ class ViewEventFetcherWalletIntegrationTest extends AbstractViewsTest {
     @DisplayName("Should respect batch size limit")
     void shouldRespectBatchSizeLimit() {
         // Given - More events than batch size
-        List<AppendEvent> events = new java.util.ArrayList<>();
+        List<AppendEvent> events = new ArrayList<>();
         for (int i = 0; i < 150; i++) {
             events.add(AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", "wallet-" + i)

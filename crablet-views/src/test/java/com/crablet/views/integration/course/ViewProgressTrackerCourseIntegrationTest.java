@@ -14,6 +14,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -213,8 +215,8 @@ class ViewProgressTrackerCourseIntegrationTest extends AbstractViewsTest {
         long position = progressTracker.getLastPosition(viewName);
         assertThat(position)
             .as("Position should be from thread 1 (100-109) or thread 2 (200-209) range")
-            .isIn(java.util.List.of(100L, 101L, 102L, 103L, 104L, 105L, 106L, 107L, 108L, 109L,
-                                     200L, 201L, 202L, 203L, 204L, 205L, 206L, 207L, 208L, 209L));
+            .isIn(List.of(100L, 101L, 102L, 103L, 104L, 105L, 106L, 107L, 108L, 109L,
+                           200L, 201L, 202L, 203L, 204L, 205L, 206L, 207L, 208L, 209L));
     }
 
     @Test

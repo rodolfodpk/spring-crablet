@@ -18,6 +18,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -215,7 +216,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
         // Create cursor that doesn't exist (future position)
         Cursor futureCursor = Cursor.of(
                 new com.crablet.eventstore.store.SequenceNumber(999999L),
-                java.time.Instant.now(),
+                Instant.now(),
                 "future-tx-id"
         );
 
@@ -398,7 +399,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
                 malformedJson,
                 "tx-123",
                 1L,
-                java.time.Instant.now()
+                Instant.now()
         );
 
         com.crablet.eventstore.query.EventDeserializer deserializer = new com.crablet.eventstore.query.EventDeserializer() {
@@ -449,7 +450,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
                 emptyJson,
                 "tx-123",
                 1L,
-                java.time.Instant.now()
+                Instant.now()
         );
 
         com.crablet.eventstore.query.EventDeserializer deserializer = new com.crablet.eventstore.query.EventDeserializer() {
@@ -535,7 +536,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
                 incompleteJson,
                 "tx-123",
                 1L,
-                java.time.Instant.now()
+                Instant.now()
         );
 
         com.crablet.eventstore.query.EventDeserializer deserializer = new com.crablet.eventstore.query.EventDeserializer() {

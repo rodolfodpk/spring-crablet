@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -51,7 +52,7 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
         // Second execution with stale cursor - should trigger ConcurrencyException
         // but NOT "duplicate operation detected" (it's a cursor conflict, not idempotency)
         Query decisionModel = Query.forEventAndTag("test_event", "entityId", "entity-123");
-        Cursor staleCursor = Cursor.of(0L, java.time.Instant.now(), "old-tx-id");
+        Cursor staleCursor = Cursor.of(0L, Instant.now(), "old-tx-id");
         AppendCondition conditionWithStaleCursor = new AppendConditionBuilder(decisionModel, staleCursor).build();
         
         CommandResult secondResult = CommandResult.of(List.of(event), conditionWithStaleCursor);

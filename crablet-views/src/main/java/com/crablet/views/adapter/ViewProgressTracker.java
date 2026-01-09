@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
 
 /**
  * Adapter that implements ProgressTracker<String> for view projections.
@@ -182,7 +183,7 @@ public class ViewProgressTracker implements ProgressTracker<String> {
     
     @Override
     public void autoRegister(String viewName, String instanceId) {
-        log.trace("[ViewProgressTracker] autoRegister() called for view: {} at {}", viewName, java.time.Instant.now());
+        log.trace("[ViewProgressTracker] autoRegister() called for view: {} at {}", viewName, Instant.now());
         
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(AUTO_REGISTER_SQL)) {
@@ -218,7 +219,7 @@ public class ViewProgressTracker implements ProgressTracker<String> {
             }
             
             log.error("[ViewProgressTracker] Failed to auto-register view: {} at {}. Error: {}, SQLState: {}", 
-                     viewName, java.time.Instant.now(), errorMessage, sqlState, e);
+                     viewName, Instant.now(), errorMessage, sqlState, e);
             throw new RuntimeException("Failed to auto-register view: " + viewName, e);
         }
     }

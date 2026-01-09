@@ -32,6 +32,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -134,7 +135,7 @@ public class EventStoreImpl implements EventStore {
         public <E> E deserialize(StoredEvent event, Class<E> eventType) {
             try {
                 return objectMapper.readValue(event.data(), eventType);
-            } catch (java.io.IOException e) {
+            } catch (IOException e) {
                 throw new RuntimeException("Failed to deserialize event type=" + 
                     event.type() + " to " + eventType.getName(), e);
             }

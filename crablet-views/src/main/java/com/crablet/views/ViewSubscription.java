@@ -2,6 +2,8 @@ package com.crablet.views;
 
 import com.crablet.views.config.ViewSubscriptionConfig;
 
+import java.util.Set;
+
 /**
  * User-friendly alias for ViewSubscriptionConfig.
  * Provides a cleaner API for configuring view subscriptions.
@@ -13,9 +15,9 @@ public class ViewSubscription extends ViewSubscriptionConfig {
     
     public ViewSubscription(
             String viewName,
-            java.util.Set<String> eventTypes,
-            java.util.Set<String> requiredTags,
-            java.util.Set<String> anyOfTags) {
+            Set<String> eventTypes,
+            Set<String> requiredTags,
+            Set<String> anyOfTags) {
         super(viewName, eventTypes, requiredTags, anyOfTags);
     }
     
@@ -30,7 +32,7 @@ public class ViewSubscription extends ViewSubscriptionConfig {
         }
         
         @Override
-        public Builder eventTypes(java.util.Set<String> eventTypes) {
+        public Builder eventTypes(Set<String> eventTypes) {
             super.eventTypes(eventTypes);
             return this;
         }
@@ -42,7 +44,7 @@ public class ViewSubscription extends ViewSubscriptionConfig {
         }
         
         @Override
-        public Builder requiredTags(java.util.Set<String> requiredTags) {
+        public Builder requiredTags(Set<String> requiredTags) {
             super.requiredTags(requiredTags);
             return this;
         }
@@ -54,7 +56,7 @@ public class ViewSubscription extends ViewSubscriptionConfig {
         }
         
         @Override
-        public Builder anyOfTags(java.util.Set<String> anyOfTags) {
+        public Builder anyOfTags(Set<String> anyOfTags) {
             super.anyOfTags(anyOfTags);
             return this;
         }
