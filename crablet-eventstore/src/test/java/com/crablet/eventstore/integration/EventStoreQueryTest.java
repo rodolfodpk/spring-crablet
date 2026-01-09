@@ -11,16 +11,19 @@ import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.SequenceNumber;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
+import com.crablet.examples.wallet.events.DepositMade;
+import com.crablet.examples.wallet.events.MoneyTransferred;
+import com.crablet.examples.wallet.events.WalletOpened;
+import com.crablet.examples.wallet.events.WithdrawalMade;
 import com.crablet.examples.wallet.projections.WalletBalanceProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
-import com.crablet.examples.wallet.event.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration tests for EventStore query operations.

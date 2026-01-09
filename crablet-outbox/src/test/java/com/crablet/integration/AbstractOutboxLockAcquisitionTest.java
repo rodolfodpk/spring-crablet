@@ -1,16 +1,20 @@
 package com.crablet.integration;
 
-import com.crablet.outbox.config.OutboxConfig;
-import com.crablet.outbox.processor.OutboxProcessorImpl;
+import com.crablet.eventprocessor.processor.EventProcessor;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
+import com.crablet.outbox.adapter.OutboxProcessorConfig;
+import com.crablet.outbox.adapter.TopicPublisherPair;
+import com.crablet.outbox.config.OutboxConfig;
+import com.crablet.testutils.EventProcessorTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,7 +32,10 @@ abstract class AbstractOutboxLockAcquisitionTest extends AbstractCrabletTest {
     private JdbcTemplate jdbcTemplate;
     
     @Autowired
-    private OutboxProcessorImpl outboxProcessor;
+    private EventProcessor<OutboxProcessorConfig, TopicPublisherPair> eventProcessor;
+    
+    @Autowired
+    private Map<TopicPublisherPair, OutboxProcessorConfig> processorConfigs;
     
     @Autowired
     private OutboxConfig outboxConfig;
@@ -53,7 +60,7 @@ abstract class AbstractOutboxLockAcquisitionTest extends AbstractCrabletTest {
         eventStore.appendIf(events, AppendCondition.empty());
         
         // Trigger initial processing to auto-register publishers and acquire locks
-        outboxProcessor.processPending();
+        EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         
         // Then - Verify locks are held by checking database
         Integer lockCount = jdbcTemplate.queryForObject(
@@ -87,7 +94,7 @@ abstract class AbstractOutboxLockAcquisitionTest extends AbstractCrabletTest {
         eventStore.appendIf(events, AppendCondition.empty());
         
         // When - Process events (locks already acquired at startup)
-        int processed = outboxProcessor.processPending();
+        int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         
         // Then - Should process events
         assertThat(processed).isGreaterThan(0);
@@ -121,8 +128,8 @@ abstract class AbstractOutboxLockAcquisitionTest extends AbstractCrabletTest {
         eventStore.appendIf(events, AppendCondition.empty());
         
         // When - Process events multiple times
-        int processed1 = outboxProcessor.processPending();
-        int processed2 = outboxProcessor.processPending();
+        int processed1 = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
+        int processed2 = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         
         // Then - Should process events in first poll, none in second (already processed)
         assertThat(processed1).isGreaterThan(0);

@@ -1,11 +1,14 @@
 package com.crablet.integration;
 
+import com.crablet.eventprocessor.processor.EventProcessor;
 import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.outbox.config.OutboxConfig;
-import com.crablet.outbox.processor.OutboxProcessorImpl;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
+import com.crablet.outbox.adapter.OutboxProcessorConfig;
+import com.crablet.outbox.adapter.TopicPublisherPair;
+import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.testutils.CountDownLatchPublisher;
+import com.crablet.testutils.EventProcessorTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,7 +34,10 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
     private JdbcTemplate jdbcTemplate;
     
     @Autowired
-    private OutboxProcessorImpl outboxProcessor;
+    private EventProcessor<OutboxProcessorConfig, TopicPublisherPair> eventProcessor;
+    
+    @Autowired
+    private Map<TopicPublisherPair, OutboxProcessorConfig> processorConfigs;
     
     @Autowired
     private OutboxConfig outboxConfig;
@@ -40,6 +47,15 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
     
     @BeforeEach
     void setUp() {
+        // Parent's cleanDatabase() runs first and cleans events table, but ensure it's clean
+        // This is idempotent - safe to run multiple times
+        try {
+            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+        } catch (Exception e) {
+            // Ignore if table doesn't exist yet (Flyway will create it)
+        }
+        
         // Reset the publisher state before each test
         countDownLatchPublisher.reset();
         
@@ -61,7 +77,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         eventStore.appendIf(List.of(event), AppendCondition.empty());
         
         // Process outbox
-        outboxProcessor.processPending();
+        EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         
         // Wait for the event to be processed by CountDownLatchPublisher
         // Note: CountDownLatchPublisher might not be auto-registered, so we check if it processed events
@@ -106,7 +122,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         eventStore.appendIf(List.of(event), AppendCondition.empty());
         
         // Process outbox
-        int processed = outboxProcessor.processPending();
+        int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         assertThat(processed).isGreaterThan(0);
         
         // Wait for the event to be processed by CountDownLatchPublisher
@@ -162,7 +178,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         eventStore.appendIf(events, AppendCondition.empty());
         
         // Process outbox
-        int processed = outboxProcessor.processPending();
+        int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         assertThat(processed).isGreaterThan(0);
         
         // Wait for all events to be processed by CountDownLatchPublisher
@@ -217,7 +233,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         eventStore.appendIf(events, AppendCondition.empty());
         
         // Process outbox
-        int processed = outboxProcessor.processPending();
+        int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         assertThat(processed).isGreaterThan(0);
         
         // The CountDownLatch approach allows us to:
@@ -255,6 +271,28 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
 
     @Test
     void shouldHandlePublisherFailureAndRetry() throws InterruptedException {
+        // Ensure clean state before starting
+        try {
+            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+        } catch (Exception e) {
+            // Ignore if table doesn't exist yet
+        }
+        
+        // Drain any remaining events from previous tests
+        countDownLatchPublisher.reset();
+        int drained = 0;
+        for (int i = 0; i < 10; i++) {
+            int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
+            if (processed == 0) {
+                break; // No more events to process
+            }
+            drained += processed;
+        }
+        // Wait a bit more to ensure any async processing has completed
+        Thread.sleep(200);
+        countDownLatchPublisher.reset(); // Reset again after draining
+        
         // Given - Create events that will cause processing
         countDownLatchPublisher.expectEvents(1);
         
@@ -266,7 +304,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         eventStore.appendIf(List.of(event), AppendCondition.empty());
 
         // When - Process events (this should succeed)
-        int processed = outboxProcessor.processPending();
+        int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         assertThat(processed).isGreaterThan(0);
 
         // Then - Verify event was processed despite potential failures
@@ -285,6 +323,18 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
 
     @Test
     void shouldMaintainEventOrderingAcrossPublishers() throws InterruptedException {
+        // Ensure clean state before starting - do this explicitly to avoid race conditions
+        try {
+            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+        } catch (Exception e) {
+            // Ignore if table doesn't exist yet
+        }
+        countDownLatchPublisher.reset();
+        
+        // Wait a bit to ensure any in-flight processing from previous tests completes
+        Thread.sleep(100);
+        
         // Given - Create multiple events in sequence
         countDownLatchPublisher.expectEvents(3);
         
@@ -306,7 +356,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         eventStore.appendIf(events, AppendCondition.empty());
 
         // When - Process events
-        int processed = outboxProcessor.processPending();
+        int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         assertThat(processed).isGreaterThan(0);
 
         // Then - Verify events were processed in order
@@ -340,7 +390,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         );
 
         eventStore.appendIf(firstBatch, AppendCondition.empty());
-        int firstProcessed = outboxProcessor.processPending();
+        int firstProcessed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         assertThat(firstProcessed).isGreaterThan(0);
 
         // Wait for processing
@@ -365,7 +415,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
             .build();
 
         eventStore.appendIf(List.of(newEvent), AppendCondition.empty());
-        int secondProcessed = outboxProcessor.processPending();
+        int secondProcessed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
 
         // Then - Should process only new events, not repeat old ones
         assertThat(secondProcessed).isGreaterThan(0);
@@ -416,7 +466,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         // When - Process multiple times to simulate concurrent processing
         int totalProcessed = 0;
         for (int i = 0; i < 3; i++) {
-            int processed = outboxProcessor.processPending();
+            int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
             totalProcessed += processed;
         }
 
@@ -442,7 +492,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
         
         // When - Process with no events
-        int processed = outboxProcessor.processPending();
+        int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
 
         // Then - Should return 0 (no events processed)
         assertThat(processed).isEqualTo(0);
@@ -489,7 +539,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         eventStore.appendIf(events, AppendCondition.empty());
 
         // When - Process events
-        int processed = outboxProcessor.processPending();
+        int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
 
         // Then - Should process all events regardless of tag complexity
         assertThat(processed).isGreaterThan(0);
@@ -524,7 +574,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         eventStore.appendIf(events, AppendCondition.empty());
 
         // When - Process large batch
-        int processed = outboxProcessor.processPending();
+        int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
 
         // Then - Should handle large batch efficiently
         assertThat(processed).isGreaterThan(0);

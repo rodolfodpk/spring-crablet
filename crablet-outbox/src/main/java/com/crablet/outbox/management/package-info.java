@@ -1,43 +1,44 @@
 /**
  * Outbox management operations and REST API.
  * <p>
- * This package provides management functionality for monitoring and controlling
- * outbox operations, including publisher status, lag monitoring, and operational controls.
+ * This package previously provided management functionality for monitoring and controlling
+ * outbox operations. The management functionality has been moved to the generic
+ * {@link com.crablet.eventprocessor.management.ProcessorManagementService} and
+ * {@link com.crablet.eventprocessor.management.ProcessorManagementController} in the
+ * {@code crablet-event-processor} module.
  * <p>
- * <strong>Key Components:</strong>
+ * <strong>Current Architecture:</strong>
+ * Management operations are now provided by the generic processor infrastructure:
  * <ul>
- *   <li>{@link com.crablet.outbox.management.OutboxManagementService} - Service for managing outbox operations</li>
- *   <li>{@link com.crablet.outbox.management.OutboxManagementController} - REST API for outbox management</li>
+ *   <li>{@link com.crablet.eventprocessor.management.ProcessorManagementService} - Generic management service</li>
+ *   <li>{@link com.crablet.eventprocessor.management.ProcessorManagementController} - Generic REST API</li>
  * </ul>
  * <p>
  * <strong>Management Operations:</strong>
  * <ul>
- *   <li>Pause/resume publishers</li>
- *   <li>Reset failed publishers</li>
- *   <li>Get publisher status and health</li>
- *   <li>Monitor publisher lag (how far behind the latest event)</li>
+ *   <li>Pause/resume processors</li>
+ *   <li>Reset failed processors</li>
+ *   <li>Get processor status and health</li>
+ *   <li>Monitor processor lag (how far behind the latest event)</li>
  *   <li>View backoff information</li>
- *   <li>Get current leader instances</li>
  * </ul>
  * <p>
  * <strong>REST API:</strong>
- * The management controller provides REST endpoints for:
+ * The generic management controller provides REST endpoints for:
  * <ul>
- *   <li>{@code GET /outbox/publishers} - List all publishers with status</li>
- *   <li>{@code GET /outbox/publishers/{name}} - Get specific publisher status</li>
- *   <li>{@code POST /outbox/publishers/{name}/pause} - Pause a publisher</li>
- *   <li>{@code POST /outbox/publishers/{name}/resume} - Resume a publisher</li>
- *   <li>{@code POST /outbox/publishers/{name}/reset} - Reset a failed publisher</li>
- *   <li>{@code GET /outbox/lag} - Get publisher lag information</li>
- *   <li>{@code GET /outbox/backoff} - Get backoff information</li>
+ *   <li>{@code GET /api/processors} - List all processors with status</li>
+ *   <li>{@code GET /api/processors/{id}} - Get specific processor status</li>
+ *   <li>{@code POST /api/processors/{id}/pause} - Pause a processor</li>
+ *   <li>{@code POST /api/processors/{id}/resume} - Resume a processor</li>
+ *   <li>{@code POST /api/processors/{id}/reset} - Reset a failed processor</li>
  * </ul>
  * <p>
  * <strong>Usage:</strong>
- * The management service is automatically available as a Spring service.
- * The REST controller is auto-discovered when Spring Web is on the classpath.
- * No additional configuration is required.
+ * The management service and controller are automatically available when using the
+ * generic event processor. No additional configuration is required.
  *
- * @see com.crablet.outbox.processor.OutboxProcessorImpl
+ * @see com.crablet.eventprocessor.management.ProcessorManagementService
+ * @see com.crablet.eventprocessor.management.ProcessorManagementController
  */
 package com.crablet.outbox.management;
 

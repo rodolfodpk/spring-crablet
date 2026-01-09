@@ -13,10 +13,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Integration tests for CommandExecutorImpl concurrency exception handling.
@@ -50,7 +52,7 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
         // Second execution with stale cursor - should trigger ConcurrencyException
         // but NOT "duplicate operation detected" (it's a cursor conflict, not idempotency)
         Query decisionModel = Query.forEventAndTag("test_event", "entityId", "entity-123");
-        Cursor staleCursor = Cursor.of(0L, java.time.Instant.now(), "old-tx-id");
+        Cursor staleCursor = Cursor.of(0L, Instant.now(), "old-tx-id");
         AppendCondition conditionWithStaleCursor = new AppendConditionBuilder(decisionModel, staleCursor).build();
         
         CommandResult secondResult = CommandResult.of(List.of(event), conditionWithStaleCursor);
@@ -98,16 +100,16 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
     void executeCommand_WithOpenWalletDuplicate_ShouldThrowException() {
         // Arrange - open_wallet duplicates should always throw, never return idempotent
         // This tests the special case in handleConcurrencyException for "open_wallet"
-        com.crablet.examples.wallet.features.openwallet.OpenWalletCommand firstCommand = 
-            com.crablet.examples.wallet.features.openwallet.OpenWalletCommand.of("wallet-123", "Alice", 1000);
+        com.crablet.examples.wallet.commands.OpenWalletCommand firstCommand = 
+            com.crablet.examples.wallet.commands.OpenWalletCommand.of("wallet-123", "Alice", 1000);
         
         // First execution succeeds
         ExecutionResult first = commandExecutor.executeCommand(firstCommand);
         assertTrue(first.wasCreated());
         
         // Second execution with same wallet_id - should throw (not idempotent for open_wallet)
-        com.crablet.examples.wallet.features.openwallet.OpenWalletCommand secondCommand = 
-            com.crablet.examples.wallet.features.openwallet.OpenWalletCommand.of("wallet-123", "Bob", 2000);
+        com.crablet.examples.wallet.commands.OpenWalletCommand secondCommand = 
+            com.crablet.examples.wallet.commands.OpenWalletCommand.of("wallet-123", "Bob", 2000);
 
         // Act & Assert - should throw ConcurrencyException (open_wallet always throws on duplicate)
         assertThatThrownBy(() -> commandExecutor.executeCommand(secondCommand))

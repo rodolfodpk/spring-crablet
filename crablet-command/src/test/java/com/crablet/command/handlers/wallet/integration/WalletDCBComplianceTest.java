@@ -9,20 +9,20 @@ import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.examples.wallet.WalletQueryPatterns;
-import com.crablet.examples.wallet.event.DepositMade;
-import com.crablet.examples.wallet.event.WalletOpened;
-import com.crablet.examples.wallet.event.WithdrawalMade;
-import com.crablet.examples.wallet.features.deposit.DepositCommand;
-import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
-import com.crablet.examples.wallet.features.withdraw.WithdrawCommand;
+import com.crablet.examples.wallet.commands.DepositCommand;
+import com.crablet.examples.wallet.commands.OpenWalletCommand;
+import com.crablet.examples.wallet.commands.WithdrawCommand;
+import com.crablet.examples.wallet.events.DepositMade;
+import com.crablet.examples.wallet.events.WalletOpened;
+import com.crablet.examples.wallet.events.WithdrawalMade;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static com.crablet.eventstore.integration.DCBTestHelpers.deserialize;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration tests for DCB compliance with wallet domain operations.

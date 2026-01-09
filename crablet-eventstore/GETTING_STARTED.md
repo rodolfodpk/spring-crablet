@@ -386,7 +386,7 @@ The `Query` passed to `AppendConditionBuilder` that defines which events affect 
 Working examples are available in the test scope for reference:
 
 - **Wallet Domain** (`com.crablet.examples.wallet`): Complete wallet implementation with deposits, withdrawals, and transfers
-- **Course Subscriptions** (`com.crablet.examples.courses`): Course management with student subscriptions demonstrating multi-entity DCB patterns
+- **Course Subscriptions** (`com.crablet.examples.course`): Course management with student subscriptions demonstrating multi-entity DCB patterns
 
 These examples demonstrate real-world usage of DCB patterns and can serve as templates for your own implementations.
 

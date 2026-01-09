@@ -1,8 +1,8 @@
 package com.crablet.metrics.micrometer.integration;
 
 import com.crablet.command.CommandExecutor;
-import com.crablet.examples.wallet.features.deposit.DepositCommand;
-import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
+import com.crablet.examples.wallet.commands.DepositCommand;
+import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Timer;
 import org.junit.jupiter.api.DisplayName;

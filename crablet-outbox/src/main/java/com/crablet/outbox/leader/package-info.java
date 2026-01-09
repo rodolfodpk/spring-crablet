@@ -1,49 +1,42 @@
 /**
  * Leader election for distributed outbox processing.
  * <p>
- * This package provides leader election functionality using PostgreSQL advisory locks,
- * ensuring only one instance processes outbox publishers at a time in distributed deployments.
+ * This package previously provided leader election functionality for the outbox.
+ * Leader election has been moved to the generic
+ * {@link com.crablet.eventprocessor.leader.LeaderElector} in the
+ * {@code crablet-event-processor} module.
  * <p>
- * <strong>Key Components:</strong>
+ * <strong>Current Architecture:</strong>
+ * Leader election is now provided by the generic processor infrastructure:
  * <ul>
- *   <li>{@link com.crablet.outbox.leader.OutboxLeaderElector} - Manages leader election using PostgreSQL advisory locks</li>
+ *   <li>{@link com.crablet.eventprocessor.leader.LeaderElector} - Generic leader election interface</li>
+ *   <li>{@link com.crablet.eventprocessor.leader.LeaderElectorImpl} - Implementation using PostgreSQL advisory locks</li>
  * </ul>
  * <p>
  * <strong>Leader Election Strategy:</strong>
- * The outbox uses a GLOBAL lock strategy:
+ * The generic processor supports per-processor leader election:
  * <ul>
- *   <li>One instance is the leader and processes all publishers</li>
- *   <li>Followers periodically retry acquiring the lock to detect leader crashes</li>
+ *   <li>Each processor (topic, publisher) pair can have its own leader</li>
  *   <li>PostgreSQL advisory locks provide distributed coordination without external dependencies</li>
+ *   <li>Followers periodically retry acquiring the lock to detect leader crashes</li>
  * </ul>
  * <p>
  * <strong>How It Works:</strong>
  * <ol>
- *   <li>On startup, each instance attempts to acquire a global advisory lock</li>
- *   <li>The instance that acquires the lock becomes the leader</li>
- *   <li>The leader processes all configured publishers</li>
+ *   <li>On startup, each instance attempts to acquire advisory locks for processors</li>
+ *   <li>The instance that acquires a lock becomes the leader for that processor</li>
+ *   <li>The leader processes events for that processor</li>
  *   <li>Followers periodically retry lock acquisition (configurable interval)</li>
  *   <li>If the leader crashes, the lock is automatically released, allowing a follower to become leader</li>
  * </ol>
  * <p>
- * <strong>Heartbeat and Stale Leader Detection:</strong>
- * The leader elector tracks heartbeats and detects stale leaders automatically.
- * If a leader becomes unresponsive, followers can acquire the lock and take over.
- * <p>
  * <strong>Spring Integration:</strong>
- * Users must define OutboxLeaderElector as a Spring bean:
- * <pre>{@code
- * @Bean
- * public OutboxLeaderElector outboxLeaderElector(
- *         JdbcTemplate jdbcTemplate,
- *         OutboxConfig config,
- *         InstanceIdProvider instanceIdProvider,
- *         ApplicationEventPublisher eventPublisher) {
- *     return new OutboxLeaderElector(jdbcTemplate, config, instanceIdProvider, eventPublisher);
- * }
- * }</pre>
+ * Leader election is automatically configured via {@link com.crablet.outbox.config.OutboxAutoConfiguration}
+ * when {@code crablet.outbox.enabled=true}. No manual bean configuration is required.
  *
- * @see com.crablet.outbox.processor.OutboxProcessorImpl
+ * @see com.crablet.eventprocessor.leader.LeaderElector
+ * @see com.crablet.eventprocessor.leader.LeaderElectorImpl
+ * @see com.crablet.outbox.config.OutboxAutoConfiguration
  */
 package com.crablet.outbox.leader;
 

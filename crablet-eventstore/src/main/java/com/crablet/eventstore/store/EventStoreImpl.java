@@ -1,9 +1,12 @@
 package com.crablet.eventstore.store;
 
-import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.clock.ClockProvider;
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.dcb.DCBViolation;
+import com.crablet.eventstore.metrics.ConcurrencyViolationMetric;
+import com.crablet.eventstore.metrics.EventTypeMetric;
+import com.crablet.eventstore.metrics.EventsAppendedMetric;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
@@ -18,11 +21,9 @@ import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.RowMapper;
-import com.crablet.eventstore.metrics.EventsAppendedMetric;
-import com.crablet.eventstore.metrics.EventTypeMetric;
-import com.crablet.eventstore.metrics.ConcurrencyViolationMetric;
 
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
@@ -31,6 +32,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 /**
  * JDBC-based implementation of EventStore using PostgreSQL functions.
@@ -134,7 +135,7 @@ public class EventStoreImpl implements EventStore {
         public <E> E deserialize(StoredEvent event, Class<E> eventType) {
             try {
                 return objectMapper.readValue(event.data(), eventType);
-            } catch (java.io.IOException e) {
+            } catch (IOException e) {
                 throw new RuntimeException("Failed to deserialize event type=" + 
                     event.type() + " to " + eventType.getName(), e);
             }

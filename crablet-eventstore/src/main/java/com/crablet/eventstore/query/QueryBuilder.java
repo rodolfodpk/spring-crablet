@@ -3,6 +3,7 @@ package com.crablet.eventstore.query;
 import com.crablet.eventstore.dcb.AppendConditionBuilder;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.Tag;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

@@ -2,19 +2,18 @@ package com.crablet.command.handlers.courses;
 
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
+import com.crablet.examples.course.events.CourseCapacityChanged;
+import com.crablet.examples.course.events.CourseDefined;
+import com.crablet.examples.course.events.StudentSubscribedToCourse;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.crablet.examples.courses.domain.event.CourseDefined;
-import com.crablet.examples.courses.domain.event.CourseCapacityChanged;
-import com.crablet.examples.courses.domain.event.StudentSubscribedToCourse;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /**
  * Test utilities for course command handler tests.
  * Provides helper methods for creating test data and assertions.
+ * Note: This is NOT a Spring component - it's a utility class for tests.
  */
-@Component
 public class CourseTestUtils {
 
     private final ObjectMapper objectMapper;

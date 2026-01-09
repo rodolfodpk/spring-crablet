@@ -20,13 +20,19 @@
             <artifactId>crablet-eventstore</artifactId>
         </dependency>
         
-        <!-- Crablet EventStore test-jar (for domain examples in tests) -->
+        <!-- Shared Examples Domain (for wallet and course domain examples in tests) -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>shared-examples-domain</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Crablet EventStore test-jar (for AbstractCrabletTest and test utilities) -->
         <dependency>
             <groupId>com.crablet</groupId>
             <artifactId>crablet-eventstore</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
-            <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
         

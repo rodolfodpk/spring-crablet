@@ -1,5 +1,6 @@
 package com.crablet.eventstore.clock;
 
+import java.time.Clock;
 import java.time.Instant;
 
 /**
@@ -21,7 +22,7 @@ public interface ClockProvider {
      * 
      * @param clock The clock to use
      */
-    void setClock(java.time.Clock clock);
+    void setClock(Clock clock);
     
     /**
      * Reset to system clock.

@@ -1,5 +1,6 @@
 package com.crablet.eventstore.clock;
 
+import java.time.Clock;
 import java.time.Instant;
 
 /**
@@ -17,7 +18,7 @@ import java.time.Instant;
  * }</pre>
  */
 public class ClockProviderImpl implements ClockProvider {
-    private java.time.Clock clock = java.time.Clock.systemUTC();
+    private Clock clock = Clock.systemUTC();
     
     /**
      * Get the current instant using the configured clock.
@@ -36,7 +37,7 @@ public class ClockProviderImpl implements ClockProvider {
      * @param clock The clock to use
      */
     @Override
-    public void setClock(java.time.Clock clock) {
+    public void setClock(Clock clock) {
         this.clock = clock;
     }
     
@@ -45,7 +46,7 @@ public class ClockProviderImpl implements ClockProvider {
      * 
      * @return The current clock
      */
-    public java.time.Clock getClock() {
+    public Clock getClock() {
         return clock;
     }
     
@@ -54,6 +55,6 @@ public class ClockProviderImpl implements ClockProvider {
      */
     @Override
     public void resetToSystemClock() {
-        this.clock = java.time.Clock.systemUTC();
+        this.clock = Clock.systemUTC();
     }
 }

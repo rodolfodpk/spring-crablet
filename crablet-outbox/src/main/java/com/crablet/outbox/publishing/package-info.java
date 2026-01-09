@@ -24,13 +24,14 @@
  * <strong>Separation of Concerns:</strong>
  * The publishing service is separated from scheduling logic:
  * <ul>
- *   <li>OutboxProcessorImpl handles scheduling and leader election</li>
+ *   <li>{@link com.crablet.eventprocessor.processor.EventProcessor} handles scheduling and leader election</li>
  *   <li>OutboxPublishingService handles event fetching and publishing</li>
  *   <li>This separation improves testability and maintainability</li>
  * </ul>
  * <p>
  * <strong>Topic Routing:</strong>
- * Events are routed to topics based on tag matching:
+ * Events are routed to topics based on tag matching.
+ * Tags are stored in PostgreSQL as "key=value" format (using equals sign, not colon).
  * <ul>
  *   <li>{@code required-tags} - Events must have all specified tags</li>
  *   <li>{@code any-of-tags} - Events must have at least one of the specified tags</li>
@@ -44,7 +45,7 @@
  *   <li>Position is updated after successful publishing</li>
  * </ul>
  *
- * @see com.crablet.outbox.processor.OutboxProcessorImpl
+ * @see com.crablet.eventprocessor.processor.EventProcessor
  * @see com.crablet.outbox.OutboxPublisher
  */
 package com.crablet.outbox.publishing;

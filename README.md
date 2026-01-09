@@ -14,13 +14,16 @@ Crablet is a lightweight event sourcing framework with Spring Boot integration.
 - **Event Sourcing**: Complete audit trail with state reconstruction
 - **DCB**: Defines consistency boundaries dynamically based on criteria (queries) rather than fixed aggregates. Uses cursors (event positions) to detect concurrent modifications and prevent conflicts - no distributed locks needed
 - **Outbox**: Reliable event publishing to external systems
+- **Views**: Asynchronous view projections for materialized read models
 - **Spring Integration**: Ready-to-use Spring Boot components
 
 ## Modules
 
 - **crablet-eventstore** (required) - Core event sourcing library with DCB support
 - **crablet-command** (optional) - Use for automatic command handler discovery and orchestration
+- **crablet-event-processor** (optional) - Generic event processing infrastructure for polling, leader election, and backoff
 - **crablet-outbox** (optional) - Use for transactional outbox event publishing to external systems
+- **crablet-views** (optional) - Use for asynchronous view projections and materialized read models
 - **crablet-metrics-micrometer** (optional) - Use for Micrometer metrics collection
 
 ## DCB Patterns Quick Reference
@@ -40,14 +43,18 @@ DCB (Dynamic Consistency Boundary) redefines consistency granularity in event-so
 ## Documentation
 
 ### Core Documentation
+- **[Build Guide](BUILD.md)** - Build instructions, Makefile commands, and cyclic dependency explanation
 - **[EventStore README](crablet-eventstore/README.md)** - Event sourcing library guide
 - **[Command README](crablet-command/README.md)** - Command framework guide
+- **[Event Processor README](crablet-event-processor/README.md)** - Generic event processing infrastructure guide
 - **[Outbox README](crablet-outbox/README.md)** - Outbox library guide
+- **[Views README](crablet-views/README.md)** - View projections and materialized read models guide
 - **[Metrics README](crablet-metrics-micrometer/README.md)** - Metrics collector guide
 - **[DCB Explained](crablet-eventstore/docs/DCB_AND_CRABLET.md)** - Detailed DCB explanation
 - **[Testing Guide](crablet-eventstore/TESTING.md)** - Testing strategy, unit tests, and integration tests
 
 ### Advanced Features
+- **[Leader Election](LEADER_ELECTION.md)** - Distributed leader election with PostgreSQL advisory locks
 - **[Closing the Books Pattern](crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md)** - Period segmentation using `@PeriodConfig` annotation for performance optimization
 - **[Read Replicas & DataSource Configuration](crablet-eventstore/docs/READ_REPLICAS.md)** - Primary and read replica datasource setup with performance benefits
 - **[PgBouncer Guide](crablet-eventstore/docs/PGBOUNCER.md)** - Connection pooling
@@ -60,16 +67,22 @@ DCB (Dynamic Consistency Boundary) redefines consistency granularity in event-so
 
 - **DCB**: Optimistic concurrency control using event position tracking (cursors)
 - **Java 25**: Records, sealed interfaces, virtual threads
-- **Spring Boot 3.5**: Full Spring integration
+- **Spring Boot 4.0**: Full Spring integration
 - **PostgreSQL**: Primary database with optional read replicas
 - **Comprehensive Testing**: Full test coverage with unit and integration tests
 
 ## Build and Test
 
-Tests use Testcontainers (no external dependencies required):
+Tests use Testcontainers (no external dependencies required).
+
+**Quick start:**
 ```bash
-mvn clean install
+make install
 ```
+
+This handles the cyclic dependency between `crablet-eventstore` and `shared-examples-domain` automatically.
+
+📖 See [BUILD.md](BUILD.md) for detailed build instructions, Makefile commands, Maven usage, and an explanation of the cyclic dependency trade-offs.
 
 ## License
 

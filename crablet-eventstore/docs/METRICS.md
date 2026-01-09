@@ -2,17 +2,9 @@
 
 ## Available Metrics
 
-EventStore provides comprehensive metrics for monitoring command execution, event processing, and DCB (Dynamic Consistency Boundary) operations.
+EventStore provides metrics for monitoring event operations and DCB (Dynamic Consistency Boundary) concurrency violations.
 
-### Command Execution
-
-**Command Counters:**
-- `eventstore.command.total{command_type}` - Total commands processed by type
-- `eventstore.command.failed{command_type,error_type}` - Failed commands with error type
-- `eventstore.command.idempotent{command_type}` - Idempotent operations (duplicate requests handled gracefully)
-
-**Command Timers:**
-- `eventstore.command.duration{command_type}` - Command execution time by type
+**Note:** Command execution metrics (command duration, failures, idempotency) are published by `CommandExecutor` (in `crablet-command` module), not by EventStore. See [Command README](../crablet-command/README.md#metrics) for command metrics documentation.
 
 ### Event Processing
 
@@ -28,18 +20,6 @@ EventStore provides comprehensive metrics for monitoring command execution, even
 ## Prometheus Queries
 
 ```promql
-# Command execution rate by type
-rate(eventstore.command.total[1m])
-
-# Failed command rate by type
-rate(eventstore.command.failed[1m])
-
-# Idempotent operation rate
-rate(eventstore.command.idempotent[1m])
-
-# Command execution latency (P95)
-histogram_quantile(0.95, rate(eventstore.command.duration_bucket[5m]))
-
 # Events appended per second
 rate(eventstore.events.appended[1m])
 
@@ -48,9 +28,6 @@ rate(eventstore.events.by_type[1m])
 
 # Concurrency violation rate
 rate(eventstore.concurrency.violations[1m])
-
-# Failure rate by error type
-sum by (error_type) (rate(eventstore.command.failed[1m]))
 ```
 
 ## Use Cases
@@ -59,31 +36,17 @@ sum by (error_type) (rate(eventstore.command.failed[1m]))
 
 **Track throughput:**
 ```promql
-# Total command rate
-sum(rate(eventstore.command.total[1m]))
-
 # Events per second
 rate(eventstore.events.appended[1m])
 ```
 
-**Monitor errors:**
+**Monitor concurrency:**
 ```promql
-# Error rate by command type
-sum by (command_type) (rate(eventstore.command.failed[1m]))
-
-# Total error rate
-sum(rate(eventstore.command.failed[1m]))
+# Concurrency violation rate
+rate(eventstore.concurrency.violations[1m])
 ```
 
 ### Performance Analysis
-
-**Command latency:**
-```promql
-# P50, P95, P99 latencies
-histogram_quantile(0.50, rate(eventstore.command.duration_bucket[5m]))
-histogram_quantile(0.95, rate(eventstore.command.duration_bucket[5m]))
-histogram_quantile(0.99, rate(eventstore.command.duration_bucket[5m]))
-```
 
 **Event processing:**
 ```promql
@@ -97,37 +60,23 @@ rate(eventstore.events.by_type[1m])
 ```promql
 # Concurrency violations indicate retries needed
 rate(eventstore.concurrency.violations[1m])
-
-# Violations vs successful commands ratio
-rate(eventstore.concurrency.violations[1m]) / rate(eventstore.command.total[1m])
 ```
 
-**Idempotency:**
-```promql
-# How often are duplicate requests detected?
-rate(eventstore.command.idempotent[1m])
+High violation rates indicate:
+- ❌ **Too many retries needed** - Service is under heavy concurrent load
+- ❌ **DCB boundaries too wide** - Decision model includes too many events
+- ❌ **Slow operations** - Operations take too long, increasing conflict window
 
-# Idempotency rate by command type
-sum by (command_type) (rate(eventstore.command.idempotent[1m]))
-```
+**Healthy rate:** `< 0.01 violations per operation` (1% or less)  
+**Unhealthy rate:** `> 0.10 violations per operation` (10% or more indicates problems)
 
 ## Alerting
 
 ### Recommended Alerts
 
-**High error rate:**
-```promql
-sum(rate(eventstore.command.failed[1m])) > 10
-```
-
 **High concurrency violation rate:**
 ```promql
 rate(eventstore.concurrency.violations[1m]) > 5
-```
-
-**High command latency:**
-```promql
-histogram_quantile(0.95, rate(eventstore.command.duration_bucket[5m])) > 1s
 ```
 
 **Low throughput:**
@@ -147,55 +96,7 @@ management.endpoints.web.exposure.include=metrics
 management.metrics.export.prometheus.enabled=true
 ```
 
-### Bean Configuration
-
-EventStoreMetrics must be registered as a Spring bean:
-
-```java
-@Configuration
-public class CrabletConfig {
-    
-    @Bean
-    public EventStoreMetrics eventStoreMetrics(MeterRegistry registry) {
-        return new EventStoreMetrics(registry);
-    }
-}
-```
-
-## Understanding Metrics
-
-### Commands
-
-**Command Types:**
-Common command types in wallet domain:
-- `open_wallet` - Wallet creation
-- `deposit` - Money deposit
-- `withdraw` - Money withdrawal
-- `transfer` - Money transfer between wallets
-
-**Error Types:**
-- `validation` - Invalid command input
-- `concurrency` - DCB concurrency violation (optimistic locking conflict)
-- `runtime` - Unexpected runtime error
-- `exception` - Exception during execution
-
-### Idempotent Operations
-
-Idempotent operations are duplicate requests detected and handled gracefully:
-- Same `withdrawal_id` processed twice → second call returns success without side effects
-- Same `wallet_id` creation attempted twice → second call throws `ConcurrencyException`
-
-This metric tracks how often idempotency is being leveraged (good for retry-heavy clients).
-
-### Concurrency Violations
-
-High violation rates indicate:
-- ❌ **Too many retries needed** - Service is under heavy concurrent load
-- ❌ **DCB boundaries too wide** - Decision model includes too many events
-- ❌ **Slow command handlers** - Commands take too long, increasing conflict window
-
-**Healthy rate:** `< 0.01 violations per command` (1% or less)
-**Unhealthy rate:** `> 0.10 violations per command` (10% or more indicates problems)
+**Note:** Metrics are automatically collected when `crablet-metrics-micrometer` is on the classpath. No additional bean configuration is required.
 
 ## Troubleshooting
 
@@ -207,67 +108,36 @@ High violation rates indicate:
 
 **Likely causes:**
 1. Wide decision models (too many events affecting decisions)
-2. Slow command handlers
-3. High concurrency on same aggregates
+2. Slow operations
+3. High concurrency on same entities
 
 **Solutions:**
 1. Narrow decision models - reduce events in Query
-2. Optimize slow command handlers
-3. Consider partitioning by aggregate ID
-
-### High Error Rates
-
-**Check error types:**
-```promql
-sum by (error_type, command_type) (rate(eventstore.command.failed[1m]))
-```
-
-**Common issues:**
-- `validation` - Bad input from clients
-- `concurrency` - Too many conflicts (see above)
-- `runtime` - Bug in command handlers
-
-### Low Idempotency Rate
-
-If idempotency rate is low but you expect duplicates:
-
-**Likely causes:**
-1. Clients not sending unique IDs (e.g., missing `withdrawal_id`)
-2. Idempotency checks not implemented in handlers
-
-**Solution:**
-- Add unique IDs to commands
-- Implement `withIdempotencyCheck()` in AppendCondition
+2. Optimize slow operations
+3. Consider partitioning by entity ID
 
 ## Dashboards
 
 ### Grafana Panel Suggestions
 
-1. **Command Rate** - Line chart showing commands/second by type
-2. **Error Rate** - Stacked area showing failed commands by error type
-3. **Latency** - Heatmap showing p50/p95/p99 latencies
-4. **Events** - Bar chart showing events by type
-5. **DCB Health** - Gauge showing concurrency violations (alert if >1%)
-6. **Idempotency Usage** - Gauge showing idempotent rate (indicates retry patterns)
+1. **Events** - Bar chart showing events by type
+2. **DCB Health** - Gauge showing concurrency violations (alert if >1%)
+3. **Throughput** - Line chart showing events/second
 
 ## Comparison: EventStore vs Outbox
 
 | Metric | EventStore | Outbox |
 |--------|-----------|--------|
-| **Purpose** | Command execution | Event publishing |
-| **Throughput** | Commands processed | Events published |
-| **Latency** | Command duration | Publishing duration |
-| **Errors** | Command failures | Publishing failures |
-| **Idempotency** | Duplicate commands | - |
+| **Purpose** | Event storage | Event publishing |
+| **Throughput** | Events appended | Events published |
 | **Concurrency** | DCB violations | - |
 | **Leadership** | - | Leader election |
 | **Lag** | - | Outbox lag |
 
-EventStore metrics focus on **write path** (commands → events), while Outbox metrics focus on **publish path** (events → external systems).
+EventStore metrics focus on **event storage** (appending events with DCB concurrency control), while Outbox metrics focus on **publish path** (events → external systems).
 
 ## See Also
 
 - [DCB Explained](./DCB_AND_CRABLET.md) - Understanding DCB violations
-- [Command Handling](../../GETTING_STARTED.md#command-handling) - Writing command handlers
+- [Command Metrics](../crablet-command/README.md#metrics) - Command execution metrics
 - [Testing](../../TESTING.md) - Testing with metrics
-

@@ -2,6 +2,7 @@ package com.crablet.eventstore.query;
 
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.StoredEvent;
+
 import java.util.List;
 
 /**

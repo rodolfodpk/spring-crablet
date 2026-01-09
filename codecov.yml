@@ -76,4 +76,24 @@ component_management:
           target: auto
         - type: patch
           target: auto
+    
+    - component_id: module_event_processor
+      name: Event Processor
+      paths:
+        - "crablet-event-processor/src/main/**"
+      statuses:
+        - type: project
+          target: auto
+        - type: patch
+          target: auto
+    
+    - component_id: module_views
+      name: Views
+      paths:
+        - "crablet-views/src/main/**"
+      statuses:
+        - type: project
+          target: auto
+        - type: patch
+          target: auto
 

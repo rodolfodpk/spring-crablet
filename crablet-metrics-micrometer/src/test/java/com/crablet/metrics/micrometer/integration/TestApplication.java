@@ -1,33 +1,30 @@
 package com.crablet.metrics.micrometer.integration;
 
-import com.crablet.eventstore.clock.ClockProvider;
-import com.crablet.eventstore.clock.ClockProviderImpl;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.EventStoreConfig;
-import com.crablet.eventstore.store.EventStoreImpl;
-import com.crablet.metrics.micrometer.MicrometerMetricsCollector;
-import com.crablet.outbox.InstanceIdProvider;
-import com.crablet.outbox.config.GlobalStatisticsConfig;
-import com.crablet.outbox.config.OutboxConfig;
-import com.crablet.outbox.config.TopicConfigurationProperties;
-import com.crablet.outbox.leader.OutboxLeaderElector;
-import com.crablet.outbox.management.OutboxManagementService;
-import com.crablet.outbox.processor.OutboxProcessorImpl;
-import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
-import com.crablet.outbox.publishing.OutboxPublishingService;
-import com.crablet.outbox.publishing.OutboxPublishingServiceImpl;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandExecutorImpl;
 import com.crablet.command.handlers.wallet.DepositCommandHandler;
 import com.crablet.command.handlers.wallet.OpenWalletCommandHandler;
-import com.crablet.command.handlers.wallet.WithdrawCommandHandler;
 import com.crablet.command.handlers.wallet.TransferMoneyCommandHandler;
+import com.crablet.command.handlers.wallet.WithdrawCommandHandler;
+import com.crablet.eventprocessor.InstanceIdProvider;
+import com.crablet.eventstore.clock.ClockProvider;
+import com.crablet.eventstore.clock.ClockProviderImpl;
+import com.crablet.eventstore.query.EventRepository;
+import com.crablet.eventstore.query.EventRepositoryImpl;
+import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.store.EventStoreConfig;
+import com.crablet.eventstore.store.EventStoreImpl;
 import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
 import com.crablet.examples.wallet.projections.WalletBalanceProjector;
-import com.crablet.eventstore.query.EventRepository;
-import com.crablet.eventstore.query.EventRepositoryImpl;
+import com.crablet.metrics.micrometer.MicrometerMetricsCollector;
+import com.crablet.outbox.config.GlobalStatisticsConfig;
+import com.crablet.outbox.config.OutboxConfig;
+import com.crablet.outbox.config.TopicConfigurationProperties;
+import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
+import com.crablet.outbox.publishing.OutboxPublishingService;
+import com.crablet.outbox.publishing.OutboxPublishingServiceImpl;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.boot.SpringApplication;
@@ -38,6 +35,9 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import javax.sql.DataSource;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Test application for metrics integration tests.
@@ -49,6 +49,18 @@ public class TestApplication {
     
     public static void main(String[] args) {
         SpringApplication.run(TestApplication.class, args);
+    }
+    
+    /**
+     * ObjectMapper bean for JSON serialization.
+     * Registers Java 8 time module for Instant, LocalDateTime, etc.
+     */
+    @Bean
+    public com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
     }
     
     @Bean
@@ -160,7 +172,7 @@ public class TestApplication {
     @Bean
     public CommandExecutor commandExecutor(
             EventStore eventStore,
-            java.util.List<com.crablet.command.CommandHandler<?>> handlers,
+            List<com.crablet.command.CommandHandler<?>> handlers,
             ClockProvider clock,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             org.springframework.context.ApplicationEventPublisher eventPublisher) {
@@ -174,21 +186,15 @@ public class TestApplication {
         return new InstanceIdProvider(environment);
     }
     
-    @Bean
-    public OutboxLeaderElector outboxLeaderElector(
-            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate, 
-            OutboxConfig config,
-            InstanceIdProvider instanceIdProvider,
-            org.springframework.context.ApplicationEventPublisher eventPublisher) {
-        return new OutboxLeaderElector(jdbcTemplate, config, instanceIdProvider, eventPublisher);
-    }
+    // OutboxLeaderElector is now auto-configured
+    // when crablet.outbox.enabled=true via OutboxAutoConfiguration
     
     @Bean
     public OutboxPublishingService outboxPublishingService(
             OutboxConfig config,
             org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
             DataSource readDataSource,
-            java.util.List<com.crablet.outbox.OutboxPublisher> publishers,
+            List<com.crablet.outbox.OutboxPublisher> publishers,
             InstanceIdProvider instanceIdProvider,
             ClockProvider clock,
             io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitBreakerRegistry,
@@ -196,7 +202,7 @@ public class TestApplication {
             org.springframework.context.ApplicationEventPublisher eventPublisher) {
         
         // Build publisher lookup map
-        java.util.Map<String, com.crablet.outbox.OutboxPublisher> publisherByName = new java.util.concurrent.ConcurrentHashMap<>();
+        Map<String, com.crablet.outbox.OutboxPublisher> publisherByName = new ConcurrentHashMap<>();
         for (com.crablet.outbox.OutboxPublisher publisher : publishers) {
             publisherByName.put(publisher.getName(), publisher);
         }
@@ -207,37 +213,35 @@ public class TestApplication {
         );
     }
     
-    @Bean
-    @org.springframework.boot.autoconfigure.condition.ConditionalOnBean(name = "outboxPublisher")
-    public OutboxProcessorImpl outboxProcessorImpl(
-            OutboxConfig config,
-            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
-            DataSource dataSource,
-            java.util.List<com.crablet.outbox.OutboxPublisher> publishers,
-            OutboxLeaderElector leaderElector,
-            OutboxPublishingService publishingService,
-            io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitBreakerRegistry,
-            GlobalStatisticsPublisher globalStatistics,
-            TopicConfigurationProperties topicConfigProperties,
-            org.springframework.scheduling.TaskScheduler taskScheduler,
-            org.springframework.context.ApplicationEventPublisher eventPublisher) {
-        return new OutboxProcessorImpl(config, jdbcTemplate, dataSource, publishers, 
-                                       leaderElector, publishingService, 
-                                       circuitBreakerRegistry, 
-                                       globalStatistics, topicConfigProperties, taskScheduler, eventPublisher);
-    }
-    
-    @Bean
-    @org.springframework.boot.autoconfigure.condition.ConditionalOnBean(name = "outboxPublisher")
-    public OutboxManagementService outboxManagementService(
-            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
-            OutboxProcessorImpl outboxProcessor) {
-        return new OutboxManagementService(jdbcTemplate, outboxProcessor);
-    }
+    // OutboxProcessorImpl and OutboxManagementService are now auto-configured
+    // when crablet.outbox.enabled=true via OutboxAutoConfiguration
+    // No manual bean configuration needed
     
     @Bean
     public GlobalStatisticsPublisher globalStatisticsPublisher(GlobalStatisticsConfig config) {
         return new GlobalStatisticsPublisher(config);
+    }
+    
+    /**
+     * Flyway bean to ensure migrations run before tests.
+     * Migrations run immediately when bean is created.
+     * Uses migrations from src/test/resources/db/migration.
+     */
+    @Bean
+    public org.flywaydb.core.Flyway flyway(DataSource dataSource) {
+        org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TestApplication.class);
+        log.info("[TestApplication] Flyway bean creation started at {}", java.time.Instant.now());
+        
+        org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load();
+        
+        log.info("[TestApplication] Starting Flyway migration at {}", java.time.Instant.now());
+        flyway.migrate();
+        log.info("[TestApplication] Flyway migration completed at {}", java.time.Instant.now());
+        
+        return flyway;
     }
 }
 

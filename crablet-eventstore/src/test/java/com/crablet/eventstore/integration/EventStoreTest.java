@@ -11,10 +11,13 @@ import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
-import com.crablet.examples.wallet.event.*;
+import com.crablet.examples.wallet.commands.OpenWalletCommand;
+import com.crablet.examples.wallet.events.DepositMade;
+import com.crablet.examples.wallet.events.MoneyTransferred;
+import com.crablet.examples.wallet.events.WalletOpened;
+import com.crablet.examples.wallet.events.WithdrawalMade;
 import com.crablet.examples.wallet.projections.WalletBalanceProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
-import com.crablet.examples.wallet.features.openwallet.OpenWalletCommand;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,7 +25,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Integration tests for EventStore core API using Wallet domain.

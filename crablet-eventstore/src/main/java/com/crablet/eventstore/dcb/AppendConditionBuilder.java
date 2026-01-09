@@ -4,6 +4,7 @@ import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.Tag;
+
 import java.util.ArrayList;
 import java.util.List;
 

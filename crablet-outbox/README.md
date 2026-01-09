@@ -32,7 +32,8 @@ Crablet Outbox provides a robust transactional outbox implementation, ensuring t
 
 ## Dependencies
 
-- crablet-eventstore
+- crablet-eventstore (required)
+- crablet-event-processor (required) - Generic event processing infrastructure
 - Spring Boot Web, JDBC
 - Resilience4j (for circuit breakers and retries)
 - Micrometer (for metrics)
@@ -91,10 +92,12 @@ eventStore.appendIf(events, AppendCondition.empty());
 
 Crablet Outbox uses:
 - **Per-publisher schedulers**: Independent scheduler per (topic, publisher) pair for isolation and flexible polling
-- **Global leader election**: PostgreSQL advisory locks for automatic failover
+- **Global leader election**: PostgreSQL advisory locks for automatic failover. See [Leader Election Guide](../LEADER_ELECTION.md) for details.
 - **At-least-once delivery**: Events may be published multiple times (idempotent consumers required)
 
-**Recommended deployment:** Run exactly 2 instances (1 leader + 1 backup) for high availability.
+**Recommended deployment:** 
+- **1 instance**: Works fine in Kubernetes (auto-restart on crash, brief downtime)
+- **2+ instances**: Recommended for zero-downtime failover (follower takes over within 5-30 seconds)
 
 **Scalability:** Optimized for 1-50 topic/publisher pairs.
 

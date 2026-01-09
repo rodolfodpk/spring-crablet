@@ -5,9 +5,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit tests for TopicConfigurationProperties.
@@ -404,7 +405,7 @@ class TopicConfigurationPropertiesTest {
         pubProps.setPollingIntervalMs(500L);
 
         // When
-        props.setPublisherConfigs(java.util.List.of(pubProps));
+        props.setPublisherConfigs(List.of(pubProps));
 
         // Then
         assertThat(props.getPublisherConfigs()).hasSize(1);

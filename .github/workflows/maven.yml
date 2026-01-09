@@ -38,8 +38,8 @@ jobs:
           java-version: '25'
           cache: 'maven'  # Caches ~/.m2/repository
 
-      - name: Build with Maven
-        run: mvn -B clean verify --file pom.xml
+      - name: Build with Maven (handles cyclic dependencies)
+        run: make ci-verify
 
       - name: Debug JaCoCo Report
         run: |
@@ -61,7 +61,9 @@ jobs:
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          files: ./target/site/jacoco-aggregate/jacoco.xml
+          # Codecov can read both XML reports and exec files
+          # Using merged exec file which contains all coverage data
+          files: ./target/jacoco-merged.exec
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false

@@ -100,17 +100,6 @@ This module provides Micrometer support. You can implement similar collectors fo
 - `micrometer-core` - For metrics recording
 - `spring-boot-starter` - For Spring Events and component scanning
 
-## Migration from Deprecated Metrics
-
-The old metrics classes (`EventStoreMetrics`, `OutboxMetrics`, `OutboxPublisherMetrics`) are deprecated and will be removed in version 2.0.0.
-
-**Migration steps:**
-1. Add `crablet-metrics-micrometer` dependency
-2. Remove explicit `EventStoreMetrics` bean definitions (if any)
-3. Metrics will be collected automatically via Spring Events
-
-**Note**: The old metrics classes are still functional for backward compatibility, but new code should use the event-driven approach.
-
 ## See Also
 
 - [Crablet EventStore README](../crablet-eventstore/README.md)

@@ -19,6 +19,16 @@
             <groupId>com.crablet</groupId>
             <artifactId>crablet-eventstore</artifactId>
         </dependency>
+        
+        <!-- Crablet Event Store (test-jar) for test resources (Flyway migrations) -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-eventstore</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        
         <dependency>
             <groupId>com.crablet</groupId>
             <artifactId>crablet-command</artifactId>
@@ -26,6 +36,10 @@
         <dependency>
             <groupId>com.crablet</groupId>
             <artifactId>crablet-outbox</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-event-processor</artifactId>
         </dependency>
         
         <!-- Micrometer -->
@@ -75,10 +89,9 @@
         <!-- Access to example domain classes for tests -->
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-eventstore</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
+            <artifactId>shared-examples-domain</artifactId>
             <version>${project.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.crablet</groupId>

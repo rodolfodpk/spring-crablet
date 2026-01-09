@@ -1,15 +1,13 @@
 package com.crablet.command.handlers.courses;
 
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
-import com.crablet.examples.courses.features.definecourse.DefineCourseCommand;
-import com.crablet.command.handlers.courses.DefineCourseCommandHandler;
+import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.integration.AbstractCrabletTest;
+import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.examples.courses.domain.event.CourseDefined;
-import com.crablet.eventstore.integration.AbstractCrabletTest;
-import com.crablet.command.handlers.courses.CourseTestUtils;
+import com.crablet.examples.course.commands.DefineCourseCommand;
+import com.crablet.examples.course.events.CourseDefined;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,11 +34,14 @@ class DefineCourseCommandHandlerTest extends AbstractCrabletTest {
     private EventStore eventStore;
     
     @Autowired
+    private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    
     private CourseTestUtils courseTestUtils;
 
     @BeforeEach
     void setUp() {
         handler = new DefineCourseCommandHandler();
+        courseTestUtils = new CourseTestUtils(objectMapper);
     }
 
     @Test
