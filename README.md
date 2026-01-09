@@ -67,7 +67,7 @@ DCB (Dynamic Consistency Boundary) redefines consistency granularity in event-so
 
 - **DCB**: Optimistic concurrency control using event position tracking (cursors)
 - **Java 25**: Records, sealed interfaces, virtual threads
-- **Spring Boot 3.5**: Full Spring integration
+- **Spring Boot 4.0**: Full Spring integration
 - **PostgreSQL**: Primary database with optional read replicas
 - **Comprehensive Testing**: Full test coverage with unit and integration tests
 

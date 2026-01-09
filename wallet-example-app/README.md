@@ -72,12 +72,27 @@ spring.datasource.password=postgres
 ```
 
 3. **Build and run:**
+
+**Option 1: Using Makefile (from project root)**
 ```bash
-# Build the project (from root)
+# Build all library modules first
 make install
 
 # Run the application
+make start
+# or
+make wallet-dev
+```
+
+**Option 2: Standalone build (from wallet-example-app directory)**
+```bash
+# First, ensure library modules are installed to local Maven repository
+# From project root:
+make install
+
+# Then build and run the example app
 cd wallet-example-app
+../mvnw install
 ../mvnw spring-boot:run
 ```
 
@@ -285,13 +300,38 @@ curl http://localhost:8080/api/wallets/wallet-1
 curl http://localhost:8080/api/wallets/wallet-1/transactions
 ```
 
-## Testing
+## Building and Testing
+
+### Building
+
+This is an example application and is not part of the main reactor build. Build it separately:
+
+```bash
+# From wallet-example-app directory
+cd wallet-example-app
+
+# Ensure library modules are installed first (from project root: make install)
+# Then build:
+../mvnw install
+```
+
+### Testing
 
 Run tests:
 ```bash
 cd wallet-example-app
 ../mvnw test
 ```
+
+### Running
+
+Run the application:
+```bash
+cd wallet-example-app
+../mvnw spring-boot:run
+```
+
+**Note:** You can also use `make start` or `make wallet-dev` from the project root for convenience.
 
 ## See Also
 
