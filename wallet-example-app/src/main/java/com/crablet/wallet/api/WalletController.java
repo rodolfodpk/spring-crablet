@@ -1,13 +1,15 @@
 package com.crablet.wallet.api;
 
 import com.crablet.command.CommandExecutor;
-import com.crablet.wallet.api.dto.*;
-import com.crablet.examples.wallet.exceptions.InsufficientFundsException;
-import com.crablet.examples.wallet.exceptions.WalletNotFoundException;
 import com.crablet.examples.wallet.commands.DepositCommand;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.examples.wallet.commands.TransferMoneyCommand;
 import com.crablet.examples.wallet.commands.WithdrawCommand;
+import com.crablet.wallet.api.dto.DepositRequest;
+import com.crablet.wallet.api.dto.OpenWalletRequest;
+import com.crablet.wallet.api.dto.TransferRequest;
+import com.crablet.wallet.api.dto.WalletResponse;
+import com.crablet.wallet.api.dto.WithdrawRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -18,7 +20,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 

@@ -1,6 +1,7 @@
 package com.crablet.eventstore.query;
 
 import com.crablet.eventstore.store.Cursor;
+
 import java.util.List;
 
 /**

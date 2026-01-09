@@ -1,11 +1,11 @@
 package com.crablet.command.handlers.courses.unit;
 
-import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
 import com.crablet.command.handlers.courses.ChangeCourseCapacityCommandHandler;
+import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
+import com.crablet.examples.course.commands.ChangeCourseCapacityCommand;
 import com.crablet.examples.course.events.CourseCapacityChanged;
 import com.crablet.examples.course.events.CourseDefined;
 import com.crablet.examples.course.exceptions.CourseNotFoundException;
-import com.crablet.examples.course.commands.ChangeCourseCapacityCommand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

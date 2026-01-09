@@ -2,12 +2,12 @@ package com.crablet.integration;
 
 import com.crablet.eventprocessor.management.ProcessorManagementService;
 import com.crablet.eventprocessor.progress.ProcessorStatus;
-import com.crablet.outbox.adapter.TopicPublisherPair;
-import com.crablet.outbox.config.OutboxConfig;
-import com.crablet.testutils.EventProcessorTestHelper;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
+import com.crablet.outbox.adapter.TopicPublisherPair;
+import com.crablet.outbox.config.OutboxConfig;
+import com.crablet.testutils.EventProcessorTestHelper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;

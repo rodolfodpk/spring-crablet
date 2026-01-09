@@ -1,15 +1,15 @@
 package com.crablet.integration.wallet;
 
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventprocessor.processor.EventProcessor;
+import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.store.EventStore;
+import com.crablet.integration.AbstractCrabletTest;
 import com.crablet.outbox.adapter.OutboxProcessorConfig;
 import com.crablet.outbox.adapter.TopicPublisherPair;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
 import com.crablet.testutils.EventProcessorTestHelper;
-import com.crablet.integration.AbstractCrabletTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

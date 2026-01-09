@@ -1,17 +1,15 @@
 package com.crablet.command.handlers.courses;
 
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
-import com.crablet.examples.course.commands.ChangeCourseCapacityCommand;
-import com.crablet.command.handlers.courses.ChangeCourseCapacityCommandHandler;
+import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.integration.AbstractCrabletTest;
+import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.examples.course.events.CourseDefined;
+import com.crablet.examples.course.commands.ChangeCourseCapacityCommand;
 import com.crablet.examples.course.events.CourseCapacityChanged;
+import com.crablet.examples.course.events.CourseDefined;
 import com.crablet.examples.course.exceptions.CourseNotFoundException;
-import com.crablet.eventstore.integration.AbstractCrabletTest;
-import com.crablet.command.handlers.courses.CourseTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

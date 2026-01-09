@@ -4,11 +4,11 @@ import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.store.EventStore;
+import com.crablet.examples.wallet.commands.DepositCommand;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.exceptions.WalletNotFoundException;
-import com.crablet.examples.wallet.commands.DepositCommand;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
-import com.crablet.eventstore.store.EventStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -16,7 +16,12 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 import static com.crablet.eventstore.store.EventType.type;
-import static com.crablet.examples.wallet.WalletTags.*;
+import static com.crablet.examples.wallet.WalletTags.DAY;
+import static com.crablet.examples.wallet.WalletTags.DEPOSIT_ID;
+import static com.crablet.examples.wallet.WalletTags.HOUR;
+import static com.crablet.examples.wallet.WalletTags.MONTH;
+import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
+import static com.crablet.examples.wallet.WalletTags.YEAR;
 
 /**
  * Command handler for depositing money into wallets.

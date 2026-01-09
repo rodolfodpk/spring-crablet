@@ -1,22 +1,22 @@
 package com.crablet.outbox.publishing;
 
+import com.crablet.eventprocessor.InstanceIdProvider;
+import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.PublishException;
 import com.crablet.outbox.TopicConfig;
 import com.crablet.outbox.config.OutboxConfig;
-import com.crablet.eventstore.clock.ClockProvider;
-import com.crablet.eventprocessor.InstanceIdProvider;
 import com.crablet.outbox.metrics.EventsPublishedMetric;
 import com.crablet.outbox.metrics.OutboxErrorMetric;
 import com.crablet.outbox.metrics.PublishingDurationMetric;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
-import org.springframework.context.ApplicationEventPublisher;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;

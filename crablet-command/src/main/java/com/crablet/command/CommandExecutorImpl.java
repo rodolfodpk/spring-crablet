@@ -1,21 +1,21 @@
 package com.crablet.command;
 
+import com.crablet.command.metrics.CommandFailureMetric;
+import com.crablet.command.metrics.CommandStartedMetric;
+import com.crablet.command.metrics.CommandSuccessMetric;
+import com.crablet.command.metrics.IdempotentOperationMetric;
+import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.EventStoreConfig;
 import com.crablet.eventstore.store.Tag;
-import com.crablet.eventstore.clock.ClockProvider;
-import com.crablet.command.metrics.CommandStartedMetric;
-import com.crablet.command.metrics.CommandSuccessMetric;
-import com.crablet.command.metrics.CommandFailureMetric;
-import com.crablet.command.metrics.IdempotentOperationMetric;
-import org.springframework.context.ApplicationEventPublisher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Duration;
 import java.time.Instant;

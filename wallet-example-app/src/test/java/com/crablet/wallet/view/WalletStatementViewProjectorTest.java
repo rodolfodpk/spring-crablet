@@ -21,7 +21,25 @@ import java.util.List;
 import java.util.Map;
 
 import static com.crablet.eventstore.store.EventType.type;
-import static com.crablet.examples.wallet.WalletTags.*;
+import static com.crablet.examples.wallet.WalletTags.DAY;
+import static com.crablet.examples.wallet.WalletTags.DEPOSIT_ID;
+import static com.crablet.examples.wallet.WalletTags.FROM_DAY;
+import static com.crablet.examples.wallet.WalletTags.FROM_HOUR;
+import static com.crablet.examples.wallet.WalletTags.FROM_MONTH;
+import static com.crablet.examples.wallet.WalletTags.FROM_WALLET_ID;
+import static com.crablet.examples.wallet.WalletTags.FROM_YEAR;
+import static com.crablet.examples.wallet.WalletTags.HOUR;
+import static com.crablet.examples.wallet.WalletTags.MONTH;
+import static com.crablet.examples.wallet.WalletTags.STATEMENT_ID;
+import static com.crablet.examples.wallet.WalletTags.TO_DAY;
+import static com.crablet.examples.wallet.WalletTags.TO_HOUR;
+import static com.crablet.examples.wallet.WalletTags.TO_MONTH;
+import static com.crablet.examples.wallet.WalletTags.TO_WALLET_ID;
+import static com.crablet.examples.wallet.WalletTags.TO_YEAR;
+import static com.crablet.examples.wallet.WalletTags.TRANSFER_ID;
+import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
+import static com.crablet.examples.wallet.WalletTags.WITHDRAWAL_ID;
+import static com.crablet.examples.wallet.WalletTags.YEAR;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**

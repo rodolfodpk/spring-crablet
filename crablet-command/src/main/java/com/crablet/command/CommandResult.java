@@ -2,6 +2,7 @@ package com.crablet.command;
 
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
+
 import java.util.List;
 
 /**

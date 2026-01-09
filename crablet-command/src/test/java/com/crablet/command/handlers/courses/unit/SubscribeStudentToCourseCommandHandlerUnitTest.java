@@ -1,14 +1,14 @@
 package com.crablet.command.handlers.courses.unit;
 
-import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
 import com.crablet.command.handlers.courses.SubscribeStudentToCourseCommandHandler;
+import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
+import com.crablet.examples.course.commands.SubscribeStudentToCourseCommand;
 import com.crablet.examples.course.events.CourseDefined;
 import com.crablet.examples.course.events.StudentSubscribedToCourse;
 import com.crablet.examples.course.exceptions.AlreadySubscribedException;
 import com.crablet.examples.course.exceptions.CourseFullException;
 import com.crablet.examples.course.exceptions.CourseNotFoundException;
 import com.crablet.examples.course.exceptions.StudentSubscriptionLimitException;
-import com.crablet.examples.course.commands.SubscribeStudentToCourseCommand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

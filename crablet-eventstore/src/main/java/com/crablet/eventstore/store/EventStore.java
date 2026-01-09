@@ -4,6 +4,7 @@ import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.StateProjector;
+
 import java.util.List;
 import java.util.function.Function;
 

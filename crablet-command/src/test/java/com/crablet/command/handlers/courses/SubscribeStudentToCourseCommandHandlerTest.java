@@ -1,20 +1,18 @@
 package com.crablet.command.handlers.courses;
 
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
-import com.crablet.examples.course.commands.SubscribeStudentToCourseCommand;
-import com.crablet.command.handlers.courses.SubscribeStudentToCourseCommandHandler;
+import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.integration.AbstractCrabletTest;
+import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.examples.course.commands.SubscribeStudentToCourseCommand;
 import com.crablet.examples.course.events.CourseDefined;
 import com.crablet.examples.course.events.StudentSubscribedToCourse;
 import com.crablet.examples.course.exceptions.AlreadySubscribedException;
 import com.crablet.examples.course.exceptions.CourseFullException;
 import com.crablet.examples.course.exceptions.CourseNotFoundException;
 import com.crablet.examples.course.exceptions.StudentSubscriptionLimitException;
-import com.crablet.eventstore.integration.AbstractCrabletTest;
-import com.crablet.command.handlers.courses.CourseTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

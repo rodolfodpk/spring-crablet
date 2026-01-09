@@ -1,14 +1,14 @@
 package com.crablet.command.handlers.wallet;
 
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
-import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
-import com.crablet.examples.wallet.commands.TransferMoneyCommand;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.dcb.AppendConditionBuilder;
 import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.store.EventStore;
 import com.crablet.examples.wallet.WalletQueryPatterns;
+import com.crablet.examples.wallet.commands.TransferMoneyCommand;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.exceptions.InsufficientFundsException;
 import com.crablet.examples.wallet.exceptions.WalletNotFoundException;
@@ -23,7 +23,17 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 import static com.crablet.eventstore.store.EventType.type;
-import static com.crablet.examples.wallet.WalletTags.*;
+import static com.crablet.examples.wallet.WalletTags.FROM_DAY;
+import static com.crablet.examples.wallet.WalletTags.FROM_HOUR;
+import static com.crablet.examples.wallet.WalletTags.FROM_MONTH;
+import static com.crablet.examples.wallet.WalletTags.FROM_WALLET_ID;
+import static com.crablet.examples.wallet.WalletTags.FROM_YEAR;
+import static com.crablet.examples.wallet.WalletTags.TO_DAY;
+import static com.crablet.examples.wallet.WalletTags.TO_HOUR;
+import static com.crablet.examples.wallet.WalletTags.TO_MONTH;
+import static com.crablet.examples.wallet.WalletTags.TO_WALLET_ID;
+import static com.crablet.examples.wallet.WalletTags.TO_YEAR;
+import static com.crablet.examples.wallet.WalletTags.TRANSFER_ID;
 
 /**
  * Command handler for transferring money between wallets.

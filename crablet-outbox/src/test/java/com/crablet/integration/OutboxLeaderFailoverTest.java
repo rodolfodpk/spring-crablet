@@ -2,13 +2,13 @@ package com.crablet.integration;
 
 import com.crablet.eventprocessor.leader.LeaderElector;
 import com.crablet.eventprocessor.processor.EventProcessor;
+import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.store.EventStore;
 import com.crablet.outbox.adapter.OutboxProcessorConfig;
 import com.crablet.outbox.adapter.TopicPublisherPair;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.testutils.EventProcessorTestHelper;
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.EventStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,12 +1,12 @@
 package com.crablet.eventprocessor.processor;
 
-import com.crablet.eventprocessor.backoff.BackoffState;
-import com.crablet.eventprocessor.leader.LeaderElector;
-import com.crablet.eventprocessor.progress.ProgressTracker;
-import com.crablet.eventprocessor.progress.ProcessorStatus;
 import com.crablet.eventprocessor.EventFetcher;
 import com.crablet.eventprocessor.EventHandler;
+import com.crablet.eventprocessor.backoff.BackoffState;
+import com.crablet.eventprocessor.leader.LeaderElector;
 import com.crablet.eventprocessor.metrics.ProcessingCycleMetric;
+import com.crablet.eventprocessor.progress.ProcessorStatus;
+import com.crablet.eventprocessor.progress.ProgressTracker;
 import com.crablet.eventstore.store.StoredEvent;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;

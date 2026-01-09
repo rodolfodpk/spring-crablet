@@ -1,6 +1,7 @@
 package com.crablet.eventprocessor;
 
 import com.crablet.eventstore.store.StoredEvent;
+
 import javax.sql.DataSource;
 import java.util.List;
 

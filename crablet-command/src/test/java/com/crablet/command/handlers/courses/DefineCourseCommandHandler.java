@@ -1,21 +1,21 @@
 package com.crablet.command.handlers.courses;
 
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
-import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
-import com.crablet.examples.course.commands.DefineCourseCommand;
+import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.dcb.AppendConditionBuilder;
+import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.query.Query;
+import com.crablet.examples.course.commands.DefineCourseCommand;
 import com.crablet.examples.course.events.CourseDefined;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 import static com.crablet.eventstore.store.EventType.type;
-import static com.crablet.examples.course.CourseTags.*;
+import static com.crablet.examples.course.CourseTags.COURSE_ID;
 
 /**
  * Command handler for defining courses.

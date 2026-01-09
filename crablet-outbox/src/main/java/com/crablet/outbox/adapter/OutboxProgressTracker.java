@@ -1,7 +1,7 @@
 package com.crablet.outbox.adapter;
 
-import com.crablet.eventprocessor.progress.ProgressTracker;
 import com.crablet.eventprocessor.progress.ProcessorStatus;
+import com.crablet.eventprocessor.progress.ProgressTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -9,16 +9,20 @@ import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
+import com.crablet.examples.wallet.events.DepositMade;
+import com.crablet.examples.wallet.events.MoneyTransferred;
+import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.projections.WalletBalanceProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
-import com.crablet.examples.wallet.events.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Integration tests for EventStore error handling and edge cases.

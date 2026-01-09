@@ -1,20 +1,20 @@
 package com.crablet.command.handlers.courses;
 
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
-import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
-import com.crablet.examples.course.commands.ChangeCourseCapacityCommand;
-import com.crablet.eventstore.store.Cursor;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.dcb.AppendConditionBuilder;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.EventStore;
 import com.crablet.examples.course.CourseQueryPatterns;
+import com.crablet.examples.course.commands.ChangeCourseCapacityCommand;
 import com.crablet.examples.course.events.CourseCapacityChanged;
 import com.crablet.examples.course.exceptions.CourseNotFoundException;
-import com.crablet.examples.course.projections.CourseExistsProjection;
 import com.crablet.examples.course.projections.CourseCapacityProjection;
+import com.crablet.examples.course.projections.CourseExistsProjection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 import static com.crablet.eventstore.store.EventType.type;
-import static com.crablet.examples.course.CourseTags.*;
+import static com.crablet.examples.course.CourseTags.COURSE_ID;
 
 /**
  * Command handler for changing course capacity.

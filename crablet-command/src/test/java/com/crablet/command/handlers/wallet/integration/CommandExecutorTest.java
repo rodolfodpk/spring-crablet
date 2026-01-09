@@ -7,12 +7,12 @@ import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
-import com.crablet.examples.wallet.exceptions.InsufficientFundsException;
-import com.crablet.examples.wallet.exceptions.WalletNotFoundException;
 import com.crablet.examples.wallet.commands.DepositCommand;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.examples.wallet.commands.TransferMoneyCommand;
 import com.crablet.examples.wallet.commands.WithdrawCommand;
+import com.crablet.examples.wallet.exceptions.InsufficientFundsException;
+import com.crablet.examples.wallet.exceptions.WalletNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +20,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Integration tests for CommandExecutor using wallet commands.

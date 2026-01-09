@@ -2,7 +2,6 @@ package com.crablet.wallet.view.projectors;
 
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.views.AbstractTypedViewProjector;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.events.WalletEvent;
@@ -10,6 +9,7 @@ import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WalletStatementClosed;
 import com.crablet.examples.wallet.events.WalletStatementOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;
+import com.crablet.views.AbstractTypedViewProjector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;

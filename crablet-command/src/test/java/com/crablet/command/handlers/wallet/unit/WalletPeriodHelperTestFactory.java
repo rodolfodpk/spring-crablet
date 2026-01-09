@@ -4,23 +4,25 @@ import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.period.PeriodType;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.store.*;
+import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.EventStore;
 import com.crablet.examples.wallet.WalletQueryPatterns;
 import com.crablet.examples.wallet.events.WalletStatementOpened;
+import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementId;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
-import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.projections.WalletBalanceProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
 
 import java.util.List;
 
 import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.examples.wallet.WalletTags.MONTH;
 import static com.crablet.examples.wallet.WalletTags.STATEMENT_ID;
 import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
 import static com.crablet.examples.wallet.WalletTags.YEAR;
-import static com.crablet.examples.wallet.WalletTags.MONTH;
 
 /**
  * Factory for creating test-friendly {@link WalletPeriodHelper} instances for unit tests.

@@ -2,12 +2,11 @@ package com.crablet.eventprocessor.processor;
 
 import com.crablet.eventprocessor.EventFetcher;
 import com.crablet.eventprocessor.EventHandler;
-import com.crablet.eventprocessor.backoff.BackoffState;
 import com.crablet.eventprocessor.integration.AbstractEventProcessorTest;
 import com.crablet.eventprocessor.leader.LeaderElector;
 import com.crablet.eventprocessor.leader.LeaderElectorImpl;
-import com.crablet.eventprocessor.progress.ProgressTracker;
 import com.crablet.eventprocessor.progress.ProcessorStatus;
+import com.crablet.eventprocessor.progress.ProgressTracker;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
@@ -20,7 +19,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -32,7 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Integration tests for EventProcessorImpl.

@@ -1,7 +1,6 @@
 package com.crablet.command.handlers.wallet;
 
 import com.crablet.command.CommandResult;
-import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
@@ -9,8 +8,8 @@ import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
+import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.examples.wallet.events.WalletOpened;
-import com.crablet.command.handlers.wallet.WalletTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

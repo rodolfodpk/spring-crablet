@@ -2,6 +2,7 @@ package com.crablet.testutils;
 
 import com.crablet.eventprocessor.processor.EventProcessor;
 import com.crablet.eventprocessor.processor.ProcessorConfig;
+
 import java.util.Map;
 
 /**

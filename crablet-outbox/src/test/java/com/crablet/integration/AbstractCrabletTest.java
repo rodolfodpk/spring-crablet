@@ -1,6 +1,7 @@
 package com.crablet.integration;
-import com.crablet.eventstore.store.EventStore;
+
 import com.crablet.TestApplication;
+import com.crablet.eventstore.store.EventStore;
 import com.crablet.testutils.TestConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;

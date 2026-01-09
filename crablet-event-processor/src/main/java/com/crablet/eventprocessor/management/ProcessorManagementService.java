@@ -1,6 +1,7 @@
 package com.crablet.eventprocessor.management;
 
 import com.crablet.eventprocessor.progress.ProcessorStatus;
+
 import java.util.Map;
 
 /**

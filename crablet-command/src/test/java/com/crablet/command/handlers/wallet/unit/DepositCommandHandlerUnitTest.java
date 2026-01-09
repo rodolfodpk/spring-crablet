@@ -2,11 +2,11 @@ package com.crablet.command.handlers.wallet.unit;
 
 import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
 import com.crablet.command.handlers.wallet.DepositCommandHandler;
+import com.crablet.examples.wallet.commands.DepositCommand;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WalletStatementOpened;
 import com.crablet.examples.wallet.exceptions.WalletNotFoundException;
-import com.crablet.examples.wallet.commands.DepositCommand;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

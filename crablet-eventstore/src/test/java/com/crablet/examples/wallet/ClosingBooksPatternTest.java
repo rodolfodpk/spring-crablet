@@ -1,6 +1,7 @@
 package com.crablet.examples.wallet;
 
 import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.integration.AbstractCrabletTest;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
@@ -8,13 +9,12 @@ import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.eventstore.integration.AbstractCrabletTest;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.events.WalletOpened;
-import com.crablet.examples.wallet.events.WithdrawalMade;
-import com.crablet.examples.wallet.events.WalletStatementOpened;
 import com.crablet.examples.wallet.events.WalletStatementClosed;
+import com.crablet.examples.wallet.events.WalletStatementOpened;
+import com.crablet.examples.wallet.events.WithdrawalMade;
 import com.crablet.examples.wallet.projections.WalletBalanceProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
 import org.junit.jupiter.api.DisplayName;

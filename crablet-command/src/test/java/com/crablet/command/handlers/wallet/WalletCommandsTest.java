@@ -1,19 +1,16 @@
 package com.crablet.command.handlers.wallet;
 
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.command.CommandResult;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.query.EventRepository;
+import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.Tag;
+import com.crablet.examples.wallet.commands.DepositCommand;
+import com.crablet.examples.wallet.commands.OpenWalletCommand;
+import com.crablet.examples.wallet.commands.WithdrawCommand;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
-import com.crablet.examples.wallet.commands.DepositCommand;
-import com.crablet.command.handlers.wallet.DepositCommandHandler;
-import com.crablet.examples.wallet.commands.OpenWalletCommand;
-import com.crablet.command.handlers.wallet.OpenWalletCommandHandler;
-import com.crablet.examples.wallet.commands.WithdrawCommand;
-import com.crablet.command.handlers.wallet.WithdrawCommandHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

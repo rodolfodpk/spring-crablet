@@ -1,16 +1,15 @@
 package com.crablet;
 
+import com.crablet.eventprocessor.InstanceIdProvider;
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.clock.ClockProviderImpl;
-import com.crablet.outbox.config.GlobalStatisticsConfig;
-import com.crablet.outbox.config.OutboxConfig;
-import com.crablet.outbox.config.TopicConfigurationProperties;
-import com.crablet.eventprocessor.InstanceIdProvider;
-// Old classes removed - using auto-configuration with generic processor
-import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.EventStoreConfig;
 import com.crablet.eventstore.store.EventStoreImpl;
+import com.crablet.outbox.config.GlobalStatisticsConfig;
+import com.crablet.outbox.config.OutboxConfig;
+import com.crablet.outbox.config.TopicConfigurationProperties;
+import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -2,14 +2,14 @@ package com.crablet.command.handlers.wallet;
 
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.crablet.examples.wallet.events.DepositMade;
+import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.events.WalletEvent;
 import com.crablet.examples.wallet.events.WalletOpened;
-import com.crablet.examples.wallet.events.MoneyTransferred;
-import com.crablet.examples.wallet.events.DepositMade;
-import com.crablet.examples.wallet.events.WithdrawalMade;
-import com.crablet.examples.wallet.events.WalletStatementOpened;
 import com.crablet.examples.wallet.events.WalletStatementClosed;
+import com.crablet.examples.wallet.events.WalletStatementOpened;
+import com.crablet.examples.wallet.events.WithdrawalMade;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;

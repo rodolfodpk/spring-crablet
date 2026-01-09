@@ -3,7 +3,6 @@ package com.crablet.wallet.view.projectors;
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
-import com.crablet.views.AbstractTypedViewProjector;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.events.WalletEvent;
@@ -11,6 +10,7 @@ import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WalletStatementClosed;
 import com.crablet.examples.wallet.events.WalletStatementOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;
+import com.crablet.views.AbstractTypedViewProjector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +22,18 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.List;
 
-import static com.crablet.examples.wallet.WalletTags.*;
+import static com.crablet.examples.wallet.WalletTags.DAY;
+import static com.crablet.examples.wallet.WalletTags.FROM_DAY;
+import static com.crablet.examples.wallet.WalletTags.FROM_HOUR;
+import static com.crablet.examples.wallet.WalletTags.FROM_MONTH;
+import static com.crablet.examples.wallet.WalletTags.FROM_YEAR;
+import static com.crablet.examples.wallet.WalletTags.HOUR;
+import static com.crablet.examples.wallet.WalletTags.MONTH;
+import static com.crablet.examples.wallet.WalletTags.TO_DAY;
+import static com.crablet.examples.wallet.WalletTags.TO_HOUR;
+import static com.crablet.examples.wallet.WalletTags.TO_MONTH;
+import static com.crablet.examples.wallet.WalletTags.TO_YEAR;
+import static com.crablet.examples.wallet.WalletTags.YEAR;
 
 /**
  * View projector for wallet statement periods.
