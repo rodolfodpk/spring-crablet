@@ -31,8 +31,9 @@ help:
 	@echo ""
 	@echo "Advanced Build Commands (for troubleshooting):"
 	@echo "  build-core  - Build crablet-eventstore without tests and install"
+	@echo "  build-command - Build crablet-command without tests and install"
 	@echo "  build-shared - Build shared-examples-domain and install"
-	@echo "  build-reactor - Build all reactor modules (after core and shared are installed)"
+	@echo "  build-reactor - Build all reactor modules (after core, command and shared are installed)"
 	@echo ""
 	@echo "Application Commands:"
 	@echo "  start       - Start wallet-example-app application"
@@ -43,18 +44,18 @@ help:
 # Main build command - handles cyclic dependency automatically
 # Note: Uses 'install' which runs unit tests but not integration tests
 # Use 'install-all-tests' for full test coverage including integration tests
-install: build-core build-shared build-reactor
+install: build-core build-command build-shared build-reactor
 	@echo "✓ Build complete! All modules installed to local repository."
 
 # Full build with all tests including integration tests (for CI)
-install-all-tests: build-core build-shared build-reactor-verify
+install-all-tests: build-core build-command build-shared build-reactor-verify
 	@echo "✓ Build complete with all tests! All modules installed to local repository."
 
 # CI build - verifies build, only installs minimal modules needed
 # 1. Install crablet-eventstore (needed by shared-examples-domain)
 # 2. Install shared-examples-domain (needed by reactor modules in test scope)
 # 3. Verify reactor (no install needed for reactor modules)
-ci-verify: build-core build-shared build-reactor-verify
+ci-verify: build-core build-command build-shared build-reactor-verify
 	@echo "✓ CI build complete with all tests! (only crablet-eventstore and shared-examples-domain installed)"
 
 # Alias for install
@@ -69,17 +70,26 @@ build-core:
 	@./mvnw install -N -q 2>/dev/null || true
 	@mkdir -p /tmp/crablet-stub && touch /tmp/crablet-stub/empty.jar
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-eventstore -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-eventstore/pom.xml -q 2>/dev/null || true
+	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-eventstore -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -Dclassifier=tests -DpomFile=crablet-eventstore/pom.xml -q 2>/dev/null || true
+	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-command -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-command/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=shared-examples-domain -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=shared-examples-domain/pom.xml -q 2>/dev/null || true
 	@echo "Building crablet-eventstore (main code only, skipping tests)..."
 	@./mvnw clean compile package install -pl crablet-eventstore -DskipTests -Dmaven.test.skip=true
 
-# Build shared-examples-domain (step 2 - depends on crablet-eventstore)
+# Build crablet-command without tests (step 2 - needed by shared-examples-domain)
+build-command:
+	@echo "Building crablet-command (main code only, skipping tests)..."
+	@./mvnw clean compile package install -pl crablet-command -DskipTests -Dmaven.test.skip=true
+
+# Build shared-examples-domain (step 3 - depends on crablet-eventstore and crablet-command)
 build-shared:
 	@echo "Building shared-examples-domain..."
 	@cd shared-examples-domain && ../mvnw install
+	@echo "Building crablet-eventstore test-jar (needed by crablet-command tests)..."
+	@./mvnw test-compile package install -pl crablet-eventstore -DskipTests
 
 
-# Build all reactor modules with tests (step 3 - shared-examples-domain is now available)
+# Build all reactor modules with tests (step 4 - shared-examples-domain is now available)
 build-reactor:
 	@echo "Building reactor modules (with tests)..."
 	@./mvnw install
@@ -92,23 +102,23 @@ build-reactor-verify:
 	@./mvnw verify -Dmaven.clean.skip=true
 
 # Compile all modules
-compile: build-core build-shared
+compile: build-core build-command build-shared
 	@./mvnw compile
 
 # Package all modules
-package: build-core build-shared
+package: build-core build-command build-shared
 	@./mvnw package
 
 # Run tests (requires build-core and build-shared first)
-test: build-core build-shared
+test: build-core build-command build-shared
 	@./mvnw test
 
 # Build without tests
-test-skip: build-core build-shared
+test-skip: build-core build-command build-shared
 	@./mvnw install -DskipTests
 
 # Full verify (clean build with tests)
-verify: build-core build-shared
+verify: build-core build-command build-shared
 	@./mvnw verify
 
 # Clean all build artifacts

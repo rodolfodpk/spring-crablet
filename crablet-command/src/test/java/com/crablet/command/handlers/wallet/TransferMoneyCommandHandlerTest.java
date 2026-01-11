@@ -5,6 +5,7 @@ import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.examples.wallet.commands.TransferMoneyCommandHandler;
 import com.crablet.examples.wallet.commands.TransferMoneyCommand;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.events.WalletOpened;

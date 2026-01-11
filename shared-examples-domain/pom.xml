@@ -20,6 +20,12 @@
             <artifactId>crablet-eventstore</artifactId>
         </dependency>
         
+        <!-- Crablet Command (for CommandHandler interface and CommandResult class) -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-command</artifactId>
+        </dependency>
+        
         <!-- Spring Boot (for @Component annotations) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

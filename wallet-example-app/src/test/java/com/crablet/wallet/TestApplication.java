@@ -1,7 +1,13 @@
 package com.crablet.wallet;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.zaxxer.hikari.HikariDataSource;
+import org.flywaydb.core.Flyway;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -9,10 +15,12 @@ import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
+import java.time.Instant;
 
 /**
  * Test application context for wallet-example-app integration tests.
@@ -57,7 +65,7 @@ public class TestApplication {
      * For this example app, we use the same DataSource for reads and writes.
      */
     @Bean(name = "readDataSource")
-    public DataSource readDataSource(@org.springframework.beans.factory.annotation.Qualifier("primaryDataSource") DataSource primaryDataSource) {
+    public DataSource readDataSource(@Qualifier("primaryDataSource") DataSource primaryDataSource) {
         return primaryDataSource;
     }
     
@@ -68,8 +76,8 @@ public class TestApplication {
     @Bean
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-        mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         return mapper;
     }
     
@@ -79,19 +87,19 @@ public class TestApplication {
      * Uses migrations from src/main/resources/db/migration.
      */
     @Bean
-    @org.springframework.context.annotation.DependsOn("primaryDataSource")
-    public org.flywaydb.core.Flyway flyway(@org.springframework.beans.factory.annotation.Qualifier("primaryDataSource") DataSource dataSource) {
-        org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TestApplication.class);
-        log.info("[TestApplication] Flyway bean creation started at {}", java.time.Instant.now());
+    @DependsOn("primaryDataSource")
+    public Flyway flyway(@Qualifier("primaryDataSource") DataSource dataSource) {
+        Logger log = LoggerFactory.getLogger(TestApplication.class);
+        log.info("[TestApplication] Flyway bean creation started at {}", Instant.now());
         
-        org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
+        Flyway flyway = Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
                 .load();
         
-        log.info("[TestApplication] Starting Flyway migration at {}", java.time.Instant.now());
+        log.info("[TestApplication] Starting Flyway migration at {}", Instant.now());
         flyway.migrate();
-        log.info("[TestApplication] Flyway migration completed at {}", java.time.Instant.now());
+        log.info("[TestApplication] Flyway migration completed at {}", Instant.now());
         
         return flyway;
     }

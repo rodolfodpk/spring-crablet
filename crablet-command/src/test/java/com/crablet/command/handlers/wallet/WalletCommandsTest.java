@@ -31,9 +31,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class WalletCommandsTest extends com.crablet.eventstore.integration.AbstractCrabletTest {
 
-    private DepositCommandHandler depositHandler;
-    private WithdrawCommandHandler withdrawHandler;
-    private OpenWalletCommandHandler openHandler;
+    private com.crablet.examples.wallet.commands.DepositCommandHandler depositHandler;
+    private com.crablet.examples.wallet.commands.WithdrawCommandHandler withdrawHandler;
+    private com.crablet.examples.wallet.commands.OpenWalletCommandHandler openHandler;
 
     @Autowired
     private EventStore eventStore;
@@ -46,9 +46,9 @@ class WalletCommandsTest extends com.crablet.eventstore.integration.AbstractCrab
 
     @BeforeEach
     void setUp() {
-        depositHandler = new DepositCommandHandler(periodHelper);
-        withdrawHandler = new WithdrawCommandHandler(periodHelper);
-        openHandler = new OpenWalletCommandHandler();
+        depositHandler = new com.crablet.examples.wallet.commands.DepositCommandHandler(periodHelper);
+        withdrawHandler = new com.crablet.examples.wallet.commands.WithdrawCommandHandler(periodHelper);
+        openHandler = new com.crablet.examples.wallet.commands.OpenWalletCommandHandler();
     }
 
     @Test

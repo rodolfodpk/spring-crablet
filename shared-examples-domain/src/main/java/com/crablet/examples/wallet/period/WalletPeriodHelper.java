@@ -1,5 +1,6 @@
 package com.crablet.examples.wallet.period;
 
+import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.eventstore.period.PeriodType;
 import com.crablet.eventstore.store.EventStore;
@@ -11,6 +12,7 @@ import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.Cursor;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -25,14 +27,17 @@ public class WalletPeriodHelper {
     private final WalletStatementPeriodResolver periodResolver;
     private final PeriodConfigurationProvider configProvider;
     private final WalletBalanceProjector balanceProjector;
+    private final ClockProvider clockProvider;
 
     public WalletPeriodHelper(
             WalletStatementPeriodResolver periodResolver,
             PeriodConfigurationProvider configProvider,
-            WalletBalanceProjector balanceProjector) {
+            WalletBalanceProjector balanceProjector,
+            ClockProvider clockProvider) {
         this.periodResolver = periodResolver;
         this.configProvider = configProvider;
         this.balanceProjector = balanceProjector;
+        this.clockProvider = clockProvider;
     }
 
     /**
@@ -58,6 +63,49 @@ public class WalletPeriodHelper {
         WalletStatementId periodId = periodResolver.resolveActivePeriod(eventStore, walletId, periodType);
         
         // Project balance using period-aware query
+        Query periodQuery = WalletQueryPatterns.singleWalletActivePeriodDecisionModel(
+                walletId, periodId.year(), periodId.month() != null ? periodId.month() : 1);
+        
+        ProjectionResult<WalletBalanceState> projection = eventStore.project(
+                periodQuery,
+                Cursor.zero(),
+                WalletBalanceState.class,
+                List.of(balanceProjector)
+        );
+        
+        return new PeriodProjectionResult(periodId, projection);
+    }
+
+    /**
+     * Project balance for current period without ensuring period exists.
+     * <p>
+     * This method:
+     * 1. Determines current period from clock (no statement event creation)
+     * 2. Projects balance using period-aware query
+     * 3. Returns both the period ID and projection result
+     * <p>
+     * Use this method when you don't need explicit statement management (Closing Books Pattern).
+     * Period tags are derived from clock, and balance projection works correctly because
+     * transaction events contain cumulative newBalance fields.
+     *
+     * @param eventStore The transaction-scoped EventStore (passed as parameter)
+     * @param walletId   The wallet ID
+     * @param commandClass The command class to determine period type from @PeriodConfig annotation
+     * @return PeriodProjectionResult containing period ID and balance projection
+     */
+    public PeriodProjectionResult projectCurrentPeriod(
+            EventStore eventStore,
+            String walletId,
+            Class<?> commandClass) {
+        PeriodType periodType = configProvider.getPeriodType(commandClass);
+        
+        // Get current period from clock (no statement creation)
+        Instant now = clockProvider.now();
+        WalletStatementId periodId = WalletStatementId.fromInstant(walletId, now, periodType);
+        
+        // Project balance using period-aware query
+        // Note: Query includes WalletOpened (no period tags) + transaction events (with period tags)
+        // Balance projection works correctly because transaction events have cumulative newBalance fields
         Query periodQuery = WalletQueryPatterns.singleWalletActivePeriodDecisionModel(
                 walletId, periodId.year(), periodId.month() != null ? periodId.month() : 1);
         

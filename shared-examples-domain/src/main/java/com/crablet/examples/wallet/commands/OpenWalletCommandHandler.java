@@ -1,4 +1,4 @@
-package com.crablet.wallet.command.handlers;
+package com.crablet.examples.wallet.commands;
 
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
@@ -62,4 +62,3 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
         return CommandResult.of(List.of(event), condition);
     }
 }
-

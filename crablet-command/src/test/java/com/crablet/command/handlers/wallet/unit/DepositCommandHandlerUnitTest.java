@@ -1,7 +1,7 @@
 package com.crablet.command.handlers.wallet.unit;
 
 import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
-import com.crablet.command.handlers.wallet.DepositCommandHandler;
+import com.crablet.examples.wallet.commands.DepositCommandHandler;
 import com.crablet.examples.wallet.commands.DepositCommand;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.WalletOpened;
@@ -15,7 +15,9 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.examples.wallet.WalletTags.MONTH;
 import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
+import static com.crablet.examples.wallet.WalletTags.YEAR;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -91,10 +93,14 @@ class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         given().event(type(DepositMade.class), builder -> builder
             .data(DepositMade.of("deposit1", "wallet1", 200, 1200, "First deposit"))
             .tag(WALLET_ID, "wallet1")
+            .tag(YEAR, "2025")
+            .tag(MONTH, "1")
         );
         given().event(type(DepositMade.class), builder -> builder
             .data(DepositMade.of("deposit2", "wallet1", 300, 1500, "Second deposit"))
             .tag(WALLET_ID, "wallet1")
+            .tag(YEAR, "2025")
+            .tag(MONTH, "1")
         );
         
         // When

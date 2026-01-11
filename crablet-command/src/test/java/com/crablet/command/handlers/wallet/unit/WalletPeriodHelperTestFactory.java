@@ -1,5 +1,6 @@
 package com.crablet.command.handlers.wallet.unit;
 
+import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.period.PeriodType;
 import com.crablet.eventstore.query.ProjectionResult;
@@ -16,6 +17,10 @@ import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
 import com.crablet.examples.wallet.projections.WalletBalanceProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import static com.crablet.eventstore.store.EventType.type;
@@ -56,10 +61,14 @@ public class WalletPeriodHelperTestFactory {
         // Create simplified config provider that always returns MONTHLY
         TestPeriodConfigurationProvider configProvider = new TestPeriodConfigurationProvider();
         
+        // Create test clock that returns fixed time (2025-01-15 10:00:00)
+        ClockProvider testClock = new TestClockProvider();
+        
         return new WalletPeriodHelper(
             periodResolver,
             configProvider,
-            new WalletBalanceProjector()
+            new WalletBalanceProjector(),
+            testClock
         );
     }
     
@@ -151,6 +160,33 @@ public class WalletPeriodHelperTestFactory {
         @Override
         public PeriodType getPeriodType(Class<?> commandClass) {
             return PeriodType.MONTHLY; // Always MONTHLY for tests
+        }
+    }
+    
+    /**
+     * Test ClockProvider that returns fixed time (2025-01-15 10:00:00).
+     */
+    private static class TestClockProvider implements ClockProvider {
+        private final Clock fixedClock = Clock.fixed(
+            LocalDateTime.of(2025, 1, 15, 10, 0, 0)
+                .atZone(ZoneId.systemDefault())
+                .toInstant(),
+            ZoneId.systemDefault()
+        );
+        
+        @Override
+        public Instant now() {
+            return fixedClock.instant();
+        }
+        
+        @Override
+        public void setClock(Clock clock) {
+            // No-op for test
+        }
+        
+        @Override
+        public void resetToSystemClock() {
+            // No-op for test
         }
     }
 }

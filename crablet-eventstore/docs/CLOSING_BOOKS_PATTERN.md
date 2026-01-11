@@ -127,7 +127,7 @@ See: `crablet-eventstore/src/test/java/com/crablet/examples/wallet/period/Wallet
 
 ### 1. Command Handler Flow
 
-Command handlers use `WalletPeriodHelper` to ensure an active period exists before processing:
+**For operations that don't need explicit statement management**, command handlers use `projectCurrentPeriod()`:
 
 ```java
 @Component
@@ -136,8 +136,8 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
     
     @Override
     public CommandResult handle(EventStore eventStore, DepositCommand command) {
-        // Ensure active period exists (creates WalletStatementOpened if needed)
-        var periodResult = periodHelper.ensureActivePeriodAndProject(
+        // Project balance for current period (period tags derived from clock, no statement creation)
+        var periodResult = periodHelper.projectCurrentPeriod(
             eventStore, command.walletId(), DepositCommand.class);
         
         // Project balance for current period only
@@ -179,6 +179,12 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
     }
 }
 ```
+
+**For explicit statement management (Closing Books Pattern)**, use `ensureActivePeriodAndProject()` instead. This method creates `WalletStatementOpened` and `WalletStatementClosed` events when periods change.
+
+**When to use each method:**
+- **`projectCurrentPeriod()`**: Use for operations that don't need explicit statement management. Period tags are derived from clock, and balance projection works correctly because transaction events contain cumulative `newBalance` fields. Simpler and more performant.
+- **`ensureActivePeriodAndProject()`**: Use when you need explicit statement management (Closing Books Pattern). Creates `WalletStatementOpened` and `WalletStatementClosed` events when periods change, enabling statement-based queries and reporting.
 
 See: `crablet-command/src/test/java/com/crablet/command/handlers/wallet/DepositCommandHandler.java`
 

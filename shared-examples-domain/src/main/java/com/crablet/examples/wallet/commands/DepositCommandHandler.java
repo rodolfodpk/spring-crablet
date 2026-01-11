@@ -1,4 +1,4 @@
-package com.crablet.command.handlers.wallet;
+package com.crablet.examples.wallet.commands;
 
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
@@ -27,8 +27,6 @@ import static com.crablet.examples.wallet.WalletTags.YEAR;
  * Command handler for depositing money into wallets.
  * <p>
  * DCB Principle: Projects only wallet balance + existence - minimal state needed.
- * Does not project full WalletState since only balance and existence are required.
- * <p>
  * Uses period-aware queries and ensures active period exists before processing.
  */
 @Component
@@ -45,8 +43,8 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
     public CommandResult handle(EventStore eventStore, DepositCommand command) {
         // Command is already validated at construction with YAVI
 
-        // Ensure active period exists and project balance using period-aware query
-        var periodResult = periodHelper.ensureActivePeriodAndProject(
+        // Project balance for current period (period tags derived from clock, no statement creation)
+        var periodResult = periodHelper.projectCurrentPeriod(
                 eventStore, command.walletId(), DepositCommand.class);
         var state = periodResult.projection().state();
 

@@ -5,6 +5,7 @@ import com.crablet.eventstore.store.EventStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -97,7 +98,7 @@ public abstract class AbstractWalletTest {
             jdbcTemplate.execute("TRUNCATE TABLE wallet_summary_view CASCADE");
             jdbcTemplate.execute("TRUNCATE TABLE statement_transactions CASCADE");
             jdbcTemplate.execute("TRUNCATE TABLE wallet_statement_view CASCADE");
-        } catch (org.springframework.jdbc.BadSqlGrammarException e) {
+        } catch (BadSqlGrammarException e) {
             // Tables don't exist yet - Flyway will create them
             // This is expected on first run
         } catch (Exception e) {

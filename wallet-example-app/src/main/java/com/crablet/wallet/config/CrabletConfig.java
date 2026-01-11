@@ -117,8 +117,9 @@ public class CrabletConfig {
     public WalletPeriodHelper walletPeriodHelper(
             WalletStatementPeriodResolver periodResolver,
             PeriodConfigurationProvider configProvider,
-            WalletBalanceProjector balanceProjector) {
-        return new WalletPeriodHelper(periodResolver, configProvider, balanceProjector);
+            WalletBalanceProjector balanceProjector,
+            ClockProvider clockProvider) {
+        return new WalletPeriodHelper(periodResolver, configProvider, balanceProjector, clockProvider);
     }
 
     @Bean

@@ -1,4 +1,4 @@
-package com.crablet.wallet.command.handlers;
+package com.crablet.examples.wallet.commands;
 
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
@@ -47,8 +47,8 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
     public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
         // Command is already validated at construction with YAVI
 
-        // Ensure active period exists and project balance using period-aware query
-        var periodResult = periodHelper.ensureActivePeriodAndProject(
+        // Project balance for current period (period tags derived from clock, no statement creation)
+        var periodResult = periodHelper.projectCurrentPeriod(
                 eventStore, command.walletId(), WithdrawCommand.class);
         var state = periodResult.projection().state();
 
@@ -108,4 +108,3 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         return CommandResult.of(List.of(event), condition);
     }
 }
-

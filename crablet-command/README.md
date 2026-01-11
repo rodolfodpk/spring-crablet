@@ -268,8 +268,8 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
     
     @Override
     public CommandResult handle(EventStore eventStore, DepositCommand command) {
-        // Automatically ensures active period exists (creates StatementOpened if needed)
-        var periodResult = periodHelper.ensureActivePeriodAndProject(
+        // Project balance for current period (period tags derived from clock, no statement creation)
+        var periodResult = periodHelper.projectCurrentPeriod(
             eventStore, command.walletId(), DepositCommand.class);
         
         // Project balance for current period only
@@ -311,6 +311,8 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
     }
 }
 ```
+
+**Note:** `projectCurrentPeriod()` determines the current period from the clock and projects balance without creating statement events. For explicit statement management (Closing Books Pattern), use `ensureActivePeriodAndProject()` instead.
 
 **Note:** `WalletPeriodHelper` is a domain-specific example. You'll need to implement your own period helper based on your domain's requirements. The framework only provides `@PeriodConfig` and `PeriodType` - period resolution logic is domain-specific.
 

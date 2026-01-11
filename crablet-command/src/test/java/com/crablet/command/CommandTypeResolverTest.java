@@ -1,8 +1,8 @@
 package com.crablet.command;
 
 import com.crablet.command.handlers.courses.DefineCourseCommandHandler;
-import com.crablet.command.handlers.wallet.DepositCommandHandler;
-import com.crablet.command.handlers.wallet.OpenWalletCommandHandler;
+import com.crablet.examples.wallet.commands.DepositCommandHandler;
+import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;

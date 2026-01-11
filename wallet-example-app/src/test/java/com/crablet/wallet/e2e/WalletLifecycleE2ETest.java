@@ -2,6 +2,8 @@ package com.crablet.wallet.e2e;
 
 import com.crablet.eventprocessor.processor.EventProcessor;
 import com.crablet.views.adapter.ViewProcessorConfig;
+import com.crablet.views.config.ViewSubscriptionConfig;
+import com.crablet.wallet.TestApplication;
 import com.crablet.wallet.api.dto.DepositRequest;
 import com.crablet.wallet.api.dto.OpenWalletRequest;
 import com.crablet.wallet.api.dto.WalletResponse;
@@ -34,7 +36,7 @@ import static org.awaitility.Awaitility.await;
  * Tests are executed sequentially using @Order annotations to build up state.
  */
 @SpringBootTest(
-    classes = com.crablet.wallet.TestApplication.class,
+    classes = TestApplication.class,
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
         "spring.profiles.active=test",
@@ -63,7 +65,7 @@ class WalletLifecycleE2ETest extends AbstractWalletE2ETest {
     
     @Autowired
     @Qualifier("viewSubscriptions")
-    private Map<String, com.crablet.views.config.ViewSubscriptionConfig> subscriptions;
+    private Map<String, ViewSubscriptionConfig> subscriptions;
     
     /**
      * Process all views to ensure they're up to date.

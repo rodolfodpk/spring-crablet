@@ -1,4 +1,4 @@
-package com.crablet.command.handlers.wallet;
+package com.crablet.examples.wallet.commands;
 
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
@@ -39,10 +39,7 @@ import static com.crablet.examples.wallet.WalletTags.TRANSFER_ID;
  * Command handler for transferring money between wallets.
  * <p>
  * DCB Principle: Projects balances for both wallets + concurrency control.
- * Keeps complex transfer logic together for atomicity and consistency.
- * <p>
  * Uses period-aware queries and ensures active periods exist for both wallets.
- * Wallets are handled independently - they may be in different periods.
  */
 @Component
 public class TransferMoneyCommandHandler implements CommandHandler<TransferMoneyCommand> {
@@ -58,10 +55,10 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
     public CommandResult handle(EventStore eventStore, TransferMoneyCommand command) {
         // Command is already validated at construction with YAVI
 
-        // Ensure active periods exist for both wallets (handled independently)
-        PeriodProjectionResult fromPeriodResult = periodHelper.ensureActivePeriodAndProject(
+        // Project balance for current periods of both wallets (period tags derived from clock, no statement creation)
+        PeriodProjectionResult fromPeriodResult = periodHelper.projectCurrentPeriod(
                 eventStore, command.fromWalletId(), TransferMoneyCommand.class);
-        PeriodProjectionResult toPeriodResult = periodHelper.ensureActivePeriodAndProject(
+        PeriodProjectionResult toPeriodResult = periodHelper.projectCurrentPeriod(
                 eventStore, command.toWalletId(), TransferMoneyCommand.class);
 
         // Project transfer state using period-aware query
@@ -148,11 +145,6 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 
     /**
      * Project transfer state - balances for both wallets using period-aware queries.
-     * <p>
-     * DCB Principle: Projects only what TransferMoneyCommand needs.
-     * For transfers, we need balances for both wallets (not full WalletState).
-     * <p>
-     * Creates a combined query that includes events from both wallets' active periods.
      */
     private TransferProjectionResult projectTransferState(
             EventStore store,
@@ -160,8 +152,6 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
             PeriodProjectionResult fromPeriodResult,
             PeriodProjectionResult toPeriodResult) {
         
-        // Create period-aware transfer decision model query
-        // Include events from both wallets' active periods
         var fromPeriodId = fromPeriodResult.periodId();
         var toPeriodId = toPeriodResult.periodId();
         int fromYear = fromPeriodId.year();
@@ -177,7 +167,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
         // Create projector instance per projection (immutable, thread-safe)
         TransferStateProjector projector = new TransferStateProjector(cmd.fromWalletId(), cmd.toWalletId());
         
-        // Use EventStore's streaming projection with new signature
+        // Use EventStore's streaming projection
         com.crablet.eventstore.query.ProjectionResult<TransferState> result = 
             store.project(decisionModel, com.crablet.eventstore.store.Cursor.zero(), TransferState.class, List.of(projector));
         

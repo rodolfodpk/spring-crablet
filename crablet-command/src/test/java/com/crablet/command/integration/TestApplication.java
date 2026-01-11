@@ -2,10 +2,10 @@ package com.crablet.command.integration;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandExecutorImpl;
-import com.crablet.command.handlers.wallet.DepositCommandHandler;
-import com.crablet.command.handlers.wallet.OpenWalletCommandHandler;
-import com.crablet.command.handlers.wallet.TransferMoneyCommandHandler;
-import com.crablet.command.handlers.wallet.WithdrawCommandHandler;
+import com.crablet.examples.wallet.commands.DepositCommandHandler;
+import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
+import com.crablet.examples.wallet.commands.TransferMoneyCommandHandler;
+import com.crablet.examples.wallet.commands.WithdrawCommandHandler;
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.clock.ClockProviderImpl;
 import com.crablet.eventstore.query.EventRepository;
@@ -125,8 +125,9 @@ public class TestApplication {
     public WalletPeriodHelper walletPeriodHelper(
             WalletStatementPeriodResolver periodResolver,
             PeriodConfigurationProvider configProvider,
-            WalletBalanceProjector balanceProjector) {
-        return new WalletPeriodHelper(periodResolver, configProvider, balanceProjector);
+            WalletBalanceProjector balanceProjector,
+            ClockProvider clockProvider) {
+        return new WalletPeriodHelper(periodResolver, configProvider, balanceProjector, clockProvider);
     }
     
     @Bean

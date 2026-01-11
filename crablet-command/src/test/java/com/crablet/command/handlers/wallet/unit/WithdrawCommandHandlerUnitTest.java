@@ -1,7 +1,7 @@
 package com.crablet.command.handlers.wallet.unit;
 
 import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
-import com.crablet.command.handlers.wallet.WithdrawCommandHandler;
+import com.crablet.examples.wallet.commands.WithdrawCommandHandler;
 import com.crablet.examples.wallet.commands.WithdrawCommand;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.WalletOpened;
@@ -16,7 +16,9 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.examples.wallet.WalletTags.MONTH;
 import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
+import static com.crablet.examples.wallet.WalletTags.YEAR;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -103,10 +105,14 @@ class WithdrawCommandHandlerUnitTest extends AbstractHandlerUnitTest {
         given().event(type(DepositMade.class), builder -> builder
             .data(DepositMade.of("deposit1", "wallet1", 500, 1500, "Bonus"))
             .tag(WALLET_ID, "wallet1")
+            .tag(YEAR, "2025")
+            .tag(MONTH, "1")
         );
         given().event(type(WithdrawalMade.class), builder -> builder
             .data(WithdrawalMade.of("withdrawal1", "wallet1", 200, 1300, "Previous withdrawal"))
             .tag(WALLET_ID, "wallet1")
+            .tag(YEAR, "2025")
+            .tag(MONTH, "1")
         );
         
         // When

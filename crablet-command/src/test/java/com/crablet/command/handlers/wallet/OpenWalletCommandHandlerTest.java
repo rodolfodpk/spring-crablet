@@ -8,6 +8,7 @@ import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
+import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.examples.wallet.events.WalletOpened;
 import org.junit.jupiter.api.BeforeEach;

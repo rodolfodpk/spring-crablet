@@ -3,6 +3,7 @@ package com.crablet.wallet;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.ComponentScan;
 
 /**
  * Wallet Example Application
@@ -16,6 +17,10 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
  */
 @SpringBootApplication
 @EnableConfigurationProperties
+@ComponentScan(basePackages = {
+    "com.crablet.wallet",
+    "com.crablet.examples.wallet.commands"  // Required: scan handlers from shared-examples-domain
+})
 public class WalletApplication {
     
     public static void main(String[] args) {

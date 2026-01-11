@@ -1,22 +1,36 @@
 package com.crablet.views.integration.wallet;
 
+import com.crablet.eventprocessor.InstanceIdProvider;
 import com.crablet.eventprocessor.management.ProcessorManagementService;
 import com.crablet.eventprocessor.progress.ProcessorStatus;
+import com.crablet.eventstore.clock.ClockProvider;
+import com.crablet.eventstore.clock.ClockProviderImpl;
 import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.store.EventStoreConfig;
+import com.crablet.eventstore.store.EventStoreImpl;
 import com.crablet.views.config.ViewsAutoConfiguration;
+import com.crablet.views.config.ViewsConfig;
+import com.crablet.views.config.ViewSubscriptionConfig;
 import com.crablet.views.integration.AbstractViewsTest;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.postgresql.Driver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -157,9 +171,8 @@ class ViewManagementServiceWalletIntegrationTest extends AbstractViewsTest {
     static class TestConfig {
         @Bean
         public DataSource dataSource() {
-            org.springframework.jdbc.datasource.SimpleDriverDataSource dataSource =
-                    new org.springframework.jdbc.datasource.SimpleDriverDataSource();
-            dataSource.setDriverClass(org.postgresql.Driver.class);
+            SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
+            dataSource.setDriverClass(Driver.class);
             dataSource.setUrl(AbstractViewsTest.postgres.getJdbcUrl());
             dataSource.setUsername(AbstractViewsTest.postgres.getUsername());
             dataSource.setPassword(AbstractViewsTest.postgres.getPassword());
@@ -184,8 +197,8 @@ class ViewManagementServiceWalletIntegrationTest extends AbstractViewsTest {
         }
 
         @Bean
-        public org.flywaydb.core.Flyway flyway(DataSource dataSource) {
-            org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
+        public Flyway flyway(DataSource dataSource) {
+            Flyway flyway = Flyway.configure()
                     .dataSource(dataSource)
                     .locations("classpath:db/migration")
                     .load();
@@ -194,35 +207,35 @@ class ViewManagementServiceWalletIntegrationTest extends AbstractViewsTest {
         }
 
         @Bean
-        @org.springframework.context.annotation.DependsOn("flyway")
+        @DependsOn("flyway")
         public EventStore eventStore(
                 DataSource dataSource,
-                com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-                com.crablet.eventstore.store.EventStoreConfig config,
-                com.crablet.eventstore.clock.ClockProvider clock,
-                org.springframework.context.ApplicationEventPublisher eventPublisher) {
-            return new com.crablet.eventstore.store.EventStoreImpl(
+                ObjectMapper objectMapper,
+                EventStoreConfig config,
+                ClockProvider clock,
+                ApplicationEventPublisher eventPublisher) {
+            return new EventStoreImpl(
                 dataSource, dataSource, objectMapper, config, clock, eventPublisher);
         }
 
         @Bean
-        public com.crablet.eventstore.store.EventStoreConfig eventStoreConfig() {
-            return new com.crablet.eventstore.store.EventStoreConfig();
+        public EventStoreConfig eventStoreConfig() {
+            return new EventStoreConfig();
         }
 
         @Bean
-        public com.crablet.eventstore.clock.ClockProvider clockProvider() {
-            return new com.crablet.eventstore.clock.ClockProviderImpl();
+        public ClockProvider clockProvider() {
+            return new ClockProviderImpl();
         }
 
         @Bean
-        public com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
-            return new com.fasterxml.jackson.databind.ObjectMapper();
+        public ObjectMapper objectMapper() {
+            return new ObjectMapper();
         }
 
         @Bean
-        public com.crablet.eventprocessor.InstanceIdProvider instanceIdProvider(Environment environment) {
-            return new com.crablet.eventprocessor.InstanceIdProvider(environment);
+        public InstanceIdProvider instanceIdProvider(Environment environment) {
+            return new InstanceIdProvider(environment);
         }
 
         @Bean
@@ -231,18 +244,18 @@ class ViewManagementServiceWalletIntegrationTest extends AbstractViewsTest {
         }
 
         @Bean
-        public org.springframework.context.ApplicationEventPublisher applicationEventPublisher() {
-            return new org.springframework.context.support.GenericApplicationContext();
+        public ApplicationEventPublisher applicationEventPublisher() {
+            return new GenericApplicationContext();
         }
 
         @Bean
-        public com.crablet.views.config.ViewsConfig viewsConfig() {
-            return new com.crablet.views.config.ViewsConfig();
+        public ViewsConfig viewsConfig() {
+            return new ViewsConfig();
         }
 
         @Bean
-        public com.crablet.views.config.ViewSubscriptionConfig testViewSubscription() {
-            return com.crablet.views.config.ViewSubscriptionConfig.builder("wallet-view")
+        public ViewSubscriptionConfig testViewSubscription() {
+            return ViewSubscriptionConfig.builder("wallet-view")
                     .eventTypes("WalletOpened", "DepositMade")
                     .requiredTags("wallet_id")
                     .build();
