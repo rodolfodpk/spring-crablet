@@ -15,7 +15,7 @@ import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;
-import com.crablet.examples.wallet.projections.WalletBalanceProjector;
+import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -269,7 +269,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
                         .build()
         ), AppendCondition.empty());
 
-        // When: project with wallet balance projector
+        // When: project with wallet balance state projector
         Query query = Query.forEventsAndTags(
                 List.of("WalletOpened", "DepositMade"),
                 List.of(new Tag("wallet_id", walletId))
@@ -278,7 +278,7 @@ class EventStoreQueryTest extends AbstractCrabletTest {
                 query,
                 Cursor.zero(),
                 WalletBalanceState.class,
-                List.of(new WalletBalanceProjector())
+                List.of(new WalletBalanceStateProjector())
         );
 
         // Then: should project correct balance

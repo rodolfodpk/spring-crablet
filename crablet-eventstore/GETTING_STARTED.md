@@ -103,7 +103,7 @@ import com.example.wallet.events.*;
 import java.util.List;
 
 // Not a singleton - create instances as needed. This class is stateless and thread-safe.
-public class WalletBalanceProjector implements StateProjector<WalletBalance> {
+public class WalletBalanceStateProjector implements StateProjector<WalletBalance> {
     
     @Override
     public String getId() {
@@ -201,7 +201,7 @@ import com.crablet.eventstore.store.*;
 import com.example.wallet.commands.WithdrawCommand;
 import com.example.wallet.domain.WalletBalance;
 import com.example.wallet.events.WithdrawalMade;
-import com.example.wallet.projectors.WalletBalanceProjector;
+import com.example.wallet.projectors.WalletBalanceStateProjector;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -223,7 +223,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         
         // 1. Project current balance with cursor
         // Create projector instance inline (not a singleton, thread-safe)
-        WalletBalanceProjector projector = new WalletBalanceProjector();
+        WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
         ProjectionResult<WalletBalance> result = eventStore.project(
             decisionModel,
             Cursor.zero(),

@@ -265,7 +265,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
         
         // 2. Project current balance with cursor
-        WalletBalanceProjector projector = new WalletBalanceProjector();
+        WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
         ProjectionResult<WalletBalanceState> result = eventStore.project(
             decisionModel, Cursor.zero(), WalletBalanceState.class, List.of(projector)
         );
@@ -370,7 +370,7 @@ Query query = QueryBuilder.create()
     .build();
 
 ProjectionResult<WalletBalance> result = eventStore.project(
-    query, Cursor.zero(), WalletBalance.class, List.of(new WalletBalanceProjector())
+    query, Cursor.zero(), WalletBalance.class, List.of(new WalletBalanceStateProjector())
 );
 
 WalletBalance balance = result.state();

@@ -19,7 +19,7 @@ import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.WithdrawalMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
-import com.crablet.examples.wallet.projections.WalletBalanceProjector;
+import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
 import com.crablet.eventstore.clock.ClockProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,13 +46,13 @@ public class WalletStatementPeriodResolver {
     private final EventRepository eventRepository;
     private final ClockProvider clock;
     private final ObjectMapper objectMapper;
-    private final WalletBalanceProjector balanceProjector;
+    private final WalletBalanceStateProjector balanceProjector;
 
     public WalletStatementPeriodResolver(
             EventRepository eventRepository,
             ClockProvider clock,
             ObjectMapper objectMapper,
-            WalletBalanceProjector balanceProjector) {
+            WalletBalanceStateProjector balanceProjector) {
         this.eventRepository = eventRepository;
         this.clock = clock;
         this.objectMapper = objectMapper;

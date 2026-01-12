@@ -16,7 +16,7 @@ import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;
-import com.crablet.examples.wallet.projections.WalletBalanceProjector;
+import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -92,7 +92,7 @@ class EventStoreTest extends AbstractCrabletTest {
                 query,
                 Cursor.zero(),
                 WalletBalanceState.class,
-                List.of(new WalletBalanceProjector())
+                List.of(new WalletBalanceStateProjector())
         );
 
         // When: deposit with valid cursor condition
@@ -140,7 +140,7 @@ class EventStoreTest extends AbstractCrabletTest {
                 query,
                 Cursor.zero(),
                 WalletBalanceState.class,
-                List.of(new WalletBalanceProjector())
+                List.of(new WalletBalanceStateProjector())
         );
 
         // Simulate concurrent modification: another deposit happens
@@ -204,7 +204,7 @@ class EventStoreTest extends AbstractCrabletTest {
                 query,
                 Cursor.zero(),
                 WalletBalanceState.class,
-                List.of(new WalletBalanceProjector())
+                List.of(new WalletBalanceStateProjector())
         );
 
         // Then: should project final balance correctly
@@ -343,7 +343,7 @@ class EventStoreTest extends AbstractCrabletTest {
                 query,
                 Cursor.zero(),
                 WalletBalanceState.class,
-                List.of(new WalletBalanceProjector())
+                List.of(new WalletBalanceStateProjector())
         );
         
         Cursor cursor1 = result1.cursor();
@@ -354,7 +354,7 @@ class EventStoreTest extends AbstractCrabletTest {
                 query,
                 cursor1,
                 WalletBalanceState.class,
-                List.of(new WalletBalanceProjector())
+                List.of(new WalletBalanceStateProjector())
         );
 
         // Verify cursor stays at same position with no new events
@@ -489,7 +489,7 @@ class EventStoreTest extends AbstractCrabletTest {
                 query,
                 Cursor.zero(),
                 WalletBalanceState.class,
-                List.of(new WalletBalanceProjector())
+                List.of(new WalletBalanceStateProjector())
         );
 
         // Then: should project successfully from beginning
@@ -601,7 +601,7 @@ class EventStoreTest extends AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("Should handle wallet projection with WalletBalanceProjector")
+    @DisplayName("Should handle wallet projection with WalletBalanceStateProjector")
     void shouldProjectWithMultipleProjectors() {
         // Given: wallet with deposits
         String walletId = "wallet19";
@@ -617,7 +617,7 @@ class EventStoreTest extends AbstractCrabletTest {
                         .build()
         ), AppendCondition.empty());
 
-        // When: project with WalletBalanceProjector
+        // When: project with WalletBalanceStateProjector
         Query query = Query.forEventsAndTags(
                 List.of("WalletOpened", "DepositMade"),
                 List.of(new Tag("wallet_id", walletId))
@@ -626,7 +626,7 @@ class EventStoreTest extends AbstractCrabletTest {
                 query,
                 Cursor.zero(),
                 WalletBalanceState.class,
-                List.of(new WalletBalanceProjector())
+                List.of(new WalletBalanceStateProjector())
         );
 
         // Then: should project balance correctly

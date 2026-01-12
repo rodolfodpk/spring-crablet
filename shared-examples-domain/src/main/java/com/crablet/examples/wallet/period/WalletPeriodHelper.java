@@ -5,7 +5,7 @@ import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.eventstore.period.PeriodType;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.examples.wallet.WalletQueryPatterns;
-import com.crablet.examples.wallet.projections.WalletBalanceProjector;
+import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
@@ -26,13 +26,13 @@ public class WalletPeriodHelper {
 
     private final WalletStatementPeriodResolver periodResolver;
     private final PeriodConfigurationProvider configProvider;
-    private final WalletBalanceProjector balanceProjector;
+    private final WalletBalanceStateProjector balanceProjector;
     private final ClockProvider clockProvider;
 
     public WalletPeriodHelper(
             WalletStatementPeriodResolver periodResolver,
             PeriodConfigurationProvider configProvider,
-            WalletBalanceProjector balanceProjector,
+            WalletBalanceStateProjector balanceProjector,
             ClockProvider clockProvider) {
         this.periodResolver = periodResolver;
         this.configProvider = configProvider;

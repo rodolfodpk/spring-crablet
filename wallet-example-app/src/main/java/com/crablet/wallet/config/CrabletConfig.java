@@ -13,7 +13,7 @@ import com.crablet.eventstore.store.EventStoreImpl;
 import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
-import com.crablet.examples.wallet.projections.WalletBalanceProjector;
+import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import com.crablet.views.config.ViewsConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -95,8 +95,8 @@ public class CrabletConfig {
     }
 
     @Bean
-    public WalletBalanceProjector walletBalanceProjector() {
-        return new WalletBalanceProjector();
+    public WalletBalanceStateProjector walletBalanceStateProjector() {
+        return new WalletBalanceStateProjector();
     }
 
     @Bean
@@ -109,7 +109,7 @@ public class CrabletConfig {
             EventRepository eventRepository,
             ClockProvider clock,
             ObjectMapper objectMapper,
-            WalletBalanceProjector balanceProjector) {
+            WalletBalanceStateProjector balanceProjector) {
         return new WalletStatementPeriodResolver(eventRepository, clock, objectMapper, balanceProjector);
     }
 
@@ -117,7 +117,7 @@ public class CrabletConfig {
     public WalletPeriodHelper walletPeriodHelper(
             WalletStatementPeriodResolver periodResolver,
             PeriodConfigurationProvider configProvider,
-            WalletBalanceProjector balanceProjector,
+            WalletBalanceStateProjector balanceProjector,
             ClockProvider clockProvider) {
         return new WalletPeriodHelper(periodResolver, configProvider, balanceProjector, clockProvider);
     }

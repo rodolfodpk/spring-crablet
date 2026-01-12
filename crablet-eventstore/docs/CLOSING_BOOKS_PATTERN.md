@@ -351,12 +351,12 @@ See: `WalletQueryPatterns.transferPeriodDecisionModel()` (lines 127-178)
 
 ### Projector Behavior
 
-The `WalletBalanceProjector` handles statement events carefully:
+The `WalletBalanceStateProjector` handles statement events carefully:
 
 - **`WalletStatementOpened`**: Sets opening balance but preserves `isExisting()` flag. Wallet existence is determined by `WalletOpened` event, not statement events.
 - **`WalletStatementClosed`**: Ignored in balance projection (it's an audit event). Active period queries only see `WalletStatementOpened`.
 
-See: `crablet-eventstore/src/test/java/com/crablet/examples/wallet/projections/WalletBalanceProjector.java` (lines 55-111)
+See: `shared-examples-domain/src/main/java/com/crablet/examples/wallet/projections/WalletBalanceStateProjector.java` (lines 55-111)
 
 ### WalletOpened Events
 

@@ -14,7 +14,7 @@ import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementId;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
-import com.crablet.examples.wallet.projections.WalletBalanceProjector;
+import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
 
 import java.time.Clock;
@@ -67,7 +67,7 @@ public class WalletPeriodHelperTestFactory {
         return new WalletPeriodHelper(
             periodResolver,
             configProvider,
-            new WalletBalanceProjector(),
+            new WalletBalanceStateProjector(),
             testClock
         );
     }
@@ -79,7 +79,7 @@ public class WalletPeriodHelperTestFactory {
     private static class TestWalletStatementPeriodResolver extends WalletStatementPeriodResolver {
         public TestWalletStatementPeriodResolver(EventStore eventStore) {
             // Pass nulls - we override resolveActivePeriod to not use them
-            super(null, null, null, new WalletBalanceProjector());
+            super(null, null, null, new WalletBalanceStateProjector());
         }
         
         @Override
@@ -100,7 +100,7 @@ public class WalletPeriodHelperTestFactory {
         private boolean periodExists(EventStore eventStore, WalletStatementId periodId) {
             Query query = Query.forEventAndTag(type(WalletStatementOpened.class), STATEMENT_ID, periodId.toStreamId());
             try {
-                WalletBalanceProjector projector = new WalletBalanceProjector();
+                WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
                 ProjectionResult<WalletBalanceState> result = eventStore.project(
                     query, Cursor.zero(), WalletBalanceState.class, List.of(projector));
                 return result.state().isExisting() && !result.state().walletId().isEmpty();
@@ -111,7 +111,7 @@ public class WalletPeriodHelperTestFactory {
         
         private int getOpeningBalance(EventStore eventStore, String walletId) {
             Query query = WalletQueryPatterns.singleWalletDecisionModel(walletId);
-            WalletBalanceProjector projector = new WalletBalanceProjector();
+            WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
             ProjectionResult<WalletBalanceState> result = eventStore.project(
                 query, Cursor.zero(), WalletBalanceState.class, List.of(projector));
             return result.state().balance();

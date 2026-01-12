@@ -17,17 +17,20 @@ import com.crablet.examples.wallet.events.WithdrawalMade;
 import java.util.List;
 
 /**
- * Wallet balance projection logic for command handlers.
+ * Wallet balance state projection logic for command handlers.
  * <p>
- * This class implements the DCB principle by providing a minimal projection
+ * This class implements the DCB principle by providing a minimal state projection
  * that only calculates wallet balance and existence, which is what most
  * command handlers need for business rule validation.
  * <p>
+ * This is a state projector (in-memory projection), distinct from view projectors
+ * that persist materialized views to database tables.
+ * <p>
  * Not a singleton - create instances as needed. This class is stateless and thread-safe.
  */
-public class WalletBalanceProjector implements StateProjector<WalletBalanceState> {
+public class WalletBalanceStateProjector implements StateProjector<WalletBalanceState> {
 
-    public WalletBalanceProjector() {
+    public WalletBalanceStateProjector() {
     }
 
     @Override
@@ -128,4 +131,3 @@ public class WalletBalanceProjector implements StateProjector<WalletBalanceState
     }
 
 }
-

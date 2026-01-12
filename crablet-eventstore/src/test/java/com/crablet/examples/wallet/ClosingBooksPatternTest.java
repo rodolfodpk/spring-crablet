@@ -15,7 +15,7 @@ import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WalletStatementClosed;
 import com.crablet.examples.wallet.events.WalletStatementOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;
-import com.crablet.examples.wallet.projections.WalletBalanceProjector;
+import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -246,7 +246,7 @@ class ClosingBooksPatternTest extends AbstractCrabletTest {
         
         // Project February balance
         Query query = walletPeriodQuery(walletId, 2024, 2);
-        WalletBalanceProjector projector = new WalletBalanceProjector();
+        WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
         ProjectionResult<WalletBalanceState> result = eventStore.project(
             query,
             Cursor.zero(),
@@ -317,7 +317,7 @@ class ClosingBooksPatternTest extends AbstractCrabletTest {
         
         // Project and verify
         Query query = walletPeriodQuery(walletId, 2024, 2);
-        WalletBalanceProjector projector = new WalletBalanceProjector();
+        WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
         ProjectionResult<WalletBalanceState> result = eventStore.project(
             query,
             Cursor.zero(),
@@ -419,7 +419,7 @@ class ClosingBooksPatternTest extends AbstractCrabletTest {
             .contains("WalletStatementOpened", "MoneyTransferred");
         
         // Project wallet1 balance
-        WalletBalanceProjector projector = new WalletBalanceProjector();
+        WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
         ProjectionResult<WalletBalanceState> wallet1Result = eventStore.project(
             wallet1Query,
             Cursor.zero(),

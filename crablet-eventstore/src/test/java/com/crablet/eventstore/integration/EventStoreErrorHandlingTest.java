@@ -12,7 +12,7 @@ import com.crablet.eventstore.store.Tag;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.events.WalletOpened;
-import com.crablet.examples.wallet.projections.WalletBalanceProjector;
+import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -192,7 +192,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
                 query,
                 Cursor.zero(),
                 WalletBalanceState.class,
-                List.of(new WalletBalanceProjector())
+                List.of(new WalletBalanceStateProjector())
         );
 
         // Then: should return non-existing wallet
@@ -579,7 +579,7 @@ class EventStoreErrorHandlingTest extends AbstractCrabletTest {
                 query,
                 Cursor.zero(),
                 WalletBalanceState.class,
-                List.of(new WalletBalanceProjector())
+                List.of(new WalletBalanceStateProjector())
         );
 
         // Then: Should succeed with valid data
