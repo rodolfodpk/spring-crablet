@@ -35,10 +35,11 @@
             <artifactId>crablet-event-processor</artifactId>
         </dependency>
         
-        <!-- Spring Boot Web (for REST controller) -->
+        <!-- Spring Boot Web (for REST controller in tests) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+            <scope>test</scope>
         </dependency>
         
         <!-- Spring WebFlux (for WebTestClient in E2E tests) -->

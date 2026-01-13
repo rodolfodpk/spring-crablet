@@ -15,6 +15,7 @@ import com.crablet.views.adapter.ViewEventFetcher;
 import com.crablet.views.adapter.ViewEventHandler;
 import com.crablet.views.adapter.ViewProcessorConfig;
 import com.crablet.views.adapter.ViewProgressTracker;
+import com.crablet.views.service.ViewManagementService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
@@ -110,14 +111,24 @@ public class ViewsAutoConfiguration {
     }
     
     /**
-     * Create ProcessorManagementService bean for view management.
+     * Create ViewManagementService bean for view management.
+     * 
+     * <p>This service extends ProcessorManagementService with detailed progress monitoring.
+     * It can be injected as either ViewManagementService or ProcessorManagementService<String>
+     * for backward compatibility.
      */
     @Bean
-    public ProcessorManagementService<String> viewManagementService(
+    public ViewManagementService viewManagementService(
             EventProcessor<ViewProcessorConfig, String> eventProcessor,
             ProgressTracker<String> progressTracker,
-            @Qualifier("readDataSource") DataSource readDataSource) {
-        return new ProcessorManagementServiceImpl<>(eventProcessor, progressTracker, readDataSource);
+            @Qualifier("readDataSource") DataSource readDataSource,
+            @Qualifier("primaryDataSource") DataSource primaryDataSource) {
+        // Create delegate
+        ProcessorManagementService<String> delegate = new ProcessorManagementServiceImpl<>(
+            eventProcessor, progressTracker, readDataSource);
+        
+        // Return wrapper with enhanced functionality
+        return new ViewManagementService(delegate, primaryDataSource);
     }
     
     /**

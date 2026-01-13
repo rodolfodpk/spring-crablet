@@ -14,6 +14,9 @@ import java.util.Map;
 /**
  * Generic REST controller for managing view projections.
  * Provides endpoints for status, pause, resume, and reset operations.
+ * 
+ * <p>This controller is in test scope for framework E2E testing.
+ * Applications should create their own controllers using the {@link ProcessorManagementService} bean.
  */
 @RestController
 @RequestMapping("/api/views")
@@ -123,4 +126,3 @@ public class ViewController {
         ));
     }
 }
-

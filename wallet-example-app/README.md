@@ -11,10 +11,12 @@ A complete example application demonstrating the full Crablet event sourcing sta
 This application demonstrates a wallet management system with:
 - **Commands**: Open wallet, deposit, withdraw, transfer money
 - **Events**: WalletOpened, DepositMade, WithdrawalMade, MoneyTransferred
-- **Views**: Three materialized views for different use cases:
+- **Views**: Four materialized views for different use cases:
   - `wallet_balance_view` - Fast balance lookups
   - `wallet_transaction_view` - Transaction history
   - `wallet_summary_view` - Aggregated statistics
+  - `wallet_statement_view` - Period-based statement tracking
+- **View Management**: REST API for monitoring and controlling view projections
 
 ## Architecture
 
@@ -177,6 +179,116 @@ GET /api/wallets/{walletId}/transactions?page=0&size=20
 GET /api/wallets/{walletId}/summary
 ```
 
+### View Management
+
+The application provides a REST API for managing and monitoring view projections:
+
+#### Get View Status
+```bash
+GET /api/views/{viewName}/status
+```
+
+**Response:**
+```json
+{
+  "viewName": "wallet-balance-view",
+  "status": "ACTIVE",
+  "lag": 0
+}
+```
+
+#### Get All View Statuses
+```bash
+GET /api/views/status
+```
+
+**Response:**
+```json
+{
+  "wallet-balance-view": "ACTIVE",
+  "wallet-transaction-view": "ACTIVE",
+  "wallet-summary-view": "PAUSED",
+  "wallet-statement-view": "ACTIVE"
+}
+```
+
+#### Pause View Processing
+```bash
+POST /api/views/{viewName}/pause
+```
+
+**Response:**
+```json
+{
+  "viewName": "wallet-balance-view",
+  "status": "PAUSED",
+  "message": "View projection paused successfully"
+}
+```
+
+#### Resume View Processing
+```bash
+POST /api/views/{viewName}/resume
+```
+
+#### Reset Failed View
+```bash
+POST /api/views/{viewName}/reset
+```
+
+#### Get Detailed View Progress
+```bash
+GET /api/views/{viewName}/details
+```
+
+**Response:**
+```json
+{
+  "viewName": "wallet-balance-view",
+  "instanceId": "instance-123",
+  "status": "ACTIVE",
+  "lastPosition": 1000,
+  "errorCount": 0,
+  "lastError": null,
+  "lastErrorAt": null,
+  "lastUpdatedAt": "2026-01-13T18:00:00Z",
+  "createdAt": "2026-01-13T17:00:00Z"
+}
+```
+
+#### Get All View Progress Details
+```bash
+GET /api/views/details
+```
+
+#### Get View Lag
+```bash
+GET /api/views/{viewName}/lag
+```
+
+**Response:**
+```json
+{
+  "viewName": "wallet-balance-view",
+  "lag": 0
+}
+```
+
+**Example Usage:**
+```bash
+# Check status of all views
+curl http://localhost:8080/api/views/status
+
+# Get detailed progress for a specific view
+curl http://localhost:8080/api/views/wallet-balance-view/details
+
+# Pause a view for maintenance
+curl -X POST http://localhost:8080/api/views/wallet-balance-view/pause
+
+# Resume processing
+curl -X POST http://localhost:8080/api/views/wallet-balance-view/resume
+```
+
 ## View Projections
 
 The application includes four view projections:
@@ -298,6 +410,21 @@ curl http://localhost:8080/api/wallets/wallet-1
 ### 4. View Transactions
 ```bash
 curl http://localhost:8080/api/wallets/wallet-1/transactions
+```
+
+### 5. Manage View Projections
+```bash
+# Check view status
+curl http://localhost:8080/api/views/wallet-balance-view/status
+
+# Get detailed progress
+curl http://localhost:8080/api/views/wallet-balance-view/details
+
+# Pause view for maintenance
+curl -X POST http://localhost:8080/api/views/wallet-balance-view/pause
+
+# Resume view processing
+curl -X POST http://localhost:8080/api/views/wallet-balance-view/resume
 ```
 
 ## Building and Testing

@@ -388,28 +388,79 @@ ViewSubscriptionConfig.builder("course-view")
     .build();
 ```
 
-## Management API
+## View Management
 
-The views module provides a REST API for managing view projections:
+The views module provides `ViewManagementService` for managing and monitoring view projections.
 
-```bash
-# Get view status
-GET /api/views/{viewName}/status
+### Service Overview
 
-# Pause view processing
-POST /api/views/{viewName}/pause
+`ViewManagementService` extends `ProcessorManagementService<String>` with detailed progress monitoring:
 
-# Resume view processing
-POST /api/views/{viewName}/resume
+- **Operations**: Pause, resume, reset views
+- **Basic Monitoring**: Status, lag, backoff information
+- **Detailed Monitoring**: Complete progress information from `view_progress` table
 
-# Reset failed view
-POST /api/views/{viewName}/reset
+### Usage
+
+Inject the service in your application:
+
+```java
+@RestController
+public class ViewController {
+    private final ViewManagementService viewManagementService;
+    
+    public ViewController(ViewManagementService viewManagementService) {
+        this.viewManagementService = viewManagementService;
+    }
+    
+    @GetMapping("/api/views/{viewName}/status")
+    public ResponseEntity<Map<String, Object>> getStatus(@PathVariable String viewName) {
+        ProcessorStatus status = viewManagementService.getStatus(viewName);
+        Long lag = viewManagementService.getLag(viewName);
+        // ...
+    }
+    
+    @GetMapping("/api/views/{viewName}/details")
+    public ResponseEntity<ViewProgressDetails> getDetails(@PathVariable String viewName) {
+        ViewProgressDetails details = viewManagementService.getProgressDetails(viewName);
+        return ResponseEntity.ok(details);
+    }
+}
 ```
 
+### Available Methods
+
+**Operations (from ProcessorManagementService):**
+- `pause(String viewName)` - Pause view processing
+- `resume(String viewName)` - Resume paused view
+- `reset(String viewName)` - Reset failed view
+- `getStatus(String viewName)` - Get current status (ACTIVE/PAUSED/FAILED)
+- `getLag(String viewName)` - Get lag (events behind)
+- `getBackoffInfo(String viewName)` - Get backoff information
+
+**Detailed Progress Monitoring:**
+- `getProgressDetails(String viewName)` - Get complete progress information
+- `getAllProgressDetails()` - Get progress for all views
+
+### Detailed Progress Information
+
+`ViewProgressDetails` provides comprehensive monitoring data:
+
+- `viewName` - View identifier
+- `instanceId` - Instance processing this view (leader election)
+- `status` - Current status (ACTIVE, PAUSED, FAILED)
+- `lastPosition` - Last processed event position
+- `errorCount` - Number of consecutive errors
+- `lastError` - Last error message (null if no errors)
+- `lastErrorAt` - When last error occurred (null if no errors)
+- `lastUpdatedAt` - When progress was last updated
+- `createdAt` - When view was first registered
+
 **Example:**
-```bash
-curl http://localhost:8080/api/views/wallet-view/status
-# Response: {"viewName":"wallet-view","status":"ACTIVE","lag":0}
+```java
+ViewProgressDetails details = viewManagementService.getProgressDetails("wallet-view");
+// Returns: viewName="wallet-view", status=ACTIVE, lastPosition=1000, 
+//          errorCount=0, instanceId="instance-123", etc.
 ```
 
 ## Progress Tracking
@@ -448,7 +499,8 @@ Failed views can be reset via the management API or by clearing the error count 
 See the test files in `src/test/java` for complete examples:
 - `ViewEventHandlerTest` - Basic projector implementation
 - `ViewEventFetcherIntegrationTest` - Event fetching with filters
-- `ViewManagementServiceIntegrationTest` - Management operations
+- `ViewManagementServiceTest` - Management operations and detailed progress monitoring
+- `ViewManagementServiceWalletIntegrationTest` - Management operations with wallet domain
 - `ViewProgressTrackerIntegrationTest` - Progress tracking
 
 ## See Also

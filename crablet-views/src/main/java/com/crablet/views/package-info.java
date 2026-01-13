@@ -12,7 +12,7 @@
  *   <li>{@link com.crablet.views.AbstractTypedViewProjector} - Base class for typed view projectors with sealed interfaces</li>
  *   <li>{@link com.crablet.views.config.ViewSubscriptionConfig} - Configuration for event subscriptions</li>
  *   <li>{@link com.crablet.views.config.ViewsConfig} - Global views configuration</li>
- *   <li>{@link com.crablet.views.controller.ViewController} - REST API for view management</li>
+ *   <li>{@link com.crablet.views.service.ViewManagementService} - Unified service for view management and detailed progress monitoring</li>
  * </ul>
  * <p>
  * <strong>How It Works:</strong>
