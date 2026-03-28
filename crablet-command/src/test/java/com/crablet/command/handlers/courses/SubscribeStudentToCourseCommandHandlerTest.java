@@ -2,7 +2,7 @@ package com.crablet.command.handlers.courses;
 
 import com.crablet.command.CommandResult;
 import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.integration.AbstractCrabletTest;
+import com.crablet.test.AbstractCrabletTest;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;

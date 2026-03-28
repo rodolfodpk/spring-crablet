@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @DisplayName("WithdrawCommandHandler Integration Tests")
 @SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
-class WithdrawCommandHandlerTest extends com.crablet.eventstore.integration.AbstractCrabletTest {
+class WithdrawCommandHandlerTest extends com.crablet.test.AbstractCrabletTest {
 
     private WithdrawCommandHandler handler;
 

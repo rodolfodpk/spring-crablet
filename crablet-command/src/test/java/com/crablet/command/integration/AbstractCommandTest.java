@@ -1,7 +1,7 @@
 package com.crablet.command.integration;
 
 import com.crablet.command.CommandExecutor;
-import com.crablet.eventstore.integration.AbstractCrabletTest;
+import com.crablet.test.AbstractCrabletTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 

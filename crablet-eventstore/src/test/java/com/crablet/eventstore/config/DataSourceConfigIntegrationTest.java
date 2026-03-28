@@ -1,6 +1,6 @@
 package com.crablet.eventstore.config;
 
-import com.crablet.eventstore.integration.AbstractCrabletTest;
+import com.crablet.test.AbstractCrabletTest;
 import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -2,7 +2,7 @@ package com.crablet.command.handlers.wallet.integration;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.dcb.ConcurrencyException;
-import com.crablet.eventstore.integration.AbstractCrabletTest;
+import com.crablet.test.AbstractCrabletTest;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;

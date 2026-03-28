@@ -27,12 +27,11 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
-        <!-- Crablet EventStore test-jar (for AbstractCrabletTest and test utilities) -->
+        <!-- Crablet Test Support (for AbstractCrabletTest, InMemoryEventStore, and test utilities) -->
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-eventstore</artifactId>
+            <artifactId>crablet-test-support</artifactId>
             <version>${project.version}</version>
-            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         

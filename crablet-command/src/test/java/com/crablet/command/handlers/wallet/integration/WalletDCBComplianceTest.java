@@ -4,7 +4,7 @@ import com.crablet.command.CommandExecutor;
 import com.crablet.examples.wallet.commands.DepositCommandHandler;
 import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.commands.WithdrawCommandHandler;
-import com.crablet.eventstore.integration.AbstractCrabletTest;
+import com.crablet.test.AbstractCrabletTest;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.StoredEvent;

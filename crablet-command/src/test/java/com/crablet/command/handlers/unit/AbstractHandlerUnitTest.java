@@ -6,6 +6,7 @@ import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.Tag;
+import com.crablet.test.InMemoryEventStore;
 import org.assertj.core.api.Assertions;
 
 import java.util.List;

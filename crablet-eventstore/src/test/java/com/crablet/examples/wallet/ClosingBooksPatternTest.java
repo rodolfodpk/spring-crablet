@@ -1,7 +1,7 @@
 package com.crablet.examples.wallet;
 
 import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.integration.AbstractCrabletTest;
+import com.crablet.test.AbstractCrabletTest;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
@@ -27,12 +27,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Test for Closing the Books pattern with wallet statements.
- * 
+ *
  * Scenario:
  * - January 2024: Wallet opened, deposits, withdrawals, transfers
  * - End of January: Statement closed
  * - February 2024: Statement opened, new deposits, withdrawals
- * 
+ *
  * Verifies that:
  * - Querying February only returns February events (not January)
  * - WalletStatementOpened sets opening balance
@@ -40,7 +40,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * - Events are processed sequentially (WalletStatementOpened first, then others)
  */
 @DisplayName("Closing the Books Pattern Test")
-class ClosingBooksPatternTest extends AbstractCrabletTest {
+@org.springframework.boot.test.context.SpringBootTest(classes = com.crablet.eventstore.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
 
     @Autowired
     private EventStore eventStore;

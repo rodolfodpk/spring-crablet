@@ -44,25 +44,26 @@ help:
 # Main build command - handles cyclic dependency automatically
 # Note: Uses 'install' which runs unit tests but not integration tests
 # Use 'install-all-tests' for full test coverage including integration tests
-install: build-core build-command build-shared build-reactor
+install: build-core build-test-support build-command build-shared build-reactor
 	@echo "✓ Build complete! All modules installed to local repository."
 
 # Full build with all tests including integration tests (for CI)
-install-all-tests: build-core build-command build-shared build-reactor-verify
+install-all-tests: build-core build-test-support build-command build-shared build-reactor-verify
 	@echo "✓ Build complete with all tests! All modules installed to local repository."
 
 # CI build - verifies build, only installs minimal modules needed
-# 1. Install crablet-eventstore (needed by shared-examples-domain)
-# 2. Install shared-examples-domain (needed by reactor modules in test scope)
-# 3. Verify reactor (no install needed for reactor modules)
-ci-verify: build-core build-command build-shared build-reactor-verify
-	@echo "✓ CI build complete with all tests! (only crablet-eventstore and shared-examples-domain installed)"
+# 1. Install crablet-eventstore (needed by crablet-test-support)
+# 2. Install crablet-test-support (needed by shared-examples-domain)
+# 3. Install shared-examples-domain (needed by reactor modules in test scope)
+# 4. Verify reactor (no install needed for reactor modules)
+ci-verify: build-core build-test-support build-command build-shared build-reactor-verify
+	@echo "✓ CI build complete with all tests!"
 
 # Alias for install
 build-all: install
 
 # Build crablet-eventstore without tests (step 1 of cyclic dependency resolution)
-# Note: Install parent POM, then minimal stubs for both modules to break circular dependency
+# Note: Install parent POM, then minimal stubs for modules to break circular dependency
 # Then build crablet-eventstore with tests skipped (will replace the stub)
 # -am removed because shared-examples-domain is not in reactor and would cause build to fail
 build-core:
@@ -71,10 +72,16 @@ build-core:
 	@mkdir -p /tmp/crablet-stub && touch /tmp/crablet-stub/empty.jar
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-eventstore -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-eventstore/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-eventstore -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -Dclassifier=tests -DpomFile=crablet-eventstore/pom.xml -q 2>/dev/null || true
+	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-test-support -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-test-support/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-command -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-command/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=shared-examples-domain -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=shared-examples-domain/pom.xml -q 2>/dev/null || true
 	@echo "Building crablet-eventstore (main code only, skipping tests)..."
 	@./mvnw clean compile package install -pl crablet-eventstore -DskipTests -Dmaven.test.skip=true
+
+# Build crablet-test-support (step 2 - test utilities that depend on crablet-eventstore)
+build-test-support:
+	@echo "Building crablet-test-support..."
+	@cd crablet-test-support && ../mvnw install
 
 # Build crablet-command without tests (step 2 - needed by shared-examples-domain)
 build-command:

@@ -35,7 +35,6 @@ import javax.sql.DataSource;
 @ComponentScan(
     basePackages = {"com.crablet.command", "com.crablet.eventstore", "com.crablet.examples"},
     excludeFilters = {
-        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = com.crablet.eventstore.integration.TestApplication.class),
         @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com\\.crablet\\.eventstore\\.config\\.DataSourceConfig")
     }
 )

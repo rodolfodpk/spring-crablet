@@ -100,7 +100,14 @@
             <artifactId>yavi</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Shared Examples Domain (for framework tests using wallet/course examples) -->
+        <!-- Crablet Test Support (for test utilities) -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-test-support</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Shared Examples Domain (for wallet examples in tests) -->
         <dependency>
             <groupId>com.crablet</groupId>
             <artifactId>shared-examples-domain</artifactId>

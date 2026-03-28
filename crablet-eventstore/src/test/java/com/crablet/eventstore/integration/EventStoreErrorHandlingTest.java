@@ -30,7 +30,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Tests PostgreSQL exceptions, transaction failures, and error recovery.
  */
 @DisplayName("EventStore Error Handling Tests")
-class EventStoreErrorHandlingTest extends AbstractCrabletTest {
+@org.springframework.boot.test.context.SpringBootTest(classes = com.crablet.eventstore.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+class EventStoreErrorHandlingTest extends com.crablet.test.AbstractCrabletTest {
 
     @Autowired
     private EventStore eventStore;
