@@ -57,6 +57,26 @@ Crablet Command provides a lightweight framework for command handling on top of 
 - Resilience4j (for circuit breakers and retries)
 - SLF4J (for logging)
 
+### Test Dependencies
+
+For unit and integration testing, add `crablet-test-support`:
+
+```xml
+<dependency>
+    <groupId>com.crablet</groupId>
+    <artifactId>crablet-test-support</artifactId>
+    <version>${project.version}</version>
+    <scope>test</scope>
+</dependency>
+```
+
+This provides:
+- **InMemoryEventStore** - Fast in-memory event store for unit tests
+- **AbstractCrabletTest** - Base class for integration tests with Testcontainers
+- **AbstractHandlerUnitTest** - BDD-style base class for command handler unit tests
+
+See [EventStore TESTING.md](../crablet-eventstore/TESTING.md) for complete testing guide.
+
 ## Quick Start
 
 ### 1. Define Command Interface

@@ -262,12 +262,22 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
 
 ## Example Domains
 
-Complete working examples are available in the test scope (accessible via test-jar):
+Complete working examples are available in the `shared-examples-domain` module:
 
 - **Wallet Domain** (`com.crablet.examples.wallet`): Simple wallet with deposits, withdrawals, and transfers
   - Demonstrates: Idempotency, commutative operations, non-commutative operations, multi-entity transfers
 - **Course Subscriptions** (`com.crablet.examples.course`): Course management with student subscriptions
   - Demonstrates: Multi-entity constraints, composite projectors, capacity limits, subscription limits
+
+## Test Utilities
+
+Test infrastructure has moved to a dedicated `crablet-test-support` module:
+
+- **InMemoryEventStore** (`com.crablet.test.InMemoryEventStore`) - Fast in-memory event store for unit tests
+- **AbstractCrabletTest** (`com.crablet.test.AbstractCrabletTest`) - Base class for integration tests with Testcontainers
+- **DCBTestHelpers** (`com.crablet.eventstore.integration.DCBTestHelpers`) - Helper utilities for test event deserialization
+
+See [TESTING.md](TESTING.md) for complete testing guide and examples.
 
 ## License
 

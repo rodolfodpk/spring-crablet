@@ -25,6 +25,7 @@ Crablet is a lightweight event sourcing framework with Spring Boot integration.
 - **crablet-outbox** (optional) - Use for transactional outbox event publishing to external systems
 - **crablet-views** (optional) - Use for asynchronous view projections and materialized read models
 - **crablet-metrics-micrometer** (optional) - Use for Micrometer metrics collection
+- **crablet-test-support** (test utility) - Test infrastructure with InMemoryEventStore, AbstractCrabletTest, and DCBTestHelpers
 
 ## DCB Patterns Quick Reference
 

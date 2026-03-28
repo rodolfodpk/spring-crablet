@@ -25,8 +25,10 @@ make
 
 This single command will:
 1. Build `crablet-eventstore` (main code only, skipping tests)
-2. Build `shared-examples-domain` (which depends on `crablet-eventstore`)
-3. Build all reactor modules with tests (now that `shared-examples-domain` is available)
+2. Build `crablet-test-support` (test utilities module, depends on `crablet-eventstore`)
+3. Build `crablet-command` (main code only, skipping tests)
+4. Build `shared-examples-domain` (which depends on `crablet-eventstore` and `crablet-test-support`)
+5. Build all reactor modules with tests (now that all dependencies are available)
 
 ## Using Maven Directly
 
@@ -42,6 +44,8 @@ The cyclic dependency exists because:
 
 **Trade-off:** Build complexity (requires specific order) vs. maintainability and test quality. The Makefile handles this automatically.
 
+**Note:** The `crablet-test-support` module is excluded from the reactor and built separately because it's part of the dependency chain that breaks the cycle. It contains test utilities (`InMemoryEventStore`, `AbstractCrabletTest`, `DCBTestHelpers`) that are used by all modules in test scope.
+
 ### Manual Build Steps
 
 To build manually with Maven, follow this order:
@@ -50,10 +54,16 @@ To build manually with Maven, follow this order:
 # Step 1: Build crablet-eventstore without tests
 ./mvnw clean install -pl crablet-eventstore -am -DskipTests
 
-# Step 2: Build shared-examples-domain
+# Step 2: Build crablet-test-support (test utilities module)
+cd crablet-test-support && ../mvnw install && cd ..
+
+# Step 3: Build crablet-command without tests
+./mvnw clean install -pl crablet-command -am -DskipTests
+
+# Step 4: Build shared-examples-domain
 cd shared-examples-domain && ../mvnw install && cd ..
 
-# Step 3: Build all reactor modules (with tests)
+# Step 5: Build all reactor modules (with tests)
 ./mvnw install
 ```
 
@@ -74,9 +84,11 @@ cd shared-examples-domain && ../mvnw install && cd ..
 For troubleshooting or incremental builds:
 
 ```bash
-make build-core   # Build crablet-eventstore only (skip tests)
-make build-shared # Build shared-examples-domain only
-make build-reactor # Build all reactor modules
+make build-core        # Build crablet-eventstore only (skip tests)
+make build-test-support # Build crablet-test-support only
+make build-command     # Build crablet-command only (skip tests)
+make build-shared      # Build shared-examples-domain only
+make build-reactor     # Build all reactor modules
 ```
 
 ## Building Individual Modules

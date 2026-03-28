@@ -232,7 +232,7 @@ wallet-example-app (Example application)
 - Your application does NOT need to be in the same build (separate repository is fine)
 - Framework tests use `shared-examples-domain`, your tests use your own domain
 
-### Refactoring Plan: Eliminating Cyclic Dependencies (WORK IN PROGRESS)
+### Refactoring: Eliminating Cyclic Dependencies (COMPLETED ✅)
 
 **Goal:** Eliminate cyclic dependencies between framework modules and `shared-examples-domain` by introducing `crablet-test-support` module.
 
@@ -271,13 +271,13 @@ Flow:
    - `AbstractCrabletTest` → from `crablet-eventstore/src/test/java` to `crablet-test-support/src/main/java/com/crablet/test/`
    - `DCBTestHelpers` → from `crablet-eventstore/src/test/java` to `crablet-test-support/src/main/java/com/crablet/eventstore/integration/`
 
-3. **Move wallet-dependent integration tests**
-   - Move `EventStoreTest`, `EventStoreErrorHandlingTest`, `EventStoreQueryTest` from `crablet-eventstore` to `shared-examples-domain`
-   - Move `ClosingBooksPatternTest` to `shared-examples-domain`
-   - These tests use wallet examples, so they belong in `shared-examples-domain`
+3. **Handle wallet-dependent integration tests**
+   - Tests remain in `crablet-eventstore`: `EventStoreTest`, `EventStoreErrorHandlingTest`, `EventStoreQueryTest`, `ClosingBooksPatternTest`
+   - `crablet-eventstore` keeps `shared-examples-domain` as test scope dependency for these tests
+   - This allows framework tests to verify functionality with real domain examples
 
 4. **Update module dependencies**
-   - `crablet-eventstore`: Add `crablet-test-support` (test scope), remove `shared-examples-domain`
+   - `crablet-eventstore`: Add `crablet-test-support` (test scope), keep `shared-examples-domain` (test scope) for wallet-dependent tests
    - `crablet-command`: Replace eventstore test-jar with `crablet-test-support` (test scope)
    - `shared-examples-domain`: Add `crablet-test-support` (test scope)
    - All other modules: Add `crablet-test-support` (test scope) as needed
@@ -294,13 +294,13 @@ Flow:
 
 7. **Copy database migrations**
    - Copy migrations to `crablet-command/src/test/resources/db/migration/`
-   - Copy migrations to `shared-examples-domain/src/test/resources/db/migration/`
-   - Required because tests need access to schema
+   - Required because integration tests need access to schema (V1__eventstore_schema.sql, V2__outbox_schema.sql, V3__view_progress_schema.sql)
 
-8. **Verify all tests pass**
-   - Run full build: `make install`
-   - Ensure all 900+ tests pass
-   - No cyclic dependency errors from Maven
+8. **Verify all tests pass** ✅
+   - ✅ Ran full build: `make install`
+   - ✅ All 900+ tests pass
+   - ✅ No cyclic dependency errors from Maven
+   - ✅ Committed to `feature/eliminate-cyclic-dependency-v2` (commit 95ccc23)
 
 **Benefits:**
 - Clean dependency graph (no cycles)
@@ -317,7 +317,7 @@ Flow:
 4. Reactor modules (all modules with full tests)
 ```
 
-**Status:** Planning phase - writing plan to CLAUDE.md before implementation
+**Status:** ✅ **COMPLETED** - All 900+ tests passing, cyclic dependencies eliminated, committed to `feature/eliminate-cyclic-dependency-v2` branch (commit 95ccc23)
 
 ### DCB (Dynamic Consistency Boundary) Pattern
 
@@ -398,19 +398,20 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 ### Testing Patterns
 
 **Unit Testing (Fast, < 10ms):**
-- Base class: `AbstractHandlerUnitTest` (in `crablet-eventstore` test-jar)
+- Base class: `AbstractHandlerUnitTest` (in `crablet-test-support`)
 - In-memory: `InMemoryEventStore` - no JSON serialization
 - BDD-style: `given()`, `when()`, `then()`, `thenMultipleOrdered()`
 - Pattern matching with sealed interfaces
 
 **Integration Testing (Slower, 100-500ms):**
-- Base class: `AbstractCrabletTest` (in `crablet-eventstore` test-jar)
+- Base class: `AbstractCrabletTest` (in `crablet-test-support`)
 - Real PostgreSQL via Testcontainers
 - Tests DCB concurrency, database constraints, idempotency
 
 **Test utilities location:**
-- `crablet-eventstore/src/test/java/com/crablet/eventstore/test/`
-- Available via test-jar classifier: `crablet-eventstore:test-jar`
+- `crablet-test-support/src/main/java/com/crablet/test/` - InMemoryEventStore, AbstractCrabletTest
+- `crablet-test-support/src/main/java/com/crablet/eventstore/integration/` - DCBTestHelpers
+- Maven dependency: `com.crablet:crablet-test-support` (test scope)
 
 ### Period Segmentation (@PeriodConfig)
 
@@ -858,5 +859,6 @@ For entities with long event histories (millions of events):
 - Course: `shared-examples-domain/src/main/java/com/crablet/examples/course/`
 
 **Test utilities:**
-- `crablet-eventstore/src/test/java/com/crablet/eventstore/test/`
-- Available via `crablet-eventstore` test-jar
+- `crablet-test-support/src/main/java/com/crablet/test/` - InMemoryEventStore, AbstractCrabletTest
+- `crablet-test-support/src/main/java/com/crablet/eventstore/integration/` - DCBTestHelpers
+- Maven: `com.crablet:crablet-test-support` (test scope)

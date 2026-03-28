@@ -65,7 +65,7 @@ Pure unit tests validate business logic in isolation without database dependenci
 
 #### InMemoryEventStore
 
-**Location:** `com.crablet.command.handlers.unit.InMemoryEventStore`
+**Location:** `com.crablet.test.InMemoryEventStore` (module: `crablet-test-support`)
 
 In-memory `EventStore` implementation:
 - Stores original event objects directly (no JSON serialization)
@@ -75,7 +75,7 @@ In-memory `EventStore` implementation:
 
 #### AbstractHandlerUnitTest
 
-**Location:** `com.crablet.command.handlers.unit.AbstractHandlerUnitTest`
+**Location:** `com.crablet.test.AbstractHandlerUnitTest` (module: `crablet-test-support`)
 
 BDD-style base class providing:
 - `given()` - Builder callback pattern for event seeding
@@ -246,6 +246,12 @@ Integration tests validate DCB concurrency, database constraints, and real datab
 
 ```xml
 <dependency>
+    <groupId>com.crablet</groupId>
+    <artifactId>crablet-test-support</artifactId>
+    <version>${project.version}</version>
+    <scope>test</scope>
+</dependency>
+<dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-test</artifactId>
     <scope>test</scope>
@@ -272,7 +278,7 @@ Integration tests validate DCB concurrency, database constraints, and real datab
 Use the framework's base test class:
 
 ```java
-import com.crablet.eventstore.integration.AbstractCrabletTest;
+import com.crablet.test.AbstractCrabletTest;
 
 public class WalletIntegrationTest extends AbstractCrabletTest {
     
