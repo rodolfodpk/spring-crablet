@@ -122,6 +122,7 @@ class ProjectionResultTest {
 
     @Test
     @DisplayName("Should handle null state")
+    @SuppressWarnings("NullAway")
     void shouldHandleNullState_ShouldAllow() {
         // Given
         Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
@@ -150,6 +151,7 @@ class ProjectionResultTest {
 
     @Test
     @DisplayName("Should handle null state and null cursor")
+    @SuppressWarnings("NullAway")
     void shouldHandleNullStateAndNullCursor() {
         // When
         ProjectionResult<String> result = ProjectionResult.of((String) null, (Cursor) null);

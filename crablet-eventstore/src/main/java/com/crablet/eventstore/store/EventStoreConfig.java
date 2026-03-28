@@ -1,5 +1,6 @@
 package com.crablet.eventstore.store;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**

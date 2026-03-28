@@ -1,6 +1,7 @@
 package com.crablet.eventstore.query;
 
 import com.crablet.eventstore.store.Cursor;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -17,6 +18,6 @@ public interface QuerySqlBuilder {
      * @param params List to collect query parameters (output parameter)
      * @return WHERE clause SQL string (without "WHERE" keyword), empty if no conditions
      */
-    String buildWhereClause(Query query, Cursor after, List<Object> params);
+    String buildWhereClause(Query query, @Nullable Cursor after, List<Object> params);
 }
 

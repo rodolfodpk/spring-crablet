@@ -1,12 +1,14 @@
 package com.crablet.eventstore.store;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 
 /**
  * Cursor represents a position in the event stream.
  * This is a pure data record with no business logic.
  */
-public record Cursor(SequenceNumber position, Instant occurredAt, String transactionId) {
+public record Cursor(SequenceNumber position, @Nullable Instant occurredAt, @Nullable String transactionId) {
     /**
      * Create a cursor from position, timestamp, and transaction ID.
      */

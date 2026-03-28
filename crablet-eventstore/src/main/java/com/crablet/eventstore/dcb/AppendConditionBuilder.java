@@ -4,6 +4,7 @@ import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.Tag;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,11 +15,11 @@ import java.util.List;
  * DCB Pattern: Separates concurrency check (with cursor) and idempotency check (no cursor).
  */
 public class AppendConditionBuilder {
-    private final Query decisionModelQuery;
-    private final Cursor cursor;
+    private final @Nullable Query decisionModelQuery;
+    private final @Nullable Cursor cursor;
     private final List<QueryItem> idempotencyItems = new ArrayList<>();
 
-    public AppendConditionBuilder(Query decisionModelQuery, Cursor cursor) {
+    public AppendConditionBuilder(@Nullable Query decisionModelQuery, @Nullable Cursor cursor) {
         this.decisionModelQuery = decisionModelQuery;
         this.cursor = cursor;
     }
@@ -41,7 +42,7 @@ public class AppendConditionBuilder {
      * @param tagKey    The tag key identifying the unique operation
      * @param tagValue  The tag value identifying the unique operation
      */
-    public AppendConditionBuilder withIdempotencyCheck(String eventType, String tagKey, String tagValue) {
+    public AppendConditionBuilder withIdempotencyCheck(@Nullable String eventType, @Nullable String tagKey, @Nullable String tagValue) {
         idempotencyItems.add(QueryItem.of(List.of(eventType), List.of(new Tag(tagKey, tagValue))));
         return this;
     }
@@ -56,8 +57,8 @@ public class AppendConditionBuilder {
         Query stateChangedQuery = decisionModelQuery;
         
         // Idempotency check: separate query (no cursor limit)
-        Query alreadyExistsQuery = idempotencyItems.isEmpty() 
-            ? null 
+        @Nullable Query alreadyExistsQuery = idempotencyItems.isEmpty()
+            ? null
             : Query.of(idempotencyItems);
         
         return AppendCondition.of(cursor, stateChangedQuery, alreadyExistsQuery);

@@ -3,6 +3,7 @@ package com.crablet.eventstore.store;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -69,11 +70,12 @@ class EventStoreExceptionTest {
         // Then
         assertThat(exception.getCause()).isSameAs(cause);
         assertThat(exception.getCause()).isInstanceOf(SQLException.class);
-        assertThat(exception.getCause().getMessage()).isEqualTo("Connection closed");
+        assertThat(requireNonNull(exception.getCause()).getMessage()).isEqualTo("Connection closed");
     }
 
     @Test
     @DisplayName("Should handle null message")
+    @SuppressWarnings("NullAway")
     void shouldHandleNullMessage_ShouldAllow() {
         // Given & When
         EventStoreException exception = new EventStoreException((String) null);
@@ -85,6 +87,7 @@ class EventStoreExceptionTest {
 
     @Test
     @DisplayName("Should handle null cause")
+    @SuppressWarnings("NullAway")
     void shouldHandleNullCause_ShouldAllow() {
         // Given
         String message = "Database operation failed";
@@ -125,7 +128,7 @@ class EventStoreExceptionTest {
 
         // Then
         assertThat(exception.getCause()).isSameAs(middleCause);
-        assertThat(exception.getCause().getCause()).isSameAs(rootCause);
+        assertThat(requireNonNull(exception.getCause()).getCause()).isSameAs(rootCause);
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.crablet.eventstore.query;
 
 import com.crablet.eventstore.store.Tag;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 

@@ -181,6 +181,7 @@ class QueryItemTest {
 
     @Test
     @DisplayName("Should handle null event types - record allows null")
+    @SuppressWarnings("NullAway")
     void shouldHandleNullEventTypes_RecordAllowsNull() {
         // Given - Records allow null fields unless validated
         List<Tag> tags = List.of(new Tag("wallet_id", "wallet-123"));
@@ -193,6 +194,7 @@ class QueryItemTest {
 
     @Test
     @DisplayName("Should handle null tags - record allows null")
+    @SuppressWarnings("NullAway")
     void shouldHandleNullTags_RecordAllowsNull() {
         // Given - Records allow null fields unless validated
         List<String> eventTypes = List.of("WalletOpened");

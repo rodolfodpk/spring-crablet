@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
 
+import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -50,8 +51,9 @@ class DataSourceConfigTest {
             () -> config.readDataSourceWithReplicas(primaryDataSource, replicaProps)
         );
         
-        assertTrue(exception.getMessage().contains("no replica URL configured") 
-                || exception.getMessage().contains("enabled=true but no replica URL configured"));
+        String msg = requireNonNull(exception.getMessage());
+        assertTrue(msg.contains("no replica URL configured")
+                || msg.contains("enabled=true but no replica URL configured"));
     }
     
     @Test
@@ -69,8 +71,9 @@ class DataSourceConfigTest {
             () -> config.readDataSourceWithReplicas(primaryDataSource, replicaProps)
         );
         
-        assertTrue(exception.getMessage().contains("no replica URL configured") 
-                || exception.getMessage().contains("enabled=true but no replica URL configured"));
+        String msg = requireNonNull(exception.getMessage());
+        assertTrue(msg.contains("no replica URL configured")
+                || msg.contains("enabled=true but no replica URL configured"));
     }
     
     @Test

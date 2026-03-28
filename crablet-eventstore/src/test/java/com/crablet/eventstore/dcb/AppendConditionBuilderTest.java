@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -54,7 +55,7 @@ class AppendConditionBuilderTest {
         // Then
         assertThat(condition.afterCursor()).isEqualTo(cursor);
         assertThat(condition.alreadyExists()).isNotNull();
-        assertThat(condition.alreadyExists().items()).hasSize(1);
+        assertThat(requireNonNull(condition.alreadyExists()).items()).hasSize(1);
     }
 
     @Test
@@ -72,7 +73,7 @@ class AppendConditionBuilderTest {
         // Then
         assertThat(condition.afterCursor()).isEqualTo(cursor);
         assertThat(condition.alreadyExists()).isNotNull();
-        assertThat(condition.alreadyExists().items()).hasSize(1);
+        assertThat(requireNonNull(condition.alreadyExists()).items()).hasSize(1);
         assertThat(condition.alreadyExists().items().get(0).eventTypes()).contains("WalletOpened");
         assertThat(condition.alreadyExists().items().get(0).tags()).hasSize(1);
         assertThat(condition.alreadyExists().items().get(0).tags().get(0).key()).isEqualTo("wallet_id");
@@ -94,7 +95,7 @@ class AppendConditionBuilderTest {
 
         // Then
         assertThat(condition.alreadyExists()).isNotNull();
-        assertThat(condition.alreadyExists().items()).hasSize(2);
+        assertThat(requireNonNull(condition.alreadyExists()).items()).hasSize(2);
     }
 
     @Test
@@ -273,7 +274,7 @@ class AppendConditionBuilderTest {
         // Then - stateChanged should preserve decisionModel, alreadyExists should have idempotency check
         assertThat(condition.stateChanged()).isEqualTo(decisionModel);
         assertThat(condition.alreadyExists()).isNotNull();
-        assertThat(condition.alreadyExists().items()).hasSize(1);
+        assertThat(requireNonNull(condition.alreadyExists()).items()).hasSize(1);
         assertThat(condition.alreadyExists().items().get(0).eventTypes()).contains("DepositMade");
     }
 

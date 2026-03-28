@@ -1,5 +1,7 @@
 package com.crablet.eventstore.store;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 /**
@@ -17,7 +19,7 @@ import java.util.List;
  * // Query with: WHERE EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'wallet_id=%')
  * }</pre>
  */
-public record Tag(String key, String value) {
+public record Tag(@Nullable String key, @Nullable String value) {
     /**
      * Create a tag from a key-value pair.
      */

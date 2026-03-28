@@ -1,5 +1,6 @@
 package com.crablet.eventstore.config;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 
@@ -24,7 +25,7 @@ public class ReadReplicaProperties {
      * that handles multiple replicas behind the scenes.
      * Example: "jdbc:postgresql://read-replica-lb:5432/db"
      */
-    private String url;
+    private @Nullable String url;
     
     
     /**
@@ -40,11 +41,11 @@ public class ReadReplicaProperties {
         this.enabled = enabled;
     }
     
-    public String getUrl() {
+    public @Nullable String getUrl() {
         return url;
     }
-    
-    public void setUrl(String url) {
+
+    public void setUrl(@Nullable String url) {
         this.url = url;
     }
     
@@ -61,24 +62,24 @@ public class ReadReplicaProperties {
      * HikariCP-specific configuration for read replica connection pools.
      */
     public static class HikariProperties {
-        private String username;
-        private String password;
+        private @Nullable String username;
+        private @Nullable String password;
         private int maximumPoolSize = 50;
         private int minimumIdle = 10;
         
-        public String getUsername() {
+        public @Nullable String getUsername() {
             return username;
         }
-        
-        public void setUsername(String username) {
+
+        public void setUsername(@Nullable String username) {
             this.username = username;
         }
-        
-        public String getPassword() {
+
+        public @Nullable String getPassword() {
             return password;
         }
-        
-        public void setPassword(String password) {
+
+        public void setPassword(@Nullable String password) {
             this.password = password;
         }
         

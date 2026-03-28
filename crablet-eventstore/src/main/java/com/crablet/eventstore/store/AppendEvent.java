@@ -1,5 +1,7 @@
 package com.crablet.eventstore.store;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,7 +26,7 @@ public record AppendEvent(
     public static class Builder {
         private final String type;
         private final List<Tag> tags = new ArrayList<>();
-        private Object eventData;
+        private @Nullable Object eventData;
         
         private Builder(String type) {
             this.type = type;

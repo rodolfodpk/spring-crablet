@@ -2,6 +2,7 @@ package com.crablet.eventstore.dcb;
 
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.Cursor;
+import org.jspecify.annotations.Nullable;
 
 /**
  * AppendCondition defines the conditions for appending events.
@@ -10,11 +11,11 @@ import com.crablet.eventstore.store.Cursor;
  */
 public record AppendCondition(
         Cursor afterCursor,
-        Query stateChanged,      // Concurrency check (with cursor)
-        Query alreadyExists      // Idempotency check (no cursor)
+        Query stateChanged,          // Concurrency check (with cursor)
+        @Nullable Query alreadyExists // Idempotency check (no cursor)
 ) {
 
-    public static AppendCondition of(Cursor afterCursor, Query stateChanged) {
+    public static AppendCondition of(@Nullable Cursor afterCursor, @Nullable Query stateChanged) {
         if (afterCursor == null) {
             throw new IllegalArgumentException("afterCursor cannot be null");
         }
@@ -24,7 +25,7 @@ public record AppendCondition(
         return new AppendCondition(afterCursor, stateChanged, null);
     }
 
-    public static AppendCondition of(Cursor afterCursor, Query stateChangedQuery, Query alreadyExistsQuery) {
+    public static AppendCondition of(@Nullable Cursor afterCursor, @Nullable Query stateChangedQuery, @Nullable Query alreadyExistsQuery) {
         if (afterCursor == null) {
             throw new IllegalArgumentException("afterCursor cannot be null");
         }

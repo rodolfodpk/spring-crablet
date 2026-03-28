@@ -2,6 +2,7 @@ package com.crablet.eventstore.query;
 
 import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.StoredEvent;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -34,6 +35,6 @@ public interface EventRepository {
      * @param after Cursor to query events after (null for all events)
      * @return List of stored events matching the query
      */
-    List<StoredEvent> query(Query query, Cursor after);
+    List<StoredEvent> query(Query query, @Nullable Cursor after);
 }
 

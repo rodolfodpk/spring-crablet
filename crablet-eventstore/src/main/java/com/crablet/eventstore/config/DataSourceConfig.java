@@ -42,13 +42,12 @@ public class DataSourceConfig {
     @Primary
     @ConditionalOnMissingBean(name = "primaryDataSource")
     public DataSource primaryDataSource(DataSourceConfigProperties properties) {
-        return DataSourceBuilder.create()
-            .type(HikariDataSource.class)
-            .url(properties.getUrl())
-            .username(properties.getUsername())
-            .password(properties.getPassword())
-            .driverClassName(properties.getDriverClassName())
-            .build();
+        DataSourceBuilder<?> builder = DataSourceBuilder.create().type(HikariDataSource.class);
+        if (properties.getUrl() != null) builder = builder.url(properties.getUrl());
+        if (properties.getUsername() != null) builder = builder.username(properties.getUsername());
+        if (properties.getPassword() != null) builder = builder.password(properties.getPassword());
+        if (properties.getDriverClassName() != null) builder = builder.driverClassName(properties.getDriverClassName());
+        return builder.build();
     }
     
     /**

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -114,10 +115,10 @@ class QueryBuilderTest {
         
         // Idempotency check: separate query
         assertThat(condition.alreadyExists()).isNotNull();
-        assertThat(condition.alreadyExists().items()).hasSize(1);
-        assertThat(condition.alreadyExists().items().get(0).eventTypes())
+        assertThat(requireNonNull(condition.alreadyExists()).items()).hasSize(1);
+        assertThat(requireNonNull(condition.alreadyExists()).items().get(0).eventTypes())
                 .containsExactly("DepositMade");
-        assertThat(condition.alreadyExists().items().get(0).tags())
+        assertThat(requireNonNull(condition.alreadyExists()).items().get(0).tags())
                 .containsExactly(new Tag("deposit_id", "d1"));
     }
 

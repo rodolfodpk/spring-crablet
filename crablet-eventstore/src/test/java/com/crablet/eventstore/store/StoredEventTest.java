@@ -233,6 +233,7 @@ class StoredEventTest {
 
     @Test
     @DisplayName("Should handle null tags")
+    @SuppressWarnings("NullAway")
     void shouldHandleNullTags_ShouldAllow() {
         // Given - Records allow null fields unless validated
         byte[] data = "test".getBytes();
@@ -271,6 +272,7 @@ class StoredEventTest {
 
     @Test
     @DisplayName("Should handle hasAnyTag with null tags in event")
+    @SuppressWarnings("NullAway")
     void shouldHandleHasAnyTag_WithNullTagsInEvent() {
         // Given - Event with null tags
         StoredEvent event = new StoredEvent(
