@@ -9,7 +9,7 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
     
-    <artifactId>crablet-command</artifactId>
+    <artifactId>crablet-commands</artifactId>
     <name>Crablet Command Framework</name>
     <description>Command handling framework for event sourcing with automatic handler discovery</description>
     

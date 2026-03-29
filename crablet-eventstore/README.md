@@ -44,7 +44,7 @@ public void myOperation() {
 }
 ```
 
-**For Command Framework:** Use `crablet-command` module for automatic command handler discovery and orchestration.
+**For Command Framework:** Use `crablet-commands` module for automatic command handler discovery and orchestration.
 
 ## Maven Coordinates
 
@@ -258,7 +258,7 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
 - **[Testing](TESTING.md)** - Testcontainers setup and test examples
 - **[Database Schema](SCHEMA.md)** - Database tables and functions
 - **[Metrics](docs/METRICS.md)** - EventStore metrics and monitoring
-- **[Command Framework](../crablet-command/README.md)** - Command handling framework built on EventStore
+- **[Command Framework](../crablet-commands/README.md)** - Command handling framework built on EventStore
 
 ## Example Domains
 

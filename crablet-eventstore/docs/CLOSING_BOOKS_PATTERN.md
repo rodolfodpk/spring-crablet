@@ -186,7 +186,7 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
 - **`projectCurrentPeriod()`**: Use for operations that don't need explicit statement management. Period tags are derived from clock, and balance projection works correctly because transaction events contain cumulative `newBalance` fields. Simpler and more performant.
 - **`ensureActivePeriodAndProject()`**: Use when you need explicit statement management (Closing Books Pattern). Creates `WalletStatementOpened` and `WalletStatementClosed` events when periods change, enabling statement-based queries and reporting.
 
-See: `crablet-command/src/test/java/com/crablet/command/handlers/wallet/DepositCommandHandler.java`
+See: `crablet-commands/src/test/java/com/crablet/command/handlers/wallet/DepositCommandHandler.java`
 
 ### 2. Period Resolution Flow
 

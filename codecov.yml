@@ -50,7 +50,7 @@ component_management:
     - component_id: module_command
       name: Command
       paths:
-        - "crablet-command/src/main/**"
+        - "crablet-commands/src/main/**"
       statuses:
         - type: project
           target: auto

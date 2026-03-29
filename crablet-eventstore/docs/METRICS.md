@@ -4,7 +4,7 @@
 
 EventStore provides metrics for monitoring event operations and DCB (Dynamic Consistency Boundary) concurrency violations.
 
-**Note:** Command execution metrics (command duration, failures, idempotency) are published by `CommandExecutor` (in `crablet-command` module), not by EventStore. See [Command README](../crablet-command/README.md#metrics) for command metrics documentation.
+**Note:** Command execution metrics (command duration, failures, idempotency) are published by `CommandExecutor` (in `crablet-commands` module), not by EventStore. See [Command README](../crablet-commands/README.md#metrics) for command metrics documentation.
 
 ### Event Processing
 
@@ -139,5 +139,5 @@ EventStore metrics focus on **event storage** (appending events with DCB concurr
 ## See Also
 
 - [DCB Explained](./DCB_AND_CRABLET.md) - Understanding DCB violations
-- [Command Metrics](../crablet-command/README.md#metrics) - Command execution metrics
+- [Command Metrics](../crablet-commands/README.md#metrics) - Command execution metrics
 - [Testing](../../TESTING.md) - Testing with metrics

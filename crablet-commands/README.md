@@ -33,7 +33,7 @@ Crablet Command provides a lightweight framework for command handling on top of 
 ```xml
 <dependency>
     <groupId>com.crablet</groupId>
-    <artifactId>crablet-command</artifactId>
+    <artifactId>crablet-commands</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 </dependency>
 ```

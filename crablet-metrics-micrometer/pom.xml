@@ -31,7 +31,7 @@
         
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-command</artifactId>
+            <artifactId>crablet-commands</artifactId>
         </dependency>
         <dependency>
             <groupId>com.crablet</groupId>
@@ -95,7 +95,7 @@
         </dependency>
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-command</artifactId>
+            <artifactId>crablet-commands</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
             <version>${project.version}</version>

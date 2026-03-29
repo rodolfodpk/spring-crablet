@@ -418,4 +418,4 @@ curl http://localhost:8080/actuator/outbox/publishers
 
 - [Leader Election Guide](../../LEADER_ELECTION.md) - Complete leader election documentation
 - [EventStore README](../crablet-eventstore/README.md) - DCB event sourcing library
-- [Command README](../crablet-command/README.md) - Command framework
+- [Command README](../crablet-commands/README.md) - Command framework

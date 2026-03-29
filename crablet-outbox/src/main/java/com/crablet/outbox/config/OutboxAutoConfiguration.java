@@ -7,6 +7,7 @@ import com.crablet.eventprocessor.leader.LeaderElector;
 import com.crablet.eventprocessor.leader.LeaderElectorImpl;
 import com.crablet.eventprocessor.management.ProcessorManagementService;
 import com.crablet.eventprocessor.management.ProcessorManagementServiceImpl;
+import com.crablet.outbox.management.OutboxManagementService;
 import com.crablet.eventprocessor.processor.EventProcessor;
 import com.crablet.eventprocessor.processor.EventProcessorImpl;
 import com.crablet.eventprocessor.progress.ProgressTracker;
@@ -181,14 +182,21 @@ public class OutboxAutoConfiguration {
     }
     
     /**
-     * Create ProcessorManagementService bean for outbox management.
+     * Create OutboxManagementService bean for outbox management.
+     *
+     * <p>Can be injected as either {@code OutboxManagementService} for outbox-specific
+     * progress details, or as {@code ProcessorManagementService<TopicPublisherPair>}
+     * for generic operations.
      */
     @Bean
-    public ProcessorManagementService<TopicPublisherPair> outboxManagementService(
+    public OutboxManagementService outboxManagementService(
             EventProcessor<OutboxProcessorConfig, TopicPublisherPair> eventProcessor,
             ProgressTracker<TopicPublisherPair> progressTracker,
-            @Qualifier("readDataSource") DataSource readDataSource) {
-        return new ProcessorManagementServiceImpl<>(eventProcessor, progressTracker, readDataSource);
+            @Qualifier("readDataSource") DataSource readDataSource,
+            @Qualifier("primaryDataSource") DataSource primaryDataSource) {
+        ProcessorManagementService<TopicPublisherPair> delegate =
+                new ProcessorManagementServiceImpl<>(eventProcessor, progressTracker, readDataSource);
+        return new OutboxManagementService(delegate, primaryDataSource);
     }
 }
 

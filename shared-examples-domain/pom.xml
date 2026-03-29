@@ -23,7 +23,7 @@
         <!-- Crablet Command (for CommandHandler interface and CommandResult class) -->
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-command</artifactId>
+            <artifactId>crablet-commands</artifactId>
         </dependency>
         
         <!-- Spring Boot (for @Component annotations) -->
