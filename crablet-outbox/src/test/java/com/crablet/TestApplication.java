@@ -29,9 +29,7 @@ import javax.sql.DataSource;
 @EnableConfigurationProperties(DataSourceProperties.class)
 @ComponentScan(basePackages = {"com.crablet", "com.crablet.outbox", "com.crablet.eventstore", "com.crablet.eventprocessor"},
                excludeFilters = {
-                   @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, 
-                                        classes = {com.crablet.eventstore.integration.TestApplication.class}),
-                   @ComponentScan.Filter(type = FilterType.REGEX, 
+                   @ComponentScan.Filter(type = FilterType.REGEX,
                                         pattern = "com\\.crablet\\.eventstore\\.config\\.DataSourceConfig")
                })
 @EnableScheduling
