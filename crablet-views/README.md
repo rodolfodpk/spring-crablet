@@ -168,10 +168,10 @@ public class WalletViewProjector extends AbstractTypedViewProjector<WalletEvent>
 ```java
 @Configuration
 public class ViewConfiguration {
-    
+
     @Bean
-    public ViewSubscriptionConfig walletViewSubscription() {
-        return ViewSubscriptionConfig.builder("wallet-view")
+    public ViewSubscription walletViewSubscription() {
+        return ViewSubscription.builder("wallet-view")
             .eventTypes("WalletOpened", "DepositMade", "WithdrawalMade")
             .requiredTags("wallet-id")
             .build();
@@ -376,12 +376,12 @@ crablet.views.leader-election-retry-interval-ms=30000
 
 ### Subscription Configuration
 
-Subscriptions can be configured programmatically via `ViewSubscriptionConfig` beans:
+Subscriptions can be configured programmatically via `ViewSubscription` beans:
 
 ```java
 @Bean
-public ViewSubscriptionConfig myViewSubscription() {
-    return ViewSubscriptionConfig.builder("my-view")
+public ViewSubscription myViewSubscription() {
+    return ViewSubscription.builder("my-view")
         .eventTypes("EventType1", "EventType2")
         .requiredTags("tag-key1", "tag-key2")  // ALL tags must be present
         .anyOfTags("tag-key3", "tag-key4")     // At least ONE tag must be present
@@ -399,7 +399,7 @@ Tags are stored in PostgreSQL as `"key=value"` format. Subscription filters supp
 
 **Example:**
 ```java
-ViewSubscriptionConfig.builder("course-view")
+ViewSubscription.builder("course-view")
     .eventTypes("CourseDefined", "StudentSubscribedToCourse")
     .requiredTags("course_id")
     .anyOfTags("region-us", "region-eu")

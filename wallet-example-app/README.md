@@ -16,6 +16,7 @@ This application demonstrates a wallet management system with:
   - `wallet_transaction_view` - Transaction history
   - `wallet_summary_view` - Aggregated statistics
   - `wallet_statement_view` - Period-based statement tracking
+- **Reactions**: Event-driven commands — when a wallet is opened, send a welcome notification
 - **View Management**: REST API for monitoring and controlling view projections
 
 ## Architecture
@@ -326,6 +327,20 @@ The application includes four view projections:
   - Aggregates period totals (deposits, withdrawals, transfers in/out, transaction count)
   - Supports reconciliation by providing period activity summaries
 
+## Reactions
+
+The `WalletOpenedReaction` listens for `WalletOpened` events and executes a `SendWelcomeNotificationCommand`, which logs a welcome message and records a `WelcomeNotificationSent` event.
+
+This demonstrates the full reaction → command → event chain:
+```
+WalletOpened event
+    → WalletOpenedReaction
+    → SendWelcomeNotificationCommand
+    → WelcomeNotificationSent (with idempotency check)
+```
+
+The automation is registered via an `AutomationSubscription` bean in `CrabletConfig.java`.
+
 ## Configuration
 
 ### Application Properties
@@ -342,8 +357,13 @@ crablet.views.enabled=true
 crablet.views.polling-interval-ms=1000
 crablet.views.batch-size=100
 
+# Crablet Automations
+crablet.automations.enabled=true
+crablet.automations.polling-interval-ms=1000
+crablet.automations.batch-size=100
+
 # Crablet Metrics (optional)
-crablet.metrics.enabled=true
+crablet.metrics.enabled=false
 ```
 
 ### View Configuration
@@ -463,8 +483,10 @@ cd wallet-example-app
 ## See Also
 
 - **[Crablet EventStore](../crablet-eventstore/README.md)** - Core event sourcing library
-- **[Crablet Command](../crablet-command/README.md)** - Command handling with DCB pattern
+- **[Crablet Command](../crablet-commands/README.md)** - Command handling with DCB pattern
 - **[Crablet Views](../crablet-views/README.md)** - View projections
+- **[Crablet Automations](../crablet-automations/README.md)** - Event-driven automations
+- **[Shared Examples Domain](../shared-examples-domain/README.md)** - Example domains (wallet, course, notification)
 - **[Leader Election](../LEADER_ELECTION.md)** - Leader election mechanism
 - **[Build Guide](../BUILD.md)** - Build instructions
 

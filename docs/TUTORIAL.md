@@ -14,7 +14,7 @@ This tutorial walks you through every major feature of Spring Crablet, from appe
 |---------|--------|
 | Event store | `crablet-eventstore` |
 | Commands | `crablet-commands` |
-| Reactions | `crablet-reactions` |
+| Automations | `crablet-automations` |
 | Views | `crablet-views` |
 | Outbox | `crablet-outbox` |
 | Testing | `crablet-test-support` |
@@ -527,42 +527,42 @@ The handler never needs to know about transactions, serialization, or audit trai
 
 ---
 
-## Part 5: Reactions
+## Part 5: Automations
 
-**Why this matters.** When a talk is accepted, the speaker should receive a confirmation. You could put that logic in `AcceptTalkCommandHandler`, but that couples two concerns: enforcing consistency (the handler's job) and notifying an external party (a side effect). Reactions decouple them. A reaction is triggered asynchronously after an event is persisted, runs in its own transaction, and retries automatically on failure.
+**Why this matters.** When a talk is accepted, the speaker should receive a confirmation. You could put that logic in `AcceptTalkCommandHandler`, but that couples two concerns: enforcing consistency (the handler's job) and notifying an external party (a side effect). Automations decouple them. An automation is triggered asynchronously after an event is persisted, runs in its own transaction, and retries automatically on failure.
 
-### The ReactionHandler interface
+### The AutomationHandler interface
 
 ```java
-// From com.crablet.reactions.ReactionHandler
-public interface ReactionHandler {
-    String getReactionName();
+// From com.crablet.automations.AutomationHandler
+public interface AutomationHandler {
+    String getAutomationName();
     void react(StoredEvent event, CommandExecutor commandExecutor);
 }
 ```
 
 The `react` method receives the raw `StoredEvent` and a `CommandExecutor`. It deserializes the event, derives a command, and executes it. The downstream command handler is responsible for being idempotent.
 
-### TalkAcceptedReaction
+### TalkAcceptedAutomation
 
 ```java
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.reactions.ReactionHandler;
+import com.crablet.automations.AutomationHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
 @Component
-public class TalkAcceptedReaction implements ReactionHandler {
+public class TalkAcceptedAutomation implements AutomationHandler {
 
     private final ObjectMapper objectMapper;
 
-    public TalkAcceptedReaction(ObjectMapper objectMapper) {
+    public TalkAcceptedAutomation(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
     @Override
-    public String getReactionName() {
+    public String getAutomationName() {
         return "talk-accepted-confirmation";
     }
 
@@ -576,7 +576,7 @@ public class TalkAcceptedReaction implements ReactionHandler {
                 );
             }
         } catch (Exception e) {
-            throw new RuntimeException("TalkAcceptedReaction failed", e);
+            throw new RuntimeException("TalkAcceptedAutomation failed", e);
         }
     }
 }
@@ -584,16 +584,16 @@ public class TalkAcceptedReaction implements ReactionHandler {
 
 ### Declaring the subscription
 
-A `ReactionSubscription` bean declares which event types trigger this reaction. The `reactionName` must match `getReactionName()` on the handler exactly.
+An `AutomationSubscription` bean declares which event types trigger this automation. The `automationName` must match `getAutomationName()` on the handler exactly.
 
 ```java
-import com.crablet.reactions.ReactionSubscription;
+import com.crablet.automations.AutomationSubscription;
 
 import static com.crablet.eventstore.store.EventType.type;
 
 @Bean
-public ReactionSubscription talkAcceptedConfirmationSubscription() {
-    return ReactionSubscription.builder("talk-accepted-confirmation")
+public AutomationSubscription talkAcceptedConfirmationSubscription() {
+    return AutomationSubscription.builder("talk-accepted-confirmation")
         .eventTypes(type(TalkAccepted.class))
         .build();
 }
@@ -602,9 +602,9 @@ public ReactionSubscription talkAcceptedConfirmationSubscription() {
 ### Configuration
 
 ```properties
-crablet.reactions.enabled=true
-crablet.reactions.polling-interval-ms=1000
-crablet.reactions.batch-size=100
+crablet.automations.enabled=true
+crablet.automations.polling-interval-ms=1000
+crablet.automations.batch-size=100
 ```
 
 ### Idempotency in the downstream handler
@@ -1122,7 +1122,7 @@ With all eight parts covered, you have seen every major framework feature:
 - **EventStore** (`appendIf`, `project`) — the append-only log and state reconstruction
 - **AppendCondition** — three patterns for three situations (empty, idempotency, cursor-based)
 - **CommandHandler + CommandExecutor** — transactional command execution with automatic audit
-- **ReactionHandler + ReactionSubscription** — async command chains with at-least-once delivery
+- **AutomationHandler + AutomationSubscription** — async command chains with at-least-once delivery
 - **AbstractTypedViewProjector + ViewSubscriptionConfig** — materialized read models
 - **OutboxPublisher** — reliable external event delivery
 - **AbstractHandlerUnitTest / AbstractCrabletTest** — two-layer test strategy

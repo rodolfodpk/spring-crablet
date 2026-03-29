@@ -24,7 +24,7 @@ Crablet is a lightweight event sourcing framework with Spring Boot integration.
 - **crablet-event-processor** (optional) - Generic event processing infrastructure for polling, leader election, and backoff
 - **crablet-outbox** (optional) - Transactional outbox event publishing to external systems
 - **crablet-views** (optional) - Asynchronous view projections and materialized read models
-- **crablet-reactions** (optional) - Event-driven reactions: listen to events and execute commands (policies/sagas)
+- **crablet-automations** (optional) - Event-driven automations: listen to events and execute commands (policies/sagas)
 - **crablet-metrics-micrometer** (optional) - Micrometer metrics collection
 - **crablet-test-support** (test utility) - Test infrastructure with InMemoryEventStore, AbstractCrabletTest, DCBTestHelpers, and shared DB migrations
 
@@ -58,6 +58,7 @@ DCB (Dynamic Consistency Boundary) redefines consistency granularity in event-so
 - **[Event Processor README](crablet-event-processor/README.md)** - Generic event processing infrastructure guide
 - **[Outbox README](crablet-outbox/README.md)** - Outbox library guide
 - **[Views README](crablet-views/README.md)** - View projections and materialized read models guide
+- **[Automations README](crablet-automations/README.md)** - Event-driven automations (policies/sagas) guide
 - **[Metrics README](crablet-metrics-micrometer/README.md)** - All metrics (EventStore, Commands, Outbox) with links to per-module details
 - **[DCB Explained](crablet-eventstore/docs/DCB_AND_CRABLET.md)** - Detailed DCB explanation
 - **[Testing Guide](crablet-eventstore/TESTING.md)** - Testing strategy, unit tests, and integration tests
