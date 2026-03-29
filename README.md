@@ -20,12 +20,19 @@ Crablet is a lightweight event sourcing framework with Spring Boot integration.
 ## Modules
 
 - **crablet-eventstore** (required) - Core event sourcing library with DCB support
-- **crablet-command** (optional) - Use for automatic command handler discovery and orchestration
+- **crablet-commands** (optional) - Automatic command handler discovery and orchestration
 - **crablet-event-processor** (optional) - Generic event processing infrastructure for polling, leader election, and backoff
-- **crablet-outbox** (optional) - Use for transactional outbox event publishing to external systems
-- **crablet-views** (optional) - Use for asynchronous view projections and materialized read models
-- **crablet-metrics-micrometer** (optional) - Use for Micrometer metrics collection
-- **crablet-test-support** (test utility) - Test infrastructure with InMemoryEventStore, AbstractCrabletTest, and DCBTestHelpers
+- **crablet-outbox** (optional) - Transactional outbox event publishing to external systems
+- **crablet-views** (optional) - Asynchronous view projections and materialized read models
+- **crablet-reactions** (optional) - Event-driven reactions: listen to events and execute commands (policies/sagas)
+- **crablet-metrics-micrometer** (optional) - Micrometer metrics collection
+- **crablet-test-support** (test utility) - Test infrastructure with InMemoryEventStore, AbstractCrabletTest, DCBTestHelpers, and shared DB migrations
+
+## Requirements
+
+- Java 25
+- Docker (required for integration tests via Testcontainers)
+- Maven (wrapper included — `./mvnw`)
 
 ## DCB Patterns Quick Reference
 
@@ -44,13 +51,14 @@ DCB (Dynamic Consistency Boundary) redefines consistency granularity in event-so
 ## Documentation
 
 ### Core Documentation
+- **[Tutorial](docs/TUTORIAL.md)** - Step-by-step introduction to all framework features
 - **[Build Guide](BUILD.md)** - Build instructions, Makefile commands, and cyclic dependency explanation
 - **[EventStore README](crablet-eventstore/README.md)** - Event sourcing library guide
-- **[Command README](crablet-command/README.md)** - Command framework guide
+- **[Command README](crablet-commands/README.md)** - Command framework guide
 - **[Event Processor README](crablet-event-processor/README.md)** - Generic event processing infrastructure guide
 - **[Outbox README](crablet-outbox/README.md)** - Outbox library guide
 - **[Views README](crablet-views/README.md)** - View projections and materialized read models guide
-- **[Metrics README](crablet-metrics-micrometer/README.md)** - Metrics collector guide
+- **[Metrics README](crablet-metrics-micrometer/README.md)** - All metrics (EventStore, Commands, Outbox) with links to per-module details
 - **[DCB Explained](crablet-eventstore/docs/DCB_AND_CRABLET.md)** - Detailed DCB explanation
 - **[Testing Guide](crablet-eventstore/TESTING.md)** - Testing strategy, unit tests, and integration tests
 
@@ -59,10 +67,8 @@ DCB (Dynamic Consistency Boundary) redefines consistency granularity in event-so
 - **[Closing the Books Pattern](crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md)** - Period segmentation using `@PeriodConfig` annotation for performance optimization
 - **[Read Replicas & DataSource Configuration](crablet-eventstore/docs/READ_REPLICAS.md)** - Primary and read replica datasource setup with performance benefits
 - **[PgBouncer Guide](crablet-eventstore/docs/PGBOUNCER.md)** - Connection pooling
-- **[EventStore Metrics](crablet-eventstore/docs/METRICS.md)** - EventStore metrics and monitoring
 - **[Command Patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md)** - Commutative vs non-commutative operations
 - **[Outbox Pattern](crablet-outbox/docs/OUTBOX_PATTERN.md)** - Event publishing
-- **[Outbox Metrics](crablet-outbox/docs/OUTBOX_METRICS.md)** - Outbox metrics and monitoring
 
 ## Architecture Highlights
 
@@ -74,14 +80,12 @@ DCB (Dynamic Consistency Boundary) redefines consistency granularity in event-so
 
 ## Build and Test
 
-Tests use Testcontainers (no external dependencies required).
-
 **Quick start:**
 ```bash
 make install
 ```
 
-This handles the cyclic dependency between `crablet-eventstore` and `shared-examples-domain` automatically.
+This handles the build order automatically. No external PostgreSQL needed — integration tests spin up a container via Testcontainers.
 
 📖 See [BUILD.md](BUILD.md) for detailed build instructions, Makefile commands, Maven usage, and an explanation of the cyclic dependency trade-offs.
 

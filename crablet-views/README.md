@@ -4,6 +4,24 @@
 
 Light framework component for asynchronous view projections using materialized read models with Spring Boot integration.
 
+## Contents
+
+- [Quick Reference](#quick-reference)
+- [Overview](#overview)
+- [Maven Coordinates](#maven-coordinates)
+- [Quick Start](#quick-start)
+- [Base Classes](#base-classes)
+- [Idempotency and Transactions](#idempotency-and-transactions)
+- [Architecture](#architecture)
+- [Configuration](#configuration)
+- [Tag Filtering](#tag-filtering)
+- [View Management](#view-management)
+- [Progress Tracking](#progress-tracking)
+- [Error Handling](#error-handling)
+- [Best Practices](#best-practices)
+- [Examples](#examples)
+- [See Also](#see-also)
+
 ## Quick Reference
 
 **Choose your approach:**
@@ -507,4 +525,4 @@ See the test files in `src/test/java` for complete examples:
 
 - [EventStore README](../crablet-eventstore/README.md) - Event sourcing library
 - [Event Processor](../crablet-event-processor/README.md) - Generic event processor infrastructure
-- [Command README](../crablet-command/README.md) - Command framework
+- [Command README](../crablet-commands/README.md) - Command framework

@@ -8,7 +8,7 @@ Micrometer metrics collector for Crablet event-driven metrics.
 
 This module provides automatic metrics collection for Crablet using Micrometer. It subscribes to metric events published via Spring Events and records them to Micrometer.
 
-**Framework-agnostic design**: The core Crablet modules (`crablet-eventstore`, `crablet-command`, `crablet-outbox`) publish framework-agnostic metric events. This module collects those events and records them to Micrometer.
+**Framework-agnostic design**: The core Crablet modules (`crablet-eventstore`, `crablet-commands`, `crablet-outbox`) publish framework-agnostic metric events. This module collects those events and records them to Micrometer.
 
 ## Features
 
@@ -95,14 +95,14 @@ This module provides Micrometer support. You can implement similar collectors fo
 ## Dependencies
 
 - `crablet-eventstore` - For EventStore metric events
-- `crablet-command` - For Command metric events
+- `crablet-commands` - For Command metric events
 - `crablet-outbox` - For Outbox metric events
 - `micrometer-core` - For metrics recording
 - `spring-boot-starter` - For Spring Events and component scanning
 
 ## See Also
 
-- [Crablet EventStore README](../crablet-eventstore/README.md)
-- [Crablet Command README](../crablet-command/README.md)
-- [Crablet Outbox README](../crablet-outbox/README.md)
+- [EventStore Metrics](../crablet-eventstore/docs/METRICS.md) — EventStore metric details, Prometheus queries, alerting, and troubleshooting
+- [Outbox Metrics](../crablet-outbox/docs/OUTBOX_METRICS.md) — Outbox metric details, Grafana dashboard, and troubleshooting
+- [Command Metrics](../crablet-commands/README.md#metrics) — Command execution metrics
 

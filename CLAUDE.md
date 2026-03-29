@@ -110,39 +110,18 @@ class YourHandlerUnitTest extends AbstractHandlerUnitTest {
 
 ## Build Commands
 
-**Primary build command (handles cyclic dependency automatically):**
+See [BUILD.md](BUILD.md) for full details. Quick reference:
+
 ```bash
-make install
-```
+make install            # Full build with unit tests (recommended)
+make install-all-tests  # Full build including integration tests
+make test               # Run all tests
+make clean              # Clean build artifacts
+make start              # Run wallet-example-app
 
-**Quick reference:**
-```bash
-make install          # Full build with tests (recommended)
-make install-all-tests # Full build including integration tests
-make test            # Run all tests
-make clean           # Clean build artifacts
-make start           # Run wallet-example-app
-```
-
-**Maven commands (manual build):**
-```bash
-# Step 1: Build crablet-eventstore without tests
-./mvnw clean install -pl crablet-eventstore -am -DskipTests
-
-# Step 2: Build shared-examples-domain
-cd shared-examples-domain && ../mvnw install && cd ..
-
-# Step 3: Build all reactor modules with tests
-./mvnw install
-
-# Run specific module tests
+# Run specific module tests (after make install)
 ./mvnw test -pl <module-name>
-
-# Run single test class
 ./mvnw test -pl <module-name> -Dtest=ClassName
-
-# Build specific module with dependencies
-./mvnw install -pl <module-name> -am
 ```
 
 **Testing:**
@@ -171,7 +150,7 @@ crablet-eventstore (CORE - Required)
 ├── Query/Cursor/Tag - Event filtering and position tracking
 └── StateProjector - State reconstruction from events
 
-crablet-command (Optional)
+crablet-commands (Optional)
 ├── CommandHandler interface - Command handling pattern
 ├── CommandExecutor - Automatic handler discovery and orchestration
 └── CommandResult - Events + AppendCondition wrapper
@@ -206,7 +185,7 @@ wallet-example-app (Example application)
 
 **Module dependencies:**
 - `crablet-eventstore`: No dependencies on other modules
-- `crablet-command`: Depends on `crablet-eventstore`
+- `crablet-commands`: Depends on `crablet-eventstore`
 - `crablet-event-processor`: Depends on `crablet-eventstore`
 - `crablet-views`: Depends on `crablet-eventstore` + `crablet-event-processor`
 - `crablet-outbox`: Depends on `crablet-eventstore` + `crablet-event-processor`
@@ -239,7 +218,7 @@ wallet-example-app (Example application)
 **Current Problem:**
 ```
 crablet-eventstore (test scope) → shared-examples-domain (main scope) → crablet-eventstore (main scope)
-crablet-command (test scope) → shared-examples-domain (main scope) → crablet-command (main scope)
+crablet-commands (test scope) → shared-examples-domain (main scope) → crablet-commands (main scope)
 ```
 
 **Solution: Create `crablet-test-support` Module**
@@ -267,7 +246,7 @@ Flow:
    - Scope: Provides test utilities to all modules
 
 2. **Move test utilities to `crablet-test-support`**
-   - `InMemoryEventStore` → from `crablet-command/src/test/java` to `crablet-test-support/src/main/java/com/crablet/test/`
+   - `InMemoryEventStore` → from `crablet-commands/src/test/java` to `crablet-test-support/src/main/java/com/crablet/test/`
    - `AbstractCrabletTest` → from `crablet-eventstore/src/test/java` to `crablet-test-support/src/main/java/com/crablet/test/`
    - `DCBTestHelpers` → from `crablet-eventstore/src/test/java` to `crablet-test-support/src/main/java/com/crablet/eventstore/integration/`
 
@@ -278,7 +257,7 @@ Flow:
 
 4. **Update module dependencies**
    - `crablet-eventstore`: Add `crablet-test-support` (test scope), keep `shared-examples-domain` (test scope) for wallet-dependent tests
-   - `crablet-command`: Replace eventstore test-jar with `crablet-test-support` (test scope)
+   - `crablet-commands`: Replace eventstore test-jar with `crablet-test-support` (test scope)
    - `shared-examples-domain`: Add `crablet-test-support` (test scope)
    - All other modules: Add `crablet-test-support` (test scope) as needed
 
@@ -293,7 +272,7 @@ Flow:
    - Create stub JAR for `crablet-test-support` in Makefile
 
 7. **Copy database migrations**
-   - Copy migrations to `crablet-command/src/test/resources/db/migration/`
+   - Copy migrations to `crablet-commands/src/test/resources/db/migration/`
    - Required because integration tests need access to schema (V1__eventstore_schema.sql, V2__outbox_schema.sql, V3__view_progress_schema.sql)
 
 8. **Verify all tests pass** ✅
@@ -390,7 +369,7 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 - `getEventTypes()` - Filter which events to process
 - `getInitialState()` - Starting state
 
-**CommandHandler (crablet-command/src/main/java/com/crablet/command/):**
+**CommandHandler (crablet-commands/src/main/java/com/crablet/command/):**
 - `handle(eventStore, command)` - Returns `CommandResult`
 - CommandExecutor automatically calls `appendIf()` with result
 - All wrapped in single database transaction
@@ -834,7 +813,7 @@ For entities with long event histories (millions of events):
 
 - Build instructions: `BUILD.md`
 - EventStore README: `crablet-eventstore/README.md`
-- Command framework: `crablet-command/README.md`
+- Command framework: `crablet-commands/README.md`
 - Event processor: `crablet-event-processor/README.md`
 - Outbox: `crablet-outbox/README.md`
 - Views: `crablet-views/README.md`
@@ -850,7 +829,7 @@ For entities with long event histories (millions of events):
 
 **Core packages:**
 - EventStore: `crablet-eventstore/src/main/java/com/crablet/eventstore/`
-- Command framework: `crablet-command/src/main/java/com/crablet/command/`
+- Command framework: `crablet-commands/src/main/java/com/crablet/command/`
 - Views: `crablet-views/src/main/java/com/crablet/views/`
 - Outbox: `crablet-outbox/src/main/java/com/crablet/outbox/`
 
