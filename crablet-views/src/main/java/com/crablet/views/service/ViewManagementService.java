@@ -1,7 +1,7 @@
 package com.crablet.views.service;
 
-import com.crablet.eventprocessor.management.ProcessorManagementService;
-import com.crablet.eventprocessor.progress.ProcessorStatus;
+import com.crablet.eventpoller.management.ProcessorManagementService;
+import com.crablet.eventpoller.progress.ProcessorStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

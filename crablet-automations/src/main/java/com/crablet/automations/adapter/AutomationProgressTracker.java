@@ -1,7 +1,7 @@
 package com.crablet.automations.adapter;
 
-import com.crablet.eventprocessor.progress.ProcessorStatus;
-import com.crablet.eventprocessor.progress.ProgressTracker;
+import com.crablet.eventpoller.progress.ProcessorStatus;
+import com.crablet.eventpoller.progress.ProgressTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,7 +1,7 @@
 package com.crablet.automations.adapter;
 
 import com.crablet.automations.AutomationSubscription;
-import com.crablet.eventprocessor.EventFetcher;
+import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
 import org.slf4j.Logger;

@@ -1,6 +1,6 @@
 package com.crablet.views.controller;
 
-import com.crablet.eventprocessor.processor.EventProcessor;
+import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.views.adapter.ViewProcessorConfig;
 import com.crablet.views.config.ViewsAutoConfiguration;
@@ -273,8 +273,8 @@ class ViewControllerE2ETest extends AbstractViewsTest {
         }
 
         @Bean
-        public com.crablet.eventprocessor.InstanceIdProvider instanceIdProvider(Environment environment) {
-            return new com.crablet.eventprocessor.InstanceIdProvider(environment);
+        public com.crablet.eventpoller.InstanceIdProvider instanceIdProvider(Environment environment) {
+            return new com.crablet.eventpoller.InstanceIdProvider(environment);
         }
 
         @Bean

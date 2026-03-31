@@ -1,15 +1,15 @@
 package com.crablet.views.config;
 
-import com.crablet.eventprocessor.EventFetcher;
-import com.crablet.eventprocessor.EventHandler;
-import com.crablet.eventprocessor.InstanceIdProvider;
-import com.crablet.eventprocessor.leader.LeaderElector;
-import com.crablet.eventprocessor.leader.LeaderElectorImpl;
-import com.crablet.eventprocessor.management.ProcessorManagementService;
-import com.crablet.eventprocessor.management.ProcessorManagementServiceImpl;
-import com.crablet.eventprocessor.processor.EventProcessor;
-import com.crablet.eventprocessor.processor.EventProcessorImpl;
-import com.crablet.eventprocessor.progress.ProgressTracker;
+import com.crablet.eventpoller.EventFetcher;
+import com.crablet.eventpoller.EventHandler;
+import com.crablet.eventpoller.InstanceIdProvider;
+import com.crablet.eventpoller.leader.LeaderElector;
+import com.crablet.eventpoller.leader.LeaderElectorImpl;
+import com.crablet.eventpoller.management.ProcessorManagementService;
+import com.crablet.eventpoller.management.ProcessorManagementServiceImpl;
+import com.crablet.eventpoller.processor.EventProcessor;
+import com.crablet.eventpoller.processor.EventProcessorImpl;
+import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.views.ViewProjector;
 import com.crablet.views.adapter.ViewEventFetcher;
 import com.crablet.views.adapter.ViewEventHandler;

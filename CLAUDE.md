@@ -157,7 +157,7 @@ crablet-commands (Optional)
 ├── CommandExecutor - Automatic handler discovery and orchestration
 └── CommandResult - Events + AppendCondition wrapper
 
-crablet-event-processor (Generic Infrastructure)
+crablet-event-poller (Generic Infrastructure)
 ├── EventProcessor - Reusable polling infrastructure
 ├── Leader election - PostgreSQL advisory locks
 ├── Progress tracking - Per-processor position tracking
@@ -188,9 +188,9 @@ wallet-example-app (Example application)
 **Module dependencies:**
 - `crablet-eventstore`: No dependencies on other modules
 - `crablet-commands`: Depends on `crablet-eventstore`
-- `crablet-event-processor`: Depends on `crablet-eventstore`
-- `crablet-views`: Depends on `crablet-eventstore` + `crablet-event-processor`
-- `crablet-outbox`: Depends on `crablet-eventstore` + `crablet-event-processor`
+- `crablet-event-poller`: Depends on `crablet-eventstore`
+- `crablet-views`: Depends on `crablet-eventstore` + `crablet-event-poller`
+- `crablet-outbox`: Depends on `crablet-eventstore` + `crablet-event-poller`
 
 ### Cyclic Dependency Handling
 
@@ -816,7 +816,7 @@ For entities with long event histories (millions of events):
 - Build instructions: `BUILD.md`
 - EventStore README: `crablet-eventstore/README.md`
 - Command framework: `crablet-commands/README.md`
-- Event processor: `crablet-event-processor/README.md`
+- Event processor: `crablet-event-poller/README.md`
 - Outbox: `crablet-outbox/README.md`
 - Views: `crablet-views/README.md`
 - Testing guide: `crablet-eventstore/TESTING.md`

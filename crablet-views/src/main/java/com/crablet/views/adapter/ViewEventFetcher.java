@@ -1,6 +1,6 @@
 package com.crablet.views.adapter;
 
-import com.crablet.eventprocessor.EventFetcher;
+import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
 import com.crablet.views.config.ViewSubscriptionConfig;

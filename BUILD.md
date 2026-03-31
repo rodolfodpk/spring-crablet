@@ -17,7 +17,7 @@ That's all you need. The Makefile handles the build order automatically.
 ── reactor (built together) ──────────────────────────────
   crablet-eventstore           core, no framework deps
   crablet-commands              → eventstore
-  crablet-event-processor      → eventstore
+  crablet-event-poller      → eventstore
   crablet-outbox               → eventstore + event-processor
   crablet-views                → eventstore + event-processor
   crablet-automations          → eventstore + event-processor + command

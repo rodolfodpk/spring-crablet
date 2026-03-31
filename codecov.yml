@@ -80,7 +80,7 @@ component_management:
     - component_id: module_event_processor
       name: Event Processor
       paths:
-        - "crablet-event-processor/src/main/**"
+        - "crablet-event-poller/src/main/**"
       statuses:
         - type: project
           target: auto

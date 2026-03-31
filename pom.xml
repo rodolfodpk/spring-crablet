@@ -15,7 +15,7 @@
         <module>crablet-eventstore</module>
         <module>crablet-commands</module>
         <module>crablet-outbox</module>
-        <module>crablet-event-processor</module>
+        <module>crablet-event-poller</module>
         <module>crablet-views</module>
         <module>crablet-automations</module>
         <module>crablet-metrics-micrometer</module>
@@ -99,7 +99,7 @@
             <!-- Crablet Event Processor -->
             <dependency>
                 <groupId>com.crablet</groupId>
-                <artifactId>crablet-event-processor</artifactId>
+                <artifactId>crablet-event-poller</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
@@ -294,7 +294,7 @@
                                     </includes>
                                 </fileSet>
                                 <fileSet>
-                                    <directory>${project.basedir}/crablet-event-processor/target</directory>
+                                    <directory>${project.basedir}/crablet-event-poller/target</directory>
                                     <includes>
                                         <include>jacoco.exec</include>
                                     </includes>

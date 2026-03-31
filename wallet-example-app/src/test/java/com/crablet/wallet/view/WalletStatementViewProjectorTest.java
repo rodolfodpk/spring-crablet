@@ -1,6 +1,6 @@
 package com.crablet.wallet.view;
 
-import com.crablet.eventprocessor.processor.EventProcessor;
+import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.examples.wallet.events.DepositMade;

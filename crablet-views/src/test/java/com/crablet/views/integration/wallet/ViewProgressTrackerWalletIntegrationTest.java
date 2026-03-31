@@ -1,6 +1,6 @@
 package com.crablet.views.integration.wallet;
 
-import com.crablet.eventprocessor.progress.ProcessorStatus;
+import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.views.adapter.ViewProgressTracker;
 import com.crablet.views.integration.AbstractViewsTest;
 import org.junit.jupiter.api.BeforeEach;

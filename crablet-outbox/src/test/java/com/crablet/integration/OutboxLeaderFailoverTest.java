@@ -1,7 +1,7 @@
 package com.crablet.integration;
 
-import com.crablet.eventprocessor.leader.LeaderElector;
-import com.crablet.eventprocessor.processor.EventProcessor;
+import com.crablet.eventpoller.leader.LeaderElector;
+import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;

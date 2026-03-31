@@ -27,7 +27,7 @@ Crablet Automations implements the "when X happens, do Y" pattern from event sto
 ## Dependencies
 
 - crablet-eventstore (required)
-- crablet-event-processor (required)
+- crablet-event-poller (required)
 - crablet-commands (required — automations execute commands)
 - Spring Boot JDBC
 
@@ -198,5 +198,5 @@ This demonstrates the full automation → command → event chain.
 
 - [EventStore README](../crablet-eventstore/README.md) — Core event sourcing library
 - [Command README](../crablet-commands/README.md) — Command framework
-- [Event Processor README](../crablet-event-processor/README.md) — Generic polling infrastructure
+- [Event Processor README](../crablet-event-poller/README.md) — Generic polling infrastructure
 - [Views README](../crablet-views/README.md) — Asynchronous view projections

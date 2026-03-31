@@ -1,6 +1,6 @@
 package com.crablet.views;
 
-import com.crablet.eventprocessor.EventHandler;
+import com.crablet.eventpoller.EventHandler;
 import com.crablet.views.config.ViewSubscriptionConfig;
 
 /**

@@ -2,7 +2,7 @@ package com.crablet.wallet.config;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandExecutorImpl;
-import com.crablet.eventprocessor.InstanceIdProvider;
+import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.clock.ClockProviderImpl;
 import com.crablet.eventstore.query.EventRepository;

@@ -23,7 +23,7 @@
         <!-- Crablet Event Processor (polling infrastructure) -->
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-event-processor</artifactId>
+            <artifactId>crablet-event-poller</artifactId>
         </dependency>
 
         <!-- Crablet Command (command execution) -->

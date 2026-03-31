@@ -1,7 +1,7 @@
 package com.crablet.outbox.management;
 
-import com.crablet.eventprocessor.management.ProcessorManagementService;
-import com.crablet.eventprocessor.progress.ProcessorStatus;
+import com.crablet.eventpoller.management.ProcessorManagementService;
+import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.outbox.adapter.TopicPublisherPair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

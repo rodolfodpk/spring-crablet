@@ -31,7 +31,7 @@
         <!-- Crablet Event Processor -->
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-event-processor</artifactId>
+            <artifactId>crablet-event-poller</artifactId>
         </dependency>
         
         <!-- Spring Boot Web (for REST controller in tests) -->

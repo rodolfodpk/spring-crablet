@@ -8,7 +8,7 @@ Leader election is used by:
 - **crablet-outbox**: Ensures only one instance publishes events to external systems
 - **crablet-views**: Ensures only one instance projects events into materialized views
 
-Both modules use the generic event processor infrastructure (`crablet-event-processor`) which provides the leader election mechanism.
+Both modules use the generic event processor infrastructure (`crablet-event-poller`) which provides the leader election mechanism.
 
 ## How It Works
 
@@ -295,7 +295,7 @@ if (!leaderElector.isGlobalLeader()) {
 
 ## See Also
 
-- **[Event Processor README](crablet-event-processor/README.md)** - Generic event processing infrastructure
+- **[Event Processor README](crablet-event-poller/README.md)** - Generic event processing infrastructure
 - **[Outbox README](crablet-outbox/README.md)** - Outbox pattern implementation
 - **[Views README](crablet-views/README.md)** - View projections implementation
 

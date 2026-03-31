@@ -2,7 +2,7 @@ package com.crablet.automations.adapter;
 
 import com.crablet.automations.AutomationSubscription;
 import com.crablet.automations.config.AutomationsConfig;
-import com.crablet.eventprocessor.processor.ProcessorConfig;
+import com.crablet.eventpoller.processor.ProcessorConfig;
 
 import java.util.HashMap;
 import java.util.Map;

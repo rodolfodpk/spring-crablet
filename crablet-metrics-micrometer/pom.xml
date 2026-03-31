@@ -38,7 +38,7 @@
         </dependency>
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-event-processor</artifactId>
+            <artifactId>crablet-event-poller</artifactId>
         </dependency>
         
         <!-- Micrometer -->

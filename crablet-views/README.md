@@ -64,7 +64,7 @@ Crablet Views provides a complete solution for building materialized read models
 ## Dependencies
 
 - crablet-eventstore (required)
-- crablet-event-processor (required)
+- crablet-event-poller (required)
 - Spring Boot Web (for REST API)
 - Spring Boot JDBC (for database access)
 - PostgreSQL JDBC Driver
@@ -543,5 +543,5 @@ See the test files in `src/test/java` for complete examples:
 ## See Also
 
 - [EventStore README](../crablet-eventstore/README.md) - Event sourcing library
-- [Event Processor](../crablet-event-processor/README.md) - Generic event processor infrastructure
+- [Event Processor](../crablet-event-poller/README.md) - Generic event processor infrastructure
 - [Command README](../crablet-commands/README.md) - Command framework

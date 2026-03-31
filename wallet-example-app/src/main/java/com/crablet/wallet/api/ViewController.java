@@ -1,6 +1,6 @@
 package com.crablet.wallet.api;
 
-import com.crablet.eventprocessor.progress.ProcessorStatus;
+import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.views.service.ViewManagementService;
 import com.crablet.views.service.ViewProgressDetails;
 import com.crablet.wallet.api.dto.ViewOperationResponse;

@@ -1,6 +1,6 @@
 package com.crablet;
 
-import com.crablet.eventprocessor.InstanceIdProvider;
+import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.clock.ClockProviderImpl;
 import com.crablet.eventstore.store.EventStore;
@@ -27,7 +27,7 @@ import javax.sql.DataSource;
 
 @SpringBootApplication
 @EnableConfigurationProperties(DataSourceProperties.class)
-@ComponentScan(basePackages = {"com.crablet", "com.crablet.outbox", "com.crablet.eventstore", "com.crablet.eventprocessor"},
+@ComponentScan(basePackages = {"com.crablet", "com.crablet.outbox", "com.crablet.eventstore", "com.crablet.eventpoller"},
                excludeFilters = {
                    @ComponentScan.Filter(type = FilterType.REGEX,
                                         pattern = "com\\.crablet\\.eventstore\\.config\\.DataSourceConfig")

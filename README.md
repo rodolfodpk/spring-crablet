@@ -21,7 +21,7 @@ Crablet is a lightweight event sourcing framework with Spring Boot integration.
 
 - **crablet-eventstore** (required) - Core event sourcing library with DCB support
 - **crablet-commands** (optional) - Automatic command handler discovery and orchestration
-- **crablet-event-processor** (optional) - Generic event processing infrastructure for polling, leader election, and backoff
+- **crablet-event-poller** (optional) - Generic event processing infrastructure for polling, leader election, and backoff
 - **crablet-outbox** (optional) - Transactional outbox event publishing to external systems
 - **crablet-views** (optional) - Asynchronous view projections and materialized read models
 - **crablet-automations** (optional) - Event-driven automations: listen to events and execute commands (policies/sagas)
@@ -55,7 +55,7 @@ DCB (Dynamic Consistency Boundary) redefines consistency granularity in event-so
 - **[Build Guide](BUILD.md)** - Build instructions, Makefile commands, and cyclic dependency explanation
 - **[EventStore README](crablet-eventstore/README.md)** - Event sourcing library guide
 - **[Command README](crablet-commands/README.md)** - Command framework guide
-- **[Event Processor README](crablet-event-processor/README.md)** - Generic event processing infrastructure guide
+- **[Event Processor README](crablet-event-poller/README.md)** - Generic event processing infrastructure guide
 - **[Outbox README](crablet-outbox/README.md)** - Outbox library guide
 - **[Views README](crablet-views/README.md)** - View projections and materialized read models guide
 - **[Automations README](crablet-automations/README.md)** - Event-driven automations (policies/sagas) guide

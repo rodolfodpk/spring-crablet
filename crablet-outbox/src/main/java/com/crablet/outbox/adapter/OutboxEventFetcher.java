@@ -1,6 +1,6 @@
 package com.crablet.outbox.adapter;
 
-import com.crablet.eventprocessor.EventFetcher;
+import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.outbox.TopicConfig;
 import com.crablet.outbox.config.OutboxConfig;

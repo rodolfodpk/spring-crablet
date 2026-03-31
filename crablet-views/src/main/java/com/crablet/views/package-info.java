@@ -53,7 +53,7 @@
  * Enable views by setting {@code crablet.views.enabled=true} in application properties.
  * The module auto-configures all necessary beans via {@link com.crablet.views.config.ViewsAutoConfiguration}.
  *
- * @see com.crablet.eventprocessor.processor.EventProcessor
+ * @see com.crablet.eventpoller.processor.EventProcessor
  * @see com.crablet.views.config.ViewsAutoConfiguration
  */
 package com.crablet.views;

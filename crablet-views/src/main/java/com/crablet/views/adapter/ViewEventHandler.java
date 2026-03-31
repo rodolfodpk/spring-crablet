@@ -1,6 +1,6 @@
 package com.crablet.views.adapter;
 
-import com.crablet.eventprocessor.EventHandler;
+import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.views.ViewProjector;
 import org.slf4j.Logger;

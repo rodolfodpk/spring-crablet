@@ -2,7 +2,7 @@ package com.crablet.automations.adapter;
 
 import com.crablet.automations.AutomationHandler;
 import com.crablet.command.CommandExecutor;
-import com.crablet.eventprocessor.EventHandler;
+import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventstore.store.StoredEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -33,7 +33,7 @@ Crablet Outbox provides a robust transactional outbox implementation, ensuring t
 ## Dependencies
 
 - crablet-eventstore (required)
-- crablet-event-processor (required) - Generic event processing infrastructure
+- crablet-event-poller (required) - Generic event processing infrastructure
 - Spring Boot Web, JDBC
 - Resilience4j (for circuit breakers and retries)
 - Micrometer (for metrics)
