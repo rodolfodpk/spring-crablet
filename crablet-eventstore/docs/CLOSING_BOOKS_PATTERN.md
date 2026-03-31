@@ -310,7 +310,7 @@ Query febQuery = WalletQueryPatterns.singleWalletPeriodDecisionModel("alice", 20
 Statement events use idempotency checks to prevent duplicates:
 
 ```java
-AppendCondition condition = AppendCondition.idempotent("WalletStatementOpened", STATEMENT_ID, periodId.toStreamId());
+AppendCondition condition = AppendCondition.idempotent(type(WalletStatementOpened.class), STATEMENT_ID, periodId.toStreamId());
 ```
 
 If a `ConcurrencyException` indicates a duplicate (idempotency violation), it's treated as success - the event already exists. This allows safe retries and concurrent period creation attempts.

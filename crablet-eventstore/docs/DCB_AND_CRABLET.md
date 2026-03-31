@@ -239,7 +239,7 @@ try {
 
 ```java
 AppendCondition condition = AppendConditionBuilder.of(decisionModel, cursor)
-    .withIdempotencyCheck("WithdrawalMade", "withdrawal_id", withdrawalId)
+    .withIdempotencyCheck(type(WithdrawalMade.class), "withdrawal_id", withdrawalId)
     .build();
 ```
 
