@@ -24,10 +24,8 @@ import java.time.ZoneId;
 import java.util.List;
 
 import static com.crablet.eventstore.store.EventType.type;
-import static com.crablet.examples.wallet.WalletTags.MONTH;
 import static com.crablet.examples.wallet.WalletTags.STATEMENT_ID;
 import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
-import static com.crablet.examples.wallet.WalletTags.YEAR;
 
 /**
  * Factory for creating test-friendly {@link WalletPeriodHelper} instances for unit tests.
@@ -131,23 +129,12 @@ public class WalletPeriodHelperTestFactory {
                 openingBalance
             );
             
-            AppendEvent.Builder builder = AppendEvent.builder(type(WalletStatementOpened.class))
+            AppendEvent event = AppendEvent.builder(type(WalletStatementOpened.class))
                 .data(opened)
                 .tag(STATEMENT_ID, periodId.toStreamId())
                 .tag(WALLET_ID, periodId.walletId())
-                .tag(YEAR, String.valueOf(periodId.year()));
-            
-            if (periodId.month() != null) {
-                builder.tag(MONTH, String.valueOf(periodId.month()));
-            }
-            if (periodId.day() != null) {
-                builder.tag("day", String.valueOf(periodId.day()));
-            }
-            if (periodId.hour() != null) {
-                builder.tag("hour", String.valueOf(periodId.hour()));
-            }
-            
-            AppendEvent event = builder.build();
+                .tags(periodId.asTags())
+                .build();
             eventStore.appendIf(List.of(event), AppendCondition.empty());
         }
     }

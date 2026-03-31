@@ -3,6 +3,7 @@ package com.crablet.command.handlers.unit;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
 import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.period.PeriodTags;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.Tag;
@@ -497,14 +498,13 @@ public abstract class AbstractHandlerUnitTest {
             return event(eventType, builder -> builder
                 .data(eventData)
                 .tag("wallet_id", walletId)
-                .tag("year", String.valueOf(year))
-                .tag("month", String.valueOf(month))
+                .tags(PeriodTags.monthly(year, month))
             );
         }
-        
+
         /**
          * Add an event with daily period tags.
-         * 
+         *
          * @param eventType Event type constant
          * @param eventData Domain event object
          * @param walletId Wallet ID tag value
@@ -523,15 +523,13 @@ public abstract class AbstractHandlerUnitTest {
             return event(eventType, builder -> builder
                 .data(eventData)
                 .tag("wallet_id", walletId)
-                .tag("year", String.valueOf(year))
-                .tag("month", String.valueOf(month))
-                .tag("day", String.valueOf(day))
+                .tags(PeriodTags.daily(year, month, day))
             );
         }
-        
+
         /**
          * Add an event with hourly period tags.
-         * 
+         *
          * @param eventType Event type constant
          * @param eventData Domain event object
          * @param walletId Wallet ID tag value
@@ -552,10 +550,7 @@ public abstract class AbstractHandlerUnitTest {
             return event(eventType, builder -> builder
                 .data(eventData)
                 .tag("wallet_id", walletId)
-                .tag("year", String.valueOf(year))
-                .tag("month", String.valueOf(month))
-                .tag("day", String.valueOf(day))
-                .tag("hour", String.valueOf(hour))
+                .tags(PeriodTags.hourly(year, month, day, hour))
             );
         }
     }
