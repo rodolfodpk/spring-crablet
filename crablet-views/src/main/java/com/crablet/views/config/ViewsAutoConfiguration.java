@@ -119,8 +119,8 @@ public class ViewsAutoConfiguration {
      */
     @Bean
     public ViewManagementService viewManagementService(
-            EventProcessor<ViewProcessorConfig, String> eventProcessor,
-            ProgressTracker<String> progressTracker,
+            @Qualifier("viewsEventProcessor") EventProcessor<ViewProcessorConfig, String> eventProcessor,
+            @Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
             @Qualifier("readDataSource") DataSource readDataSource,
             @Qualifier("primaryDataSource") DataSource primaryDataSource) {
         // Create delegate
@@ -139,9 +139,9 @@ public class ViewsAutoConfiguration {
     @org.springframework.context.annotation.DependsOn("flyway")
     public EventProcessor<ViewProcessorConfig, String> viewsEventProcessor(
             Map<String, ViewProcessorConfig> processorConfigs,
-            LeaderElector leaderElector,
-            ProgressTracker<String> progressTracker,
-            EventFetcher<String> eventFetcher,
+            @Qualifier("viewsLeaderElector") LeaderElector leaderElector,
+            @Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
+            @Qualifier("viewEventFetcher") EventFetcher<String> eventFetcher,
             @Qualifier("viewEventHandler") EventHandler<String> eventHandler,
             @Qualifier("primaryDataSource") DataSource writeDataSource,
             TaskScheduler taskScheduler,

@@ -239,4 +239,48 @@ class AppendConditionTest {
         // Then
         assertThat(condition.afterCursor().position().value()).isEqualTo(Long.MAX_VALUE);
     }
+
+    // ===== AppendCondition.idempotent() =====
+
+    @Test
+    @DisplayName("idempotent() should start from Cursor.zero (no prior events required)")
+    void idempotentStartsFromCursorZero() {
+        AppendCondition condition = AppendCondition.idempotent("WalletOpened", "wallet_id", "w1");
+
+        assertThat(condition.afterCursor()).isEqualTo(Cursor.zero());
+    }
+
+    @Test
+    @DisplayName("idempotent() stateChanged should be empty (no cursor-based check)")
+    void idempotentStateChangedIsEmpty() {
+        AppendCondition condition = AppendCondition.idempotent("WalletOpened", "wallet_id", "w1");
+
+        assertThat(condition.stateChanged()).isEqualTo(Query.empty());
+    }
+
+    @Test
+    @DisplayName("idempotent() alreadyExists should be non-null (idempotency check present)")
+    void idempotentAlreadyExistsIsNonNull() {
+        AppendCondition condition = AppendCondition.idempotent("WalletOpened", "wallet_id", "w1");
+
+        assertThat(condition.alreadyExists()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("idempotent() two calls with same args should produce equivalent conditions")
+    void idempotentIsReproducible() {
+        AppendCondition c1 = AppendCondition.idempotent("WalletOpened", "wallet_id", "w1");
+        AppendCondition c2 = AppendCondition.idempotent("WalletOpened", "wallet_id", "w1");
+
+        assertThat(c1).isEqualTo(c2);
+    }
+
+    @Test
+    @DisplayName("idempotent() conditions for different tag values should differ")
+    void idempotentDiffersPerTagValue() {
+        AppendCondition c1 = AppendCondition.idempotent("WalletOpened", "wallet_id", "w1");
+        AppendCondition c2 = AppendCondition.idempotent("WalletOpened", "wallet_id", "w2");
+
+        assertThat(c1).isNotEqualTo(c2);
+    }
 }

@@ -1,5 +1,6 @@
 package com.crablet.wallet.api;
 
+import com.crablet.examples.wallet.exceptions.WalletNotFoundException;
 import com.crablet.wallet.api.dto.WalletResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -59,9 +60,9 @@ public class WalletQueryController {
                 "SELECT wallet_id, owner, balance, last_updated_at FROM wallet_balance_view WHERE wallet_id = ?",
                 walletId
         );
-        
+
         if (results.isEmpty()) {
-            return ResponseEntity.notFound().build();
+            throw new WalletNotFoundException(walletId);
         }
         
         Map<String, Object> row = results.get(0);
