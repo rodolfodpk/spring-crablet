@@ -1,17 +1,9 @@
 package com.crablet.automations.adapter;
 
 import com.crablet.automations.AutomationSubscription;
-import com.crablet.eventpoller.EventFetcher;
-import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.eventstore.store.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.crablet.eventpoller.AbstractJdbcEventFetcher;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -21,73 +13,23 @@ import java.util.stream.Collectors;
 /**
  * Fetches events for automation processors using event type and tag filtering.
  */
-public class AutomationEventFetcher implements EventFetcher<String> {
+public class AutomationEventFetcher extends AbstractJdbcEventFetcher<String> {
 
-    private static final Logger log = LoggerFactory.getLogger(AutomationEventFetcher.class);
-
-    private final DataSource readDataSource;
     private final Map<String, AutomationSubscription> subscriptions;
 
     public AutomationEventFetcher(DataSource readDataSource, Map<String, AutomationSubscription> subscriptions) {
-        this.readDataSource = readDataSource;
+        super(readDataSource);
         this.subscriptions = subscriptions;
     }
 
     @Override
-    public List<StoredEvent> fetchEvents(String automationName, long lastPosition, int batchSize) {
+    protected String buildSqlFilter(String automationName) {
         AutomationSubscription subscription = subscriptions.get(automationName);
         if (subscription == null) {
             log.warn("Subscription not found for automation: {} (available: {})", automationName, subscriptions.keySet());
-            return List.of();
+            return null;
         }
 
-        String sqlFilter = buildSqlFilter(subscription);
-        String sql = """
-            SELECT type, tags, data, transaction_id, position, occurred_at
-            FROM events
-            WHERE position > ?
-              AND (%s)
-            ORDER BY position ASC
-            LIMIT ?
-            """.formatted(sqlFilter);
-
-        try (Connection connection = readDataSource.getConnection()) {
-            connection.setReadOnly(true);
-            connection.setAutoCommit(false);
-
-            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-                stmt.setFetchSize(batchSize);
-                stmt.setLong(1, lastPosition);
-                stmt.setInt(2, batchSize);
-
-                List<StoredEvent> events = new ArrayList<>();
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        events.add(new StoredEvent(
-                            rs.getString("type"),
-                            parseTagsFromArray(rs.getArray("tags")),
-                            rs.getString("data").getBytes(),
-                            rs.getString("transaction_id"),
-                            rs.getLong("position"),
-                            rs.getTimestamp("occurred_at").toInstant()
-                        ));
-                    }
-                }
-
-                connection.commit();
-                log.debug("Fetched {} events for automation {} after position {}", events.size(), automationName, lastPosition);
-                return events;
-
-            } catch (Exception e) {
-                connection.rollback();
-                throw new RuntimeException("Failed to fetch events for automation: " + automationName, e);
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to get connection for automation event fetch", e);
-        }
-    }
-
-    private String buildSqlFilter(AutomationSubscription subscription) {
         Set<String> eventTypes = subscription.getEventTypes();
         Set<String> requiredTags = subscription.getRequiredTags();
         Set<String> anyOfTags = subscription.getAnyOfTags();
@@ -113,18 +55,5 @@ public class AutomationEventFetcher implements EventFetcher<String> {
         }
 
         return conditions.isEmpty() ? "TRUE" : String.join(" AND ", conditions);
-    }
-
-    private List<Tag> parseTagsFromArray(java.sql.Array array) throws SQLException {
-        if (array == null) return List.of();
-        String[] tagStrings = (String[]) array.getArray();
-        List<Tag> tags = new ArrayList<>();
-        for (String tagStr : tagStrings) {
-            int idx = tagStr.indexOf('=');
-            if (idx > 0) {
-                tags.add(new Tag(tagStr.substring(0, idx), tagStr.substring(idx + 1)));
-            }
-        }
-        return tags;
     }
 }
