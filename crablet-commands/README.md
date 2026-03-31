@@ -245,7 +245,7 @@ This ensures that:
 
 Crablet Command supports different DCB patterns:
 
-- **Idempotency Check**: `withIdempotencyCheck()` for entity creation
+- **Idempotency Check**: `AppendCondition.idempotent()` for entity creation
 - **Cursor-based Check**: `AppendConditionBuilder(decisionModel, cursor)` for state-dependent operations
 - **Empty Condition**: `AppendCondition.empty()` for commutative operations (mainly used in tests)
 

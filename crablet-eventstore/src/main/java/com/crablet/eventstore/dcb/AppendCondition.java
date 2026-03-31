@@ -52,6 +52,27 @@ public record AppendCondition(
     }
 
     /**
+     * Create an idempotency-only condition for entity creation commands.
+     * Fails if an event of {@code eventType} tagged with {@code tagKey=tagValue} already exists.
+     * <p>
+     * Replaces the verbose chain:
+     * <pre>{@code
+     * AppendConditionBuilder.of(Query.empty(), Cursor.zero())
+     *     .withIdempotencyCheck(type(WalletOpened.class), WALLET_ID, walletId)
+     *     .build();
+     * }</pre>
+     * with:
+     * <pre>{@code
+     * AppendCondition.idempotent(type(WalletOpened.class), WALLET_ID, walletId);
+     * }</pre>
+     */
+    public static AppendCondition idempotent(String eventType, String tagKey, String tagValue) {
+        return AppendConditionBuilder.of(Query.empty(), Cursor.zero())
+                .withIdempotencyCheck(eventType, tagKey, tagValue)
+                .build();
+    }
+
+    /**
      * Create an empty condition for operations that don't need DCB checks.
      * Use for commutative operations where order doesn't matter (e.g., deposits),
      * or for new stream creation when duplicate protection is handled via

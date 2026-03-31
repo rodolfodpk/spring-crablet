@@ -376,7 +376,7 @@ The `Query` passed to `AppendConditionBuilder` that defines which events affect 
 `AppendCondition` checks if any events matching the decision model appeared AFTER the cursor. If yes, throws `ConcurrencyException`.
 
 ### Idempotency Check
-`withIdempotencyCheck()` searches ALL events (ignores cursor) to prevent duplicate operations.
+`AppendCondition.idempotent()` searches ALL events (ignores cursor) to prevent duplicate operations.
 
 ## Example Domains
 

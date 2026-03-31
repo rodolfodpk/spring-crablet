@@ -143,7 +143,7 @@ String transactionId = eventStore.appendIf(result.events(), result.appendConditi
 
 ### Example 1: OpenWallet (Idempotency)
 
-Prevents duplicate wallet creation using `withIdempotencyCheck()`:
+Prevents duplicate wallet creation using `AppendCondition.idempotent()`:
 
 ```java
 @Override
@@ -168,9 +168,7 @@ public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
     // 4. Build condition to enforce uniqueness using DCB idempotency
     //    Fails if ANY WalletOpened event exists for this wallet_id (idempotency check)
     //    No concurrency check needed for wallet creation - only idempotency matters
-    AppendCondition condition = AppendConditionBuilder.of(Query.empty(), Cursor.zero())
-            .withIdempotencyCheck(WALLET_OPENED, WALLET_ID, command.walletId())
-            .build();
+    AppendCondition condition = AppendCondition.idempotent(WALLET_OPENED, WALLET_ID, command.walletId());
 
     // 5. Return CommandResult - CommandExecutor will call appendIf:
     //    String transactionId = eventStore.appendIf(List.of(event), condition);
@@ -182,8 +180,8 @@ public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
 ```
 
 **Key points:**
-- Uses `Query.empty()` + `Cursor.zero()` (no decision model needed)
-- `withIdempotencyCheck()` enforces uniqueness: fails if `WALLET_OPENED` exists for this `wallet_id`
+- No decision model or cursor needed
+- `AppendCondition.idempotent()` enforces uniqueness: fails if `WALLET_OPENED` exists for this `wallet_id`
 - Optimistic: creates event first, checks atomically via `appendIf`
 
 ### Example 2: Concurrency Control (Withdraw)

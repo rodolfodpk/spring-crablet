@@ -3,10 +3,7 @@ package com.crablet.command.handlers.courses;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
 import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
-import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.examples.course.commands.DefineCourseCommand;
 import com.crablet.examples.course.events.CourseDefined;
@@ -47,9 +44,7 @@ public class DefineCourseCommandHandler implements CommandHandler<DefineCourseCo
         // Build condition to enforce uniqueness using DCB idempotency pattern
         // Fails if ANY CourseDefined event exists for this course_id (idempotency check)
         // No concurrency check needed for course creation - only idempotency matters
-        AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
-                .withIdempotencyCheck(type(CourseDefined.class), COURSE_ID, command.courseId())
-                .build();
+        AppendCondition condition = AppendCondition.idempotent(type(CourseDefined.class), COURSE_ID, command.courseId());
 
         return CommandResult.of(List.of(event), condition);
     }

@@ -144,9 +144,7 @@ Automations run with at-least-once semantics — the same event may trigger `rea
 
 ```java
 // In your command handler:
-AppendCondition condition = AppendConditionBuilder.empty()
-    .withIdempotencyCheck(type(WelcomeNotificationSent.class), WALLET_ID, walletId)
-    .build();
+AppendCondition condition = AppendCondition.idempotent(type(WelcomeNotificationSent.class), WALLET_ID, walletId);
 ```
 
 This ensures the downstream event is recorded at most once regardless of how many times the automation fires.

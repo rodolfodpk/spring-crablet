@@ -324,7 +324,7 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 
 2. **Idempotency Check** (entity creation):
    - Use for: Preventing duplicate entity creation (OpenWallet)
-   - Pattern: `builder.withIdempotencyCheck(eventType, tagKey, tagValue)`
+   - Pattern: `AppendCondition.idempotent(eventType, tagKey, tagValue)`
    - Fails if event with same tag already exists
 
 3. **Empty Condition** (commutative operations):
@@ -477,7 +477,7 @@ PostgreSQL advisory locks for distributed coordination.
 
 **Problem:** Idempotency check not working (duplicate events stored)
 - **Enhanced Diagnostics (v1.0+):** Exception message now includes specific hint about idempotency tag usage
-- **Solution:** Ensure you're using `withIdempotencyCheck()` with the correct event type and tag. The tag must uniquely identify the operation (e.g., `deposit_id`, not just `wallet_id`).
+- **Solution:** Ensure you're using `AppendCondition.idempotent()` with the correct event type and tag. The tag must uniquely identify the operation (e.g., `deposit_id`, not just `wallet_id`).
 - **Debug:** Check exception message for `Hint:` section with guidance
 
 **Problem:** Query returns no events but events exist in database

@@ -66,12 +66,12 @@ public class AppendConditionBuilder {
     public AppendCondition build() {
         // Concurrency check: decision model query (with cursor)
         Query stateChangedQuery = decisionModelQuery;
-        
+
         // Idempotency check: separate query (no cursor limit)
         @Nullable Query alreadyExistsQuery = idempotencyItems.isEmpty()
             ? null
             : Query.of(idempotencyItems);
-        
+
         return AppendCondition.of(cursor, stateChangedQuery, alreadyExistsQuery);
     }
 }

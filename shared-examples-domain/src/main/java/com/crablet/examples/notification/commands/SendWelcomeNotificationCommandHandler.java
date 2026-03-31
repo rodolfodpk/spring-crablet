@@ -3,10 +3,7 @@ package com.crablet.examples.notification.commands;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
 import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
-import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.examples.notification.events.WelcomeNotificationSent;
 import org.slf4j.Logger;
@@ -43,9 +40,7 @@ public class SendWelcomeNotificationCommandHandler
                 .build();
 
         // Idempotency: only one WelcomeNotificationSent per wallet_id
-        AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
-                .withIdempotencyCheck(type(WelcomeNotificationSent.class), WALLET_ID, command.walletId())
-                .build();
+        AppendCondition condition = AppendCondition.idempotent(type(WelcomeNotificationSent.class), WALLET_ID, command.walletId());
 
         return CommandResult.of(List.of(event), condition);
     }

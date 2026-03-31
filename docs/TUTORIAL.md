@@ -329,7 +329,7 @@ Not every command needs a cursor-based check. Choose the pattern that matches th
 | Pattern | When to use | Code |
 |---------|-------------|------|
 | **Empty** | Commutative operations — parallel writes cannot conflict (e.g., submitting a talk) | `AppendCondition.empty()` |
-| **Idempotency check** | Entity creation — prevent duplicate creation (e.g., same submission submitted twice) | `AppendConditionBuilder.of(Query.empty(), Cursor.zero()).withIdempotencyCheck(type(TalkSubmitted.class), SUBMISSION_ID, id).build()` |
+| **Idempotency check** | Entity creation — prevent duplicate creation (e.g., same submission submitted twice) | `AppendCondition.idempotent(type(TalkSubmitted.class), SUBMISSION_ID, id)` |
 | **Cursor-based** | State-dependent operations — outcome depends on current state (e.g., accept/reject with capacity check) | `AppendConditionBuilder.of(decisionModel, result.cursor()).build()` |
 
 **Empty** is appropriate when the operation is order-independent. Submitting two different talks simultaneously does not cause a conflict regardless of ordering.
@@ -338,9 +338,7 @@ Not every command needs a cursor-based check. Choose the pattern that matches th
 
 ```java
 // Prevent duplicate submission of the same submissionId
-AppendCondition condition = AppendConditionBuilder.of(Query.empty(), Cursor.zero())
-    .withIdempotencyCheck(type(TalkSubmitted.class), SUBMISSION_ID, command.submissionId())
-    .build();
+AppendCondition condition = AppendCondition.idempotent(type(TalkSubmitted.class), SUBMISSION_ID, command.submissionId());
 ```
 
 **Cursor-based** is for anything where the decision depends on the current state and another concurrent writer could invalidate that decision. The accept-with-capacity-check is the canonical example.
@@ -369,10 +367,8 @@ Handlers never call `appendIf` themselves. They project state, validate rules, b
 ```java
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
-import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.EventStore;
 import org.springframework.stereotype.Component;
 
@@ -401,9 +397,7 @@ public class SubmitTalkCommandHandler implements CommandHandler<SubmitTalkComman
 
         // Idempotency check: fail if a TalkSubmitted with this submissionId already exists.
         // No state projection needed — the constraint is structural.
-        AppendCondition condition = AppendConditionBuilder.of(Query.empty(), Cursor.zero())
-            .withIdempotencyCheck(type(TalkSubmitted.class), SUBMISSION_ID, command.submissionId())
-            .build();
+        AppendCondition condition = AppendCondition.idempotent(type(TalkSubmitted.class), SUBMISSION_ID, command.submissionId());
 
         return CommandResult.of(List.of(appendEvent), condition);
     }
@@ -621,16 +615,14 @@ public class SendConfirmationCommandHandler implements CommandHandler<SendConfir
 
         // Idempotency check: fail if a ConfirmationSent for this talk_id already exists.
         // Running this command twice produces the same outcome: one confirmation event.
-        AppendCondition condition = AppendConditionBuilder.of(Query.empty(), Cursor.zero())
-            .withIdempotencyCheck(type(ConfirmationSent.class), TALK_ID, command.talkId())
-            .build();
+        AppendCondition condition = AppendCondition.idempotent(type(ConfirmationSent.class), TALK_ID, command.talkId());
 
         return CommandResult.of(List.of(appendEvent), condition);
     }
 }
 ```
 
-> **Key insight.** Reactions decouple "what happened" from "what should happen next." They run asynchronously with at-least-once semantics. The downstream command handler must be idempotent — use `withIdempotencyCheck()` to make running it twice produce the same outcome as running it once.
+> **Key insight.** Reactions decouple "what happened" from "what should happen next." They run asynchronously with at-least-once semantics. The downstream command handler must be idempotent — use `AppendCondition.idempotent()` to make running it twice produce the same outcome as running it once.
 
 ---
 
