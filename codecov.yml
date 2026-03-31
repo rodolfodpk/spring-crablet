@@ -97,3 +97,13 @@ component_management:
         - type: patch
           target: auto
 
+    - component_id: module_automations
+      name: Automations
+      paths:
+        - "crablet-automations/src/main/**"
+      statuses:
+        - type: project
+          target: auto
+        - type: patch
+          target: auto
+
