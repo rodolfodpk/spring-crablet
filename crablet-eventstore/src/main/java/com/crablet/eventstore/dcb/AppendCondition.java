@@ -15,6 +15,10 @@ public record AppendCondition(
         @Nullable Query alreadyExists // Idempotency check (no cursor)
 ) {
 
+    /**
+     * Low-level factory — concurrency check only, no idempotency check.
+     * Prefer {@link AppendConditionBuilder} for constructing conditions in command handlers.
+     */
     public static AppendCondition of(@Nullable Cursor afterCursor, @Nullable Query stateChanged) {
         if (afterCursor == null) {
             throw new IllegalArgumentException("afterCursor cannot be null");
@@ -25,6 +29,10 @@ public record AppendCondition(
         return new AppendCondition(afterCursor, stateChanged, null);
     }
 
+    /**
+     * Low-level factory — concurrency check with optional idempotency check.
+     * Prefer {@link AppendConditionBuilder} for constructing conditions in command handlers.
+     */
     public static AppendCondition of(@Nullable Cursor afterCursor, @Nullable Query stateChangedQuery, @Nullable Query alreadyExistsQuery) {
         if (afterCursor == null) {
             throw new IllegalArgumentException("afterCursor cannot be null");
@@ -35,21 +43,19 @@ public record AppendCondition(
         return new AppendCondition(afterCursor, stateChangedQuery, alreadyExistsQuery);
     }
 
+    /**
+     * Low-level factory — cursor check against an empty query (passes unconditionally).
+     * Prefer {@link AppendConditionBuilder} for constructing conditions in command handlers.
+     */
     public static AppendCondition of(Cursor afterCursor) {
         return of(afterCursor, Query.empty());
     }
 
     /**
-     * Create condition for new streams WITHOUT idempotency protection.
-     * Use when creating the first event in a stream and duplicates are not a concern.
-     */
-    public static AppendCondition expectEmptyStream() {
-        return new AppendCondition(Cursor.zero(), Query.empty(), null);
-    }
-
-    /**
      * Create an empty condition for operations that don't need DCB checks.
-     * Use for commutative operations where order doesn't matter (e.g., deposits).
+     * Use for commutative operations where order doesn't matter (e.g., deposits),
+     * or for new stream creation when duplicate protection is handled via
+     * {@link com.crablet.eventstore.dcb.AppendConditionBuilder#withIdempotencyCheck}.
      * These operations can safely run in parallel without conflicts.
      */
     public static AppendCondition empty() {

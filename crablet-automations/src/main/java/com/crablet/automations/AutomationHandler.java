@@ -23,4 +23,24 @@ public interface AutomationHandler {
      * @param commandExecutor executor for issuing commands
      */
     void react(StoredEvent event, CommandExecutor commandExecutor);
+
+    /**
+     * Build the subscription for this automation. Derives the automation name from
+     * {@link #getAutomationName()}, making name mismatches between handler and
+     * subscription impossible.
+     *
+     * <pre>{@code
+     * @Bean
+     * AutomationSubscription walletOpenedSubscription(WalletOpenedReaction handler) {
+     *     return handler.subscription(type(WalletOpened.class));
+     * }
+     * }</pre>
+     *
+     * @param eventTypes event type names that trigger this automation
+     */
+    default AutomationSubscription subscription(String... eventTypes) {
+        return AutomationSubscription.builder(getAutomationName())
+                .eventTypes(eventTypes)
+                .build();
+    }
 }

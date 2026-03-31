@@ -54,6 +54,11 @@ import org.springframework.transaction.PlatformTransactionManager;
  */
 public abstract class AbstractTypedViewProjector<E> extends AbstractViewProjector {
 
+    /**
+     * Initialises the typed projector with the dependencies required for deserialization,
+     * clock access, and transactional batch processing.
+     * Spring will inject these automatically when the subclass is annotated with {@code @Component}.
+     */
     protected AbstractTypedViewProjector(
             ObjectMapper objectMapper,
             ClockProvider clockProvider,

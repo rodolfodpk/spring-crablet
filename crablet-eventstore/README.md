@@ -39,7 +39,7 @@ public void myOperation() {
     // Append events with concurrency control
     // appendIf returns the transaction ID for command auditing
     String transactionId = eventStore.appendIf(events, 
-        new AppendConditionBuilder(decisionModel, projection.cursor()).build()
+        AppendConditionBuilder.of(decisionModel, projection.cursor()).build()
     );
 }
 ```
@@ -168,7 +168,7 @@ public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
     // 4. Build condition to enforce uniqueness using DCB idempotency
     //    Fails if ANY WalletOpened event exists for this wallet_id (idempotency check)
     //    No concurrency check needed for wallet creation - only idempotency matters
-    AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
+    AppendCondition condition = AppendConditionBuilder.of(Query.empty(), Cursor.zero())
             .withIdempotencyCheck(WALLET_OPENED, WALLET_ID, command.walletId())
             .build();
 
@@ -233,7 +233,7 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
     // Build condition: decision model only (cursor-based concurrency control)
     // DCB Principle: Cursor check prevents duplicate charges
     // Note: No idempotency check - cursor advancement detects if operation already succeeded
-    AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
+    AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor())
             .build();
 
     // Return CommandResult - CommandExecutor will call appendIf:

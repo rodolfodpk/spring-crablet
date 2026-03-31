@@ -23,7 +23,9 @@ public interface OutboxPublisher {
     boolean isHealthy();
     
     /**
-     * Publishing mode preference.
+     * Declares whether this publisher prefers receiving a full batch or individual events.
+     * Defaults to {@link PublishMode#BATCH}. Override to return {@link PublishMode#INDIVIDUAL}
+     * if the external system API is event-per-call (e.g., an HTTP webhook).
      */
     default PublishMode getPreferredMode() {
         return PublishMode.BATCH;

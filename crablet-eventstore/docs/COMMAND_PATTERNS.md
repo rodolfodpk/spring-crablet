@@ -85,7 +85,7 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
             .build();
         
         // Idempotency check prevents duplicate wallet creation
-        AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
+        AppendCondition condition = AppendConditionBuilder.of(Query.empty(), Cursor.zero())
             .withIdempotencyCheck(type(WalletOpened.class), WALLET_ID, command.walletId())
             .build();
         
@@ -183,7 +183,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
             .build();
         
         // Cursor check prevents concurrent withdrawals exceeding balance
-        AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
+        AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor())
             .build();
         
         return CommandResult.of(List.of(event), condition);
@@ -219,7 +219,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
             .build();
         
         // Cursor check prevents concurrent transfers causing overdrafts
-        AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
+        AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor())
             .build();
         
         return CommandResult.of(List.of(event), condition);
@@ -282,7 +282,7 @@ AppendCondition condition = AppendCondition.empty();
 
 ✅ **Correct:**
 ```java
-AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
+AppendCondition condition = AppendConditionBuilder.of(Query.empty(), Cursor.zero())
     .withIdempotencyCheck(type(WalletOpened.class), WALLET_ID, walletId)
     .build();
 ```
@@ -290,7 +290,7 @@ AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zer
 ❌ **Using cursor for deposits:**
 ```java
 // WRONG: Deposits don't need cursor check
-AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor()).build();
+AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor()).build();
 ```
 
 ✅ **Correct:**
@@ -308,7 +308,7 @@ AppendCondition condition = AppendCondition.empty();
 ✅ **Correct:**
 ```java
 // RIGHT: Withdrawals are non-commutative
-AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor()).build();
+AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor()).build();
 ```
 
 ## Learn More

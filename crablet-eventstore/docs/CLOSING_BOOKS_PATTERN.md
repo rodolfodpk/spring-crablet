@@ -58,6 +58,7 @@ You implement a `PeriodConfigurationProvider` component that reads this annotati
 **Framework Public API:**
 - `PeriodType` enum: `crablet-eventstore/src/main/java/com/crablet/eventstore/period/PeriodType.java`
 - `@PeriodConfig` annotation: `crablet-eventstore/src/main/java/com/crablet/eventstore/period/PeriodConfig.java`
+- `PeriodTags` utility: `crablet-eventstore/src/main/java/com/crablet/eventstore/period/PeriodTags.java` — builds the correct `year`/`month`/`day`/`hour` tag lists for each `PeriodType`. Your domain period identifier (e.g., `WalletStatementId`) should delegate to this rather than constructing tag lists manually.
 - These are in the eventstore module because period segmentation is fundamentally about event organization and querying.
 
 **Domain-Specific Implementation (You Implement):**
@@ -149,28 +150,20 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
         }
         
         // Create deposit event with period tags
-        var periodId = periodResult.periodId();
         DepositMade deposit = DepositMade.of(
-            command.depositId(), command.walletId(), 
-            command.amount(), state.balance() + command.amount(), 
+            command.depositId(), command.walletId(),
+            command.amount(), state.balance() + command.amount(),
             command.description()
         );
-        
-        AppendEvent.Builder eventBuilder = AppendEvent.builder("DepositMade")
-            .tag("wallet_id", command.walletId())
-            .tag("deposit_id", command.depositId())
-            .tag("year", String.valueOf(periodId.year()))
-            .tag("month", String.valueOf(periodId.month()));
-        
-        // Add day/hour tags conditionally based on period type
-        if (periodId.day() != null) {
-            eventBuilder.tag("day", String.valueOf(periodId.day()));
-        }
-        if (periodId.hour() != null) {
-            eventBuilder.tag("hour", String.valueOf(periodId.hour()));
-        }
-        
-        AppendEvent event = eventBuilder.data(deposit).build();
+
+        // periodId.asTags() returns the correct period tags for any granularity
+        // (yearly/monthly/daily/hourly) using the framework's PeriodTags utility
+        AppendEvent event = AppendEvent.builder(type(DepositMade.class))
+            .tag(WALLET_ID, command.walletId())
+            .tag(DEPOSIT_ID, command.depositId())
+            .tags(periodResult.periodId().asTags())
+            .data(deposit)
+            .build();
         
         // Deposits are commutative - use empty condition
         AppendCondition condition = AppendCondition.empty();
@@ -317,7 +310,7 @@ Query febQuery = WalletQueryPatterns.singleWalletPeriodDecisionModel("alice", 20
 Statement events use idempotency checks to prevent duplicates:
 
 ```java
-AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
+AppendCondition condition = AppendConditionBuilder.of(Query.empty(), Cursor.zero())
     .withIdempotencyCheck("WalletStatementOpened", STATEMENT_ID, periodId.toStreamId())
     .build();
 ```

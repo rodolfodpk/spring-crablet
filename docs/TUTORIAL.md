@@ -104,8 +104,7 @@ import static com.crablet.examples.talks.TalkTags.TALK_ID;
 
 public class TalkExistsProjector implements StateProjector<Boolean> {
 
-    @Override
-    public String getId() { return "talk-exists"; }
+    // getId() not needed — defaults to class simple name
 
     @Override
     public List<String> getEventTypes() {
@@ -180,8 +179,7 @@ import static com.crablet.eventstore.store.EventType.type;
 
 public class TalkStateProjector implements StateProjector<TalkState> {
 
-    @Override
-    public String getId() { return "talk-state"; }
+    // getId() not needed — defaults to class simple name
 
     @Override
     public List<String> getEventTypes() {
@@ -277,7 +275,7 @@ if (result.state().acceptedCount() >= CAPACITY) {
     throw new ConferenceFullException();
 }
 
-AppendCondition condition = new AppendConditionBuilder(conferenceQuery, result.cursor())
+AppendCondition condition = AppendConditionBuilder.of(conferenceQuery, result.cursor())
     .build();
 
 // appendIf checks: has any event matching conferenceQuery been appended
@@ -293,8 +291,7 @@ The `ConferenceStateProjector` counts `TalkAccepted` events across all talks —
 ```java
 public class ConferenceStateProjector implements StateProjector<ConferenceState> {
 
-    @Override
-    public String getId() { return "conference-state"; }
+    // getId() not needed — defaults to class simple name
 
     @Override
     public List<String> getEventTypes() {
@@ -332,8 +329,8 @@ Not every command needs a cursor-based check. Choose the pattern that matches th
 | Pattern | When to use | Code |
 |---------|-------------|------|
 | **Empty** | Commutative operations — parallel writes cannot conflict (e.g., submitting a talk) | `AppendCondition.empty()` |
-| **Idempotency check** | Entity creation — prevent duplicate creation (e.g., same submission submitted twice) | `new AppendConditionBuilder(Query.empty(), Cursor.zero()).withIdempotencyCheck(type(TalkSubmitted.class), SUBMISSION_ID, id).build()` |
-| **Cursor-based** | State-dependent operations — outcome depends on current state (e.g., accept/reject with capacity check) | `new AppendConditionBuilder(decisionModel, result.cursor()).build()` |
+| **Idempotency check** | Entity creation — prevent duplicate creation (e.g., same submission submitted twice) | `AppendConditionBuilder.of(Query.empty(), Cursor.zero()).withIdempotencyCheck(type(TalkSubmitted.class), SUBMISSION_ID, id).build()` |
+| **Cursor-based** | State-dependent operations — outcome depends on current state (e.g., accept/reject with capacity check) | `AppendConditionBuilder.of(decisionModel, result.cursor()).build()` |
 
 **Empty** is appropriate when the operation is order-independent. Submitting two different talks simultaneously does not cause a conflict regardless of ordering.
 
@@ -341,7 +338,7 @@ Not every command needs a cursor-based check. Choose the pattern that matches th
 
 ```java
 // Prevent duplicate submission of the same submissionId
-AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
+AppendCondition condition = AppendConditionBuilder.of(Query.empty(), Cursor.zero())
     .withIdempotencyCheck(type(TalkSubmitted.class), SUBMISSION_ID, command.submissionId())
     .build();
 ```
@@ -404,7 +401,7 @@ public class SubmitTalkCommandHandler implements CommandHandler<SubmitTalkComman
 
         // Idempotency check: fail if a TalkSubmitted with this submissionId already exists.
         // No state projection needed — the constraint is structural.
-        AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
+        AppendCondition condition = AppendConditionBuilder.of(Query.empty(), Cursor.zero())
             .withIdempotencyCheck(type(TalkSubmitted.class), SUBMISSION_ID, command.submissionId())
             .build();
 
@@ -498,7 +495,7 @@ public class AcceptTalkCommandHandler implements CommandHandler<AcceptTalkComman
         // 4. Cursor-based DCB condition scoped to the conference query.
         //    If any TalkAccepted event for this conference was written after
         //    conferenceResult.cursor(), the append will be rejected.
-        AppendCondition condition = new AppendConditionBuilder(
+        AppendCondition condition = AppendConditionBuilder.of(
             conferenceQuery, conferenceResult.cursor()
         ).build();
 
@@ -584,18 +581,14 @@ public class TalkAcceptedAutomation implements AutomationHandler {
 
 ### Declaring the subscription
 
-An `AutomationSubscription` bean declares which event types trigger this automation. The `automationName` must match `getAutomationName()` on the handler exactly.
+`AutomationHandler` provides a `subscription()` default method — pass the handler as a bean parameter to avoid repeating the automation name:
 
 ```java
-import com.crablet.automations.AutomationSubscription;
-
 import static com.crablet.eventstore.store.EventType.type;
 
 @Bean
-public AutomationSubscription talkAcceptedConfirmationSubscription() {
-    return AutomationSubscription.builder("talk-accepted-confirmation")
-        .eventTypes(type(TalkAccepted.class))
-        .build();
+public AutomationSubscription talkAcceptedConfirmationSubscription(TalkAcceptedAutomation handler) {
+    return handler.subscription(type(TalkAccepted.class));
 }
 ```
 
@@ -628,7 +621,7 @@ public class SendConfirmationCommandHandler implements CommandHandler<SendConfir
 
         // Idempotency check: fail if a ConfirmationSent for this talk_id already exists.
         // Running this command twice produces the same outcome: one confirmation event.
-        AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
+        AppendCondition condition = AppendConditionBuilder.of(Query.empty(), Cursor.zero())
             .withIdempotencyCheck(type(ConfirmationSent.class), TALK_ID, command.talkId())
             .build();
 
@@ -738,22 +731,23 @@ The `clockProvider` field is available from the base class. Each `handleEvent` c
 
 ### Declaring the subscription
 
-```java
-import com.crablet.views.config.ViewSubscriptionConfig;
+`ViewProjector` provides a `subscription()` default method — pass the projector as a bean parameter to avoid repeating the view name:
 
+```java
 import static com.crablet.eventstore.store.EventType.type;
 
 @Bean
-public ViewSubscriptionConfig talksViewSubscription() {
-    return ViewSubscriptionConfig.builder("talks-view")
-        .eventTypes(
-            type(TalkSubmitted.class),
-            type(TalkAccepted.class),
-            type(TalkRejected.class)
-        )
-        .build();
+public ViewSubscriptionConfig talksViewSubscription(TalksViewProjector projector) {
+    return projector.subscription(
+        type(TalkSubmitted.class),
+        type(TalkAccepted.class),
+        type(TalkRejected.class)
+    );
 }
 ```
+
+For subscriptions that need tag filtering, use `ViewSubscriptionConfig.builder(projector.getViewName())` directly.
+
 
 ### Configuration
 

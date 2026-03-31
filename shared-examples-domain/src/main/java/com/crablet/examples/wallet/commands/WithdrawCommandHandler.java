@@ -8,7 +8,6 @@ import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.examples.wallet.WalletQueryPatterns;
-import com.crablet.examples.wallet.commands.WithdrawCommand;
 import com.crablet.examples.wallet.events.WithdrawalMade;
 import com.crablet.examples.wallet.exceptions.InsufficientFundsException;
 import com.crablet.examples.wallet.exceptions.WalletNotFoundException;
@@ -20,12 +19,8 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 import static com.crablet.eventstore.store.EventType.type;
-import static com.crablet.examples.wallet.WalletTags.DAY;
-import static com.crablet.examples.wallet.WalletTags.HOUR;
-import static com.crablet.examples.wallet.WalletTags.MONTH;
 import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
 import static com.crablet.examples.wallet.WalletTags.WITHDRAWAL_ID;
-import static com.crablet.examples.wallet.WalletTags.YEAR;
 
 /**
  * Command handler for withdrawing money from wallets.
@@ -73,31 +68,17 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
                 command.description()
         );
 
-        // Extract period info for tags
-        var periodId = periodResult.periodId();
-        int year = periodId.year();
-        int month = periodId.month() != null ? periodId.month() : 1;
-        Integer day = periodId.day();
-        Integer hour = periodId.hour();
-
-        AppendEvent.Builder eventBuilder = AppendEvent.builder(type(WithdrawalMade.class))
+        AppendEvent event = AppendEvent.builder(type(WithdrawalMade.class))
                 .tag(WALLET_ID, command.walletId())
                 .tag(WITHDRAWAL_ID, command.withdrawalId())
-                .tag(YEAR, String.valueOf(year))
-                .tag(MONTH, String.valueOf(month));
-        
-        if (day != null) {
-            eventBuilder.tag(DAY, String.valueOf(day));
-        }
-        if (hour != null) {
-            eventBuilder.tag(HOUR, String.valueOf(hour));
-        }
-        
-        AppendEvent event = eventBuilder.data(withdrawal).build();
+                .tags(periodResult.periodId().asTags())
+                .data(withdrawal)
+                .build();
 
         // Use period-aware decision model query for DCB concurrency control
+        var periodId = periodResult.periodId();
         Query decisionModel = WalletQueryPatterns.singleWalletActivePeriodDecisionModel(
-                command.walletId(), year, month);
+                command.walletId(), periodId.year(), periodId.month() != null ? periodId.month() : 1);
 
         // Withdrawals are non-commutative - order matters for balance validation
         // DCB cursor check REQUIRED: prevents concurrent withdrawals exceeding balance

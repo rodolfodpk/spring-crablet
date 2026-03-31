@@ -165,17 +165,29 @@ public class WalletViewProjector extends AbstractTypedViewProjector<WalletEvent>
 
 ### 4. Configure Subscription
 
+`ViewProjector` provides a `subscription()` default method that avoids repeating the view name. Pass the projector as a bean parameter:
+
 ```java
 @Configuration
 public class ViewConfiguration {
 
     @Bean
-    public ViewSubscription walletViewSubscription() {
-        return ViewSubscription.builder("wallet-view")
-            .eventTypes("WalletOpened", "DepositMade", "WithdrawalMade")
-            .requiredTags("wallet-id")
-            .build();
+    public ViewSubscriptionConfig walletViewSubscription(WalletViewProjector projector) {
+        return projector.subscription(
+            type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class));
     }
+}
+```
+
+For subscriptions that also need tag filtering, use `ViewSubscriptionConfig.builder(projector.getViewName())` directly:
+
+```java
+@Bean
+public ViewSubscriptionConfig walletViewSubscription(WalletViewProjector projector) {
+    return ViewSubscriptionConfig.builder(projector.getViewName())
+        .eventTypes(type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class))
+        .anyOfTags("wallet_id", "from_wallet_id", "to_wallet_id")
+        .build();
 }
 ```
 
@@ -376,13 +388,20 @@ crablet.views.leader-election-retry-interval-ms=30000
 
 ### Subscription Configuration
 
-Subscriptions can be configured programmatically via `ViewSubscription` beans:
+Use `projector.subscription(eventTypes...)` for the common case, or the full builder for tag filtering:
 
 ```java
+// Simple — no tag filtering needed
 @Bean
-public ViewSubscription myViewSubscription() {
-    return ViewSubscription.builder("my-view")
-        .eventTypes("EventType1", "EventType2")
+public ViewSubscriptionConfig myViewSubscription(MyViewProjector projector) {
+    return projector.subscription(type(EventType1.class), type(EventType2.class));
+}
+
+// With tag filtering
+@Bean
+public ViewSubscriptionConfig myViewSubscription(MyViewProjector projector) {
+    return ViewSubscriptionConfig.builder(projector.getViewName())
+        .eventTypes(type(EventType1.class), type(EventType2.class))
         .requiredTags("tag-key1", "tag-key2")  // ALL tags must be present
         .anyOfTags("tag-key3", "tag-key4")     // At least ONE tag must be present
         .build();

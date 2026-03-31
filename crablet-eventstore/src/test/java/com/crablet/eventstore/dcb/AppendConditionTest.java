@@ -50,19 +50,7 @@ class AppendConditionTest {
     }
 
     @Test
-    @DisplayName("Should create AppendCondition for empty stream")
-    void shouldCreateAppendConditionForEmptyStream() {
-        // When
-        AppendCondition condition = AppendCondition.expectEmptyStream();
-
-        // Then
-        assertThat(condition.afterCursor()).isEqualTo(Cursor.zero());
-        assertThat(condition.stateChanged()).isEqualTo(Query.empty());
-        assertThat(condition.afterCursor().position().value()).isEqualTo(0);
-    }
-
-    @Test
-    @DisplayName("Should create AppendCondition with empty method for commutative operations")
+    @DisplayName("Should create AppendCondition with empty() for commutative operations and new streams")
     void shouldCreateAppendConditionWithEmptyMethod() {
         // When
         AppendCondition condition = AppendCondition.empty();
@@ -72,21 +60,6 @@ class AppendConditionTest {
         assertThat(condition.stateChanged()).isEqualTo(Query.empty());
         assertThat(condition.alreadyExists()).isNull();
         assertThat(condition.afterCursor().position().value()).isEqualTo(0);
-    }
-
-    @Test
-    @DisplayName("Should verify empty() and expectEmptyStream() behave identically")
-    void shouldVerifyEmptyAndExpectEmptyStreamBehaveIdentically() {
-        // When
-        AppendCondition empty = AppendCondition.empty();
-        AppendCondition expectEmpty = AppendCondition.expectEmptyStream();
-
-        // Then - Both should have same structure
-        assertThat(empty.afterCursor()).isEqualTo(expectEmpty.afterCursor());
-        assertThat(empty.stateChanged()).isEqualTo(expectEmpty.stateChanged());
-        assertThat(empty.alreadyExists()).isEqualTo(expectEmpty.alreadyExists());
-        // Note: They have different semantics (expectEmptyStream vs empty for commutative ops),
-        // but currently have identical implementation
     }
 
     @Test

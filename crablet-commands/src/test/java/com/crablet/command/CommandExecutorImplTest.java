@@ -95,7 +95,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
                 .tag("entityId", "entity-123")
                 .data("{}")
                 .build();
-        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.expectEmptyStream());
+        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.empty());
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -118,7 +118,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     void executeCommand_WithIdempotentResult_ShouldReturnIdempotent() {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
-        CommandResult commandResult = new CommandResult(List.of(), AppendCondition.expectEmptyStream(), "ALREADY_PROCESSED");
+        CommandResult commandResult = new CommandResult(List.of(), AppendCondition.empty(), "ALREADY_PROCESSED");
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -141,7 +141,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     void executeCommand_WithNullEvents_ShouldThrowInvalidCommandException() {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
-        CommandResult commandResult = new CommandResult(null, AppendCondition.expectEmptyStream(), null);
+        CommandResult commandResult = new CommandResult(null, AppendCondition.empty(), null);
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -156,7 +156,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent invalidEvent = new AppendEvent("", Collections.emptyList(), "{}");
-        CommandResult commandResult = CommandResult.of(List.of(invalidEvent), AppendCondition.expectEmptyStream());
+        CommandResult commandResult = CommandResult.of(List.of(invalidEvent), AppendCondition.empty());
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -172,7 +172,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         TestCommand command = new TestCommand("test_command", "entity-123");
         Tag invalidTag = new Tag("", "value"); // Empty key
         AppendEvent eventWithInvalidTag = new AppendEvent("test_event", List.of(invalidTag), "{}");
-        CommandResult commandResult = CommandResult.of(List.of(eventWithInvalidTag), AppendCondition.expectEmptyStream());
+        CommandResult commandResult = CommandResult.of(List.of(eventWithInvalidTag), AppendCondition.empty());
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -211,7 +211,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         // First execution - should succeed
         CommandResult commandResult = CommandResult.of(
             List.of(event), 
-            AppendCondition.expectEmptyStream() // No concurrency check, but idempotency check via tags
+            AppendCondition.empty() // No concurrency check, but idempotency check via tags
         );
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
         
@@ -231,7 +231,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         // Actually, for this to work, we need AppendCondition with alreadyExists check
         // Let's test the simpler case: handler returns empty events (idempotent)
         TestCommand idempotentCommand = new TestCommand("test_command", "entity-456");
-        CommandResult idempotentResult = new CommandResult(List.of(), AppendCondition.expectEmptyStream(), "ALREADY_PROCESSED");
+        CommandResult idempotentResult = new CommandResult(List.of(), AppendCondition.empty(), "ALREADY_PROCESSED");
         TestCommandHandler.setHandlerLogic(cmd -> idempotentResult);
         
         ExecutionResult idempotentExecution = commandExecutor.executeCommand(idempotentCommand);
@@ -246,7 +246,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
                 .tag("entityId", "entity-123")
                 .data("{}")
                 .build();
-        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.expectEmptyStream());
+        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.empty());
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -289,7 +289,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
                 .tag("entityId", "entity-123")
                 .data("{}")
                 .build();
-        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.expectEmptyStream());
+        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.empty());
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -311,7 +311,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
                 .tag("entityId", "entity-123")
                 .data("{}")
                 .build();
-        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.expectEmptyStream());
+        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.empty());
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -364,7 +364,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     void executeCommand_WithEventHavingNullType_ShouldThrowInvalidCommandException() {
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent eventWithNullType = new AppendEvent(null, Collections.emptyList(), "{}");
-        CommandResult commandResult = CommandResult.of(List.of(eventWithNullType), AppendCondition.expectEmptyStream());
+        CommandResult commandResult = CommandResult.of(List.of(eventWithNullType), AppendCondition.empty());
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -377,7 +377,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     void executeCommand_WithEventHavingNullTags_ShouldNotThrow() {
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent eventWithNullTags = new AppendEvent("test_event", null, "{}");
-        CommandResult commandResult = CommandResult.of(List.of(eventWithNullTags), AppendCondition.expectEmptyStream());
+        CommandResult commandResult = CommandResult.of(List.of(eventWithNullTags), AppendCondition.empty());
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -397,7 +397,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     void executeCommand_WithEventHavingEmptyTagsList_ShouldNotThrow() {
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent eventWithEmptyTags = new AppendEvent("test_event", Collections.emptyList(), "{}");
-        CommandResult commandResult = CommandResult.of(List.of(eventWithEmptyTags), AppendCondition.expectEmptyStream());
+        CommandResult commandResult = CommandResult.of(List.of(eventWithEmptyTags), AppendCondition.empty());
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -418,7 +418,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         TestCommand command = new TestCommand("test_command", "entity-123");
         Tag invalidTag = new Tag(null, "value"); // Null key
         AppendEvent eventWithInvalidTag = new AppendEvent("test_event", List.of(invalidTag), "{}");
-        CommandResult commandResult = CommandResult.of(List.of(eventWithInvalidTag), AppendCondition.expectEmptyStream());
+        CommandResult commandResult = CommandResult.of(List.of(eventWithInvalidTag), AppendCondition.empty());
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -432,7 +432,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         TestCommand command = new TestCommand("test_command", "entity-123");
         Tag invalidTag = new Tag("key", null); // Null value
         AppendEvent eventWithInvalidTag = new AppendEvent("test_event", List.of(invalidTag), "{}");
-        CommandResult commandResult = CommandResult.of(List.of(eventWithInvalidTag), AppendCondition.expectEmptyStream());
+        CommandResult commandResult = CommandResult.of(List.of(eventWithInvalidTag), AppendCondition.empty());
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -446,7 +446,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         TestCommand command = new TestCommand("test_command", "entity-123");
         Tag invalidTag = new Tag("key", ""); // Empty value
         AppendEvent eventWithInvalidTag = new AppendEvent("test_event", List.of(invalidTag), "{}");
-        CommandResult commandResult = CommandResult.of(List.of(eventWithInvalidTag), AppendCondition.expectEmptyStream());
+        CommandResult commandResult = CommandResult.of(List.of(eventWithInvalidTag), AppendCondition.empty());
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -483,7 +483,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
                 .tag("entityId", "entity-123")
                 .data("{}")
                 .build();
-        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.expectEmptyStream());
+        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.empty());
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
         
@@ -491,7 +491,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         ExecutionResult first = commandExecutor.executeCommand(command);
         assertTrue(first.wasCreated());
         
-        // Second execution with same command - should succeed again since we're using AppendCondition.expectEmptyStream()
+        // Second execution with same command - should succeed again since we're using AppendCondition.empty()
         // which doesn't check for duplicates. For actual duplicate detection, see OpenWalletCommandHandlerTest
         ExecutionResult second = commandExecutor.executeCommand(command);
         assertTrue(second.wasCreated());
@@ -519,7 +519,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     void executeCommand_WithInvalidCommandException_ShouldRecordValidationFailure() {
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent eventWithEmptyType = new AppendEvent("", Collections.emptyList(), "{}");
-        CommandResult commandResult = CommandResult.of(List.of(eventWithEmptyType), AppendCondition.expectEmptyStream());
+        CommandResult commandResult = CommandResult.of(List.of(eventWithEmptyType), AppendCondition.empty());
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -546,7 +546,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     @Test
     void executeCommand_WithIdempotentResult_ShouldRecordIdempotentMetrics() {
         TestCommand command = new TestCommand("test_command", "entity-123");
-        CommandResult commandResult = new CommandResult(List.of(), AppendCondition.expectEmptyStream(), "ALREADY_PROCESSED");
+        CommandResult commandResult = new CommandResult(List.of(), AppendCondition.empty(), "ALREADY_PROCESSED");
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 

@@ -77,7 +77,7 @@ class CommandExecutorImplPersistenceTest {
                 .tag("entityId", "entity-123")
                 .data("{}")
                 .build();
-        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.expectEmptyStream());
+        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.empty());
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
         
@@ -125,7 +125,7 @@ class CommandExecutorImplPersistenceTest {
                 .tag("entityId", "entity-123")
                 .data("{}")
                 .build();
-        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.expectEmptyStream());
+        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.empty());
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
         

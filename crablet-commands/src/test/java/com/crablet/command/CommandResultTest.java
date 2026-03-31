@@ -24,7 +24,7 @@ class CommandResultTest {
     @DisplayName("isEmpty should return true when events list is empty")
     void isEmpty_WithEmptyEventsList_ShouldReturnTrue() {
         // Given
-        CommandResult result = new CommandResult(List.of(), AppendCondition.expectEmptyStream(), null);
+        CommandResult result = new CommandResult(List.of(), AppendCondition.empty(), null);
 
         // When
         boolean isEmpty = result.isEmpty();
@@ -41,7 +41,7 @@ class CommandResultTest {
                 .tag("key", "value")
                 .data("{}")
                 .build();
-        CommandResult result = new CommandResult(List.of(event), AppendCondition.expectEmptyStream(), null);
+        CommandResult result = new CommandResult(List.of(event), AppendCondition.empty(), null);
 
         // When
         boolean isEmpty = result.isEmpty();
@@ -58,7 +58,7 @@ class CommandResultTest {
                 .tag("key", "value")
                 .data("{}")
                 .build();
-        AppendCondition condition = AppendCondition.expectEmptyStream();
+        AppendCondition condition = AppendCondition.empty();
 
         // When
         CommandResult result = CommandResult.of(List.of(event), condition);
@@ -115,13 +115,13 @@ class CommandResultTest {
     }
 
     @Test
-    @DisplayName("empty should use expectEmptyStream condition")
-    void empty_ShouldUseExpectEmptyStreamCondition() {
+    @DisplayName("empty should use empty condition")
+    void empty_ShouldUseEmptyCondition() {
         // When
         CommandResult result = CommandResult.empty();
 
         // Then
-        assertThat(result.appendCondition()).isEqualTo(AppendCondition.expectEmptyStream());
+        assertThat(result.appendCondition()).isEqualTo(AppendCondition.empty());
         assertThat(result.appendCondition().afterCursor().position().value()).isEqualTo(0);
     }
 
@@ -129,7 +129,7 @@ class CommandResultTest {
     @DisplayName("isEmpty with null events should throw NPE when accessed")
     void isEmpty_WithNullEventsList_ShouldThrowNPE() {
         // Given - Records allow null in constructor, but throw NPE when accessing null fields
-        CommandResult result = new CommandResult(null, AppendCondition.expectEmptyStream(), null);
+        CommandResult result = new CommandResult(null, AppendCondition.empty(), null);
 
         // When & Then - isEmpty() calls events.isEmpty() which throws NPE on null
         assertThatThrownBy(() ->

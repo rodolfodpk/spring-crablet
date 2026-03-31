@@ -114,24 +114,16 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
                 .tag(TRANSFER_ID, command.transferId())
                 .tag(FROM_WALLET_ID, command.fromWalletId())
                 .tag(TO_WALLET_ID, command.toWalletId())
-                .tag(FROM_YEAR, String.valueOf(fromYear))
-                .tag(FROM_MONTH, String.valueOf(fromMonth))
-                .tag(TO_YEAR, String.valueOf(toYear))
-                .tag(TO_MONTH, String.valueOf(toMonth));
-        
-        if (fromDay != null) {
-            eventBuilder.tag(FROM_DAY, String.valueOf(fromDay));
-        }
-        if (fromHour != null) {
-            eventBuilder.tag(FROM_HOUR, String.valueOf(fromHour));
-        }
-        if (toDay != null) {
-            eventBuilder.tag(TO_DAY, String.valueOf(toDay));
-        }
-        if (toHour != null) {
-            eventBuilder.tag(TO_HOUR, String.valueOf(toHour));
-        }
-        
+                .tag(FROM_YEAR, fromYear)
+                .tag(FROM_MONTH, fromMonth)
+                .tag(TO_YEAR, toYear)
+                .tag(TO_MONTH, toMonth);
+
+        if (fromDay != null)  eventBuilder.tag(FROM_DAY, fromDay);
+        if (fromHour != null) eventBuilder.tag(FROM_HOUR, fromHour);
+        if (toDay != null)    eventBuilder.tag(TO_DAY, toDay);
+        if (toHour != null)   eventBuilder.tag(TO_HOUR, toHour);
+
         AppendEvent event = eventBuilder.data(transfer).build();
 
         // Transfers are non-commutative - order matters for both wallet balances

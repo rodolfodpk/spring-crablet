@@ -19,9 +19,20 @@ public class AppendConditionBuilder {
     private final @Nullable Cursor cursor;
     private final List<QueryItem> idempotencyItems = new ArrayList<>();
 
+    /**
+     * Creates a builder with a decision model query and cursor position.
+     * Prefer the {@link #of(Query, Cursor)} static factory over this constructor.
+     */
     public AppendConditionBuilder(@Nullable Query decisionModelQuery, @Nullable Cursor cursor) {
         this.decisionModelQuery = decisionModelQuery;
         this.cursor = cursor;
+    }
+
+    /**
+     * Static factory — preferred over {@code new AppendConditionBuilder(query, cursor)}.
+     */
+    public static AppendConditionBuilder of(@Nullable Query decisionModelQuery, @Nullable Cursor cursor) {
+        return new AppendConditionBuilder(decisionModelQuery, cursor);
     }
 
     /**

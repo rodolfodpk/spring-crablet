@@ -36,6 +36,11 @@ public abstract class AbstractViewProjector implements ViewProjector {
     protected final ClockProvider clockProvider;
     protected final TransactionTemplate transactionTemplate;
 
+    /**
+     * Initialises the projector with the dependencies required for deserialization,
+     * clock access, and transactional batch processing.
+     * Spring will inject these automatically when the subclass is annotated with {@code @Component}.
+     */
     protected AbstractViewProjector(
             ObjectMapper objectMapper,
             ClockProvider clockProvider,

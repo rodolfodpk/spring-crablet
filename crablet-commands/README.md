@@ -126,7 +126,7 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
                 .build();
         
         // 5. Build condition (DCB pattern)
-        AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
+        AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor())
                 .build();
         
         return CommandResult.of(List.of(event), condition);
@@ -311,17 +311,13 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
         AppendEvent.Builder eventBuilder = AppendEvent.builder("DepositMade")
             .tag("wallet_id", command.walletId())
             .tag("deposit_id", command.depositId())
-            .tag("year", String.valueOf(periodId.year()))
-            .tag("month", String.valueOf(periodId.month()));
-        
-        // Add day/hour tags conditionally based on period type
-        if (periodId.day() != null) {
-            eventBuilder.tag("day", String.valueOf(periodId.day()));
-        }
-        if (periodId.hour() != null) {
-            eventBuilder.tag("hour", String.valueOf(periodId.hour()));
-        }
-        
+            .tag("year", periodId.year())
+            .tag("month", periodId.month());
+
+        // Add day/hour tags conditionally — only present for DAILY/HOURLY granularity
+        if (periodId.day() != null)  eventBuilder.tag("day", periodId.day());
+        if (periodId.hour() != null) eventBuilder.tag("hour", periodId.hour());
+
         AppendEvent event = eventBuilder.data(deposit).build();
         
         // Deposits are commutative - use empty condition

@@ -50,7 +50,7 @@ public CommandResult handleTransfer(TransferCommand command) {
         // ... other events
     );
     
-    AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
+    AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor())
         .build();
     
     // 4. All events stored atomically with DCB consistency

@@ -104,12 +104,9 @@ import java.util.List;
 
 // Not a singleton - create instances as needed. This class is stateless and thread-safe.
 public class WalletBalanceStateProjector implements StateProjector<WalletBalance> {
-    
-    @Override
-    public String getId() {
-        return "wallet-balance-projector";
-    }
-    
+
+    // getId() not needed — defaults to class simple name
+
     @Override
     public List<String> getEventTypes() {
         return List.of("WalletOpened", "DepositMade", "WithdrawalMade");
@@ -251,7 +248,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         
         // 4. Build append condition with DCB cursor check
         // Note: No idempotency check - cursor advancement detects if operation already succeeded
-        AppendCondition condition = new AppendConditionBuilder(decisionModel, cursor)
+        AppendCondition condition = AppendConditionBuilder.of(decisionModel, cursor)
             .build();
         
         // Return CommandResult - CommandExecutor will call appendIf:

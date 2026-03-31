@@ -1,7 +1,10 @@
 package com.crablet.examples.wallet.period;
 
+import com.crablet.eventstore.period.PeriodTags;
 import com.crablet.eventstore.period.PeriodType;
+import com.crablet.eventstore.store.Tag;
 import java.time.Instant;
+import java.util.List;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -204,6 +207,21 @@ public record WalletStatementId(
         } else {
             return PeriodType.YEARLY;
         }
+    }
+
+    /**
+     * Returns the period tags for this statement period, using the framework's
+     * {@link PeriodTags} factory. The switch is exhaustive — adding a new
+     * {@link PeriodType} will produce a compile error here until handled.
+     */
+    public List<Tag> asTags() {
+        return switch (periodType()) {
+            case YEARLY  -> PeriodTags.yearly(year);
+            case MONTHLY -> PeriodTags.monthly(year, month);
+            case DAILY   -> PeriodTags.daily(year, month, day);
+            case HOURLY  -> PeriodTags.hourly(year, month, day, hour);
+            case NONE    -> List.of();
+        };
     }
 
     /**

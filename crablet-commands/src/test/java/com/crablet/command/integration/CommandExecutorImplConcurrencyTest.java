@@ -44,7 +44,7 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
                 .build();
         
         // First execution to establish a cursor
-        CommandResult firstResult = CommandResult.of(List.of(event), AppendCondition.expectEmptyStream());
+        CommandResult firstResult = CommandResult.of(List.of(event), AppendCondition.empty());
         TestCommandHandler.setHandlerLogic(cmd -> firstResult);
         ExecutionResult first = commandExecutor.executeCommand(command);
         assertTrue(first.wasCreated());

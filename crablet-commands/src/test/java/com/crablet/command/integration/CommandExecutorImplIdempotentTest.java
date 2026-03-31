@@ -32,7 +32,7 @@ class CommandExecutorImplIdempotentTest extends AbstractCommandTest {
     void executeCommand_WithEmptyResultWithReason_ShouldReturnIdempotent() {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
-        CommandResult emptyResult = new CommandResult(List.of(), AppendCondition.expectEmptyStream(), "ALREADY_PROCESSED");
+        CommandResult emptyResult = new CommandResult(List.of(), AppendCondition.empty(), "ALREADY_PROCESSED");
 
         TestCommandHandler.setHandlerLogic(cmd -> emptyResult);
 
@@ -49,7 +49,7 @@ class CommandExecutorImplIdempotentTest extends AbstractCommandTest {
     void executeCommand_WithEmptyResultWithoutReason_ShouldReturnIdempotent() {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
-        CommandResult emptyResult = new CommandResult(List.of(), AppendCondition.expectEmptyStream(), null);
+        CommandResult emptyResult = new CommandResult(List.of(), AppendCondition.empty(), null);
 
         TestCommandHandler.setHandlerLogic(cmd -> emptyResult);
 
@@ -67,7 +67,7 @@ class CommandExecutorImplIdempotentTest extends AbstractCommandTest {
     void executeCommand_WithEmptyResult_ShouldNotAppendEvents() {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
-        CommandResult emptyResult = new CommandResult(List.of(), AppendCondition.expectEmptyStream(), "ALREADY_PROCESSED");
+        CommandResult emptyResult = new CommandResult(List.of(), AppendCondition.empty(), "ALREADY_PROCESSED");
 
         TestCommandHandler.setHandlerLogic(cmd -> emptyResult);
 

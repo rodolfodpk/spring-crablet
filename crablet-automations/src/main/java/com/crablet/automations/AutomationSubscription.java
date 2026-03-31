@@ -32,6 +32,7 @@ public class AutomationSubscription {
     public Set<String> getRequiredTags() { return requiredTags; }
     public Set<String> getAnyOfTags() { return anyOfTags; }
 
+    /** Entry point for building a subscription. Prefer {@code handler.subscription(eventTypes)} to avoid repeating the automation name. */
     public static Builder builder(String automationName) {
         return new Builder(automationName);
     }
@@ -46,26 +47,31 @@ public class AutomationSubscription {
             this.automationName = automationName;
         }
 
+        /** Filter by event types (Set overload). */
         public Builder eventTypes(Set<String> eventTypes) {
             this.eventTypes = eventTypes;
             return this;
         }
 
+        /** Filter by event types (varargs overload). Use {@code type(MyEvent.class)} for type safety. */
         public Builder eventTypes(String... eventTypes) {
             this.eventTypes = new HashSet<>(Arrays.asList(eventTypes));
             return this;
         }
 
+        /** ALL of these tag keys must be present on the event for it to be delivered. */
         public Builder requiredTags(String... tagKeys) {
             this.requiredTags = new HashSet<>(Arrays.asList(tagKeys));
             return this;
         }
 
+        /** At least ONE of these tag keys must be present on the event for it to be delivered. */
         public Builder anyOfTags(String... tagKeys) {
             this.anyOfTags = new HashSet<>(Arrays.asList(tagKeys));
             return this;
         }
 
+        /** Builds the {@link AutomationSubscription}. */
         public AutomationSubscription build() {
             return new AutomationSubscription(automationName, eventTypes, requiredTags, anyOfTags);
         }

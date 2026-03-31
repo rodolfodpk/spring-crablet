@@ -15,8 +15,12 @@ public interface StateProjector<T> {
 
     /**
      * Get the unique identifier for this projector.
+     * Defaults to the simple class name. Override when multiple instances of the same class
+     * project different entities (e.g., include an entity ID in the returned string).
      */
-    String getId();
+    default String getId() {
+        return getClass().getSimpleName();
+    }
 
     /**
      * Get the event types this projector handles.

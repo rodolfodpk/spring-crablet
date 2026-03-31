@@ -14,9 +14,11 @@ public class YourCommandHandler implements CommandHandler<YourCommand> {
     public CommandResult handle(EventStore eventStore, YourCommand command) {
         // 1. Project current state
         Query decisionModel = YourQueryPatterns.yourDecisionModel(command.entityId());
+        // Single projector (convenience overload):
         ProjectionResult<YourState> projection = eventStore.project(
-            decisionModel, Cursor.zero(), YourState.class, List.of(yourProjector)
+            decisionModel, Cursor.zero(), yourProjector
         );
+        // Multiple projectors: eventStore.project(query, cursor, MyState.class, List.of(projA, projB))
         YourState state = projection.state();
 
         // 2. Validate business rules
@@ -32,7 +34,7 @@ public class YourCommandHandler implements CommandHandler<YourCommand> {
             .build();
 
         // 4. Build append condition (cursor-based)
-        AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
+        AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor())
             .build();
 
         // 5. Return result (CommandExecutor calls appendIf automatically)
@@ -317,7 +319,7 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 
 1. **Cursor-Based Check** (non-commutative operations):
    - Use for: Operations on existing entities (Withdraw, Transfer)
-   - Pattern: `new AppendConditionBuilder(decisionModel, cursor).build()`
+   - Pattern: `AppendConditionBuilder.of(decisionModel, cursor).build()`
    - Detects concurrent modifications via cursor position
 
 2. **Idempotency Check** (entity creation):
