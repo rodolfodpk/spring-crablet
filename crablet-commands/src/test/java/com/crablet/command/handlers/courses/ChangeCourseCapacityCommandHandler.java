@@ -13,8 +13,11 @@ import com.crablet.examples.course.CourseQueryPatterns;
 import com.crablet.examples.course.commands.ChangeCourseCapacityCommand;
 import com.crablet.examples.course.events.CourseCapacityChanged;
 import com.crablet.examples.course.exceptions.CourseNotFoundException;
+import com.crablet.eventstore.query.EventDeserializer;
+import com.crablet.eventstore.query.StateProjector;
+import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.examples.course.events.CourseDefined;
 import com.crablet.examples.course.projections.CourseCapacityProjection;
-import com.crablet.examples.course.projections.CourseExistsProjection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -92,8 +95,7 @@ public class ChangeCourseCapacityCommandHandler implements CommandHandler<Change
      * Composite projector for course state (existence + capacity).
      * Not a singleton - create instances as needed. This class is stateless and thread-safe.
      */
-    static class CourseStateProjector implements com.crablet.eventstore.query.StateProjector<CourseState> {
-        private final CourseExistsProjection existsProjection = new CourseExistsProjection();
+    static class CourseStateProjector implements StateProjector<CourseState> {
         private final CourseCapacityProjection capacityProjection = new CourseCapacityProjection();
 
         @Override
@@ -104,7 +106,7 @@ public class ChangeCourseCapacityCommandHandler implements CommandHandler<Change
         @Override
         public List<String> getEventTypes() {
             return List.of(
-                    type(com.crablet.examples.course.events.CourseDefined.class),
+                    type(CourseDefined.class),
                     type(CourseCapacityChanged.class)
             );
         }
@@ -115,9 +117,8 @@ public class ChangeCourseCapacityCommandHandler implements CommandHandler<Change
         }
 
         @Override
-        public CourseState transition(CourseState current, com.crablet.eventstore.store.StoredEvent event, 
-                                      com.crablet.eventstore.query.EventDeserializer context) {
-            Boolean exists = existsProjection.transition(current.courseExists(), event, context);
+        public CourseState transition(CourseState current, StoredEvent event, EventDeserializer context) {
+            boolean exists = current.courseExists() || event.type().equals(type(CourseDefined.class));
             Integer capacity = capacityProjection.transition(current.courseCapacity(), event, context);
             return new CourseState(exists, capacity);
         }

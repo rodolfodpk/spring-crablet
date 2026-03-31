@@ -93,48 +93,24 @@ To read an event back you project it into a state type. The simplest projector j
 
 ```java
 import com.crablet.eventstore.query.StateProjector;
-import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.QueryBuilder;
 import com.crablet.eventstore.store.Cursor;
-import com.crablet.eventstore.store.StoredEvent;
 
 import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.talks.TalkTags.TALK_ID;
 
-public class TalkExistsProjector implements StateProjector<Boolean> {
-
-    // getId() not needed — defaults to class simple name
-
-    @Override
-    public List<String> getEventTypes() {
-        return List.of(type(TalkSubmitted.class));
-    }
-
-    @Override
-    public Boolean getInitialState() { return false; }
-
-    @Override
-    public Boolean transition(Boolean current, StoredEvent event, EventDeserializer deserializer) {
-        return true; // any TalkSubmitted event means the talk exists
-    }
-}
-```
-
-Querying with it:
-
-```java
 var query = QueryBuilder.create()
     .events(type(TalkSubmitted.class))
     .tag(TALK_ID, "talk-1")
     .build();
 
-ProjectionResult<Boolean> result = eventStore.project(
-    query, Cursor.zero(), Boolean.class, List.of(new TalkExistsProjector())
-);
-
-boolean exists = result.state(); // true
+boolean exists = eventStore.project(
+    query, Cursor.zero(), StateProjector.exists(type(TalkSubmitted.class))
+).state();
 ```
+
+`StateProjector.exists(eventTypes...)` is a built-in factory that returns a projector yielding `true` on the first matching event — no boilerplate class needed.
 
 `Cursor.zero()` means "start from the beginning of the event log". `ProjectionResult` carries both the projected state and a cursor pointing to the last event that was read. You will use that cursor in Part 3.
 

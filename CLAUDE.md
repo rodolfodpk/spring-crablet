@@ -370,6 +370,7 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 - `transition(state, event, deserializer)` - Event-driven state transitions
 - `getEventTypes()` - Filter which events to process
 - `getInitialState()` - Starting state
+- `StateProjector.exists(eventTypes...)` - Built-in factory for existence checks (returns `true` on first matching event)
 
 **CommandHandler (crablet-commands/src/main/java/com/crablet/command/):**
 - `handle(eventStore, command)` - Returns `CommandResult`
