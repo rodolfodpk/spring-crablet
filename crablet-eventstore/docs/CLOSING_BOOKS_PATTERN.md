@@ -313,9 +313,18 @@ Statement events use idempotency checks to prevent duplicates:
 AppendCondition condition = AppendCondition.idempotent(type(WalletStatementOpened.class), STATEMENT_ID, periodId.toStreamId());
 ```
 
-If a `ConcurrencyException` indicates a duplicate (idempotency violation), it's treated as success - the event already exists. This allows safe retries and concurrent period creation attempts.
+If a `ConcurrencyException` carries an `IDEMPOTENCY_VIOLATION` error code, it's treated as success — the event already exists. Real concurrency conflicts (cursor-based violations) are re-thrown. This allows safe retries and concurrent period creation attempts.
 
-See: `WalletStatementPeriodResolver.appendOpenEvent()` and `appendCloseEvent()` methods (lines 285-358)
+```java
+} catch (ConcurrencyException e) {
+    if (e.violation != null && "IDEMPOTENCY_VIOLATION".equals(e.violation.errorCode())) {
+        return; // Already exists — idempotent success
+    }
+    throw e; // Real concurrency conflict — propagate
+}
+```
+
+See: `WalletStatementPeriodResolver.appendOpenEvent()` and `appendCloseEvent()`
 
 ## Transfers Across Periods
 

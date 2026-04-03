@@ -4,6 +4,9 @@ import com.crablet.eventstore.period.PeriodType;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.query.EventRepository;
+import com.crablet.eventstore.store.EventStoreException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
@@ -41,6 +44,8 @@ import static com.crablet.examples.wallet.WalletTags.*;
  */
 @Component
 public class WalletStatementPeriodResolver {
+
+    private static final Logger log = LoggerFactory.getLogger(WalletStatementPeriodResolver.class);
 
     private final EventRepository eventRepository;
     private final ClockProvider clock;
@@ -119,8 +124,11 @@ public class WalletStatementPeriodResolver {
             // WalletStatementOpened events set isExisting() to true and walletId
             // If we get here and state exists with non-empty walletId, events were found
             return result.state().isExisting() && !result.state().walletId().isEmpty();
+        } catch (EventStoreException e) {
+            log.debug("Projection failed for period existence check, assuming not exists: {}", e.getMessage());
+            return false;
         } catch (Exception e) {
-            // If projection fails or returns no events, period doesn't exist
+            log.warn("Unexpected error checking period existence for {}", periodId.toStreamId(), e);
             return false;
         }
     }
@@ -152,8 +160,11 @@ public class WalletStatementPeriodResolver {
             // If cursor advanced, events were processed
             // Initial cursor is zero, so if result.cursor() is not zero, events were found
             return result.cursor().position().value() > 0;
+        } catch (EventStoreException e) {
+            log.debug("Projection failed for period closed check, assuming not closed: {}", e.getMessage());
+            return false;
         } catch (Exception e) {
-            // If projection fails or returns no events, period isn't closed
+            log.warn("Unexpected error checking period closed status for {}", periodId.toStreamId(), e);
             return false;
         }
     }
@@ -300,10 +311,10 @@ public class WalletStatementPeriodResolver {
 
             eventStore.appendIf(List.of(event), condition);
         } catch (ConcurrencyException e) {
-            // Idempotency violation means event already exists - this is fine, it's idempotent
-            // The idempotency check throws ConcurrencyException when the event already exists
-            // We can safely treat this as success - the event is already there
-            return; // Success - event already exists (idempotent operation)
+            if (e.violation != null && "IDEMPOTENCY_VIOLATION".equals(e.violation.errorCode())) {
+                return; // Already exists — idempotent success
+            }
+            throw e; // Real concurrency conflict — propagate
         } catch (Exception e) {
             throw new RuntimeException("Failed to append WalletStatementClosed event", e);
         }
@@ -326,10 +337,10 @@ public class WalletStatementPeriodResolver {
 
             eventStore.appendIf(List.of(event), condition);
         } catch (ConcurrencyException e) {
-            // Idempotency violation means event already exists - this is fine, it's idempotent
-            // The idempotency check throws ConcurrencyException when the event already exists
-            // We can safely treat this as success - the event is already there
-            return; // Success - event already exists (idempotent operation)
+            if (e.violation != null && "IDEMPOTENCY_VIOLATION".equals(e.violation.errorCode())) {
+                return; // Already exists — idempotent success
+            }
+            throw e; // Real concurrency conflict — propagate
         } catch (Exception e) {
             throw new RuntimeException("Failed to append WalletStatementOpened event", e);
         }

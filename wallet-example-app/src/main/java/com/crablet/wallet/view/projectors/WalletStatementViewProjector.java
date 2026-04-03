@@ -21,6 +21,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 
 import static com.crablet.examples.wallet.WalletTags.DAY;
@@ -257,16 +258,14 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
      */
     private String extractStatementId(StoredEvent event, String walletId) {
         List<Tag> tags = event.tags();
-        Integer year = extractTagValue(tags, YEAR, Integer::parseInt);
-        Integer month = extractTagValue(tags, MONTH, Integer::parseInt);
-        Integer day = extractTagValue(tags, DAY, Integer::parseInt);
-        Integer hour = extractTagValue(tags, HOUR, Integer::parseInt);
-
-        if (year == null) {
+        Optional<Integer> year = extractTagValue(tags, YEAR, Integer::parseInt);
+        if (year.isEmpty()) {
             return null; // No period tags
         }
-
-        return buildStatementId(walletId, year, month, day, hour);
+        Integer month = extractTagValue(tags, MONTH, Integer::parseInt).orElse(null);
+        Integer day = extractTagValue(tags, DAY, Integer::parseInt).orElse(null);
+        Integer hour = extractTagValue(tags, HOUR, Integer::parseInt).orElse(null);
+        return buildStatementId(walletId, year.get(), month, day, hour);
     }
 
     /**
@@ -280,42 +279,43 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
         String dayTag = isFromWallet ? FROM_DAY : TO_DAY;
         String hourTag = isFromWallet ? FROM_HOUR : TO_HOUR;
 
-        // Try transfer-specific tags first
-        Integer year = extractTagValue(tags, yearTag, Integer::parseInt);
-        Integer month = extractTagValue(tags, monthTag, Integer::parseInt);
-        Integer day = extractTagValue(tags, dayTag, Integer::parseInt);
-        Integer hour = extractTagValue(tags, hourTag, Integer::parseInt);
-
-        // Fallback to regular tags if transfer-specific tags not found
-        if (year == null) {
+        // Try transfer-specific tags first, fallback to regular tags
+        Optional<Integer> year = extractTagValue(tags, yearTag, Integer::parseInt);
+        String resolvedMonthTag = monthTag;
+        String resolvedDayTag = dayTag;
+        String resolvedHourTag = hourTag;
+        if (year.isEmpty()) {
             year = extractTagValue(tags, YEAR, Integer::parseInt);
-            month = extractTagValue(tags, MONTH, Integer::parseInt);
-            day = extractTagValue(tags, DAY, Integer::parseInt);
-            hour = extractTagValue(tags, HOUR, Integer::parseInt);
+            resolvedMonthTag = MONTH;
+            resolvedDayTag = DAY;
+            resolvedHourTag = HOUR;
         }
 
-        if (year == null) {
+        if (year.isEmpty()) {
             return null; // No period tags
         }
 
-        return buildStatementId(walletId, year, month, day, hour);
+        Integer month = extractTagValue(tags, resolvedMonthTag, Integer::parseInt).orElse(null);
+        Integer day = extractTagValue(tags, resolvedDayTag, Integer::parseInt).orElse(null);
+        Integer hour = extractTagValue(tags, resolvedHourTag, Integer::parseInt).orElse(null);
+        return buildStatementId(walletId, year.get(), month, day, hour);
     }
 
     /**
      * Extract tag value from tags list.
      */
-    private <T> T extractTagValue(List<Tag> tags, String tagKey, Function<String, T> parser) {
-        for (Tag tag : tags) {
-            if (tag.key().equals(tagKey)) {
+    private <T> Optional<T> extractTagValue(List<Tag> tags, String tagKey, Function<String, T> parser) {
+        return tags.stream()
+            .filter(t -> tagKey.equals(t.key()))
+            .findFirst()
+            .flatMap(tag -> {
                 try {
-                    return parser.apply(tag.value());
+                    return Optional.ofNullable(parser.apply(tag.value()));
                 } catch (Exception e) {
                     log.warn("Failed to parse tag value: {} = {}", tagKey, tag.value(), e);
-                    return null;
+                    return Optional.empty();
                 }
-            }
-        }
-        return null;
+            });
     }
 
     /**
