@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crablet Management Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .section-card { margin-bottom: 2rem; }
+        .badge-ACTIVE { background-color: #198754 !important; }
+        .badge-PAUSED { background-color: #ffc107 !important; color: #212529 !important; }
+        .badge-FAILED { background-color: #dc3545 !important; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-dark mb-4">
+    <div class="container-fluid">
+        <span class="navbar-brand mb-0 h1">Crablet Management Dashboard</span>
+        <div class="d-flex gap-3 align-items-center">
+            <a href="/swagger-ui.html" class="text-white text-decoration-none small">API Docs</a>
+            <span class="text-white-50 small" id="last-refresh"></span>
+        </div>
+    </div>
+</nav>
+
+<main class="container-fluid px-4">
+
+    <!-- ===== Views Section ===== -->
+    <div class="card section-card shadow-sm"
+         id="views-panel"
+         hx-get="/dashboard/views"
+         hx-trigger="every 5s"
+         hx-swap="innerHTML">
+
+        <div th:fragment="views-section">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Views</h5>
+                <span class="badge bg-secondary" th:text="${views.size()} + ' projections'">0 projections</span>
+            </div>
+            <div class="card-body p-0">
+                <p th:if="${views.empty}" class="p-3 text-muted mb-0">No view projections registered.</p>
+                <table th:unless="${views.empty}" class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Position</th>
+                            <th>Last Updated</th>
+                            <th>Errors</th>
+                            <th>Leader Instance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="v : ${views}">
+                            <td th:text="${v.viewName}" class="fw-semibold"></td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${'badge-' + v.status.name()}"
+                                      th:text="${v.status.name()}"></span>
+                            </td>
+                            <td th:text="${v.lastPosition}"></td>
+                            <td th:text="${v.lastUpdatedAt != null ? v.lastUpdatedAt : '-'}"></td>
+                            <td>
+                                <span th:if="${v.errorCount > 0}" class="text-danger fw-bold" th:text="${v.errorCount}"></span>
+                                <span th:unless="${v.errorCount > 0}" class="text-muted">0</span>
+                            </td>
+                            <td class="text-muted small" th:text="${v.instanceId != null ? v.instanceId : '-'}"></td>
+                            <td>
+                                <button th:if="${v.status.name() == 'ACTIVE'}"
+                                        class="btn btn-sm btn-outline-warning"
+                                        th:attr="hx-post='/dashboard/views/' + ${v.viewName} + '/pause'"
+                                        hx-target="#views-panel"
+                                        hx-swap="innerHTML">Pause</button>
+                                <button th:if="${v.status.name() == 'PAUSED'}"
+                                        class="btn btn-sm btn-outline-success"
+                                        th:attr="hx-post='/dashboard/views/' + ${v.viewName} + '/resume'"
+                                        hx-target="#views-panel"
+                                        hx-swap="innerHTML">Resume</button>
+                                <button th:if="${v.status.name() == 'FAILED'}"
+                                        class="btn btn-sm btn-outline-danger"
+                                        th:attr="hx-post='/dashboard/views/' + ${v.viewName} + '/reset'"
+                                        hx-target="#views-panel"
+                                        hx-swap="innerHTML">Reset</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Outbox Section ===== -->
+    <div class="card section-card shadow-sm"
+         id="outbox-panel"
+         hx-get="/dashboard/outbox"
+         hx-trigger="every 5s"
+         hx-swap="innerHTML">
+
+        <div th:fragment="outbox-section">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Outbox Publishers</h5>
+                <span class="badge bg-secondary" th:text="${outboxList.size()} + ' publishers'">0 publishers</span>
+            </div>
+            <div class="card-body p-0">
+                <p th:if="${outboxList.empty}" class="p-3 text-muted mb-0">No outbox publishers registered.</p>
+                <table th:unless="${outboxList.empty}" class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Topic</th>
+                            <th>Publisher</th>
+                            <th>Status</th>
+                            <th>Position</th>
+                            <th>Last Published</th>
+                            <th>Errors</th>
+                            <th>Leader Instance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="o : ${outboxList}">
+                            <td th:text="${o.topic}" class="fw-semibold"></td>
+                            <td th:text="${o.publisher}"></td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${'badge-' + o.status.name()}"
+                                      th:text="${o.status.name()}"></span>
+                            </td>
+                            <td th:text="${o.lastPosition}"></td>
+                            <td th:text="${o.lastPublishedAt != null ? o.lastPublishedAt : '-'}"></td>
+                            <td>
+                                <span th:if="${o.errorCount > 0}" class="text-danger fw-bold" th:text="${o.errorCount}"></span>
+                                <span th:unless="${o.errorCount > 0}" class="text-muted">0</span>
+                            </td>
+                            <td class="text-muted small" th:text="${o.leaderInstance != null ? o.leaderInstance : '-'}"></td>
+                            <td>
+                                <button th:if="${o.status.name() == 'ACTIVE'}"
+                                        class="btn btn-sm btn-outline-warning"
+                                        th:attr="hx-post='/dashboard/outbox/' + ${o.topic} + '/publishers/' + ${o.publisher} + '/pause'"
+                                        hx-target="#outbox-panel"
+                                        hx-swap="innerHTML">Pause</button>
+                                <button th:if="${o.status.name() == 'PAUSED'}"
+                                        class="btn btn-sm btn-outline-success"
+                                        th:attr="hx-post='/dashboard/outbox/' + ${o.topic} + '/publishers/' + ${o.publisher} + '/resume'"
+                                        hx-target="#outbox-panel"
+                                        hx-swap="innerHTML">Resume</button>
+                                <button th:if="${o.status.name() == 'FAILED'}"
+                                        class="btn btn-sm btn-outline-danger"
+                                        th:attr="hx-post='/dashboard/outbox/' + ${o.topic} + '/publishers/' + ${o.publisher} + '/reset'"
+                                        hx-target="#outbox-panel"
+                                        hx-swap="innerHTML">Reset</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Automations Section ===== -->
+    <div class="card section-card shadow-sm"
+         id="automations-panel"
+         hx-get="/dashboard/automations"
+         hx-trigger="every 5s"
+         hx-swap="innerHTML">
+
+        <div th:fragment="automations-section">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Automations</h5>
+                <span class="badge bg-secondary" th:text="${automations.size()} + ' automations'">0 automations</span>
+            </div>
+            <div class="card-body p-0">
+                <p th:if="${automations.empty}" class="p-3 text-muted mb-0">No automations registered.</p>
+                <table th:unless="${automations.empty}" class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Position</th>
+                            <th>Last Updated</th>
+                            <th>Errors</th>
+                            <th>Leader Instance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="a : ${automations}">
+                            <td th:text="${a.automationName}" class="fw-semibold"></td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${'badge-' + a.status.name()}"
+                                      th:text="${a.status.name()}"></span>
+                            </td>
+                            <td th:text="${a.lastPosition}"></td>
+                            <td th:text="${a.lastUpdatedAt != null ? a.lastUpdatedAt : '-'}"></td>
+                            <td>
+                                <span th:if="${a.errorCount > 0}" class="text-danger fw-bold" th:text="${a.errorCount}"></span>
+                                <span th:unless="${a.errorCount > 0}" class="text-muted">0</span>
+                            </td>
+                            <td class="text-muted small" th:text="${a.instanceId != null ? a.instanceId : '-'}"></td>
+                            <td>
+                                <button th:if="${a.status.name() == 'ACTIVE'}"
+                                        class="btn btn-sm btn-outline-warning"
+                                        th:attr="hx-post='/dashboard/automations/' + ${a.automationName} + '/pause'"
+                                        hx-target="#automations-panel"
+                                        hx-swap="innerHTML">Pause</button>
+                                <button th:if="${a.status.name() == 'PAUSED'}"
+                                        class="btn btn-sm btn-outline-success"
+                                        th:attr="hx-post='/dashboard/automations/' + ${a.automationName} + '/resume'"
+                                        hx-target="#automations-panel"
+                                        hx-swap="innerHTML">Resume</button>
+                                <button th:if="${a.status.name() == 'FAILED'}"
+                                        class="btn btn-sm btn-outline-danger"
+                                        th:attr="hx-post='/dashboard/automations/' + ${a.automationName} + '/reset'"
+                                        hx-target="#automations-panel"
+                                        hx-swap="innerHTML">Reset</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+<script>
+    document.body.addEventListener('htmx:afterRequest', function() {
+        document.getElementById('last-refresh').textContent =
+            'Last refresh: ' + new Date().toLocaleTimeString();
+    });
+</script>
+</body>
+</html>

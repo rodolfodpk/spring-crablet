@@ -1,0 +1,141 @@
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- Lane backgrounds -->
+    <mxCell id="bg_cmd" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+      <mxGeometry x="80" y="0" width="1280" height="120" as="geometry" />
+    </mxCell>
+    <mxCell id="bg_evt" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;" vertex="1" parent="1">
+      <mxGeometry x="80" y="120" width="1280" height="150" as="geometry" />
+    </mxCell>
+    <mxCell id="bg_rm" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+      <mxGeometry x="80" y="270" width="1280" height="120" as="geometry" />
+    </mxCell>
+    <mxCell id="bg_auto" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+      <mxGeometry x="80" y="390" width="1280" height="120" as="geometry" />
+    </mxCell>
+
+    <!-- Lane labels -->
+    <mxCell id="lbl_cmd" value="Commands" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;rotation=-90;" vertex="1" parent="1">
+      <mxGeometry x="0" y="0" width="80" height="120" as="geometry" />
+    </mxCell>
+    <mxCell id="lbl_evt" value="Events" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;rotation=-90;" vertex="1" parent="1">
+      <mxGeometry x="0" y="120" width="80" height="150" as="geometry" />
+    </mxCell>
+    <mxCell id="lbl_rm" value="Read Models" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;rotation=-90;" vertex="1" parent="1">
+      <mxGeometry x="0" y="270" width="80" height="120" as="geometry" />
+    </mxCell>
+    <mxCell id="lbl_auto" value="Automations" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;rotation=-90;" vertex="1" parent="1">
+      <mxGeometry x="0" y="390" width="80" height="120" as="geometry" />
+    </mxCell>
+
+    <!-- Commands -->
+    <mxCell id="cmd_open" value="OpenWallet" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="120" y="35" width="140" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="cmd_deposit" value="Deposit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="300" y="35" width="140" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="cmd_withdraw" value="Withdraw" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="480" y="35" width="140" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="cmd_transfer" value="TransferMoney" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="660" y="35" width="140" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="cmd_notify" value="SendWelcomeNotification" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="1000" y="35" width="180" height="50" as="geometry" />
+    </mxCell>
+
+    <!-- Events -->
+    <mxCell id="evt_opened" value="WalletOpened" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="120" y="150" width="140" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="evt_deposit" value="DepositMade" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="300" y="150" width="140" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="evt_withdraw" value="WithdrawalMade" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="480" y="150" width="140" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="evt_transfer" value="MoneyTransferred" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="660" y="150" width="140" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="evt_statement" value="WalletStatementOpened" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="840" y="150" width="160" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="evt_welcome" value="WelcomeNotificationSent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="1000" y="150" width="180" height="50" as="geometry" />
+    </mxCell>
+
+    <!-- DCB Annotations -->
+    <mxCell id="ann_opened" value="idempotent(wallet_id)" style="text;html=1;align=center;verticalAlign=top;fontSize=10;fontStyle=2;fontColor=#8A6914;" vertex="1" parent="1">
+      <mxGeometry x="120" y="202" width="140" height="18" as="geometry" />
+    </mxCell>
+    <mxCell id="ann_deposit" value="commutative" style="text;html=1;align=center;verticalAlign=top;fontSize=10;fontStyle=2;fontColor=#8A6914;" vertex="1" parent="1">
+      <mxGeometry x="300" y="202" width="140" height="18" as="geometry" />
+    </mxCell>
+    <mxCell id="ann_withdraw" value="cursor(wallet_id)" style="text;html=1;align=center;verticalAlign=top;fontSize=10;fontStyle=2;fontColor=#8A6914;" vertex="1" parent="1">
+      <mxGeometry x="480" y="202" width="140" height="18" as="geometry" />
+    </mxCell>
+    <mxCell id="ann_transfer" value="cursor(from_wallet_id + to_wallet_id)" style="text;html=1;align=center;verticalAlign=top;fontSize=9;fontStyle=2;fontColor=#8A6914;" vertex="1" parent="1">
+      <mxGeometry x="640" y="202" width="180" height="18" as="geometry" />
+    </mxCell>
+    <mxCell id="ann_welcome" value="idempotent(wallet_id)" style="text;html=1;align=center;verticalAlign=top;fontSize=10;fontStyle=2;fontColor=#8A6914;" vertex="1" parent="1">
+      <mxGeometry x="1000" y="202" width="180" height="18" as="geometry" />
+    </mxCell>
+
+    <!-- Read Models -->
+    <mxCell id="rm_balance" value="Wallet Balance View" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="310" y="300" width="160" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="rm_history" value="Wallet History View" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="670" y="300" width="160" height="50" as="geometry" />
+    </mxCell>
+
+    <!-- Automations -->
+    <mxCell id="auto_reaction" value="WalletOpenedReaction" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="120" y="420" width="160" height="50" as="geometry" />
+    </mxCell>
+
+    <!-- Edges: Commands to Events -->
+    <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="cmd_open" target="evt_opened" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="cmd_deposit" target="evt_deposit" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="cmd_withdraw" target="evt_withdraw" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="cmd_transfer" target="evt_transfer" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="cmd_notify" target="evt_welcome" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Edges: Events to Read Models -->
+    <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="evt_opened" target="rm_balance" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="evt_deposit" target="rm_balance" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="evt_withdraw" target="rm_balance" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" source="evt_transfer" target="rm_history" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Edges: Automation flow (dashed) -->
+    <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;strokeColor=#b85450;" edge="1" source="evt_opened" target="auto_reaction" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;strokeColor=#b85450;" edge="1" source="auto_reaction" target="cmd_notify" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+  </root>
+</mxGraphModel>
