@@ -1,0 +1,31 @@
+name: Export draw.io diagrams
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**/*.drawio'
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Export draw.io diagrams to PNG
+        uses: rlespinasse/drawio-export-action@v2
+        with:
+          path: shared-examples-domain/docs
+          format: png
+          output: .
+          transparent: false
+
+      - name: Commit exported images
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "docs: auto-export draw.io diagrams to PNG"
+          file_pattern: "**/*.drawio.png"
