@@ -3,7 +3,7 @@
 ## Quick Reference
 
 **Pattern Decision Tree:**
-1. **Creating new entity?** → Use `withIdempotencyCheck()` (Pattern 1)
+1. **Creating new entity?** → Use `AppendCondition.idempotent()` (Pattern 1)
 2. **Commutative operation?** (order doesn't matter) → Use `AppendCondition.empty()` (Pattern 2)
 3. **Non-commutative operation?** (order matters) → Use `AppendConditionBuilder(decisionModel, cursor)` (Pattern 3)
 
@@ -11,7 +11,7 @@
 
 | Operation | Type | DCB Check | Can Run Parallel? |
 |-----------|------|-----------|-------------------|
-| **OpenWallet** | Entity Creation | `withIdempotencyCheck()` | ✅ |
+| **OpenWallet** | Entity Creation | `AppendCondition.idempotent()` | ✅ |
 | **Deposit** | Commutative | `AppendCondition.empty()` | ✅ |
 | **Withdraw** | Non-Commutative | `AppendConditionBuilder(decisionModel, cursor)` | ❌ |
 | **Transfer** | Non-Commutative | `AppendConditionBuilder(decisionModel, cursor)` | ❌ |
@@ -85,17 +85,15 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
             .build();
         
         // Idempotency check prevents duplicate wallet creation
-        AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
-            .withIdempotencyCheck(type(WalletOpened.class), WALLET_ID, command.walletId())
-            .build();
-        
+        AppendCondition condition = AppendCondition.idempotent(type(WalletOpened.class), WALLET_ID, command.walletId());
+
         return CommandResult.of(List.of(event), condition);
     }
 }
 ```
 
 **Key Points:**
-- ✅ Uses `withIdempotencyCheck()` for uniqueness
+- ✅ Uses `AppendCondition.idempotent()` for uniqueness
 - ✅ No cursor check (no prior state)
 - ✅ Idempotent: can run multiple times safely
 
@@ -183,7 +181,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
             .build();
         
         // Cursor check prevents concurrent withdrawals exceeding balance
-        AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
+        AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor())
             .build();
         
         return CommandResult.of(List.of(event), condition);
@@ -219,7 +217,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
             .build();
         
         // Cursor check prevents concurrent transfers causing overdrafts
-        AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
+        AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor())
             .build();
         
         return CommandResult.of(List.of(event), condition);
@@ -236,7 +234,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 
 ## When to Use Each Pattern
 
-### Use `withIdempotencyCheck()` When:
+### Use `AppendCondition.idempotent()` When:
 - ✅ Creating new entities with uniqueness requirements
 - ✅ No prior state exists to read cursor from
 - ✅ Need to prevent duplicates atomically
@@ -270,7 +268,7 @@ Operation IDs like `deposit_id`, `withdrawal_id`, and `transfer_id` are **option
 - When operations are commutative by design
 - When you rely on DCB cursor checks for concurrency control
 
-**Note:** These are different from DCB's `withIdempotencyCheck()`, which is an atomic database-level check for entity uniqueness.
+**Note:** These are different from DCB's `AppendCondition.idempotent()`, which is an atomic database-level check for entity uniqueness.
 
 ## Common Mistakes
 
@@ -282,15 +280,13 @@ AppendCondition condition = AppendCondition.empty();
 
 ✅ **Correct:**
 ```java
-AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
-    .withIdempotencyCheck(type(WalletOpened.class), WALLET_ID, walletId)
-    .build();
+AppendCondition condition = AppendCondition.idempotent(type(WalletOpened.class), WALLET_ID, walletId);
 ```
 
 ❌ **Using cursor for deposits:**
 ```java
 // WRONG: Deposits don't need cursor check
-AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor()).build();
+AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor()).build();
 ```
 
 ✅ **Correct:**
@@ -308,7 +304,7 @@ AppendCondition condition = AppendCondition.empty();
 ✅ **Correct:**
 ```java
 // RIGHT: Withdrawals are non-commutative
-AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor()).build();
+AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor()).build();
 ```
 
 ## Learn More

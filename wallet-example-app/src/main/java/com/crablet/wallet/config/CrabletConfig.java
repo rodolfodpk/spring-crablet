@@ -2,7 +2,7 @@ package com.crablet.wallet.config;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandExecutorImpl;
-import com.crablet.eventprocessor.InstanceIdProvider;
+import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.clock.ClockProviderImpl;
 import com.crablet.eventstore.query.EventRepository;
@@ -14,6 +14,8 @@ import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
 import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
+import com.crablet.automations.AutomationSubscription;
+import com.crablet.wallet.reactions.WalletOpenedReaction;
 import com.crablet.views.config.ViewsConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -131,6 +133,13 @@ public class CrabletConfig {
             ObjectMapper objectMapper,
             ApplicationEventPublisher eventPublisher) {
         return new CommandExecutorImpl(eventStore, commandHandlers, config, clock, objectMapper, eventPublisher);
+    }
+
+    @Bean
+    public AutomationSubscription walletOpenedWelcomeNotificationSubscription(WalletOpenedReaction handler) {
+        return handler.subscription(
+                com.crablet.eventstore.store.EventType.type(
+                        com.crablet.examples.wallet.events.WalletOpened.class));
     }
 }
 

@@ -1,6 +1,7 @@
 package com.crablet.eventstore.query;
 
 import com.crablet.eventstore.store.Cursor;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,7 +13,7 @@ import java.util.List;
 public class QuerySqlBuilderImpl implements QuerySqlBuilder {
     
     @Override
-    public String buildWhereClause(Query query, Cursor after, List<Object> params) {
+    public String buildWhereClause(Query query, @Nullable Cursor after, List<Object> params) {
         StringBuilder whereClause = new StringBuilder();
         
         // after_position parameter

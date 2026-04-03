@@ -1,15 +1,16 @@
 package com.crablet.outbox.config;
 
-import com.crablet.eventprocessor.EventFetcher;
-import com.crablet.eventprocessor.EventHandler;
-import com.crablet.eventprocessor.InstanceIdProvider;
-import com.crablet.eventprocessor.leader.LeaderElector;
-import com.crablet.eventprocessor.leader.LeaderElectorImpl;
-import com.crablet.eventprocessor.management.ProcessorManagementService;
-import com.crablet.eventprocessor.management.ProcessorManagementServiceImpl;
-import com.crablet.eventprocessor.processor.EventProcessor;
-import com.crablet.eventprocessor.processor.EventProcessorImpl;
-import com.crablet.eventprocessor.progress.ProgressTracker;
+import com.crablet.eventpoller.EventFetcher;
+import com.crablet.eventpoller.EventHandler;
+import com.crablet.eventpoller.InstanceIdProvider;
+import com.crablet.eventpoller.leader.LeaderElector;
+import com.crablet.eventpoller.leader.LeaderElectorImpl;
+import com.crablet.eventpoller.management.ProcessorManagementService;
+import com.crablet.eventpoller.management.ProcessorManagementServiceImpl;
+import com.crablet.outbox.management.OutboxManagementService;
+import com.crablet.eventpoller.processor.EventProcessor;
+import com.crablet.eventpoller.processor.EventProcessorImpl;
+import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.TopicConfig;
@@ -181,14 +182,21 @@ public class OutboxAutoConfiguration {
     }
     
     /**
-     * Create ProcessorManagementService bean for outbox management.
+     * Create OutboxManagementService bean for outbox management.
+     *
+     * <p>Can be injected as either {@code OutboxManagementService} for outbox-specific
+     * progress details, or as {@code ProcessorManagementService<TopicPublisherPair>}
+     * for generic operations.
      */
     @Bean
-    public ProcessorManagementService<TopicPublisherPair> outboxManagementService(
+    public OutboxManagementService outboxManagementService(
             EventProcessor<OutboxProcessorConfig, TopicPublisherPair> eventProcessor,
             ProgressTracker<TopicPublisherPair> progressTracker,
-            @Qualifier("readDataSource") DataSource readDataSource) {
-        return new ProcessorManagementServiceImpl<>(eventProcessor, progressTracker, readDataSource);
+            @Qualifier("readDataSource") DataSource readDataSource,
+            @Qualifier("primaryDataSource") DataSource primaryDataSource) {
+        ProcessorManagementService<TopicPublisherPair> delegate =
+                new ProcessorManagementServiceImpl<>(eventProcessor, progressTracker, readDataSource);
+        return new OutboxManagementService(delegate, primaryDataSource);
     }
 }
 

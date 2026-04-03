@@ -20,18 +20,17 @@
             <artifactId>crablet-eventstore</artifactId>
         </dependency>
         
-        <!-- Crablet Event Store (test-jar) for test resources (Flyway migrations) -->
+        <!-- Test support: provides Flyway migrations and test utilities -->
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-eventstore</artifactId>
+            <artifactId>crablet-test-support</artifactId>
             <version>${project.version}</version>
-            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-command</artifactId>
+            <artifactId>crablet-commands</artifactId>
         </dependency>
         <dependency>
             <groupId>com.crablet</groupId>
@@ -39,7 +38,7 @@
         </dependency>
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-event-processor</artifactId>
+            <artifactId>crablet-event-poller</artifactId>
         </dependency>
         
         <!-- Micrometer -->
@@ -95,7 +94,7 @@
         </dependency>
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-command</artifactId>
+            <artifactId>crablet-commands</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
             <version>${project.version}</version>

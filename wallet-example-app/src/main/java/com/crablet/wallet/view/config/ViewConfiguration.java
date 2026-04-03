@@ -1,8 +1,20 @@
 package com.crablet.wallet.view.config;
 
+import com.crablet.examples.wallet.events.DepositMade;
+import com.crablet.examples.wallet.events.MoneyTransferred;
+import com.crablet.examples.wallet.events.WalletOpened;
+import com.crablet.examples.wallet.events.WalletStatementClosed;
+import com.crablet.examples.wallet.events.WalletStatementOpened;
+import com.crablet.examples.wallet.events.WithdrawalMade;
 import com.crablet.views.config.ViewSubscriptionConfig;
+import com.crablet.wallet.view.projectors.WalletBalanceViewProjector;
+import com.crablet.wallet.view.projectors.WalletStatementViewProjector;
+import com.crablet.wallet.view.projectors.WalletSummaryViewProjector;
+import com.crablet.wallet.view.projectors.WalletTransactionViewProjector;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import static com.crablet.eventstore.store.EventType.type;
 
 /**
  * Configuration for view subscriptions.
@@ -11,58 +23,43 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ViewConfiguration {
 
-    /**
-     * Wallet balance view subscription.
-     * Subscribes to all wallet events that affect balance.
-     */
+    private static final String[] WALLET_ANY_OF_TAGS = {"wallet_id", "from_wallet_id", "to_wallet_id"};
+
     @Bean
-    public ViewSubscriptionConfig walletBalanceViewSubscription() {
-        return ViewSubscriptionConfig.builder("wallet-balance-view")
-                .eventTypes("WalletOpened", "DepositMade", "WithdrawalMade", "MoneyTransferred")
-                .anyOfTags("wallet_id", "from_wallet_id", "to_wallet_id")
+    public ViewSubscriptionConfig walletBalanceViewSubscription(WalletBalanceViewProjector projector) {
+        return ViewSubscriptionConfig.builder(projector.getViewName())
+                .eventTypes(type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class), type(MoneyTransferred.class))
+                .anyOfTags(WALLET_ANY_OF_TAGS)
                 .build();
     }
 
-    /**
-     * Wallet transaction view subscription.
-     * Subscribes to transaction events (deposits, withdrawals, transfers).
-     */
     @Bean
-    public ViewSubscriptionConfig walletTransactionViewSubscription() {
-        return ViewSubscriptionConfig.builder("wallet-transaction-view")
-                .eventTypes("DepositMade", "WithdrawalMade", "MoneyTransferred")
-                .anyOfTags("wallet_id", "from_wallet_id", "to_wallet_id")
+    public ViewSubscriptionConfig walletTransactionViewSubscription(WalletTransactionViewProjector projector) {
+        return ViewSubscriptionConfig.builder(projector.getViewName())
+                .eventTypes(type(DepositMade.class), type(WithdrawalMade.class), type(MoneyTransferred.class))
+                .anyOfTags(WALLET_ANY_OF_TAGS)
                 .build();
     }
 
-    /**
-     * Wallet summary view subscription.
-     * Subscribes to all wallet events for aggregated statistics.
-     */
     @Bean
-    public ViewSubscriptionConfig walletSummaryViewSubscription() {
-        return ViewSubscriptionConfig.builder("wallet-summary-view")
-                .eventTypes("WalletOpened", "DepositMade", "WithdrawalMade", "MoneyTransferred")
-                .anyOfTags("wallet_id", "from_wallet_id", "to_wallet_id")
+    public ViewSubscriptionConfig walletSummaryViewSubscription(WalletSummaryViewProjector projector) {
+        return ViewSubscriptionConfig.builder(projector.getViewName())
+                .eventTypes(type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class), type(MoneyTransferred.class))
+                .anyOfTags(WALLET_ANY_OF_TAGS)
                 .build();
     }
 
-    /**
-     * Wallet statement view subscription.
-     * Subscribes to statement events and transaction events for period tracking.
-     */
     @Bean
-    public ViewSubscriptionConfig walletStatementViewSubscription() {
-        return ViewSubscriptionConfig.builder("wallet-statement-view")
+    public ViewSubscriptionConfig walletStatementViewSubscription(WalletStatementViewProjector projector) {
+        return ViewSubscriptionConfig.builder(projector.getViewName())
                 .eventTypes(
-                    "WalletStatementOpened",
-                    "WalletStatementClosed",
-                    "DepositMade",
-                    "WithdrawalMade",
-                    "MoneyTransferred"
+                    type(WalletStatementOpened.class),
+                    type(WalletStatementClosed.class),
+                    type(DepositMade.class),
+                    type(WithdrawalMade.class),
+                    type(MoneyTransferred.class)
                 )
-                .anyOfTags("wallet_id", "from_wallet_id", "to_wallet_id")
+                .anyOfTags(WALLET_ANY_OF_TAGS)
                 .build();
     }
 }
-

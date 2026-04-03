@@ -38,6 +38,12 @@ jobs:
           java-version: '25'
           cache: 'maven'  # Caches ~/.m2/repository
 
+      - name: Cache Maven wrapper binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/wrapper
+          key: ${{ runner.os }}-maven-wrapper-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}
+
       - name: Build with Maven (handles cyclic dependencies)
         run: make ci-verify
 

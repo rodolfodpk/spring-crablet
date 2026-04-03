@@ -3,15 +3,15 @@
  * <p>
  * This package previously provided management functionality for monitoring and controlling
  * outbox operations. The management functionality has been moved to the generic
- * {@link com.crablet.eventprocessor.management.ProcessorManagementService} and
- * {@link com.crablet.eventprocessor.management.ProcessorManagementController} in the
- * {@code crablet-event-processor} module.
+ * {@link com.crablet.eventpoller.management.ProcessorManagementService} and
+ * {@link com.crablet.eventpoller.management.ProcessorManagementController} in the
+ * {@code crablet-event-poller} module.
  * <p>
  * <strong>Current Architecture:</strong>
  * Management operations are now provided by the generic processor infrastructure:
  * <ul>
- *   <li>{@link com.crablet.eventprocessor.management.ProcessorManagementService} - Generic management service</li>
- *   <li>{@link com.crablet.eventprocessor.management.ProcessorManagementController} - Generic REST API</li>
+ *   <li>{@link com.crablet.eventpoller.management.ProcessorManagementService} - Generic management service</li>
+ *   <li>{@link com.crablet.eventpoller.management.ProcessorManagementController} - Generic REST API</li>
  * </ul>
  * <p>
  * <strong>Management Operations:</strong>
@@ -37,8 +37,8 @@
  * The management service and controller are automatically available when using the
  * generic event processor. No additional configuration is required.
  *
- * @see com.crablet.eventprocessor.management.ProcessorManagementService
- * @see com.crablet.eventprocessor.management.ProcessorManagementController
+ * @see com.crablet.eventpoller.management.ProcessorManagementService
+ * @see com.crablet.eventpoller.management.ProcessorManagementController
  */
 package com.crablet.outbox.management;
 

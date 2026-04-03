@@ -50,7 +50,7 @@ component_management:
     - component_id: module_command
       name: Command
       paths:
-        - "crablet-command/src/main/**"
+        - "crablet-commands/src/main/**"
       statuses:
         - type: project
           target: auto
@@ -80,7 +80,7 @@ component_management:
     - component_id: module_event_processor
       name: Event Processor
       paths:
-        - "crablet-event-processor/src/main/**"
+        - "crablet-event-poller/src/main/**"
       statuses:
         - type: project
           target: auto
@@ -91,6 +91,16 @@ component_management:
       name: Views
       paths:
         - "crablet-views/src/main/**"
+      statuses:
+        - type: project
+          target: auto
+        - type: patch
+          target: auto
+
+    - component_id: module_automations
+      name: Automations
+      paths:
+        - "crablet-automations/src/main/**"
       statuses:
         - type: project
           target: auto

@@ -1,5 +1,7 @@
 package com.crablet.eventstore.dcb;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Value object representing a DCB (Dynamic Consistency Boundary) violation.
  * Captures structured error information from the append_events_if PL/SQL function.
@@ -7,7 +9,7 @@ package com.crablet.eventstore.dcb;
  * This provides rich context for debugging concurrency conflicts and can inform
  * retry strategies.
  */
-public record DCBViolation(String errorCode, String message, int matchingEventsCount) {
+public record DCBViolation(@Nullable String errorCode, @Nullable String message, int matchingEventsCount) {
     
     @Override
     public String toString() {

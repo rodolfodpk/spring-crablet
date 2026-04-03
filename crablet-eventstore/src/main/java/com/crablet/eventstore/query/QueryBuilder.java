@@ -18,6 +18,10 @@ public class QueryBuilder {
     private QueryBuilder() {
     }
 
+    /**
+     * Entry point for the fluent query DSL.
+     * Chain {@link #event}, {@link #events}, or {@link #matching} calls, then {@link #build}.
+     */
     public static QueryBuilder create() {
         return new QueryBuilder();
     }

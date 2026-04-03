@@ -215,7 +215,7 @@ ProjectionResult<WalletBalance> result = eventStore.project(
 );
 
 // AppendCondition checks if ANY events matching decisionModel appeared after cursor
-AppendCondition condition = new AppendConditionBuilder(decisionModel, result.cursor())
+AppendCondition condition = AppendConditionBuilder.of(decisionModel, result.cursor())
     .build();
 
 try {
@@ -238,8 +238,8 @@ try {
 **Idempotency check** searches ALL events (ignores cursor) to prevent duplicate operations.
 
 ```java
-AppendCondition condition = new AppendConditionBuilder(decisionModel, cursor)
-    .withIdempotencyCheck("WithdrawalMade", "withdrawal_id", withdrawalId)
+AppendCondition condition = AppendConditionBuilder.of(decisionModel, cursor)
+    .withIdempotencyCheck(type(WithdrawalMade.class), "withdrawal_id", withdrawalId)
     .build();
 ```
 
@@ -294,7 +294,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
             .build();
         
         // 5. Build condition with cursor check
-        AppendCondition condition = new AppendConditionBuilder(decisionModel, result.cursor())
+        AppendCondition condition = AppendConditionBuilder.of(decisionModel, result.cursor())
             .build();
         
         return CommandResult.of(List.of(event), condition);
@@ -355,7 +355,7 @@ Generates SQL with event type filtering, tag containment checks, and position or
 
 ```java
 public interface StateProjector<T> {
-    String getId();
+    default String getId() { return getClass().getSimpleName(); }
     List<String> getEventTypes();
     T getInitialState();
     T transition(T currentState, StoredEvent event, EventDeserializer deserializer);

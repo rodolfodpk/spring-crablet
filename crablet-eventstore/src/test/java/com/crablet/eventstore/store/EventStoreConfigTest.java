@@ -96,6 +96,7 @@ class EventStoreConfigTest {
 
     @Test
     @DisplayName("Should handle null transactionIsolation")
+    @SuppressWarnings("NullAway")
     void shouldHandleNullTransactionIsolation() {
         // Given
         EventStoreConfig config = new EventStoreConfig();

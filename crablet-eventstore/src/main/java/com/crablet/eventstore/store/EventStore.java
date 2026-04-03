@@ -31,7 +31,7 @@ public interface EventStore {
     /**
      * Project projects state from events matching query with cursor.
      * Returns final aggregated states and append condition for DCB concurrency control
-     * 
+     *
      * @param query The query to filter events
      * @param after Cursor to project events after (use Cursor.zero() for all events)
      * @param stateType The type of state to project
@@ -43,6 +43,18 @@ public interface EventStore {
             Class<T> stateType,
             List<StateProjector<T>> projectors
     );
+
+    /**
+     * Convenience overload for single-projector use. Eliminates the class token and List.of() boilerplate.
+     *
+     * @param query     The query to filter events
+     * @param after     Cursor to project events after (use Cursor.zero() for all events)
+     * @param projector The single projector to apply
+     */
+    @SuppressWarnings("unchecked")
+    default <T> ProjectionResult<T> project(Query query, Cursor after, StateProjector<T> projector) {
+        return project(query, after, (Class<T>) Object.class, List.of(projector));
+    }
 
     /**
      * Execute operations within a single transaction.

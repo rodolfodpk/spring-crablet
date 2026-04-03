@@ -1,7 +1,7 @@
 package com.crablet.integration;
 
-import com.crablet.eventprocessor.management.ProcessorManagementService;
-import com.crablet.eventprocessor.progress.ProcessorStatus;
+import com.crablet.eventpoller.management.ProcessorManagementService;
+import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
@@ -31,7 +31,7 @@ abstract class AbstractOutboxManagementServiceTest extends AbstractCrabletTest {
     private JdbcTemplate jdbcTemplate;
     
     @Autowired
-    private com.crablet.eventprocessor.processor.EventProcessor<com.crablet.outbox.adapter.OutboxProcessorConfig, TopicPublisherPair> eventProcessor;
+    private com.crablet.eventpoller.processor.EventProcessor<com.crablet.outbox.adapter.OutboxProcessorConfig, TopicPublisherPair> eventProcessor;
     
     @Autowired
     private Map<TopicPublisherPair, com.crablet.outbox.adapter.OutboxProcessorConfig> processorConfigs;

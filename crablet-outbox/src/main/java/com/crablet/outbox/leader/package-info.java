@@ -3,14 +3,14 @@
  * <p>
  * This package previously provided leader election functionality for the outbox.
  * Leader election has been moved to the generic
- * {@link com.crablet.eventprocessor.leader.LeaderElector} in the
- * {@code crablet-event-processor} module.
+ * {@link com.crablet.eventpoller.leader.LeaderElector} in the
+ * {@code crablet-event-poller} module.
  * <p>
  * <strong>Current Architecture:</strong>
  * Leader election is now provided by the generic processor infrastructure:
  * <ul>
- *   <li>{@link com.crablet.eventprocessor.leader.LeaderElector} - Generic leader election interface</li>
- *   <li>{@link com.crablet.eventprocessor.leader.LeaderElectorImpl} - Implementation using PostgreSQL advisory locks</li>
+ *   <li>{@link com.crablet.eventpoller.leader.LeaderElector} - Generic leader election interface</li>
+ *   <li>{@link com.crablet.eventpoller.leader.LeaderElectorImpl} - Implementation using PostgreSQL advisory locks</li>
  * </ul>
  * <p>
  * <strong>Leader Election Strategy:</strong>
@@ -34,8 +34,8 @@
  * Leader election is automatically configured via {@link com.crablet.outbox.config.OutboxAutoConfiguration}
  * when {@code crablet.outbox.enabled=true}. No manual bean configuration is required.
  *
- * @see com.crablet.eventprocessor.leader.LeaderElector
- * @see com.crablet.eventprocessor.leader.LeaderElectorImpl
+ * @see com.crablet.eventpoller.leader.LeaderElector
+ * @see com.crablet.eventpoller.leader.LeaderElectorImpl
  * @see com.crablet.outbox.config.OutboxAutoConfiguration
  */
 package com.crablet.outbox.leader;

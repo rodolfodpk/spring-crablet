@@ -39,12 +39,12 @@ public void myOperation() {
     // Append events with concurrency control
     // appendIf returns the transaction ID for command auditing
     String transactionId = eventStore.appendIf(events, 
-        new AppendConditionBuilder(decisionModel, projection.cursor()).build()
+        AppendConditionBuilder.of(decisionModel, projection.cursor()).build()
     );
 }
 ```
 
-**For Command Framework:** Use `crablet-command` module for automatic command handler discovery and orchestration.
+**For Command Framework:** Use `crablet-commands` module for automatic command handler discovery and orchestration.
 
 ## Maven Coordinates
 
@@ -97,6 +97,19 @@ The following metrics are published:
 - `EventTypeMetric` - Event types appended
 - `ConcurrencyViolationMetric` - Concurrency violations detected
 
+## Tag Key Normalization
+
+Tag keys are automatically normalized to **lowercase** at construction time using `Locale.ROOT`. This applies to all construction paths: `new Tag(key, value)`, `Tag.of(key, value)`, `Tag.single(key, value)`, and the varargs overload.
+
+```java
+new Tag("WALLET_ID", "abc").key()   // → "wallet_id"
+Tag.of("WalletId", "abc").key()     // → "walletid"
+```
+
+Tag **values** are never modified — they are case-sensitive entity identifiers.
+
+This prevents silent tag mismatches when a developer writes `.tag("WalletId", id)` on append but queries with `.tag("wallet_id", id)`.
+
 ## Period Segmentation with @PeriodConfig
 
 Crablet EventStore supports period segmentation via the `@PeriodConfig` annotation for the closing the books pattern. This enables automatic time-based event segmentation to improve query performance for large event histories.
@@ -143,7 +156,7 @@ String transactionId = eventStore.appendIf(result.events(), result.appendConditi
 
 ### Example 1: OpenWallet (Idempotency)
 
-Prevents duplicate wallet creation using `withIdempotencyCheck()`:
+Prevents duplicate wallet creation using `AppendCondition.idempotent()`:
 
 ```java
 @Override
@@ -168,9 +181,7 @@ public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
     // 4. Build condition to enforce uniqueness using DCB idempotency
     //    Fails if ANY WalletOpened event exists for this wallet_id (idempotency check)
     //    No concurrency check needed for wallet creation - only idempotency matters
-    AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
-            .withIdempotencyCheck(WALLET_OPENED, WALLET_ID, command.walletId())
-            .build();
+    AppendCondition condition = AppendCondition.idempotent(WALLET_OPENED, WALLET_ID, command.walletId());
 
     // 5. Return CommandResult - CommandExecutor will call appendIf:
     //    String transactionId = eventStore.appendIf(List.of(event), condition);
@@ -182,8 +193,8 @@ public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
 ```
 
 **Key points:**
-- Uses `Query.empty()` + `Cursor.zero()` (no decision model needed)
-- `withIdempotencyCheck()` enforces uniqueness: fails if `WALLET_OPENED` exists for this `wallet_id`
+- No decision model or cursor needed
+- `AppendCondition.idempotent()` enforces uniqueness: fails if `WALLET_OPENED` exists for this `wallet_id`
 - Optimistic: creates event first, checks atomically via `appendIf`
 
 ### Example 2: Concurrency Control (Withdraw)
@@ -233,7 +244,7 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
     // Build condition: decision model only (cursor-based concurrency control)
     // DCB Principle: Cursor check prevents duplicate charges
     // Note: No idempotency check - cursor advancement detects if operation already succeeded
-    AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
+    AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor())
             .build();
 
     // Return CommandResult - CommandExecutor will call appendIf:
@@ -258,16 +269,26 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
 - **[Testing](TESTING.md)** - Testcontainers setup and test examples
 - **[Database Schema](SCHEMA.md)** - Database tables and functions
 - **[Metrics](docs/METRICS.md)** - EventStore metrics and monitoring
-- **[Command Framework](../crablet-command/README.md)** - Command handling framework built on EventStore
+- **[Command Framework](../crablet-commands/README.md)** - Command handling framework built on EventStore
 
 ## Example Domains
 
-Complete working examples are available in the test scope (accessible via test-jar):
+Complete working examples are available in the `shared-examples-domain` module:
 
 - **Wallet Domain** (`com.crablet.examples.wallet`): Simple wallet with deposits, withdrawals, and transfers
   - Demonstrates: Idempotency, commutative operations, non-commutative operations, multi-entity transfers
 - **Course Subscriptions** (`com.crablet.examples.course`): Course management with student subscriptions
   - Demonstrates: Multi-entity constraints, composite projectors, capacity limits, subscription limits
+
+## Test Utilities
+
+Test infrastructure has moved to a dedicated `crablet-test-support` module:
+
+- **InMemoryEventStore** (`com.crablet.test.InMemoryEventStore`) - Fast in-memory event store for unit tests
+- **AbstractCrabletTest** (`com.crablet.test.AbstractCrabletTest`) - Base class for integration tests with Testcontainers
+- **DCBTestHelpers** (`com.crablet.eventstore.integration.DCBTestHelpers`) - Helper utilities for test event deserialization
+
+See [TESTING.md](TESTING.md) for complete testing guide and examples.
 
 ## License
 

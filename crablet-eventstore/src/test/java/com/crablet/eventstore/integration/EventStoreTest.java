@@ -33,7 +33,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Tests direct event store operations with real PostgreSQL and realistic wallet scenarios.
  */
 @DisplayName("EventStore Integration Tests")
-class EventStoreTest extends AbstractCrabletTest {
+@org.springframework.boot.test.context.SpringBootTest(classes = com.crablet.eventstore.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
 
     @Autowired
     private ObjectMapper objectMapper;

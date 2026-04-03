@@ -1,6 +1,6 @@
 package com.crablet.views.adapter;
 
-import com.crablet.eventprocessor.processor.ProcessorConfig;
+import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.views.config.ViewSubscriptionConfig;
 import com.crablet.views.config.ViewsConfig;
 

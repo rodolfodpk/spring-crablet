@@ -1,6 +1,6 @@
 package com.crablet.outbox.adapter;
 
-import com.crablet.eventprocessor.processor.ProcessorConfig;
+import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.outbox.TopicConfig;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.config.TopicConfigurationProperties;

@@ -1,6 +1,6 @@
 package com.crablet.outbox.publishing;
 
-import com.crablet.eventprocessor.InstanceIdProvider;
+import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.outbox.OutboxPublisher;

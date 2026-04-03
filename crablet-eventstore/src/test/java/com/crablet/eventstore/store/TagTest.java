@@ -90,6 +90,27 @@ class TagTest {
     }
 
     @Test
+    void shouldNormalizeKeyToLowercase() {
+        assertThat(new Tag("WALLET_ID", "abc").key()).isEqualTo("wallet_id");
+        assertThat(Tag.of("WalletId", "abc").key()).isEqualTo("walletid");
+        assertThat(Tag.single("DEPOSIT_ID", "d1").get(0).key()).isEqualTo("deposit_id");
+    }
+
+    @Test
+    void shouldPreserveValueCaseSensitivity() {
+        Tag tag = new Tag("wallet_id", "WalletABC-123");
+        assertThat(tag.key()).isEqualTo("wallet_id");
+        assertThat(tag.value()).isEqualTo("WalletABC-123");
+    }
+
+    @Test
+    void shouldHandleNullKey() {
+        Tag tag = new Tag(null, "value");
+        assertThat(tag.key()).isNull();
+        assertThat(tag.value()).isEqualTo("value");
+    }
+
+    @Test
     void shouldSupportDCBQueryPatterns() {
         // Test that Tag.single() works well with DCB query patterns
         // This is the most common pattern: single tag for entity identification

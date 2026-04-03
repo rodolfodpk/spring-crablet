@@ -41,5 +41,6 @@
  * @see com.crablet.eventstore.store.EventStore
  * @see com.crablet.eventstore.query.Query
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.eventstore.period;
 

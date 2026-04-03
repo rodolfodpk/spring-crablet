@@ -16,12 +16,8 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 import static com.crablet.eventstore.store.EventType.type;
-import static com.crablet.examples.wallet.WalletTags.DAY;
 import static com.crablet.examples.wallet.WalletTags.DEPOSIT_ID;
-import static com.crablet.examples.wallet.WalletTags.HOUR;
-import static com.crablet.examples.wallet.WalletTags.MONTH;
 import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
-import static com.crablet.examples.wallet.WalletTags.YEAR;
 
 /**
  * Command handler for depositing money into wallets.
@@ -64,27 +60,12 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
                 command.description()
         );
 
-        // Extract period info for tags
-        var periodId = periodResult.periodId();
-        int year = periodId.year();
-        int month = periodId.month() != null ? periodId.month() : 1;
-        Integer day = periodId.day();
-        Integer hour = periodId.hour();
-
-        AppendEvent.Builder eventBuilder = AppendEvent.builder(type(DepositMade.class))
+        AppendEvent event = AppendEvent.builder(type(DepositMade.class))
                 .tag(WALLET_ID, command.walletId())
                 .tag(DEPOSIT_ID, command.depositId())
-                .tag(YEAR, String.valueOf(year))
-                .tag(MONTH, String.valueOf(month));
-        
-        if (day != null) {
-            eventBuilder.tag(DAY, String.valueOf(day));
-        }
-        if (hour != null) {
-            eventBuilder.tag(HOUR, String.valueOf(hour));
-        }
-        
-        AppendEvent event = eventBuilder.data(deposit).build();
+                .tags(periodResult.periodId().asTags())
+                .data(deposit)
+                .build();
 
         // Deposits are commutative operations - order doesn't matter
         // Balance: $100 → +$10 → +$20 = $130 (same as +$20 → +$10)

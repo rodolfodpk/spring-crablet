@@ -1,7 +1,7 @@
 package com.crablet.views.service;
 
-import com.crablet.eventprocessor.management.ProcessorManagementService;
-import com.crablet.eventprocessor.progress.ProcessorStatus;
+import com.crablet.eventpoller.management.ProcessorManagementService;
+import com.crablet.eventpoller.progress.ProcessorStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,9 +118,9 @@ public class ViewManagementService implements ProcessorManagementService<String>
     public ViewProgressDetails getProgressDetails(String viewName) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(SELECT_PROGRESS_SQL)) {
-            
+
             stmt.setString(1, viewName);
-            
+
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     return mapRowToDetails(rs);
@@ -140,21 +140,21 @@ public class ViewManagementService implements ProcessorManagementService<String>
      */
     public Map<String, ViewProgressDetails> getAllProgressDetails() {
         Map<String, ViewProgressDetails> result = new HashMap<>();
-        
+
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(SELECT_ALL_PROGRESS_SQL);
              ResultSet rs = stmt.executeQuery()) {
-            
+
             while (rs.next()) {
                 ViewProgressDetails details = mapRowToDetails(rs);
                 result.put(details.viewName(), details);
             }
-            
-            return result;
         } catch (SQLException e) {
             log.error("Failed to get all progress details", e);
             throw new RuntimeException("Failed to get all progress details", e);
         }
+
+        return result;
     }
     
     /**

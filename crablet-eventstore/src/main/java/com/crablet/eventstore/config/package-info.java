@@ -50,5 +50,6 @@
  * @see com.crablet.eventstore.store.EventStore
  * @see com.crablet.eventstore.store.EventStoreConfig
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.eventstore.config;
 

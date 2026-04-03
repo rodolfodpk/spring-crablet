@@ -23,5 +23,6 @@
  *
  * @see com.crablet.eventstore.store.EventStore
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.eventstore.clock;
 

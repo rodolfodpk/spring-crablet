@@ -30,7 +30,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests querying with cursors, filtering, pagination, and edge cases.
  */
 @DisplayName("EventStore Query Tests")
-class EventStoreQueryTest extends AbstractCrabletTest {
+@org.springframework.boot.test.context.SpringBootTest(classes = com.crablet.eventstore.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+class EventStoreQueryTest extends com.crablet.test.AbstractCrabletTest {
 
     @Autowired
     private EventStore eventStore;

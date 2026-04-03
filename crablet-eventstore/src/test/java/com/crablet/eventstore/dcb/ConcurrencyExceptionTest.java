@@ -3,6 +3,7 @@ package com.crablet.eventstore.dcb;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -80,7 +81,7 @@ class ConcurrencyExceptionTest {
         assertThat(exception.getMessage()).isEqualTo(message);
         assertThat(exception.command).isSameAs(command);
         assertThat(exception.violation).isSameAs(violation);
-        assertThat(exception.violation.errorCode()).isEqualTo("DCB_VIOLATION");
+        assertThat(requireNonNull(exception.violation).errorCode()).isEqualTo("DCB_VIOLATION");
         assertThat(exception.getCause()).isNull();
     }
 
@@ -114,7 +115,7 @@ class ConcurrencyExceptionTest {
         // Then
         assertThat(exception.command).isNotNull();
         assertThat(exception.command).isSameAs(command);
-        assertThat(((TestCommand) exception.command).id()).isEqualTo("test-id");
+        assertThat(((TestCommand) requireNonNull(exception.command)).id()).isEqualTo("test-id");
     }
 
     @Test
@@ -130,9 +131,9 @@ class ConcurrencyExceptionTest {
         // Then
         assertThat(exception.violation).isNotNull();
         assertThat(exception.violation).isSameAs(violation);
-        assertThat(exception.violation.errorCode()).isEqualTo("ERROR_CODE");
-        assertThat(exception.violation.message()).isEqualTo("Error message");
-        assertThat(exception.violation.matchingEventsCount()).isEqualTo(5);
+        assertThat(requireNonNull(exception.violation).errorCode()).isEqualTo("ERROR_CODE");
+        assertThat(requireNonNull(exception.violation).message()).isEqualTo("Error message");
+        assertThat(requireNonNull(exception.violation).matchingEventsCount()).isEqualTo(5);
     }
 
     @Test
@@ -166,7 +167,7 @@ class ConcurrencyExceptionTest {
         // Then
         assertThat(exception.getCause()).isSameAs(cause);
         assertThat(exception.getCause()).isInstanceOf(IllegalArgumentException.class);
-        assertThat(exception.getCause().getMessage()).isEqualTo("Root cause");
+        assertThat(requireNonNull(exception.getCause()).getMessage()).isEqualTo("Root cause");
     }
 
     @Test
@@ -304,7 +305,7 @@ class ConcurrencyExceptionTest {
 
         // Then
         assertThat(exception.getCause()).isSameAs(rootCause);
-        assertThat(exception.getCause().getCause()).isNull(); // No nested chain
+        assertThat(requireNonNull(exception.getCause()).getCause()).isNull(); // No nested chain
     }
 
     @Test

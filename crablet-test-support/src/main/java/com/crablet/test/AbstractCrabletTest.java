@@ -1,0 +1,81 @@
+package com.crablet.test;
+
+import com.crablet.eventstore.store.EventStore;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Testcontainers;
+
+/**
+ * Base class for Crablet integration tests using Testcontainers.
+ * Subclasses must add their own @SpringBootTest annotation with the appropriate TestApplication class.
+ */
+@Testcontainers
+public abstract class AbstractCrabletTest {
+    private static final PostgreSQLContainer<?> SHARED_POSTGRES = new PostgreSQLContainer<>("postgres:17")
+            .withDatabaseName("postgres")
+            .withUsername("postgres")
+            .withPassword("postgres")
+            .withReuse(true)
+            .withCommand("postgres", "-c", "max_connections=200", "-c", "shared_buffers=128MB", "-c", "work_mem=32MB")
+            .withLabel("testcontainers.reuse", "true");
+    static final PostgreSQLContainer<?> postgres = SHARED_POSTGRES;
+
+    static {
+        SHARED_POSTGRES.start();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Shutting down Testcontainers PostgreSQL container...");
+            try {
+                SHARED_POSTGRES.stop();
+                System.out.println("Testcontainers PostgreSQL container stopped successfully.");
+            } catch (Exception e) {
+                System.err.println("Failed to stop Testcontainers PostgreSQL container: " + e.getMessage());
+            }
+        }));
+    }
+
+    @Autowired
+    protected EventStore eventStore;
+    @Autowired
+    protected JdbcTemplate jdbcTemplate;
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("spring.flyway.enabled", () -> true);
+        // Reduce connection pool sizes for tests to avoid exhausting PostgreSQL max_connections
+        registry.add("spring.datasource.hikari.maximum-pool-size", () -> 5);
+        registry.add("spring.datasource.hikari.minimum-idle", () -> 1);
+    }
+
+    protected static PostgreSQLContainer<?> getPostgresContainer() {
+        return postgres;
+    }
+
+    @BeforeEach
+    void cleanDatabase() {
+        // Clean all tables in the correct order to respect foreign key constraints
+        try {
+            jdbcTemplate.execute("TRUNCATE TABLE events CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+            jdbcTemplate.execute("ALTER SEQUENCE events_position_seq RESTART WITH 1");
+        } catch (org.springframework.jdbc.BadSqlGrammarException e) {
+            // Tables don't exist yet - Flyway will create them
+            // This is expected on first run
+        } catch (Exception e) {
+            // Ignore other exceptions (e.g., sequence doesn't exist)
+        }
+    }
+
+    protected DatabaseProperties getDatabaseProperties() {
+        return new DatabaseProperties(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+    }
+
+    public record DatabaseProperties(String url, String username, String password) {}
+}

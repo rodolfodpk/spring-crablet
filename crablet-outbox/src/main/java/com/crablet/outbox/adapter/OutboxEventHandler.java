@@ -1,6 +1,6 @@
 package com.crablet.outbox.adapter;
 
-import com.crablet.eventprocessor.EventHandler;
+import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.outbox.publishing.OutboxPublishingService;
 import org.slf4j.Logger;

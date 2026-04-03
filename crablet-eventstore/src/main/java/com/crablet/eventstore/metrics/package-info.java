@@ -25,5 +25,6 @@
  * @see com.crablet.eventstore.store.EventStore
  * @see com.crablet.metrics.micrometer
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.eventstore.metrics;
 

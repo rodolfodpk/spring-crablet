@@ -2,7 +2,6 @@ package com.crablet.examples.wallet.period;
 
 import com.crablet.eventstore.period.PeriodType;
 import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
 import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.ProjectionResult;
@@ -290,27 +289,14 @@ public class WalletStatementPeriodResolver {
     private void appendCloseEvent(EventStore eventStore, WalletStatementId periodId, WalletStatementClosed closeEvent) {
         try {
             byte[] data = objectMapper.writeValueAsBytes(closeEvent);
-            AppendEvent.Builder eventBuilder = AppendEvent.builder(type(WalletStatementClosed.class))
+            AppendEvent event = AppendEvent.builder(type(WalletStatementClosed.class))
                     .tag(STATEMENT_ID, periodId.toStreamId())
                     .tag(WALLET_ID, periodId.walletId())
-                    .tag(YEAR, String.valueOf(periodId.year()));
-            
-            if (periodId.month() != null) {
-                eventBuilder.tag(MONTH, String.valueOf(periodId.month()));
-            }
-            if (periodId.day() != null) {
-                eventBuilder.tag(DAY, String.valueOf(periodId.day()));
-            }
-            if (periodId.hour() != null) {
-                eventBuilder.tag(HOUR, String.valueOf(periodId.hour()));
-            }
-            
-            AppendEvent event = eventBuilder.data(data).build();
-
-            // Idempotency check: ensure WalletStatementClosed doesn't already exist for this statement_id
-            AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
-                    .withIdempotencyCheck(type(WalletStatementClosed.class), STATEMENT_ID, periodId.toStreamId())
+                    .tags(periodId.asTags())
+                    .data(data)
                     .build();
+
+            AppendCondition condition = AppendCondition.idempotent(type(WalletStatementClosed.class), STATEMENT_ID, periodId.toStreamId());
 
             eventStore.appendIf(List.of(event), condition);
         } catch (ConcurrencyException e) {
@@ -329,27 +315,14 @@ public class WalletStatementPeriodResolver {
     private void appendOpenEvent(EventStore eventStore, WalletStatementId periodId, WalletStatementOpened openEvent) {
         try {
             byte[] data = objectMapper.writeValueAsBytes(openEvent);
-            AppendEvent.Builder eventBuilder = AppendEvent.builder(type(WalletStatementOpened.class))
+            AppendEvent event = AppendEvent.builder(type(WalletStatementOpened.class))
                     .tag(STATEMENT_ID, periodId.toStreamId())
                     .tag(WALLET_ID, periodId.walletId())
-                    .tag(YEAR, String.valueOf(periodId.year()));
-            
-            if (periodId.month() != null) {
-                eventBuilder.tag(MONTH, String.valueOf(periodId.month()));
-            }
-            if (periodId.day() != null) {
-                eventBuilder.tag(DAY, String.valueOf(periodId.day()));
-            }
-            if (periodId.hour() != null) {
-                eventBuilder.tag(HOUR, String.valueOf(periodId.hour()));
-            }
-            
-            AppendEvent event = eventBuilder.data(data).build();
-
-            // Idempotency check: ensure WalletStatementOpened doesn't already exist for this statement_id
-            AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
-                    .withIdempotencyCheck(type(WalletStatementOpened.class), STATEMENT_ID, periodId.toStreamId())
+                    .tags(periodId.asTags())
+                    .data(data)
                     .build();
+
+            AppendCondition condition = AppendCondition.idempotent(type(WalletStatementOpened.class), STATEMENT_ID, periodId.toStreamId());
 
             eventStore.appendIf(List.of(event), condition);
         } catch (ConcurrencyException e) {

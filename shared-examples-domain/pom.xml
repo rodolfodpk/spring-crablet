@@ -23,7 +23,7 @@
         <!-- Crablet Command (for CommandHandler interface and CommandResult class) -->
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-command</artifactId>
+            <artifactId>crablet-commands</artifactId>
         </dependency>
         
         <!-- Spring Boot (for @Component annotations) -->
@@ -49,6 +49,12 @@
         </dependency>
         
         <!-- Test Dependencies -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-test-support</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

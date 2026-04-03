@@ -2,6 +2,7 @@ package com.crablet.eventstore.dcb;
 
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.Cursor;
+import org.jspecify.annotations.Nullable;
 
 /**
  * AppendCondition defines the conditions for appending events.
@@ -10,11 +11,15 @@ import com.crablet.eventstore.store.Cursor;
  */
 public record AppendCondition(
         Cursor afterCursor,
-        Query stateChanged,      // Concurrency check (with cursor)
-        Query alreadyExists      // Idempotency check (no cursor)
+        Query stateChanged,          // Concurrency check (with cursor)
+        @Nullable Query alreadyExists // Idempotency check (no cursor)
 ) {
 
-    public static AppendCondition of(Cursor afterCursor, Query stateChanged) {
+    /**
+     * Low-level factory — concurrency check only, no idempotency check.
+     * Prefer {@link AppendConditionBuilder} for constructing conditions in command handlers.
+     */
+    public static AppendCondition of(@Nullable Cursor afterCursor, @Nullable Query stateChanged) {
         if (afterCursor == null) {
             throw new IllegalArgumentException("afterCursor cannot be null");
         }
@@ -24,7 +29,11 @@ public record AppendCondition(
         return new AppendCondition(afterCursor, stateChanged, null);
     }
 
-    public static AppendCondition of(Cursor afterCursor, Query stateChangedQuery, Query alreadyExistsQuery) {
+    /**
+     * Low-level factory — concurrency check with optional idempotency check.
+     * Prefer {@link AppendConditionBuilder} for constructing conditions in command handlers.
+     */
+    public static AppendCondition of(@Nullable Cursor afterCursor, @Nullable Query stateChangedQuery, @Nullable Query alreadyExistsQuery) {
         if (afterCursor == null) {
             throw new IllegalArgumentException("afterCursor cannot be null");
         }
@@ -34,21 +43,40 @@ public record AppendCondition(
         return new AppendCondition(afterCursor, stateChangedQuery, alreadyExistsQuery);
     }
 
+    /**
+     * Low-level factory — cursor check against an empty query (passes unconditionally).
+     * Prefer {@link AppendConditionBuilder} for constructing conditions in command handlers.
+     */
     public static AppendCondition of(Cursor afterCursor) {
         return of(afterCursor, Query.empty());
     }
 
     /**
-     * Create condition for new streams WITHOUT idempotency protection.
-     * Use when creating the first event in a stream and duplicates are not a concern.
+     * Create an idempotency-only condition for entity creation commands.
+     * Fails if an event of {@code eventType} tagged with {@code tagKey=tagValue} already exists.
+     * <p>
+     * Replaces the verbose chain:
+     * <pre>{@code
+     * AppendConditionBuilder.of(Query.empty(), Cursor.zero())
+     *     .withIdempotencyCheck(type(WalletOpened.class), WALLET_ID, walletId)
+     *     .build();
+     * }</pre>
+     * with:
+     * <pre>{@code
+     * AppendCondition.idempotent(type(WalletOpened.class), WALLET_ID, walletId);
+     * }</pre>
      */
-    public static AppendCondition expectEmptyStream() {
-        return new AppendCondition(Cursor.zero(), Query.empty(), null);
+    public static AppendCondition idempotent(String eventType, String tagKey, String tagValue) {
+        return AppendConditionBuilder.of(Query.empty(), Cursor.zero())
+                .withIdempotencyCheck(eventType, tagKey, tagValue)
+                .build();
     }
 
     /**
      * Create an empty condition for operations that don't need DCB checks.
-     * Use for commutative operations where order doesn't matter (e.g., deposits).
+     * Use for commutative operations where order doesn't matter (e.g., deposits),
+     * or for new stream creation when duplicate protection is handled via
+     * {@link com.crablet.eventstore.dcb.AppendConditionBuilder#withIdempotencyCheck}.
      * These operations can safely run in parallel without conflicts.
      */
     public static AppendCondition empty() {

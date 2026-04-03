@@ -1,15 +1,15 @@
 package com.crablet.views.config;
 
-import com.crablet.eventprocessor.EventFetcher;
-import com.crablet.eventprocessor.EventHandler;
-import com.crablet.eventprocessor.InstanceIdProvider;
-import com.crablet.eventprocessor.leader.LeaderElector;
-import com.crablet.eventprocessor.leader.LeaderElectorImpl;
-import com.crablet.eventprocessor.management.ProcessorManagementService;
-import com.crablet.eventprocessor.management.ProcessorManagementServiceImpl;
-import com.crablet.eventprocessor.processor.EventProcessor;
-import com.crablet.eventprocessor.processor.EventProcessorImpl;
-import com.crablet.eventprocessor.progress.ProgressTracker;
+import com.crablet.eventpoller.EventFetcher;
+import com.crablet.eventpoller.EventHandler;
+import com.crablet.eventpoller.InstanceIdProvider;
+import com.crablet.eventpoller.leader.LeaderElector;
+import com.crablet.eventpoller.leader.LeaderElectorImpl;
+import com.crablet.eventpoller.management.ProcessorManagementService;
+import com.crablet.eventpoller.management.ProcessorManagementServiceImpl;
+import com.crablet.eventpoller.processor.EventProcessor;
+import com.crablet.eventpoller.processor.EventProcessorImpl;
+import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.views.ViewProjector;
 import com.crablet.views.adapter.ViewEventFetcher;
 import com.crablet.views.adapter.ViewEventHandler;
@@ -119,8 +119,8 @@ public class ViewsAutoConfiguration {
      */
     @Bean
     public ViewManagementService viewManagementService(
-            EventProcessor<ViewProcessorConfig, String> eventProcessor,
-            ProgressTracker<String> progressTracker,
+            @Qualifier("viewsEventProcessor") EventProcessor<ViewProcessorConfig, String> eventProcessor,
+            @Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
             @Qualifier("readDataSource") DataSource readDataSource,
             @Qualifier("primaryDataSource") DataSource primaryDataSource) {
         // Create delegate
@@ -139,9 +139,9 @@ public class ViewsAutoConfiguration {
     @org.springframework.context.annotation.DependsOn("flyway")
     public EventProcessor<ViewProcessorConfig, String> viewsEventProcessor(
             Map<String, ViewProcessorConfig> processorConfigs,
-            LeaderElector leaderElector,
-            ProgressTracker<String> progressTracker,
-            EventFetcher<String> eventFetcher,
+            @Qualifier("viewsLeaderElector") LeaderElector leaderElector,
+            @Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
+            @Qualifier("viewEventFetcher") EventFetcher<String> eventFetcher,
             @Qualifier("viewEventHandler") EventHandler<String> eventHandler,
             @Qualifier("primaryDataSource") DataSource writeDataSource,
             TaskScheduler taskScheduler,

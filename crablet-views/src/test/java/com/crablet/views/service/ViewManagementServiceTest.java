@@ -1,8 +1,8 @@
 package com.crablet.views.service;
 
-import com.crablet.eventprocessor.InstanceIdProvider;
-import com.crablet.eventprocessor.management.ProcessorManagementService;
-import com.crablet.eventprocessor.progress.ProcessorStatus;
+import com.crablet.eventpoller.InstanceIdProvider;
+import com.crablet.eventpoller.management.ProcessorManagementService;
+import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.clock.ClockProviderImpl;
 import com.crablet.eventstore.store.EventStore;

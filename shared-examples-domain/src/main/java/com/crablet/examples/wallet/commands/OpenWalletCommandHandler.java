@@ -3,12 +3,8 @@ package com.crablet.examples.wallet.commands;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
 import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
-import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.Cursor;
 import com.crablet.eventstore.store.EventStore;
-import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.examples.wallet.events.WalletOpened;
 import org.springframework.stereotype.Component;
 
@@ -51,9 +47,7 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
         // 4. Build condition to enforce uniqueness using DCB idempotency pattern
         //    Fails if ANY WalletOpened event exists for this wallet_id (idempotency check)
         //    No concurrency check needed for wallet creation - only idempotency matters
-        AppendCondition condition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
-                .withIdempotencyCheck(type(WalletOpened.class), WALLET_ID, command.walletId())
-                .build();
+        AppendCondition condition = AppendCondition.idempotent(type(WalletOpened.class), WALLET_ID, command.walletId());
 
         // 5. Return - appendIf will:
         //    - Check condition atomically

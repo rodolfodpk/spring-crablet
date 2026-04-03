@@ -42,5 +42,6 @@
  * @see com.crablet.command
  * @see com.crablet.outbox
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.eventstore;
 

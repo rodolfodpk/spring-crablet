@@ -36,6 +36,8 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import org.jspecify.annotations.Nullable;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -867,7 +869,7 @@ public class EventStoreImpl implements EventStore {
      * @throws ConcurrencyException if the append condition was violated
      * @throws EventStoreException if the result is invalid
      */
-    private String parseAppendResult(String jsonResult, List<AppendEvent> events) {
+    private String parseAppendResult(String jsonResult, @Nullable List<AppendEvent> events) {
         // Fail fast: Validate result exists
         if (jsonResult == null || jsonResult.trim().isEmpty()) {
             throw new ConcurrencyException("AppendIf condition failed: no result");

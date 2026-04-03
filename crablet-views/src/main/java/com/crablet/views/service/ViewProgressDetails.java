@@ -1,6 +1,6 @@
 package com.crablet.views.service;
 
-import com.crablet.eventprocessor.progress.ProcessorStatus;
+import com.crablet.eventpoller.progress.ProcessorStatus;
 import java.time.Instant;
 
 /**

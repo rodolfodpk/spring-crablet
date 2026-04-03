@@ -13,10 +13,11 @@
     
     <modules>
         <module>crablet-eventstore</module>
-        <module>crablet-command</module>
+        <module>crablet-commands</module>
         <module>crablet-outbox</module>
-        <module>crablet-event-processor</module>
+        <module>crablet-event-poller</module>
         <module>crablet-views</module>
+        <module>crablet-automations</module>
         <module>crablet-metrics-micrometer</module>
         <!-- shared-examples-domain excluded from reactor to avoid cycle -->
         <!-- Build separately: cd shared-examples-domain && ../mvnw install -->
@@ -84,7 +85,7 @@
             <!-- Crablet Command -->
             <dependency>
                 <groupId>com.crablet</groupId>
-                <artifactId>crablet-command</artifactId>
+                <artifactId>crablet-commands</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
@@ -98,7 +99,7 @@
             <!-- Crablet Event Processor -->
             <dependency>
                 <groupId>com.crablet</groupId>
-                <artifactId>crablet-event-processor</artifactId>
+                <artifactId>crablet-event-poller</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
@@ -106,6 +107,13 @@
             <dependency>
                 <groupId>com.crablet</groupId>
                 <artifactId>crablet-views</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Crablet Automations -->
+            <dependency>
+                <groupId>com.crablet</groupId>
+                <artifactId>crablet-automations</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
@@ -274,7 +282,7 @@
                                     </includes>
                                 </fileSet>
                                 <fileSet>
-                                    <directory>${project.basedir}/crablet-command/target</directory>
+                                    <directory>${project.basedir}/crablet-commands/target</directory>
                                     <includes>
                                         <include>jacoco.exec</include>
                                     </includes>
@@ -286,7 +294,7 @@
                                     </includes>
                                 </fileSet>
                                 <fileSet>
-                                    <directory>${project.basedir}/crablet-event-processor/target</directory>
+                                    <directory>${project.basedir}/crablet-event-poller/target</directory>
                                     <includes>
                                         <include>jacoco.exec</include>
                                     </includes>

@@ -50,19 +50,7 @@ class AppendConditionTest {
     }
 
     @Test
-    @DisplayName("Should create AppendCondition for empty stream")
-    void shouldCreateAppendConditionForEmptyStream() {
-        // When
-        AppendCondition condition = AppendCondition.expectEmptyStream();
-
-        // Then
-        assertThat(condition.afterCursor()).isEqualTo(Cursor.zero());
-        assertThat(condition.stateChanged()).isEqualTo(Query.empty());
-        assertThat(condition.afterCursor().position().value()).isEqualTo(0);
-    }
-
-    @Test
-    @DisplayName("Should create AppendCondition with empty method for commutative operations")
+    @DisplayName("Should create AppendCondition with empty() for commutative operations and new streams")
     void shouldCreateAppendConditionWithEmptyMethod() {
         // When
         AppendCondition condition = AppendCondition.empty();
@@ -72,21 +60,6 @@ class AppendConditionTest {
         assertThat(condition.stateChanged()).isEqualTo(Query.empty());
         assertThat(condition.alreadyExists()).isNull();
         assertThat(condition.afterCursor().position().value()).isEqualTo(0);
-    }
-
-    @Test
-    @DisplayName("Should verify empty() and expectEmptyStream() behave identically")
-    void shouldVerifyEmptyAndExpectEmptyStreamBehaveIdentically() {
-        // When
-        AppendCondition empty = AppendCondition.empty();
-        AppendCondition expectEmpty = AppendCondition.expectEmptyStream();
-
-        // Then - Both should have same structure
-        assertThat(empty.afterCursor()).isEqualTo(expectEmpty.afterCursor());
-        assertThat(empty.stateChanged()).isEqualTo(expectEmpty.stateChanged());
-        assertThat(empty.alreadyExists()).isEqualTo(expectEmpty.alreadyExists());
-        // Note: They have different semantics (expectEmptyStream vs empty for commutative ops),
-        // but currently have identical implementation
     }
 
     @Test
@@ -265,5 +238,49 @@ class AppendConditionTest {
 
         // Then
         assertThat(condition.afterCursor().position().value()).isEqualTo(Long.MAX_VALUE);
+    }
+
+    // ===== AppendCondition.idempotent() =====
+
+    @Test
+    @DisplayName("idempotent() should start from Cursor.zero (no prior events required)")
+    void idempotentStartsFromCursorZero() {
+        AppendCondition condition = AppendCondition.idempotent("WalletOpened", "wallet_id", "w1");
+
+        assertThat(condition.afterCursor()).isEqualTo(Cursor.zero());
+    }
+
+    @Test
+    @DisplayName("idempotent() stateChanged should be empty (no cursor-based check)")
+    void idempotentStateChangedIsEmpty() {
+        AppendCondition condition = AppendCondition.idempotent("WalletOpened", "wallet_id", "w1");
+
+        assertThat(condition.stateChanged()).isEqualTo(Query.empty());
+    }
+
+    @Test
+    @DisplayName("idempotent() alreadyExists should be non-null (idempotency check present)")
+    void idempotentAlreadyExistsIsNonNull() {
+        AppendCondition condition = AppendCondition.idempotent("WalletOpened", "wallet_id", "w1");
+
+        assertThat(condition.alreadyExists()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("idempotent() two calls with same args should produce equivalent conditions")
+    void idempotentIsReproducible() {
+        AppendCondition c1 = AppendCondition.idempotent("WalletOpened", "wallet_id", "w1");
+        AppendCondition c2 = AppendCondition.idempotent("WalletOpened", "wallet_id", "w1");
+
+        assertThat(c1).isEqualTo(c2);
+    }
+
+    @Test
+    @DisplayName("idempotent() conditions for different tag values should differ")
+    void idempotentDiffersPerTagValue() {
+        AppendCondition c1 = AppendCondition.idempotent("WalletOpened", "wallet_id", "w1");
+        AppendCondition c2 = AppendCondition.idempotent("WalletOpened", "wallet_id", "w2");
+
+        assertThat(c1).isNotEqualTo(c2);
     }
 }

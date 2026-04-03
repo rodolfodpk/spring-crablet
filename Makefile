@@ -1,11 +1,15 @@
 # Crablet Multi-Module Project Makefile
 # Provides convenient commands for working with the multi-module structure
 #
-# Note: This project has a cyclic dependency between crablet-eventstore and shared-examples-domain.
-# The build process handles this automatically by:
-# 1. Building crablet-eventstore without tests first
-# 2. Building shared-examples-domain (which depends on crablet-eventstore)
-# 3. Building all reactor modules with tests (shared-examples-domain is now available)
+# Build order (required due to cross-module test dependencies):
+# 1. crablet-eventstore    (no tests — needed by crablet-test-support)
+# 2. crablet-test-support  (test utilities + DB migrations for all modules)
+# 3. crablet-commands       (no tests — needed by shared-examples-domain)
+# 4. shared-examples-domain (wallet/course/notification examples, used by reactor in test scope)
+# 5. reactor               (all framework modules with full tests)
+#
+# wallet-example-app is built separately after the reactor is installed.
+# See BUILD.md for full explanation.
 
 .PHONY: help install install-all-tests ci-verify build-all compile package test test-skip clean verify build-core build-shared build-reactor build-reactor-verify start wallet-dev
 
@@ -31,7 +35,7 @@ help:
 	@echo ""
 	@echo "Advanced Build Commands (for troubleshooting):"
 	@echo "  build-core  - Build crablet-eventstore without tests and install"
-	@echo "  build-command - Build crablet-command without tests and install"
+	@echo "  build-command - Build crablet-commands without tests and install"
 	@echo "  build-shared - Build shared-examples-domain and install"
 	@echo "  build-reactor - Build all reactor modules (after core, command and shared are installed)"
 	@echo ""
@@ -44,25 +48,26 @@ help:
 # Main build command - handles cyclic dependency automatically
 # Note: Uses 'install' which runs unit tests but not integration tests
 # Use 'install-all-tests' for full test coverage including integration tests
-install: build-core build-command build-shared build-reactor
+install: build-core build-test-support build-command build-shared build-reactor
 	@echo "✓ Build complete! All modules installed to local repository."
 
 # Full build with all tests including integration tests (for CI)
-install-all-tests: build-core build-command build-shared build-reactor-verify
+install-all-tests: build-core build-test-support build-command build-shared build-reactor-verify
 	@echo "✓ Build complete with all tests! All modules installed to local repository."
 
 # CI build - verifies build, only installs minimal modules needed
-# 1. Install crablet-eventstore (needed by shared-examples-domain)
-# 2. Install shared-examples-domain (needed by reactor modules in test scope)
-# 3. Verify reactor (no install needed for reactor modules)
-ci-verify: build-core build-command build-shared build-reactor-verify
-	@echo "✓ CI build complete with all tests! (only crablet-eventstore and shared-examples-domain installed)"
+# 1. Install crablet-eventstore (needed by crablet-test-support)
+# 2. Install crablet-test-support (needed by shared-examples-domain)
+# 3. Install shared-examples-domain (needed by reactor modules in test scope)
+# 4. Verify reactor (no install needed for reactor modules)
+ci-verify: build-core build-test-support build-command build-shared build-reactor-verify
+	@echo "✓ CI build complete with all tests!"
 
 # Alias for install
 build-all: install
 
 # Build crablet-eventstore without tests (step 1 of cyclic dependency resolution)
-# Note: Install parent POM, then minimal stubs for both modules to break circular dependency
+# Note: Install parent POM, then minimal stubs for modules to break circular dependency
 # Then build crablet-eventstore with tests skipped (will replace the stub)
 # -am removed because shared-examples-domain is not in reactor and would cause build to fail
 build-core:
@@ -71,21 +76,28 @@ build-core:
 	@mkdir -p /tmp/crablet-stub && touch /tmp/crablet-stub/empty.jar
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-eventstore -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-eventstore/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-eventstore -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -Dclassifier=tests -DpomFile=crablet-eventstore/pom.xml -q 2>/dev/null || true
-	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-command -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-command/pom.xml -q 2>/dev/null || true
+	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-test-support -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-test-support/pom.xml -q 2>/dev/null || true
+	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-commands -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-commands/pom.xml -q 2>/dev/null || true
+	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-automations -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-automations/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=shared-examples-domain -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=shared-examples-domain/pom.xml -q 2>/dev/null || true
 	@echo "Building crablet-eventstore (main code only, skipping tests)..."
 	@./mvnw clean compile package install -pl crablet-eventstore -DskipTests -Dmaven.test.skip=true
 
-# Build crablet-command without tests (step 2 - needed by shared-examples-domain)
-build-command:
-	@echo "Building crablet-command (main code only, skipping tests)..."
-	@./mvnw clean compile package install -pl crablet-command -DskipTests -Dmaven.test.skip=true
+# Build crablet-test-support (step 2 - test utilities that depend on crablet-eventstore)
+build-test-support:
+	@echo "Building crablet-test-support..."
+	@cd crablet-test-support && ../mvnw install
 
-# Build shared-examples-domain (step 3 - depends on crablet-eventstore and crablet-command)
+# Build crablet-commands without tests (step 2 - needed by shared-examples-domain)
+build-command:
+	@echo "Building crablet-commands (main code only, skipping tests)..."
+	@./mvnw clean compile package install -pl crablet-commands -DskipTests -Dmaven.test.skip=true
+
+# Build shared-examples-domain (step 3 - depends on crablet-eventstore and crablet-commands)
 build-shared:
 	@echo "Building shared-examples-domain..."
 	@cd shared-examples-domain && ../mvnw install
-	@echo "Building crablet-eventstore test-jar (needed by crablet-command tests)..."
+	@echo "Building crablet-eventstore test-jar (needed by crablet-commands tests)..."
 	@./mvnw test-compile package install -pl crablet-eventstore -DskipTests
 
 

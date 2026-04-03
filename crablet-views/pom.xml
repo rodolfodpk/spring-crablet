@@ -20,19 +20,18 @@
             <artifactId>crablet-eventstore</artifactId>
         </dependency>
         
-        <!-- Crablet Event Store (test-jar) for test resources (Flyway migrations) -->
+        <!-- Test support: provides Flyway migrations and test utilities -->
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-eventstore</artifactId>
+            <artifactId>crablet-test-support</artifactId>
             <version>${project.version}</version>
-            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         
         <!-- Crablet Event Processor -->
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-event-processor</artifactId>
+            <artifactId>crablet-event-poller</artifactId>
         </dependency>
         
         <!-- Spring Boot Web (for REST controller in tests) -->

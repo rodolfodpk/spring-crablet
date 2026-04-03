@@ -49,5 +49,6 @@
  * @see com.crablet.eventstore.store.EventStore
  * @see com.crablet.eventstore.dcb.AppendCondition
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.eventstore.query;
 

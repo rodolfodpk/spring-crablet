@@ -60,5 +60,6 @@
  * @see com.crablet.eventstore.query.Query
  * @see com.crablet.command.CommandExecutor
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.eventstore.store;
 

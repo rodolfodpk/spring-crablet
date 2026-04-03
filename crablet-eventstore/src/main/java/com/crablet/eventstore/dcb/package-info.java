@@ -42,5 +42,6 @@
  * @see com.crablet.eventstore.query.Query
  * @see com.crablet.eventstore.store.Cursor
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.eventstore.dcb;
 

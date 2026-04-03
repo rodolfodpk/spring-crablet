@@ -1,97 +1,161 @@
 # Building Crablet
 
-Tests use Testcontainers (no external dependencies required).
+Tests use Testcontainers (no external dependencies required, Docker must be running).
 
-## Quick Reference
-
-**TL;DR:** Run `make install` - handles cyclic dependencies automatically.
-
-**Why cyclic dependencies?** `shared-examples-domain` uses framework interfaces (main scope), while framework modules use examples in tests (test scope). This provides consistency and maintainability at the cost of build complexity (handled by Makefile).
-
-📖 **Details:** See [Cyclic Dependencies](#cyclic-dependencies) section below.
-
-## Quick Start (Recommended)
-
-The easiest way to build the project is using the Makefile, which handles cyclic dependencies automatically:
+## Quick Start
 
 ```bash
-make install
+make install   # build everything in the right order
+make start     # run wallet-example-app
 ```
 
-Or simply:
-```bash
-make
+That's all you need. The Makefile handles the build order automatically.
+
+## Module Structure
+
+```
+── reactor (built together) ──────────────────────────────
+  crablet-eventstore           core, no framework deps
+  crablet-commands              → eventstore
+  crablet-event-poller      → eventstore
+  crablet-outbox               → eventstore + event-processor
+  crablet-views                → eventstore + event-processor
+  crablet-automations          → eventstore + event-processor + command
+  crablet-metrics-micrometer   → eventstore
+
+── outside reactor (built separately) ───────────────────
+  crablet-test-support         → eventstore
+  shared-examples-domain       → eventstore + command
+  wallet-example-app           → everything
 ```
 
-This single command will:
-1. Build `crablet-eventstore` (main code only, skipping tests)
-2. Build `shared-examples-domain` (which depends on `crablet-eventstore`)
-3. Build all reactor modules with tests (now that `shared-examples-domain` is available)
+Modules outside the reactor are excluded because they would create cyclic
+dependencies if included. The Makefile resolves this with a specific build order.
 
-## Using Maven Directly
+## Why the Build Order Matters
 
-**Note:** This project has a cyclic dependency between `crablet-eventstore` and `shared-examples-domain`:
-- `shared-examples-domain` depends on `crablet-eventstore` (main scope)
-- `crablet-eventstore` depends on `shared-examples-domain` (test scope)
+`shared-examples-domain` depends on `crablet-eventstore` and `crablet-commands`
+to define the wallet and course example domains. At the same time, framework
+modules depend on `shared-examples-domain` in test scope to run realistic domain
+tests. This creates a build-time cycle that Maven cannot resolve on its own.
 
-### Cyclic Dependencies
+**Resolution:** the Makefile builds framework modules first (skipping tests),
+then `shared-examples-domain`, then runs the full reactor with all tests.
+Stub JARs are used temporarily so Maven's dependency resolution doesn't fail
+before the real JARs are built.
 
-The cyclic dependency exists because:
-- **`shared-examples-domain` → `crablet-eventstore`**: Example domains use framework interfaces (`StateProjector`, `EventStore`, `Query`) and annotations (`@PeriodConfig`, `@PeriodType`)
-- **`crablet-eventstore` → `shared-examples-domain`**: Framework modules use shared examples in tests for consistency and realistic testing
+`crablet-test-support` sits outside the reactor because it depends on
+`crablet-eventstore` (main scope) and provides test utilities to all other modules.
+It carries all database migrations (V1–V4) so every module gets them automatically
+through a single test-scope dependency — no per-module copies needed.
 
-**Trade-off:** Build complexity (requires specific order) vs. maintainability and test quality. The Makefile handles this automatically.
+## Build Order
 
-### Manual Build Steps
+`make install` executes these steps in sequence:
 
-To build manually with Maven, follow this order:
+| Step | Target | What it builds |
+|------|--------|----------------|
+| 1 | `build-core` | `crablet-eventstore` (no tests, installs stub JARs first) |
+| 2 | `build-test-support` | `crablet-test-support` (full build) |
+| 3 | `build-command` | `crablet-commands` (no tests) |
+| 4 | `build-shared` | `shared-examples-domain` (full build with tests) |
+| 5 | `build-reactor` | all reactor modules (full build with tests) |
 
-```bash
-# Step 1: Build crablet-eventstore without tests
-./mvnw clean install -pl crablet-eventstore -am -DskipTests
-
-# Step 2: Build shared-examples-domain
-cd shared-examples-domain && ../mvnw install && cd ..
-
-# Step 3: Build all reactor modules (with tests)
-./mvnw install
-```
+`wallet-example-app` is not part of `make install`. It depends on the reactor
+being installed first — see [Running the Example App](#running-the-example-app).
 
 ## Makefile Commands
 
-| Command | Description |
-|---------|-------------|
-| `make install` or `make` | Full build with all tests (handles cyclic dependencies) |
-| `make compile` | Compile all modules without packaging |
-| `make package` | Build JARs for all modules |
-| `make test` | Run all tests |
-| `make test-skip` | Build without running tests (faster) |
-| `make verify` | Full build with tests and verification |
-| `make clean` | Clean all build artifacts |
-
-## Advanced Build Commands
-
-For troubleshooting or incremental builds:
-
 ```bash
-make build-core   # Build crablet-eventstore only (skip tests)
-make build-shared # Build shared-examples-domain only
-make build-reactor # Build all reactor modules
+make install            # full build with unit tests (recommended)
+make install-all-tests  # full build including integration tests
+make test               # run all tests (requires prior install)
+make clean              # clean all build artifacts
+make start              # run wallet-example-app
 ```
 
-## Building Individual Modules
-
-To build a specific module:
+Advanced targets (for troubleshooting or incremental builds):
 
 ```bash
-# Build a single module (with dependencies)
-./mvnw install -pl <module-name> -am
-
-# Examples:
-./mvnw install -pl crablet-eventstore -am
-./mvnw install -pl crablet-command -am
+make build-core          # step 1: install crablet-eventstore without tests
+make build-test-support  # step 2: build crablet-test-support
+make build-command       # step 3: install crablet-commands without tests
+make build-shared        # step 4: build shared-examples-domain
+make build-reactor       # step 5: build all reactor modules
 ```
 
-## Maven Wrapper
+## Maven Commands
 
-This project uses the Maven wrapper (`mvnw`) to ensure consistent builds across different environments. All Maven commands should use `./mvnw` instead of `mvn` to use the project's specified Maven version.
+If you prefer Maven directly, follow the same order as the Makefile:
+
+```bash
+# Step 1: install stubs and build eventstore
+./mvnw install -N -q
+./mvnw clean install -pl crablet-eventstore -DskipTests
+
+# Step 2: build test support
+cd crablet-test-support && ../mvnw install && cd ..
+
+# Step 3: build command
+./mvnw install -pl crablet-commands -DskipTests
+
+# Step 4: build shared examples
+cd shared-examples-domain && ../mvnw install && cd ..
+
+# Step 5: build reactor
+./mvnw install
+```
+
+Run a single module after `make install`:
+
+```bash
+./mvnw test -pl crablet-views
+./mvnw test -pl crablet-commands -Dtest=DepositCommandHandlerTest
+```
+
+## Running the Example App
+
+```bash
+# Option 1 — easiest
+make install && make start
+
+# Option 2 — manual
+make install
+cd wallet-example-app && ../mvnw spring-boot:run
+```
+
+`wallet-example-app` is a standalone Spring Boot application excluded from the
+reactor. It inherits version management from the parent POM via the local Maven
+repository, so `make install` must run first.
+
+Once running:
+- API: http://localhost:8080/api/
+- Swagger UI: http://localhost:8080/swagger-ui.html
+
+## Testing
+
+Unit tests use `InMemoryEventStore` — no Docker needed, complete in under 10ms.
+Integration tests start a real PostgreSQL container via Testcontainers (100–500ms, Docker required).
+
+```bash
+make install            # runs unit tests only
+make install-all-tests  # runs unit + integration tests
+```
+
+## Database Migrations
+
+All framework migrations live in a single place:
+
+```
+crablet-test-support/src/main/resources/db/migration/
+  V1__eventstore_schema.sql        events + commands tables
+  V2__outbox_schema.sql            outbox_topic_progress table
+  V3__view_progress_schema.sql     view_progress table
+  V4__reaction_progress_schema.sql reaction_progress table
+```
+
+Flyway picks these up automatically on the test classpath because every module
+has `crablet-test-support` as a test-scope dependency. No copies in individual modules.
+
+`wallet-example-app` manages its own migrations in `src/main/resources/db/migration/`
+(V1, V3, plus application-specific tables V4–V8).

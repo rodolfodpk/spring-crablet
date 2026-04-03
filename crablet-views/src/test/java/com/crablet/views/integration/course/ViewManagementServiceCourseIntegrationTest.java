@@ -1,7 +1,7 @@
 package com.crablet.views.integration.course;
 
-import com.crablet.eventprocessor.management.ProcessorManagementService;
-import com.crablet.eventprocessor.progress.ProcessorStatus;
+import com.crablet.eventpoller.management.ProcessorManagementService;
+import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.views.config.ViewsAutoConfiguration;
 import com.crablet.views.integration.AbstractViewsTest;
@@ -221,8 +221,8 @@ class ViewManagementServiceCourseIntegrationTest extends AbstractViewsTest {
         }
 
         @Bean
-        public com.crablet.eventprocessor.InstanceIdProvider instanceIdProvider(Environment environment) {
-            return new com.crablet.eventprocessor.InstanceIdProvider(environment);
+        public com.crablet.eventpoller.InstanceIdProvider instanceIdProvider(Environment environment) {
+            return new com.crablet.eventpoller.InstanceIdProvider(environment);
         }
 
         @Bean

@@ -205,6 +205,7 @@ class CursorTest {
 
     @Test
     @DisplayName("Should handle null transaction ID")
+    @SuppressWarnings("NullAway")
     void shouldHandleNullTransactionId_ShouldAllow() {
         // Given - Records allow null fields unless validated
         SequenceNumber position = SequenceNumber.of(100L);
@@ -231,6 +232,7 @@ class CursorTest {
 
     @Test
     @DisplayName("Should handle null occurredAt")
+    @SuppressWarnings("NullAway")
     void shouldHandleNullOccurredAt_ShouldAllow() {
         // Given - Records allow null fields unless validated
         SequenceNumber position = SequenceNumber.of(100L);

@@ -92,7 +92,7 @@ public abstract class AbstractWalletTest {
         try {
             jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
             jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE view_progress CASCADE");
+            jdbcTemplate.execute("UPDATE view_progress SET status = 'ACTIVE', last_position = 0, error_count = 0, last_error = NULL, last_error_at = NULL, last_updated_at = CURRENT_TIMESTAMP");
             jdbcTemplate.execute("TRUNCATE TABLE wallet_balance_view CASCADE");
             jdbcTemplate.execute("TRUNCATE TABLE wallet_transaction_view CASCADE");
             jdbcTemplate.execute("TRUNCATE TABLE wallet_summary_view CASCADE");
