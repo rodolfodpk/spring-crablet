@@ -367,7 +367,7 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 - Core of DCB optimistic concurrency control
 
 **StateProjector (crablet-eventstore/src/main/java/com/crablet/eventstore/projector/):**
-- `transition(state, event, deserializer)` - Event-driven state transitions
+- `evolve(state, event, deserializer)` - Event-driven state transitions
 - `getEventTypes()` - Filter which events to process
 - `getInitialState()` - Starting state
 - `StateProjector.exists(eventTypes...)` - Built-in factory for existence checks (returns `true` on first matching event)
@@ -559,6 +559,7 @@ cd wallet-example-app && ./mvnw spring-boot:run
 - Use constants from domain-specific tag classes (e.g., `WalletTags.WALLET_ID`, `WalletTags.DEPOSIT_ID`)
 - Format: `wallet_id`, `deposit_id`, `withdrawal_id`, `transfer_id`, `from_wallet_id`, `to_wallet_id`
 - Period tags: `year`, `month`, `day`, `hour` (for closing the books pattern)
+- **Tag keys are automatically normalized to lowercase** at construction time (`Tag` compact constructor, `Locale.ROOT`). Passing `"WALLET_ID"` is equivalent to `"wallet_id"`. Tag **values** are case-sensitive and never modified.
 
 **Event Types** (PascalCase):
 - Use `EventType.type(EventClass.class)` pattern for type-safe event type names

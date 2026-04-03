@@ -97,6 +97,19 @@ The following metrics are published:
 - `EventTypeMetric` - Event types appended
 - `ConcurrencyViolationMetric` - Concurrency violations detected
 
+## Tag Key Normalization
+
+Tag keys are automatically normalized to **lowercase** at construction time using `Locale.ROOT`. This applies to all construction paths: `new Tag(key, value)`, `Tag.of(key, value)`, `Tag.single(key, value)`, and the varargs overload.
+
+```java
+new Tag("WALLET_ID", "abc").key()   // → "wallet_id"
+Tag.of("WalletId", "abc").key()     // → "walletid"
+```
+
+Tag **values** are never modified — they are case-sensitive entity identifiers.
+
+This prevents silent tag mismatches when a developer writes `.tag("WalletId", id)` on append but queries with `.tag("wallet_id", id)`.
+
 ## Period Segmentation with @PeriodConfig
 
 Crablet EventStore supports period segmentation via the `@PeriodConfig` annotation for the closing the books pattern. This enables automatic time-based event segmentation to improve query performance for large event histories.
