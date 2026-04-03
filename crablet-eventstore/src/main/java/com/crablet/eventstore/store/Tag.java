@@ -3,6 +3,7 @@ package com.crablet.eventstore.store;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Tag represents a key-value pair for event metadata.
@@ -20,6 +21,11 @@ import java.util.List;
  * }</pre>
  */
 public record Tag(@Nullable String key, @Nullable String value) {
+
+    public Tag {
+        key = (key != null) ? key.toLowerCase(Locale.ROOT) : null;
+    }
+
     /**
      * Create a tag from a key-value pair.
      */
