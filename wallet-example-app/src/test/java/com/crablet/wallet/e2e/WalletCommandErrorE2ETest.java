@@ -43,7 +43,10 @@ class WalletCommandErrorE2ETest extends AbstractWalletE2ETest {
             .exchange()
             .expectStatus().isNotFound()
             .expectBody(Map.class)
-            .value(body -> assertThat(body.get("error")).isEqualTo("Wallet not found"));
+            .value(body -> {
+                assertThat(body.get("title")).isEqualTo("Wallet Not Found");
+                assertThat(body.get("status")).isEqualTo(404);
+            });
     }
 
     @Test
@@ -66,7 +69,8 @@ class WalletCommandErrorE2ETest extends AbstractWalletE2ETest {
             .expectStatus().isBadRequest()
             .expectBody(Map.class)
             .value(body -> {
-                assertThat(body.get("error")).isEqualTo("Insufficient funds");
+                assertThat(body.get("title")).isEqualTo("Insufficient Funds");
+                assertThat(body.get("status")).isEqualTo(400);
                 assertThat(((Number) body.get("currentBalance")).intValue()).isEqualTo(50);
                 assertThat(((Number) body.get("requestedAmount")).intValue()).isEqualTo(200);
             });
