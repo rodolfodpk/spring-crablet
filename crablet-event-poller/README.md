@@ -100,8 +100,8 @@ This module is primarily used as infrastructure by other Crablet modules (`crabl
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
-import com.crablet.eventstore.store.Cursor;
-import com.crablet.eventstore.store.SequenceNumber;
+import com.crablet.eventstore.store.StreamPosition;
+
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
 import com.crablet.eventpoller.EventFetcher;
@@ -148,7 +148,7 @@ public class MyEventFetcher implements EventFetcher<String> {
         // Fetch events using EventRepository (or use direct SQL for better performance)
         // Note: EventRepository.query() doesn't support batch size limit, so we fetch and limit manually
         // For production, consider using direct SQL like OutboxEventFetcher/ViewEventFetcher do
-        Cursor cursor = lastPosition > 0 ? Cursor.of(SequenceNumber.of(lastPosition)) : Cursor.zero();
+        StreamPosition streamPosition = lastPosition > 0 ? StreamPosition.of(lastPosition) : StreamPosition.zero();
         List<StoredEvent> events = eventRepository.query(query, cursor);
         // Limit to batch size
         return events.stream().limit(batchSize).toList();

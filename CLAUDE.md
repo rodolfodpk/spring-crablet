@@ -196,6 +196,11 @@ crablet-outbox (Optional)
 ├── Transactional outbox pattern
 └── Multiple publishers support
 
+crablet-automations (Optional)
+├── Event-driven automations - Policies and sagas
+├── Listen to events, execute commands automatically
+└── Leader election per automation processor
+
 crablet-metrics-micrometer (Optional)
 └── Auto-collects metrics from all modules
 
@@ -214,6 +219,7 @@ wallet-example-app (Example application)
 - `crablet-event-poller`: Depends on `crablet-eventstore`
 - `crablet-views`: Depends on `crablet-eventstore` + `crablet-event-poller`
 - `crablet-outbox`: Depends on `crablet-eventstore` + `crablet-event-poller`
+- `crablet-automations`: Depends on `crablet-eventstore` + `crablet-event-poller` + `crablet-commands`
 
 ### Cyclic Dependency Handling
 

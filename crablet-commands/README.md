@@ -126,7 +126,7 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
                 .build();
         
         // 5. Build condition (DCB pattern)
-        AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor())
+        AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.streamPosition())
                 .build();
         
         return CommandResult.of(List.of(event), condition);
@@ -246,7 +246,7 @@ This ensures that:
 Crablet Command supports different DCB patterns:
 
 - **Idempotency Check**: `AppendCondition.idempotent()` for entity creation
-- **Cursor-based Check**: `AppendConditionBuilder(decisionModel, cursor)` for state-dependent operations
+- **StreamPosition-based Check**: `AppendConditionBuilder(decisionModel, streamPosition)` for state-dependent operations
 - **Empty Condition**: `AppendCondition.empty()` for commutative operations (mainly used in tests)
 
 See [Command Patterns Guide](../crablet-eventstore/docs/COMMAND_PATTERNS.md) for complete examples.

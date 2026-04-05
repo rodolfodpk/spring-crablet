@@ -5,7 +5,7 @@
 **Pattern Decision Tree:**
 1. **Creating new entity?** → Use `AppendCondition.idempotent()` (Pattern 1)
 2. **Commutative operation?** (order doesn't matter) → Use `AppendCondition.empty()` (Pattern 2)
-3. **Non-commutative operation?** (order matters) → Use `AppendConditionBuilder(decisionModel, cursor)` (Pattern 3)
+3. **Non-commutative operation?** (order matters) → Use `AppendConditionBuilder(decisionModel, streamPosition)` (Pattern 3)
 
 **Summary:**
 
@@ -13,8 +13,8 @@
 |-----------|------|-----------|-------------------|
 | **OpenWallet** | Entity Creation | `AppendCondition.idempotent()` | ✅ |
 | **Deposit** | Commutative | `AppendCondition.empty()` | ✅ |
-| **Withdraw** | Non-Commutative | `AppendConditionBuilder(decisionModel, cursor)` | ❌ |
-| **Transfer** | Non-Commutative | `AppendConditionBuilder(decisionModel, cursor)` | ❌ |
+| **Withdraw** | Non-Commutative | `AppendConditionBuilder(decisionModel, streamPosition)` | ❌ |
+| **Transfer** | Non-Commutative | `AppendConditionBuilder(decisionModel, streamPosition)` | ❌ |
 
 📖 **Details:** See [patterns below](#patterns) and [when to use each](#when-to-use-each-pattern).
 
@@ -60,7 +60,7 @@ Operations where order doesn't affect the final result (e.g., deposits: +$10 the
 ### Non-Commutative Operations
 Operations where order matters - final result depends on execution order (e.g., withdrawals depend on current balance).
 
-**DCB Check:** ✅ Required - use `AppendConditionBuilder(decisionModel, cursor)`
+**DCB Check:** ✅ Required - use `AppendConditionBuilder(decisionModel, streamPosition)`
 
 ## Patterns
 
@@ -111,7 +111,7 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
         // Project to validate wallet exists
         Query query = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
         ProjectionResult<WalletBalanceState> projection = eventStore.project(
-            query, Cursor.zero(), WalletBalanceState.class, List.of(projector));
+            query, StreamPosition.zero(), WalletBalanceState.class, List.of(projector));
         
         if (!projection.state().isExisting()) {
             throw new WalletNotFoundException(command.walletId());
@@ -157,7 +157,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
     public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
         Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
         ProjectionResult<WalletBalanceState> projection = eventStore.project(
-            decisionModel, Cursor.zero(), WalletBalanceState.class, List.of(projector));
+            decisionModel, StreamPosition.zero(), WalletBalanceState.class, List.of(projector));
         
         WalletBalanceState state = projection.state();
         if (!state.isExisting()) {
@@ -180,8 +180,8 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
             .data(withdrawal)
             .build();
         
-        // Cursor check prevents concurrent withdrawals exceeding balance
-        AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor())
+        // StreamPosition check prevents concurrent withdrawals exceeding balance
+        AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.streamPosition())
             .build();
         
         return CommandResult.of(List.of(event), condition);
@@ -204,7 +204,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
         TransferStateProjector projector = new TransferStateProjector(
             command.fromWalletId(), command.toWalletId());
         ProjectionResult<TransferState> projection = eventStore.project(
-            decisionModel, Cursor.zero(), TransferState.class, List.of(projector));
+            decisionModel, StreamPosition.zero(), TransferState.class, List.of(projector));
         
         TransferState state = projection.state();
         // Validate wallets exist and sufficient funds...
@@ -216,8 +216,8 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
             .data(transfer)
             .build();
         
-        // Cursor check prevents concurrent transfers causing overdrafts
-        AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor())
+        // StreamPosition check prevents concurrent transfers causing overdrafts
+        AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.streamPosition())
             .build();
         
         return CommandResult.of(List.of(event), condition);
@@ -227,7 +227,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 
 **Key Points:**
 - ❌ Non-commutative: order affects whether operation succeeds
-- ✅ Cursor check: detects if state changed since projection
+- ✅ StreamPosition check: detects if state changed since projection
 - ❌ Cannot run in parallel on same resource (DCB detects conflict, application retries)
 
 **For more complex multi-entity examples**, see Course Subscriptions (`SubscribeStudentToCourseCommandHandler`) which demonstrates capacity limits, subscription limits, and duplicate checks.
@@ -250,7 +250,7 @@ Idempotency checks use PostgreSQL advisory locks to prevent race conditions when
 - ✅ Want maximum parallel throughput
 - ⚠️ **Note**: Most examples using `AppendCondition.empty()` are for test setup. In production, use it only for truly commutative operations like deposits.
 
-### Use `AppendConditionBuilder(decisionModel, cursor)` When:
+### Use `AppendConditionBuilder(decisionModel, streamPosition)` When:
 - ✅ Operation **order matters** (Withdraw, Transfer)
 - ✅ Result **depends on current state** (balance checks)
 - ✅ Need to prevent **race conditions** on same resource
@@ -286,7 +286,7 @@ AppendCondition condition = AppendCondition.idempotent(type(WalletOpened.class),
 ❌ **Using cursor for deposits:**
 ```java
 // WRONG: Deposits don't need cursor check
-AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor()).build();
+AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.streamPosition()).build();
 ```
 
 ✅ **Correct:**
@@ -304,7 +304,7 @@ AppendCondition condition = AppendCondition.empty();
 ✅ **Correct:**
 ```java
 // RIGHT: Withdrawals are non-commutative
-AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor()).build();
+AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.streamPosition()).build();
 ```
 
 ## Learn More

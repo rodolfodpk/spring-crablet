@@ -33,13 +33,13 @@ public void myOperation() {
     // Project state with DCB pattern
     Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(walletId);
     ProjectionResult<WalletBalanceState> projection = eventStore.project(
-        decisionModel, Cursor.zero(), WalletBalanceState.class, List.of(projector)
+        decisionModel, StreamPosition.zero(), WalletBalanceState.class, List.of(projector)
     );
     
     // Append events with concurrency control
     // appendIf returns the transaction ID for command auditing
     String transactionId = eventStore.appendIf(events, 
-        AppendConditionBuilder.of(decisionModel, projection.cursor()).build()
+        AppendConditionBuilder.of(decisionModel, projection.streamPosition()).build()
     );
 }
 ```
@@ -242,9 +242,9 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
             .build();
 
     // Build condition: decision model only (cursor-based concurrency control)
-    // DCB Principle: Cursor check prevents duplicate charges
+    // DCB Principle: StreamPosition check prevents duplicate charges
     // Note: No idempotency check - cursor advancement detects if operation already succeeded
-    AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor())
+    AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.streamPosition())
             .build();
 
     // Return CommandResult - CommandExecutor will call appendIf:
@@ -258,7 +258,7 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
 
 **Key points:**
 - Decision Model: Query for balance-affecting events (`WalletOpened`, `DepositMade`, `WithdrawalMade`)
-- Cursor checks if balance changed concurrently → throws `ConcurrencyException` (application layer handles retry if needed)
+- StreamPosition checks if balance changed concurrently → throws `ConcurrencyException` (application layer handles retry if needed)
 - Business validation: checks sufficient funds before creating event
 - No explicit idempotency check (cursor advancement detects duplicates)
 

@@ -95,7 +95,7 @@ To read an event back you project it into a state type. The simplest projector j
 import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.QueryBuilder;
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 
 import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.talks.TalkTags.TALK_ID;
@@ -106,13 +106,13 @@ var query = QueryBuilder.create()
     .build();
 
 boolean exists = eventStore.project(
-    query, Cursor.zero(), StateProjector.exists(type(TalkSubmitted.class))
+    query, StreamPosition.zero(), StateProjector.exists(type(TalkSubmitted.class))
 ).state();
 ```
 
 `StateProjector.exists(eventTypes...)` is a built-in factory that returns a projector yielding `true` on the first matching event — no boilerplate class needed.
 
-`Cursor.zero()` means "start from the beginning of the event log". `ProjectionResult` carries both the projected state and a cursor pointing to the last event that was read. You will use that cursor in Part 3.
+`StreamPosition.zero()` means "start from the beginning of the event log". `ProjectionResult` carries both the projected state and a cursor pointing to the last event that was read. You will use that cursor in Part 3.
 
 > **Key insight.** `appendIf` never modifies existing data — it only appends. If you need to change the title of a talk, you append a `TalkTitleUpdated` event and project the latest title from the event sequence. The database table is an append-only log.
 
@@ -196,16 +196,16 @@ var query = QueryBuilder.create()
     .build();
 
 ProjectionResult<TalkState> result = eventStore.project(
-    query, Cursor.zero(), TalkState.class, List.of(new TalkStateProjector())
+    query, StreamPosition.zero(), TalkState.class, List.of(new TalkStateProjector())
 );
 
 TalkState state = result.state();
-Cursor cursor   = result.cursor(); // position of the last event read
+StreamPosition streamPosition = result.streamPosition(); // position of the last event read
 ```
 
 The `cursor` field answers the question: "up to which event in the log did this projection read?" That answer is what makes concurrent writes safe — as you will see in the next part.
 
-> **Key insight.** State is always derived, never stored independently. The event log is the source of truth. `result.cursor()` is the receipt for the version of reality you read — you will hand it back to the store when you write.
+> **Key insight.** State is always derived, never stored independently. The event log is the source of truth. `result.streamPosition()` is the receipt for the version of reality you read — you will hand it back to the store when you write.
 
 ---
 
@@ -221,7 +221,7 @@ Suppose the conference accepts a maximum of 2 talks. Two organizers open the sys
 // Thread A                              // Thread B
 ProjectionResult<ConferenceState> a      ProjectionResult<ConferenceState> b
     = eventStore.project(                    = eventStore.project(
-        conferenceQuery, Cursor.zero(),           conferenceQuery, Cursor.zero(),
+        conferenceQuery, StreamPosition.zero(),           conferenceQuery, StreamPosition.zero(),
         ConferenceState.class,                    ConferenceState.class,
         List.of(conferenceProjector));            List.of(conferenceProjector));
 
@@ -244,18 +244,18 @@ The `AppendConditionBuilder` links the write to the version of reality that was 
 ```java
 // Thread A — corrected
 ProjectionResult<ConferenceState> result =
-    eventStore.project(conferenceQuery, Cursor.zero(),
+    eventStore.project(conferenceQuery, StreamPosition.zero(),
         ConferenceState.class, List.of(conferenceProjector));
 
 if (result.state().acceptedCount() >= CAPACITY) {
     throw new ConferenceFullException();
 }
 
-AppendCondition condition = AppendConditionBuilder.of(conferenceQuery, result.cursor())
+AppendCondition condition = AppendConditionBuilder.of(conferenceQuery, result.streamPosition())
     .build();
 
 // appendIf checks: has any event matching conferenceQuery been appended
-// AFTER result.cursor()? If yes — another thread wrote concurrently —
+// AFTER result.streamPosition()? If yes — another thread wrote concurrently —
 // throw ConcurrencyException. If no — safe to proceed.
 eventStore.appendIf(List.of(acceptTalk3), condition);
 ```
@@ -306,7 +306,7 @@ Not every command needs a cursor-based check. Choose the pattern that matches th
 |---------|-------------|------|
 | **Empty** | Commutative operations — parallel writes cannot conflict (e.g., submitting a talk) | `AppendCondition.empty()` |
 | **Idempotency check** | Entity creation — prevent duplicate creation (e.g., same submission submitted twice) | `AppendCondition.idempotent(type(TalkSubmitted.class), SUBMISSION_ID, id)` |
-| **Cursor-based** | State-dependent operations — outcome depends on current state (e.g., accept/reject with capacity check) | `AppendConditionBuilder.of(decisionModel, result.cursor()).build()` |
+| **StreamPosition-based** | State-dependent operations — outcome depends on current state (e.g., accept/reject with capacity check) | `AppendConditionBuilder.of(decisionModel, result.streamPosition()).build()` |
 
 **Empty** is appropriate when the operation is order-independent. Submitting two different talks simultaneously does not cause a conflict regardless of ordering.
 
@@ -317,7 +317,7 @@ Not every command needs a cursor-based check. Choose the pattern that matches th
 AppendCondition condition = AppendCondition.idempotent(type(TalkSubmitted.class), SUBMISSION_ID, command.submissionId());
 ```
 
-**Cursor-based** is for anything where the decision depends on the current state and another concurrent writer could invalidate that decision. The accept-with-capacity-check is the canonical example.
+**StreamPosition-based** is for anything where the decision depends on the current state and another concurrent writer could invalidate that decision. The accept-with-capacity-check is the canonical example.
 
 > **Key insight.** DCB does not use distributed locks. The cursor is a "read version" — the position of the last event you read. If anything matching your decision model query has been written between your read and your write, the store rejects the write. You retry with a fresh projection. This is optimistic concurrency: assume no conflict, detect if one occurred.
 
@@ -392,7 +392,7 @@ import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
 import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import com.crablet.eventstore.store.EventStore;
 import org.springframework.stereotype.Component;
 
@@ -423,7 +423,7 @@ public class AcceptTalkCommandHandler implements CommandHandler<AcceptTalkComman
             .build();
 
         ProjectionResult<TalkState> talkResult = eventStore.project(
-            talkQuery, Cursor.zero(), TalkState.class, List.of(talkStateProjector)
+            talkQuery, StreamPosition.zero(), TalkState.class, List.of(talkStateProjector)
         );
         TalkState talkState = talkResult.state();
 
@@ -445,7 +445,7 @@ public class AcceptTalkCommandHandler implements CommandHandler<AcceptTalkComman
             .build();
 
         ProjectionResult<ConferenceState> conferenceResult = eventStore.project(
-            conferenceQuery, Cursor.zero(), ConferenceState.class, List.of(conferenceProjector)
+            conferenceQuery, StreamPosition.zero(), ConferenceState.class, List.of(conferenceProjector)
         );
 
         if (conferenceResult.state().acceptedCount() >= CONFERENCE_CAPACITY) {
@@ -462,11 +462,11 @@ public class AcceptTalkCommandHandler implements CommandHandler<AcceptTalkComman
             .data(accepted)
             .build();
 
-        // 4. Cursor-based DCB condition scoped to the conference query.
+        // 4. StreamPosition-based DCB condition scoped to the conference query.
         //    If any TalkAccepted event for this conference was written after
-        //    conferenceResult.cursor(), the append will be rejected.
+        //    conferenceResult.streamPosition(), the append will be rejected.
         AppendCondition condition = AppendConditionBuilder.of(
-            conferenceQuery, conferenceResult.cursor()
+            conferenceQuery, conferenceResult.streamPosition()
         ).build();
 
         return CommandResult.of(List.of(appendEvent), condition);
@@ -987,7 +987,7 @@ class TalkLifecycleIntegrationTest extends AbstractCrabletTest {
             .build();
 
         ProjectionResult<TalkState> result = eventStore.project(
-            query, Cursor.zero(), TalkState.class, List.of(new TalkStateProjector())
+            query, StreamPosition.zero(), TalkState.class, List.of(new TalkStateProjector())
         );
 
         assertThat(result.state().isAccepted()).isTrue();
@@ -1052,7 +1052,7 @@ This test cannot be written as a domain test because `InMemoryEventStore` skips 
             .build();
 
         ProjectionResult<ConferenceState> conference = eventStore.project(
-            conferenceQuery, Cursor.zero(),
+            conferenceQuery, StreamPosition.zero(),
             ConferenceState.class, List.of(new ConferenceStateProjector())
         );
 

@@ -223,13 +223,13 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
         ProjectionResult<WalletBalance> result = eventStore.project(
             decisionModel,
-            Cursor.zero(),
+            StreamPosition.zero(),
             WalletBalance.class,
             List.of(projector)
         );
         
         WalletBalance balance = result.state();
-        Cursor cursor = result.cursor();
+        StreamPosition streamPosition = result.streamPosition();
         
         // 2. Business logic: check sufficient funds
         if (balance.amount().compareTo(command.amount()) < 0) {

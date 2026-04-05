@@ -143,7 +143,7 @@ CREATE OR REPLACE FUNCTION append_events_if(
     p_data JSONB[],
     p_event_types TEXT[] DEFAULT NULL,
     p_condition_tags TEXT[] DEFAULT NULL,
-    p_after_cursor_position BIGINT DEFAULT NULL,
+    p_after_position BIGINT DEFAULT NULL,
     p_idempotency_types TEXT[] DEFAULT NULL,
     p_idempotency_tags TEXT[] DEFAULT NULL,
     p_occurred_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
@@ -153,7 +153,7 @@ CREATE OR REPLACE FUNCTION append_events_if(
 **Parameters:**
 - `p_types`, `p_tags`, `p_data` - Events to insert
 - `p_event_types`, `p_condition_tags` - Decision model query (for DCB conflict check)
-- `p_after_cursor_position` - Cursor position (check events after this)
+- `p_after_position` - Stream position (check events after this)
 - `p_idempotency_types`, `p_idempotency_tags` - Idempotency query (check all events)
 
 **Returns:**
@@ -189,8 +189,8 @@ Unlike cursor-based concurrency checks, idempotency checks cannot rely on Postgr
 
 Snapshot isolation doesn't help here because both transactions see the same "entity doesn't exist" state. Advisory locks serialize the duplicate check, ensuring only one transaction can check "does entity exist?" at a time, preventing both from seeing "no duplicate" simultaneously.
 
-**Cursor-Based Checks Don't Need Locks:**
-- Cursor-based checks query "has anything changed AFTER cursor position X?"
+**StreamPosition-Based Checks Don't Need Locks:**
+- StreamPosition-based checks query "has anything changed AFTER cursor position X?"
 - Snapshot isolation handles this: if transaction A writes at position 43, transaction B will see position 43 when it tries to write and detect the conflict
 - No advisory locks needed - PostgreSQL's MVCC (Multi-Version Concurrency Control) provides the protection
 

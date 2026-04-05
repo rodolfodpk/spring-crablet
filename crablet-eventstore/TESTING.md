@@ -329,7 +329,7 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
             .eventNames("WithdrawalMade")
             .build();
         
-        List<StoredEvent> events = eventRepository.query(query, Cursor.zero());
+        List<StoredEvent> events = eventRepository.query(query, StreamPosition.zero());
         assertEquals(1, events.size());
     }
     
@@ -355,7 +355,7 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
             .hasTag("withdrawal_id", withdrawalId)
             .build();
         
-        List<StoredEvent> events = eventRepository.query(query, Cursor.zero());
+        List<StoredEvent> events = eventRepository.query(query, StreamPosition.zero());
         assertEquals(1, events.size(), "Should only store one withdrawal event");
     }
 }
@@ -400,7 +400,7 @@ void testEventStorage() {
         .hasTag("wallet_id", walletId)
         .build();
     
-    List<StoredEvent> events = eventRepository.query(query, Cursor.zero());
+    List<StoredEvent> events = eventRepository.query(query, StreamPosition.zero());
     
     // Assert on raw events
     assertEquals(3, events.size());

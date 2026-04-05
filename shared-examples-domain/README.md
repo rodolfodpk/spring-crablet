@@ -35,8 +35,8 @@ The primary example domain. Demonstrates all DCB patterns.
 |---------|-------------|-------------|
 | `OpenWalletCommand` | Idempotency check | Creates a wallet — fails if wallet already exists |
 | `DepositCommand` | Empty condition | Commutative operation — order independent |
-| `WithdrawCommand` | Cursor-based check | Non-commutative — enforces balance check |
-| `TransferMoneyCommand` | Cursor-based check | Cross-wallet — updates two wallets atomically |
+| `WithdrawCommand` | StreamPosition-based check | Non-commutative — enforces balance check |
+| `TransferMoneyCommand` | StreamPosition-based check | Cross-wallet — updates two wallets atomically |
 
 ### Events (sealed interface)
 
