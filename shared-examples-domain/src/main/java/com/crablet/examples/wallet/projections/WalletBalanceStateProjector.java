@@ -123,11 +123,11 @@ public class WalletBalanceStateProjector implements StateProjector<WalletBalance
      * @param store    The event store to query
      * @param walletId The wallet ID to project balance for
      * @param query    The decision model query to use (must be period-aware)
-     * @return ProjectionResult containing WalletBalanceState and cursor for optimistic locking
+     * @return ProjectionResult containing WalletBalanceState and stream position for optimistic locking
      */
     public ProjectionResult<WalletBalanceState> projectWalletBalance(EventStore store, String walletId, Query query) {
         // Use new signature: query, cursor, stateType, projectors
-        return store.project(query, com.crablet.eventstore.store.Cursor.zero(), WalletBalanceState.class, List.of(this));
+        return store.project(query, com.crablet.eventstore.store.StreamPosition.zero(), WalletBalanceState.class, List.of(this));
     }
 
 }

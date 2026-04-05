@@ -5,7 +5,7 @@ import com.crablet.eventstore.store.Tag;
 import com.crablet.examples.course.events.CourseCapacityChanged;
 import com.crablet.examples.course.events.CourseDefined;
 import com.crablet.examples.course.events.StudentSubscribedToCourse;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 

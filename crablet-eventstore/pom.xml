@@ -15,29 +15,19 @@
     
     <dependencies>
         <!-- JSpecify for nullability annotations -->
-        <dependency>
-            <groupId>org.jspecify</groupId>
-            <artifactId>jspecify</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-
-        <!-- Jackson for JSON serialization -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-        </dependency>
-        
-        <!-- Spring Boot Web (for tests only) -->
+<!-- Spring Boot Web (for tests only) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
             <scope>test</scope>
         </dependency>
         
+        <!-- Jackson 3 (tools.jackson) -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
         <!-- Spring Boot JDBC -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

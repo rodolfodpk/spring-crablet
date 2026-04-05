@@ -10,7 +10,8 @@ import com.crablet.outbox.config.GlobalStatisticsConfig;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.config.TopicConfigurationProperties;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -66,9 +67,7 @@ public class TestApplication {
      */
     @Bean
     public ObjectMapper objectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-        mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        ObjectMapper mapper = JsonMapper.builder().build();
         return mapper;
     }
     public static void main(String[] args) {

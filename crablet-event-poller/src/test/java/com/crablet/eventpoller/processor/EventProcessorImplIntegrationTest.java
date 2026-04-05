@@ -7,7 +7,6 @@ import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.leader.LeaderElectorImpl;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
-import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
@@ -92,7 +91,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
                 .data("{\"id\":2}".getBytes())
                 .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // Verify only 2 events were created
         eventCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM events", Long.class);
@@ -138,7 +137,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
                 .data("{\"id\":1}".getBytes())
                 .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When - Process
         int processed = eventProcessor.process("test-processor");
@@ -159,7 +158,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
                 .data("{\"id\":1}".getBytes())
                 .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When - Process
         int processed = eventProcessor.process("test-processor");
@@ -194,7 +193,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
                 .data("{\"id\":2}".getBytes())
                 .build()
         );
-        eventStore.appendIf(firstBatch, AppendCondition.empty());
+        eventStore.appendCommutative(firstBatch);
         eventProcessor.process("test-processor");
         
         int initialHandled = eventHandler.getHandledCount();
@@ -206,7 +205,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
                 .data("{\"id\":3}".getBytes())
                 .build()
         );
-        eventStore.appendIf(secondBatch, AppendCondition.empty());
+        eventStore.appendCommutative(secondBatch);
         int processed = eventProcessor.process("test-processor");
 
         // Then - Should process only new events
@@ -226,7 +225,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
                 .data("{\"id\":1}".getBytes())
                 .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When - Process (should throw)
         assertThatThrownBy(() -> eventProcessor.process("test-processor"))
@@ -251,7 +250,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
                 .data("{\"id\":1}".getBytes())
                 .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When - Process successfully
         int processed = eventProcessor.process("test-processor");
@@ -271,7 +270,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
                 .data(("{\"id\":" + i + "}").getBytes())
                 .build());
         }
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When - Process with batch size 5
         int processed = eventProcessor.process("test-processor");
@@ -569,7 +568,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         @org.springframework.context.annotation.DependsOn("flyway")
         public EventStore eventStore(
                 DataSource dataSource,
-                com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+                tools.jackson.databind.ObjectMapper objectMapper,
                 com.crablet.eventstore.store.EventStoreConfig config,
                 com.crablet.eventstore.clock.ClockProvider clock,
                 org.springframework.context.ApplicationEventPublisher eventPublisher) {
@@ -588,8 +587,8 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         }
 
         @Bean
-        public com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
-            return new com.fasterxml.jackson.databind.ObjectMapper();
+        public tools.jackson.databind.ObjectMapper objectMapper() {
+            return tools.jackson.databind.json.JsonMapper.builder().disable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build();
         }
 
         @Bean

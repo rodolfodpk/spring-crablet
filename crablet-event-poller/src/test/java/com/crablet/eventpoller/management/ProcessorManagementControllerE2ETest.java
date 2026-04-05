@@ -10,7 +10,6 @@ import com.crablet.eventpoller.processor.EventProcessorImpl;
 import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
-import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
@@ -231,7 +230,7 @@ class ProcessorManagementControllerE2ETest extends AbstractEventProcessorTest {
                 .data("{\"id\":1}".getBytes())
                 .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
         
         // Process to set last position
         eventProcessor.process(processorId);
@@ -503,7 +502,7 @@ class ProcessorManagementControllerE2ETest extends AbstractEventProcessorTest {
         @org.springframework.context.annotation.DependsOn("flyway")
         public EventStore eventStore(
                 DataSource dataSource,
-                com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+                tools.jackson.databind.ObjectMapper objectMapper,
                 com.crablet.eventstore.store.EventStoreConfig config,
                 com.crablet.eventstore.clock.ClockProvider clock,
                 org.springframework.context.ApplicationEventPublisher eventPublisher) {
@@ -522,8 +521,8 @@ class ProcessorManagementControllerE2ETest extends AbstractEventProcessorTest {
         }
 
         @Bean
-        public com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
-            return new com.fasterxml.jackson.databind.ObjectMapper();
+        public tools.jackson.databind.ObjectMapper objectMapper() {
+            return tools.jackson.databind.json.JsonMapper.builder().disable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build();
         }
 
         @Bean

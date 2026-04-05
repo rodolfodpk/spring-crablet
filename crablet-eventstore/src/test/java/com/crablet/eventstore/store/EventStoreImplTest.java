@@ -1,9 +1,9 @@
 package com.crablet.eventstore.store;
 
 import com.crablet.eventstore.clock.ClockProviderImpl;
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -68,8 +68,7 @@ class EventStoreImplTest {
     @BeforeEach
     void setUp() {
         // Create ObjectMapper with Java Time support
-        objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper = JsonMapper.builder().build();
 
         // Create EventStoreConfig with defaults
         EventStoreConfig config = new EventStoreConfig();
@@ -108,7 +107,7 @@ class EventStoreImplTest {
                 .build();
 
         // When - This call should be tracked by JaCoCo
-        String transactionId = eventStore.appendIf(List.of(appendEvent), AppendCondition.empty());
+        String transactionId = eventStore.appendCommutative(List.of(appendEvent));
 
         // Then - Event was persisted successfully and transaction ID returned
         assertNotNull(transactionId);
@@ -137,7 +136,7 @@ class EventStoreImplTest {
         );
 
         // When
-        String transactionId = eventStore.appendIf(events, AppendCondition.empty());
+        String transactionId = eventStore.appendCommutative(events);
 
         // Then - Both events were appended and transaction ID returned
         assertNotNull(transactionId);
@@ -158,7 +157,7 @@ class EventStoreImplTest {
                     .data(event)
                     .build();
 
-            txEventStore.appendIf(List.of(appendEvent), AppendCondition.empty());
+            txEventStore.appendCommutative(List.of(appendEvent));
             return testId;
         });
 

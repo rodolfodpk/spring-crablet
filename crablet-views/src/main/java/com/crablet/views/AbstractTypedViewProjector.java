@@ -2,7 +2,7 @@ package com.crablet.views;
 
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.store.StoredEvent;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 

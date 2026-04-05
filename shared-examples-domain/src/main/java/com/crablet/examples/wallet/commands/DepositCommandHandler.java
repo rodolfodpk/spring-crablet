@@ -1,11 +1,8 @@
 package com.crablet.examples.wallet.commands;
 
-import com.crablet.command.CommandHandler;
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.command.CommutativeCommandHandler;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
-import com.crablet.examples.wallet.commands.DepositCommand;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.exceptions.WalletNotFoundException;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
@@ -22,11 +19,12 @@ import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
 /**
  * Command handler for depositing money into wallets.
  * <p>
- * DCB Principle: Projects only wallet balance + existence - minimal state needed.
- * Uses period-aware queries and ensures active period exists before processing.
+ * DCB Principle: Commutative operation — deposit order does not affect correctness.
+ * No stream position check needed; allows parallel deposits on the same wallet.
+ * Idempotency is provided by the deposit_id tag.
  */
 @Component
-public class DepositCommandHandler implements CommandHandler<DepositCommand> {
+public class DepositCommandHandler implements CommutativeCommandHandler<DepositCommand> {
 
     private static final Logger log = LoggerFactory.getLogger(DepositCommandHandler.class);
     private final WalletPeriodHelper periodHelper;
@@ -36,10 +34,9 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
     }
 
     @Override
-    public CommandResult handle(EventStore eventStore, DepositCommand command) {
+    public List<AppendEvent> decide(EventStore eventStore, DepositCommand command) {
         // Command is already validated at construction with YAVI
 
-        // Project balance for current period (period tags derived from clock, no statement creation)
         var periodResult = periodHelper.projectCurrentPeriod(
                 eventStore, command.walletId(), DepositCommand.class);
         var state = periodResult.projection().state();
@@ -67,13 +64,6 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
                 .data(deposit)
                 .build();
 
-        // Deposits are commutative operations - order doesn't matter
-        // Balance: $100 → +$10 → +$20 = $130 (same as +$20 → +$10)
-        // No DCB cursor check needed - allows parallel deposits on same wallet
-        // Only requirement: wallet must exist (validated above)
-        // Idempotency via deposit_id tag prevents duplicates
-        AppendCondition condition = AppendCondition.empty();
-
-        return CommandResult.of(List.of(event), condition);
+        return List.of(event);
     }
 }

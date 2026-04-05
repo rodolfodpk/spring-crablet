@@ -1,14 +1,10 @@
 package com.crablet.examples.wallet.commands;
 
-import com.crablet.command.CommandHandler;
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
+import com.crablet.command.NonCommutativeCommandHandler;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.examples.wallet.WalletQueryPatterns;
-import com.crablet.examples.wallet.commands.TransferMoneyCommand;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.exceptions.InsufficientFundsException;
 import com.crablet.examples.wallet.exceptions.WalletNotFoundException;
@@ -38,11 +34,11 @@ import static com.crablet.examples.wallet.WalletTags.TRANSFER_ID;
 /**
  * Command handler for transferring money between wallets.
  * <p>
- * DCB Principle: Projects balances for both wallets + concurrency control.
- * Uses period-aware queries and ensures active periods exist for both wallets.
+ * DCB Principle: Non-commutative operation — order matters for both wallet balances.
+ * Cursor-based DCB check prevents concurrent transfers from causing overdrafts.
  */
 @Component
-public class TransferMoneyCommandHandler implements CommandHandler<TransferMoneyCommand> {
+public class TransferMoneyCommandHandler implements NonCommutativeCommandHandler<TransferMoneyCommand> {
 
     private static final Logger log = LoggerFactory.getLogger(TransferMoneyCommandHandler.class);
     private final WalletPeriodHelper periodHelper;
@@ -52,16 +48,14 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
     }
 
     @Override
-    public CommandResult handle(EventStore eventStore, TransferMoneyCommand command) {
+    public Decision decide(EventStore eventStore, TransferMoneyCommand command) {
         // Command is already validated at construction with YAVI
 
-        // Project balance for current periods of both wallets (period tags derived from clock, no statement creation)
         PeriodProjectionResult fromPeriodResult = periodHelper.projectCurrentPeriod(
                 eventStore, command.fromWalletId(), TransferMoneyCommand.class);
         PeriodProjectionResult toPeriodResult = periodHelper.projectCurrentPeriod(
                 eventStore, command.toWalletId(), TransferMoneyCommand.class);
 
-        // Project transfer state using period-aware query
         TransferProjectionResult transferProjection = projectTransferState(
                 eventStore, command, fromPeriodResult, toPeriodResult);
         TransferState transferState = transferProjection.state();
@@ -83,11 +77,9 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
                     transferState.fromWallet().balance(), command.amount());
         }
 
-        // Calculate new balances
         int fromNewBalance = transferState.fromWallet().balance() - command.amount();
         int toNewBalance = transferState.toWallet().balance() + command.amount();
 
-        // Create transfer event
         MoneyTransferred transfer = MoneyTransferred.of(
                 command.transferId(),
                 command.fromWalletId(),
@@ -98,7 +90,6 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
                 command.description()
         );
 
-        // Extract period info for tags (wallets may be in different periods)
         var fromPeriodId = fromPeriodResult.periodId();
         var toPeriodId = toPeriodResult.periodId();
         int fromYear = fromPeriodId.year();
@@ -126,24 +117,15 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 
         AppendEvent event = eventBuilder.data(transfer).build();
 
-        // Transfers are non-commutative - order matters for both wallet balances
-        // DCB cursor check REQUIRED: prevents concurrent transfers causing overdrafts
-        AppendCondition condition = new AppendConditionBuilder(
-                transferProjection.decisionModel(), transferProjection.cursor())
-                .build();
-
-        return CommandResult.of(List.of(event), condition);
+        return new Decision(List.of(event), transferProjection.decisionModel(), transferProjection.streamPosition());
     }
 
-    /**
-     * Project transfer state - balances for both wallets using period-aware queries.
-     */
     private TransferProjectionResult projectTransferState(
             EventStore store,
             TransferMoneyCommand cmd,
             PeriodProjectionResult fromPeriodResult,
             PeriodProjectionResult toPeriodResult) {
-        
+
         var fromPeriodId = fromPeriodResult.periodId();
         var toPeriodId = toPeriodResult.periodId();
         int fromYear = fromPeriodId.year();
@@ -151,25 +133,21 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
         int toYear = toPeriodId.year();
         int toMonth = toPeriodId.month() != null ? toPeriodId.month() : 1;
 
-        // Use period-aware transfer decision model (combines both wallets' periods)
         Query decisionModel = WalletQueryPatterns.transferPeriodDecisionModel(
                 cmd.fromWalletId(), fromYear, fromMonth,
                 cmd.toWalletId(), toYear, toMonth);
-        
-        // Create projector instance per projection (immutable, thread-safe)
+
         TransferStateProjector projector = new TransferStateProjector(cmd.fromWalletId(), cmd.toWalletId());
-        
-        // Use EventStore's streaming projection
-        com.crablet.eventstore.query.ProjectionResult<TransferState> result = 
-            store.project(decisionModel, com.crablet.eventstore.store.Cursor.zero(), TransferState.class, List.of(projector));
-        
-        return new TransferProjectionResult(result.state(), result.cursor(), decisionModel);
+
+        com.crablet.eventstore.query.ProjectionResult<TransferState> result =
+            store.project(decisionModel, com.crablet.eventstore.store.StreamPosition.zero(), TransferState.class, List.of(projector));
+
+        return new TransferProjectionResult(result.state(), result.streamPosition(), decisionModel);
     }
 
     private record TransferProjectionResult(
             TransferState state,
-            com.crablet.eventstore.store.Cursor cursor,
+            com.crablet.eventstore.store.StreamPosition streamPosition,
             Query decisionModel
-    ) {
-    }
+    ) {}
 }

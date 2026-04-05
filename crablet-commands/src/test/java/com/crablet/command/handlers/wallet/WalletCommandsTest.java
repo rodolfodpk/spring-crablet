@@ -1,7 +1,6 @@
 package com.crablet.command.handlers.wallet;
 
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.command.CommandDecision;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
@@ -40,7 +39,7 @@ class WalletCommandsTest extends com.crablet.test.AbstractCrabletTest {
 
     @Autowired
     private EventRepository testHelper;
-    
+
     @Autowired
     private WalletPeriodHelper periodHelper;
 
@@ -51,19 +50,31 @@ class WalletCommandsTest extends com.crablet.test.AbstractCrabletTest {
         openHandler = new com.crablet.examples.wallet.commands.OpenWalletCommandHandler();
     }
 
+    /** Dispatch a CommandDecision to the appropriate EventStore semantic method. */
+    private void appendResult(CommandDecision result) {
+        switch (result) {
+            case CommandDecision.Commutative c -> eventStore.appendCommutative(c.events());
+            case CommandDecision.NonCommutative nc ->
+                eventStore.appendNonCommutative(nc.events(), nc.decisionModel(), nc.streamPosition());
+            case CommandDecision.Idempotent i ->
+                eventStore.appendIdempotent(i.events(), i.eventType(), i.tagKey(), i.tagValue());
+            case CommandDecision.NoOp e -> {} // no-op
+        }
+    }
+
     @Test
     @DisplayName("Should successfully deposit money into existing wallet")
     void shouldSuccessfullyDepositMoneyIntoExistingWallet() throws Exception {
         // Given: An existing wallet
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
-        eventStore.appendIf(List.of(AppendEvent.builder("WalletOpened")
+        eventStore.appendCommutative(List.of(AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", "wallet1")
                 .data(walletOpened)
-                .build()), AppendCondition.empty());
+                .build()));
 
         // When: Depositing money
         DepositCommand depositCmd = DepositCommand.of("deposit1", "wallet1", 500, "Salary deposit");
-        CommandResult result = depositHandler.handle(eventStore, depositCmd);
+        CommandDecision result = depositHandler.handle(eventStore, depositCmd);
 
         // Then: Should create DepositMade event
         assertThat(result.events()).hasSize(1);
@@ -100,14 +111,14 @@ class WalletCommandsTest extends com.crablet.test.AbstractCrabletTest {
     void shouldSuccessfullyWithdrawMoneyFromExistingWallet() throws Exception {
         // Given: An existing wallet with sufficient balance
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 1000);
-        eventStore.appendIf(List.of(AppendEvent.builder("WalletOpened")
+        eventStore.appendCommutative(List.of(AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", "wallet1")
                 .data(walletOpened)
-                .build()), AppendCondition.empty());
+                .build()));
 
         // When: Withdrawing money
         WithdrawCommand withdrawCmd = WithdrawCommand.of("withdrawal1", "wallet1", 300, "Shopping");
-        CommandResult result = withdrawHandler.handle(eventStore, withdrawCmd);
+        CommandDecision result = withdrawHandler.handle(eventStore, withdrawCmd);
 
         // Then: Should create WithdrawalMade event
         assertThat(result.events()).hasSize(1);
@@ -122,10 +133,10 @@ class WalletCommandsTest extends com.crablet.test.AbstractCrabletTest {
     void shouldFailToWithdrawMoreThanAvailableBalance() throws Exception {
         // Given: An existing wallet with limited balance
         WalletOpened walletOpened = WalletOpened.of("wallet1", "Alice", 100);
-        eventStore.appendIf(List.of(AppendEvent.builder("WalletOpened")
+        eventStore.appendCommutative(List.of(AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", "wallet1")
                 .data(walletOpened)
-                .build()), AppendCondition.empty());
+                .build()));
 
         // When: Withdrawing more than available
         WithdrawCommand withdrawCmd = WithdrawCommand.of("withdrawal1", "wallet1", 200, "Shopping");
@@ -170,27 +181,21 @@ class WalletCommandsTest extends com.crablet.test.AbstractCrabletTest {
 
         // When: Opening a wallet
         OpenWalletCommand openCmd = OpenWalletCommand.of("wallet1", "Alice", 1000);
-        CommandResult openResult = openHandler.handle(eventStore, openCmd);
-        eventStore.appendIf(openResult.events(), openResult.appendCondition());
+        appendResult(openHandler.handle(eventStore, openCmd));
 
         // And: Depositing money
         DepositCommand depositCmd = DepositCommand.of("deposit1", "wallet1", 500, "Salary");
-        CommandResult depositResult = depositHandler.handle(eventStore, depositCmd);
-        eventStore.appendIf(depositResult.events(), depositResult.appendCondition());
+        appendResult(depositHandler.handle(eventStore, depositCmd));
 
         // And: Withdrawing money
         WithdrawCommand withdrawCmd = WithdrawCommand.of("withdrawal1", "wallet1", 200, "Shopping");
-        CommandResult withdrawResult = withdrawHandler.handle(eventStore, withdrawCmd);
-        eventStore.appendIf(withdrawResult.events(), withdrawResult.appendCondition());
+        appendResult(withdrawHandler.handle(eventStore, withdrawCmd));
 
         // And: Withdrawing remaining balance
         WithdrawCommand finalWithdrawCmd = WithdrawCommand.of("withdrawal2", "wallet1", 1300, "Final withdrawal");
-        CommandResult finalWithdrawResult = withdrawHandler.handle(eventStore, finalWithdrawCmd);
-        eventStore.appendIf(finalWithdrawResult.events(), finalWithdrawResult.appendCondition());
+        appendResult(withdrawHandler.handle(eventStore, finalWithdrawCmd));
 
         // Then: Wallet should have zero balance
-        // Note: WalletState building would require implementing a state projector
-        // For now, we just verify the events were created successfully
         // Note: Period helper creates statement events, so we filter to wallet lifecycle events only
         var allEvents = testHelper.query(com.crablet.eventstore.query.Query.empty(), null);
         var walletLifecycleEvents = allEvents.stream()

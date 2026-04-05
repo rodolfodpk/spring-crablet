@@ -2,7 +2,7 @@ package com.crablet.examples.wallet.exceptions;
 
 /**
  * Exception thrown when optimistic concurrency control fails.
- * This occurs when the AppendCondition cursor doesn't match the current state,
+ * This occurs when the AppendCondition stream position doesn't match the current state,
  * indicating the state changed between projection and append.
  */
 public class OptimisticLockException extends RuntimeException {

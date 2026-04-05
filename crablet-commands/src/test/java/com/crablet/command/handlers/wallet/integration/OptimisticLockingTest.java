@@ -24,8 +24,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Integration test for optimistic locking and AppendCondition validation.
  * <p>
  * Tests optimistic locking behavior:
- * 1. AppendCondition cursor validation
- * 2. Stale cursor detection
+ * 1. AppendCondition stream position validation
+ * 2. Stale stream position detection
  * 3. Optimistic lock exception handling
  * 4. Retry logic verification
  * 5. Verify 409 CONFLICT HTTP response
@@ -40,7 +40,7 @@ class OptimisticLockingTest extends AbstractCrabletTest {
     private EventRepository testHelper;
 
     @Test
-    @DisplayName("Should validate AppendCondition cursor correctly")
+    @DisplayName("Should validate AppendCondition stream position correctly")
     void shouldValidateAppendConditionCursorCorrectly() {
         String walletId = "optimistic-lock-" + System.currentTimeMillis();
 
@@ -66,9 +66,9 @@ class OptimisticLockingTest extends AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("Should detect stale cursor and throw ConcurrencyException")
+    @DisplayName("Should detect stale stream position and throw ConcurrencyException")
     void shouldDetectStaleCursorAndThrowConcurrencyException() {
-        String walletId = "stale-cursor-" + System.currentTimeMillis();
+        String walletId = "stale-stream-position-" + System.currentTimeMillis();
 
         // Create wallet
         OpenWalletCommand openCommand = OpenWalletCommand.of(walletId, "Bob", 1000);
@@ -82,7 +82,7 @@ class OptimisticLockingTest extends AbstractCrabletTest {
         DepositCommand firstDeposit = DepositCommand.of("deposit-1", walletId, 100, "First deposit");
         commandExecutor.executeCommand(firstDeposit);
 
-        // Now try to use the stale cursor - this should fail
+        // Now try to use the stale stream position - this should fail
         // We need to simulate a scenario where the cursor is stale
         // This is typically handled by the CommandExecutor's retry logic
 

@@ -1,54 +1,55 @@
 package com.crablet.eventstore.dcb;
 
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import org.jspecify.annotations.Nullable;
 
 /**
  * AppendCondition defines the conditions for appending events.
- * Supports dual conditions: concurrency check (with cursor) and idempotency check (no cursor).
- * This follows the DCB specification where idempotency checks ignore cursor position.
+ * Supports two independent checks:
+ * - concurrencyQuery: detects conflicting writes after a captured stream position
+ * - idempotencyQuery: detects duplicate operations regardless of position (Query.empty() = no check)
  */
 public record AppendCondition(
-        Cursor afterCursor,
-        Query stateChanged,          // Concurrency check (with cursor)
-        @Nullable Query alreadyExists // Idempotency check (no cursor)
+        StreamPosition afterPosition,
+        Query concurrencyQuery,
+        Query idempotencyQuery
 ) {
 
     /**
      * Low-level factory — concurrency check only, no idempotency check.
      * Prefer {@link AppendConditionBuilder} for constructing conditions in command handlers.
      */
-    public static AppendCondition of(@Nullable Cursor afterCursor, @Nullable Query stateChanged) {
-        if (afterCursor == null) {
-            throw new IllegalArgumentException("afterCursor cannot be null");
+    public static AppendCondition of(@Nullable StreamPosition afterPosition, @Nullable Query concurrencyQuery) {
+        if (afterPosition == null) {
+            throw new IllegalArgumentException("afterPosition cannot be null");
         }
-        if (stateChanged == null) {
-            throw new IllegalArgumentException("stateChanged cannot be null");
+        if (concurrencyQuery == null) {
+            throw new IllegalArgumentException("concurrencyQuery cannot be null");
         }
-        return new AppendCondition(afterCursor, stateChanged, null);
+        return new AppendCondition(afterPosition, concurrencyQuery, Query.empty());
     }
 
     /**
      * Low-level factory — concurrency check with optional idempotency check.
      * Prefer {@link AppendConditionBuilder} for constructing conditions in command handlers.
      */
-    public static AppendCondition of(@Nullable Cursor afterCursor, @Nullable Query stateChangedQuery, @Nullable Query alreadyExistsQuery) {
-        if (afterCursor == null) {
-            throw new IllegalArgumentException("afterCursor cannot be null");
+    public static AppendCondition of(@Nullable StreamPosition afterPosition, @Nullable Query concurrencyQuery, @Nullable Query idempotencyQuery) {
+        if (afterPosition == null) {
+            throw new IllegalArgumentException("afterPosition cannot be null");
         }
-        if (stateChangedQuery == null) {
-            throw new IllegalArgumentException("stateChangedQuery cannot be null");
+        if (concurrencyQuery == null) {
+            throw new IllegalArgumentException("concurrencyQuery cannot be null");
         }
-        return new AppendCondition(afterCursor, stateChangedQuery, alreadyExistsQuery);
+        return new AppendCondition(afterPosition, concurrencyQuery, idempotencyQuery != null ? idempotencyQuery : Query.empty());
     }
 
     /**
-     * Low-level factory — cursor check against an empty query (passes unconditionally).
+     * Low-level factory — stream position check against an empty query (passes unconditionally).
      * Prefer {@link AppendConditionBuilder} for constructing conditions in command handlers.
      */
-    public static AppendCondition of(Cursor afterCursor) {
-        return of(afterCursor, Query.empty());
+    public static AppendCondition of(StreamPosition afterPosition) {
+        return of(afterPosition, Query.empty());
     }
 
     /**
@@ -57,7 +58,7 @@ public record AppendCondition(
      * <p>
      * Replaces the verbose chain:
      * <pre>{@code
-     * AppendConditionBuilder.of(Query.empty(), Cursor.zero())
+     * AppendConditionBuilder.of(Query.empty(), StreamPosition.zero())
      *     .withIdempotencyCheck(type(WalletOpened.class), WALLET_ID, walletId)
      *     .build();
      * }</pre>
@@ -67,7 +68,7 @@ public record AppendCondition(
      * }</pre>
      */
     public static AppendCondition idempotent(String eventType, String tagKey, String tagValue) {
-        return AppendConditionBuilder.of(Query.empty(), Cursor.zero())
+        return AppendConditionBuilder.of(Query.empty(), StreamPosition.zero())
                 .withIdempotencyCheck(eventType, tagKey, tagValue)
                 .build();
     }
@@ -80,6 +81,6 @@ public record AppendCondition(
      * These operations can safely run in parallel without conflicts.
      */
     public static AppendCondition empty() {
-        return new AppendCondition(Cursor.zero(), Query.empty(), null);
+        return new AppendCondition(StreamPosition.zero(), Query.empty(), Query.empty());
     }
 }

@@ -1,6 +1,5 @@
 package com.crablet.views.integration.wallet;
 
-import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
@@ -76,7 +75,7 @@ class ViewEventFetcherWalletIntegrationTest extends AbstractViewsTest {
                     """)
                 .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When - Fetch events for subscription that matches WalletOpened and DepositMade
         List<StoredEvent> fetched = eventFetcher.fetchEvents("wallet-view", 0L, 100);
@@ -104,7 +103,7 @@ class ViewEventFetcherWalletIntegrationTest extends AbstractViewsTest {
                     """)
                 .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When - Fetch events for subscription requiring wallet_id tag
         List<StoredEvent> fetched = eventFetcher.fetchEvents("wallet-view", 0L, 100);
@@ -139,7 +138,7 @@ class ViewEventFetcherWalletIntegrationTest extends AbstractViewsTest {
                     """)
                 .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When - Fetch events for subscription with any-of tags (wallet_id OR from_wallet_id OR to_wallet_id)
         List<StoredEvent> fetched = eventFetcher.fetchEvents("wallet-any-view", 0L, 100);
@@ -169,7 +168,7 @@ class ViewEventFetcherWalletIntegrationTest extends AbstractViewsTest {
                 .data("{\"amount\":50}")
                 .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When - Fetch events after position 1
         List<StoredEvent> fetched = eventFetcher.fetchEvents("wallet-view", 1L, 100);
@@ -193,7 +192,7 @@ class ViewEventFetcherWalletIntegrationTest extends AbstractViewsTest {
                     """, i))
                 .build());
         }
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When - Fetch with batch size 50
         List<StoredEvent> fetched = eventFetcher.fetchEvents("wallet-view", 0L, 50);
@@ -225,7 +224,7 @@ class ViewEventFetcherWalletIntegrationTest extends AbstractViewsTest {
                     """)
                 .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When - Fetch for wallet-view (which only matches WalletOpened, DepositMade, WithdrawalMade - not MoneyTransferred)
         List<StoredEvent> fetched = eventFetcher.fetchEvents("wallet-view", 0L, 100);
@@ -259,7 +258,7 @@ class ViewEventFetcherWalletIntegrationTest extends AbstractViewsTest {
                     """)
                 .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When - Fetch with combined filters
         List<StoredEvent> fetched = eventFetcher.fetchEvents("wallet-view", 0L, 100);
@@ -287,7 +286,7 @@ class ViewEventFetcherWalletIntegrationTest extends AbstractViewsTest {
                 .data("{\"amount\":50}")
                 .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When
         List<StoredEvent> fetched = eventFetcher.fetchEvents("wallet-view", 0L, 100);
@@ -345,7 +344,7 @@ class ViewEventFetcherWalletIntegrationTest extends AbstractViewsTest {
         @org.springframework.context.annotation.DependsOn("flyway")
         public com.crablet.eventstore.store.EventStore eventStore(
                 DataSource dataSource,
-                com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+                tools.jackson.databind.ObjectMapper objectMapper,
                 com.crablet.eventstore.store.EventStoreConfig config,
                 com.crablet.eventstore.clock.ClockProvider clock,
                 org.springframework.context.ApplicationEventPublisher eventPublisher) {
@@ -364,8 +363,8 @@ class ViewEventFetcherWalletIntegrationTest extends AbstractViewsTest {
         }
 
         @Bean
-        public com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
-            return new com.fasterxml.jackson.databind.ObjectMapper();
+        public tools.jackson.databind.ObjectMapper objectMapper() {
+            return tools.jackson.databind.json.JsonMapper.builder().disable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build();
         }
 
         @Bean

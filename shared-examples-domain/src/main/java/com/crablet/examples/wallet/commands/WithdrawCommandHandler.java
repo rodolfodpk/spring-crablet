@@ -1,9 +1,6 @@
 package com.crablet.examples.wallet.commands;
 
-import com.crablet.command.CommandHandler;
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
+import com.crablet.command.NonCommutativeCommandHandler;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
@@ -25,11 +22,11 @@ import static com.crablet.examples.wallet.WalletTags.WITHDRAWAL_ID;
 /**
  * Command handler for withdrawing money from wallets.
  * <p>
- * DCB Principle: Projects only wallet balance + existence - minimal state needed.
- * Uses period-aware queries and ensures active period exists before processing.
+ * DCB Principle: Non-commutative operation — order matters for balance validation.
+ * Cursor-based DCB check prevents concurrent withdrawals from exceeding the balance.
  */
 @Component
-public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
+public class WithdrawCommandHandler implements NonCommutativeCommandHandler<WithdrawCommand> {
 
     private static final Logger log = LoggerFactory.getLogger(WithdrawCommandHandler.class);
     private final WalletPeriodHelper periodHelper;
@@ -39,10 +36,9 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
     }
 
     @Override
-    public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
+    public Decision decide(EventStore eventStore, WithdrawCommand command) {
         // Command is already validated at construction with YAVI
 
-        // Project balance for current period (period tags derived from clock, no statement creation)
         var periodResult = periodHelper.projectCurrentPeriod(
                 eventStore, command.walletId(), WithdrawCommand.class);
         var state = periodResult.projection().state();
@@ -75,17 +71,10 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
                 .data(withdrawal)
                 .build();
 
-        // Use period-aware decision model query for DCB concurrency control
         var periodId = periodResult.periodId();
         Query decisionModel = WalletQueryPatterns.singleWalletActivePeriodDecisionModel(
                 command.walletId(), periodId.year(), periodId.month() != null ? periodId.month() : 1);
 
-        // Withdrawals are non-commutative - order matters for balance validation
-        // DCB cursor check REQUIRED: prevents concurrent withdrawals exceeding balance
-        // Example: $100 balance, two $80 withdrawals - both see $100, but only one should succeed
-        AppendCondition condition = new AppendConditionBuilder(decisionModel, periodResult.projection().cursor())
-                .build();
-
-        return CommandResult.of(List.of(event), condition);
+        return new Decision(List.of(event), decisionModel, periodResult.projection().streamPosition());
     }
 }

@@ -32,7 +32,7 @@ public interface CommutativeCommandHandler<C> extends CommandHandler<C> {
     List<AppendEvent> decide(EventStore eventStore, C command);
 
     @Override
-    default CommandResult handle(EventStore eventStore, C command) {
-        return CommandResult.commutative(decide(eventStore, command));
+    default CommandDecision handle(EventStore eventStore, C command) {
+        return new CommandDecision.Commutative(decide(eventStore, command));
     }
 }

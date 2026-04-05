@@ -17,16 +17,16 @@
  * DCB uses cursors to detect concurrent modifications and prevent conflicts:
  * <ol>
  *   <li>Project state from events using a query (decision model)</li>
- *   <li>Get cursor from projection (represents the position after the last event read)</li>
+ *   <li>Get stream position from projection (represents the position after the last event read)</li>
  *   <li>Create events based on projected state</li>
- *   <li>Build AppendCondition with cursor and query</li>
+ *   <li>Build AppendCondition with stream position and query</li>
  *   <li>Atomically append events with condition (fails if events were added since projection)</li>
  * </ol>
  * <p>
  * <strong>AppendCondition Types:</strong>
  * <ul>
- *   <li>Concurrency check: Uses cursor + query to ensure no events were added since projection</li>
- *   <li>Idempotency check: Uses query only (no cursor) to detect duplicate operations</li>
+ *   <li>Concurrency check: Uses stream position + query to ensure no events were added since projection</li>
+ *   <li>Idempotency check: Uses query only (no stream position) to detect duplicate operations</li>
  *   <li>Empty condition: For commutative operations where order doesn't matter</li>
  * </ul>
  * <p>
@@ -40,7 +40,7 @@
  *
  * @see com.crablet.eventstore.store.EventStore
  * @see com.crablet.eventstore.query.Query
- * @see com.crablet.eventstore.store.Cursor
+ * @see com.crablet.eventstore.store.StreamPosition
  */
 @org.jspecify.annotations.NullMarked
 package com.crablet.eventstore.dcb;

@@ -6,19 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Command Handler Template
 
+Pick the sub-interface that matches the DCB pattern for your operation:
+
+**Non-commutative** (cursor-based check — e.g. Withdraw, Transfer):
 ```java
 @Component
-public class YourCommandHandler implements CommandHandler<YourCommand> {
+public class YourCommandHandler implements NonCommutativeCommandHandler<YourCommand> {
 
     @Override
-    public CommandResult handle(EventStore eventStore, YourCommand command) {
+    public Decision decide(EventStore eventStore, YourCommand command) {
         // 1. Project current state
         Query decisionModel = YourQueryPatterns.yourDecisionModel(command.entityId());
-        // Single projector (convenience overload):
         ProjectionResult<YourState> projection = eventStore.project(
-            decisionModel, Cursor.zero(), yourProjector
+            decisionModel, StreamPosition.zero(), yourProjector
         );
-        // Multiple projectors: eventStore.project(query, cursor, MyState.class, List.of(projA, projB))
         YourState state = projection.state();
 
         // 2. Validate business rules
@@ -33,12 +34,34 @@ public class YourCommandHandler implements CommandHandler<YourCommand> {
             .data(event)
             .build();
 
-        // 4. Build append condition (cursor-based)
-        AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.cursor())
-            .build();
+        // 4. Return decision — CommandExecutor calls appendNonCommutative automatically
+        return new Decision(List.of(appendEvent), decisionModel, projection.streamPosition());
+    }
+}
+```
 
-        // 5. Return result (CommandExecutor calls appendIf automatically)
-        return CommandResult.of(List.of(appendEvent), condition);
+**Commutative** (order-independent — e.g. Deposit, Credit):
+```java
+@Component
+public class YourCommandHandler implements CommutativeCommandHandler<YourCommand> {
+
+    @Override
+    public List<AppendEvent> decide(EventStore eventStore, YourCommand command) {
+        // project state, validate, generate event ...
+        return List.of(appendEvent);
+    }
+}
+```
+
+**Idempotent** (entity creation — e.g. OpenWallet, DefineCourse):
+```java
+@Component
+public class YourCommandHandler implements IdempotentCommandHandler<YourCommand> {
+
+    @Override
+    public Decision decide(EventStore eventStore, YourCommand command) {
+        // generate event ...
+        return new Decision(List.of(appendEvent), type(YourEvent.class), TAG_KEY, command.entityId());
     }
 }
 ```
@@ -149,13 +172,13 @@ Spring-Crablet is a lightweight Java 25 event sourcing framework built on the DC
 crablet-eventstore (CORE - Required)
 ├── EventStore interface - Core event sourcing API
 ├── DCB implementation - Optimistic concurrency control
-├── Query/Cursor/Tag - Event filtering and position tracking
+├── Query/StreamPosition/Tag - Event filtering and position tracking
 └── StateProjector - State reconstruction from events
 
 crablet-commands (Optional)
 ├── CommandHandler interface - Command handling pattern
 ├── CommandExecutor - Automatic handler discovery and orchestration
-└── CommandResult - Events + AppendCondition wrapper
+└── CommandDecision - Decision about which DCB pattern to apply
 
 crablet-event-poller (Generic Infrastructure)
 ├── EventProcessor - Reusable polling infrastructure
@@ -317,10 +340,10 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 
 **Three DCB Patterns in Spring-Crablet:**
 
-1. **Cursor-Based Check** (non-commutative operations):
+1. **StreamPosition-Based Check** (non-commutative operations):
    - Use for: Operations on existing entities (Withdraw, Transfer)
-   - Pattern: `AppendConditionBuilder.of(decisionModel, cursor).build()`
-   - Detects concurrent modifications via cursor position
+   - Pattern: `AppendConditionBuilder.of(decisionModel, streamPosition).build()`
+   - Detects concurrent modifications via stream position
 
 2. **Idempotency Check** (entity creation):
    - Use for: Preventing duplicate entity creation (OpenWallet)
@@ -361,9 +384,9 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 - Used for filtering, DCB conflict detection, state projection
 - Built with `QueryBuilder`
 
-**Cursor (crablet-eventstore/src/main/java/com/crablet/eventstore/cursor/):**
+**StreamPosition (crablet-eventstore/src/main/java/com/crablet/eventstore/store/):**
 - Captures event position (sequence number + timestamp + txId)
-- Returned from `project()`, used in `AppendConditionBuilder`
+- Returned from `project()` via `ProjectionResult.streamPosition()`, used in `AppendConditionBuilder`
 - Core of DCB optimistic concurrency control
 
 **StateProjector (crablet-eventstore/src/main/java/com/crablet/eventstore/projector/):**
@@ -373,7 +396,7 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 - `StateProjector.exists(eventTypes...)` - Built-in factory for existence checks (returns `true` on first matching event)
 
 **CommandHandler (crablet-commands/src/main/java/com/crablet/command/):**
-- `handle(eventStore, command)` - Returns `CommandResult`
+- `handle(eventStore, command)` - Returns `CommandDecision`
 - CommandExecutor automatically calls `appendIf()` with result
 - All wrapped in single database transaction
 
@@ -678,7 +701,7 @@ Modules use Spring Boot auto-configuration via `META-INF/spring.factories`:
 
 2. **Atomicity**: Command handler + events + audit = single transaction
 
-3. **Cursor-based Concurrency**: Capture cursor from projection, use in AppendCondition for DCB checks
+3. **StreamPosition-based Concurrency**: Capture stream position from projection, use in AppendCondition for DCB checks
 
 4. **Event Immutability**: Events are immutable once appended
 

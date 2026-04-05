@@ -1,7 +1,6 @@
 package com.crablet.eventstore.query;
 
-import com.crablet.eventstore.store.Cursor;
-import com.crablet.eventstore.store.SequenceNumber;
+import com.crablet.eventstore.store.StreamPosition;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -17,18 +16,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ProjectionResultTest {
 
     @Test
-    @DisplayName("Should create ProjectionResult with states and cursor")
+    @DisplayName("Should create ProjectionResult with states and stream position")
     void shouldCreateProjectionResult_WithStatesAndCursor() {
         // Given
         String state = "test-state";
-        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
+        StreamPosition streamPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
 
         // When
-        ProjectionResult<String> result = ProjectionResult.of(state, cursor);
+        ProjectionResult<String> result = ProjectionResult.of(state, streamPosition);
 
         // Then
         assertThat(result.states()).isEqualTo(state);
-        assertThat(result.cursor()).isEqualTo(cursor);
+        assertThat(result.streamPosition()).isEqualTo(streamPosition);
     }
 
     @Test
@@ -42,7 +41,7 @@ class ProjectionResultTest {
 
         // Then
         assertThat(result.states()).isEqualTo(state);
-        assertThat(result.cursor()).isNull();
+        assertThat(result.streamPosition()).isNull();
     }
 
     @Test
@@ -50,10 +49,10 @@ class ProjectionResultTest {
     void shouldReturnState_UsingStateMethod() {
         // Given
         String state = "test-state";
-        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
+        StreamPosition streamPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
 
         // When
-        ProjectionResult<String> result = ProjectionResult.of(state, cursor);
+        ProjectionResult<String> result = ProjectionResult.of(state, streamPosition);
 
         // Then
         assertThat(result.state()).isEqualTo(state);
@@ -65,10 +64,10 @@ class ProjectionResultTest {
     void shouldReturnState_UsingStatesAccessor() {
         // Given
         String state = "test-state";
-        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
+        StreamPosition streamPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
 
         // When
-        ProjectionResult<String> result = ProjectionResult.of(state, cursor);
+        ProjectionResult<String> result = ProjectionResult.of(state, streamPosition);
 
         // Then
         assertThat(result.states()).isEqualTo(state);
@@ -79,11 +78,11 @@ class ProjectionResultTest {
     void shouldImplementEquals_WithSameValues() {
         // Given
         String state = "test-state";
-        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
+        StreamPosition streamPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
 
         // When
-        ProjectionResult<String> result1 = ProjectionResult.of(state, cursor);
-        ProjectionResult<String> result2 = ProjectionResult.of(state, cursor);
+        ProjectionResult<String> result1 = ProjectionResult.of(state, streamPosition);
+        ProjectionResult<String> result2 = ProjectionResult.of(state, streamPosition);
 
         // Then
         assertThat(result1).isEqualTo(result2);
@@ -94,11 +93,11 @@ class ProjectionResultTest {
     @DisplayName("Should implement equals with different states")
     void shouldImplementEquals_WithDifferentStates() {
         // Given
-        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
+        StreamPosition streamPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
 
         // When
-        ProjectionResult<String> result1 = ProjectionResult.of("state1", cursor);
-        ProjectionResult<String> result2 = ProjectionResult.of("state2", cursor);
+        ProjectionResult<String> result1 = ProjectionResult.of("state1", streamPosition);
+        ProjectionResult<String> result2 = ProjectionResult.of("state2", streamPosition);
 
         // Then
         assertThat(result1).isNotEqualTo(result2);
@@ -109,8 +108,8 @@ class ProjectionResultTest {
     void shouldImplementEquals_WithDifferentCursors() {
         // Given
         String state = "test-state";
-        Cursor cursor1 = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
-        Cursor cursor2 = Cursor.of(SequenceNumber.of(200L), Instant.now(), "tx-456");
+        StreamPosition cursor1 = StreamPosition.of(100L, Instant.now(), "tx-123");
+        StreamPosition cursor2 = StreamPosition.of(200L, Instant.now(), "tx-456");
 
         // When
         ProjectionResult<String> result1 = ProjectionResult.of(state, cursor1);
@@ -125,40 +124,40 @@ class ProjectionResultTest {
     @SuppressWarnings("NullAway")
     void shouldHandleNullState_ShouldAllow() {
         // Given
-        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
+        StreamPosition streamPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
 
         // When
-        ProjectionResult<String> result = ProjectionResult.of((String) null, cursor);
+        ProjectionResult<String> result = ProjectionResult.of((String) null, streamPosition);
 
         // Then
         assertThat(result.states()).isNull();
-        assertThat(result.cursor()).isEqualTo(cursor);
+        assertThat(result.streamPosition()).isEqualTo(streamPosition);
     }
 
     @Test
-    @DisplayName("Should handle null cursor")
+    @DisplayName("Should handle null stream position")
     void shouldHandleNullCursor_ShouldAllow() {
         // Given
         String state = "test-state";
 
         // When
-        ProjectionResult<String> result = ProjectionResult.of(state, (Cursor) null);
+        ProjectionResult<String> result = ProjectionResult.of(state, (StreamPosition) null);
 
         // Then
         assertThat(result.states()).isEqualTo(state);
-        assertThat(result.cursor()).isNull();
+        assertThat(result.streamPosition()).isNull();
     }
 
     @Test
-    @DisplayName("Should handle null state and null cursor")
+    @DisplayName("Should handle null state and null stream position")
     @SuppressWarnings("NullAway")
     void shouldHandleNullStateAndNullCursor() {
         // When
-        ProjectionResult<String> result = ProjectionResult.of((String) null, (Cursor) null);
+        ProjectionResult<String> result = ProjectionResult.of((String) null, (StreamPosition) null);
 
         // Then
         assertThat(result.states()).isNull();
-        assertThat(result.cursor()).isNull();
+        assertThat(result.streamPosition()).isNull();
     }
 
     @Test
@@ -166,15 +165,15 @@ class ProjectionResultTest {
     void shouldHandleComplexStateTypes() {
         // Given
         TestState state = new TestState("id", 100);
-        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
+        StreamPosition streamPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
 
         // When
-        ProjectionResult<TestState> result = ProjectionResult.of(state, cursor);
+        ProjectionResult<TestState> result = ProjectionResult.of(state, streamPosition);
 
         // Then
         assertThat(result.states()).isEqualTo(state);
         assertThat(result.state()).isEqualTo(state);
-        assertThat(result.cursor()).isEqualTo(cursor);
+        assertThat(result.streamPosition()).isEqualTo(streamPosition);
     }
 
     @Test
@@ -182,17 +181,17 @@ class ProjectionResultTest {
     void shouldImplementToString_Correctly() {
         // Given
         String state = "test-state";
-        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
+        StreamPosition streamPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
 
         // When
-        ProjectionResult<String> result = ProjectionResult.of(state, cursor);
+        ProjectionResult<String> result = ProjectionResult.of(state, streamPosition);
 
         // Then - Record auto-generates toString()
         String toString = result.toString();
         assertThat(toString)
                 .contains("ProjectionResult[")
                 .contains("states=")
-                .contains("cursor=");
+                .contains("streamPosition=");
     }
 
     // Helper class for testing complex types

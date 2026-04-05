@@ -1,8 +1,9 @@
 package com.crablet.wallet;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.SerializationFeature;
+
 import com.zaxxer.hikari.HikariDataSource;
 import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;
@@ -75,9 +76,7 @@ public class TestApplication {
      */
     @Bean
     public ObjectMapper objectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        ObjectMapper mapper = JsonMapper.builder().build();
         return mapper;
     }
     

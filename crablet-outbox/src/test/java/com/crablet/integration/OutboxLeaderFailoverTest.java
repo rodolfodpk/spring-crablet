@@ -2,7 +2,6 @@ package com.crablet.integration;
 
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.processor.EventProcessor;
-import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.outbox.adapter.OutboxProcessorConfig;
@@ -71,7 +70,7 @@ class OutboxLeaderFailoverTest extends AbstractCrabletTest {
                 .data("{\"test\":\"data1\"}".getBytes())
                 .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
         
         // Given: Not currently leader (release lock if held)
         if (leaderElector.isGlobalLeader()) {

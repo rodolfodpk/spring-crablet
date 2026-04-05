@@ -24,8 +24,8 @@ public interface CommandHandler<T> {
      *
      * @param eventStore The event store for projections
      * @param command    The command to handle
-     * @return CommandResult with events and append condition
+     * @return CommandDecision with events and append condition
      */
-    CommandResult handle(EventStore eventStore, T command);
+    CommandDecision handle(EventStore eventStore, T command);
 }
 

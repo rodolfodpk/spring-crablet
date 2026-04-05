@@ -8,7 +8,7 @@
  * <ul>
  *   <li>{@link com.crablet.command.CommandHandler} - Interface for type-safe command handling</li>
  *   <li>{@link com.crablet.command.CommandExecutor} - Orchestrates command execution and transaction management</li>
- *   <li>{@link com.crablet.command.CommandResult} - Encapsulates events and append conditions from handlers</li>
+ *   <li>{@link com.crablet.command.CommandDecision} - Encapsulates events and append conditions from handlers</li>
  *   <li>{@link com.crablet.command.ExecutionResult} - Indicates whether an operation was idempotent</li>
  * </ul>
  * <p>
@@ -25,7 +25,7 @@
  *   <li>Project decision model (read events via tags)</li>
  *   <li>Validate business rules from projected state</li>
  *   <li>Create events</li>
- *   <li>Build AppendCondition from projection cursor</li>
+ *   <li>Build AppendCondition from projection stream position</li>
  *   <li>Return events + condition (CommandExecutor atomically appends with condition)</li>
  * </ol>
  * <p>

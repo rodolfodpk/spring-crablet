@@ -54,7 +54,7 @@ public interface StateProjector<T> {
      * one-liner existence check:
      * <pre>{@code
      * boolean exists = eventStore.project(
-     *     query, Cursor.zero(), StateProjector.exists(type(TalkSubmitted.class))
+     *     query, StreamPosition.zero(), StateProjector.exists(type(TalkSubmitted.class))
      * ).state();
      * }</pre>
      *

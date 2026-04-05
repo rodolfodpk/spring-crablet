@@ -2,7 +2,6 @@ package com.crablet.integration;
 
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.progress.ProcessorStatus;
-import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.outbox.adapter.TopicPublisherPair;
@@ -52,7 +51,7 @@ abstract class AbstractOutboxManagementServiceTest extends AbstractCrabletTest {
             .data("{\"test\":\"pause\"}".getBytes())
             .build();
         
-        eventStore.appendIf(List.of(event), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(event));
         
         // Process to register publisher - find the processor ID for CountDownLatchPublisher
         TopicPublisherPair processorId = findProcessorId("CountDownLatchPublisher");
@@ -89,7 +88,7 @@ abstract class AbstractOutboxManagementServiceTest extends AbstractCrabletTest {
             .data("{\"test\":\"status\"}".getBytes())
             .build();
         
-        eventStore.appendIf(List.of(event), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(event));
         
         // Process to register publishers
         EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);

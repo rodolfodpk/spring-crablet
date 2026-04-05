@@ -3,7 +3,7 @@ package com.crablet.command.integration;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandExecutorImpl;
 import com.crablet.command.CommandHandler;
-import com.crablet.command.CommandResult;
+import com.crablet.command.CommandDecision;
 import com.crablet.command.InvalidCommandException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Integration tests for CommandExecutorImpl error handling paths.
  * Tests uncovered error scenarios: null handler (2-arg), empty commandType.
  * 
- * Note: JsonProcessingException and Exception wrapping scenarios are difficult to test
+ * Note: JacksonException and Exception wrapping scenarios are difficult to test
  * without mocking ObjectMapper or creating complex serialization failures. These paths
  * are edge cases that would require significant test infrastructure changes.
  */
@@ -51,7 +51,7 @@ class CommandExecutorImplErrorHandlingTest extends AbstractCommandTest {
         // Arrange - command with empty string commandType
         TestCommand command = new TestCommand("", "entity-123");
         TestCommandHandler handler = new TestCommandHandler();
-        TestCommandHandler.setHandlerLogic(cmd -> CommandResult.empty());
+        TestCommandHandler.setHandlerLogic(cmd -> CommandDecision.NoOp.noReason());
 
         // Act & Assert - use 2-arg version to test the empty commandType validation (line 205-209)
         assertThat(commandExecutor).isInstanceOf(CommandExecutorImpl.class);

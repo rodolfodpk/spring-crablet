@@ -11,7 +11,7 @@ import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
 import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.examples.wallet.WalletQueryPatterns;
@@ -24,7 +24,7 @@ import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
 import com.crablet.eventstore.clock.ClockProvider;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -117,7 +117,7 @@ public class WalletStatementPeriodResolver {
             // Use a simple projector that just checks if any events exist
             ProjectionResult<WalletBalanceState> result = eventStore.project(
                     query,
-                    Cursor.zero(),
+                    StreamPosition.zero(),
                     WalletBalanceState.class,
                     List.of(balanceProjector)
             );
@@ -153,13 +153,13 @@ public class WalletStatementPeriodResolver {
             // This is a fallback - if projection succeeds, events might exist
             ProjectionResult<WalletBalanceState> result = eventStore.project(
                     query,
-                    Cursor.zero(),
+                    StreamPosition.zero(),
                     WalletBalanceState.class,
                     List.of(balanceProjector)
             );
             // If cursor advanced, events were processed
-            // Initial cursor is zero, so if result.cursor() is not zero, events were found
-            return result.cursor().position().value() > 0;
+            // Initial cursor is zero, so if result.streamPosition() is not zero, events were found
+            return result.streamPosition().position() > 0;
         } catch (EventStoreException e) {
             log.debug("Projection failed for period closed check, assuming not closed: {}", e.getMessage());
             return false;
@@ -180,7 +180,7 @@ public class WalletStatementPeriodResolver {
         
         ProjectionResult<WalletBalanceState> result = eventStore.project(
                 periodQuery,
-                Cursor.zero(),
+                StreamPosition.zero(),
                 WalletBalanceState.class,
                 List.of(balanceProjector)
         );
@@ -245,7 +245,7 @@ public class WalletStatementPeriodResolver {
 
         ProjectionResult<WalletBalanceState> result = eventStore.project(
                 query,
-                Cursor.zero(),
+                StreamPosition.zero(),
                 WalletBalanceState.class,
                 List.of(balanceProjector)
         );

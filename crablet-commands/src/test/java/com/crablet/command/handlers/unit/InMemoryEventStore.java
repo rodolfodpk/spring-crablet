@@ -1,13 +1,14 @@
 package com.crablet.command.handlers.unit;
 
 import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.dcb.AppendConditionBuilder;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
@@ -90,6 +91,22 @@ public class InMemoryEventStore implements EventStore {
     };
     
     @Override
+    public String appendCommutative(List<AppendEvent> events) {
+        return appendIf(events, AppendCondition.empty());
+    }
+
+    @Override
+    public String appendNonCommutative(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {
+        return appendIf(events, AppendConditionBuilder.of(decisionModel, streamPosition).build());
+    }
+
+    @Override
+    public String appendIdempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {
+        return appendIf(events, AppendCondition.idempotent(eventType, tagKey, tagValue));
+    }
+
+    @Override
+    @Deprecated
     public String appendIf(List<AppendEvent> appendEvents, AppendCondition condition) {
         if (appendEvents == null || appendEvents.isEmpty()) {
             throw new IllegalArgumentException("Cannot append empty events list");
@@ -118,7 +135,7 @@ public class InMemoryEventStore implements EventStore {
     @Override
     public <T> ProjectionResult<T> project(
             Query query,
-            Cursor after,
+            StreamPosition after,
             Class<T> stateType,
             List<StateProjector<T>> projectors) {
         
@@ -129,13 +146,13 @@ public class InMemoryEventStore implements EventStore {
         // Filter events by query and cursor
         List<EventRecord> matchingEvents = events.stream()
             .filter(e -> matchesQuery(e, query))
-            .filter(e -> e.position() > after.position().value())
+            .filter(e -> e.position() > after.position())
             .sorted(Comparator.comparing(EventRecord::position))
             .collect(Collectors.toList());
         
         // Project state using real projectors
         T state = projectors.get(0).getInitialState();
-        Cursor lastCursor = after;
+        StreamPosition lastCursor = after;
         
         for (EventRecord record : matchingEvents) {
             // Convert EventRecord to StoredEvent on-the-fly for projection
@@ -156,7 +173,7 @@ public class InMemoryEventStore implements EventStore {
                 }
             }
             
-            lastCursor = Cursor.of(record.position(), record.occurredAt(), record.transactionId());
+            lastCursor = StreamPosition.of(record.position(), record.occurredAt(), record.transactionId());
         }
         
         return ProjectionResult.of(state, lastCursor);

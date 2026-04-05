@@ -17,7 +17,7 @@ class DCBViolationTest {
     void shouldCreateDCBViolation_WithAllParameters() {
         // Given
         String errorCode = "DCB_VIOLATION";
-        String message = "Append condition violated: cursor mismatch";
+        String message = "Append condition violated: stream position mismatch";
         int matchingEventsCount = 2;
 
         // When

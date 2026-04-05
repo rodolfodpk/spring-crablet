@@ -1,7 +1,7 @@
 package com.crablet.command.integration;
 
 import com.crablet.command.CommandHandler;
-import com.crablet.command.CommandResult;
+import com.crablet.command.CommandDecision;
 import com.crablet.eventstore.store.EventStore;
 
 import java.util.function.Function;
@@ -12,9 +12,9 @@ import java.util.function.Function;
  */
 public class TestCommandHandler implements CommandHandler<TestCommand> {
     
-    private static final ThreadLocal<Function<TestCommand, CommandResult>> handlerLogic = new ThreadLocal<>();
+    private static final ThreadLocal<Function<TestCommand, CommandDecision>> handlerLogic = new ThreadLocal<>();
     
-    public static void setHandlerLogic(Function<TestCommand, CommandResult> logic) {
+    public static void setHandlerLogic(Function<TestCommand, CommandDecision> logic) {
         handlerLogic.set(logic);
     }
     
@@ -23,8 +23,8 @@ public class TestCommandHandler implements CommandHandler<TestCommand> {
     }
     
     @Override
-    public CommandResult handle(EventStore eventStore, TestCommand command) {
-        Function<TestCommand, CommandResult> logic = handlerLogic.get();
+    public CommandDecision handle(EventStore eventStore, TestCommand command) {
+        Function<TestCommand, CommandDecision> logic = handlerLogic.get();
         if (logic == null) {
             throw new IllegalStateException("TestCommandHandler logic not set. Call setHandlerLogic() in test setup.");
         }

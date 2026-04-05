@@ -14,8 +14,8 @@ import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.query.QuerySqlBuilder;
 import com.crablet.eventstore.query.QuerySqlBuilderImpl;
 import com.crablet.eventstore.query.StateProjector;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
@@ -32,7 +32,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -137,8 +136,8 @@ public class EventStoreImpl implements EventStore {
         public <E> E deserialize(StoredEvent event, Class<E> eventType) {
             try {
                 return objectMapper.readValue(event.data(), eventType);
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to deserialize event type=" + 
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to deserialize event type=" +
                     event.type() + " to " + eventType.getName(), e);
             }
         }
@@ -252,27 +251,27 @@ public class EventStoreImpl implements EventStore {
         }
 
         try {
-            // Extract concurrency check (with cursor)
-            List<String> concurrencyTypes = condition.stateChanged().items().stream()
+            // Extract concurrency check (with stream position)
+            List<String> concurrencyTypes = condition.concurrencyQuery().items().stream()
                     .flatMap(item -> item.eventTypes().stream())
                     .distinct()
                     .toList();
 
-            List<String> concurrencyTags = condition.stateChanged().items().stream()
+            List<String> concurrencyTags = condition.concurrencyQuery().items().stream()
                     .flatMap(item -> item.tags().stream())
                     .map(tag -> tag.key() + "=" + tag.value())
                     .distinct()
                     .toList();
 
-            // Extract idempotency check (no cursor)
+            // Extract idempotency check (no stream position)
             List<String> idempotencyTypes = null;
             List<String> idempotencyTags = null;
-            if (condition.alreadyExists() != null) {
-                idempotencyTypes = condition.alreadyExists().items().stream()
+            if (!condition.idempotencyQuery().items().isEmpty()) {
+                idempotencyTypes = condition.idempotencyQuery().items().stream()
                         .flatMap(item -> item.eventTypes().stream())
                         .distinct()
                         .toList();
-                idempotencyTags = condition.alreadyExists().items().stream()
+                idempotencyTags = condition.idempotencyQuery().items().stream()
                         .flatMap(item -> item.tags().stream())
                         .map(tag -> tag.key() + "=" + tag.value())
                         .distinct()
@@ -289,11 +288,11 @@ public class EventStoreImpl implements EventStore {
                     .map(event -> serializeEventData(event.eventData()))
                     .toArray(String[]::new);
 
-            // Determine cursor position: NULL for empty conditions (no concurrency check), actual value otherwise
+            // Determine stream position: NULL for empty conditions (no concurrency check), actual value otherwise
             Long cursorPosition = null;
             if (!concurrencyTypes.isEmpty() || !concurrencyTags.isEmpty()) {
-                // Only use cursor position if we're actually doing a concurrency check
-                cursorPosition = condition.afterCursor().position().value();
+                // Only use stream position if we're actually doing a concurrency check
+                cursorPosition = condition.afterPosition().position();
             }
 
             // Call append_events_if with dual conditions
@@ -341,12 +340,12 @@ public class EventStoreImpl implements EventStore {
     }
 
     @Override
-    public <T> ProjectionResult<T> project(Query query, Cursor after, Class<T> stateType, List<StateProjector<T>> projectors) {
+    public <T> ProjectionResult<T> project(Query query, StreamPosition after, Class<T> stateType, List<StateProjector<T>> projectors) {
         if (query == null) {
             throw new NullPointerException("Query must not be null");
         }
         if (after == null) {
-            throw new NullPointerException("Cursor must not be null");
+            throw new NullPointerException("StreamPosition must not be null");
         }
         if (stateType == null) {
             throw new NullPointerException("State type must not be null");
@@ -390,7 +389,7 @@ public class EventStoreImpl implements EventStore {
                     // Stream and project incrementally
                     EventDeserializer deserializer = this.eventDeserializer;
                     T state = projectors.get(0).getInitialState();
-                    Cursor lastCursor = after;
+                    StreamPosition lastCursor = after;
                     
                     try (ResultSet rs = stmt.executeQuery()) {
                         while (rs.next()) {
@@ -405,7 +404,7 @@ public class EventStoreImpl implements EventStore {
                             }
                             
                             // Track cursor
-                            lastCursor = Cursor.of(event.position(), event.occurredAt(), event.transactionId());
+                            lastCursor = StreamPosition.of(event.position(), event.occurredAt(), event.transactionId());
                         }
                     }
                     
@@ -473,27 +472,27 @@ public class EventStoreImpl implements EventStore {
                     .map(event -> serializeEventData(event.eventData()))
                     .toArray(String[]::new);
 
-            // Extract concurrency check (with cursor)
-            List<String> concurrencyTypes = condition != null ? condition.stateChanged().items().stream()
+            // Extract concurrency check (with stream position)
+            List<String> concurrencyTypes = condition != null ? condition.concurrencyQuery().items().stream()
                     .flatMap(item -> item.eventTypes().stream())
                     .distinct()
                     .toList() : List.of();
 
-            List<String> concurrencyTags = condition != null ? condition.stateChanged().items().stream()
+            List<String> concurrencyTags = condition != null ? condition.concurrencyQuery().items().stream()
                     .flatMap(item -> item.tags().stream())
                     .map(tag -> tag.key() + "=" + tag.value())
                     .distinct()
                     .toList() : List.of();
 
-            // Extract idempotency check (no cursor)
+            // Extract idempotency check (no stream position)
             List<String> idempotencyTypes = null;
             List<String> idempotencyTags = null;
-            if (condition != null && condition.alreadyExists() != null) {
-                idempotencyTypes = condition.alreadyExists().items().stream()
+            if (condition != null && !condition.idempotencyQuery().items().isEmpty()) {
+                idempotencyTypes = condition.idempotencyQuery().items().stream()
                         .flatMap(item -> item.eventTypes().stream())
                         .distinct()
                         .toList();
-                idempotencyTags = condition.alreadyExists().items().stream()
+                idempotencyTags = condition.idempotencyQuery().items().stream()
                         .flatMap(item -> item.tags().stream())
                         .map(tag -> tag.key() + "=" + tag.value())
                         .distinct()
@@ -501,11 +500,11 @@ public class EventStoreImpl implements EventStore {
                         .toList();
             }
 
-            // Determine cursor position: NULL for empty conditions (no concurrency check), actual value otherwise
+            // Determine stream position: NULL for empty conditions (no concurrency check), actual value otherwise
             Long position = null;
             if (condition != null && (!concurrencyTypes.isEmpty() || !concurrencyTags.isEmpty())) {
-                // Only use cursor position if we're actually doing a concurrency check
-                position = condition.afterCursor().position().value();
+                // Only use stream position if we're actually doing a concurrency check
+                position = condition.afterPosition().position();
             }
 
             stmt.setArray(1, connection.createArrayOf("text", types));
@@ -593,7 +592,7 @@ public class EventStoreImpl implements EventStore {
      * Private method to query events using a provided connection.
      * Used internally by ConnectionScopedEventStore.
      */
-    private List<StoredEvent> queryWithConnection(Connection connection, Query query, Cursor after) {
+    private List<StoredEvent> queryWithConnection(Connection connection, Query query, StreamPosition after) {
         try {
             // Build SQL query directly instead of using the function
             StringBuilder sql = new StringBuilder();
@@ -605,7 +604,7 @@ public class EventStoreImpl implements EventStore {
             // Handle null cursor
             if (after != null) {
                 sql.append("WHERE position > ? ");
-                params.add(after.position().value());
+                params.add(after.position());
             }
 
             // Build OR conditions for each QueryItem (go-crablet style)
@@ -693,12 +692,12 @@ public class EventStoreImpl implements EventStore {
      * 
      * @param connection Existing connection from transaction context
      * @param query The query to filter events
-     * @param after Cursor to project events after
+     * @param after StreamPosition to project events after
      * @param stateType The type of state to project
      * @param projectors List of projectors to apply
-     * @return ProjectionResult with final state and cursor
+     * @return ProjectionResult with final state and stream position
      */
-    private <T> ProjectionResult<T> projectWithConnection(Connection connection, Query query, Cursor after, Class<T> stateType, List<StateProjector<T>> projectors) {
+    private <T> ProjectionResult<T> projectWithConnection(Connection connection, Query query, StreamPosition after, Class<T> stateType, List<StateProjector<T>> projectors) {
         try {
             // Build SQL using existing helper
             StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at FROM events");
@@ -730,7 +729,7 @@ public class EventStoreImpl implements EventStore {
                 // Stream and project incrementally
                 EventDeserializer deserializer = this.eventDeserializer;
                 T state = projectors.get(0).getInitialState();
-                Cursor lastCursor = after;
+                StreamPosition lastCursor = after;
                 
                 try (ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
@@ -744,7 +743,7 @@ public class EventStoreImpl implements EventStore {
                         }
                         
                         // Track cursor
-                        lastCursor = Cursor.of(event.position(), event.occurredAt(), event.transactionId());
+                        lastCursor = StreamPosition.of(event.position(), event.occurredAt(), event.transactionId());
                     }
                 }
                 
@@ -844,7 +843,7 @@ public class EventStoreImpl implements EventStore {
             // Serialize using the concrete type
             // This preserves type information including polymorphism discriminators
             return objectMapper.writerFor(eventData.getClass()).writeValueAsString(eventData);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new EventStoreException(
                 "Failed to serialize event data: " + eventData.getClass().getName(), 
                 e
@@ -878,7 +877,7 @@ public class EventStoreImpl implements EventStore {
         // Try to parse as JSON
         try {
             Map<String, Object> result = objectMapper.readValue(jsonResult, 
-                new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+                new tools.jackson.core.type.TypeReference<Map<String, Object>>() {});
             
             // Fail fast: Validate success is a boolean
             Object successObj = result.get("success");
@@ -920,7 +919,7 @@ public class EventStoreImpl implements EventStore {
         } catch (ConcurrencyException e) {
             // Re-throw ConcurrencyException immediately
             throw e;
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             // Fail fast: Check if it's a recognizable error message
             if (jsonResult.contains("AppendIf condition failed") || jsonResult.contains("condition failed")) {
                 throw new ConcurrencyException("AppendCondition violated: " + jsonResult);
@@ -1027,7 +1026,7 @@ public class EventStoreImpl implements EventStore {
 
         try {
             return objectMapper.writeValueAsString(metadata);
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+        } catch (tools.jackson.core.JacksonException e) {
             throw new EventStoreException("Failed to serialize command metadata", e);
         }
     }
@@ -1046,7 +1045,7 @@ public class EventStoreImpl implements EventStore {
         }
 
         @Override
-        public <T> ProjectionResult<T> project(Query query, Cursor after, Class<T> stateType, List<StateProjector<T>> projectors) {
+        public <T> ProjectionResult<T> project(Query query, StreamPosition after, Class<T> stateType, List<StateProjector<T>> projectors) {
             return EventStoreImpl.this.projectWithConnection(connection, query, after, stateType, projectors);
         }
 

@@ -1,7 +1,6 @@
 package com.crablet.integration;
 
 import com.crablet.eventpoller.processor.EventProcessor;
-import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.outbox.adapter.OutboxProcessorConfig;
@@ -57,7 +56,7 @@ abstract class AbstractOutboxLockAcquisitionTest extends AbstractCrabletTest {
                 .data("{\"test\":\"data1\"}".getBytes())
                 .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
         
         // Trigger initial processing to auto-register publishers and acquire locks
         EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
@@ -91,7 +90,7 @@ abstract class AbstractOutboxLockAcquisitionTest extends AbstractCrabletTest {
                 .build()
         );
         
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
         
         // When - Process events (locks already acquired at startup)
         int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
@@ -125,7 +124,7 @@ abstract class AbstractOutboxLockAcquisitionTest extends AbstractCrabletTest {
                 .build()
         );
         
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
         
         // When - Process events multiple times
         int processed1 = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);

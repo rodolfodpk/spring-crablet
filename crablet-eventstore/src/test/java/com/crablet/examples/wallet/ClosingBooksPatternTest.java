@@ -7,7 +7,7 @@ import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.examples.wallet.events.DepositMade;
@@ -241,7 +241,7 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
         WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
         ProjectionResult<WalletBalanceState> result = eventStore.project(
             query,
-            Cursor.zero(),
+            StreamPosition.zero(),
             WalletBalanceState.class,
             List.of(projector)
         );
@@ -308,7 +308,7 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
         WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
         ProjectionResult<WalletBalanceState> result = eventStore.project(
             query,
-            Cursor.zero(),
+            StreamPosition.zero(),
             WalletBalanceState.class,
             List.of(projector)
         );
@@ -408,7 +408,7 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
         WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
         ProjectionResult<WalletBalanceState> wallet1Result = eventStore.project(
             wallet1Query,
-            Cursor.zero(),
+            StreamPosition.zero(),
             WalletBalanceState.class,
             List.of(projector)
         );
@@ -420,7 +420,7 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
         // Project wallet2 balance
         ProjectionResult<WalletBalanceState> wallet2Result = eventStore.project(
             wallet2Query,
-            Cursor.zero(),
+            StreamPosition.zero(),
             WalletBalanceState.class,
             List.of(projector)
         );

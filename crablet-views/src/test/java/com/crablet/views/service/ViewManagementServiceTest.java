@@ -12,7 +12,8 @@ import com.crablet.views.config.ViewsAutoConfiguration;
 import com.crablet.views.config.ViewsConfig;
 import com.crablet.views.config.ViewSubscriptionConfig;
 import com.crablet.views.integration.AbstractViewsTest;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -421,7 +422,7 @@ class ViewManagementServiceTest extends AbstractViewsTest {
 
         @Bean
         public ObjectMapper objectMapper() {
-            return new ObjectMapper();
+            return JsonMapper.builder().build();
         }
 
         @Bean

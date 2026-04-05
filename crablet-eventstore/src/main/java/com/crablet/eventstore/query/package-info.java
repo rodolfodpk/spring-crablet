@@ -9,7 +9,7 @@
  *   <li>{@link com.crablet.eventstore.query.Query} - Represents a query for events in the store</li>
  *   <li>{@link com.crablet.eventstore.query.QueryItem} - Individual query criteria (event types and tags)</li>
  *   <li>{@link com.crablet.eventstore.query.StateProjector} - Interface for projecting state from events</li>
- *   <li>{@link com.crablet.eventstore.query.ProjectionResult} - Result of a state projection with cursor</li>
+ *   <li>{@link com.crablet.eventstore.query.ProjectionResult} - Result of a state projection with stream position</li>
  *   <li>{@link com.crablet.eventstore.query.EventDeserializer} - Deserializes raw events to typed event objects</li>
  * </ul>
  * <p>
@@ -26,14 +26,14 @@
  * <ol>
  *   <li>Query events matching criteria (decision model)</li>
  *   <li>Apply projectors to events to build state</li>
- *   <li>Return final state and cursor (for DCB concurrency control)</li>
+ *   <li>Return final state and stream position (for DCB concurrency control)</li>
  * </ol>
  * <p>
  * <strong>DCB Integration:</strong>
  * Queries are used to define decision models for DCB concurrency control:
  * <ul>
  *   <li>Query defines which events to read for decision-making</li>
- *   <li>Projection cursor is used in AppendCondition to detect concurrent modifications</li>
+ *   <li>Projection stream position is used in AppendCondition to detect concurrent modifications</li>
  *   <li>Tag-based filtering happens in Query, not in projectors</li>
  * </ul>
  * <p>
@@ -42,7 +42,7 @@
  * Query decisionModel = Query.forEventAndTag("DepositMade", "wallet_id", walletId);
  * // Tags are stored as "wallet_id=walletId" in the database
  * ProjectionResult<WalletBalanceState> projection = eventStore.project(
- *     decisionModel, Cursor.zero(), WalletBalanceState.class, List.of(projector)
+ *     decisionModel, StreamPosition.zero(), WalletBalanceState.class, List.of(projector)
  * );
  * }</pre>
  *

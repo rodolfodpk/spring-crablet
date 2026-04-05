@@ -1,7 +1,6 @@
 package com.crablet.wallet.view;
 
 import com.crablet.eventpoller.processor.EventProcessor;
-import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
@@ -10,7 +9,7 @@ import com.crablet.examples.wallet.events.WalletStatementOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;
 import com.crablet.views.adapter.ViewProcessorConfig;
 import com.crablet.wallet.AbstractWalletTest;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -93,7 +92,7 @@ class WalletStatementViewProjectorTest extends AbstractWalletTest {
             builder.tag(HOUR, String.valueOf(hour));
         }
         
-        eventStore.appendIf(List.of(builder.data(data).build()), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(builder.data(data).build()));
     }
 
     /**
@@ -121,7 +120,7 @@ class WalletStatementViewProjectorTest extends AbstractWalletTest {
             builder.tag(HOUR, String.valueOf(hour));
         }
         
-        eventStore.appendIf(List.of(builder.data(data).build()), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(builder.data(data).build()));
     }
 
     /**
@@ -145,7 +144,7 @@ class WalletStatementViewProjectorTest extends AbstractWalletTest {
             builder.tag(HOUR, String.valueOf(hour));
         }
         
-        eventStore.appendIf(List.of(builder.data(data).build()), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(builder.data(data).build()));
     }
 
     /**
@@ -169,7 +168,7 @@ class WalletStatementViewProjectorTest extends AbstractWalletTest {
             builder.tag(HOUR, String.valueOf(hour));
         }
         
-        eventStore.appendIf(List.of(builder.data(data).build()), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(builder.data(data).build()));
     }
 
     /**
@@ -205,7 +204,7 @@ class WalletStatementViewProjectorTest extends AbstractWalletTest {
             builder.tag(TO_HOUR, String.valueOf(toHour));
         }
         
-        eventStore.appendIf(List.of(builder.data(data).build()), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(builder.data(data).build()));
     }
 
     /**
@@ -472,7 +471,7 @@ class WalletStatementViewProjectorTest extends AbstractWalletTest {
             .data(data)
             .build();
         
-        eventStore.appendIf(List.of(event), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(event));
         int processed = processStatementView();
         
         // Then - Event should be processed but skipped (returns true but no statement updated)

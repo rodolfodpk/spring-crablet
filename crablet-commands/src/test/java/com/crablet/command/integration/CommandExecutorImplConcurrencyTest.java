@@ -1,14 +1,12 @@
 package com.crablet.command.integration;
 
 import com.crablet.command.CommandExecutor;
-import com.crablet.command.CommandResult;
+import com.crablet.command.CommandDecision;
 import com.crablet.command.ExecutionResult;
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
 import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +34,7 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
 
     @Test
     void executeCommand_WithNonIdempotentConcurrencyException_ShouldThrowException() {
-        // Arrange - trigger a cursor-based conflict (not idempotent)
+        // Arrange - trigger a stream-position-based conflict (not idempotent)
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent event = AppendEvent.builder("test_event")
                 .tag("entityId", "entity-123")
@@ -44,18 +42,17 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
                 .build();
         
         // First execution to establish a cursor
-        CommandResult firstResult = CommandResult.of(List.of(event), AppendCondition.empty());
+        CommandDecision firstResult = new CommandDecision.Commutative(List.of(event));
         TestCommandHandler.setHandlerLogic(cmd -> firstResult);
         ExecutionResult first = commandExecutor.executeCommand(command);
         assertTrue(first.wasCreated());
-        
-        // Second execution with stale cursor - should trigger ConcurrencyException
+
+        // Second execution with stale stream position - should trigger ConcurrencyException
         // but NOT "duplicate operation detected" (it's a cursor conflict, not idempotency)
         Query decisionModel = Query.forEventAndTag("test_event", "entityId", "entity-123");
-        Cursor staleCursor = Cursor.of(0L, Instant.now(), "old-tx-id");
-        AppendCondition conditionWithStaleCursor = new AppendConditionBuilder(decisionModel, staleCursor).build();
-        
-        CommandResult secondResult = CommandResult.of(List.of(event), conditionWithStaleCursor);
+        StreamPosition staleCursor = StreamPosition.of(0L, Instant.now(), "old-tx-id");
+
+        CommandDecision secondResult = new CommandDecision.NonCommutative(List.of(event), decisionModel, staleCursor);
         TestCommandHandler.setHandlerLogic(cmd -> secondResult);
 
         // Act & Assert - should throw ConcurrencyException (not idempotent)
@@ -74,18 +71,17 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
                 .build();
         
         // First execution - should succeed
-        AppendCondition idempotencyCondition = new AppendConditionBuilder(Query.empty(), Cursor.zero())
-                .withIdempotencyCheck("test_event", "operation_id", "op-123")
-                .build();
-        CommandResult firstResult = CommandResult.of(List.of(event), idempotencyCondition);
+        CommandDecision firstResult = new CommandDecision.Idempotent(
+                List.of(event), "test_event", "operation_id", "op-123");
         TestCommandHandler.setHandlerLogic(cmd -> firstResult);
-        
+
         ExecutionResult first = commandExecutor.executeCommand(command);
         assertTrue(first.wasCreated());
-        
+
         // Second execution with same operation_id - should be idempotent
         // The idempotency check will detect the duplicate and return "duplicate operation detected"
-        CommandResult secondResult = CommandResult.of(List.of(event), idempotencyCondition);
+        CommandDecision secondResult = new CommandDecision.Idempotent(
+                List.of(event), "test_event", "operation_id", "op-123");
         TestCommandHandler.setHandlerLogic(cmd -> secondResult);
 
         // Act

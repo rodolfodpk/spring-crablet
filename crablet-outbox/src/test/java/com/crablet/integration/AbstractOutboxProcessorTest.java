@@ -1,7 +1,6 @@
 package com.crablet.integration;
 
 import com.crablet.eventpoller.processor.EventProcessor;
-import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.outbox.adapter.OutboxProcessorConfig;
@@ -74,7 +73,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
             .data("{\"test\":\"data\"}".getBytes())
             .build();
         
-        eventStore.appendIf(List.of(event), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(event));
         
         // Process outbox
         EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
@@ -119,7 +118,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
             .data("{\"test\":\"data\"}".getBytes())
             .build();
         
-        eventStore.appendIf(List.of(event), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(event));
         
         // Process outbox
         int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
@@ -175,7 +174,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
                 .build()
         );
         
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
         
         // Process outbox
         int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
@@ -230,7 +229,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
                 .build()
         );
         
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
         
         // Process outbox
         int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
@@ -301,7 +300,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
             .data("{\"test\":\"failure\"}".getBytes())
             .build();
 
-        eventStore.appendIf(List.of(event), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(event));
 
         // When - Process events (this should succeed)
         int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
@@ -353,7 +352,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
                 .build()
         );
 
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When - Process events
         int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
@@ -389,7 +388,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
                 .build()
         );
 
-        eventStore.appendIf(firstBatch, AppendCondition.empty());
+        eventStore.appendCommutative(firstBatch);
         int firstProcessed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
         assertThat(firstProcessed).isGreaterThan(0);
 
@@ -414,7 +413,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
             .data("{\"batch\":2}".getBytes())
             .build();
 
-        eventStore.appendIf(List.of(newEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(newEvent));
         int secondProcessed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
 
         // Then - Should process only new events, not repeat old ones
@@ -461,7 +460,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
                 .build()
         );
 
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When - Process multiple times to simulate concurrent processing
         int totalProcessed = 0;
@@ -536,7 +535,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
                 .build()
         );
 
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When - Process events
         int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);
@@ -571,7 +570,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
                 .build());
         }
 
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When - Process large batch
         int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);

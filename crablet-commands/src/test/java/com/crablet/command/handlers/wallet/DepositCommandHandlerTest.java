@@ -1,7 +1,6 @@
 package com.crablet.command.handlers.wallet;
 
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.command.CommandDecision;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
@@ -59,12 +58,12 @@ class DepositCommandHandlerTest extends com.crablet.test.AbstractCrabletTest {
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
                 .build();
-        eventStore.appendIf(List.of(walletInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(walletInputEvent));
 
         DepositCommand cmd = DepositCommand.of("deposit1", "wallet1", 500, "Bonus payment");
 
         // Act
-        CommandResult result = handler.handle(eventStore, cmd);
+        CommandDecision result = handler.handle(eventStore, cmd);
 
         // Assert
         assertThat(result.events()).hasSize(1);
@@ -133,11 +132,11 @@ class DepositCommandHandlerTest extends com.crablet.test.AbstractCrabletTest {
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
                 .build();
-        eventStore.appendIf(List.of(walletInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(walletInputEvent));
 
         // Act - deposit should only project balance + existence, not full WalletState
         DepositCommand cmd = DepositCommand.of("deposit1", "wallet1", 200, "Test deposit");
-        CommandResult result = handler.handle(eventStore, cmd);
+        CommandDecision result = handler.handle(eventStore, cmd);
 
         // Assert - verify correct new balance calculation
         DepositMade deposit = walletTestUtils.deserializeEventData(result.events().get(0).eventData(), DepositMade.class);
@@ -159,12 +158,12 @@ class DepositCommandHandlerTest extends com.crablet.test.AbstractCrabletTest {
                 .data(walletEvent.data())
                 .tag("wallet_id", walletId)
                 .build();
-        eventStore.appendIf(List.of(walletInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(walletInputEvent));
 
         DepositCommand cmd = DepositCommand.of("deposit1", walletId, 100, description);
 
         // Act
-        CommandResult result = handler.handle(eventStore, cmd);
+        CommandDecision result = handler.handle(eventStore, cmd);
 
         // Assert
         assertThat(result.events()).hasSize(1);

@@ -1,10 +1,9 @@
 package com.crablet.command.integration;
 
 import com.crablet.command.CommandExecutor;
-import com.crablet.command.CommandResult;
+import com.crablet.command.CommandDecision;
 import com.crablet.command.ExecutionResult;
 import com.crablet.command.InvalidCommandException;
-import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.Tag;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Integration tests for CommandExecutorImpl validation logic.
- * Tests validateCommandResult() method through public API.
+ * Tests validateCommandDecision() method through public API.
  */
 class CommandExecutorImplValidationTest extends AbstractCommandTest {
 
@@ -36,7 +35,7 @@ class CommandExecutorImplValidationTest extends AbstractCommandTest {
     void executeCommand_WithNullEvents_ShouldThrowInvalidCommandException() {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
-        CommandResult commandResult = new CommandResult(null, AppendCondition.empty(), null);
+        CommandDecision commandResult = new CommandDecision.Commutative(null);
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -51,7 +50,7 @@ class CommandExecutorImplValidationTest extends AbstractCommandTest {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent eventWithNullType = new AppendEvent(null, Collections.emptyList(), "{}");
-        CommandResult commandResult = CommandResult.of(List.of(eventWithNullType), AppendCondition.empty());
+        CommandDecision commandResult = new CommandDecision.Commutative(List.of(eventWithNullType));
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -66,7 +65,7 @@ class CommandExecutorImplValidationTest extends AbstractCommandTest {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent eventWithEmptyType = new AppendEvent("", Collections.emptyList(), "{}");
-        CommandResult commandResult = CommandResult.of(List.of(eventWithEmptyType), AppendCondition.empty());
+        CommandDecision commandResult = new CommandDecision.Commutative(List.of(eventWithEmptyType));
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -82,7 +81,7 @@ class CommandExecutorImplValidationTest extends AbstractCommandTest {
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent eventWithNullTagKey = new AppendEvent("test_event", 
             List.of(new Tag(null, "value")), "{}");
-        CommandResult commandResult = CommandResult.of(List.of(eventWithNullTagKey), AppendCondition.empty());
+        CommandDecision commandResult = new CommandDecision.Commutative(List.of(eventWithNullTagKey));
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -98,7 +97,7 @@ class CommandExecutorImplValidationTest extends AbstractCommandTest {
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent eventWithEmptyTagKey = new AppendEvent("test_event", 
             List.of(new Tag("", "value")), "{}");
-        CommandResult commandResult = CommandResult.of(List.of(eventWithEmptyTagKey), AppendCondition.empty());
+        CommandDecision commandResult = new CommandDecision.Commutative(List.of(eventWithEmptyTagKey));
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -114,7 +113,7 @@ class CommandExecutorImplValidationTest extends AbstractCommandTest {
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent eventWithNullTagValue = new AppendEvent("test_event", 
             List.of(new Tag("key", null)), "{}");
-        CommandResult commandResult = CommandResult.of(List.of(eventWithNullTagValue), AppendCondition.empty());
+        CommandDecision commandResult = new CommandDecision.Commutative(List.of(eventWithNullTagValue));
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -130,7 +129,7 @@ class CommandExecutorImplValidationTest extends AbstractCommandTest {
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent eventWithEmptyTagValue = new AppendEvent("test_event", 
             List.of(new Tag("key", "")), "{}");
-        CommandResult commandResult = CommandResult.of(List.of(eventWithEmptyTagValue), AppendCondition.empty());
+        CommandDecision commandResult = new CommandDecision.Commutative(List.of(eventWithEmptyTagValue));
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
@@ -148,7 +147,7 @@ class CommandExecutorImplValidationTest extends AbstractCommandTest {
                 .tag("entityId", "entity-123")
                 .data("{}")
                 .build();
-        CommandResult commandResult = CommandResult.of(List.of(validEvent), AppendCondition.empty());
+        CommandDecision commandResult = new CommandDecision.Commutative(List.of(validEvent));
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 

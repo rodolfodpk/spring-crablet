@@ -1,16 +1,16 @@
 package com.crablet.command.integration;
 
 import com.crablet.command.CommandExecutorImpl;
-import com.crablet.command.CommandResult;
+import com.crablet.command.CommandDecision;
 import com.crablet.command.ExecutionResult;
 import com.crablet.command.InvalidCommandException;
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.clock.ClockProviderImpl;
-import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.EventStoreConfig;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,7 +52,7 @@ class CommandExecutorImplPersistenceTest {
         config = new EventStoreConfig();
         config.setPersistCommands(false); // Disable persistence
         clock = new ClockProviderImpl();
-        objectMapper = new ObjectMapper();
+        objectMapper = JsonMapper.builder().build();
         eventPublisher = mock(ApplicationEventPublisher.class);
         handler = new TestCommandHandler();
         
@@ -77,12 +77,12 @@ class CommandExecutorImplPersistenceTest {
                 .tag("entityId", "entity-123")
                 .data("{}")
                 .build();
-        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.empty());
+        CommandDecision commandResult = new CommandDecision.Commutative(List.of(event));
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
         
-        // Mock appendIf to return transaction ID
-        when(eventStore.appendIf(Mockito.anyList(), Mockito.any()))
+        // Mock appendCommutative to return transaction ID
+        when(eventStore.appendCommutative(Mockito.anyList()))
                 .thenReturn("tx-123");
         when(eventStore.executeInTransaction(Mockito.any()))
                 .thenAnswer(invocation -> {
@@ -125,16 +125,16 @@ class CommandExecutorImplPersistenceTest {
                 .tag("entityId", "entity-123")
                 .data("{}")
                 .build();
-        CommandResult commandResult = CommandResult.of(List.of(event), AppendCondition.empty());
+        CommandDecision commandResult = new CommandDecision.Commutative(List.of(event));
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
         
-        when(eventStore.appendIf(Mockito.anyList(), Mockito.any()))
+        when(eventStore.appendCommutative(Mockito.anyList()))
                 .thenReturn("tx-123");
         when(eventStore.executeInTransaction(Mockito.any()))
                 .thenAnswer(invocation -> {
                     @SuppressWarnings("unchecked")
-                    java.util.function.Function<EventStore, ExecutionResult> fn = 
+                    java.util.function.Function<EventStore, ExecutionResult> fn =
                         (java.util.function.Function<EventStore, ExecutionResult>) invocation.getArgument(0);
                     return fn.apply(eventStore);
                 });

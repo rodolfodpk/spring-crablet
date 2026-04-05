@@ -1,7 +1,6 @@
 package com.crablet.command.handlers.wallet;
 
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.command.CommandDecision;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
@@ -69,12 +68,12 @@ class TransferMoneyCommandHandlerTest extends com.crablet.test.AbstractCrabletTe
                 .tag("wallet_id", "wallet2")
                 .build();
 
-        eventStore.appendIf(List.of(fromWalletInputEvent, toWalletInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(fromWalletInputEvent, toWalletInputEvent));
 
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", "wallet1", "wallet2", 300, "Payment");
 
         // Act
-        CommandResult result = handler.handle(eventStore, cmd);
+        CommandDecision result = handler.handle(eventStore, cmd);
 
         // Assert
         assertThat(result.events()).hasSize(1);
@@ -119,7 +118,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.test.AbstractCrabletTe
                 .data(toWalletEvent.data())
                 .tag("wallet_id", "wallet1")
                 .build();
-        eventStore.appendIf(List.of(toWalletInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(toWalletInputEvent));
 
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", "nonexistent", "wallet2", 100, "Payment");
 
@@ -139,7 +138,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.test.AbstractCrabletTe
                 .data(fromWalletEvent.data())
                 .tag("wallet_id", "wallet1")
                 .build();
-        eventStore.appendIf(List.of(fromWalletInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(fromWalletInputEvent));
 
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", "wallet1", "nonexistent", 100, "Payment");
 
@@ -168,7 +167,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.test.AbstractCrabletTe
                 .tag("wallet_id", "wallet2")
                 .build();
 
-        eventStore.appendIf(List.of(fromWalletInputEvent, toWalletInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(fromWalletInputEvent, toWalletInputEvent));
 
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", "wallet1", "wallet2", 200, "Payment");
 
@@ -217,12 +216,12 @@ class TransferMoneyCommandHandlerTest extends com.crablet.test.AbstractCrabletTe
                 .tag("wallet_id", "wallet2")
                 .build();
 
-        eventStore.appendIf(List.of(fromWalletInputEvent, toWalletInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(fromWalletInputEvent, toWalletInputEvent));
 
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", "wallet1", "wallet2", 500, "Full transfer");
 
         // Act
-        CommandResult result = handler.handle(eventStore, cmd);
+        CommandDecision result = handler.handle(eventStore, cmd);
 
         // Assert
         assertThat(result.events()).hasSize(1);
@@ -232,7 +231,7 @@ class TransferMoneyCommandHandlerTest extends com.crablet.test.AbstractCrabletTe
     }
 
     @Test
-    @DisplayName("Should detect cursor conflict on concurrent wallet state change")
+    @DisplayName("Should detect stream position conflict on concurrent wallet state change")
     void testHandleTransferMoney_Idempotency() {
         // Arrange - create both wallets
         WalletOpened fromWallet = WalletOpened.of("wallet1", "Alice", 1000);
@@ -250,18 +249,18 @@ class TransferMoneyCommandHandlerTest extends com.crablet.test.AbstractCrabletTe
                 .tag("wallet_id", "wallet2")
                 .build();
 
-        eventStore.appendIf(List.of(fromWalletInputEvent, toWalletInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(fromWalletInputEvent, toWalletInputEvent));
 
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", "wallet1", "wallet2", 300, "Payment");
 
         // Act - first transfer succeeds
-        CommandResult firstResult = handler.handle(eventStore, cmd);
-        AppendCondition firstCondition = firstResult.appendCondition();
-        eventStore.appendIf(firstResult.events(), firstCondition);
+        CommandDecision firstResult = handler.handle(eventStore, cmd);
+        CommandDecision.NonCommutative firstNc = (CommandDecision.NonCommutative) firstResult;
+        eventStore.appendNonCommutative(firstNc.events(), firstNc.decisionModel(), firstNc.streamPosition());
 
         // Verify: Cursor-based protection detects DECISION MODEL changes, not operation ID duplicates
         // If client re-reads state after transfer, they get a fresh cursor
-        CommandResult secondResult = handler.handle(eventStore, cmd);
+        CommandDecision secondResult = handler.handle(eventStore, cmd);
         
         // The second call succeeds because:
         // 1. Command handler re-reads wallet state (fresh cursor)
@@ -291,11 +290,11 @@ class TransferMoneyCommandHandlerTest extends com.crablet.test.AbstractCrabletTe
                 .tag("wallet_id", "wallet2")
                 .build();
 
-        eventStore.appendIf(List.of(fromWalletInputEvent, toWalletInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(fromWalletInputEvent, toWalletInputEvent));
 
         // Act - transfer should only project balances for both wallets, not full WalletState
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", "wallet1", "wallet2", 200, "Test transfer");
-        CommandResult result = handler.handle(eventStore, cmd);
+        CommandDecision result = handler.handle(eventStore, cmd);
 
         // Assert - verify correct balance calculations
         MoneyTransferred transfer = walletTestUtils.deserializeEventData(result.events().get(0).eventData(), MoneyTransferred.class);
@@ -327,12 +326,12 @@ class TransferMoneyCommandHandlerTest extends com.crablet.test.AbstractCrabletTe
                 .tag("wallet_id", toWalletId)
                 .build();
 
-        eventStore.appendIf(List.of(fromWalletInputEvent, toWalletInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(fromWalletInputEvent, toWalletInputEvent));
 
         TransferMoneyCommand cmd = TransferMoneyCommand.of("transfer1", fromWalletId, toWalletId, transferAmount, description);
 
         // Act
-        CommandResult result = handler.handle(eventStore, cmd);
+        CommandDecision result = handler.handle(eventStore, cmd);
 
         // Assert
         assertThat(result.events()).hasSize(1);

@@ -1,8 +1,9 @@
 package com.crablet.eventstore.integration;
 
 import com.crablet.eventstore.store.StoredEvent;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
 
 /**
  * Helper utilities for DCB compliance testing.
@@ -10,8 +11,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
  */
 public class DCBTestHelpers {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper()
-            .registerModule(new JavaTimeModule()); // Support Java 8 date/time
+    private static final ObjectMapper objectMapper = JsonMapper.builder().build()
+            ; // Support Java 8 date/time
 
     /**
      * Deserializes a stored event's data to a specific type.

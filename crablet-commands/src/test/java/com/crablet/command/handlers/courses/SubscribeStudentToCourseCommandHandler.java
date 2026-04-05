@@ -1,13 +1,10 @@
 package com.crablet.command.handlers.courses;
 
-import com.crablet.command.CommandHandler;
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
+import com.crablet.command.NonCommutativeCommandHandler;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.examples.course.CourseQueryPatterns;
 import com.crablet.examples.course.commands.SubscribeStudentToCourseCommand;
@@ -30,73 +27,62 @@ import static com.crablet.examples.course.CourseTags.STUDENT_ID;
 /**
  * Command handler for subscribing students to courses.
  * <p>
- * DCB Principle: Uses multi-entity projection to enforce constraints on both
- * course (capacity) and student (subscription limit) entities atomically.
- * <p>
- * This demonstrates the key DCB pattern: a single event (StudentSubscribedToCourse)
- * has tags for both entities, enabling atomic constraint enforcement.
+ * DCB Principle: Non-commutative operation — order matters for both course capacity
+ * and student subscription limit constraints.
  */
 @Component
-public class SubscribeStudentToCourseCommandHandler implements CommandHandler<SubscribeStudentToCourseCommand> {
+public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCommandHandler<SubscribeStudentToCourseCommand> {
 
     private static final Logger log = LoggerFactory.getLogger(SubscribeStudentToCourseCommandHandler.class);
-    
-    /**
-     * Maximum number of courses a student can subscribe to.
-     * Following the DCB example, using 5 as the demo limit.
-     */
+
     private static final int MAX_STUDENT_SUBSCRIPTIONS = 5;
 
     public SubscribeStudentToCourseCommandHandler() {
     }
 
     @Override
-    public CommandResult handle(EventStore eventStore, SubscribeStudentToCourseCommand command) {
+    public Decision decide(EventStore eventStore, SubscribeStudentToCourseCommand command) {
         // Command is already validated at construction with YAVI
 
-        // Use multi-entity decision model query
         Query decisionModel = CourseQueryPatterns.subscriptionDecisionModel(
                 command.courseId(),
                 command.studentId()
         );
 
-        // Project state for BOTH entities with cursor
         SubscriptionStateProjector projector = new SubscriptionStateProjector(
                 command.courseId(),
                 command.studentId()
         );
         ProjectionResult<SubscriptionState> projection = eventStore.project(
-                decisionModel, Cursor.zero(), SubscriptionState.class, List.of(projector));
+                decisionModel, StreamPosition.zero(), SubscriptionState.class, List.of(projector));
         SubscriptionState state = projection.state();
 
-        // Validate constraints
         if (!state.courseExists()) {
-            log.warn("Subscription failed - course not found: courseId={}, studentId={}", 
+            log.warn("Subscription failed - course not found: courseId={}, studentId={}",
                     command.courseId(), command.studentId());
             throw new CourseNotFoundException(command.courseId());
         }
 
         if (state.isCourseFull()) {
-            log.warn("Subscription failed - course full: courseId={}, subscriptions={}, capacity={}", 
+            log.warn("Subscription failed - course full: courseId={}, subscriptions={}, capacity={}",
                     command.courseId(), state.courseSubscriptionsCount(), state.courseCapacity());
-            throw new CourseFullException(command.courseId(), 
+            throw new CourseFullException(command.courseId(),
                     state.courseSubscriptionsCount(), state.courseCapacity());
         }
 
         if (state.studentAlreadySubscribed()) {
-            log.warn("Subscription failed - already subscribed: studentId={}, courseId={}", 
+            log.warn("Subscription failed - already subscribed: studentId={}, courseId={}",
                     command.studentId(), command.courseId());
             throw new AlreadySubscribedException(command.studentId(), command.courseId());
         }
 
         if (state.hasReachedSubscriptionLimit(MAX_STUDENT_SUBSCRIPTIONS)) {
-            log.warn("Subscription failed - student limit reached: studentId={}, subscriptions={}, max={}", 
+            log.warn("Subscription failed - student limit reached: studentId={}, subscriptions={}, max={}",
                     command.studentId(), state.studentSubscriptionsCount(), MAX_STUDENT_SUBSCRIPTIONS);
-            throw new StudentSubscriptionLimitException(command.studentId(), 
+            throw new StudentSubscriptionLimitException(command.studentId(),
                     state.studentSubscriptionsCount(), MAX_STUDENT_SUBSCRIPTIONS);
         }
 
-        // Create event with BOTH tags (multi-entity event)
         StudentSubscribedToCourse subscription = StudentSubscribedToCourse.of(
                 command.studentId(),
                 command.courseId()
@@ -108,22 +94,15 @@ public class SubscribeStudentToCourseCommandHandler implements CommandHandler<Su
                 .data(subscription)
                 .build();
 
-        // Subscriptions are non-commutative - order matters for both course and student constraints
-        // DCB cursor check REQUIRED: prevents concurrent subscriptions exceeding limits
-        AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
-                .build();
-
-        return CommandResult.of(List.of(event), condition);
+        return new Decision(List.of(event), decisionModel, projection.streamPosition());
     }
 
     /**
      * Composite projector for subscription state (all constraints).
-     * Not a singleton - create instances as needed per student/course pair.
      */
     static class SubscriptionStateProjector implements com.crablet.eventstore.query.StateProjector<SubscriptionState> {
         private final String courseId;
         private final String studentId;
-        
 
         public SubscriptionStateProjector(String courseId, String studentId) {
             this.courseId = courseId;
@@ -150,15 +129,15 @@ public class SubscribeStudentToCourseCommandHandler implements CommandHandler<Su
         }
 
         @Override
-        public SubscriptionState transition(SubscriptionState current, com.crablet.eventstore.store.StoredEvent event, 
+        public SubscriptionState transition(SubscriptionState current, com.crablet.eventstore.store.StoredEvent event,
                                              com.crablet.eventstore.query.EventDeserializer context) {
             return switch (event.type()) {
                 case String s when s.equals(type(com.crablet.examples.course.events.CourseDefined.class)) -> {
-                    com.crablet.examples.course.events.CourseDefined courseDefined = 
+                    com.crablet.examples.course.events.CourseDefined courseDefined =
                             context.deserialize(event, com.crablet.examples.course.events.CourseDefined.class);
                     if (courseDefined.courseId().equals(courseId)) {
                         yield new SubscriptionState(
-                                true, // course exists
+                                true,
                                 courseDefined.capacity(),
                                 current.courseSubscriptionsCount(),
                                 current.studentSubscriptionsCount(),
@@ -168,7 +147,7 @@ public class SubscribeStudentToCourseCommandHandler implements CommandHandler<Su
                     yield current;
                 }
                 case String s when s.equals(type(com.crablet.examples.course.events.CourseCapacityChanged.class)) -> {
-                    com.crablet.examples.course.events.CourseCapacityChanged capacityChanged = 
+                    com.crablet.examples.course.events.CourseCapacityChanged capacityChanged =
                             context.deserialize(event, com.crablet.examples.course.events.CourseCapacityChanged.class);
                     if (capacityChanged.courseId().equals(courseId)) {
                         yield new SubscriptionState(
@@ -184,17 +163,17 @@ public class SubscribeStudentToCourseCommandHandler implements CommandHandler<Su
                 case String s when s.equals(type(StudentSubscribedToCourse.class)) -> {
                     com.crablet.examples.course.events.StudentSubscribedToCourse subscription =
                             context.deserialize(event, com.crablet.examples.course.events.StudentSubscribedToCourse.class);
-                    
+
                     boolean affectsCourse = subscription.courseId().equals(courseId);
                     boolean affectsStudent = subscription.studentId().equals(studentId);
-                    
-                    int newCourseSubscriptions = affectsCourse ? 
+
+                    int newCourseSubscriptions = affectsCourse ?
                             current.courseSubscriptionsCount() + 1 : current.courseSubscriptionsCount();
-                    int newStudentSubscriptions = affectsStudent ? 
+                    int newStudentSubscriptions = affectsStudent ?
                             current.studentSubscriptionsCount() + 1 : current.studentSubscriptionsCount();
-                    boolean newAlreadySubscribed = current.studentAlreadySubscribed() || 
+                    boolean newAlreadySubscribed = current.studentAlreadySubscribed() ||
                             (affectsCourse && affectsStudent);
-                    
+
                     yield new SubscriptionState(
                             current.courseExists(),
                             current.courseCapacity(),
@@ -208,4 +187,3 @@ public class SubscribeStudentToCourseCommandHandler implements CommandHandler<Su
         }
     }
 }
-

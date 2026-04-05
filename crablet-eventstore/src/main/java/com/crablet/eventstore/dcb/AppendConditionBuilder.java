@@ -2,7 +2,7 @@ package com.crablet.eventstore.dcb;
 
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import com.crablet.eventstore.store.Tag;
 import org.jspecify.annotations.Nullable;
 
@@ -12,27 +12,27 @@ import java.util.List;
 /**
  * Builder for creating AppendCondition with dual conditions.
  * <p>
- * DCB Pattern: Separates concurrency check (with cursor) and idempotency check (no cursor).
+ * DCB Pattern: Separates concurrency check (with stream position) and idempotency check (no stream position).
  */
 public class AppendConditionBuilder {
     private final @Nullable Query decisionModelQuery;
-    private final @Nullable Cursor cursor;
+    private final @Nullable StreamPosition streamPosition;
     private final List<QueryItem> idempotencyItems = new ArrayList<>();
 
     /**
-     * Creates a builder with a decision model query and cursor position.
-     * Prefer the {@link #of(Query, Cursor)} static factory over this constructor.
+     * Creates a builder with a decision model query and stream position.
+     * Prefer the {@link #of(Query, StreamPosition)} static factory over this constructor.
      */
-    public AppendConditionBuilder(@Nullable Query decisionModelQuery, @Nullable Cursor cursor) {
+    public AppendConditionBuilder(@Nullable Query decisionModelQuery, @Nullable StreamPosition streamPosition) {
         this.decisionModelQuery = decisionModelQuery;
-        this.cursor = cursor;
+        this.streamPosition = streamPosition;
     }
 
     /**
-     * Static factory — preferred over {@code new AppendConditionBuilder(query, cursor)}.
+     * Static factory — preferred over {@code new AppendConditionBuilder(query, streamPosition)}.
      */
-    public static AppendConditionBuilder of(@Nullable Query decisionModelQuery, @Nullable Cursor cursor) {
-        return new AppendConditionBuilder(decisionModelQuery, cursor);
+    public static AppendConditionBuilder of(@Nullable Query decisionModelQuery, @Nullable StreamPosition streamPosition) {
+        return new AppendConditionBuilder(decisionModelQuery, streamPosition);
     }
 
     /**
@@ -48,7 +48,7 @@ public class AppendConditionBuilder {
 
     /**
      * Add idempotency check for duplicate operations (convenience method).
-     * 
+     *
      * @param eventType The event type to check for duplicates
      * @param tagKey    The tag key identifying the unique operation
      * @param tagValue  The tag value identifying the unique operation
@@ -60,19 +60,14 @@ public class AppendConditionBuilder {
 
     /**
      * Build the final AppendCondition with dual conditions.
-     * - stateChanged: decision model query + cursor (checks events AFTER last read)
-     * - alreadyExists: operation ID tags (checks ALL events, no cursor limit)
+     * - concurrencyQuery: decision model query + stream position (checks events AFTER last read)
+     * - idempotencyQuery: operation ID tags (checks ALL events, no stream position limit); Query.empty() = no check
      */
     public AppendCondition build() {
-        // Concurrency check: decision model query (with cursor)
-        Query stateChangedQuery = decisionModelQuery;
-
-        // Idempotency check: separate query (no cursor limit)
-        @Nullable Query alreadyExistsQuery = idempotencyItems.isEmpty()
-            ? null
+        var idempotencyQuery = idempotencyItems.isEmpty()
+            ? Query.empty()
             : Query.of(idempotencyItems);
 
-        return AppendCondition.of(cursor, stateChangedQuery, alreadyExistsQuery);
+        return AppendCondition.of(streamPosition, decisionModelQuery, idempotencyQuery);
     }
 }
-

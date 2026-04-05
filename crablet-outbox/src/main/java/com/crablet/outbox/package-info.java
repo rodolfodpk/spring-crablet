@@ -14,7 +14,7 @@
  * <p>
  * <strong>How It Works:</strong>
  * <ol>
- *   <li>Command handlers return {@code CommandResult} with events</li>
+ *   <li>Command handlers return {@code CommandDecision} with events</li>
  *   <li>CommandExecutor stores events in the {@code events} table with DCB guarantees</li>
  *   <li>Outbox processor polls the {@code events} table for new events</li>
  *   <li>Publishers send events to external systems (Kafka, webhooks, analytics, etc.)</li>

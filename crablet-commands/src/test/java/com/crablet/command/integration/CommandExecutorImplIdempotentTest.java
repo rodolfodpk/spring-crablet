@@ -1,14 +1,11 @@
 package com.crablet.command.integration;
 
 import com.crablet.command.CommandExecutor;
-import com.crablet.command.CommandResult;
+import com.crablet.command.CommandDecision;
 import com.crablet.command.ExecutionResult;
-import com.crablet.eventstore.dcb.AppendCondition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -32,7 +29,7 @@ class CommandExecutorImplIdempotentTest extends AbstractCommandTest {
     void executeCommand_WithEmptyResultWithReason_ShouldReturnIdempotent() {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
-        CommandResult emptyResult = new CommandResult(List.of(), AppendCondition.empty(), "ALREADY_PROCESSED");
+        CommandDecision emptyResult = new CommandDecision.NoOp("ALREADY_PROCESSED");
 
         TestCommandHandler.setHandlerLogic(cmd -> emptyResult);
 
@@ -49,7 +46,7 @@ class CommandExecutorImplIdempotentTest extends AbstractCommandTest {
     void executeCommand_WithEmptyResultWithoutReason_ShouldReturnIdempotent() {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
-        CommandResult emptyResult = new CommandResult(List.of(), AppendCondition.empty(), null);
+        CommandDecision emptyResult = CommandDecision.NoOp.noReason();
 
         TestCommandHandler.setHandlerLogic(cmd -> emptyResult);
 
@@ -67,7 +64,7 @@ class CommandExecutorImplIdempotentTest extends AbstractCommandTest {
     void executeCommand_WithEmptyResult_ShouldNotAppendEvents() {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
-        CommandResult emptyResult = new CommandResult(List.of(), AppendCondition.empty(), "ALREADY_PROCESSED");
+        CommandDecision emptyResult = new CommandDecision.NoOp("ALREADY_PROCESSED");
 
         TestCommandHandler.setHandlerLogic(cmd -> emptyResult);
 

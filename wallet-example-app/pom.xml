@@ -33,6 +33,12 @@
             <artifactId>crablet-views</artifactId>
         </dependency>
 
+        <!-- Crablet Outbox -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-outbox</artifactId>
+        </dependency>
+
         <!-- Crablet Automations (event-driven policies) -->
         <dependency>
             <groupId>com.crablet</groupId>
@@ -51,10 +57,21 @@
             <artifactId>shared-examples-domain</artifactId>
         </dependency>
         
-        <!-- Spring Boot Starter Web -->
+        <!-- Spring Boot Starter Web (Jetty) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-tomcat</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jetty</artifactId>
         </dependency>
         
         <!-- Spring Boot Starter JDBC -->

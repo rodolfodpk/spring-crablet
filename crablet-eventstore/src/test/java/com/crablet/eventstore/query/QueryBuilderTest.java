@@ -2,8 +2,7 @@ package com.crablet.eventstore.query;
 
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.dcb.AppendConditionBuilder;
-import com.crablet.eventstore.store.Cursor;
-import com.crablet.eventstore.store.SequenceNumber;
+import com.crablet.eventstore.store.StreamPosition;
 import com.crablet.eventstore.store.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -81,10 +80,10 @@ class QueryBuilderTest {
         Query query = QueryBuilder.create()
                 .matching(new String[]{"WalletOpened"}, new Tag("wallet_id", "w1"))
                 .build();
-        Cursor cursor = Cursor.zero();
+        StreamPosition streamPosition = StreamPosition.zero();
 
         // When
-        AppendConditionBuilder builder = new AppendConditionBuilder(query, cursor);
+        AppendConditionBuilder builder = new AppendConditionBuilder(query, streamPosition);
 
         // Then
         assertThat(builder).isNotNull();
@@ -96,29 +95,29 @@ class QueryBuilderTest {
         Query decisionModel = QueryBuilder.create()
                 .matching(new String[]{"WalletOpened", "DepositMade"}, new Tag("wallet_id", "w1"))
                 .build();
-        Cursor cursor = Cursor.zero();
+        StreamPosition streamPosition = StreamPosition.zero();
 
         // When
-        AppendCondition condition = new AppendConditionBuilder(decisionModel, cursor)
+        AppendCondition condition = new AppendConditionBuilder(decisionModel, streamPosition)
                 .withIdempotencyCheck("DepositMade", new Tag("deposit_id", "d1"))
                 .build();
 
         // Then - Dual conditions approach
-        assertThat(condition.afterCursor()).isEqualTo(cursor);
+        assertThat(condition.afterPosition()).isEqualTo(streamPosition);
         
         // Concurrency check: decision model only
-        assertThat(condition.stateChanged().items()).hasSize(1);
-        assertThat(condition.stateChanged().items().get(0).eventTypes())
+        assertThat(condition.concurrencyQuery().items()).hasSize(1);
+        assertThat(condition.concurrencyQuery().items().get(0).eventTypes())
                 .containsExactly("WalletOpened", "DepositMade");
-        assertThat(condition.stateChanged().items().get(0).tags())
+        assertThat(condition.concurrencyQuery().items().get(0).tags())
                 .containsExactly(new Tag("wallet_id", "w1"));
         
         // Idempotency check: separate query
-        assertThat(condition.alreadyExists()).isNotNull();
-        assertThat(requireNonNull(condition.alreadyExists()).items()).hasSize(1);
-        assertThat(requireNonNull(condition.alreadyExists()).items().get(0).eventTypes())
+        assertThat(condition.idempotencyQuery()).isNotNull();
+        assertThat(requireNonNull(condition.idempotencyQuery()).items()).hasSize(1);
+        assertThat(requireNonNull(condition.idempotencyQuery()).items().get(0).eventTypes())
                 .containsExactly("DepositMade");
-        assertThat(requireNonNull(condition.alreadyExists()).items().get(0).tags())
+        assertThat(requireNonNull(condition.idempotencyQuery()).items().get(0).tags())
                 .containsExactly(new Tag("deposit_id", "d1"));
     }
 
@@ -263,21 +262,21 @@ class QueryBuilderTest {
     @Test
     void shouldConvertToAppendConditionUsingToAppendConditionMethod() {
         // Given
-        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
+        StreamPosition streamPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
 
         // When
         AppendConditionBuilder builder = QueryBuilder.create()
                 .matching(new String[]{"WalletOpened"}, new Tag("wallet_id", "w1"))
-                .toAppendCondition(cursor);
+                .toAppendCondition(streamPosition);
 
         // Then
         assertThat(builder).isNotNull();
         
         // Verify the built condition
         AppendCondition condition = builder.build();
-        assertThat(condition.afterCursor()).isEqualTo(cursor);
-        assertThat(condition.stateChanged().items()).hasSize(1);
-        assertThat(condition.stateChanged().items().get(0).eventTypes()).containsExactly("WalletOpened");
+        assertThat(condition.afterPosition()).isEqualTo(streamPosition);
+        assertThat(condition.concurrencyQuery().items()).hasSize(1);
+        assertThat(condition.concurrencyQuery().items().get(0).eventTypes()).containsExactly("WalletOpened");
     }
 }
 

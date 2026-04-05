@@ -164,7 +164,7 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
                 .data(String.format("{\"walletId\":\"wallet-%d\"}", i))
                 .build());
         }
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // When
         List<StoredEvent> fetched = eventFetcher.fetchEvents("wallet-automation", 0L, 10);
@@ -282,7 +282,7 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
         @org.springframework.context.annotation.DependsOn("flyway")
         public EventStore eventStore(
                 DataSource dataSource,
-                com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+                tools.jackson.databind.ObjectMapper objectMapper,
                 com.crablet.eventstore.store.EventStoreConfig config,
                 com.crablet.eventstore.clock.ClockProvider clock,
                 org.springframework.context.ApplicationEventPublisher eventPublisher) {
@@ -301,8 +301,8 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
         }
 
         @Bean
-        public com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
-            return new com.fasterxml.jackson.databind.ObjectMapper();
+        public tools.jackson.databind.ObjectMapper objectMapper() {
+            return tools.jackson.databind.json.JsonMapper.builder().disable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build();
         }
 
         @Bean

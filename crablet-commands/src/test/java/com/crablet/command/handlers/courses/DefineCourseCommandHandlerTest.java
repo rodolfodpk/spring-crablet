@@ -1,7 +1,6 @@
 package com.crablet.command.handlers.courses;
 
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.command.CommandDecision;
 import com.crablet.test.AbstractCrabletTest;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
@@ -34,7 +33,7 @@ class DefineCourseCommandHandlerTest extends AbstractCrabletTest {
     private EventStore eventStore;
     
     @Autowired
-    private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private tools.jackson.databind.ObjectMapper objectMapper;
     
     private CourseTestUtils courseTestUtils;
 
@@ -51,7 +50,7 @@ class DefineCourseCommandHandlerTest extends AbstractCrabletTest {
         DefineCourseCommand cmd = DefineCourseCommand.of("c1", 10);
 
         // Act
-        CommandResult result = handler.handle(eventStore, cmd);
+        CommandDecision result = handler.handle(eventStore, cmd);
 
         // Assert
         assertThat(result.events()).hasSize(1);
@@ -81,15 +80,14 @@ class DefineCourseCommandHandlerTest extends AbstractCrabletTest {
                 .data(existingEvent.data())
                 .tag("course_id", "c1")
                 .build();
-        eventStore.appendIf(List.of(existingInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(existingInputEvent));
 
         DefineCourseCommand cmd = DefineCourseCommand.of("c1", 10);
 
         // Act & Assert - idempotency check should prevent duplicate
-        // Note: The handler returns CommandResult with idempotency check,
-        // but appendIf will throw ConcurrencyException if course exists
-        CommandResult result = handler.handle(eventStore, cmd);
-        assertThatThrownBy(() -> eventStore.appendIf(result.events(), result.appendCondition()))
+        CommandDecision.Idempotent result = (CommandDecision.Idempotent) handler.handle(eventStore, cmd);
+        assertThatThrownBy(() -> eventStore.appendIdempotent(
+                result.events(), result.eventType(), result.tagKey(), result.tagValue()))
                 .isInstanceOf(com.crablet.eventstore.dcb.ConcurrencyException.class);
     }
 

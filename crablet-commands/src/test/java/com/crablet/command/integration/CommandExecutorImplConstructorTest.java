@@ -2,13 +2,14 @@ package com.crablet.command.integration;
 
 import com.crablet.command.CommandExecutorImpl;
 import com.crablet.command.CommandHandler;
-import com.crablet.command.CommandResult;
+import com.crablet.command.CommandDecision;
 import com.crablet.command.InvalidCommandException;
 import com.crablet.eventstore.clock.ClockProvider;
 import com.crablet.eventstore.clock.ClockProviderImpl;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.EventStoreConfig;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -30,7 +31,7 @@ class CommandExecutorImplConstructorTest {
     private final EventStore eventStore = mock(EventStore.class);
     private final EventStoreConfig config = new EventStoreConfig();
     private final ClockProvider clock = new ClockProviderImpl();
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JsonMapper.builder().build();
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
 
     @Test
@@ -40,7 +41,7 @@ class CommandExecutorImplConstructorTest {
         // This handler will fail type extraction because it doesn't have @JsonSubTypes
         class InvalidHandler implements CommandHandler<Object> {
             @Override
-            public CommandResult handle(EventStore eventStore, Object command) {
+            public CommandDecision handle(EventStore eventStore, Object command) {
                 return null;
             }
         }

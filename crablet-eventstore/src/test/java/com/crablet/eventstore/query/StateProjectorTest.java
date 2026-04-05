@@ -1,7 +1,7 @@
 package com.crablet.eventstore.query;
 
 import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.test.InMemoryEventStore;
@@ -81,7 +81,7 @@ class StateProjectorTest {
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", "w1");
 
         boolean exists = eventStore.project(
-            query, Cursor.zero(), StateProjector.exists("WalletOpened")
+            query, StreamPosition.zero(), StateProjector.exists("WalletOpened")
         ).state();
 
         assertThat(exists).isFalse();
@@ -101,7 +101,7 @@ class StateProjectorTest {
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", "w1");
 
         boolean exists = eventStore.project(
-            query, Cursor.zero(), StateProjector.exists("WalletOpened")
+            query, StreamPosition.zero(), StateProjector.exists("WalletOpened")
         ).state();
 
         assertThat(exists).isTrue();
@@ -122,7 +122,7 @@ class StateProjectorTest {
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", "w1");
 
         boolean exists = eventStore.project(
-            query, Cursor.zero(), StateProjector.exists("WalletOpened")
+            query, StreamPosition.zero(), StateProjector.exists("WalletOpened")
         ).state();
 
         assertThat(exists).isFalse();
@@ -142,7 +142,7 @@ class StateProjectorTest {
         Query query = Query.forEventAndTag("DepositMade", "wallet_id", "w1");
 
         boolean exists = eventStore.project(
-            query, Cursor.zero(), StateProjector.exists("WalletOpened", "DepositMade")
+            query, StreamPosition.zero(), StateProjector.exists("WalletOpened", "DepositMade")
         ).state();
 
         assertThat(exists).isTrue();

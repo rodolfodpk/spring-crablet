@@ -1,6 +1,7 @@
 package com.crablet.eventstore.store;
 
 import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.dcb.AppendConditionBuilder;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.StateProjector;
@@ -15,31 +16,76 @@ import java.util.function.Function;
 public interface EventStore {
 
     /**
-     * AppendIf appends events to the store with explicit DCB concurrency control.
-     * This method makes it clear when consistency/concurrency checks are required.
-     * Use this for operations that need to ensure data hasn't changed since projection.
-     * For simple appends without concurrency checks, use AppendCondition.empty().
-     * 
+     * Appends commutative events — order-independent operations where no conflict detection is needed
+     * (e.g., deposits, credits, batch increments).
+     *
+     * @param events The events to append (must not be empty)
+     * @return The transaction ID of the transaction that appended the events
+     * @throws IllegalArgumentException if the events list is empty
+     */
+    default String appendCommutative(List<AppendEvent> events) {
+        return appendIf(events, AppendCondition.empty());
+    }
+
+    /**
+     * Appends non-commutative events — order-dependent operations with stream-position-based DCB conflict check
+     * (e.g., withdrawals, transfers, capacity changes).
+     *
+     * @param events         The events to append (must not be empty)
+     * @param decisionModel  The query used for the DCB consistency check
+     * @param streamPosition The stream position captured from the projection result
+     * @return The transaction ID of the transaction that appended the events
+     * @throws IllegalArgumentException if the events list is empty
+     * @throws ConcurrencyException if a concurrent modification is detected
+     */
+    default String appendNonCommutative(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {
+        return appendIf(events, AppendConditionBuilder.of(decisionModel, streamPosition).build());
+    }
+
+    /**
+     * Appends idempotent events — entity creation; fails if an event with the same tag already exists
+     * (e.g., OpenWallet, DefineCourse).
+     *
+     * @param events   The events to append (must not be empty)
+     * @param eventType The event type name used for the idempotency check
+     * @param tagKey   The tag key used for the idempotency check
+     * @param tagValue The tag value used for the idempotency check
+     * @return The transaction ID of the transaction that appended the events
+     * @throws IllegalArgumentException if the events list is empty
+     * @throws ConcurrencyException if a duplicate event with the same tag already exists
+     */
+    default String appendIdempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {
+        return appendIf(events, AppendCondition.idempotent(eventType, tagKey, tagValue));
+    }
+
+    /**
+     * Low-level escape hatch for appending events with an explicit DCB condition.
+     * Prefer the three semantic overloads ({@link #appendCommutative}, {@link #appendNonCommutative},
+     * {@link #appendIdempotent}) over this method.
+     *
      * @param events The events to append (must not be empty)
      * @param condition The append condition for concurrency control
      * @return The transaction ID of the transaction that appended the events (never null for successful append)
      * @throws IllegalArgumentException if the events list is empty
      * @throws ConcurrencyException if the append condition is violated
+     * @deprecated Prefer the semantic overloads: {@link #appendCommutative}, {@link #appendNonCommutative},
+     *             {@link #appendIdempotent}.
      */
+    @Deprecated
     String appendIf(List<AppendEvent> events, AppendCondition condition);
 
     /**
-     * Project projects state from events matching query with cursor.
+     * Project projects state from events matching query with stream position.
      * Returns final aggregated states and append condition for DCB concurrency control
      *
      * @param query The query to filter events
-     * @param after Cursor to project events after (use Cursor.zero() for all events)
+     * @param after StreamPosition to project events after (use StreamPosition.zero() for all events)
      * @param stateType The type of state to project
      * @param projectors List of projectors to apply to events
      */
     <T> ProjectionResult<T> project(
             Query query,
-            Cursor after,
+            StreamPosition after,
             Class<T> stateType,
             List<StateProjector<T>> projectors
     );
@@ -47,12 +93,12 @@ public interface EventStore {
     /**
      * Convenience overload for single-projector use. Eliminates the class token and List.of() boilerplate.
      *
-     * @param query     The query to filter events
-     * @param after     Cursor to project events after (use Cursor.zero() for all events)
-     * @param projector The single projector to apply
+     * @param query      The query to filter events
+     * @param after      StreamPosition to project events after (use StreamPosition.zero() for all events)
+     * @param projector  The single projector to apply
      */
     @SuppressWarnings("unchecked")
-    default <T> ProjectionResult<T> project(Query query, Cursor after, StateProjector<T> projector) {
+    default <T> ProjectionResult<T> project(Query query, StreamPosition after, StateProjector<T> projector) {
         return project(query, after, (Class<T>) Object.class, List.of(projector));
     }
 

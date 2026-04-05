@@ -1,6 +1,6 @@
 package com.crablet.command.handlers.wallet;
 
-import com.crablet.command.CommandResult;
+import com.crablet.command.CommandDecision;
 import com.crablet.eventstore.dcb.ConcurrencyException;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
@@ -38,7 +38,7 @@ class OpenWalletCommandHandlerTest extends com.crablet.test.AbstractCrabletTest 
 
     @Autowired
     private EventRepository testHelper;
-    
+
     @Autowired
     private WalletTestUtils walletTestUtils;
 
@@ -54,7 +54,7 @@ class OpenWalletCommandHandlerTest extends com.crablet.test.AbstractCrabletTest 
         OpenWalletCommand cmd = OpenWalletCommand.of("wallet1", "Alice", 1000);
 
         // Act
-        CommandResult result = handler.handle(eventStore, cmd);
+        CommandDecision result = handler.handle(eventStore, cmd);
 
         // Assert
         assertThat(result.events()).hasSize(1);
@@ -83,15 +83,16 @@ class OpenWalletCommandHandlerTest extends com.crablet.test.AbstractCrabletTest 
     void testHandleOpenWallet_WalletAlreadyExists() {
         // Arrange - create wallet first
         OpenWalletCommand firstCmd = OpenWalletCommand.of("wallet1", "Alice", 1000);
-        CommandResult firstResult = handler.handle(eventStore, firstCmd);
-        eventStore.appendIf(firstResult.events(), firstResult.appendCondition());
+        CommandDecision.Idempotent firstResult = (CommandDecision.Idempotent) handler.handle(eventStore, firstCmd);
+        eventStore.appendIdempotent(firstResult.events(), firstResult.eventType(), firstResult.tagKey(), firstResult.tagValue());
 
         // Act & Assert - try to create same wallet again
         OpenWalletCommand secondCmd = OpenWalletCommand.of("wallet1", "Bob", 2000);
-        CommandResult secondResult = handler.handle(eventStore, secondCmd);
+        CommandDecision.Idempotent secondResult = (CommandDecision.Idempotent) handler.handle(eventStore, secondCmd);
 
-        // The handler doesn't throw - the executor does via appendIf
-        assertThatThrownBy(() -> eventStore.appendIf(secondResult.events(), secondResult.appendCondition()))
+        // The handler doesn't throw - the executor does via appendIdempotent
+        assertThatThrownBy(() -> eventStore.appendIdempotent(
+                secondResult.events(), secondResult.eventType(), secondResult.tagKey(), secondResult.tagValue()))
                 .isInstanceOf(ConcurrencyException.class);
     }
 
@@ -100,15 +101,16 @@ class OpenWalletCommandHandlerTest extends com.crablet.test.AbstractCrabletTest 
     void testProjectWalletExistence_MinimalState() {
         // Arrange - create wallet
         OpenWalletCommand cmd = OpenWalletCommand.of("wallet1", "Alice", 1000);
-        CommandResult result = handler.handle(eventStore, cmd);
-        eventStore.appendIf(result.events(), result.appendCondition());
+        CommandDecision.Idempotent result = (CommandDecision.Idempotent) handler.handle(eventStore, cmd);
+        eventStore.appendIdempotent(result.events(), result.eventType(), result.tagKey(), result.tagValue());
 
         // Act - try to create same wallet (should detect existence)
         OpenWalletCommand duplicateCmd = OpenWalletCommand.of("wallet1", "Bob", 2000);
 
         // Assert - should throw exception proving existence was detected
-        CommandResult duplicateResult = handler.handle(eventStore, duplicateCmd);
-        assertThatThrownBy(() -> eventStore.appendIf(duplicateResult.events(), duplicateResult.appendCondition()))
+        CommandDecision.Idempotent duplicateResult = (CommandDecision.Idempotent) handler.handle(eventStore, duplicateCmd);
+        assertThatThrownBy(() -> eventStore.appendIdempotent(
+                duplicateResult.events(), duplicateResult.eventType(), duplicateResult.tagKey(), duplicateResult.tagValue()))
                 .isInstanceOf(ConcurrencyException.class);
 
         // Verify only one event exists (no duplicate created)

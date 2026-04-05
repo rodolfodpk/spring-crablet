@@ -6,12 +6,15 @@ import com.crablet.automations.adapter.AutomationDispatcher;
 import com.crablet.automations.adapter.AutomationEventFetcher;
 import com.crablet.automations.adapter.AutomationProcessorConfig;
 import com.crablet.automations.adapter.AutomationProgressTracker;
+import com.crablet.automations.management.AutomationManagementService;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.leader.LeaderElectorImpl;
+import com.crablet.eventpoller.management.ProcessorManagementService;
+import com.crablet.eventpoller.management.ProcessorManagementServiceImpl;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.processor.EventProcessorImpl;
 import com.crablet.eventpoller.progress.ProgressTracker;
@@ -111,5 +114,20 @@ public class AutomationsAutoConfiguration {
             taskScheduler,
             eventPublisher
         );
+    }
+
+    @Bean
+    public ProcessorManagementService<String> automationProcessorManagementService(
+            @Qualifier("automationsEventProcessor") EventProcessor<AutomationProcessorConfig, String> automationsEventProcessor,
+            @Qualifier("automationProgressTracker") ProgressTracker<String> automationProgressTracker,
+            @Qualifier("readDataSource") DataSource readDataSource) {
+        return new ProcessorManagementServiceImpl<>(automationsEventProcessor, automationProgressTracker, readDataSource);
+    }
+
+    @Bean
+    public AutomationManagementService automationManagementService(
+            @Qualifier("automationProcessorManagementService") ProcessorManagementService<String> delegate,
+            @Qualifier("primaryDataSource") DataSource dataSource) {
+        return new AutomationManagementService(delegate, dataSource);
     }
 }

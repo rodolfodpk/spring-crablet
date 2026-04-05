@@ -9,7 +9,7 @@ import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -68,7 +68,7 @@ public class WalletPeriodHelper {
         
         ProjectionResult<WalletBalanceState> projection = eventStore.project(
                 periodQuery,
-                Cursor.zero(),
+                StreamPosition.zero(),
                 WalletBalanceState.class,
                 List.of(balanceProjector)
         );
@@ -111,7 +111,7 @@ public class WalletPeriodHelper {
         
         ProjectionResult<WalletBalanceState> projection = eventStore.project(
                 periodQuery,
-                Cursor.zero(),
+                StreamPosition.zero(),
                 WalletBalanceState.class,
                 List.of(balanceProjector)
         );

@@ -1,8 +1,6 @@
 package com.crablet.command.handlers.courses;
 
-import com.crablet.command.CommandHandler;
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.command.IdempotentCommandHandler;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.examples.course.commands.DefineCourseCommand;
@@ -17,20 +15,18 @@ import static com.crablet.examples.course.CourseTags.COURSE_ID;
 /**
  * Command handler for defining courses.
  * <p>
- * DCB Principle: Uses idempotency check pattern (like OpenWallet).
- * Does not project state since only uniqueness check is required.
+ * DCB Principle: Idempotent operation — course creation must succeed exactly once per course_id.
  */
 @Component
-public class DefineCourseCommandHandler implements CommandHandler<DefineCourseCommand> {
+public class DefineCourseCommandHandler implements IdempotentCommandHandler<DefineCourseCommand> {
 
     public DefineCourseCommandHandler() {
     }
 
     @Override
-    public CommandResult handle(EventStore eventStore, DefineCourseCommand command) {
+    public Decision decide(EventStore eventStore, DefineCourseCommand command) {
         // Command is already validated at construction with YAVI
 
-        // Create event (optimistic - assume course doesn't exist)
         CourseDefined courseDefined = CourseDefined.of(
                 command.courseId(),
                 command.capacity()
@@ -41,12 +37,7 @@ public class DefineCourseCommandHandler implements CommandHandler<DefineCourseCo
                 .data(courseDefined)
                 .build();
 
-        // Build condition to enforce uniqueness using DCB idempotency pattern
-        // Fails if ANY CourseDefined event exists for this course_id (idempotency check)
-        // No concurrency check needed for course creation - only idempotency matters
-        AppendCondition condition = AppendCondition.idempotent(type(CourseDefined.class), COURSE_ID, command.courseId());
-
-        return CommandResult.of(List.of(event), condition);
+        // Idempotency: fails if ANY CourseDefined event exists for this course_id
+        return new Decision(List.of(event), type(CourseDefined.class), COURSE_ID, command.courseId());
     }
 }
-

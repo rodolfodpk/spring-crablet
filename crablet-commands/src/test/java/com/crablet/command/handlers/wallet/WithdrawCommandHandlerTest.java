@@ -1,7 +1,6 @@
 package com.crablet.command.handlers.wallet;
 
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.command.CommandDecision;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
@@ -60,12 +59,12 @@ class WithdrawCommandHandlerTest extends com.crablet.test.AbstractCrabletTest {
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
                 .build();
-        eventStore.appendIf(List.of(walletInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(walletInputEvent));
 
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", "wallet1", 300, "Shopping");
 
         // Act
-        CommandResult result = handler.handle(eventStore, cmd);
+        CommandDecision result = handler.handle(eventStore, cmd);
 
         // Assert
         assertThat(result.events()).hasSize(1);
@@ -116,7 +115,7 @@ class WithdrawCommandHandlerTest extends com.crablet.test.AbstractCrabletTest {
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
                 .build();
-        eventStore.appendIf(List.of(walletInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(walletInputEvent));
 
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", "wallet1", 200, "Overdraft");
 
@@ -156,12 +155,12 @@ class WithdrawCommandHandlerTest extends com.crablet.test.AbstractCrabletTest {
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
                 .build();
-        eventStore.appendIf(List.of(walletInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(walletInputEvent));
 
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", "wallet1", 500, "Full withdrawal");
 
         // Act
-        CommandResult result = handler.handle(eventStore, cmd);
+        CommandDecision result = handler.handle(eventStore, cmd);
 
         // Assert
         assertThat(result.events()).hasSize(1);
@@ -179,11 +178,11 @@ class WithdrawCommandHandlerTest extends com.crablet.test.AbstractCrabletTest {
                 .data(walletEvent.data())
                 .tag("wallet_id", "wallet1")
                 .build();
-        eventStore.appendIf(List.of(walletInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(walletInputEvent));
 
         // Act - withdrawal should only project balance + existence, not full WalletState
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", "wallet1", 200, "Test withdrawal");
-        CommandResult result = handler.handle(eventStore, cmd);
+        CommandDecision result = handler.handle(eventStore, cmd);
 
         // Assert - verify correct new balance calculation
         WithdrawalMade withdrawal = walletTestUtils.deserializeEventData(result.events().get(0).eventData(), WithdrawalMade.class);
@@ -205,12 +204,12 @@ class WithdrawCommandHandlerTest extends com.crablet.test.AbstractCrabletTest {
                 .data(walletEvent.data())
                 .tag("wallet_id", walletId)
                 .build();
-        eventStore.appendIf(List.of(walletInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(walletInputEvent));
 
         WithdrawCommand cmd = WithdrawCommand.of("withdrawal1", walletId, 100, description);
 
         // Act
-        CommandResult result = handler.handle(eventStore, cmd);
+        CommandDecision result = handler.handle(eventStore, cmd);
 
         // Assert
         assertThat(result.events()).hasSize(1);

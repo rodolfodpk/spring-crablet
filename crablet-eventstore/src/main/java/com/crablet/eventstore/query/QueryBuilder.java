@@ -1,7 +1,7 @@
 package com.crablet.eventstore.query;
 
 import com.crablet.eventstore.dcb.AppendConditionBuilder;
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import com.crablet.eventstore.store.Tag;
 
 import java.util.ArrayList;
@@ -61,8 +61,8 @@ public class QueryBuilder {
     /**
      * Convert to AppendConditionBuilder for creating conditions.
      */
-    public AppendConditionBuilder toAppendCondition(Cursor cursor) {
-        return new AppendConditionBuilder(this.build(), cursor);
+    public AppendConditionBuilder toAppendCondition(StreamPosition streamPosition) {
+        return new AppendConditionBuilder(this.build(), streamPosition);
     }
 
     /**

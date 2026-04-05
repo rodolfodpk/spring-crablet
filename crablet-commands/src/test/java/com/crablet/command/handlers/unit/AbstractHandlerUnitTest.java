@@ -1,8 +1,7 @@
 package com.crablet.command.handlers.unit;
 
 import com.crablet.command.CommandHandler;
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.command.CommandDecision;
 import com.crablet.eventstore.period.PeriodTags;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
@@ -175,7 +174,7 @@ public abstract class AbstractHandlerUnitTest {
      * @return List of all domain events (not {@code AppendEvent} wrappers)
      */
     protected <C> List<Object> when(CommandHandler<C> handler, C command) {
-        CommandResult result = handler.handle(eventStore, command);
+        CommandDecision result = handler.handle(eventStore, command);
         return result.events().stream()
             .map(AppendEvent::eventData)
             .collect(Collectors.toList());
@@ -192,7 +191,7 @@ public abstract class AbstractHandlerUnitTest {
      * @return List of {@code EventWithTags} containing event data and tags Map
      */
     protected <C> List<EventWithTags<Object>> whenWithTags(CommandHandler<C> handler, C command) {
-        CommandResult result = handler.handle(eventStore, command);
+        CommandDecision result = handler.handle(eventStore, command);
         return result.events().stream()
             .map(appendEvent -> {
                 Object eventData = appendEvent.eventData();
@@ -474,7 +473,7 @@ public abstract class AbstractHandlerUnitTest {
             AppendEvent.Builder builder = AppendEvent.builder(eventType);
             builderConsumer.accept(builder);
             AppendEvent event = builder.build();
-            eventStore.appendIf(List.of(event), AppendCondition.empty());
+            eventStore.appendCommutative(List.of(event));
             return this;
         }
         

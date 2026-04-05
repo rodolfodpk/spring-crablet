@@ -1,6 +1,6 @@
 package com.crablet.eventstore.query;
 
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
@@ -14,10 +14,10 @@ public interface QuerySqlBuilder {
      * Build a WHERE clause from a Query and Cursor.
      * 
      * @param query The query to filter events
-     * @param after Cursor to query events after (null for all events)
+     * @param after StreamPosition to query events after (null for all events)
      * @param params List to collect query parameters (output parameter)
      * @return WHERE clause SQL string (without "WHERE" keyword), empty if no conditions
      */
-    String buildWhereClause(Query query, @Nullable Cursor after, List<Object> params);
+    String buildWhereClause(Query query, @Nullable StreamPosition after, List<Object> params);
 }
 

@@ -3,8 +3,8 @@ package com.crablet.command;
 /**
  * Result of command execution indicating whether operation was idempotent.
  * <p>
- * CommandExecutor observes the CommandResult from handlers:
- * - If handler returns CommandResult.empty(), operation was idempotent
+ * CommandExecutor observes the CommandDecision from handlers:
+ * - If handler returns CommandDecision.empty(), operation was idempotent
  * - If handler returns events, operation created new state
  * <p>
  * The reason field provides context for internal components (logging, monitoring, debugging).

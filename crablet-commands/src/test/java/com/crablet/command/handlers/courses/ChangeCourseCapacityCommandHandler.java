@@ -1,22 +1,19 @@
 package com.crablet.command.handlers.courses;
 
-import com.crablet.command.CommandHandler;
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
+import com.crablet.command.NonCommutativeCommandHandler;
+import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.examples.course.CourseQueryPatterns;
 import com.crablet.examples.course.commands.ChangeCourseCapacityCommand;
 import com.crablet.examples.course.events.CourseCapacityChanged;
-import com.crablet.examples.course.exceptions.CourseNotFoundException;
-import com.crablet.eventstore.query.EventDeserializer;
-import com.crablet.eventstore.query.StateProjector;
-import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.examples.course.events.CourseDefined;
+import com.crablet.examples.course.exceptions.CourseNotFoundException;
 import com.crablet.examples.course.projections.CourseCapacityProjection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,11 +27,11 @@ import static com.crablet.examples.course.CourseTags.COURSE_ID;
 /**
  * Command handler for changing course capacity.
  * <p>
- * DCB Principle: Uses cursor check pattern to ensure course capacity hasn't changed
- * since we read it. Prevents race conditions when capacity is changed concurrently.
+ * DCB Principle: Non-commutative operation — stream position check ensures course capacity
+ * hasn't changed since we read it, preventing concurrent capacity changes.
  */
 @Component
-public class ChangeCourseCapacityCommandHandler implements CommandHandler<ChangeCourseCapacityCommand> {
+public class ChangeCourseCapacityCommandHandler implements NonCommutativeCommandHandler<ChangeCourseCapacityCommand> {
 
     private static final Logger log = LoggerFactory.getLogger(ChangeCourseCapacityCommandHandler.class);
 
@@ -42,16 +39,14 @@ public class ChangeCourseCapacityCommandHandler implements CommandHandler<Change
     }
 
     @Override
-    public CommandResult handle(EventStore eventStore, ChangeCourseCapacityCommand command) {
+    public Decision decide(EventStore eventStore, ChangeCourseCapacityCommand command) {
         // Command is already validated at construction with YAVI
 
-        // Use decision model query
         Query decisionModel = CourseQueryPatterns.courseDecisionModel(command.courseId());
 
-        // Project state with cursor - use composite projector
         CourseStateProjector projector = new CourseStateProjector();
         ProjectionResult<CourseState> projection = eventStore.project(
-                decisionModel, Cursor.zero(), CourseState.class, List.of(projector));
+                decisionModel, StreamPosition.zero(), CourseState.class, List.of(projector));
         CourseState state = projection.state();
 
         if (!state.courseExists()) {
@@ -60,7 +55,7 @@ public class ChangeCourseCapacityCommandHandler implements CommandHandler<Change
         }
 
         if (state.courseCapacity() == command.newCapacity()) {
-            throw new IllegalArgumentException("New capacity " + command.newCapacity() + 
+            throw new IllegalArgumentException("New capacity " + command.newCapacity() +
                     " is the same as the current capacity");
         }
 
@@ -74,27 +69,11 @@ public class ChangeCourseCapacityCommandHandler implements CommandHandler<Change
                 .data(capacityChanged)
                 .build();
 
-        // Capacity changes are non-commutative - order matters
-        // DCB cursor check REQUIRED: prevents concurrent capacity changes
-        AppendCondition condition = new AppendConditionBuilder(decisionModel, projection.cursor())
-                .build();
-
-        return CommandResult.of(List.of(event), condition);
+        return new Decision(List.of(event), decisionModel, projection.streamPosition());
     }
 
-    /**
-     * Minimal state for capacity change operations.
-     */
-    record CourseState(
-            boolean courseExists,
-            int courseCapacity
-    ) {
-    }
+    record CourseState(boolean courseExists, int courseCapacity) {}
 
-    /**
-     * Composite projector for course state (existence + capacity).
-     * Not a singleton - create instances as needed. This class is stateless and thread-safe.
-     */
     static class CourseStateProjector implements StateProjector<CourseState> {
         private final CourseCapacityProjection capacityProjection = new CourseCapacityProjection();
 
@@ -124,4 +103,3 @@ public class ChangeCourseCapacityCommandHandler implements CommandHandler<Change
         }
     }
 }
-

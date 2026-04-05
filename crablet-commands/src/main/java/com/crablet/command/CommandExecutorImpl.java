@@ -10,9 +10,10 @@ import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.EventStoreConfig;
 import com.crablet.eventstore.store.Tag;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jspecify.annotations.Nullable;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -212,7 +213,7 @@ public class CommandExecutorImpl implements CommandExecutor {
             log.debug("Failed to extract command type: {}", e.getMessage());
             eventPublisher.publishEvent(new CommandFailureMetric("unknown", "validation"));
             throw e;
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new InvalidCommandException(
                 "Failed to serialize/extract command type: " + command.getClass().getName(),
                 command,
@@ -230,20 +231,29 @@ public class CommandExecutorImpl implements CommandExecutor {
             ExecutionResult executionResult = eventStore.executeInTransaction(txStore -> {
                 // Handle command and generate events
                 // Type-safe invocation: handler is CommandHandler<T>, command is T
-                CommandResult result = handler.handle(txStore, command);
+                CommandDecision result = handler.handle(txStore, command);
 
                 // Validate command result
-                validateCommandResult(result, command);
+                validateCommandDecision(result, command);
 
-                // Fail fast: Handle idempotent operations first
-                if (result.isEmpty()) {
-                    return handleIdempotentResult(result, commandType);
+                // Idempotent re-execution: handler signals no events to append
+                if (result instanceof CommandDecision.NoOp e) {
+                    return handleIdempotentResult(e.reason(), commandType);
                 }
 
-                // Atomic append with condition (DCB pattern)
-                String transactionId;
+                // Append events using the appropriate DCB semantic method
+                @Nullable String transactionId;
                 try {
-                    transactionId = txStore.appendIf(result.events(), result.appendCondition());
+                    transactionId = switch (result) {
+                        case CommandDecision.Commutative c ->
+                            txStore.appendCommutative(c.events());
+                        case CommandDecision.NonCommutative nc ->
+                            txStore.appendNonCommutative(nc.events(), nc.decisionModel(), nc.streamPosition());
+                        case CommandDecision.Idempotent i ->
+                            txStore.appendIdempotent(i.events(), i.eventType(), i.tagKey(), i.tagValue());
+                        case CommandDecision.NoOp e ->
+                            throw new IllegalStateException("unreachable: empty case handled above");
+                    };
                 } catch (ConcurrencyException e) {
                     // Fail fast: Handle idempotent duplicate operations
                     return handleConcurrencyException(e, commandType, command);
@@ -335,7 +345,7 @@ public class CommandExecutorImpl implements CommandExecutor {
      * Validate command result with fail-fast principles.
      * Throws immediately on any validation failure.
      */
-    private <T> void validateCommandResult(CommandResult result, T command) {
+    private <T> void validateCommandDecision(CommandDecision result, T command) {
         // Fail fast: Validate events list is not null
         if (result.events() == null) {
             throw new InvalidCommandException("Handler returned null events", command);
@@ -392,10 +402,10 @@ public class CommandExecutorImpl implements CommandExecutor {
     /**
      * Handle idempotent result with fail-fast principles.
      */
-    private ExecutionResult handleIdempotentResult(CommandResult result, String commandType) {
-        String reason = result.reason() != null ? result.reason() : "DUPLICATE_OPERATION";
+    private ExecutionResult handleIdempotentResult(String reason, String commandType) {
+        String r = reason != null ? reason : "DUPLICATE_OPERATION";
         log.debug("Transaction committed successfully for command: {} (idempotent)", commandType);
-        return ExecutionResult.idempotent(reason);
+        return ExecutionResult.idempotent(r);
     }
 }
 

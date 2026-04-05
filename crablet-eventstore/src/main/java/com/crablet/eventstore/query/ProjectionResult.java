@@ -1,6 +1,6 @@
 package com.crablet.eventstore.query;
 
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -9,13 +9,13 @@ import org.jspecify.annotations.Nullable;
  */
 public record ProjectionResult<T>(
         T states,
-        @Nullable Cursor cursor
+        @Nullable StreamPosition streamPosition
 ) {
     /**
-     * Create a projection result from states and cursor.
+     * Create a projection result from states and stream position.
      */
-    public static <T> ProjectionResult<T> of(T states, @Nullable Cursor cursor) {
-        return new ProjectionResult<>(states, cursor);
+    public static <T> ProjectionResult<T> of(T states, @Nullable StreamPosition streamPosition) {
+        return new ProjectionResult<>(states, streamPosition);
     }
 
     /**

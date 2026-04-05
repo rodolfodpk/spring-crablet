@@ -34,7 +34,7 @@ class EventStoreMetricsIntegrationTest extends AbstractMetricsIntegrationTest {
                         .data(WalletOpened.of("wallet1", "Alice", 1000))
                         .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // Then: MicrometerMetricsCollector should have recorded the metric
         Counter finalCounter = meterRegistry.find("eventstore.events.appended").counter();
@@ -94,7 +94,7 @@ class EventStoreMetricsIntegrationTest extends AbstractMetricsIntegrationTest {
                         .data(DepositMade.of("deposit2", "wallet3", 200, 1200, "Batch"))
                         .build()
         );
-        eventStore.appendIf(events, AppendCondition.empty());
+        eventStore.appendCommutative(events);
 
         // Then: events.appended should reflect the batch size
         Counter finalCounter = meterRegistry.find("eventstore.events.appended").counter();

@@ -1,6 +1,6 @@
 package com.crablet.eventstore.query;
 
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import org.jspecify.annotations.Nullable;
 import com.crablet.eventstore.store.EventStoreConfig;
 import com.crablet.eventstore.store.EventStoreException;
@@ -63,7 +63,7 @@ public class EventRepositoryImpl implements EventRepository {
     }
     
     @Override
-    public List<StoredEvent> query(Query query, @Nullable Cursor after) {
+    public List<StoredEvent> query(Query query, @Nullable StreamPosition after) {
         try {
             // Build SQL query directly instead of using the function
             StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at FROM events");

@@ -1,7 +1,6 @@
 package com.crablet.command.handlers.courses;
 
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.command.CommandDecision;
 import com.crablet.test.AbstractCrabletTest;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
@@ -39,7 +38,7 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
     private EventStore eventStore;
     
     @Autowired
-    private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private tools.jackson.databind.ObjectMapper objectMapper;
     
     private CourseTestUtils courseTestUtils;
 
@@ -59,12 +58,12 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
                 .data(courseEvent.data())
                 .tag("course_id", "c1")
                 .build();
-        eventStore.appendIf(List.of(courseInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(courseInputEvent));
 
         SubscribeStudentToCourseCommand cmd = SubscribeStudentToCourseCommand.of("s1", "c1");
 
         // Act
-        CommandResult result = handler.handle(eventStore, cmd);
+        CommandDecision result = handler.handle(eventStore, cmd);
 
         // Assert
         assertThat(result.events()).hasSize(1);
@@ -98,13 +97,14 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
                 .data(courseEvent.data())
                 .tag("course_id", "c1")
                 .build();
-        eventStore.appendIf(List.of(courseInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(courseInputEvent));
 
         // Subscribe 3 students (fill the course)
         for (int i = 1; i <= 3; i++) {
             SubscribeStudentToCourseCommand cmd = SubscribeStudentToCourseCommand.of("s" + i, "c1");
-            CommandResult result = handler.handle(eventStore, cmd);
-            eventStore.appendIf(result.events(), result.appendCondition());
+            CommandDecision result = handler.handle(eventStore, cmd);
+            CommandDecision.NonCommutative nc = (CommandDecision.NonCommutative) result;
+            eventStore.appendNonCommutative(nc.events(), nc.decisionModel(), nc.streamPosition());
         }
 
         // Try to subscribe 4th student
@@ -125,11 +125,12 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
                 .data(courseEvent.data())
                 .tag("course_id", "c1")
                 .build();
-        eventStore.appendIf(List.of(courseInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(courseInputEvent));
 
         SubscribeStudentToCourseCommand firstCmd = SubscribeStudentToCourseCommand.of("s1", "c1");
-        CommandResult firstResult = handler.handle(eventStore, firstCmd);
-        eventStore.appendIf(firstResult.events(), firstResult.appendCondition());
+        CommandDecision firstResult = handler.handle(eventStore, firstCmd);
+        CommandDecision.NonCommutative firstNc = (CommandDecision.NonCommutative) firstResult;
+        eventStore.appendNonCommutative(firstNc.events(), firstNc.decisionModel(), firstNc.streamPosition());
 
         // Try to subscribe same student again
         SubscribeStudentToCourseCommand cmd = SubscribeStudentToCourseCommand.of("s1", "c1");
@@ -150,11 +151,12 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
                     .data(courseEvent.data())
                     .tag("course_id", "c" + i)
                     .build();
-            eventStore.appendIf(List.of(courseInputEvent), AppendCondition.empty());
+            eventStore.appendCommutative(List.of(courseInputEvent));
 
             SubscribeStudentToCourseCommand cmd = SubscribeStudentToCourseCommand.of("s1", "c" + i);
-            CommandResult result = handler.handle(eventStore, cmd);
-            eventStore.appendIf(result.events(), result.appendCondition());
+            CommandDecision result = handler.handle(eventStore, cmd);
+            CommandDecision.NonCommutative nc = (CommandDecision.NonCommutative) result;
+            eventStore.appendNonCommutative(nc.events(), nc.decisionModel(), nc.streamPosition());
         }
 
         // Create 6th course
@@ -164,7 +166,7 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
                 .data(courseEvent.data())
                 .tag("course_id", "c6")
                 .build();
-        eventStore.appendIf(List.of(courseInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(courseInputEvent));
 
         // Try to subscribe to 6th course (exceeds limit of 5)
         SubscribeStudentToCourseCommand cmd = SubscribeStudentToCourseCommand.of("s1", "c6");

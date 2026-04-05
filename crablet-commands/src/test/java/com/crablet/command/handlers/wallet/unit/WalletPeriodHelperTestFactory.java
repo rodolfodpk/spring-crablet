@@ -1,12 +1,11 @@
 package com.crablet.command.handlers.wallet.unit;
 
 import com.crablet.eventstore.clock.ClockProvider;
-import com.crablet.eventstore.dcb.AppendCondition;
 import com.crablet.eventstore.period.PeriodType;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.examples.wallet.WalletQueryPatterns;
 import com.crablet.examples.wallet.events.WalletStatementOpened;
@@ -100,7 +99,7 @@ public class WalletPeriodHelperTestFactory {
             try {
                 WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
                 ProjectionResult<WalletBalanceState> result = eventStore.project(
-                    query, Cursor.zero(), WalletBalanceState.class, List.of(projector));
+                    query, StreamPosition.zero(), WalletBalanceState.class, List.of(projector));
                 return result.state().isExisting() && !result.state().walletId().isEmpty();
             } catch (Exception e) {
                 return false;
@@ -111,7 +110,7 @@ public class WalletPeriodHelperTestFactory {
             Query query = WalletQueryPatterns.singleWalletDecisionModel(walletId);
             WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
             ProjectionResult<WalletBalanceState> result = eventStore.project(
-                query, Cursor.zero(), WalletBalanceState.class, List.of(projector));
+                query, StreamPosition.zero(), WalletBalanceState.class, List.of(projector));
             return result.state().balance();
         }
         
@@ -135,7 +134,7 @@ public class WalletPeriodHelperTestFactory {
                 .tag(WALLET_ID, periodId.walletId())
                 .tags(periodId.asTags())
                 .build();
-            eventStore.appendIf(List.of(event), AppendCondition.empty());
+            eventStore.appendCommutative(List.of(event));
         }
     }
     

@@ -246,7 +246,7 @@ class ViewControllerE2ETest extends AbstractViewsTest {
         @org.springframework.context.annotation.DependsOn("flyway")
         public EventStore eventStore(
                 DataSource dataSource,
-                com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+                tools.jackson.databind.ObjectMapper objectMapper,
                 com.crablet.eventstore.store.EventStoreConfig config,
                 com.crablet.eventstore.clock.ClockProvider clock,
                 org.springframework.context.ApplicationEventPublisher eventPublisher) {
@@ -265,10 +265,8 @@ class ViewControllerE2ETest extends AbstractViewsTest {
         }
 
         @Bean
-        public com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-            mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        public tools.jackson.databind.ObjectMapper objectMapper() {
+            tools.jackson.databind.ObjectMapper mapper = tools.jackson.databind.json.JsonMapper.builder().disable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build();
             return mapper;
         }
 

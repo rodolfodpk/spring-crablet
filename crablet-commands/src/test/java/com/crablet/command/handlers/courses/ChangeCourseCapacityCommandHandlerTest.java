@@ -1,7 +1,6 @@
 package com.crablet.command.handlers.courses;
 
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.command.CommandDecision;
 import com.crablet.test.AbstractCrabletTest;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
@@ -34,7 +33,7 @@ class ChangeCourseCapacityCommandHandlerTest extends AbstractCrabletTest {
     private EventStore eventStore;
     
     @Autowired
-    private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private tools.jackson.databind.ObjectMapper objectMapper;
     
     private CourseTestUtils courseTestUtils;
 
@@ -54,12 +53,12 @@ class ChangeCourseCapacityCommandHandlerTest extends AbstractCrabletTest {
                 .data(courseEvent.data())
                 .tag("course_id", "c1")
                 .build();
-        eventStore.appendIf(List.of(courseInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(courseInputEvent));
 
         ChangeCourseCapacityCommand cmd = ChangeCourseCapacityCommand.of("c1", 15);
 
         // Act
-        CommandResult result = handler.handle(eventStore, cmd);
+        CommandDecision result = handler.handle(eventStore, cmd);
 
         // Assert
         assertThat(result.events()).hasSize(1);
@@ -91,7 +90,7 @@ class ChangeCourseCapacityCommandHandlerTest extends AbstractCrabletTest {
                 .data(courseEvent.data())
                 .tag("course_id", "c1")
                 .build();
-        eventStore.appendIf(List.of(courseInputEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(courseInputEvent));
 
         ChangeCourseCapacityCommand cmd = ChangeCourseCapacityCommand.of("c1", 10);
 

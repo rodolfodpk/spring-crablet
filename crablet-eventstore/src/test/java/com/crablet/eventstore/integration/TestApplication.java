@@ -39,10 +39,8 @@ public class TestApplication {
      * Registers Java 8 time module for Instant, LocalDateTime, etc.
      */
     @Bean
-    public com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
-        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-        mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    public tools.jackson.databind.ObjectMapper objectMapper() {
+        tools.jackson.databind.ObjectMapper mapper = tools.jackson.databind.json.JsonMapper.builder().disable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build();
         return mapper;
     }
     
@@ -76,7 +74,7 @@ public class TestApplication {
     public WalletStatementPeriodResolver walletStatementPeriodResolver(
             EventRepository eventRepository,
             ClockProvider clock,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            tools.jackson.databind.ObjectMapper objectMapper,
             WalletBalanceStateProjector balanceProjector) {
         return new WalletStatementPeriodResolver(eventRepository, clock, objectMapper, balanceProjector);
     }
@@ -94,7 +92,7 @@ public class TestApplication {
     @Primary
     public EventStore eventStore(
             DataSource dataSource,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            tools.jackson.databind.ObjectMapper objectMapper,
             EventStoreConfig config,
             ClockProvider clock,
             org.springframework.context.ApplicationEventPublisher eventPublisher) {

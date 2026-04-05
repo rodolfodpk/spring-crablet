@@ -2,8 +2,7 @@ package com.crablet.eventstore.dcb;
 
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
-import com.crablet.eventstore.store.Cursor;
-import com.crablet.eventstore.store.SequenceNumber;
+import com.crablet.eventstore.store.StreamPosition;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -24,66 +23,66 @@ class AppendConditionTest {
     @DisplayName("Should create AppendCondition with valid parameters")
     void shouldCreateAppendConditionWithValidParameters() {
         // Given
-        Cursor afterCursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "12345");
-        Query failIfEventsMatch = Query.empty();
+        StreamPosition afterPosition = StreamPosition.of(100L, Instant.now(), "12345");
+        Query concurrencyQuery = Query.empty();
 
         // When
-        AppendCondition condition = AppendCondition.of(afterCursor, failIfEventsMatch);
+        AppendCondition condition = AppendCondition.of(afterPosition, concurrencyQuery);
 
         // Then
-        assertThat(condition.afterCursor()).isEqualTo(afterCursor);
-        assertThat(condition.stateChanged()).isEqualTo(failIfEventsMatch);
+        assertThat(condition.afterPosition()).isEqualTo(afterPosition);
+        assertThat(condition.concurrencyQuery()).isEqualTo(concurrencyQuery);
     }
 
     @Test
-    @DisplayName("Should create AppendCondition with default failIfEventsMatch")
-    void shouldCreateAppendConditionWithDefaultFailIfEventsMatch() {
+    @DisplayName("Should create AppendCondition with default concurrencyQuery")
+    void shouldCreateAppendConditionWithDefaultConcurrencyQuery() {
         // Given
-        Cursor afterCursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "12345");
+        StreamPosition afterPosition = StreamPosition.of(100L, Instant.now(), "12345");
 
         // When
-        AppendCondition condition = AppendCondition.of(afterCursor);
+        AppendCondition condition = AppendCondition.of(afterPosition);
 
         // Then
-        assertThat(condition.afterCursor()).isEqualTo(afterCursor);
-        assertThat(condition.stateChanged()).isEqualTo(Query.empty());
+        assertThat(condition.afterPosition()).isEqualTo(afterPosition);
+        assertThat(condition.concurrencyQuery()).isEqualTo(Query.empty());
     }
 
     @Test
-    @DisplayName("Should create AppendCondition with empty() for commutative operations and new streams")
+    @DisplayName("Should create AppendCondition with empty() for commutative operations")
     void shouldCreateAppendConditionWithEmptyMethod() {
         // When
         AppendCondition condition = AppendCondition.empty();
 
         // Then
-        assertThat(condition.afterCursor()).isEqualTo(Cursor.zero());
-        assertThat(condition.stateChanged()).isEqualTo(Query.empty());
-        assertThat(condition.alreadyExists()).isNull();
-        assertThat(condition.afterCursor().position().value()).isEqualTo(0);
+        assertThat(condition.afterPosition()).isEqualTo(StreamPosition.zero());
+        assertThat(condition.concurrencyQuery()).isEqualTo(Query.empty());
+        assertThat(condition.idempotencyQuery()).isEqualTo(Query.empty());
+        assertThat(condition.afterPosition().position()).isEqualTo(0);
     }
 
     @Test
-    @DisplayName("Should throw exception when afterCursor is null")
-    void shouldThrowExceptionWhenAfterCursorIsNull() {
+    @DisplayName("Should throw exception when afterPosition is null")
+    void shouldThrowExceptionWhenAfterPositionIsNull() {
         // Given
-        Query failIfEventsMatch = Query.empty();
+        Query concurrencyQuery = Query.empty();
 
         // When & Then
-        assertThatThrownBy(() -> AppendCondition.of(null, failIfEventsMatch))
+        assertThatThrownBy(() -> AppendCondition.of(null, concurrencyQuery))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("afterCursor cannot be null");
+                .hasMessage("afterPosition cannot be null");
     }
 
     @Test
-    @DisplayName("Should throw exception when failIfEventsMatch is null")
-    void shouldThrowExceptionWhenFailIfEventsMatchIsNull() {
+    @DisplayName("Should throw exception when concurrencyQuery is null")
+    void shouldThrowExceptionWhenConcurrencyQueryIsNull() {
         // Given
-        Cursor afterCursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "12345");
+        StreamPosition afterPosition = StreamPosition.of(100L, Instant.now(), "12345");
 
         // When & Then
-        assertThatThrownBy(() -> AppendCondition.of(afterCursor, null))
+        assertThatThrownBy(() -> AppendCondition.of(afterPosition, null))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("stateChanged cannot be null");
+                .hasMessage("concurrencyQuery cannot be null");
     }
 
     @Test
@@ -91,13 +90,13 @@ class AppendConditionTest {
     void shouldImplementEqualsCorrectly() {
         // Given
         Instant fixedTime = Instant.now();
-        Cursor afterCursor1 = Cursor.of(SequenceNumber.of(100L), fixedTime, "12345");
-        Cursor afterCursor2 = Cursor.of(SequenceNumber.of(100L), fixedTime, "12345");
-        Query failIfEventsMatch = Query.empty();
+        StreamPosition pos1 = StreamPosition.of(100L, fixedTime, "12345");
+        StreamPosition pos2 = StreamPosition.of(100L, fixedTime, "12345");
+        Query concurrencyQuery = Query.empty();
 
         // When
-        AppendCondition condition1 = AppendCondition.of(afterCursor1, failIfEventsMatch);
-        AppendCondition condition2 = AppendCondition.of(afterCursor2, failIfEventsMatch);
+        AppendCondition condition1 = AppendCondition.of(pos1, concurrencyQuery);
+        AppendCondition condition2 = AppendCondition.of(pos2, concurrencyQuery);
 
         // Then
         assertThat(condition1).isEqualTo(condition2);
@@ -105,16 +104,16 @@ class AppendConditionTest {
     }
 
     @Test
-    @DisplayName("Should implement equals correctly with different cursors")
-    void shouldImplementEqualsCorrectlyWithDifferentCursors() {
+    @DisplayName("Should implement equals correctly with different positions")
+    void shouldImplementEqualsCorrectlyWithDifferentPositions() {
         // Given
-        Cursor afterCursor1 = Cursor.of(SequenceNumber.of(100L), Instant.now(), "12345");
-        Cursor afterCursor2 = Cursor.of(SequenceNumber.of(200L), Instant.now(), "12345");
-        Query failIfEventsMatch = Query.empty();
+        StreamPosition pos1 = StreamPosition.of(100L, Instant.now(), "12345");
+        StreamPosition pos2 = StreamPosition.of(200L, Instant.now(), "12345");
+        Query concurrencyQuery = Query.empty();
 
         // When
-        AppendCondition condition1 = AppendCondition.of(afterCursor1, failIfEventsMatch);
-        AppendCondition condition2 = AppendCondition.of(afterCursor2, failIfEventsMatch);
+        AppendCondition condition1 = AppendCondition.of(pos1, concurrencyQuery);
+        AppendCondition condition2 = AppendCondition.of(pos2, concurrencyQuery);
 
         // Then
         assertThat(condition1).isNotEqualTo(condition2);
@@ -124,13 +123,13 @@ class AppendConditionTest {
     @DisplayName("Should implement equals correctly with different queries")
     void shouldImplementEqualsCorrectlyWithDifferentQueries() {
         // Given
-        Cursor afterCursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "12345");
-        Query failIfEventsMatch1 = Query.empty();
-        Query failIfEventsMatch2 = Query.of(QueryItem.of(List.of("WalletOpened"), List.of()));
+        StreamPosition afterPosition = StreamPosition.of(100L, Instant.now(), "12345");
+        Query query1 = Query.empty();
+        Query query2 = Query.of(QueryItem.of(List.of("WalletOpened"), List.of()));
 
         // When
-        AppendCondition condition1 = AppendCondition.of(afterCursor, failIfEventsMatch1);
-        AppendCondition condition2 = AppendCondition.of(afterCursor, failIfEventsMatch2);
+        AppendCondition condition1 = AppendCondition.of(afterPosition, query1);
+        AppendCondition condition2 = AppendCondition.of(afterPosition, query2);
 
         // Then
         assertThat(condition1).isNotEqualTo(condition2);
@@ -140,130 +139,130 @@ class AppendConditionTest {
     @DisplayName("Should have correct string representation")
     void shouldHaveCorrectStringRepresentation() {
         // Given
-        Cursor afterCursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "12345");
-        Query failIfEventsMatch = Query.empty();
+        StreamPosition afterPosition = StreamPosition.of(100L, Instant.now(), "12345");
+        Query concurrencyQuery = Query.empty();
 
         // When
-        AppendCondition condition = AppendCondition.of(afterCursor, failIfEventsMatch);
+        AppendCondition condition = AppendCondition.of(afterPosition, concurrencyQuery);
 
         // Then - Record auto-generates toString() in format "RecordName[field1=value1, field2=value2]"
         assertThat(condition.toString())
                 .contains("AppendCondition[")
-                .contains("afterCursor=")
-                .contains("stateChanged=");
+                .contains("afterPosition=")
+                .contains("concurrencyQuery=");
     }
 
     @Test
     @DisplayName("Should detect empty stream correctly")
     void shouldDetectEmptyStreamCorrectly() {
         // Given
-        Cursor zeroCursor = Cursor.zero();
-        Cursor nonZeroCursor = Cursor.of(SequenceNumber.of(1L), Instant.now(), "12345");
+        StreamPosition zeroPosition = StreamPosition.zero();
+        StreamPosition nonZeroPosition = StreamPosition.of(1L, Instant.now(), "12345");
 
         // When
-        AppendCondition emptyStreamCondition = AppendCondition.of(zeroCursor);
-        AppendCondition nonEmptyStreamCondition = AppendCondition.of(nonZeroCursor);
+        AppendCondition emptyStreamCondition = AppendCondition.of(zeroPosition);
+        AppendCondition nonEmptyStreamCondition = AppendCondition.of(nonZeroPosition);
 
         // Then
-        assertThat(emptyStreamCondition.afterCursor().position().value()).isEqualTo(0);
-        assertThat(nonEmptyStreamCondition.afterCursor().position().value()).isNotEqualTo(0);
+        assertThat(emptyStreamCondition.afterPosition().position()).isEqualTo(0);
+        assertThat(nonEmptyStreamCondition.afterPosition().position()).isNotEqualTo(0);
     }
 
     @Test
     @DisplayName("Should create AppendCondition with idempotency check")
     void shouldCreateAppendConditionWithIdempotencyCheck() {
         // Given
-        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
-        Query stateChangedQuery = Query.empty();
-        Query alreadyExistsQuery = Query.empty();
+        StreamPosition afterPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
+        Query concurrencyQuery = Query.empty();
+        Query idempotencyQuery = Query.empty();
 
         // When
-        AppendCondition condition = AppendCondition.of(cursor, stateChangedQuery, alreadyExistsQuery);
+        AppendCondition condition = AppendCondition.of(afterPosition, concurrencyQuery, idempotencyQuery);
 
         // Then
-        assertThat(condition.afterCursor()).isEqualTo(cursor);
-        assertThat(condition.stateChanged()).isEqualTo(stateChangedQuery);
-        assertThat(condition.alreadyExists()).isEqualTo(alreadyExistsQuery);
+        assertThat(condition.afterPosition()).isEqualTo(afterPosition);
+        assertThat(condition.concurrencyQuery()).isEqualTo(concurrencyQuery);
+        assertThat(condition.idempotencyQuery()).isEqualTo(idempotencyQuery);
     }
 
     @Test
-    @DisplayName("Should throw exception when stateChangedQuery is null")
-    void shouldThrowExceptionWhenStateChangedQueryIsNull() {
+    @DisplayName("Should throw exception when concurrencyQuery arg is null")
+    void shouldThrowExceptionWhenConcurrencyQueryArgIsNull() {
         // Given
-        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
+        StreamPosition afterPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
 
         // When & Then
-        assertThatThrownBy(() -> AppendCondition.of(cursor, null, Query.empty()))
+        assertThatThrownBy(() -> AppendCondition.of(afterPosition, null, Query.empty()))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("stateChangedQuery cannot be null");
+                .hasMessage("concurrencyQuery cannot be null");
     }
 
     @Test
-    @DisplayName("Should allow null alreadyExistsQuery")
-    void shouldAllowNullAlreadyExistsQuery() {
+    @DisplayName("Should treat null idempotencyQuery as Query.empty()")
+    void shouldTreatNullIdempotencyQueryAsEmpty() {
         // Given
-        Cursor cursor = Cursor.of(SequenceNumber.of(100L), Instant.now(), "tx-123");
-        Query stateChangedQuery = Query.empty();
+        StreamPosition afterPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
+        Query concurrencyQuery = Query.empty();
 
         // When
-        AppendCondition condition = AppendCondition.of(cursor, stateChangedQuery, null);
+        AppendCondition condition = AppendCondition.of(afterPosition, concurrencyQuery, null);
 
-        // Then
-        assertThat(condition.alreadyExists()).isNull();
+        // Then — null is normalised to Query.empty(), not stored as null
+        assertThat(condition.idempotencyQuery()).isEqualTo(Query.empty());
     }
 
     @Test
-    @DisplayName("Should create AppendCondition with cursor at zero")
-    void shouldCreateAppendConditionWithCursorAtZero() {
+    @DisplayName("Should create AppendCondition with afterPosition at zero")
+    void shouldCreateAppendConditionWithPositionAtZero() {
         // Given
-        Cursor zeroCursor = Cursor.zero();
+        StreamPosition zeroPosition = StreamPosition.zero();
         Query query = Query.empty();
 
         // When
-        AppendCondition condition = AppendCondition.of(zeroCursor, query);
+        AppendCondition condition = AppendCondition.of(zeroPosition, query);
 
         // Then
-        assertThat(condition.afterCursor().position().value()).isEqualTo(0);
+        assertThat(condition.afterPosition().position()).isEqualTo(0);
     }
 
     @Test
-    @DisplayName("Should create AppendCondition with cursor at max value")
-    void shouldCreateAppendConditionWithCursorAtMaxValue() {
+    @DisplayName("Should create AppendCondition with afterPosition at max value")
+    void shouldCreateAppendConditionWithPositionAtMaxValue() {
         // Given
-        Cursor maxCursor = Cursor.of(SequenceNumber.of(Long.MAX_VALUE), Instant.now(), "tx-123");
+        StreamPosition maxPosition = StreamPosition.of(Long.MAX_VALUE, Instant.now(), "tx-123");
         Query query = Query.empty();
 
         // When
-        AppendCondition condition = AppendCondition.of(maxCursor, query);
+        AppendCondition condition = AppendCondition.of(maxPosition, query);
 
         // Then
-        assertThat(condition.afterCursor().position().value()).isEqualTo(Long.MAX_VALUE);
+        assertThat(condition.afterPosition().position()).isEqualTo(Long.MAX_VALUE);
     }
 
     // ===== AppendCondition.idempotent() =====
 
     @Test
-    @DisplayName("idempotent() should start from Cursor.zero (no prior events required)")
-    void idempotentStartsFromCursorZero() {
+    @DisplayName("idempotent() should start from StreamPosition.zero (no prior events required)")
+    void idempotentStartsFromPositionZero() {
         AppendCondition condition = AppendCondition.idempotent("WalletOpened", "wallet_id", "w1");
 
-        assertThat(condition.afterCursor()).isEqualTo(Cursor.zero());
+        assertThat(condition.afterPosition()).isEqualTo(StreamPosition.zero());
     }
 
     @Test
-    @DisplayName("idempotent() stateChanged should be empty (no cursor-based check)")
-    void idempotentStateChangedIsEmpty() {
+    @DisplayName("idempotent() concurrencyQuery should be empty (no position-based check)")
+    void idempotentConcurrencyQueryIsEmpty() {
         AppendCondition condition = AppendCondition.idempotent("WalletOpened", "wallet_id", "w1");
 
-        assertThat(condition.stateChanged()).isEqualTo(Query.empty());
+        assertThat(condition.concurrencyQuery()).isEqualTo(Query.empty());
     }
 
     @Test
-    @DisplayName("idempotent() alreadyExists should be non-null (idempotency check present)")
-    void idempotentAlreadyExistsIsNonNull() {
+    @DisplayName("idempotent() idempotencyQuery should be non-empty (idempotency check present)")
+    void idempotentIdempotencyQueryIsNonEmpty() {
         AppendCondition condition = AppendCondition.idempotent("WalletOpened", "wallet_id", "w1");
 
-        assertThat(condition.alreadyExists()).isNotNull();
+        assertThat(condition.idempotencyQuery().items()).isNotEmpty();
     }
 
     @Test

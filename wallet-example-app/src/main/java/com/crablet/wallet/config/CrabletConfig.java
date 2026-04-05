@@ -17,9 +17,14 @@ import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import com.crablet.automations.AutomationSubscription;
 import com.crablet.wallet.reactions.WalletOpenedReaction;
 import com.crablet.views.config.ViewsConfig;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
+
+import org.flywaydb.core.Flyway;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
@@ -37,6 +42,36 @@ import java.util.List;
  */
 @Configuration
 public class CrabletConfig {
+
+    /**
+     * Expose the auto-configured DataSource as "primaryDataSource" for framework modules that use @Qualifier.
+     * In this example app, primary and read use the same datasource (no read replica).
+     */
+    @Bean("primaryDataSource")
+    public DataSource primaryDataSource(DataSource dataSource) {
+        return dataSource;
+    }
+
+    @Bean("readDataSource")
+    public DataSource readDataSource(DataSource dataSource) {
+        return dataSource;
+    }
+
+    @Bean
+    @Primary
+    public ObjectMapper objectMapper() {
+        return JsonMapper.builder()
+                .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .build();
+    }
+
+    @Bean(initMethod = "migrate")
+    public Flyway flyway(@Qualifier("primaryDataSource") DataSource dataSource) {
+        return Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load();
+    }
 
     @Bean
     @ConfigurationProperties(prefix = "crablet.eventstore")
@@ -142,4 +177,3 @@ public class CrabletConfig {
                         com.crablet.examples.wallet.events.WalletOpened.class));
     }
 }
-

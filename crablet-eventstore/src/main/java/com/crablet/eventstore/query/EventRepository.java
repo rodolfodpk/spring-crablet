@@ -1,6 +1,6 @@
 package com.crablet.eventstore.query;
 
-import com.crablet.eventstore.store.Cursor;
+import com.crablet.eventstore.store.StreamPosition;
 import com.crablet.eventstore.store.StoredEvent;
 import org.jspecify.annotations.Nullable;
 
@@ -13,7 +13,7 @@ import java.util.List;
  * It is optional and free for use anywhere in your application.
  * <p>
  * <strong>Alternative:</strong> For use cases that require DCB concurrency control,
- * use {@link EventStore#project(Query, Cursor, Class, List)} instead,
+ * use {@link EventStore#project(Query, StreamPosition, Class, List)} instead,
  * which provides proper state projection with DCB concurrency control.
  * <p>
  * <strong>Use cases:</strong>
@@ -26,15 +26,14 @@ import java.util.List;
  */
 public interface EventRepository {
     /**
-     * Query reads events matching the query with optional cursor.
+     * Query reads events matching the query with optional stream position.
      * <p>
      * <strong>Note:</strong> This method bypasses DCB concurrency control.
-     * For use cases requiring concurrency control, use {@link EventStore#project(Query, Cursor, Class, List)} instead.
-     * 
+     * For use cases requiring concurrency control, use {@link EventStore#project(Query, StreamPosition, Class, List)} instead.
+     *
      * @param query The query to filter events
-     * @param after Cursor to query events after (null for all events)
+     * @param after StreamPosition to query events after (null for all events)
      * @return List of stored events matching the query
      */
-    List<StoredEvent> query(Query query, @Nullable Cursor after);
+    List<StoredEvent> query(Query query, @Nullable StreamPosition after);
 }
-

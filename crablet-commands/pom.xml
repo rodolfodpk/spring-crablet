@@ -18,33 +18,9 @@
         <dependency>
             <groupId>com.crablet</groupId>
             <artifactId>crablet-eventstore</artifactId>
-        </dependency>
-        
-        <!-- Shared Examples Domain (for wallet and course domain examples in tests) -->
-        <dependency>
-            <groupId>com.crablet</groupId>
-            <artifactId>shared-examples-domain</artifactId>
             <version>${project.version}</version>
-            <scope>test</scope>
         </dependency>
-        <!-- Crablet Test Support (for AbstractCrabletTest, InMemoryEventStore, and test utilities) -->
-        <dependency>
-            <groupId>com.crablet</groupId>
-            <artifactId>crablet-test-support</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        
-        <!-- Jackson for JSON serialization -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-        </dependency>
-        
+
         <!-- Spring Boot Web (for tests only) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -52,6 +28,12 @@
             <scope>test</scope>
         </dependency>
         
+        <!-- Jackson 3 (tools.jackson) -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
         <!-- Spring Boot JDBC -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -129,6 +111,20 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Crablet Test Support (for AbstractHandlerUnitTest, InMemoryEventStore, AbstractCrabletTest) -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-test-support</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Shared Examples Domain (for wallet/course domain examples in tests) -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>shared-examples-domain</artifactId>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
