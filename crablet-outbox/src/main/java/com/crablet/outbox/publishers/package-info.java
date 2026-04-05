@@ -48,5 +48,6 @@
  * @see com.crablet.outbox.OutboxPublisher
  * @see com.crablet.outbox.config.OutboxConfig
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.outbox.publishers;
 

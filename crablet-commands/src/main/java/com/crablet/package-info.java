@@ -15,5 +15,6 @@
  *
  * @see <a href="https://github.com/rodolfodpk/spring-crablet">Crablet GitHub Repository</a>
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet;
 

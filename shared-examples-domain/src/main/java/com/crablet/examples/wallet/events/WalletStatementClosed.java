@@ -4,6 +4,7 @@ import am.ik.yavi.arguments.Arguments5Validator;
 import am.ik.yavi.core.ConstraintViolationsException;
 import am.ik.yavi.validator.Yavi;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -18,9 +19,9 @@ public record WalletStatementClosed(
         @JsonProperty("wallet_id") String walletId,
         @JsonProperty("statement_id") String statementId,
         @JsonProperty("year") int year,
-        @JsonProperty("month") Integer month,
-        @JsonProperty("day") Integer day,
-        @JsonProperty("hour") Integer hour,
+        @JsonProperty("month") @Nullable Integer month,
+        @JsonProperty("day") @Nullable Integer day,
+        @JsonProperty("hour") @Nullable Integer hour,
         @JsonProperty("opening_balance") int openingBalance,
         @JsonProperty("closing_balance") int closingBalance,
         @JsonProperty("closed_at") Instant closedAt
@@ -75,9 +76,9 @@ public record WalletStatementClosed(
             String walletId,
             String statementId,
             int year,
-            Integer month,
-            Integer day,
-            Integer hour,
+            @Nullable Integer month,
+            @Nullable Integer day,
+            @Nullable Integer hour,
             int openingBalance,
             int closingBalance
     ) {

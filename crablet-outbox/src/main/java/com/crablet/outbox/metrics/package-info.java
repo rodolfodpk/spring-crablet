@@ -26,5 +26,6 @@
  * @see com.crablet.outbox.OutboxProcessor
  * @see com.crablet.metrics.micrometer
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.outbox.metrics;
 

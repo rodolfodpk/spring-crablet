@@ -5,6 +5,7 @@ import com.crablet.eventstore.dcb.AppendConditionBuilder;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.StateProjector;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.function.Function;
@@ -134,5 +135,5 @@ public interface EventStore {
      * @param transactionId The transaction ID associated with this command
      * @throws RuntimeException if storage fails
      */
-    void storeCommand(String commandJson, String commandType, String transactionId);
+    void storeCommand(String commandJson, @Nullable String commandType, String transactionId);
 }

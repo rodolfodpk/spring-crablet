@@ -984,7 +984,7 @@ public class EventStoreImpl implements EventStore {
 
 
     @Override
-    public void storeCommand(String commandJson, String commandType, String transactionId) {
+    public void storeCommand(String commandJson, @Nullable String commandType, String transactionId) {
         try (Connection connection = writeDataSource.getConnection()) {
             storeCommandWithConnection(connection, commandJson, commandType, transactionId);
         } catch (SQLException e) {
@@ -996,7 +996,7 @@ public class EventStoreImpl implements EventStore {
      * Store a command using a provided connection.
      * Used internally by ConnectionScopedEventStore.
      */
-    private void storeCommandWithConnection(Connection connection, String commandJson, String commandType, String transactionId) {
+    private void storeCommandWithConnection(Connection connection, String commandJson, @Nullable String commandType, String transactionId) {
         try {
             try (PreparedStatement stmt = connection.prepareStatement(INSERT_COMMAND_SQL)) {
                 stmt.setString(1, transactionId);
@@ -1019,7 +1019,7 @@ public class EventStoreImpl implements EventStore {
      * Create metadata JSON for a command.
      * Stores minimal metadata with command type only.
      */
-    private String createCommandMetadata(String commandType) {
+    private String createCommandMetadata(@Nullable String commandType) {
         // Store minimal metadata (command type only)
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("command_type", commandType);
@@ -1056,7 +1056,7 @@ public class EventStoreImpl implements EventStore {
         }
 
         @Override
-        public void storeCommand(String commandJson, String commandType, String transactionId) {
+        public void storeCommand(String commandJson, @Nullable String commandType, String transactionId) {
             EventStoreImpl.this.storeCommandWithConnection(connection, commandJson, commandType, transactionId);
         }
     }

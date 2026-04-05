@@ -56,5 +56,6 @@
  * @see com.crablet.eventpoller.processor.EventProcessor
  * @see com.crablet.views.config.ViewsAutoConfiguration
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.views;
 

@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -347,7 +348,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                 List.of(new WalletBalanceStateProjector())
         );
         
-        StreamPosition cursor1 = result1.streamPosition();
+        StreamPosition cursor1 = Objects.requireNonNull(result1.streamPosition());
         assertThat(result1.state().balance()).isEqualTo(2500); // 1000 + (100 + 200 + 300 + 400 + 500)
 
         // Then: project again using cursor (no new events)

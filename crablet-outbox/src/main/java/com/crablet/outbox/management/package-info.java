@@ -40,5 +40,6 @@
  * @see com.crablet.eventpoller.management.ProcessorManagementService
  * @see com.crablet.eventpoller.management.ProcessorManagementController
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.outbox.management;
 

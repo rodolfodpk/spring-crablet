@@ -48,5 +48,6 @@
  * @see com.crablet.eventpoller.processor.EventProcessor
  * @see com.crablet.outbox.OutboxPublisher
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.outbox.publishing;
 

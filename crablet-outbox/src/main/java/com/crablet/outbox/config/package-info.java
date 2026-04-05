@@ -40,5 +40,6 @@
  *
  * @see com.crablet.outbox.OutboxProcessor
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.outbox.config;
 

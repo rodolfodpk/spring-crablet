@@ -322,8 +322,8 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractCrabletTest {
     void shouldThrowExceptionWhenSerializingCircularReference() {
         // Given: Event with circular reference (self-referential object)
         class CircularEvent {
-            String id;
-            CircularEvent next;
+            @org.jspecify.annotations.Nullable String id;
+            @org.jspecify.annotations.Nullable CircularEvent next;
         }
         
         CircularEvent event = new CircularEvent();
@@ -425,6 +425,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractCrabletTest {
     }
 
     @Test
+    @SuppressWarnings("NullAway") // intentionally passing null to test rejection
     @DisplayName("Should throw exception when event data is null")
     void shouldThrowExceptionWhenEventDataIsNull() {
         // Given: Event with null data

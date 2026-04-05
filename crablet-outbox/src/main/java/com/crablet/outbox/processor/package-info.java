@@ -32,5 +32,6 @@
  * @see com.crablet.outbox.config.OutboxAutoConfiguration
  * @see com.crablet.outbox.adapter
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.outbox.processor;
 

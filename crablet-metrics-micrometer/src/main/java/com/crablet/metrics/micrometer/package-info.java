@@ -53,5 +53,6 @@
  * @see com.crablet.eventstore.metrics
  * @see com.crablet.outbox.metrics
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.metrics.micrometer;
 

@@ -38,5 +38,6 @@
  * @see com.crablet.eventpoller.leader.LeaderElectorImpl
  * @see com.crablet.outbox.config.OutboxAutoConfiguration
  */
+@org.jspecify.annotations.NullMarked
 package com.crablet.outbox.leader;
 
