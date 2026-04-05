@@ -12,9 +12,10 @@ A Java 25 light framework for DCB (Dynamic Consistency Boundary) event sourcing,
 Crablet is a lightweight event sourcing framework with Spring Boot integration.
 
 - **Event Sourcing**: Complete audit trail with state reconstruction
-- **DCB**: Defines consistency boundaries dynamically based on criteria (queries) rather than fixed aggregates. Uses cursors (event positions) to detect concurrent modifications and prevent conflicts - no distributed locks needed
+- **DCB**: Defines consistency boundaries dynamically based on criteria (queries) rather than fixed aggregates. Uses stream positions to detect concurrent modifications and prevent conflicts - no distributed locks needed
 - **Outbox**: Reliable event publishing to external systems
 - **Views**: Asynchronous view projections for materialized read models
+- **Automations**: Event-driven policies and sagas — listen to events, execute commands automatically
 - **Spring Integration**: Ready-to-use Spring Boot components
 
 ## Modules
@@ -36,7 +37,7 @@ Crablet is a lightweight event sourcing framework with Spring Boot integration.
 
 ## DCB Patterns Quick Reference
 
-DCB (Dynamic Consistency Boundary) redefines consistency granularity in event-sourced systems, moving from fixed aggregates (event streams) to dynamically defined consistency boundaries based on criteria (queries). It uses cursors (event positions) to detect concurrent modifications and prevent conflicts - all without distributed locks.
+DCB (Dynamic Consistency Boundary) redefines consistency granularity in event-sourced systems, moving from fixed aggregates (event streams) to dynamically defined consistency boundaries based on criteria (queries). It uses stream positions to detect concurrent modifications and prevent conflicts - all without distributed locks.
 
 | Pattern | Use Case | AppendCondition |
 |---------|----------|----------------|
