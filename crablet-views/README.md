@@ -356,7 +356,7 @@ Crablet Views uses the generic event processor infrastructure:
 - **Event Fetcher**: Fetches events from read replica based on subscription filters
 - **Event Handler**: Delegates to user-provided `ViewProjector` implementations
 - **Progress Tracker**: Tracks processing progress per view in `view_progress` table
-- **Leader Election**: Uses PostgreSQL advisory locks for distributed leader election. See [Leader Election Guide](../LEADER_ELECTION.md) for details.
+- **Leader Election**: Uses PostgreSQL advisory locks for distributed leader election. See [Leader Election Guide](../docs/LEADER_ELECTION.md) for details.
 - **Backoff Strategy**: Exponential backoff for error recovery
 
 **Recommended deployment:** 

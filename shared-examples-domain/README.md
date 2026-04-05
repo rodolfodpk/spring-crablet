@@ -141,7 +141,7 @@ crablet-eventstore     → shared-examples-domain (test scope)   ← cycle
 
 The Makefile resolves this by building `shared-examples-domain` after the framework modules (skip tests), then running the full reactor with all tests.
 
-See [BUILD.md](../BUILD.md) for details.
+See [BUILD.md](../docs/BUILD.md) for details.
 
 ## Event Model Diagrams
 

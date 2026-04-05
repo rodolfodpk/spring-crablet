@@ -392,7 +392,7 @@ View subscriptions are configured in `ViewConfiguration.java`:
 View projections use PostgreSQL advisory locks for leader election:
 - Only one instance processes each view at a time
 - Automatic failover if leader crashes (5-30 seconds)
-- See [Leader Election Guide](../LEADER_ELECTION.md) for details
+- See [Leader Election Guide](../docs/LEADER_ELECTION.md) for details
 
 **Recommended deployment:**
 - **1 instance**: Works fine in Kubernetes (auto-restart on crash, brief downtime)
@@ -487,6 +487,6 @@ cd wallet-example-app
 - **[Crablet Views](../crablet-views/README.md)** - View projections
 - **[Crablet Automations](../crablet-automations/README.md)** - Event-driven automations
 - **[Shared Examples Domain](../shared-examples-domain/README.md)** - Example domains (wallet, course, notification)
-- **[Leader Election](../LEADER_ELECTION.md)** - Leader election mechanism
-- **[Build Guide](../BUILD.md)** - Build instructions
+- **[Leader Election](../docs/LEADER_ELECTION.md)** - Leader election mechanism
+- **[Build Guide](../docs/BUILD.md)** - Build instructions
 

@@ -135,7 +135,7 @@ class YourHandlerUnitTest extends AbstractHandlerUnitTest {
 
 ## Build Commands
 
-See [BUILD.md](BUILD.md) for full details. Quick reference:
+See [BUILD.md](docs/BUILD.md) for full details. Quick reference:
 
 ```bash
 make install            # Full build with unit tests (recommended)
@@ -486,7 +486,7 @@ PostgreSQL advisory locks for distributed coordination.
 - Follower: Failed lock, waits for next cycle
 - Automatic failover: 5-30 seconds
 
-**Documentation:** `LEADER_ELECTION.md`
+**Documentation:** `docs/LEADER_ELECTION.md`
 
 ## Common Gotchas & Troubleshooting
 
@@ -844,7 +844,7 @@ For entities with long event histories (millions of events):
 
 ## Documentation Quick Links
 
-- Build instructions: `BUILD.md`
+- Build instructions: `docs/BUILD.md`
 - EventStore README: `crablet-eventstore/README.md`
 - Command framework: `crablet-commands/README.md`
 - Event processor: `crablet-event-poller/README.md`
@@ -854,7 +854,7 @@ For entities with long event histories (millions of events):
 - DCB explained: `crablet-eventstore/docs/DCB_AND_CRABLET.md`
 - Command patterns: `crablet-eventstore/docs/COMMAND_PATTERNS.md`
 - Closing books: `crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md`
-- Leader election: `LEADER_ELECTION.md`
+- Leader election: `docs/LEADER_ELECTION.md`
 - Read replicas: `crablet-eventstore/docs/READ_REPLICAS.md`
 - Metrics: `crablet-eventstore/docs/METRICS.md`, `crablet-outbox/docs/OUTBOX_METRICS.md`
 

@@ -5,29 +5,46 @@
 [![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A Java 25 light framework for DCB (Dynamic Consistency Boundary) event sourcing, leveraging previous experiments from [crablet](https://github.com/rodolfodpk/crablet) (Kotlin) and [go-crablet](https://github.com/rodolfodpk/go-crablet) (Go).
+A lightweight Java 25 event sourcing framework with Spring Boot integration, built around the **DCB (Dynamic Consistency Boundary)** pattern — an alternative to traditional aggregates that enforces consistency through queries rather than fixed event streams.
 
-## Overview
+## Getting Started
 
-Crablet is a lightweight event sourcing framework with Spring Boot integration.
+```bash
+make install
+```
 
-- **Event Sourcing**: Complete audit trail with state reconstruction
-- **DCB**: Defines consistency boundaries dynamically based on criteria (queries) rather than fixed aggregates. Uses stream positions to detect concurrent modifications and prevent conflicts - no distributed locks needed
-- **Outbox**: Reliable event publishing to external systems
-- **Views**: Asynchronous view projections for materialized read models
-- **Automations**: Event-driven policies and sagas — listen to events, execute commands automatically
-- **Spring Integration**: Ready-to-use Spring Boot components
+No external PostgreSQL needed — integration tests spin up a container via Testcontainers.
+
+- New to Crablet? → **[Tutorial](docs/TUTORIAL.md)** walks through a full example step by step
+- Build details → **[Build Guide](docs/BUILD.md)**
 
 ## Modules
 
-- **crablet-eventstore** (required) - Core event sourcing library with DCB support
-- **crablet-commands** (optional) - Automatic command handler discovery and orchestration
-- **crablet-event-poller** (optional) - Generic event processing infrastructure for polling, leader election, and backoff
-- **crablet-outbox** (optional) - Transactional outbox event publishing to external systems
-- **crablet-views** (optional) - Asynchronous view projections and materialized read models
-- **crablet-automations** (optional) - Event-driven automations: listen to events and execute commands (policies/sagas)
-- **crablet-metrics-micrometer** (optional) - Micrometer metrics collection
-- **crablet-test-support** (test utility) - Test infrastructure with InMemoryEventStore, AbstractCrabletTest, DCBTestHelpers, and shared DB migrations
+- **crablet-eventstore** (required) — Core event sourcing library with DCB support
+- **crablet-commands** (optional) — Automatic command handler discovery and orchestration
+- **crablet-event-poller** (optional) — Generic polling infrastructure: leader election and backoff
+- **crablet-outbox** (optional) — Transactional outbox for reliable external event publishing
+- **crablet-views** (optional) — Asynchronous materialized read models
+- **crablet-automations** (optional) — Event-driven policies and sagas
+- **crablet-metrics-micrometer** (optional) — Micrometer metrics collection
+- **crablet-test-support** (test) — InMemoryEventStore, AbstractCrabletTest, DCBTestHelpers, and shared DB migrations
+
+## DCB at a Glance
+
+Traditional event sourcing ties consistency to a single aggregate stream. DCB lets you define consistency boundaries dynamically — a single command can check consistency across multiple entity types using a query, without distributed locks.
+
+There are three patterns depending on the operation:
+
+| Pattern | Use Case | AppendCondition |
+|---------|----------|----------------|
+| **Idempotency Check** | Entity creation (e.g. OpenWallet) | `AppendCondition.idempotent()` |
+| **StreamPosition-based Check** | State-dependent ops (e.g. Withdraw, Transfer) | `AppendConditionBuilder(decisionModel, streamPosition)` |
+| **Empty Condition** | Commutative, order-independent ops (e.g. Deposit) | `AppendCondition.empty()` |
+
+📖 [Command Patterns Guide](crablet-eventstore/docs/COMMAND_PATTERNS.md) — complete examples and decision tree  
+📖 [DCB Explained](crablet-eventstore/docs/DCB_AND_CRABLET.md) — deep dive into DCB vs aggregates
+
+**DCB was introduced by [Sara Pellegrini](https://dcb.events/) in her blog post "Killing the Aggregate"** — see the [official spec](https://dcb.events/) and [presentation](https://www.youtube.com/watch?v=0iP65Durhbs).
 
 ## Requirements
 
@@ -35,62 +52,32 @@ Crablet is a lightweight event sourcing framework with Spring Boot integration.
 - Docker (required for integration tests via Testcontainers)
 - Maven (wrapper included — `./mvnw`)
 
-## DCB Patterns Quick Reference
-
-DCB (Dynamic Consistency Boundary) redefines consistency granularity in event-sourced systems, moving from fixed aggregates (event streams) to dynamically defined consistency boundaries based on criteria (queries). It uses stream positions to detect concurrent modifications and prevent conflicts - all without distributed locks.
-
-| Pattern | Use Case | AppendCondition |
-|---------|----------|----------------|
-| **Idempotency Check** | Entity creation (OpenWallet) | `AppendCondition.idempotent()` |
-| **StreamPosition-based Check** | State-dependent ops (Withdraw, Transfer) | `AppendConditionBuilder(decisionModel, streamPosition)` |
-| **Empty Condition** | Commutative operations (Deposit) | `AppendCondition.empty()` (mainly for tests) |
-
-📖 See [Command Patterns Guide](crablet-eventstore/docs/COMMAND_PATTERNS.md) for complete examples and detailed explanations.
-
-**DCB was introduced by [Sara Pellegrini](https://dcb.events/) in her blog post "Killing the Aggregate"**. See the [official DCB specification](https://dcb.events/) and [presentation by Sara Pellegrini & Milan Savic](https://www.youtube.com/watch?v=0iP65Durhbs) for more information.
-
 ## Documentation
 
-### Core Documentation
-- **[Tutorial](docs/TUTORIAL.md)** - Step-by-step introduction to all framework features
-- **[Build Guide](BUILD.md)** - Build instructions, Makefile commands, and cyclic dependency explanation
-- **[EventStore README](crablet-eventstore/README.md)** - Event sourcing library guide
-- **[Command README](crablet-commands/README.md)** - Command framework guide
-- **[Event Processor README](crablet-event-poller/README.md)** - Generic event processing infrastructure guide
-- **[Outbox README](crablet-outbox/README.md)** - Outbox library guide
-- **[Views README](crablet-views/README.md)** - View projections and materialized read models guide
-- **[Automations README](crablet-automations/README.md)** - Event-driven automations (policies/sagas) guide
-- **[Metrics README](crablet-metrics-micrometer/README.md)** - All metrics (EventStore, Commands, Outbox) with links to per-module details
-- **[DCB Explained](crablet-eventstore/docs/DCB_AND_CRABLET.md)** - Detailed DCB explanation
-- **[Testing Guide](crablet-eventstore/TESTING.md)** - Testing strategy, unit tests, and integration tests
+### Start here
+- **[Tutorial](docs/TUTORIAL.md)** — Step-by-step introduction to all framework features
+- **[Getting Started](crablet-eventstore/GETTING_STARTED.md)** — Integrate Crablet into your own project
 
-### Advanced Features
-- **[Leader Election](LEADER_ELECTION.md)** - Distributed leader election with PostgreSQL advisory locks
-- **[Closing the Books Pattern](crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md)** - Period segmentation using `@PeriodConfig` annotation for performance optimization
-- **[Read Replicas & DataSource Configuration](crablet-eventstore/docs/READ_REPLICAS.md)** - Primary and read replica datasource setup with performance benefits
-- **[PgBouncer Guide](crablet-eventstore/docs/PGBOUNCER.md)** - Connection pooling
-- **[Command Patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md)** - Commutative vs non-commutative operations
-- **[Outbox Pattern](crablet-outbox/docs/OUTBOX_PATTERN.md)** - Event publishing
+### Module guides
+- **[EventStore](crablet-eventstore/README.md)** — Core event sourcing API
+- **[Commands](crablet-commands/README.md)** — Command handler framework
+- **[Event Poller](crablet-event-poller/README.md)** — Generic event processing infrastructure
+- **[Views](crablet-views/README.md)** — Asynchronous view projections
+- **[Outbox](crablet-outbox/README.md)** — Transactional outbox pattern
+- **[Automations](crablet-automations/README.md)** — Event-driven automations (policies/sagas)
+- **[Metrics](crablet-metrics-micrometer/README.md)** — Micrometer metrics for all modules
+- **[Test Support](crablet-test-support/README.md)** — Shared test infrastructure
+- **[Testing Guide](crablet-eventstore/TESTING.md)** — Unit vs integration testing strategy
 
-## Architecture Highlights
-
-- **DCB**: Optimistic concurrency control using event position tracking (cursors)
-- **Java 25**: Records, sealed interfaces, virtual threads
-- **Spring Boot 4.0**: Full Spring integration
-- **PostgreSQL**: Primary database with optional read replicas
-- **Comprehensive Testing**: Full test coverage with unit and integration tests
-
-## Build and Test
-
-**Quick start:**
-```bash
-make install
-```
-
-This handles the build order automatically. No external PostgreSQL needed — integration tests spin up a container via Testcontainers.
-
-📖 See [BUILD.md](BUILD.md) for detailed build instructions, Makefile commands, Maven usage, and an explanation of the cyclic dependency trade-offs.
+### Deep dives
+- **[Leader Election](docs/LEADER_ELECTION.md)** — Distributed leader election with PostgreSQL advisory locks
+- **[Closing the Books](crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md)** — Period segmentation with `@PeriodConfig` for performance
+- **[Read Replicas](crablet-eventstore/docs/READ_REPLICAS.md)** — Primary and read replica datasource setup
+- **[PgBouncer](crablet-eventstore/docs/PGBOUNCER.md)** — Connection pooling compatibility
+- **[Command Patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md)** — Commutative vs non-commutative operations
+- **[Outbox Pattern](crablet-outbox/docs/OUTBOX_PATTERN.md)** — How the outbox integrates with DCB
+- **[Build Guide](docs/BUILD.md)** — Build order, Makefile commands, cyclic dependency explanation
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT License — see [LICENSE](LICENSE) file for details.

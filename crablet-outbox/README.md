@@ -92,7 +92,7 @@ eventStore.appendIf(events, AppendCondition.empty());
 
 Crablet Outbox uses:
 - **Per-publisher schedulers**: Independent scheduler per (topic, publisher) pair for isolation and flexible polling
-- **Global leader election**: PostgreSQL advisory locks for automatic failover. See [Leader Election Guide](../LEADER_ELECTION.md) for details.
+- **Global leader election**: PostgreSQL advisory locks for automatic failover. See [Leader Election Guide](../docs/LEADER_ELECTION.md) for details.
 - **At-least-once delivery**: Events may be published multiple times (idempotent consumers required)
 
 **Recommended deployment:** 

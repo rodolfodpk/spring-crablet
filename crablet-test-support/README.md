@@ -120,7 +120,7 @@ Flyway picks these up automatically in every module that declares `crablet-test-
 4. Reactor modules (full build with tests)
 ```
 
-See [BUILD.md](../BUILD.md) for details.
+See [BUILD.md](../docs/BUILD.md) for details.
 
 ## See Also
 
