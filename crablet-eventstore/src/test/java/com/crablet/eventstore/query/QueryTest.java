@@ -148,7 +148,7 @@ class QueryTest {
         Query idempotencyQuery = Query.forEventAndTag("DepositMade", "deposit_id", "deposit-123");
 
         // When - used in AppendCondition context
-        // AppendCondition.of(cursor, idempotencyQuery)
+        // AppendCondition.of(streamPosition, idempotencyQuery)
 
         // Then - should be a valid query for DCB consistency checking
         assertThat(idempotencyQuery.items()).hasSize(1);

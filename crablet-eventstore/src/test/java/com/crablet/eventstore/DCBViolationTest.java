@@ -76,7 +76,7 @@ class DCBViolationTest {
 
         // When
         DCBViolation violation1 = new DCBViolation("DCB_VIOLATION", message, matchingEventsCount);
-        DCBViolation violation2 = new DCBViolation("CURSOR_MISMATCH", message, matchingEventsCount);
+        DCBViolation violation2 = new DCBViolation("STREAM_POSITION_MISMATCH", message, matchingEventsCount);
 
         // Then
         assertThat(violation1).isNotEqualTo(violation2);

@@ -17,7 +17,7 @@ class ProjectionResultTest {
 
     @Test
     @DisplayName("Should create ProjectionResult with state and stream position")
-    void shouldCreateProjectionResult_WithStatesAndCursor() {
+    void shouldCreateProjectionResult_WithStatesAndStreamPosition() {
         // Given
         String state = "test-state";
         StreamPosition streamPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
@@ -89,16 +89,16 @@ class ProjectionResultTest {
     }
 
     @Test
-    @DisplayName("Should implement equals with different cursors")
-    void shouldImplementEquals_WithDifferentCursors() {
+    @DisplayName("Should implement equals with different stream positions")
+    void shouldImplementEquals_WithDifferentStreamPositions() {
         // Given
         String state = "test-state";
-        StreamPosition cursor1 = StreamPosition.of(100L, Instant.now(), "tx-123");
-        StreamPosition cursor2 = StreamPosition.of(200L, Instant.now(), "tx-456");
+        StreamPosition streamPosition1 = StreamPosition.of(100L, Instant.now(), "tx-123");
+        StreamPosition streamPosition2 = StreamPosition.of(200L, Instant.now(), "tx-456");
 
         // When
-        ProjectionResult<String> result1 = ProjectionResult.of(state, cursor1);
-        ProjectionResult<String> result2 = ProjectionResult.of(state, cursor2);
+        ProjectionResult<String> result1 = ProjectionResult.of(state, streamPosition1);
+        ProjectionResult<String> result2 = ProjectionResult.of(state, streamPosition2);
 
         // Then
         assertThat(result1).isNotEqualTo(result2);
@@ -121,7 +121,7 @@ class ProjectionResultTest {
 
     @Test
     @DisplayName("Should handle null stream position")
-    void shouldHandleNullCursor_ShouldAllow() {
+    void shouldHandleNullStreamPosition_ShouldAllow() {
         // Given
         String state = "test-state";
 
@@ -136,7 +136,7 @@ class ProjectionResultTest {
     @Test
     @DisplayName("Should handle null state and null stream position")
     @SuppressWarnings("NullAway")
-    void shouldHandleNullStateAndNullCursor() {
+    void shouldHandleNullStateAndNullStreamPosition() {
         // When
         ProjectionResult<String> result = ProjectionResult.of((String) null, (StreamPosition) null);
 

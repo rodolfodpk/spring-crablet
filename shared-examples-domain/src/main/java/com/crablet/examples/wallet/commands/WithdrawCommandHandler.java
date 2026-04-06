@@ -23,7 +23,7 @@ import static com.crablet.examples.wallet.WalletTags.WITHDRAWAL_ID;
  * Command handler for withdrawing money from wallets.
  * <p>
  * DCB Principle: Non-commutative operation — order matters for balance validation.
- * Cursor-based DCB check prevents concurrent withdrawals from exceeding the balance.
+ * StreamPosition-based DCB check prevents concurrent withdrawals from exceeding the balance.
  */
 @Component
 public class WithdrawCommandHandler implements NonCommutativeCommandHandler<WithdrawCommand> {

@@ -42,7 +42,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractCrabletTest {
 
     @Test
     @DisplayName("Should handle AppendIf with current stream position")
-    void shouldHandleAppendIfWithCurrentCursor() {
+    void shouldHandleAppendIfWithCurrentStreamPosition() {
         // Given: wallet with initial event
         String walletId = "error-wallet-1";
         eventStore.appendIf(List.of(
@@ -52,23 +52,23 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractCrabletTest {
                         .build()
         ), AppendCondition.empty());
 
-        // Get initial cursor
+        // Get initial stream position
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
         List<StoredEvent> events = eventRepository.query(query, null);
-        StreamPosition initialCursor = StreamPosition.of(
+        StreamPosition initialStreamPosition = StreamPosition.of(
                 events.get(0).position(),
                 events.get(0).occurredAt(),
                 events.get(0).transactionId()
         );
 
-        // When: appendIf with current cursor
+        // When: appendIf with current stream position
         eventStore.appendIf(
                 List.of(AppendEvent.builder("DepositMade")
                         .tag("wallet_id", walletId)
                         .tag("deposit_id", "deposit1")
                         .data(DepositMade.of("deposit1", walletId, 500, 1500, "Deposit"))
                         .build()),
-                AppendCondition.of(initialCursor, query)
+                AppendCondition.of(initialStreamPosition, query)
         );
 
         // Then: should succeed
@@ -109,7 +109,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractCrabletTest {
 
     @Test
     @DisplayName("Should handle query with null stream position")
-    void shouldHandleNullCursor() {
+    void shouldHandleNullStreamPosition() {
         // Given: wallet exists
         String walletId = "error-wallet-3";
         eventStore.appendIf(List.of(
@@ -122,7 +122,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractCrabletTest {
         // When: query with null stream position
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
         
-        // Then: should work (EventTestHelper.query allows null cursor)
+        // Then: should work (EventTestHelper.query allows null stream position)
         List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).isNotEmpty();
     }
@@ -203,7 +203,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractCrabletTest {
 
     @Test
     @DisplayName("Should handle AppendIf with future stream position")
-    void shouldHandleAppendIfWithFutureCursor() {
+    void shouldHandleAppendIfWithFutureStreamPosition() {
         // Given: wallet exists
         String walletId = "error-wallet-7";
         eventStore.appendIf(List.of(
@@ -215,15 +215,15 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractCrabletTest {
 
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
 
-        // Create cursor that doesn't exist (future position)
-        StreamPosition futureCursor = StreamPosition.of(
+        // Create stream position that doesn't exist (future position)
+        StreamPosition futureStreamPosition = StreamPosition.of(
                 999999L,
                 Instant.now(),
                 "future-tx-id"
         );
 
-        // When: appendIf with future cursor - may or may not throw depending on DCB implementation
-        // Note: Some DCB implementations allow future cursors if position check passes
+        // When: appendIf with future stream position - may or may not throw depending on DCB implementation
+        // Note: Some DCB implementations allow future stream positions if position check passes
         assertThatCode(() ->
                 eventStore.appendIf(
                         List.of(AppendEvent.builder("DepositMade")
@@ -231,7 +231,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractCrabletTest {
                                 .tag("deposit_id", "deposit1")
                                 .data(DepositMade.of("deposit1", walletId, 500, 1500, "Deposit"))
                                 .build()),
-                        AppendCondition.of(futureCursor, query)
+                        AppendCondition.of(futureStreamPosition, query)
                 )
         ).doesNotThrowAnyException();
     }

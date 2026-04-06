@@ -88,7 +88,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                         .build()
         ), AppendCondition.empty());
 
-        // Project to get current cursor (DCB pattern)
+        // Project to get current stream position (DCB pattern)
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
         ProjectionResult<WalletBalanceState> result = eventStore.project(
                 query,
@@ -121,7 +121,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
 
     @Test
     @DisplayName("Should throw ConcurrencyException when appendIf with stale stream position (DCB scenario)")
-    void shouldThrowConcurrencyExceptionWhenAppendIfWithStaleCursor() {
+    void shouldThrowConcurrencyExceptionWhenAppendIfWithStaleStreamPosition() {
         // Given: wallet with initial deposit
         String walletId = "wallet3";
         WalletOpened walletOpened = WalletOpened.of(walletId, "Charlie", 1000);
@@ -133,7 +133,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                         .build()
         ), AppendCondition.empty());
 
-        // Project to get initial cursor
+        // Project to get initial stream position
         Query query = Query.forEventsAndTags(
                 List.of("WalletOpened", "DepositMade", "WithdrawalMade"),
                 List.of(new Tag("wallet_id", walletId))
@@ -312,7 +312,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
 
     @Test
     @DisplayName("Should paginate wallet events with stream position")
-    void shouldPaginateWithCursor() {
+    void shouldPaginateWithStreamPosition() {
         // Given: wallet with 5 deposits
         String walletId = "wallet9";
         String walletTxId = eventStore.appendIf(List.of(
@@ -348,21 +348,21 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                 List.of(new WalletBalanceStateProjector())
         );
         
-        StreamPosition cursor1 = Objects.requireNonNull(result1.streamPosition());
+        StreamPosition streamPosition1 = Objects.requireNonNull(result1.streamPosition());
         assertThat(result1.state().balance()).isEqualTo(2500); // 1000 + (100 + 200 + 300 + 400 + 500)
 
-        // Then: project again using cursor (no new events)
+        // Then: project again using stream position (no new events)
         ProjectionResult<WalletBalanceState> result2 = eventStore.project(
                 query,
-                cursor1,
+                streamPosition1,
                 WalletBalanceState.class,
                 List.of(new WalletBalanceStateProjector())
         );
 
-        // Verify cursor stays at same position with no new events
-        // Note: when projecting from cursor with no new events, state starts fresh (initial state)
-        assertThat(result2.streamPosition()).isEqualTo(cursor1);
-        assertThat(result2.state().isExisting()).isFalse(); // No events processed since cursor
+        // Verify stream position stays at same position with no new events
+        // Note: when projecting from stream position with no new events, state starts fresh (initial state)
+        assertThat(result2.streamPosition()).isEqualTo(streamPosition1);
+        assertThat(result2.state().isExisting()).isFalse(); // No events processed since stream position
     }
 
     @Test
@@ -475,7 +475,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
 
     @Test
     @DisplayName("Should handle stream position zero for initial wallet projection")
-    void shouldHandleCursorZero() {
+    void shouldHandleStreamPositionZero() {
         // Given: new wallet
         String walletId = "wallet14";
         eventStore.appendIf(List.of(
@@ -485,7 +485,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                         .build()
         ), AppendCondition.empty());
 
-        // When: project with cursor zero (initial projection)
+        // When: project with stream position zero (initial projection)
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
         ProjectionResult<WalletBalanceState> result = eventStore.project(
                 query,
@@ -545,7 +545,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
         // When: try to append same deposit again with idempotency check
         Query idempotencyQuery = Query.forEventAndTag("DepositMade", "deposit_id", depositId);
         AppendCondition idempotencyCondition = new AppendCondition(
-                StreamPosition.zero(),  // cursor doesn't matter for idempotency
+                StreamPosition.zero(),  // stream position doesn't matter for idempotency
                 Query.empty(),  // state change query (not checking)
                 idempotencyQuery  // already exists check
         );

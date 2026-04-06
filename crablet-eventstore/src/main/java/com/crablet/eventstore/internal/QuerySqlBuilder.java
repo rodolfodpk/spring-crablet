@@ -12,7 +12,7 @@ import java.util.List;
  */
 interface QuerySqlBuilder {
     /**
-     * Build a WHERE clause from a Query and Cursor.
+     * Build a WHERE clause from a Query and StreamPosition.
      *
      * @param query The query to filter events
      * @param after StreamPosition to query events after (null for all events)

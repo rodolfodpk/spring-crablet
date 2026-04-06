@@ -72,7 +72,7 @@ class ConcurrencyExceptionTest {
         // Given
         String message = "Concurrency violation detected";
         Object command = new TestCommand("wallet-123");
-        DCBViolation violation = new DCBViolation("DCB_VIOLATION", "Cursor mismatch", 2);
+        DCBViolation violation = new DCBViolation("DCB_VIOLATION", "StreamPosition mismatch", 2);
 
         // When
         ConcurrencyException exception = new ConcurrencyException(message, command, violation);
@@ -90,7 +90,7 @@ class ConcurrencyExceptionTest {
     void shouldCreateConcurrencyException_WithMessageAndViolation() {
         // Given
         String message = "Concurrency violation detected";
-        DCBViolation violation = new DCBViolation("DCB_VIOLATION", "Cursor mismatch", 2);
+        DCBViolation violation = new DCBViolation("DCB_VIOLATION", "StreamPosition mismatch", 2);
 
         // When
         ConcurrencyException exception = new ConcurrencyException(message, violation);
@@ -263,7 +263,7 @@ class ConcurrencyExceptionTest {
         // Given
         String message = "Test message";
         Object command = new TestCommand("wallet-123");
-        DCBViolation violation = new DCBViolation("DCB_VIOLATION", "Cursor mismatch", 2);
+        DCBViolation violation = new DCBViolation("DCB_VIOLATION", "StreamPosition mismatch", 2);
 
         // When
         ConcurrencyException exception = new ConcurrencyException(message, command, violation);

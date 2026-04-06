@@ -41,22 +41,22 @@ class OptimisticLockingTest extends AbstractCrabletTest {
 
     @Test
     @DisplayName("Should validate AppendCondition stream position correctly")
-    void shouldValidateAppendConditionCursorCorrectly() {
+    void shouldValidateAppendConditionStreamPositionCorrectly() {
         String walletId = "optimistic-lock-" + System.currentTimeMillis();
 
         // Create wallet
         OpenWalletCommand openCommand = OpenWalletCommand.of(walletId, "Alice", 1000);
         commandExecutor.executeCommand(openCommand);
 
-        // Get current cursor
+        // Get current stream position
         Query query = Query.of(QueryItem.of(List.of("WalletOpened"), List.of(new Tag("wallet_id", walletId))));
         List<com.crablet.eventstore.StoredEvent> events = testHelper.query(query, null);
         assertThat(events).hasSize(1);
 
-        // Create deposit command that should succeed with correct cursor
+        // Create deposit command that should succeed with correct stream position
         DepositCommand depositCommand = DepositCommand.of("deposit-1", walletId, 100, "Test deposit");
 
-        // This should succeed because we're using the correct cursor
+        // This should succeed because we're using the correct stream position
         commandExecutor.executeCommand(depositCommand);
 
         // Verify deposit was applied
@@ -67,29 +67,29 @@ class OptimisticLockingTest extends AbstractCrabletTest {
 
     @Test
     @DisplayName("Should detect stale stream position and throw ConcurrencyException")
-    void shouldDetectStaleCursorAndThrowConcurrencyException() {
+    void shouldDetectStaleStreamPositionAndThrowConcurrencyException() {
         String walletId = "stale-stream-position-" + System.currentTimeMillis();
 
         // Create wallet
         OpenWalletCommand openCommand = OpenWalletCommand.of(walletId, "Bob", 1000);
         commandExecutor.executeCommand(openCommand);
 
-        // Get initial cursor
+        // Get initial stream position
         Query query = Query.of(QueryItem.of(List.of("WalletOpened"), List.of(new Tag("wallet_id", walletId))));
         testHelper.query(query, null);
 
-        // Make a deposit to advance the cursor
+        // Make a deposit to advance the stream position
         DepositCommand firstDeposit = DepositCommand.of("deposit-1", walletId, 100, "First deposit");
         commandExecutor.executeCommand(firstDeposit);
 
         // Now try to use the stale stream position - this should fail
-        // We need to simulate a scenario where the cursor is stale
+        // We need to simulate a scenario where the stream position is stale
         // This is typically handled by the CommandExecutor's retry logic
 
         // Create another deposit that might conflict
         DepositCommand secondDeposit = DepositCommand.of("deposit-2", walletId, 200, "Second deposit");
 
-        // This should succeed because CommandExecutor handles cursor management
+        // This should succeed because CommandExecutor handles stream position management
         commandExecutor.executeCommand(secondDeposit);
 
         // Verify both deposits were applied

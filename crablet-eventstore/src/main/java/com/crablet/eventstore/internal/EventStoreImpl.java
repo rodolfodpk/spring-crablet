@@ -293,10 +293,10 @@ public class EventStoreImpl implements EventStore {
                     .toArray(String[]::new);
 
             // Determine stream position: NULL for empty conditions (no concurrency check), actual value otherwise
-            Long cursorPosition = null;
+            Long afterPosition = null;
             if (!concurrencyTypes.isEmpty() || !concurrencyTags.isEmpty()) {
                 // Only use stream position if we're actually doing a concurrency check
-                cursorPosition = condition.afterPosition().position();
+                afterPosition = condition.afterPosition().position();
             }
 
             // Call append_events_if with dual conditions
@@ -308,7 +308,7 @@ public class EventStoreImpl implements EventStore {
                 stmt.setArray(3, connection.createArrayOf("jsonb", dataStrings));
                 stmt.setObject(4, concurrencyTypes.isEmpty() ? null : concurrencyTypes.toArray(new String[0]));
                 stmt.setObject(5, concurrencyTags.isEmpty() ? null : concurrencyTags.toArray(new String[0]));
-                stmt.setObject(6, cursorPosition);
+                stmt.setObject(6, afterPosition);
                 stmt.setObject(7, idempotencyTypes != null && !idempotencyTypes.isEmpty() ? idempotencyTypes.toArray(new String[0]) : null);
                 stmt.setObject(8, idempotencyTags != null && !idempotencyTags.isEmpty() ? idempotencyTags.toArray(new String[0]) : null);
                 stmt.setTimestamp(9, java.sql.Timestamp.from(clock.now()));
@@ -393,7 +393,7 @@ public class EventStoreImpl implements EventStore {
                     // Stream and project incrementally
                     EventDeserializer deserializer = this.eventDeserializer;
                     T state = projectors.get(0).getInitialState();
-                    StreamPosition lastCursor = after;
+                    StreamPosition lastStreamPosition = after;
 
                     try (ResultSet rs = stmt.executeQuery()) {
                         while (rs.next()) {
@@ -407,13 +407,13 @@ public class EventStoreImpl implements EventStore {
                                 }
                             }
 
-                            // Track cursor
-                            lastCursor = StreamPosition.of(event.position(), event.occurredAt(), event.transactionId());
+                            // Track stream position
+                            lastStreamPosition = StreamPosition.of(event.position(), event.occurredAt(), event.transactionId());
                         }
                     }
 
                     connection.commit(); // Commit read-only transaction
-                    return ProjectionResult.of(state, lastCursor);
+                    return ProjectionResult.of(state, lastStreamPosition);
 
                 } catch (Exception e) {
                     connection.rollback();
@@ -605,7 +605,7 @@ public class EventStoreImpl implements EventStore {
 
             List<Object> params = new ArrayList<>();
 
-            // Handle null cursor
+            // Handle null stream position
             if (after != null) {
                 sql.append("WHERE position > ? ");
                 params.add(after.position());
@@ -733,7 +733,7 @@ public class EventStoreImpl implements EventStore {
                 // Stream and project incrementally
                 EventDeserializer deserializer = this.eventDeserializer;
                 T state = projectors.get(0).getInitialState();
-                StreamPosition lastCursor = after;
+                StreamPosition lastStreamPosition = after;
 
                 try (ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
@@ -746,12 +746,12 @@ public class EventStoreImpl implements EventStore {
                             }
                         }
 
-                        // Track cursor
-                        lastCursor = StreamPosition.of(event.position(), event.occurredAt(), event.transactionId());
+                        // Track stream position
+                        lastStreamPosition = StreamPosition.of(event.position(), event.occurredAt(), event.transactionId());
                     }
                 }
 
-                return ProjectionResult.of(state, lastCursor);
+                return ProjectionResult.of(state, lastStreamPosition);
             }
         } catch (Exception e) {
             throw new EventStoreException("Failed to project state using connection", e);

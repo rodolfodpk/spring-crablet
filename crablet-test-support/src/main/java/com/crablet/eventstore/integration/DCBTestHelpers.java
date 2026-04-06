@@ -7,7 +7,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Helper utilities for DCB compliance testing.
- * Provides factory methods for creating test events and extracting cursors.
+ * Provides factory methods for creating test events and extracting stream positions.
  */
 public class DCBTestHelpers {
 

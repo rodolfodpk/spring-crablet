@@ -2,7 +2,7 @@
  * Core event sourcing framework with Dynamic Consistency Boundary (DCB) support.
  * <p>
  * This module provides the foundation for event sourcing with optimistic concurrency
- * control using cursors (event positions) rather than distributed locks.
+ * control using stream positions rather than distributed locks.
  * <p>
  * <strong>Key Components:</strong>
  * <ul>
@@ -15,12 +15,12 @@
  * <strong>DCB Pattern:</strong>
  * Dynamic Consistency Boundary redefines consistency granularity in event-sourced systems,
  * moving from fixed aggregates (event streams) to dynamically defined consistency boundaries
- * based on criteria (queries). It uses cursors to detect concurrent modifications and
+ * based on criteria (queries). It uses stream positions to detect concurrent modifications and
  * prevent conflicts without distributed locks.
  * <p>
  * <strong>Key Features:</strong>
  * <ul>
- *   <li>Optimistic concurrency control using cursors</li>
+ *   <li>Optimistic concurrency control using stream positions</li>
  *   <li>Tag-based event querying and filtering</li>
  *   <li>State projection from events</li>
  *   <li>Read replica support for horizontal scaling</li>

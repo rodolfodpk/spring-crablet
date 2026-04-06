@@ -218,7 +218,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
             .eventNames("WalletOpened", "DepositMade", "WithdrawalMade")
             .build();
         
-        // 1. Project current balance with cursor
+        // 1. Project current balance with stream position
         // Create projector instance inline (not a singleton, thread-safe)
         WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
         ProjectionResult<WalletBalance> result = eventStore.project(
@@ -246,9 +246,9 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
                 .build()
         );
         
-        // 4. Build append condition with DCB cursor check
-        // Note: No idempotency check - cursor advancement detects if operation already succeeded
-        AppendCondition condition = AppendConditionBuilder.of(decisionModel, cursor)
+        // 4. Build append condition with DCB streamPosition check
+        // Note: No idempotency check - streamPosition advancement detects if operation already succeeded
+        AppendCondition condition = AppendConditionBuilder.of(decisionModel, streamPosition)
             .build();
         
         // Return CommandResult - CommandExecutor will call appendIf:
@@ -373,10 +373,10 @@ class WalletIntegrationTest {
 The `Query` passed to `AppendConditionBuilder` that defines which events affect your business decision.
 
 ### DCB Conflict Check
-`AppendCondition` checks if any events matching the decision model appeared AFTER the cursor. If yes, throws `ConcurrencyException`.
+`AppendCondition` checks if any events matching the decision model appeared AFTER the stream position. If yes, throws `ConcurrencyException`.
 
 ### Idempotency Check
-`AppendCondition.idempotent()` searches ALL events (ignores cursor) to prevent duplicate operations.
+`AppendCondition.idempotent()` searches ALL events (ignores stream position) to prevent duplicate operations.
 
 ## Example Domains
 

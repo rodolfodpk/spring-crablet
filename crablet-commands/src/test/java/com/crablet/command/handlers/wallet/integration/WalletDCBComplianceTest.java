@@ -81,7 +81,7 @@ class WalletDCBComplianceTest extends AbstractCrabletTest {
     }
 
     // NOTE: Transfer tests removed because they require special setup
-    // to avoid cursor violations from sequential wallet operations.
+    // to avoid streamPosition violations from sequential wallet operations.
     // Transfer operations project BOTH wallets, so any modification to either
     // wallet between operations causes DCB conflicts (which is correct behavior).
     // These tests belong in integration tests that properly handle transaction boundaries.

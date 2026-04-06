@@ -144,17 +144,17 @@ public class InMemoryEventStore implements EventStore {
             throw new IllegalArgumentException("At least one projector is required");
         }
         
-        // Filter events by query and cursor
+        // Filter events by query and stream position
         List<EventRecord> matchingEvents = events.stream()
             .filter(e -> matchesQuery(e, query))
             .filter(e -> e.position() > after.position())
             .sorted(Comparator.comparing(EventRecord::position))
             .collect(Collectors.toList());
-        
+
         // Project state using real projectors
         T state = projectors.get(0).getInitialState();
-        StreamPosition lastCursor = after;
-        
+        StreamPosition lastStreamPosition = after;
+
         for (EventRecord record : matchingEvents) {
             // Convert EventRecord to StoredEvent on-the-fly for projection
             StoredEvent storedEvent = new StoredEvent(
@@ -174,10 +174,10 @@ public class InMemoryEventStore implements EventStore {
                 }
             }
             
-            lastCursor = StreamPosition.of(record.position(), record.occurredAt(), record.transactionId());
+            lastStreamPosition = StreamPosition.of(record.position(), record.occurredAt(), record.transactionId());
         }
-        
-        return ProjectionResult.of(state, lastCursor);
+
+        return ProjectionResult.of(state, lastStreamPosition);
     }
     
     @Override

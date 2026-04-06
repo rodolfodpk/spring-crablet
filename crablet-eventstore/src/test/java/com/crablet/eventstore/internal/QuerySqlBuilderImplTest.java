@@ -24,7 +24,7 @@ class QuerySqlBuilderImplTest {
 
     @Test
     @DisplayName("Should build WHERE clause with empty query and null stream position")
-    void shouldBuildWhereClause_WithEmptyQueryAndNullCursor() {
+    void shouldBuildWhereClause_WithEmptyQueryAndNullStreamPosition() {
         // Given
         Query query = Query.empty();
         StreamPosition streamPosition = null;
@@ -40,7 +40,7 @@ class QuerySqlBuilderImplTest {
 
     @Test
     @DisplayName("Should build WHERE clause with empty query and zero stream position")
-    void shouldBuildWhereClause_WithEmptyQueryAndZeroCursor() {
+    void shouldBuildWhereClause_WithEmptyQueryAndZeroStreamPosition() {
         // Given
         Query query = Query.empty();
         StreamPosition streamPosition = StreamPosition.zero();
@@ -49,14 +49,14 @@ class QuerySqlBuilderImplTest {
         // When
         String whereClause = sqlBuilder.buildWhereClause(query, streamPosition, params);
 
-        // Then - Zero cursor position means > 0 check fails, so no condition
+        // Then - Zero stream position means > 0 check fails, so no condition
         assertThat(whereClause).isEmpty();
         assertThat(params).isEmpty();
     }
 
     @Test
     @DisplayName("Should build WHERE clause with empty query and non-zero stream position")
-    void shouldBuildWhereClause_WithEmptyQueryAndNonZeroCursor() {
+    void shouldBuildWhereClause_WithEmptyQueryAndNonZeroStreamPosition() {
         // Given
         Query query = Query.empty();
         StreamPosition streamPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
@@ -163,7 +163,7 @@ class QuerySqlBuilderImplTest {
 
     @Test
     @DisplayName("Should build WHERE clause with stream position and query")
-    void shouldBuildWhereClause_WithCursorAndQuery() {
+    void shouldBuildWhereClause_WithStreamPositionAndQuery() {
         // Given
         Query query = Query.of(QueryItem.ofType("WalletOpened"));
         StreamPosition streamPosition = StreamPosition.of(50L, Instant.now(), "tx-123");
@@ -195,7 +195,7 @@ class QuerySqlBuilderImplTest {
 
         // Then - Verify parameter order and types
         assertThat(params).hasSize(3);
-        assertThat(params.get(0)).isEqualTo(100L); // Cursor position
+        assertThat(params.get(0)).isEqualTo(100L); // Stream position value
         
         String[] eventTypes = (String[]) params.get(1);
         assertThat(eventTypes).containsExactly("WalletOpened", "DepositMade");
@@ -254,7 +254,7 @@ class QuerySqlBuilderImplTest {
 
     @Test
     @DisplayName("Should handle null stream position correctly")
-    void shouldHandleNullCursor_Correctly() {
+    void shouldHandleNullStreamPosition_Correctly() {
         // Given
         Query query = Query.of(QueryItem.ofType("WalletOpened"));
         StreamPosition streamPosition = null;
@@ -263,7 +263,7 @@ class QuerySqlBuilderImplTest {
         // When
         String whereClause = sqlBuilder.buildWhereClause(query, streamPosition, params);
 
-        // Then - Null cursor is treated as position 0 (no position condition), single query item wrapped
+        // Then - Null stream position is treated as position 0 (no position condition), single query item wrapped
         assertThat(whereClause).isEqualTo("((type = ANY(?)))");
         assertThat(params).hasSize(1);
         assertThat(params).doesNotContain(0L); // No position parameter
@@ -320,7 +320,7 @@ class QuerySqlBuilderImplTest {
 
     @Test
     @DisplayName("Should build WHERE clause with stream position at zero and non-empty query")
-    void shouldBuildWhereClause_WithCursorAtZeroAndNonEmptyQuery() {
+    void shouldBuildWhereClause_WithStreamPositionAtZeroAndNonEmptyQuery() {
         // Given
         Query query = Query.of(QueryItem.ofType("WalletOpened"));
         StreamPosition streamPosition = StreamPosition.zero();
@@ -329,7 +329,7 @@ class QuerySqlBuilderImplTest {
         // When
         String whereClause = sqlBuilder.buildWhereClause(query, streamPosition, params);
 
-        // Then - Zero cursor means no position condition (single query item wrapped)
+        // Then - Zero stream position means no position condition (single query item wrapped)
         assertThat(whereClause).isEqualTo("((type = ANY(?)))");
         assertThat(params).hasSize(1);
         assertThat(params).doesNotContain(0L);

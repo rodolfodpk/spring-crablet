@@ -31,7 +31,7 @@ The outbox pattern provides **reliable event publishing** for DCB-based event so
 
 ```java
 public CommandResult handleTransfer(TransferCommand command) {
-    // 1. DCB: Read current state with cursor
+    // 1. DCB: Read current state with stream position
     ProjectionResult<WalletBalanceState> projection = 
         balanceProjector.projectWalletBalance(eventStore, command.fromWalletId(), decisionModel);
     

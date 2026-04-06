@@ -126,7 +126,7 @@ public class WalletBalanceStateProjector implements StateProjector<WalletBalance
      * @return ProjectionResult containing WalletBalanceState and stream position for optimistic locking
      */
     public ProjectionResult<WalletBalanceState> projectWalletBalance(EventStore store, String walletId, Query query) {
-        // Use new signature: query, cursor, stateType, projectors
+        // Use new signature: query, streamPosition, stateType, projectors
         return store.project(query, com.crablet.eventstore.StreamPosition.zero(), WalletBalanceState.class, List.of(this));
     }
 

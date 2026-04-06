@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Pick the sub-interface that matches the DCB pattern for your operation:
 
-**Non-commutative** (cursor-based check — e.g. Withdraw, Transfer):
+**Non-commutative** (streamPosition-based check — e.g. Withdraw, Transfer):
 ```java
 @Component
 public class YourCommandHandler implements NonCommutativeCommandHandler<YourCommand> {
@@ -158,7 +158,7 @@ make start              # Run wallet-example-app
 
 ### Overview
 
-Spring-Crablet is a lightweight Java 25 event sourcing framework built on the DCB (Dynamic Consistency Boundary) pattern. It provides event sourcing with optimistic concurrency control using cursor-based checks instead of distributed locks.
+Spring-Crablet is a lightweight Java 25 event sourcing framework built on the DCB (Dynamic Consistency Boundary) pattern. It provides event sourcing with optimistic concurrency control using streamPosition-based checks instead of distributed locks.
 
 **Key Technologies:**
 - Java 25 (records, sealed interfaces, virtual threads)
@@ -335,7 +335,7 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 
 **Official DCB Specification**: https://dcb.events/
 
-**Note**: Spring-Crablet implements the core DCB principles but doesn't strictly follow the official spec. Our implementation uses cursor-based optimistic locking with tag-based queries, which aligns with DCB's philosophy of "context-sensitive consistency enforcement without rigid transactional boundaries."
+**Note**: Spring-Crablet implements the core DCB principles but doesn't strictly follow the official spec. Our implementation uses streamPosition-based optimistic locking with tag-based queries, which aligns with DCB's philosophy of "context-sensitive consistency enforcement without rigid transactional boundaries."
 
 **Core DCB Principle** (from spec):
 - Technique for enforcing consistency in event-driven systems without rigid transactional boundaries
@@ -362,11 +362,11 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
    - No conflict detection needed
 
 **DCB Flow:**
-1. Project current state using `eventStore.project(query, cursor, stateType, projectors)`
-2. Returns `ProjectionResult<T>` with both state and cursor
+1. Project current state using `eventStore.project(query, streamPosition, stateType, projectors)`
+2. Returns `ProjectionResult<T>` with both state and stream position
 3. Validate business rules against projected state
 4. Generate events
-5. Build `AppendCondition` using captured cursor
+5. Build `AppendCondition` using captured stream position
 6. Call `eventStore.appendIf(events, condition)` - atomic check and append
 
 **Key files:**
@@ -377,7 +377,7 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 
 **EventStore (crablet-eventstore/src/main/java/com/crablet/eventstore/EventStore.java):**
 - `appendIf(events, condition)` - Atomic append with DCB checks
-- `project(query, cursor, stateType, projectors)` - State reconstruction
+- `project(query, streamPosition, stateType, projectors)` - State reconstruction
 - `executeInTransaction(operation)` - Transaction wrapper
 - `storeCommand(json, type, txId)` - Command audit trail
 
@@ -741,13 +741,13 @@ AppendCondition violated: duplicate operation detected | DCBViolation{errorCode=
 
 **2. Debug Logging for DCB Checks:**
 - Enable with: `logging.level.com.crablet.eventstore=DEBUG`
-- Shows exact query parameters, cursor position, tags being checked
+- Shows exact query parameters, stream position, tags being checked
 - Helps diagnose query/tag mismatches
 - Useful for understanding why concurrency exceptions occur
 
 Example debug output:
 ```
-AppendIf DCB checks: events=[DepositMade], cursorPosition=42, concurrencyTypes=[WalletOpened, DepositMade],
+AppendIf DCB checks: events=[DepositMade], streamPosition=42, concurrencyTypes=[WalletOpened, DepositMade],
 concurrencyTags=[wallet_id=alice], idempotencyTypes=[DepositMade], idempotencyTags=[deposit_id=d123]
 ```
 

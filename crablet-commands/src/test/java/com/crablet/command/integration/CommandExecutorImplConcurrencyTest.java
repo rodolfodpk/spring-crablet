@@ -41,18 +41,18 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
                 .data("{}")
                 .build();
         
-        // First execution to establish a cursor
+        // First execution to establish a stream position
         CommandDecision firstResult = new CommandDecision.Commutative(List.of(event));
         TestCommandHandler.setHandlerLogic(cmd -> firstResult);
         ExecutionResult first = commandExecutor.executeCommand(command);
         assertTrue(first.wasCreated());
 
         // Second execution with stale stream position - should trigger ConcurrencyException
-        // but NOT "duplicate operation detected" (it's a cursor conflict, not idempotency)
+        // but NOT "duplicate operation detected" (it's a streamPosition conflict, not idempotency)
         Query decisionModel = Query.forEventAndTag("test_event", "entityId", "entity-123");
-        StreamPosition staleCursor = StreamPosition.of(0L, Instant.now(), "old-tx-id");
+        StreamPosition staleStreamPosition = StreamPosition.of(0L, Instant.now(), "old-tx-id");
 
-        CommandDecision secondResult = new CommandDecision.NonCommutative(List.of(event), decisionModel, staleCursor);
+        CommandDecision secondResult = new CommandDecision.NonCommutative(List.of(event), decisionModel, staleStreamPosition);
         TestCommandHandler.setHandlerLogic(cmd -> secondResult);
 
         // Act & Assert - should throw ConcurrencyException (not idempotent)

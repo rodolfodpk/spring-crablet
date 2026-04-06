@@ -7,9 +7,9 @@
 DCB redefines consistency granularity in event-sourced systems, moving from fixed aggregates to dynamically defined consistency boundaries based on criteria (queries).
 
 **How it works:**
-1. Read current state, capture cursor position
+1. Read current state, capture stream position
 2. Generate events based on read state
-3. Server checks for conflicts before writing (cursor-based)
+3. Server checks for conflicts before writing (streamPosition-based)
 4. If conflict detected → `ConcurrencyException`, application retries
 
 **Key Benefits:**
@@ -22,7 +22,7 @@ DCB redefines consistency granularity in event-sourced systems, moving from fixe
 | **Flexible refactoring** | Adjust boundaries without stream restructuring |
 | **Less upfront design pressure** | Refine boundaries as you learn |
 
-**Performance:** ~4x faster for operations using cursor-only checks vs. advisory locks.
+**Performance:** ~4x faster for operations using streamPosition-only checks vs. advisory locks.
 
 📖 **Details:** See [sections below](#what-is-dcb).
 
@@ -63,11 +63,11 @@ This is architectural guidance, not a requirement. DCB works regardless of how y
 
 ## DCB Mechanism
 
-DCB uses cursor-based checks to detect conflicting events since last read.
+DCB uses streamPosition-based checks to detect conflicting events since last read.
 
 ### Implementation Steps
 
-1. **Read**: Client reads current state, captures cursor position
+1. **Read**: Client reads current state, captures stream position
 2. **Compute**: Client generates events based on read state
 3. **Append**: Server checks for conflicts before writing
 4. **Exception**: If conflict detected, server throws `ConcurrencyException`, application retries from step 1
@@ -103,11 +103,11 @@ DCB supports two concurrency control strategies:
 | Aspect | StreamPosition-Based Checks | Idempotency Checks |
 |--------|-------------------|-------------------|
 | **Use Case** | Operations on existing entities (Withdraw, Transfer) | Creating new entities (OpenWallet) |
-| **What It Checks** | "Has anything changed AFTER cursor position X?" | "Does entity already exist?" |
+| **What It Checks** | "Has anything changed AFTER stream position X?" | "Does entity already exist?" |
 | **Advisory Locks** | ❌ Not needed | ✅ Required |
 | **Protection Mechanism** | PostgreSQL snapshot isolation (MVCC) | Advisory locks serialize duplicate checks |
 | **Performance** | ~4x faster (no lock contention) | Slower (lock serialization) |
-| **Behavior** | 201 CREATED for all successful requests, 409 Conflict for stale cursors | 201 CREATED for new entities, 200 OK for duplicates |
+| **Behavior** | 201 CREATED for all successful requests, 409 Conflict for stale stream positions | 201 CREATED for new entities, 200 OK for duplicates |
 | **Why Different?** | Can check "has state changed since I read?" | Cannot check prior state (entity doesn't exist yet) |
 
 **Key Insight**: StreamPosition-based checks can rely on snapshot isolation because they're checking for changes to existing state. Idempotency checks need advisory locks because they're checking for the existence of something that may not exist yet, and snapshot isolation cannot prevent the race condition in this scenario.
@@ -120,7 +120,7 @@ DCB checks are scoped to specific entities via tags:
 AppendCondition condition = AppendCondition.builder()
     .eventTypes("WalletOpened", "DepositMade", "WithdrawalMade", "MoneyTransferred")
     .tags("wallet_id", walletId)
-    .afterPosition(cursor)
+    .afterPosition(streamPosition)
     .build();
 ```
 
@@ -157,12 +157,12 @@ When querying for either wallet's state, the transfer event is included. This en
 ```http
 POST /api/wallets/w1/deposits
 {"deposit_id": "d1", "amount": 100}
-→ 201 CREATED (cursor updated to 6)
+→ 201 CREATED (stream position updated to 6)
 
-# Retry with stale cursor
+# Retry with stale stream position
 POST /api/wallets/w1/deposits  
 {"deposit_id": "d1", "amount": 100}
-→ 409 Conflict (cursor=5 is stale, now at 6)
+→ 409 Conflict (streamPosition=5 is stale, now at 6)
 
 # Client should:
 1. GET /api/wallets/w1 (read new state)
@@ -206,15 +206,15 @@ This Query is passed to `AppendConditionBuilder(decisionModel, streamPosition)` 
 
 #### 2. DCB Conflict Detection (concurrencyQuery)
 
-**DCB conflict check** verifies that no events matching the decision model appeared AFTER the cursor.
+**DCB conflict check** verifies that no events matching the decision model appeared AFTER the stream position.
 
 ```java
-// Project with cursor
+// Project with stream position
 ProjectionResult<WalletBalance> result = eventStore.project(
-    decisionModel, cursor, WalletBalance.class, List.of(projector)
+    decisionModel, streamPosition, WalletBalance.class, List.of(projector)
 );
 
-// AppendCondition checks if ANY events matching decisionModel appeared after cursor
+// AppendCondition checks if ANY events matching decisionModel appeared after stream position
 AppendCondition condition = AppendConditionBuilder.of(decisionModel, result.streamPosition())
     .build();
 
@@ -235,16 +235,16 @@ try {
 
 #### 3. Idempotency (idempotencyQuery)
 
-**Idempotency check** searches ALL events (ignores cursor) to prevent duplicate operations.
+**Idempotency check** searches ALL events (ignores stream position) to prevent duplicate operations.
 
 ```java
-AppendCondition condition = AppendConditionBuilder.of(decisionModel, cursor)
+AppendCondition condition = AppendConditionBuilder.of(decisionModel, streamPosition)
     .withIdempotencyCheck(type(WithdrawalMade.class), "withdrawal_id", withdrawalId)
     .build();
 ```
 
 **How it works:**
-- Searches ALL events in database (not just after cursor)
+- Searches ALL events in database (not just after stream position)
 - Looks for any `WithdrawalMade` event with matching `withdrawal_id` tag
 - If found → return success (idempotent - already processed)
 - If not found → insert event
@@ -264,7 +264,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         // 1. Define decision model
         Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
         
-        // 2. Project current balance with cursor
+        // 2. Project current balance with stream position
         WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
         ProjectionResult<WalletBalanceState> result = eventStore.project(
             decisionModel, StreamPosition.zero(), WalletBalanceState.class, List.of(projector)
@@ -293,7 +293,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
             .data(withdrawal)
             .build();
         
-        // 5. Build condition with cursor check
+        // 5. Build condition with streamPosition check
         AppendCondition condition = AppendConditionBuilder.of(decisionModel, result.streamPosition())
             .build();
         
@@ -307,13 +307,13 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 **Scenario 1: Normal case**
 - Read balance: $100
 - Check: balance >= $50 ✓
-- AppendIf checks: no events after cursor ✓
+- AppendIf checks: no events after stream position ✓
 - Result: withdrawal succeeds
 
 **Scenario 2: Concurrent deposit**
 - Transaction A: reads balance $100 at position 42
 - Transaction B: deposits $50 → position 43
-- Transaction A: tries to withdraw with cursor 42
+- Transaction A: tries to withdraw with stream position 42
 - AppendIf checks: found DepositMade at position 43 > 42 ✗
 - Result: ConcurrencyException → application should retry
 
@@ -335,7 +335,7 @@ StreamPosition streamPosition = StreamPosition.of(event.position(), event.occurr
 // Or use convenience methods
 StreamPosition streamPosition = StreamPosition.of(42L);  // position only
 StreamPosition streamPosition = StreamPosition.of(42L, Instant.now());  // position + timestamp
-StreamPosition streamPosition = StreamPosition.zero();  // zero cursor for empty projections
+StreamPosition streamPosition = StreamPosition.zero();  // zero stream position for empty projections
 ```
 
 ### Query Builder
@@ -411,10 +411,10 @@ Measured on this codebase:
 | History Queries | ~1000 req/s | ~60ms | Read-only operations |
 
 **Key Performance Insights:**
-- **Operations**: ~4x improvement by removing advisory locks, using cursor-only concurrency control
+- **Operations**: ~4x improvement by removing advisory locks, using streamPosition-only concurrency control
 - **Reduced Event Consumption**: Fine-grained criteria means fewer events to process for state projection
 - **Reduced Contention**: Smaller consistency boundaries reduce append conflicts
-- **Safety**: Money protected by cursor checks, no duplicate charges possible
+- **Safety**: Money protected by streamPosition checks, no duplicate charges possible
 
 ## References and Further Reading
 

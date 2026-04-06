@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration tests for EventStore query operations.
- * Tests querying with cursors, filtering, pagination, and edge cases.
+ * Tests querying with stream positions, filtering, pagination, and edge cases.
  */
 @DisplayName("EventStore Query Tests")
 @org.springframework.boot.test.context.SpringBootTest(classes = com.crablet.eventstore.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
@@ -40,7 +40,7 @@ class EventStoreQueryTest extends com.crablet.test.AbstractCrabletTest {
 
     @Test
     @DisplayName("Should query with stream position pagination")
-    void shouldQueryWithCursorPagination() {
+    void shouldQueryWithStreamPositionPagination() {
         // Given: wallet with multiple deposits
         String walletId = "query-wallet-1";
         List<AppendEvent> events = List.of(
@@ -70,14 +70,14 @@ class EventStoreQueryTest extends com.crablet.test.AbstractCrabletTest {
         
         assertThat(page1).hasSize(3);
         
-        // Get cursor from first event
+        // Get stream position from first event
         StreamPosition afterFirst = StreamPosition.of(
                 page1.get(1).position(),
                 page1.get(1).occurredAt(),
                 page1.get(1).transactionId()
         );
-        
-        // Query second page from cursor
+
+        // Query second page from stream position
         List<StoredEvent> page2 = eventRepository.query(query, afterFirst);
         
         // Then: should return remaining events
@@ -138,7 +138,7 @@ class EventStoreQueryTest extends com.crablet.test.AbstractCrabletTest {
 
     @Test
     @DisplayName("Should handle invalid stream position gracefully")
-    void shouldHandleInvalidCursorGracefully() {
+    void shouldHandleInvalidStreamPositionGracefully() {
         // Given: wallet with one event
         String walletId = "query-wallet-4";
         eventStore.appendIf(List.of(
@@ -148,16 +148,16 @@ class EventStoreQueryTest extends com.crablet.test.AbstractCrabletTest {
                         .build()
         ), AppendCondition.empty());
 
-        // When: query with cursor beyond existing events
-        StreamPosition futureCursor = StreamPosition.of(
+        // When: query with stream position beyond existing events
+        StreamPosition futureStreamPosition = StreamPosition.of(
                 999999L,
                 java.time.Instant.now(),
                 "future-tx-id"
         );
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
-        List<StoredEvent> results = eventRepository.query(query, futureCursor);
+        List<StoredEvent> results = eventRepository.query(query, futureStreamPosition);
 
-        // Then: should return empty list (no events after that cursor)
+        // Then: should return empty list (no events after that stream position)
         assertThat(results).isEmpty();
     }
 
@@ -191,15 +191,15 @@ class EventStoreQueryTest extends com.crablet.test.AbstractCrabletTest {
         // Then: should return all deposit events
         assertThat(allResults).hasSize(50);
         
-        // Verify cursor-based pagination works
+        // Verify streamPosition-based pagination works
         StreamPosition afterMidpoint = StreamPosition.of(
                 allResults.get(25).position(),
                 allResults.get(25).occurredAt(),
                 allResults.get(25).transactionId()
         );
         List<StoredEvent> secondHalf = eventRepository.query(query, afterMidpoint);
-        
-        assertThat(secondHalf).hasSize(24); // 50 total - 25 after cursor = 24 remaining
+
+        assertThat(secondHalf).hasSize(24); // 50 total - 25 after stream position = 24 remaining
     }
 
     @Test
@@ -254,7 +254,7 @@ class EventStoreQueryTest extends com.crablet.test.AbstractCrabletTest {
 
     @Test
     @DisplayName("Should project with query and stream position")
-    void shouldProjectWithQueryAndCursor() {
+    void shouldProjectWithQueryAndStreamPosition() {
         // Given: wallet with events
         String walletId = "query-wallet-7";
         eventStore.appendIf(List.of(
@@ -315,7 +315,7 @@ class EventStoreQueryTest extends com.crablet.test.AbstractCrabletTest {
 
     @Test
     @DisplayName("Should handle stream position at exact position")
-    void shouldHandleCursorAtExactPosition() {
+    void shouldHandleStreamPositionAtExactPosition() {
         // Given: wallet with multiple events
         String walletId = "query-wallet-8";
         eventStore.appendIf(List.of(
@@ -343,21 +343,21 @@ class EventStoreQueryTest extends com.crablet.test.AbstractCrabletTest {
         List<StoredEvent> allEvents = eventRepository.query(query, null);
         assertThat(allEvents).hasSize(3);
 
-        // Use cursor at second event position
-        StreamPosition cursorAtSecond = StreamPosition.of(
+        // Use stream position at second event position
+        StreamPosition streamPositionAtSecond = StreamPosition.of(
                 allEvents.get(1).position(),
                 allEvents.get(1).occurredAt(),
                 allEvents.get(1).transactionId()
         );
-        
-        // Query from that cursor
-        List<StoredEvent> afterSecond = eventRepository.query(query, cursorAtSecond);
+
+        // Query from that stream position
+        List<StoredEvent> afterSecond = eventRepository.query(query, streamPositionAtSecond);
 
         // Then: should return events after that position
         assertThat(afterSecond).hasSize(1);
         long eventPosition = afterSecond.get(0).position();
-        long cursorPosition = cursorAtSecond.position();
-        assertThat(eventPosition).isGreaterThan(cursorPosition);
+        long streamPositionValue = streamPositionAtSecond.position();
+        assertThat(eventPosition).isGreaterThan(streamPositionValue);
     }
 }
 

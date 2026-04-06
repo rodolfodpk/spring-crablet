@@ -258,15 +258,15 @@ class TransferMoneyCommandHandlerTest extends com.crablet.test.AbstractCrabletTe
         CommandDecision.NonCommutative firstNc = (CommandDecision.NonCommutative) firstResult;
         eventStore.appendNonCommutative(firstNc.events(), firstNc.decisionModel(), firstNc.streamPosition());
 
-        // Verify: Cursor-based protection detects DECISION MODEL changes, not operation ID duplicates
-        // If client re-reads state after transfer, they get a fresh cursor
+        // Verify: StreamPosition-based protection detects DECISION MODEL changes, not operation ID duplicates
+        // If client re-reads state after transfer, they get a fresh stream position
         CommandDecision secondResult = handler.handle(eventStore, cmd);
-        
+
         // The second call succeeds because:
-        // 1. Command handler re-reads wallet state (fresh cursor)
+        // 1. Command handler re-reads wallet state (fresh stream position)
         // 2. Wallet balances are already updated from first transfer
         // 3. No idempotency check on operation ID (only on wallet creation)
-        // 4. appendIf would succeed with fresh cursor (cursor protection works correctly)
+        // 4. appendIf would succeed with fresh stream position (streamPosition protection works correctly)
         assertThat(secondResult.events()).isNotEmpty();
         assertThat(secondResult.events().get(0).type()).isEqualTo("MoneyTransferred");
     }

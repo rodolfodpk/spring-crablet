@@ -157,8 +157,8 @@ public class WalletStatementPeriodResolver {
                     WalletBalanceState.class,
                     List.of(balanceProjector)
             );
-            // If cursor advanced, events were processed
-            // Initial cursor is zero, so if result.streamPosition() is not zero, events were found
+            // If stream position advanced, events were processed
+            // Initial stream position is zero, so if result.streamPosition() is not zero, events were found
             return result.streamPosition().position() > 0;
         } catch (EventStoreException e) {
             log.debug("Projection failed for period closed check, assuming not closed: {}", e.getMessage());

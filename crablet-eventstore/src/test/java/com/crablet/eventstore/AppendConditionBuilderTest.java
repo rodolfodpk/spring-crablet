@@ -22,7 +22,7 @@ class AppendConditionBuilderTest {
 
     @Test
     @DisplayName("Should build AppendCondition with stream position and decision model")
-    void shouldBuildAppendConditionWithCursorAndDecisionModel() {
+    void shouldBuildAppendConditionWithStreamPositionAndDecisionModel() {
         // Given
         StreamPosition streamPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
         Query decisionModel = Query.empty();
@@ -130,7 +130,7 @@ class AppendConditionBuilderTest {
 
     @Test
     @DisplayName("Should handle null stream position")
-    void shouldHandleNullCursor() {
+    void shouldHandleNullStreamPosition() {
         // Given
         Query decisionModel = Query.empty();
 

@@ -239,7 +239,7 @@ All operations are atomic:
 This ensures that:
 - Queries and appends are consistent (no race conditions between read and write)
 - Command and events are stored together (no orphaned commands)
-- DCB concurrency checks work correctly (cursor position is consistent with appended events)
+- DCB concurrency checks work correctly (stream position is consistent with appended events)
 
 ## Command Patterns
 

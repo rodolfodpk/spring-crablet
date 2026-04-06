@@ -181,7 +181,7 @@ Or on conflict/duplicate:
 
 **Why Advisory Locks Are Needed for Idempotency:**
 
-Unlike cursor-based concurrency checks, idempotency checks cannot rely on PostgreSQL's snapshot isolation because there's no prior state (cursor) to check against. The race condition occurs when:
+Unlike streamPosition-based concurrency checks, idempotency checks cannot rely on PostgreSQL's snapshot isolation because there's no prior state (stream position) to check against. The race condition occurs when:
 
 1. Transaction A checks "does entity exist?" → No → Proceeds to create
 2. Transaction B checks "does entity exist?" → No (A hasn't committed yet) → Also proceeds to create
@@ -190,17 +190,17 @@ Unlike cursor-based concurrency checks, idempotency checks cannot rely on Postgr
 Snapshot isolation doesn't help here because both transactions see the same "entity doesn't exist" state. Advisory locks serialize the duplicate check, ensuring only one transaction can check "does entity exist?" at a time, preventing both from seeing "no duplicate" simultaneously.
 
 **StreamPosition-Based Checks Don't Need Locks:**
-- StreamPosition-based checks query "has anything changed AFTER cursor position X?"
+- StreamPosition-based checks query "has anything changed AFTER stream position X?"
 - Snapshot isolation handles this: if transaction A writes at position 43, transaction B will see position 43 when it tries to write and detect the conflict
 - No advisory locks needed - PostgreSQL's MVCC (Multi-Version Concurrency Control) provides the protection
 
 **Concurrency Check:**
-- Checks events AFTER cursor position
+- Checks events AFTER stream position
 - Only sees snapshot-visible committed events
 - Used by DCB for optimistic locking
 
 **Idempotency Check:**
-- Checks ALL events (ignores cursor)
+- Checks ALL events (ignores stream position)
 - Finds duplicate operations by operation ID tags
 - Example: checking if `withdrawal_id:456` already exists
 

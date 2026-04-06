@@ -20,7 +20,7 @@
 
 ## Overview
 
-This guide explains when to use DCB cursor checks and when operations can run without them. Understanding the difference between **commutative** and **non-commutative** operations is key to proper DCB implementation.
+This guide explains when to use DCB streamPosition checks and when operations can run without them. Understanding the difference between **commutative** and **non-commutative** operations is key to proper DCB implementation.
 
 **Note:** Command handlers return `CommandResult`. The `CommandExecutor` automatically calls `appendIf()` with the events and condition from the result.
 
@@ -68,7 +68,7 @@ Operations where order matters - final result depends on execution order (e.g., 
 
 **Use case:** Creating new entities with uniqueness requirements (e.g., OpenWallet).
 
-**Why idempotency check needed:** No prior state exists, so cursor check isn't possible. Advisory locks prevent duplicate creation.
+**Why idempotency check needed:** No prior state exists, so streamPosition check isn't possible. Advisory locks prevent duplicate creation.
 
 ```java
 @Component
@@ -94,14 +94,14 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
 
 **Key Points:**
 - ✅ Uses `AppendCondition.idempotent()` for uniqueness
-- ✅ No cursor check (no prior state)
+- ✅ No streamPosition check (no prior state)
 - ✅ Idempotent: can run multiple times safely
 
 ### Pattern 2: Commutative Operations
 
 **Use case:** Operations where order doesn't matter (e.g., Deposit).
 
-**Why no cursor needed:** Commutative operations don't conflict - parallel operations produce same result regardless of order.
+**Why no streamPosition needed:** Commutative operations don't conflict - parallel operations produce same result regardless of order.
 
 ```java
 @Component
@@ -139,14 +139,14 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
 
 **Key Points:**
 - ✅ Commutative: +$10 then +$20 = +$20 then +$10
-- ✅ No cursor check: parallel deposits don't conflict
+- ✅ No streamPosition check: parallel deposits don't conflict
 - ✅ Optional `deposit_id` tag for application-level idempotency
 
 ### Pattern 3: Non-Commutative Operations
 
 **Use case:** Operations where order matters (e.g., Withdraw, Transfer).
 
-**Why cursor needed:** Prevents race conditions. Concurrent operations on same resource must be serialized.
+**Why streamPosition needed:** Prevents race conditions. Concurrent operations on same resource must be serialized.
 
 #### Withdraw Example
 
@@ -191,7 +191,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 
 #### Transfer Example
 
-Transfers affect two wallets and require cursor checks for both:
+Transfers affect two wallets and require streamPosition checks for both:
 
 ```java
 @Component
@@ -236,14 +236,14 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 
 ### Use `AppendCondition.idempotent()` When:
 - ✅ Creating new entities with uniqueness requirements
-- ✅ No prior state exists to read cursor from
+- ✅ No prior state exists to read stream position from
 - ✅ Need to prevent duplicates atomically
 
 **Why Advisory Locks Are Required:**
 
-Idempotency checks use PostgreSQL advisory locks to prevent race conditions when checking for duplicate entities. Unlike cursor-based checks, idempotency checks cannot rely on snapshot isolation because there's no prior state (cursor) to check against.
+Idempotency checks use PostgreSQL advisory locks to prevent race conditions when checking for duplicate entities. Unlike streamPosition-based checks, idempotency checks cannot rely on snapshot isolation because there's no prior state (stream position) to check against.
 
-**Performance:** ~4x slower than cursor-based checks (due to advisory locks), but necessary for uniqueness.
+**Performance:** ~4x slower than streamPosition-based checks (due to advisory locks), but necessary for uniqueness.
 
 ### Use `AppendCondition.empty()` When:
 - ✅ Operation is **commutative** (order doesn't affect final result)
@@ -266,7 +266,7 @@ Operation IDs like `deposit_id`, `withdrawal_id`, and `transfer_id` are **option
 
 **When not needed:**
 - When operations are commutative by design
-- When you rely on DCB cursor checks for concurrency control
+- When you rely on DCB streamPosition checks for concurrency control
 
 **Note:** These are different from DCB's `AppendCondition.idempotent()`, which is an atomic database-level check for entity uniqueness.
 
@@ -283,9 +283,9 @@ AppendCondition condition = AppendCondition.empty();
 AppendCondition condition = AppendCondition.idempotent(type(WalletOpened.class), WALLET_ID, walletId);
 ```
 
-❌ **Using cursor for deposits:**
+❌ **Using streamPosition for deposits:**
 ```java
-// WRONG: Deposits don't need cursor check
+// WRONG: Deposits don't need streamPosition check
 AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.streamPosition()).build();
 ```
 
@@ -295,9 +295,9 @@ AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.
 AppendCondition condition = AppendCondition.empty();
 ```
 
-❌ **Not using cursor for withdrawals:**
+❌ **Not using streamPosition for withdrawals:**
 ```java
-// WRONG: Withdrawals need cursor to prevent overdrafts
+// WRONG: Withdrawals need streamPosition to prevent overdrafts
 AppendCondition condition = AppendCondition.empty();
 ```
 

@@ -15,7 +15,7 @@ Crablet EventStore is an event sourcing framework with DCB (Dynamic Consistency 
 ## Features
 
 - **Event Store Interface**: Simple, idiomatic event sourcing API
-- **DCB**: Optimistic concurrency control using cursors
+- **DCB**: Optimistic concurrency control using stream positions
 - **Flexible Querying**: Tag-based event querying and filtering
 - **State Projection**: Built-in support for projecting current state from events
 - **Spring Integration**: Ready-to-use Spring Boot components and configuration
@@ -193,13 +193,13 @@ public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
 ```
 
 **Key points:**
-- No decision model or cursor needed
+- No decision model or stream position needed
 - `AppendCondition.idempotent()` enforces uniqueness: fails if `WALLET_OPENED` exists for this `wallet_id`
 - Optimistic: creates event first, checks atomically via `appendIf`
 
 ### Example 2: Concurrency Control (Withdraw)
 
-Prevents concurrent balance modifications using cursor-based conflict detection:
+Prevents concurrent balance modifications using streamPosition-based conflict detection:
 
 ```java
 @Override
@@ -241,9 +241,9 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
             .data(withdrawal)
             .build();
 
-    // Build condition: decision model only (cursor-based concurrency control)
+    // Build condition: decision model only (streamPosition-based concurrency control)
     // DCB Principle: StreamPosition check prevents duplicate charges
-    // Note: No idempotency check - cursor advancement detects if operation already succeeded
+    // Note: No idempotency check - streamPosition advancement detects if operation already succeeded
     AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.streamPosition())
             .build();
 
@@ -260,7 +260,7 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
 - Decision Model: Query for balance-affecting events (`WalletOpened`, `DepositMade`, `WithdrawalMade`)
 - StreamPosition checks if balance changed concurrently → throws `ConcurrencyException` (application layer handles retry if needed)
 - Business validation: checks sufficient funds before creating event
-- No explicit idempotency check (cursor advancement detects duplicates)
+- No explicit idempotency check (streamPosition advancement detects duplicates)
 
 ## Learn More
 

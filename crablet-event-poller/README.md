@@ -149,7 +149,7 @@ public class MyEventFetcher implements EventFetcher<String> {
         // Note: EventRepository.query() doesn't support batch size limit, so we fetch and limit manually
         // For production, consider using direct SQL like OutboxEventFetcher/ViewEventFetcher do
         StreamPosition streamPosition = lastPosition > 0 ? StreamPosition.of(lastPosition) : StreamPosition.zero();
-        List<StoredEvent> events = eventRepository.query(query, cursor);
+        List<StoredEvent> events = eventRepository.query(query, streamPosition);
         // Limit to batch size
         return events.stream().limit(batchSize).toList();
     }

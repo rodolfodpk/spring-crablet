@@ -112,7 +112,7 @@ boolean exists = eventStore.project(
 
 `StateProjector.exists(eventTypes...)` is a built-in factory that returns a projector yielding `true` on the first matching event — no boilerplate class needed.
 
-`StreamPosition.zero()` means "start from the beginning of the event log". `ProjectionResult` carries both the projected state and a cursor pointing to the last event that was read. You will use that cursor in Part 3.
+`StreamPosition.zero()` means "start from the beginning of the event log". `ProjectionResult` carries both the projected state and a stream position pointing to the last event that was read. You will use that stream position in Part 3.
 
 > **Key insight.** `appendIf` never modifies existing data — it only appends. If you need to change the title of a talk, you append a `TalkTitleUpdated` event and project the latest title from the event sequence. The database table is an append-only log.
 
@@ -203,7 +203,7 @@ TalkState state = result.state();
 StreamPosition streamPosition = result.streamPosition(); // position of the last event read
 ```
 
-The `cursor` field answers the question: "up to which event in the log did this projection read?" That answer is what makes concurrent writes safe — as you will see in the next part.
+The `streamPosition` field answers the question: "up to which event in the log did this projection read?" That answer is what makes concurrent writes safe — as you will see in the next part.
 
 > **Key insight.** State is always derived, never stored independently. The event log is the source of truth. `result.streamPosition()` is the receipt for the version of reality you read — you will hand it back to the store when you write.
 
@@ -237,7 +237,7 @@ eventStore.appendIf(                     eventStore.appendIf(
 
 The bug is `AppendCondition.empty()`. It tells the store "do not check for conflicts". Both writes succeed independently because neither knows the other is happening.
 
-### The fix: capture the cursor, check it on write
+### The fix: capture the stream position, check it on write
 
 The `AppendConditionBuilder` links the write to the version of reality that was read:
 
@@ -260,7 +260,7 @@ AppendCondition condition = AppendConditionBuilder.of(conferenceQuery, result.st
 eventStore.appendIf(List.of(acceptTalk3), condition);
 ```
 
-The check is atomic at the database level (implemented as a PostgreSQL stored function using advisory locks). Thread B's write will find that Thread A's `TalkAccepted` event now exists past Thread B's cursor, and will throw `ConcurrencyException`. The losing thread can retry from scratch: it will re-project, find 2 accepted talks, fail the capacity check, and correctly throw `ConferenceFullException`.
+The check is atomic at the database level (implemented as a PostgreSQL stored function using advisory locks). Thread B's write will find that Thread A's `TalkAccepted` event now exists past Thread B's stream position, and will throw `ConcurrencyException`. The losing thread can retry from scratch: it will re-project, find 2 accepted talks, fail the capacity check, and correctly throw `ConferenceFullException`.
 
 The `ConferenceStateProjector` counts `TalkAccepted` events across all talks — there is no per-talk stream boundary:
 
@@ -296,11 +296,11 @@ var conferenceQuery = QueryBuilder.builder()
     .build();
 ```
 
-This is the DCB insight: consistency boundaries are defined by the query, not by a fixed stream per entity. The conference capacity invariant requires reading across all talks, and the cursor-based check enforces it.
+This is the DCB insight: consistency boundaries are defined by the query, not by a fixed stream per entity. The conference capacity invariant requires reading across all talks, and the streamPosition-based check enforces it.
 
 ### Three patterns, one table
 
-Not every command needs a cursor-based check. Choose the pattern that matches the semantics of the operation:
+Not every command needs a streamPosition-based check. Choose the pattern that matches the semantics of the operation:
 
 | Pattern | When to use | Code |
 |---------|-------------|------|
@@ -310,7 +310,7 @@ Not every command needs a cursor-based check. Choose the pattern that matches th
 
 **Empty** is appropriate when the operation is order-independent. Submitting two different talks simultaneously does not cause a conflict regardless of ordering.
 
-**Idempotency check** is for creation events. Rather than projecting state to check for existence (which requires a cursor-based check to be safe), you declare "fail if any event of this type with this tag already exists." The store checks this atomically. There is no state projection needed — the constraint is structural.
+**Idempotency check** is for creation events. Rather than projecting state to check for existence (which requires a streamPosition-based check to be safe), you declare "fail if any event of this type with this tag already exists." The store checks this atomically. There is no state projection needed — the constraint is structural.
 
 ```java
 // Prevent duplicate submission of the same submissionId
@@ -319,7 +319,7 @@ AppendCondition condition = AppendCondition.idempotent(type(TalkSubmitted.class)
 
 **StreamPosition-based** is for anything where the decision depends on the current state and another concurrent writer could invalidate that decision. The accept-with-capacity-check is the canonical example.
 
-> **Key insight.** DCB does not use distributed locks. The cursor is a "read version" — the position of the last event you read. If anything matching your decision model query has been written between your read and your write, the store rejects the write. You retry with a fresh projection. This is optimistic concurrency: assume no conflict, detect if one occurred.
+> **Key insight.** DCB does not use distributed locks. The stream position is a "read version" — the position of the last event you read. If anything matching your decision model query has been written between your read and your write, the store rejects the write. You retry with a fresh projection. This is optimistic concurrency: assume no conflict, detect if one occurred.
 
 ---
 
@@ -380,9 +380,9 @@ public class SubmitTalkCommandHandler implements CommandHandler<SubmitTalkComman
 }
 ```
 
-### AcceptTalkCommandHandler — cursor-based DCB pattern
+### AcceptTalkCommandHandler — streamPosition-based DCB pattern
 
-This handler must enforce two invariants simultaneously: the talk must be in PENDING status, and the conference must not be at capacity. The capacity invariant is enforced with a cursor-based check.
+This handler must enforce two invariants simultaneously: the talk must be in PENDING status, and the conference must not be at capacity. The capacity invariant is enforced with a streamPosition-based check.
 
 ```java
 import com.crablet.command.CommandHandler;
@@ -1082,7 +1082,7 @@ DCB violations are only testable at the integration level. This is intentional: 
 With all eight parts covered, you have seen every major framework feature:
 
 - **EventStore** (`appendIf`, `project`) — the append-only log and state reconstruction
-- **AppendCondition** — three patterns for three situations (empty, idempotency, cursor-based)
+- **AppendCondition** — three patterns for three situations (empty, idempotency, streamPosition-based)
 - **CommandHandler + CommandExecutor** — transactional command execution with automatic audit
 - **AutomationHandler + AutomationSubscription** — async command chains with at-least-once delivery
 - **AbstractTypedViewProjector + ViewSubscription** — materialized read models

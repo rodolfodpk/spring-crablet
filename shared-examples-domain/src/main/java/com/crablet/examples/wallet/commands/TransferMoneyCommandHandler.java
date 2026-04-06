@@ -35,7 +35,7 @@ import static com.crablet.examples.wallet.WalletTags.TRANSFER_ID;
  * Command handler for transferring money between wallets.
  * <p>
  * DCB Principle: Non-commutative operation — order matters for both wallet balances.
- * Cursor-based DCB check prevents concurrent transfers from causing overdrafts.
+ * StreamPosition-based DCB check prevents concurrent transfers from causing overdrafts.
  */
 @Component
 public class TransferMoneyCommandHandler implements NonCommutativeCommandHandler<TransferMoneyCommand> {
