@@ -26,7 +26,16 @@ public interface CommutativeCommandHandler<C> extends CommandHandler<C> {
      *
      * @param events the events to append
      */
-    record Decision(List<AppendEvent> events) {}
+    record Decision(List<AppendEvent> events) {
+        /** Single-event factory — the common case. */
+        public static Decision of(AppendEvent event) {
+            return new Decision(List.of(event));
+        }
+        /** Multi-event factory. */
+        public static Decision of(AppendEvent... events) {
+            return new Decision(List.of(events));
+        }
+    }
 
     /**
      * Handle the command and return the events to append.

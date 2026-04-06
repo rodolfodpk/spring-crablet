@@ -22,7 +22,7 @@ public class CourseQueryPatterns {
      * - Student-side: checks student subscription count and duplicate subscriptions
      */
     public static Query subscriptionDecisionModel(String courseId, String studentId) {
-        return QueryBuilder.create()
+        return QueryBuilder.builder()
                 // Course-side: course definition and capacity changes
                 .events(type(CourseDefined.class), type(CourseCapacityChanged.class))
                 .tag(COURSE_ID, courseId)
@@ -38,7 +38,7 @@ public class CourseQueryPatterns {
      * Includes all events affecting a single course.
      */
     public static Query courseDecisionModel(String courseId) {
-        return QueryBuilder.create()
+        return QueryBuilder.builder()
                 .events(type(CourseDefined.class), type(CourseCapacityChanged.class))
                 .tag(COURSE_ID, courseId)
                 .build();

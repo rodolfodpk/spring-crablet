@@ -3,6 +3,7 @@ package com.crablet.views.integration.course;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventstore.store.EventStore;
+import com.crablet.views.ViewSubscription;
 import com.crablet.views.config.ViewsAutoConfiguration;
 import com.crablet.views.integration.AbstractViewsTest;
 import org.junit.jupiter.api.BeforeEach;
@@ -241,8 +242,8 @@ class ViewManagementServiceCourseIntegrationTest extends AbstractViewsTest {
         }
 
         @Bean
-        public com.crablet.views.config.ViewSubscriptionConfig testViewSubscription() {
-            return com.crablet.views.config.ViewSubscriptionConfig.builder("course-view")
+        public ViewSubscription testViewSubscription() {
+            return ViewSubscription.builder("course-view")
                     .eventTypes("CourseDefined", "StudentSubscribedToCourse")
                     .requiredTags("course_id")
                     .build();

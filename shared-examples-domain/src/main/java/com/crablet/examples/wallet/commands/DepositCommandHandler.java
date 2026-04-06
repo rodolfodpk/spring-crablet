@@ -64,6 +64,6 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
                 .data(deposit)
                 .build();
 
-        return new Decision(List.of(event));
+        return Decision.of(event);
     }
 }

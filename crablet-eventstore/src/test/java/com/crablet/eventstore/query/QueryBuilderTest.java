@@ -24,7 +24,7 @@ class QueryBuilderTest {
         Tag tag = new Tag("wallet_id", "w1");
 
         // When
-        Query query = QueryBuilder.create()
+        Query query = QueryBuilder.builder()
                 .matching(eventTypes, tag)
                 .build();
 
@@ -43,7 +43,7 @@ class QueryBuilderTest {
         Tag fromTag = new Tag("from_wallet_id", "w1");
 
         // When
-        Query query = QueryBuilder.create()
+        Query query = QueryBuilder.builder()
                 .matching(balanceEvents, walletTag)
                 .matching(transferEvents, fromTag)
                 .build();
@@ -65,7 +65,7 @@ class QueryBuilderTest {
         );
 
         // When
-        Query query = QueryBuilder.create()
+        Query query = QueryBuilder.builder()
                 .matching(items)
                 .build();
 
@@ -77,7 +77,7 @@ class QueryBuilderTest {
     @Test
     void shouldConvertToAppendConditionBuilder() {
         // Given
-        Query query = QueryBuilder.create()
+        Query query = QueryBuilder.builder()
                 .matching(new String[]{"WalletOpened"}, new Tag("wallet_id", "w1"))
                 .build();
         StreamPosition streamPosition = StreamPosition.zero();
@@ -92,7 +92,7 @@ class QueryBuilderTest {
     @Test
     void shouldBuildAppendConditionWithIdempotencyCheck() {
         // Given
-        Query decisionModel = QueryBuilder.create()
+        Query decisionModel = QueryBuilder.builder()
                 .matching(new String[]{"WalletOpened", "DepositMade"}, new Tag("wallet_id", "w1"))
                 .build();
         StreamPosition streamPosition = StreamPosition.zero();
@@ -124,7 +124,7 @@ class QueryBuilderTest {
     @Test
     void shouldCreateEmptyQuery() {
         // When
-        Query query = QueryBuilder.create().build();
+        Query query = QueryBuilder.builder().build();
 
         // Then
         assertThat(query.items()).isEmpty();
@@ -141,7 +141,7 @@ class QueryBuilderTest {
         Tag tag3 = new Tag("k3", "v3");
 
         // When
-        Query query = QueryBuilder.create()
+        Query query = QueryBuilder.builder()
                 .matching(event1, tag1)
                 .matching(event2, tag2)
                 .matching(event3, tag3)
@@ -156,7 +156,7 @@ class QueryBuilderTest {
     @Test
     void shouldCreateQueryWithNewEventMethod() {
         // When
-        Query query = QueryBuilder.create()
+        Query query = QueryBuilder.builder()
                 .event("WalletOpened", "wallet_id", "w1")
                 .build();
 
@@ -169,7 +169,7 @@ class QueryBuilderTest {
     @Test
     void shouldCreateQueryWithNewEventsMethod() {
         // When
-        Query query = QueryBuilder.create()
+        Query query = QueryBuilder.builder()
                 .events("WalletOpened", "DepositMade", "WithdrawalMade")
                 .tag("wallet_id", "w1")
                 .build();
@@ -184,7 +184,7 @@ class QueryBuilderTest {
     @Test
     void shouldChainEventsWithMultipleTags() {
         // When
-        Query query = QueryBuilder.create()
+        Query query = QueryBuilder.builder()
                 .events("Event1", "Event2")
                 .tags(QueryBuilder.tag("tag1", "val1"), QueryBuilder.tag("tag2", "val2"))
                 .build();
@@ -201,7 +201,7 @@ class QueryBuilderTest {
     @Test
     void shouldMixOldAndNewDSLMethods() {
         // When
-        Query query = QueryBuilder.create()
+        Query query = QueryBuilder.builder()
                 .event("WalletOpened", "wallet_id", "w1")
                 .events("DepositMade", "WithdrawalMade").tag("wallet_id", "w1")
                 .matching(new String[]{"MoneyTransferred"}, new Tag("from_wallet_id", "w1"))
@@ -226,7 +226,7 @@ class QueryBuilderTest {
     @Test
     void shouldCreateComplexWalletQueryWithNewDSL() {
         // When - simulating WalletQueryPatterns.singleWalletDecisionModel
-        Query query = QueryBuilder.create()
+        Query query = QueryBuilder.builder()
                 .events("WalletOpened", "DepositMade", "WithdrawalMade").tag("wallet_id", "w1")
                 .event("MoneyTransferred", "from_wallet_id", "w1")
                 .event("MoneyTransferred", "to_wallet_id", "w1")
@@ -265,7 +265,7 @@ class QueryBuilderTest {
         StreamPosition streamPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
 
         // When
-        AppendConditionBuilder builder = QueryBuilder.create()
+        AppendConditionBuilder builder = QueryBuilder.builder()
                 .matching(new String[]{"WalletOpened"}, new Tag("wallet_id", "w1"))
                 .toAppendCondition(streamPosition);
 

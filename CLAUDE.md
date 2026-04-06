@@ -35,7 +35,7 @@ public class YourCommandHandler implements NonCommutativeCommandHandler<YourComm
             .build();
 
         // 4. Return decision — CommandExecutor calls appendNonCommutative automatically
-        return new Decision(List.of(appendEvent), decisionModel, projection.streamPosition());
+        return Decision.of(appendEvent, decisionModel, projection.streamPosition());
     }
 }
 ```
@@ -48,7 +48,7 @@ public class YourCommandHandler implements CommutativeCommandHandler<YourCommand
     @Override
     public Decision decide(EventStore eventStore, YourCommand command) {
         // project state, validate, generate event ...
-        return new Decision(List.of(appendEvent));
+        return Decision.of(appendEvent);
     }
 }
 ```
@@ -61,7 +61,7 @@ public class YourCommandHandler implements IdempotentCommandHandler<YourCommand>
     @Override
     public Decision decide(EventStore eventStore, YourCommand command) {
         // generate event ...
-        return new Decision(List.of(appendEvent), type(YourEvent.class), TAG_KEY, command.entityId());
+        return Decision.of(appendEvent, type(YourEvent.class), TAG_KEY, command.entityId());
     }
 }
 ```

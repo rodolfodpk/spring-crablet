@@ -31,7 +31,12 @@ public interface NonCommutativeCommandHandler<C> extends CommandHandler<C> {
      * @param decisionModel the query used to build the decision model (same query used for projection)
      * @param streamPosition        the stream position captured from the projection result
      */
-    record Decision(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {}
+    record Decision(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {
+        /** Single-event factory — the common case. */
+        public static Decision of(AppendEvent event, Query decisionModel, StreamPosition streamPosition) {
+            return new Decision(List.of(event), decisionModel, streamPosition);
+        }
+    }
 
     /**
      * Handle the command and return the events plus DCB concurrency inputs.

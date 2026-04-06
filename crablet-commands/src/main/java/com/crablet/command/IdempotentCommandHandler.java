@@ -28,7 +28,12 @@ public interface IdempotentCommandHandler<C> extends CommandHandler<C> {
      * @param tagKey     the tag key used for the idempotency check
      * @param tagValue   the tag value used for the idempotency check
      */
-    record Decision(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {}
+    record Decision(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {
+        /** Single-event factory — the common case. */
+        public static Decision of(AppendEvent event, String eventType, String tagKey, String tagValue) {
+            return new Decision(List.of(event), eventType, tagKey, tagValue);
+        }
+    }
 
     /**
      * Handle the command and return the events plus idempotency tag information.

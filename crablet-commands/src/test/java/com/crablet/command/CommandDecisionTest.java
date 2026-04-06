@@ -111,9 +111,9 @@ class CommandDecisionTest {
     }
 
     @Test
-    @DisplayName("Empty.noReason() should set reason to null")
+    @DisplayName("NoOp.empty() should set reason to null")
     void empty_NoReason_ShouldSetReasonToNull() {
-        CommandDecision.NoOp result = CommandDecision.NoOp.noReason();
+        CommandDecision.NoOp result = CommandDecision.NoOp.empty();
 
         assertThat(result.reason()).isNull();
         assertThat(result.events()).isEmpty();
@@ -135,7 +135,7 @@ class CommandDecisionTest {
         CommandDecision commutative = new CommandDecision.Commutative(List.of());
         CommandDecision nonCommutative = new CommandDecision.NonCommutative(List.of(), Query.empty(), StreamPosition.zero());
         CommandDecision idempotent = new CommandDecision.Idempotent(List.of(), "T", "k", "v");
-        CommandDecision empty = CommandDecision.NoOp.noReason();
+        CommandDecision empty = CommandDecision.NoOp.empty();
 
         for (CommandDecision result : List.of(commutative, nonCommutative, idempotent, empty)) {
             String label = switch (result) {

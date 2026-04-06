@@ -10,7 +10,7 @@ import com.crablet.eventstore.store.EventStoreConfig;
 import com.crablet.eventstore.store.EventStoreImpl;
 import com.crablet.views.config.ViewsAutoConfiguration;
 import com.crablet.views.config.ViewsConfig;
-import com.crablet.views.config.ViewSubscriptionConfig;
+import com.crablet.views.ViewSubscription;
 import com.crablet.views.integration.AbstractViewsTest;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
@@ -255,8 +255,8 @@ class ViewManagementServiceWalletIntegrationTest extends AbstractViewsTest {
         }
 
         @Bean
-        public ViewSubscriptionConfig testViewSubscription() {
-            return ViewSubscriptionConfig.builder("wallet-view")
+        public ViewSubscription testViewSubscription() {
+            return ViewSubscription.builder("wallet-view")
                     .eventTypes("WalletOpened", "DepositMade")
                     .requiredTags("wallet_id")
                     .build();

@@ -46,7 +46,7 @@ class CommandExecutorImplIdempotentTest extends AbstractCommandTest {
     void executeCommand_WithEmptyResultWithoutReason_ShouldReturnIdempotent() {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
-        CommandDecision emptyResult = CommandDecision.NoOp.noReason();
+        CommandDecision emptyResult = CommandDecision.NoOp.empty();
 
         TestCommandHandler.setHandlerLogic(cmd -> emptyResult);
 

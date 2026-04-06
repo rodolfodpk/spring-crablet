@@ -5,7 +5,7 @@ import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.views.ViewSubscription;
 import com.crablet.views.adapter.ViewEventFetcher;
-import com.crablet.views.config.ViewSubscriptionConfig;
+import com.crablet.views.ViewSubscription;
 import com.crablet.views.integration.AbstractViewsTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -373,14 +373,14 @@ class ViewEventFetcherWalletIntegrationTest extends AbstractViewsTest {
             Map<String, ViewSubscription> subscriptions = new HashMap<>();
             
             // Wallet view subscription - matches WalletOpened, DepositMade, WithdrawalMade
-            subscriptions.put("wallet-view", ViewSubscriptionConfig.builder("wallet-view")
+            subscriptions.put("wallet-view", ViewSubscription.builder("wallet-view")
                 .eventTypes("WalletOpened", "DepositMade", "WithdrawalMade")
                 .requiredTags("wallet_id")
                 .build());
             
             // Wallet any view subscription - matches events with wallet_id OR from_wallet_id OR to_wallet_id tags
             // Note: This subscription doesn't filter by event type, only by tags
-            subscriptions.put("wallet-any-view", ViewSubscriptionConfig.builder("wallet-any-view")
+            subscriptions.put("wallet-any-view", ViewSubscription.builder("wallet-any-view")
                 .anyOfTags("wallet_id", "from_wallet_id", "to_wallet_id")
                 .build());
             

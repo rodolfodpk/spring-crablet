@@ -51,7 +51,7 @@ class CommandExecutorImplErrorHandlingTest extends AbstractCommandTest {
         // Arrange - command with empty string commandType
         TestCommand command = new TestCommand("", "entity-123");
         TestCommandHandler handler = new TestCommandHandler();
-        TestCommandHandler.setHandlerLogic(cmd -> CommandDecision.NoOp.noReason());
+        TestCommandHandler.setHandlerLogic(cmd -> CommandDecision.NoOp.empty());
 
         // Act & Assert - use 2-arg version to test the empty commandType validation (line 205-209)
         assertThat(commandExecutor).isInstanceOf(CommandExecutorImpl.class);

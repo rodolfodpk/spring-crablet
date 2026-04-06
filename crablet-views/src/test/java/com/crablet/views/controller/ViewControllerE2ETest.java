@@ -2,6 +2,7 @@ package com.crablet.views.controller;
 
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventstore.store.EventStore;
+import com.crablet.views.ViewSubscription;
 import com.crablet.views.adapter.ViewProcessorConfig;
 import com.crablet.views.config.ViewsAutoConfiguration;
 import com.crablet.views.integration.AbstractViewsTest;
@@ -293,8 +294,8 @@ class ViewControllerE2ETest extends AbstractViewsTest {
         }
 
         @Bean
-        public com.crablet.views.config.ViewSubscriptionConfig testViewSubscription() {
-            return com.crablet.views.config.ViewSubscriptionConfig.builder("wallet-view")
+        public ViewSubscription testViewSubscription() {
+            return ViewSubscription.builder("wallet-view")
                     .eventTypes("WalletOpened", "DepositMade")
                     .requiredTags("wallet_id")
                     .build();

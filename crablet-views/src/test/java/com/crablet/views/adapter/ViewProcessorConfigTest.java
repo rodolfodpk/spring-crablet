@@ -1,7 +1,7 @@
 package com.crablet.views.adapter;
 
 import com.crablet.views.ViewSubscription;
-import com.crablet.views.config.ViewSubscriptionConfig;
+import com.crablet.views.ViewSubscription;
 import com.crablet.views.config.ViewsConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,7 +23,7 @@ class ViewProcessorConfigTest {
     void shouldCreateConfig_WithViewName() {
         // Given
         ViewsConfig viewsConfig = createDefaultViewsConfig();
-        ViewSubscriptionConfig subscriptionConfig = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription subscriptionConfig = ViewSubscription.builder("wallet-view")
                 .build();
 
         // When
@@ -39,7 +39,7 @@ class ViewProcessorConfigTest {
         // Given
         ViewsConfig viewsConfig = createDefaultViewsConfig();
         viewsConfig.setPollingIntervalMs(2000L);
-        ViewSubscriptionConfig subscriptionConfig = ViewSubscriptionConfig.builder("wallet-view").build();
+        ViewSubscription subscriptionConfig = ViewSubscription.builder("wallet-view").build();
 
         // When
         ViewProcessorConfig config = new ViewProcessorConfig("wallet-view", viewsConfig, subscriptionConfig);
@@ -54,7 +54,7 @@ class ViewProcessorConfigTest {
         // Given
         ViewsConfig viewsConfig = createDefaultViewsConfig();
         viewsConfig.setBatchSize(50);
-        ViewSubscriptionConfig subscriptionConfig = ViewSubscriptionConfig.builder("wallet-view").build();
+        ViewSubscription subscriptionConfig = ViewSubscription.builder("wallet-view").build();
 
         // When
         ViewProcessorConfig config = new ViewProcessorConfig("wallet-view", viewsConfig, subscriptionConfig);
@@ -68,7 +68,7 @@ class ViewProcessorConfigTest {
     void shouldAlwaysReturnTrue_ForIsBackoffEnabled() {
         // Given
         ViewsConfig viewsConfig = createDefaultViewsConfig();
-        ViewSubscriptionConfig subscriptionConfig = ViewSubscriptionConfig.builder("wallet-view").build();
+        ViewSubscription subscriptionConfig = ViewSubscription.builder("wallet-view").build();
 
         // When
         ViewProcessorConfig config = new ViewProcessorConfig("wallet-view", viewsConfig, subscriptionConfig);
@@ -83,7 +83,7 @@ class ViewProcessorConfigTest {
         // Given
         ViewsConfig viewsConfig = createDefaultViewsConfig();
         viewsConfig.setBackoffThreshold(5);
-        ViewSubscriptionConfig subscriptionConfig = ViewSubscriptionConfig.builder("wallet-view").build();
+        ViewSubscription subscriptionConfig = ViewSubscription.builder("wallet-view").build();
 
         // When
         ViewProcessorConfig config = new ViewProcessorConfig("wallet-view", viewsConfig, subscriptionConfig);
@@ -98,7 +98,7 @@ class ViewProcessorConfigTest {
         // Given
         ViewsConfig viewsConfig = createDefaultViewsConfig();
         viewsConfig.setBackoffMultiplier(3);
-        ViewSubscriptionConfig subscriptionConfig = ViewSubscriptionConfig.builder("wallet-view").build();
+        ViewSubscription subscriptionConfig = ViewSubscription.builder("wallet-view").build();
 
         // When
         ViewProcessorConfig config = new ViewProcessorConfig("wallet-view", viewsConfig, subscriptionConfig);
@@ -113,7 +113,7 @@ class ViewProcessorConfigTest {
         // Given
         ViewsConfig viewsConfig = createDefaultViewsConfig();
         viewsConfig.setMaxBackoffSeconds(120);
-        ViewSubscriptionConfig subscriptionConfig = ViewSubscriptionConfig.builder("wallet-view").build();
+        ViewSubscription subscriptionConfig = ViewSubscription.builder("wallet-view").build();
 
         // When
         ViewProcessorConfig config = new ViewProcessorConfig("wallet-view", viewsConfig, subscriptionConfig);
@@ -128,7 +128,7 @@ class ViewProcessorConfigTest {
         // Given
         ViewsConfig viewsConfig = createDefaultViewsConfig();
         viewsConfig.setEnabled(true);
-        ViewSubscriptionConfig subscriptionConfig = ViewSubscriptionConfig.builder("wallet-view").build();
+        ViewSubscription subscriptionConfig = ViewSubscription.builder("wallet-view").build();
 
         // When
         ViewProcessorConfig config = new ViewProcessorConfig("wallet-view", viewsConfig, subscriptionConfig);
@@ -142,7 +142,7 @@ class ViewProcessorConfigTest {
     void shouldReturnSubscriptionConfig() {
         // Given
         ViewsConfig viewsConfig = createDefaultViewsConfig();
-        ViewSubscriptionConfig subscriptionConfig = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription subscriptionConfig = ViewSubscription.builder("wallet-view")
                 .eventTypes("WalletOpened", "DepositMade")
                 .build();
 
@@ -159,8 +159,8 @@ class ViewProcessorConfigTest {
         // Given
         ViewsConfig viewsConfig = createDefaultViewsConfig();
         Map<String, ViewSubscription> subscriptions = new HashMap<>();
-        subscriptions.put("wallet-view", ViewSubscriptionConfig.builder("wallet-view").build());
-        subscriptions.put("order-view", ViewSubscriptionConfig.builder("order-view").build());
+        subscriptions.put("wallet-view", ViewSubscription.builder("wallet-view").build());
+        subscriptions.put("order-view", ViewSubscription.builder("order-view").build());
 
         // When
         Map<String, ViewProcessorConfig> configs = ViewProcessorConfig.createConfigMap(viewsConfig, subscriptions);
@@ -195,7 +195,7 @@ class ViewProcessorConfigTest {
         viewsConfig.setPollingIntervalMs(2000L);
         viewsConfig.setBatchSize(50);
         Map<String, ViewSubscription> subscriptions = new HashMap<>();
-        subscriptions.put("wallet-view", ViewSubscriptionConfig.builder("wallet-view").build());
+        subscriptions.put("wallet-view", ViewSubscription.builder("wallet-view").build());
 
         // When
         Map<String, ViewProcessorConfig> configs = ViewProcessorConfig.createConfigMap(viewsConfig, subscriptions);
@@ -212,10 +212,10 @@ class ViewProcessorConfigTest {
         // Given
         ViewsConfig viewsConfig = createDefaultViewsConfig();
         Map<String, ViewSubscription> subscriptions = new HashMap<>();
-        subscriptions.put("wallet-view", ViewSubscriptionConfig.builder("wallet-view")
+        subscriptions.put("wallet-view", ViewSubscription.builder("wallet-view")
                 .eventTypes("WalletOpened")
                 .build());
-        subscriptions.put("wallet-balance-view", ViewSubscriptionConfig.builder("wallet-balance-view")
+        subscriptions.put("wallet-balance-view", ViewSubscription.builder("wallet-balance-view")
                 .eventTypes("DepositMade", "WithdrawalMade")
                 .build());
 
@@ -234,7 +234,7 @@ class ViewProcessorConfigTest {
     void shouldUseViewName_AsProcessorId() {
         // Given
         ViewsConfig viewsConfig = createDefaultViewsConfig();
-        ViewSubscriptionConfig subscriptionConfig = ViewSubscriptionConfig.builder("custom-view-name")
+        ViewSubscription subscriptionConfig = ViewSubscription.builder("custom-view-name")
                 .build();
 
         // When
@@ -250,7 +250,7 @@ class ViewProcessorConfigTest {
         // Given
         ViewsConfig viewsConfig = createDefaultViewsConfig();
         viewsConfig.setEnabled(false);
-        ViewSubscriptionConfig subscriptionConfig = ViewSubscriptionConfig.builder("wallet-view").build();
+        ViewSubscription subscriptionConfig = ViewSubscription.builder("wallet-view").build();
 
         // When
         ViewProcessorConfig config = new ViewProcessorConfig("wallet-view", viewsConfig, subscriptionConfig);

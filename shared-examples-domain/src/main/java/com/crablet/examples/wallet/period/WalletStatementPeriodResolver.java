@@ -236,7 +236,7 @@ public class WalletStatementPeriodResolver {
      */
     private int getInitialBalanceForFirstPeriod(EventStore eventStore, String walletId) {
         // Query all events without period tags (one-time only for first period)
-        Query query = QueryBuilder.create()
+        Query query = QueryBuilder.builder()
                 .events(type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class))
                 .tag(WALLET_ID, walletId)
                 .event(type(MoneyTransferred.class), FROM_WALLET_ID, walletId)

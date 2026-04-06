@@ -18,7 +18,7 @@ public class WalletQueryPatterns {
      * Used by Deposit and Withdraw handlers.
      */
     public static Query singleWalletDecisionModel(String walletId) {
-        return QueryBuilder.create()
+        return QueryBuilder.builder()
                 .events(type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class))
                 .tag(WALLET_ID, walletId)
                 .event(type(MoneyTransferred.class), FROM_WALLET_ID, walletId)
@@ -31,7 +31,7 @@ public class WalletQueryPatterns {
      * Includes all events affecting both source and destination wallets.
      */
     public static Query transferDecisionModel(String fromWalletId, String toWalletId) {
-        return QueryBuilder.create()
+        return QueryBuilder.builder()
                 .events(type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class))
                 .tag(WALLET_ID, fromWalletId)
                 .event(type(MoneyTransferred.class), FROM_WALLET_ID, fromWalletId)
@@ -57,7 +57,7 @@ public class WalletQueryPatterns {
      * @return Query for events in the specified period
      */
     public static Query singleWalletPeriodDecisionModel(String walletId, int year, int month) {
-        return QueryBuilder.create()
+        return QueryBuilder.builder()
                 // Include WalletOpened to establish wallet existence (no period tags)
                 .event(type(WalletOpened.class), WALLET_ID, walletId)
                 // Include WalletStatementOpened to get opening balance (all tags must match)
@@ -128,7 +128,7 @@ public class WalletQueryPatterns {
     public static Query transferPeriodDecisionModel(
             String fromWalletId, int fromYear, int fromMonth,
             String toWalletId, int toYear, int toMonth) {
-        return QueryBuilder.create()
+        return QueryBuilder.builder()
                 // From wallet's WalletOpened (no period tags)
                 .event(type(WalletOpened.class), WALLET_ID, fromWalletId)
                 // From wallet's WalletStatementOpened

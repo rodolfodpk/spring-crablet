@@ -3,23 +3,24 @@ package com.crablet.views.config;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.crablet.views.ViewSubscription;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Unit tests for ViewSubscriptionConfig.
+ * Unit tests for ViewSubscription.
  * Tests builder pattern, immutability, and configuration validation.
  */
-@DisplayName("ViewSubscriptionConfig Unit Tests")
-class ViewSubscriptionConfigTest {
+@DisplayName("ViewSubscription Unit Tests")
+class ViewSubscriptionTest {
 
     @Test
     @DisplayName("Should create config with view name only")
     void shouldCreateConfig_WithViewNameOnly() {
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .build();
 
         // Then
@@ -33,7 +34,7 @@ class ViewSubscriptionConfigTest {
     @DisplayName("Should create config with event types")
     void shouldCreateConfig_WithEventTypes() {
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .eventTypes("WalletOpened", "DepositMade", "WithdrawalMade")
                 .build();
 
@@ -51,7 +52,7 @@ class ViewSubscriptionConfigTest {
         Set<String> eventTypes = Set.of("WalletOpened", "DepositMade");
 
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .eventTypes(eventTypes)
                 .build();
 
@@ -63,7 +64,7 @@ class ViewSubscriptionConfigTest {
     @DisplayName("Should create config with required tags")
     void shouldCreateConfig_WithRequiredTags() {
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .requiredTags("wallet_id", "account_id")
                 .build();
 
@@ -78,7 +79,7 @@ class ViewSubscriptionConfigTest {
         Set<String> requiredTags = Set.of("wallet_id");
 
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .requiredTags(requiredTags)
                 .build();
 
@@ -90,7 +91,7 @@ class ViewSubscriptionConfigTest {
     @DisplayName("Should create config with any-of tags")
     void shouldCreateConfig_WithAnyOfTags() {
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .anyOfTags("region", "country")
                 .build();
 
@@ -105,7 +106,7 @@ class ViewSubscriptionConfigTest {
         Set<String> anyOfTags = Set.of("region");
 
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .anyOfTags(anyOfTags)
                 .build();
 
@@ -117,7 +118,7 @@ class ViewSubscriptionConfigTest {
     @DisplayName("Should create config with all filters combined")
     void shouldCreateConfig_WithAllFiltersCombined() {
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .eventTypes("WalletOpened", "DepositMade")
                 .requiredTags("wallet_id")
                 .anyOfTags("region", "country")
@@ -134,7 +135,7 @@ class ViewSubscriptionConfigTest {
     @DisplayName("Should use requireTag convenience method")
     void shouldUseRequireTag_ConvenienceMethod() {
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .requireTag("wallet_id")
                 .build();
 
@@ -146,7 +147,7 @@ class ViewSubscriptionConfigTest {
     @DisplayName("Should use anyOfTag convenience method")
     void shouldUseAnyOfTag_ConvenienceMethod() {
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .anyOfTag("region")
                 .build();
 
@@ -158,7 +159,7 @@ class ViewSubscriptionConfigTest {
     @DisplayName("Should handle null event types as empty set")
     void shouldHandleNullEventTypes_AsEmptySet() {
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .eventTypes((Set<String>) null)
                 .build();
 
@@ -170,7 +171,7 @@ class ViewSubscriptionConfigTest {
     @DisplayName("Should handle null required tags as empty set")
     void shouldHandleNullRequiredTags_AsEmptySet() {
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .requiredTags((Set<String>) null)
                 .build();
 
@@ -182,7 +183,7 @@ class ViewSubscriptionConfigTest {
     @DisplayName("Should handle null any-of tags as empty set")
     void shouldHandleNullAnyOfTags_AsEmptySet() {
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .anyOfTags((Set<String>) null)
                 .build();
 
@@ -194,7 +195,7 @@ class ViewSubscriptionConfigTest {
     @DisplayName("Should create immutable sets")
     void shouldCreateImmutableSets() {
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .eventTypes("WalletOpened", "DepositMade")
                 .build();
 
@@ -207,7 +208,7 @@ class ViewSubscriptionConfigTest {
     @DisplayName("Should handle empty event types array")
     void shouldHandleEmptyEventTypesArray() {
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .eventTypes()
                 .build();
 
@@ -219,7 +220,7 @@ class ViewSubscriptionConfigTest {
     @DisplayName("Should handle empty required tags array")
     void shouldHandleEmptyRequiredTagsArray() {
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .requiredTags()
                 .build();
 
@@ -231,7 +232,7 @@ class ViewSubscriptionConfigTest {
     @DisplayName("Should handle empty any-of tags array")
     void shouldHandleEmptyAnyOfTagsArray() {
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .anyOfTags()
                 .build();
 
@@ -243,7 +244,7 @@ class ViewSubscriptionConfigTest {
     @DisplayName("Should allow chaining builder methods")
     void shouldAllowChainingBuilderMethods() {
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .eventTypes("WalletOpened")
                 .requiredTags("wallet_id")
                 .anyOfTags("region")
@@ -262,7 +263,7 @@ class ViewSubscriptionConfigTest {
     void shouldHandleDuplicateEventTypes() {
         // When - Set.of() throws IllegalArgumentException for duplicates, so use Set with duplicates first
         Set<String> eventTypesWithDuplicates = Set.of("WalletOpened", "DepositMade");
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view")
+        ViewSubscription config = ViewSubscription.builder("wallet-view")
                 .eventTypes(eventTypesWithDuplicates)
                 .build();
 
@@ -275,7 +276,7 @@ class ViewSubscriptionConfigTest {
     @DisplayName("Should handle view name with special characters")
     void shouldHandleViewName_WithSpecialCharacters() {
         // When
-        ViewSubscriptionConfig config = ViewSubscriptionConfig.builder("wallet-view-123")
+        ViewSubscription config = ViewSubscription.builder("wallet-view-123")
                 .build();
 
         // Then

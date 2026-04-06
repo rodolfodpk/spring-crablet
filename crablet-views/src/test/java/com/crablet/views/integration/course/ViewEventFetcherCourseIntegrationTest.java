@@ -5,7 +5,7 @@ import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.views.ViewSubscription;
 import com.crablet.views.adapter.ViewEventFetcher;
-import com.crablet.views.config.ViewSubscriptionConfig;
+import com.crablet.views.ViewSubscription;
 import com.crablet.views.integration.AbstractViewsTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -380,13 +380,13 @@ class ViewEventFetcherCourseIntegrationTest extends AbstractViewsTest {
             Map<String, ViewSubscription> subscriptions = new HashMap<>();
             
             // Course view subscription - matches CourseDefined, StudentSubscribedToCourse, CourseCapacityChanged
-            subscriptions.put("course-view", ViewSubscriptionConfig.builder("course-view")
+            subscriptions.put("course-view", ViewSubscription.builder("course-view")
                 .eventTypes("CourseDefined", "StudentSubscribedToCourse", "CourseCapacityChanged")
                 .requiredTags("course_id")
                 .build());
             
             // Region view subscription - matches events with region OR country tags
-            subscriptions.put("region-view", ViewSubscriptionConfig.builder("region-view")
+            subscriptions.put("region-view", ViewSubscription.builder("region-view")
                 .anyOfTags("region", "country")
                 .build());
             
