@@ -1,7 +1,7 @@
 package com.crablet.views.adapter;
 
 import com.crablet.eventpoller.AbstractJdbcEventFetcher;
-import com.crablet.views.config.ViewSubscriptionConfig;
+import com.crablet.views.ViewSubscription;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 import javax.sql.DataSource;
@@ -17,18 +17,18 @@ import java.util.stream.Collectors;
  */
 public class ViewEventFetcher extends AbstractJdbcEventFetcher<String> {
 
-    private final Map<String, ViewSubscriptionConfig> subscriptions;
+    private final Map<String, ViewSubscription> subscriptions;
 
     public ViewEventFetcher(
             @Qualifier("readDataSource") DataSource readDataSource,
-            Map<String, ViewSubscriptionConfig> subscriptions) {
+            Map<String, ViewSubscription> subscriptions) {
         super(readDataSource);
         this.subscriptions = subscriptions;
     }
 
     @Override
     protected String buildSqlFilter(String viewName) {
-        ViewSubscriptionConfig subscription = subscriptions.get(viewName);
+        ViewSubscription subscription = subscriptions.get(viewName);
         if (subscription == null) {
             log.warn("Subscription not found for view: {} (available: {})", viewName, subscriptions.keySet());
             return null;

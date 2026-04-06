@@ -1,5 +1,6 @@
 package com.crablet.views.adapter;
 
+import com.crablet.views.ViewSubscription;
 import com.crablet.views.config.ViewSubscriptionConfig;
 import com.crablet.views.config.ViewsConfig;
 import org.junit.jupiter.api.DisplayName;
@@ -157,7 +158,7 @@ class ViewProcessorConfigTest {
     void shouldCreateConfigMap_ForAllSubscriptions() {
         // Given
         ViewsConfig viewsConfig = createDefaultViewsConfig();
-        Map<String, ViewSubscriptionConfig> subscriptions = new HashMap<>();
+        Map<String, ViewSubscription> subscriptions = new HashMap<>();
         subscriptions.put("wallet-view", ViewSubscriptionConfig.builder("wallet-view").build());
         subscriptions.put("order-view", ViewSubscriptionConfig.builder("order-view").build());
 
@@ -177,7 +178,7 @@ class ViewProcessorConfigTest {
     void shouldCreateConfigMap_WithEmptySubscriptions() {
         // Given
         ViewsConfig viewsConfig = createDefaultViewsConfig();
-        Map<String, ViewSubscriptionConfig> subscriptions = new HashMap<>();
+        Map<String, ViewSubscription> subscriptions = new HashMap<>();
 
         // When
         Map<String, ViewProcessorConfig> configs = ViewProcessorConfig.createConfigMap(viewsConfig, subscriptions);
@@ -193,7 +194,7 @@ class ViewProcessorConfigTest {
         ViewsConfig viewsConfig = createDefaultViewsConfig();
         viewsConfig.setPollingIntervalMs(2000L);
         viewsConfig.setBatchSize(50);
-        Map<String, ViewSubscriptionConfig> subscriptions = new HashMap<>();
+        Map<String, ViewSubscription> subscriptions = new HashMap<>();
         subscriptions.put("wallet-view", ViewSubscriptionConfig.builder("wallet-view").build());
 
         // When
@@ -210,7 +211,7 @@ class ViewProcessorConfigTest {
     void shouldHandleMultipleSubscriptions_WithDifferentConfigs() {
         // Given
         ViewsConfig viewsConfig = createDefaultViewsConfig();
-        Map<String, ViewSubscriptionConfig> subscriptions = new HashMap<>();
+        Map<String, ViewSubscription> subscriptions = new HashMap<>();
         subscriptions.put("wallet-view", ViewSubscriptionConfig.builder("wallet-view")
                 .eventTypes("WalletOpened")
                 .build());

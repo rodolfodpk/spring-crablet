@@ -172,19 +172,19 @@ public class WalletViewProjector extends AbstractTypedViewProjector<WalletEvent>
 public class ViewConfiguration {
 
     @Bean
-    public ViewSubscriptionConfig walletViewSubscription(WalletViewProjector projector) {
+    public ViewSubscription walletViewSubscription(WalletViewProjector projector) {
         return projector.subscription(
             type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class));
     }
 }
 ```
 
-For subscriptions that also need tag filtering, use `ViewSubscriptionConfig.builder(projector.getViewName())` directly:
+For subscriptions that also need tag filtering, use `ViewSubscription.builder(projector.getViewName())` directly:
 
 ```java
 @Bean
-public ViewSubscriptionConfig walletViewSubscription(WalletViewProjector projector) {
-    return ViewSubscriptionConfig.builder(projector.getViewName())
+public ViewSubscription walletViewSubscription(WalletViewProjector projector) {
+    return ViewSubscription.builder(projector.getViewName())
         .eventTypes(type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class))
         .anyOfTags("wallet_id", "from_wallet_id", "to_wallet_id")
         .build();
@@ -393,14 +393,14 @@ Use `projector.subscription(eventTypes...)` for the common case, or the full bui
 ```java
 // Simple — no tag filtering needed
 @Bean
-public ViewSubscriptionConfig myViewSubscription(MyViewProjector projector) {
+public ViewSubscription myViewSubscription(MyViewProjector projector) {
     return projector.subscription(type(EventType1.class), type(EventType2.class));
 }
 
 // With tag filtering
 @Bean
-public ViewSubscriptionConfig myViewSubscription(MyViewProjector projector) {
-    return ViewSubscriptionConfig.builder(projector.getViewName())
+public ViewSubscription myViewSubscription(MyViewProjector projector) {
+    return ViewSubscription.builder(projector.getViewName())
         .eventTypes(type(EventType1.class), type(EventType2.class))
         .requiredTags("tag-key1", "tag-key2")  // ALL tags must be present
         .anyOfTags("tag-key3", "tag-key4")     // At least ONE tag must be present

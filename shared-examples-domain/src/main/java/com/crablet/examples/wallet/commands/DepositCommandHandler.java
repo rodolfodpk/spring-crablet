@@ -34,7 +34,7 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
     }
 
     @Override
-    public List<AppendEvent> decide(EventStore eventStore, DepositCommand command) {
+    public Decision decide(EventStore eventStore, DepositCommand command) {
         // Command is already validated at construction with YAVI
 
         var periodResult = periodHelper.projectCurrentPeriod(
@@ -64,6 +64,6 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
                 .data(deposit)
                 .build();
 
-        return List.of(event);
+        return new Decision(List.of(event));
     }
 }

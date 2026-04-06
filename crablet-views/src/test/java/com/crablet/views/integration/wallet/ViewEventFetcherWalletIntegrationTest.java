@@ -3,6 +3,7 @@ package com.crablet.views.integration.wallet;
 import com.crablet.eventstore.store.AppendEvent;
 import com.crablet.eventstore.store.EventStore;
 import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.views.ViewSubscription;
 import com.crablet.views.adapter.ViewEventFetcher;
 import com.crablet.views.config.ViewSubscriptionConfig;
 import com.crablet.views.integration.AbstractViewsTest;
@@ -368,8 +369,8 @@ class ViewEventFetcherWalletIntegrationTest extends AbstractViewsTest {
         }
 
         @Bean
-        public Map<String, ViewSubscriptionConfig> viewSubscriptions() {
-            Map<String, ViewSubscriptionConfig> subscriptions = new HashMap<>();
+        public Map<String, ViewSubscription> viewSubscriptions() {
+            Map<String, ViewSubscription> subscriptions = new HashMap<>();
             
             // Wallet view subscription - matches WalletOpened, DepositMade, WithdrawalMade
             subscriptions.put("wallet-view", ViewSubscriptionConfig.builder("wallet-view")
@@ -389,7 +390,7 @@ class ViewEventFetcherWalletIntegrationTest extends AbstractViewsTest {
         @Bean
         public ViewEventFetcher viewEventFetcher(
                 @Qualifier("readDataSource") DataSource readDataSource,
-                Map<String, ViewSubscriptionConfig> subscriptions) {
+                Map<String, ViewSubscription> subscriptions) {
             return new ViewEventFetcher(readDataSource, subscriptions);
         }
     }

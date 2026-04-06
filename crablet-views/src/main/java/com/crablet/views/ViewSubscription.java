@@ -1,98 +1,114 @@
 package com.crablet.views;
 
-import com.crablet.views.config.ViewSubscriptionConfig;
-
 import java.util.Set;
 
 /**
- * User-friendly alias for ViewSubscriptionConfig.
- * Provides a cleaner API for configuring view subscriptions.
- * 
- * <p>This class is an alias that delegates to ViewSubscriptionConfig.
- * Users can use either ViewSubscription or ViewSubscriptionConfig.
+ * Configuration for a view subscription.
+ * Defines which events a view subscribes to by event type and/or tags.
+ *
+ * <p>Use {@link ViewProjector#subscription(String...)} for the common case (event types only).
+ * Use {@link #builder(String)} when tag-based filtering is also needed.
  */
-public class ViewSubscription extends ViewSubscriptionConfig {
-    
-    public ViewSubscription(
+public class ViewSubscription {
+
+    private final String viewName;
+    private final Set<String> eventTypes;
+    private final Set<String> requiredTags;
+    private final Set<String> anyOfTags;
+
+    protected ViewSubscription(
             String viewName,
             Set<String> eventTypes,
             Set<String> requiredTags,
             Set<String> anyOfTags) {
-        super(viewName, eventTypes, requiredTags, anyOfTags);
+        this.viewName = viewName;
+        this.eventTypes = eventTypes != null ? Set.copyOf(eventTypes) : Set.of();
+        this.requiredTags = requiredTags != null ? Set.copyOf(requiredTags) : Set.of();
+        this.anyOfTags = anyOfTags != null ? Set.copyOf(anyOfTags) : Set.of();
     }
-    
+
+    public String getViewName() {
+        return viewName;
+    }
+
+    public Set<String> getEventTypes() {
+        return eventTypes;
+    }
+
+    public Set<String> getRequiredTags() {
+        return requiredTags;
+    }
+
+    public Set<String> getAnyOfTags() {
+        return anyOfTags;
+    }
+
+    /** Entry point for building a subscription. Use {@code projector.subscription(eventTypes)} for the common case. */
     public static Builder builder(String viewName) {
         return new Builder(viewName);
     }
-    
-    public static class Builder extends ViewSubscriptionConfig.Builder {
-        
+
+    public static class Builder {
+        private final String viewName;
+        private Set<String> eventTypes = Set.of();
+        private Set<String> requiredTags = Set.of();
+        private Set<String> anyOfTags = Set.of();
+
         public Builder(String viewName) {
-            super(viewName);
+            this.viewName = viewName;
         }
-        
-        @Override
+
+        /** Filter by event types (Set overload). */
         public Builder eventTypes(Set<String> eventTypes) {
-            super.eventTypes(eventTypes);
+            this.eventTypes = eventTypes;
             return this;
         }
-        
-        @Override
+
+        /** Filter by event types (varargs overload). Use {@code type(MyEvent.class)} for type safety. */
         public Builder eventTypes(String... eventTypes) {
-            super.eventTypes(eventTypes);
+            this.eventTypes = Set.of(eventTypes);
             return this;
         }
-        
-        @Override
+
+        /** ALL of these tag keys must be present on the event for it to be delivered. */
         public Builder requiredTags(Set<String> requiredTags) {
-            super.requiredTags(requiredTags);
+            this.requiredTags = requiredTags;
             return this;
         }
-        
-        @Override
+
+        /** ALL of these tag keys must be present on the event for it to be delivered (varargs overload). */
         public Builder requiredTags(String... requiredTags) {
-            super.requiredTags(requiredTags);
+            this.requiredTags = Set.of(requiredTags);
             return this;
         }
-        
-        @Override
+
+        /** At least ONE of these tag keys must be present on the event for it to be delivered. */
         public Builder anyOfTags(Set<String> anyOfTags) {
-            super.anyOfTags(anyOfTags);
+            this.anyOfTags = anyOfTags;
             return this;
         }
-        
-        @Override
+
+        /** At least ONE of these tag keys must be present on the event for it to be delivered (varargs overload). */
         public Builder anyOfTags(String... anyOfTags) {
-            super.anyOfTags(anyOfTags);
+            this.anyOfTags = Set.of(anyOfTags);
             return this;
         }
-        
-        /**
-         * Convenience method: require a single tag.
-         */
+
+        /** Convenience method: require a single tag. */
         public Builder requireTag(String tagKey) {
-            super.requireTag(tagKey);
+            this.requiredTags = Set.of(tagKey);
             return this;
         }
-        
-        /**
-         * Convenience method: require any of a single tag.
-         */
+
+        /** Convenience method: require any of a single tag. */
         public Builder anyOfTag(String tagKey) {
-            super.anyOfTag(tagKey);
+            this.anyOfTags = Set.of(tagKey);
             return this;
         }
-        
-        @Override
+
+        /** Builds the {@link ViewSubscription}. */
         public ViewSubscription build() {
-            ViewSubscriptionConfig config = super.build();
-            return new ViewSubscription(
-                config.getViewName(),
-                config.getEventTypes(),
-                config.getRequiredTags(),
-                config.getAnyOfTags()
-            );
+            return new ViewSubscription(viewName, eventTypes, requiredTags, anyOfTags);
         }
     }
 }
-

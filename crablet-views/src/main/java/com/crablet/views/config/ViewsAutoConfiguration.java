@@ -11,6 +11,7 @@ import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.processor.EventProcessorImpl;
 import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.views.ViewProjector;
+import com.crablet.views.ViewSubscription;
 import com.crablet.views.adapter.ViewEventFetcher;
 import com.crablet.views.adapter.ViewEventHandler;
 import com.crablet.views.adapter.ViewProcessorConfig;
@@ -75,7 +76,7 @@ public class ViewsAutoConfiguration {
     @Bean
     public EventFetcher<String> viewEventFetcher(
             @Qualifier("readDataSource") DataSource readDataSource,
-            @Qualifier("viewSubscriptions") Map<String, ViewSubscriptionConfig> subscriptions) {
+            @Qualifier("viewSubscriptions") Map<String, ViewSubscription> subscriptions) {
         return new ViewEventFetcher(readDataSource, subscriptions);
     }
     
@@ -89,13 +90,13 @@ public class ViewsAutoConfiguration {
     }
     
     /**
-     * Create map of subscriptions from ViewSubscriptionConfig beans.
-     * Users provide ViewSubscriptionConfig (or ViewSubscription) beans, Spring collects them here.
+     * Create map of subscriptions from ViewSubscription beans.
+     * Users provide ViewSubscription beans; Spring collects them here.
      */
     @Bean
-    public Map<String, ViewSubscriptionConfig> viewSubscriptions(List<ViewSubscriptionConfig> subscriptionBeans) {
-        Map<String, ViewSubscriptionConfig> subscriptions = new HashMap<>();
-        for (ViewSubscriptionConfig subscription : subscriptionBeans) {
+    public Map<String, ViewSubscription> viewSubscriptions(List<ViewSubscription> subscriptionBeans) {
+        Map<String, ViewSubscription> subscriptions = new HashMap<>();
+        for (ViewSubscription subscription : subscriptionBeans) {
             subscriptions.put(subscription.getViewName(), subscription);
         }
         return subscriptions;
@@ -107,7 +108,7 @@ public class ViewsAutoConfiguration {
     @Bean
     public Map<String, ViewProcessorConfig> viewProcessorConfigs(
             ViewsConfig viewsConfig,
-            @Qualifier("viewSubscriptions") Map<String, ViewSubscriptionConfig> subscriptions) {
+            @Qualifier("viewSubscriptions") Map<String, ViewSubscription> subscriptions) {
         return ViewProcessorConfig.createConfigMap(viewsConfig, subscriptions);
     }
     

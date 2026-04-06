@@ -196,7 +196,7 @@ The **decision model** (also called **criteria** in DCB literature) is the Query
 Example for wallet withdrawal:
 ```java
 // Decision model: which events affect withdrawal decisions?
-Query decisionModel = QueryBuilder.create()
+Query decisionModel = QueryBuilder.builder()
     .hasTag("wallet_id", walletId)
     .eventNames("WalletOpened", "DepositMade", "WithdrawalMade")
     .build();
@@ -341,7 +341,7 @@ StreamPosition streamPosition = StreamPosition.zero();  // zero cursor for empty
 ### Query Builder
 
 ```java
-Query query = QueryBuilder.create()
+Query query = QueryBuilder.builder()
     .events("WalletOpened", "DepositMade", "WithdrawalMade")
     .tag("wallet_id", walletId)
     .event("MoneyTransferred", "from_wallet_id", walletId)
@@ -364,7 +364,7 @@ public interface StateProjector<T> {
 
 Usage:
 ```java
-Query query = QueryBuilder.create()
+Query query = QueryBuilder.builder()
     .events("WalletOpened", "DepositMade", "WithdrawalMade")
     .tag("wallet_id", walletId)
     .build();

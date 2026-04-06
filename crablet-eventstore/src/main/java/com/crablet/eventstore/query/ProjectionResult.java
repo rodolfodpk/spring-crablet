@@ -8,27 +8,20 @@ import org.jspecify.annotations.Nullable;
  * This is a pure data record with no business logic.
  */
 public record ProjectionResult<T>(
-        T states,
+        T state,
         @Nullable StreamPosition streamPosition
 ) {
     /**
-     * Create a projection result from states and stream position.
+     * Create a projection result from state and stream position.
      */
-    public static <T> ProjectionResult<T> of(T states, @Nullable StreamPosition streamPosition) {
-        return new ProjectionResult<>(states, streamPosition);
+    public static <T> ProjectionResult<T> of(T state, @Nullable StreamPosition streamPosition) {
+        return new ProjectionResult<>(state, streamPosition);
     }
 
     /**
-     * Create a projection result from states only.
+     * Create a projection result from state only.
      */
-    public static <T> ProjectionResult<T> of(T states) {
-        return new ProjectionResult<>(states, null);
-    }
-
-    /**
-     * Get the projected state.
-     */
-    public T state() {
-        return states;
+    public static <T> ProjectionResult<T> of(T state) {
+        return new ProjectionResult<>(state, null);
     }
 }

@@ -22,17 +22,24 @@ import java.util.List;
 public interface CommutativeCommandHandler<C> extends CommandHandler<C> {
 
     /**
+     * Carries the events to append.
+     *
+     * @param events the events to append
+     */
+    record Decision(List<AppendEvent> events) {}
+
+    /**
      * Handle the command and return the events to append.
      * No append condition is needed; the framework handles that automatically.
      *
      * @param eventStore the event store for projections
      * @param command    the command to handle
-     * @return the events to append
+     * @return the decision carrying the events to append
      */
-    List<AppendEvent> decide(EventStore eventStore, C command);
+    Decision decide(EventStore eventStore, C command);
 
     @Override
     default CommandDecision handle(EventStore eventStore, C command) {
-        return new CommandDecision.Commutative(decide(eventStore, command));
+        return new CommandDecision.Commutative(decide(eventStore, command).events());
     }
 }

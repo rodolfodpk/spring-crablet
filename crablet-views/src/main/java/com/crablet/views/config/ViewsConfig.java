@@ -1,5 +1,6 @@
 package com.crablet.views.config;
 
+import com.crablet.views.ViewSubscription;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.HashMap;
@@ -22,7 +23,7 @@ public class ViewsConfig {
     /**
      * Map of view name to subscription configuration.
      */
-    private Map<String, ViewSubscriptionConfig> subscriptions = new HashMap<>();
+    private Map<String, ViewSubscription> subscriptions = new HashMap<>();
     
     public boolean isEnabled() {
         return enabled;
@@ -80,11 +81,11 @@ public class ViewsConfig {
         this.leaderElectionRetryIntervalMs = leaderElectionRetryIntervalMs;
     }
     
-    public Map<String, ViewSubscriptionConfig> getSubscriptions() {
+    public Map<String, ViewSubscription> getSubscriptions() {
         return subscriptions;
     }
     
-    public void setSubscriptions(Map<String, ViewSubscriptionConfig> subscriptions) {
+    public void setSubscriptions(Map<String, ViewSubscription> subscriptions) {
         this.subscriptions = subscriptions != null ? subscriptions : new HashMap<>();
     }
 }

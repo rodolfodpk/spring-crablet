@@ -99,7 +99,7 @@ The following metrics are published:
 
 ## Tag Key Normalization
 
-Tag keys are automatically normalized to **lowercase** at construction time using `Locale.ROOT`. This applies to all construction paths: `new Tag(key, value)`, `Tag.of(key, value)`, `Tag.single(key, value)`, and the varargs overload.
+Tag keys are automatically normalized to **lowercase** at construction time using `Locale.ROOT`. This applies to all construction paths: `new Tag(key, value)`, `Tag.of(key, value)`, and the varargs overload.
 
 ```java
 new Tag("WALLET_ID", "abc").key()   // → "wallet_id"

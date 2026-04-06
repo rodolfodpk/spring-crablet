@@ -138,7 +138,7 @@ public class MyEventFetcher implements EventFetcher<String> {
     public MyEventFetcher(EventRepository eventRepository) {
         this.eventRepository = eventRepository;
         // Define your query (e.g., fetch specific event types)
-        this.query = QueryBuilder.create()
+        this.query = QueryBuilder.builder()
             .matching(new String[]{"MyEventType"}, new Tag("processor_id", "my-processor"))
             .build();
     }

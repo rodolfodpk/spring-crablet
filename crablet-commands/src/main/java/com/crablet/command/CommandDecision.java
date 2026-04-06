@@ -42,9 +42,15 @@ public sealed interface CommandDecision
      * {@link com.crablet.command.CommandExecutor} skips the append when this is returned.
      */
     record NoOp(String reason) implements CommandDecision {
-        /** Convenience factory when no reason is available. */
-        public static NoOp noReason() {
+        /** Convenience factory when no reason is needed. */
+        public static NoOp empty() {
             return new NoOp(null);
+        }
+
+        /** @deprecated Use {@link #empty()} instead. */
+        @Deprecated
+        public static NoOp noReason() {
+            return empty();
         }
     }
 

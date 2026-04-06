@@ -100,7 +100,7 @@ import com.crablet.eventstore.store.StreamPosition;
 import static com.crablet.eventstore.store.EventType.type;
 import static com.crablet.examples.talks.TalkTags.TALK_ID;
 
-var query = QueryBuilder.create()
+var query = QueryBuilder.builder()
     .events(type(TalkSubmitted.class))
     .tag(TALK_ID, "talk-1")
     .build();
@@ -186,7 +186,7 @@ Notice that `transition` receives a `StoredEvent` — the raw record from the da
 ### Projecting state for a specific talk
 
 ```java
-var query = QueryBuilder.create()
+var query = QueryBuilder.builder()
     .events(
         type(TalkSubmitted.class),
         type(TalkAccepted.class),
@@ -290,7 +290,7 @@ The query that feeds this projector has no `talk_id` tag — it spans all talks 
 
 ```java
 // Decision model: all TalkAccepted events (conference-wide capacity check)
-var conferenceQuery = QueryBuilder.create()
+var conferenceQuery = QueryBuilder.builder()
     .events(type(TalkAccepted.class))
     .tag("conference_id", conferenceId)  // scope to this conference
     .build();
@@ -413,7 +413,7 @@ public class AcceptTalkCommandHandler implements CommandHandler<AcceptTalkComman
     @Override
     public CommandResult handle(EventStore eventStore, AcceptTalkCommand command) {
         // 1. Project state for this specific talk
-        Query talkQuery = QueryBuilder.create()
+        Query talkQuery = QueryBuilder.builder()
             .events(
                 type(TalkSubmitted.class),
                 type(TalkAccepted.class),
@@ -439,7 +439,7 @@ public class AcceptTalkCommandHandler implements CommandHandler<AcceptTalkComman
 
         // 2. Project conference-wide accepted count
         //    This query has NO talk_id tag — it spans ALL talks in the conference
-        Query conferenceQuery = QueryBuilder.create()
+        Query conferenceQuery = QueryBuilder.builder()
             .events(type(TalkAccepted.class))
             .tag("conference_id", command.conferenceId())
             .build();
@@ -705,7 +705,7 @@ The `clockProvider` field is available from the base class. Each `handleEvent` c
 import static com.crablet.eventstore.store.EventType.type;
 
 @Bean
-public ViewSubscriptionConfig talksViewSubscription(TalksViewProjector projector) {
+public ViewSubscription talksViewSubscription(TalksViewProjector projector) {
     return projector.subscription(
         type(TalkSubmitted.class),
         type(TalkAccepted.class),
@@ -714,7 +714,7 @@ public ViewSubscriptionConfig talksViewSubscription(TalksViewProjector projector
 }
 ```
 
-For subscriptions that need tag filtering, use `ViewSubscriptionConfig.builder(projector.getViewName())` directly.
+For subscriptions that need tag filtering, use `ViewSubscription.builder(projector.getViewName())` directly.
 
 
 ### Configuration
@@ -981,7 +981,7 @@ class TalkLifecycleIntegrationTest extends AbstractCrabletTest {
         );
 
         // Verify via event store projection
-        var query = QueryBuilder.create()
+        var query = QueryBuilder.builder()
             .events(type(TalkAccepted.class))
             .tag(TALK_ID, talkId)
             .build();
@@ -1046,7 +1046,7 @@ This test cannot be written as a domain test because `InMemoryEventStore` skips 
         assertThat(errors).hasSize(1);
 
         // Exactly two accepted talks in the event store (the pre-seeded one + one winner)
-        var conferenceQuery = QueryBuilder.create()
+        var conferenceQuery = QueryBuilder.builder()
             .events(type(TalkAccepted.class))
             .tag("conference_id", "conf-1")
             .build();
@@ -1085,7 +1085,7 @@ With all eight parts covered, you have seen every major framework feature:
 - **AppendCondition** — three patterns for three situations (empty, idempotency, cursor-based)
 - **CommandHandler + CommandExecutor** — transactional command execution with automatic audit
 - **AutomationHandler + AutomationSubscription** — async command chains with at-least-once delivery
-- **AbstractTypedViewProjector + ViewSubscriptionConfig** — materialized read models
+- **AbstractTypedViewProjector + ViewSubscription** — materialized read models
 - **OutboxPublisher** — reliable external event delivery
 - **AbstractHandlerUnitTest / AbstractCrabletTest** — two-layer test strategy
 

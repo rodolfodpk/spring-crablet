@@ -6,7 +6,7 @@ import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WalletStatementClosed;
 import com.crablet.examples.wallet.events.WalletStatementOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;
-import com.crablet.views.config.ViewSubscriptionConfig;
+import com.crablet.views.ViewSubscription;
 import com.crablet.wallet.view.projectors.WalletBalanceViewProjector;
 import com.crablet.wallet.view.projectors.WalletStatementViewProjector;
 import com.crablet.wallet.view.projectors.WalletSummaryViewProjector;
@@ -26,32 +26,32 @@ public class ViewConfiguration {
     private static final String[] WALLET_ANY_OF_TAGS = {"wallet_id", "from_wallet_id", "to_wallet_id"};
 
     @Bean
-    public ViewSubscriptionConfig walletBalanceViewSubscription(WalletBalanceViewProjector projector) {
-        return ViewSubscriptionConfig.builder(projector.getViewName())
+    public ViewSubscription walletBalanceViewSubscription(WalletBalanceViewProjector projector) {
+        return ViewSubscription.builder(projector.getViewName())
                 .eventTypes(type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class), type(MoneyTransferred.class))
                 .anyOfTags(WALLET_ANY_OF_TAGS)
                 .build();
     }
 
     @Bean
-    public ViewSubscriptionConfig walletTransactionViewSubscription(WalletTransactionViewProjector projector) {
-        return ViewSubscriptionConfig.builder(projector.getViewName())
+    public ViewSubscription walletTransactionViewSubscription(WalletTransactionViewProjector projector) {
+        return ViewSubscription.builder(projector.getViewName())
                 .eventTypes(type(DepositMade.class), type(WithdrawalMade.class), type(MoneyTransferred.class))
                 .anyOfTags(WALLET_ANY_OF_TAGS)
                 .build();
     }
 
     @Bean
-    public ViewSubscriptionConfig walletSummaryViewSubscription(WalletSummaryViewProjector projector) {
-        return ViewSubscriptionConfig.builder(projector.getViewName())
+    public ViewSubscription walletSummaryViewSubscription(WalletSummaryViewProjector projector) {
+        return ViewSubscription.builder(projector.getViewName())
                 .eventTypes(type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class), type(MoneyTransferred.class))
                 .anyOfTags(WALLET_ANY_OF_TAGS)
                 .build();
     }
 
     @Bean
-    public ViewSubscriptionConfig walletStatementViewSubscription(WalletStatementViewProjector projector) {
-        return ViewSubscriptionConfig.builder(projector.getViewName())
+    public ViewSubscription walletStatementViewSubscription(WalletStatementViewProjector projector) {
+        return ViewSubscription.builder(projector.getViewName())
                 .eventTypes(
                     type(WalletStatementOpened.class),
                     type(WalletStatementClosed.class),

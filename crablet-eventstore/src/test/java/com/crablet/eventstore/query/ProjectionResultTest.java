@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ProjectionResultTest {
 
     @Test
-    @DisplayName("Should create ProjectionResult with states and stream position")
+    @DisplayName("Should create ProjectionResult with state and stream position")
     void shouldCreateProjectionResult_WithStatesAndCursor() {
         // Given
         String state = "test-state";
@@ -26,12 +26,12 @@ class ProjectionResultTest {
         ProjectionResult<String> result = ProjectionResult.of(state, streamPosition);
 
         // Then
-        assertThat(result.states()).isEqualTo(state);
+        assertThat(result.state()).isEqualTo(state);
         assertThat(result.streamPosition()).isEqualTo(streamPosition);
     }
 
     @Test
-    @DisplayName("Should create ProjectionResult with states only")
+    @DisplayName("Should create ProjectionResult with state only")
     void shouldCreateProjectionResult_WithStatesOnly() {
         // Given
         String state = "test-state";
@@ -40,7 +40,7 @@ class ProjectionResultTest {
         ProjectionResult<String> result = ProjectionResult.of(state);
 
         // Then
-        assertThat(result.states()).isEqualTo(state);
+        assertThat(result.state()).isEqualTo(state);
         assertThat(result.streamPosition()).isNull();
     }
 
@@ -56,21 +56,6 @@ class ProjectionResultTest {
 
         // Then
         assertThat(result.state()).isEqualTo(state);
-        assertThat(result.state()).isSameAs(result.states());
-    }
-
-    @Test
-    @DisplayName("Should return state using states accessor")
-    void shouldReturnState_UsingStatesAccessor() {
-        // Given
-        String state = "test-state";
-        StreamPosition streamPosition = StreamPosition.of(100L, Instant.now(), "tx-123");
-
-        // When
-        ProjectionResult<String> result = ProjectionResult.of(state, streamPosition);
-
-        // Then
-        assertThat(result.states()).isEqualTo(state);
     }
 
     @Test
@@ -130,7 +115,7 @@ class ProjectionResultTest {
         ProjectionResult<String> result = ProjectionResult.of((String) null, streamPosition);
 
         // Then
-        assertThat(result.states()).isNull();
+        assertThat(result.state()).isNull();
         assertThat(result.streamPosition()).isEqualTo(streamPosition);
     }
 
@@ -144,7 +129,7 @@ class ProjectionResultTest {
         ProjectionResult<String> result = ProjectionResult.of(state, (StreamPosition) null);
 
         // Then
-        assertThat(result.states()).isEqualTo(state);
+        assertThat(result.state()).isEqualTo(state);
         assertThat(result.streamPosition()).isNull();
     }
 
@@ -156,7 +141,7 @@ class ProjectionResultTest {
         ProjectionResult<String> result = ProjectionResult.of((String) null, (StreamPosition) null);
 
         // Then
-        assertThat(result.states()).isNull();
+        assertThat(result.state()).isNull();
         assertThat(result.streamPosition()).isNull();
     }
 
@@ -171,7 +156,7 @@ class ProjectionResultTest {
         ProjectionResult<TestState> result = ProjectionResult.of(state, streamPosition);
 
         // Then
-        assertThat(result.states()).isEqualTo(state);
+        assertThat(result.state()).isEqualTo(state);
         assertThat(result.state()).isEqualTo(state);
         assertThat(result.streamPosition()).isEqualTo(streamPosition);
     }
@@ -190,7 +175,7 @@ class ProjectionResultTest {
         String toString = result.toString();
         assertThat(toString)
                 .contains("ProjectionResult[")
-                .contains("states=")
+                .contains("state=")
                 .contains("streamPosition=");
     }
 

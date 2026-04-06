@@ -1,26 +1,26 @@
 package com.crablet.views.adapter;
 
 import com.crablet.eventpoller.processor.ProcessorConfig;
-import com.crablet.views.config.ViewSubscriptionConfig;
+import com.crablet.views.ViewSubscription;
 import com.crablet.views.config.ViewsConfig;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Adapter that creates ProcessorConfig instances from ViewsConfig and ViewSubscriptionConfig.
+ * Adapter that creates ProcessorConfig instances from ViewsConfig and ViewSubscription.
  * Creates one ProcessorConfig per view subscription.
  */
 public class ViewProcessorConfig implements ProcessorConfig<String> {
     
     private final String viewName;
     private final ViewsConfig viewsConfig;
-    private final ViewSubscriptionConfig subscriptionConfig;
+    private final ViewSubscription subscriptionConfig;
     
     public ViewProcessorConfig(
             String viewName,
             ViewsConfig viewsConfig,
-            ViewSubscriptionConfig subscriptionConfig) {
+            ViewSubscription subscriptionConfig) {
         this.viewName = viewName;
         this.viewsConfig = viewsConfig;
         this.subscriptionConfig = subscriptionConfig;
@@ -66,7 +66,7 @@ public class ViewProcessorConfig implements ProcessorConfig<String> {
         return viewsConfig.isEnabled();
     }
     
-    public ViewSubscriptionConfig getSubscriptionConfig() {
+    public ViewSubscription getSubscriptionConfig() {
         return subscriptionConfig;
     }
     
@@ -78,11 +78,11 @@ public class ViewProcessorConfig implements ProcessorConfig<String> {
      */
     public static Map<String, ViewProcessorConfig> createConfigMap(
             ViewsConfig viewsConfig,
-            Map<String, ViewSubscriptionConfig> subscriptions) {
+            Map<String, ViewSubscription> subscriptions) {
         
         Map<String, ViewProcessorConfig> configs = new HashMap<>();
         
-        for (ViewSubscriptionConfig subscriptionConfig : subscriptions.values()) {
+        for (ViewSubscription subscriptionConfig : subscriptions.values()) {
             // Always use view name from subscription, not the map key
             // This ensures consistency even if Spring auto-wires Map with bean names as keys
             String viewName = subscriptionConfig.getViewName();

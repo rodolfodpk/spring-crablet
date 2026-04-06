@@ -1,7 +1,6 @@
 package com.crablet.views;
 
 import com.crablet.eventpoller.EventHandler;
-import com.crablet.views.config.ViewSubscriptionConfig;
 
 /**
  * Marker interface for view projectors.
@@ -15,20 +14,20 @@ public interface ViewProjector extends EventHandler<String> {
     String getViewName();
 
     /**
-     * Build a {@link ViewSubscriptionConfig} for this projector using the given event types.
+     * Build a {@link ViewSubscription} for this projector using the given event types.
      * <p>
      * Eliminates the need to repeat the view name in a separate {@code @Bean} method:
      * <pre>{@code
      * @Bean
-     * public ViewSubscriptionConfig walletBalanceViewSubscription(WalletBalanceViewProjector projector) {
+     * public ViewSubscription walletBalanceViewSubscription(WalletBalanceViewProjector projector) {
      *     return projector.subscription(type(WalletOpened.class), type(DepositMade.class));
      * }
      * }</pre>
      * For subscriptions that also require tag filtering, use
-     * {@link ViewSubscriptionConfig#builder(String)} directly.
+     * {@link ViewSubscription#builder(String)} directly.
      */
-    default ViewSubscriptionConfig subscription(String... eventTypes) {
-        return ViewSubscriptionConfig.builder(getViewName())
+    default ViewSubscription subscription(String... eventTypes) {
+        return ViewSubscription.builder(getViewName())
                 .eventTypes(eventTypes)
                 .build();
     }

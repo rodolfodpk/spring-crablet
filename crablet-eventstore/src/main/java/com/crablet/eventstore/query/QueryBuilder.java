@@ -22,8 +22,14 @@ public class QueryBuilder {
      * Entry point for the fluent query DSL.
      * Chain {@link #event}, {@link #events}, or {@link #matching} calls, then {@link #build}.
      */
-    public static QueryBuilder create() {
+    public static QueryBuilder builder() {
         return new QueryBuilder();
+    }
+
+    /** @deprecated Use {@link #builder()} instead. */
+    @Deprecated
+    public static QueryBuilder create() {
+        return builder();
     }
 
     /**

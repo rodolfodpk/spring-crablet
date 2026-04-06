@@ -10,7 +10,7 @@
  *   <li>{@link com.crablet.views.ViewProjector} - Interface for view projectors</li>
  *   <li>{@link com.crablet.views.AbstractViewProjector} - Base class for view projectors (non-generic)</li>
  *   <li>{@link com.crablet.views.AbstractTypedViewProjector} - Base class for typed view projectors with sealed interfaces</li>
- *   <li>{@link com.crablet.views.config.ViewSubscriptionConfig} - Configuration for event subscriptions</li>
+ *   <li>{@link com.crablet.views.ViewSubscription} - Configuration for event subscriptions</li>
  *   <li>{@link com.crablet.views.config.ViewsConfig} - Global views configuration</li>
  *   <li>{@link com.crablet.views.service.ViewManagementService} - Unified service for view management and detailed progress monitoring</li>
  * </ul>
@@ -20,7 +20,7 @@
  *   <li>Users create view tables (e.g., wallet_views) using Flyway migrations</li>
  *   <li>Users implement ViewProjector (recommended: extend {@link com.crablet.views.AbstractTypedViewProjector} for sealed interfaces)
  *       to project events into view tables (using JdbcTemplate, Spring Data JDBC, JOOQ, or any database access technology)</li>
- *   <li>Users configure ViewSubscriptionConfig to subscribe to specific event types/tags
+ *   <li>Users configure ViewSubscription to subscribe to specific event types/tags
  *       (tags are stored as "key=value" format in PostgreSQL)</li>
  *   <li>The generic EventProcessor polls events and calls projectors asynchronously</li>
  *   <li>Progress is tracked independently per view in view_progress table</li>

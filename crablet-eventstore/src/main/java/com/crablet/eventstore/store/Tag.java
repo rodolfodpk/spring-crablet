@@ -48,34 +48,5 @@ public record Tag(@Nullable String key, @Nullable String value) {
         return tags;
     }
 
-    /**
-     * Create a tag from state name and ID.
-     * Uses the storage format as the value.
-     */
-    public static Tag stateIdentifier(String stateName, String stateId) {
-        return new Tag("state_identifier", stateId + "@" + stateName);
-    }
-
-    /**
-     * Create tags from state name and ID pairs.
-     */
-    public static List<Tag> stateIdentifiers(String stateName, String stateId, String stateName2, String stateId2) {
-        return List.of(stateIdentifier(stateName, stateId), stateIdentifier(stateName2, stateId2));
-    }
-
-    /**
-     * Create a tag for an event type.
-     */
-    public static Tag eventType(String eventName) {
-        return new Tag("event_type", eventName);
-    }
-
-    /**
-     * Create a single tag as a List for convenience.
-     * Useful when only one tag is needed instead of List.of(new Tag(...))
-     */
-    public static List<Tag> single(String key, String value) {
-        return List.of(new Tag(key, value));
-    }
 
 }

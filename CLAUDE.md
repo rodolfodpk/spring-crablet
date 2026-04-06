@@ -46,9 +46,9 @@ public class YourCommandHandler implements NonCommutativeCommandHandler<YourComm
 public class YourCommandHandler implements CommutativeCommandHandler<YourCommand> {
 
     @Override
-    public List<AppendEvent> decide(EventStore eventStore, YourCommand command) {
+    public Decision decide(EventStore eventStore, YourCommand command) {
         // project state, validate, generate event ...
-        return List.of(appendEvent);
+        return new Decision(List.of(appendEvent));
     }
 }
 ```
@@ -396,7 +396,7 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 - Core of DCB optimistic concurrency control
 
 **StateProjector (crablet-eventstore/src/main/java/com/crablet/eventstore/projector/):**
-- `evolve(state, event, deserializer)` - Event-driven state transitions
+- `transition(currentState, event, deserializer)` - Event-driven state transitions
 - `getEventTypes()` - Filter which events to process
 - `getInitialState()` - Starting state
 - `StateProjector.exists(eventTypes...)` - Built-in factory for existence checks (returns `true` on first matching event)
@@ -627,7 +627,7 @@ public record OpenWalletCommand(String walletId, String owner, int initialBalanc
 
 **Pattern 1: Events with shared tag**
 ```java
-QueryBuilder.create()
+QueryBuilder.builder()
     .events(type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class))
     .tag(WALLET_ID, walletId)
     .build();
@@ -635,14 +635,14 @@ QueryBuilder.create()
 
 **Pattern 2: Single event type with specific tag**
 ```java
-QueryBuilder.create()
+QueryBuilder.builder()
     .event(type(MoneyTransferred.class), FROM_WALLET_ID, walletId)
     .build();
 ```
 
 **Pattern 3: Events with multiple tags (all must match)**
 ```java
-QueryBuilder.create()
+QueryBuilder.builder()
     .matching(
         new String[]{type(WalletStatementOpened.class)},
         QueryBuilder.tag(WALLET_ID, walletId),

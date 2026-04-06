@@ -213,7 +213,7 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
     public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
         // Define decision model: which events affect withdrawal decision?
         // This filters events to only those for this wallet
-        Query decisionModel = QueryBuilder.create()
+        Query decisionModel = QueryBuilder.builder()
             .hasTag("wallet_id", command.walletId())  // Filter by wallet_id tag
             .eventNames("WalletOpened", "DepositMade", "WithdrawalMade")
             .build();

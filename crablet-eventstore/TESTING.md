@@ -324,7 +324,7 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
         assertTrue(result.success());
         
         // Verify event was stored
-        Query query = QueryBuilder.create()
+        Query query = QueryBuilder.builder()
             .hasTag("wallet_id", walletId)
             .eventNames("WithdrawalMade")
             .build();
@@ -350,7 +350,7 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
         assertTrue(result1.success());
         assertTrue(result2.success());
         
-        Query query = QueryBuilder.create()
+        Query query = QueryBuilder.builder()
             .hasTag("wallet_id", walletId)
             .hasTag("withdrawal_id", withdrawalId)
             .build();
@@ -396,7 +396,7 @@ private EventRepository eventRepository;
 @Test
 void testEventStorage() {
     // Query events directly (bypasses projections)
-    Query query = QueryBuilder.create()
+    Query query = QueryBuilder.builder()
         .hasTag("wallet_id", walletId)
         .build();
     
