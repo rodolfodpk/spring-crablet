@@ -10,7 +10,7 @@ import java.util.List;
  * Builds SQL WHERE clauses from Query objects.
  * Separates SQL generation from query execution for better abstraction.
  */
-public interface QuerySqlBuilder {
+interface QuerySqlBuilder {
     /**
      * Build a WHERE clause from a Query and Cursor.
      *

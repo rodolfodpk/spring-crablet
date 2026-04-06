@@ -12,7 +12,7 @@ import java.util.List;
  * Public implementation of QuerySqlBuilder.
  * Directly instantiated by EventStoreImpl and EventRepositoryImpl.
  */
-public class QuerySqlBuilderImpl implements QuerySqlBuilder {
+class QuerySqlBuilderImpl implements QuerySqlBuilder {
 
     @Override
     public String buildWhereClause(Query query, @Nullable StreamPosition after, List<Object> params) {
