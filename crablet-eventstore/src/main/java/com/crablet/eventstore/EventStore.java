@@ -82,10 +82,9 @@ public interface EventStore {
     /**
      * Returns {@code true} if at least one event matching {@code query} exists.
      * <p>
-     * Shorthand for:
-     * <pre>{@code
-     * eventStore.project(query, StreamPosition.zero(), StateProjector.exists()).state()
-     * }</pre>
+     * The production implementation uses {@code SELECT EXISTS(SELECT 1 FROM events WHERE ...)}
+     * so PostgreSQL short-circuits at the first match — no event data is fetched or deserialized.
+     * The {@code default} implementation falls back to {@code project()} for custom implementors.
      *
      * @param query the query defining which events to check
      * @return {@code true} if any matching event exists, {@code false} otherwise
