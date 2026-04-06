@@ -1,6 +1,6 @@
 package com.crablet.eventstore.period;
 
-import com.crablet.eventstore.store.Tag;
+import com.crablet.eventstore.Tag;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

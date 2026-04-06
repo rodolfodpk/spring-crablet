@@ -7,13 +7,13 @@ import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.commands.TransferMoneyCommandHandler;
 import com.crablet.examples.wallet.commands.WithdrawCommandHandler;
 import com.crablet.eventpoller.InstanceIdProvider;
-import com.crablet.eventstore.clock.ClockProvider;
-import com.crablet.eventstore.clock.ClockProviderImpl;
+import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.query.EventRepository;
-import com.crablet.eventstore.query.EventRepositoryImpl;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.EventStoreConfig;
-import com.crablet.eventstore.store.EventStoreImpl;
+import com.crablet.eventstore.internal.EventRepositoryImpl;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.internal.EventStoreConfig;
+import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
@@ -175,7 +175,7 @@ public class TestApplication {
             ClockProvider clock,
             tools.jackson.databind.ObjectMapper objectMapper,
             org.springframework.context.ApplicationEventPublisher eventPublisher) {
-        com.crablet.eventstore.store.EventStoreConfig config = new com.crablet.eventstore.store.EventStoreConfig();
+        com.crablet.eventstore.internal.EventStoreConfig config = new com.crablet.eventstore.internal.EventStoreConfig();
         config.setPersistCommands(true);
         return new CommandExecutorImpl(eventStore, handlers, config, clock, objectMapper, eventPublisher);
     }

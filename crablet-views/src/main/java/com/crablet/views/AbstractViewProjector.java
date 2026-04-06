@@ -1,7 +1,7 @@
 package com.crablet.views;
 
-import com.crablet.eventstore.clock.ClockProvider;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.StoredEvent;
 import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -2,8 +2,8 @@ package com.crablet.automations.adapter;
 
 import com.crablet.automations.AutomationHandler;
 import com.crablet.command.CommandExecutor;
-import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.eventstore.store.Tag;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.Tag;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;

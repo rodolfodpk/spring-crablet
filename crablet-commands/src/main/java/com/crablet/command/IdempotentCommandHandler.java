@@ -1,7 +1,7 @@
 package com.crablet.command;
 
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.EventStore;
 
 import java.util.List;
 

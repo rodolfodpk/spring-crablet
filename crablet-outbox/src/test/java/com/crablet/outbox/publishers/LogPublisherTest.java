@@ -4,7 +4,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.StoredEvent;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.PublishException;
 import org.junit.jupiter.api.BeforeEach;
@@ -88,7 +88,7 @@ class LogPublisherTest {
         // Given
         StoredEvent event = new StoredEvent(
                 "WalletOpened",
-                List.of(new com.crablet.eventstore.store.Tag("wallet_id", "wallet-123")),
+                List.of(new com.crablet.eventstore.Tag("wallet_id", "wallet-123")),
                 "{\"walletId\":\"wallet-123\"}".getBytes(),
                 "tx-123",
                 100L,

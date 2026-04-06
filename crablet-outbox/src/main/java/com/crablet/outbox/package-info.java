@@ -48,7 +48,7 @@
  * sourcing, DCB alone is sufficient.
  *
  * @see com.crablet.command
- * @see com.crablet.eventstore.store.EventStore
+ * @see com.crablet.eventstore.EventStore
  */
 @org.jspecify.annotations.NullMarked
 package com.crablet.outbox;

@@ -5,10 +5,10 @@ import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.StateProjector;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.StreamPosition;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.course.CourseQueryPatterns;
 import com.crablet.examples.course.commands.ChangeCourseCapacityCommand;
 import com.crablet.examples.course.events.CourseCapacityChanged;
@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.course.CourseTags.COURSE_ID;
 
 /**

@@ -1,7 +1,7 @@
 package com.crablet.views.adapter;
 
 import com.crablet.eventpoller.EventHandler;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.StoredEvent;
 import com.crablet.views.ViewProjector;
 import com.crablet.views.metrics.ViewProjectionErrorMetric;
 import com.crablet.views.metrics.ViewProjectionMetric;

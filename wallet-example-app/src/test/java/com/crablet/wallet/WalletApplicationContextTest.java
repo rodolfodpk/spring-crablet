@@ -1,7 +1,7 @@
 package com.crablet.wallet;
 
 import com.crablet.command.CommandExecutor;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.EventStore;
 import com.crablet.wallet.api.WalletController;
 import com.crablet.wallet.api.WalletQueryController;
 import com.crablet.wallet.view.config.ViewConfiguration;

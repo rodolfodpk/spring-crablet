@@ -1,6 +1,6 @@
 package com.crablet.eventpoller;
 
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.StoredEvent;
 
 import java.util.List;
 

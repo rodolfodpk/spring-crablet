@@ -1,7 +1,7 @@
 package com.crablet.wallet.view;
 
 import com.crablet.eventpoller.processor.EventProcessor;
-import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.AppendEvent;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.events.WalletStatementClosed;
@@ -19,7 +19,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.DAY;
 import static com.crablet.examples.wallet.WalletTags.DEPOSIT_ID;
 import static com.crablet.examples.wallet.WalletTags.FROM_DAY;

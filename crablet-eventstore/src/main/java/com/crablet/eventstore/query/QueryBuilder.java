@@ -1,8 +1,8 @@
 package com.crablet.eventstore.query;
 
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
-import com.crablet.eventstore.store.StreamPosition;
-import com.crablet.eventstore.store.Tag;
+import com.crablet.eventstore.AppendConditionBuilder;
+import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.Tag;
 
 import java.util.ArrayList;
 import java.util.Arrays;

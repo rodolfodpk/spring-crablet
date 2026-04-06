@@ -22,7 +22,7 @@
  * No additional code is required - simply include a metrics collector in your
  * classpath to enable metrics collection.
  *
- * @see com.crablet.eventstore.store.EventStore
+ * @see com.crablet.eventstore.EventStore
  * @see com.crablet.metrics.micrometer
  */
 @org.jspecify.annotations.NullMarked

@@ -1,6 +1,6 @@
 package com.crablet.test;
 
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.EventStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;

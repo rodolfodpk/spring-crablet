@@ -1,9 +1,9 @@
 package com.crablet.eventstore.query;
 
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.StreamPosition;
-import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.AppendCondition;
 import com.crablet.test.InMemoryEventStore;
 
 import java.time.Instant;
@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**

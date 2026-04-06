@@ -2,7 +2,7 @@ package com.crablet.examples.wallet.projections;
 
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.StateProjector;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.events.WalletEvent;

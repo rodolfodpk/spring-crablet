@@ -2,8 +2,8 @@ package com.crablet.examples.wallet.commands;
 
 import com.crablet.command.NonCommutativeCommandHandler;
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.EventStore;
 import com.crablet.examples.wallet.WalletQueryPatterns;
 import com.crablet.examples.wallet.events.WithdrawalMade;
 import com.crablet.examples.wallet.exceptions.InsufficientFundsException;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
 import static com.crablet.examples.wallet.WalletTags.WITHDRAWAL_ID;
 

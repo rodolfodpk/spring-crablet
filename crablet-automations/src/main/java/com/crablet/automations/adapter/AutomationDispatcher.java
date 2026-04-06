@@ -5,7 +5,7 @@ import com.crablet.automations.metrics.AutomationExecutionErrorMetric;
 import com.crablet.automations.metrics.AutomationExecutionMetric;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventHandler;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.StoredEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;

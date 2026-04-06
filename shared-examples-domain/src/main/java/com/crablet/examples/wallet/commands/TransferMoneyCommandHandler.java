@@ -2,8 +2,8 @@ package com.crablet.examples.wallet.commands;
 
 import com.crablet.command.NonCommutativeCommandHandler;
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.EventStore;
 import com.crablet.examples.wallet.WalletQueryPatterns;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.exceptions.InsufficientFundsException;
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.FROM_DAY;
 import static com.crablet.examples.wallet.WalletTags.FROM_HOUR;
 import static com.crablet.examples.wallet.WalletTags.FROM_MONTH;
@@ -140,14 +140,14 @@ public class TransferMoneyCommandHandler implements NonCommutativeCommandHandler
         TransferStateProjector projector = new TransferStateProjector(cmd.fromWalletId(), cmd.toWalletId());
 
         com.crablet.eventstore.query.ProjectionResult<TransferState> result =
-            store.project(decisionModel, com.crablet.eventstore.store.StreamPosition.zero(), TransferState.class, List.of(projector));
+            store.project(decisionModel, com.crablet.eventstore.StreamPosition.zero(), TransferState.class, List.of(projector));
 
         return new TransferProjectionResult(result.state(), result.streamPosition(), decisionModel);
     }
 
     private record TransferProjectionResult(
             TransferState state,
-            com.crablet.eventstore.store.StreamPosition streamPosition,
+            com.crablet.eventstore.StreamPosition streamPosition,
             Query decisionModel
     ) {}
 }

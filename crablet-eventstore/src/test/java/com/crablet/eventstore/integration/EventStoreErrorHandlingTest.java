@@ -1,14 +1,14 @@
 package com.crablet.eventstore.integration;
 
-import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.AppendCondition;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.StreamPosition;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.eventstore.store.Tag;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.Tag;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.events.WalletOpened;
@@ -339,7 +339,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractCrabletTest {
                                 .data(event) // Will fail to serialize
                                 .build()
                 ), AppendCondition.empty())
-        ).isInstanceOf(com.crablet.eventstore.store.EventStoreException.class)
+        ).isInstanceOf(com.crablet.eventstore.EventStoreException.class)
          .hasMessageMatching(".*(Failed to serialize event data|Failed to append events).*");
     }
 
@@ -362,7 +362,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractCrabletTest {
         // When: Attempt to deserialize WalletOpened as DepositMade
         com.crablet.eventstore.query.EventDeserializer deserializer = new com.crablet.eventstore.query.EventDeserializer() {
             @Override
-            public <E> E deserialize(com.crablet.eventstore.store.StoredEvent event, Class<E> eventType) {
+            public <E> E deserialize(com.crablet.eventstore.StoredEvent event, Class<E> eventType) {
                 try {
                     return tools.jackson.databind.json.JsonMapper.builder().disable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build().readValue(event.data(), eventType);
                 } catch (Exception e) {
@@ -407,7 +407,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractCrabletTest {
 
         com.crablet.eventstore.query.EventDeserializer deserializer = new com.crablet.eventstore.query.EventDeserializer() {
             @Override
-            public <E> E deserialize(com.crablet.eventstore.store.StoredEvent event, Class<E> eventType) {
+            public <E> E deserialize(com.crablet.eventstore.StoredEvent event, Class<E> eventType) {
                 try {
                     return tools.jackson.databind.json.JsonMapper.builder().disable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build().readValue(event.data(), eventType);
                 } catch (Exception e) {
@@ -459,7 +459,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractCrabletTest {
 
         com.crablet.eventstore.query.EventDeserializer deserializer = new com.crablet.eventstore.query.EventDeserializer() {
             @Override
-            public <E> E deserialize(com.crablet.eventstore.store.StoredEvent event, Class<E> eventType) {
+            public <E> E deserialize(com.crablet.eventstore.StoredEvent event, Class<E> eventType) {
                 try {
                     return tools.jackson.databind.json.JsonMapper.builder().disable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build().readValue(event.data(), eventType);
                 } catch (Exception e) {
@@ -545,7 +545,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractCrabletTest {
 
         com.crablet.eventstore.query.EventDeserializer deserializer = new com.crablet.eventstore.query.EventDeserializer() {
             @Override
-            public <E> E deserialize(com.crablet.eventstore.store.StoredEvent event, Class<E> eventType) {
+            public <E> E deserialize(com.crablet.eventstore.StoredEvent event, Class<E> eventType) {
                 try {
                     return tools.jackson.databind.json.JsonMapper.builder().disable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build().readValue(event.data(), eventType);
                 } catch (Exception e) {
@@ -611,7 +611,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractCrabletTest {
                                 .data(event) // Will fail to serialize (no default constructor + private fields)
                                 .build()
                 ), AppendCondition.empty())
-        ).isInstanceOf(com.crablet.eventstore.store.EventStoreException.class)
+        ).isInstanceOf(com.crablet.eventstore.EventStoreException.class)
          .hasMessageMatching(".*(Failed to serialize event data|Failed to append events).*");
     }
 

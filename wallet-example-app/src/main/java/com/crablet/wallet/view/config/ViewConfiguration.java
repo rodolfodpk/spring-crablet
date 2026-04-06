@@ -14,7 +14,7 @@ import com.crablet.wallet.view.projectors.WalletTransactionViewProjector;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 
 /**
  * Configuration for view subscriptions.

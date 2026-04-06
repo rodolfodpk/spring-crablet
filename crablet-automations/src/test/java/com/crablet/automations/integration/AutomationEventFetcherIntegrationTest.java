@@ -2,10 +2,10 @@ package com.crablet.automations.integration;
 
 import com.crablet.automations.AutomationSubscription;
 import com.crablet.automations.adapter.AutomationEventFetcher;
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.AppendCondition;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.StoredEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -283,21 +283,21 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
         public EventStore eventStore(
                 DataSource dataSource,
                 tools.jackson.databind.ObjectMapper objectMapper,
-                com.crablet.eventstore.store.EventStoreConfig config,
-                com.crablet.eventstore.clock.ClockProvider clock,
+                com.crablet.eventstore.internal.EventStoreConfig config,
+                com.crablet.eventstore.ClockProvider clock,
                 org.springframework.context.ApplicationEventPublisher eventPublisher) {
-            return new com.crablet.eventstore.store.EventStoreImpl(
+            return new com.crablet.eventstore.internal.EventStoreImpl(
                 dataSource, dataSource, objectMapper, config, clock, eventPublisher);
         }
 
         @Bean
-        public com.crablet.eventstore.store.EventStoreConfig eventStoreConfig() {
-            return new com.crablet.eventstore.store.EventStoreConfig();
+        public com.crablet.eventstore.internal.EventStoreConfig eventStoreConfig() {
+            return new com.crablet.eventstore.internal.EventStoreConfig();
         }
 
         @Bean
-        public com.crablet.eventstore.clock.ClockProvider clockProvider() {
-            return new com.crablet.eventstore.clock.ClockProviderImpl();
+        public com.crablet.eventstore.ClockProvider clockProvider() {
+            return new com.crablet.eventstore.internal.ClockProviderImpl();
         }
 
         @Bean

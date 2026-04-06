@@ -3,13 +3,13 @@ package com.crablet.wallet.config;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandExecutorImpl;
 import com.crablet.eventpoller.InstanceIdProvider;
-import com.crablet.eventstore.clock.ClockProvider;
-import com.crablet.eventstore.clock.ClockProviderImpl;
+import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.query.EventRepository;
-import com.crablet.eventstore.query.EventRepositoryImpl;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.EventStoreConfig;
-import com.crablet.eventstore.store.EventStoreImpl;
+import com.crablet.eventstore.internal.EventRepositoryImpl;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.internal.EventStoreConfig;
+import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
@@ -173,7 +173,7 @@ public class CrabletConfig {
     @Bean
     public AutomationSubscription walletOpenedWelcomeNotificationSubscription(WalletOpenedReaction handler) {
         return handler.subscription(
-                com.crablet.eventstore.store.EventType.type(
+                com.crablet.eventstore.EventType.type(
                         com.crablet.examples.wallet.events.WalletOpened.class));
     }
 }

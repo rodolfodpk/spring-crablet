@@ -2,7 +2,7 @@ package com.crablet.examples.wallet.period;
 
 import com.crablet.eventstore.period.PeriodTags;
 import com.crablet.eventstore.period.PeriodType;
-import com.crablet.eventstore.store.Tag;
+import com.crablet.eventstore.Tag;
 import java.time.Instant;
 import java.util.List;
 import java.time.LocalDate;

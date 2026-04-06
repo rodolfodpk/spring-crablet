@@ -1,6 +1,6 @@
 package com.crablet.metrics.micrometer.integration;
 
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.EventStore;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;

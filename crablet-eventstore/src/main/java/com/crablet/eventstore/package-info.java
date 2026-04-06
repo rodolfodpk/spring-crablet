@@ -6,8 +6,8 @@
  * <p>
  * <strong>Key Components:</strong>
  * <ul>
- *   <li>{@link com.crablet.eventstore.store.EventStore} - Core interface for appending and reading events</li>
- *   <li>{@link com.crablet.eventstore.dcb.AppendCondition} - Defines conditions for atomic event appends</li>
+ *   <li>{@link com.crablet.eventstore.EventStore} - Core interface for appending and reading events</li>
+ *   <li>{@link com.crablet.eventstore.AppendCondition} - Defines DCB conditions for atomic event appends</li>
  *   <li>{@link com.crablet.eventstore.query.Query} - Tag-based event querying and filtering</li>
  *   <li>{@link com.crablet.eventstore.query.StateProjector} - Projects current state from events</li>
  * </ul>
@@ -30,13 +30,10 @@
  * <p>
  * <strong>Sub-packages:</strong>
  * <ul>
- *   <li>{@link com.crablet.eventstore.store} - EventStore implementation and core interfaces</li>
  *   <li>{@link com.crablet.eventstore.query} - Query operations and state projections</li>
- *   <li>{@link com.crablet.eventstore.dcb} - Dynamic Consistency Boundary implementation</li>
  *   <li>{@link com.crablet.eventstore.period} - Period segmentation for time-based event organization</li>
- *   <li>{@link com.crablet.eventstore.clock} - Clock abstraction for time-based operations</li>
- *   <li>{@link com.crablet.eventstore.config} - EventStore configuration</li>
  *   <li>{@link com.crablet.eventstore.metrics} - EventStore metrics</li>
+ *   <li>{@link com.crablet.eventstore.internal} - Internal implementation classes (not public API)</li>
  * </ul>
  *
  * @see com.crablet.command

@@ -1,15 +1,15 @@
 package com.crablet.examples.wallet.period;
 
-import com.crablet.eventstore.clock.ClockProvider;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.eventstore.period.PeriodType;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.EventStore;
 import com.crablet.examples.wallet.WalletQueryPatterns;
 import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.store.StreamPosition;
+import com.crablet.eventstore.StreamPosition;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;

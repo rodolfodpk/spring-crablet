@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.course.CourseTags.COURSE_ID;
 import static com.crablet.examples.course.CourseTags.STUDENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;

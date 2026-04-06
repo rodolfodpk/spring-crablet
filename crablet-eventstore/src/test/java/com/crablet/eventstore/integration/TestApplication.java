@@ -1,12 +1,12 @@
 package com.crablet.eventstore.integration;
 
-import com.crablet.eventstore.clock.ClockProvider;
-import com.crablet.eventstore.clock.ClockProviderImpl;
+import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.query.EventRepository;
-import com.crablet.eventstore.query.EventRepositoryImpl;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.EventStoreConfig;
-import com.crablet.eventstore.store.EventStoreImpl;
+import com.crablet.eventstore.internal.EventRepositoryImpl;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.internal.EventStoreConfig;
+import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
@@ -29,7 +29,7 @@ import javax.sql.DataSource;
     basePackages = {"com.crablet.eventstore", "com.crablet.examples"},
     excludeFilters = @ComponentScan.Filter(
         type = FilterType.REGEX,
-        pattern = "com\\.crablet\\.eventstore\\.config\\.DataSourceConfig"
+        pattern = "com\\.crablet\\.eventstore\\.internal\\.DataSourceConfig"
     )
 )
 public class TestApplication {

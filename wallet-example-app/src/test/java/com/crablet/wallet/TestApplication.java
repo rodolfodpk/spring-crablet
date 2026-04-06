@@ -39,7 +39,7 @@ import java.time.Instant;
     basePackages = {"com.crablet.wallet", "com.crablet"},
     excludeFilters = @ComponentScan.Filter(
         type = FilterType.REGEX,
-        pattern = "com\\.crablet\\.eventstore\\.config\\.DataSourceConfig"
+        pattern = "com\\.crablet\\.eventstore\\.internal\\.DataSourceConfig"
     )
 )
 public class TestApplication {

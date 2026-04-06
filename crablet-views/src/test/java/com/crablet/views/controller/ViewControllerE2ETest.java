@@ -1,7 +1,7 @@
 package com.crablet.views.controller;
 
 import com.crablet.eventpoller.processor.EventProcessor;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.EventStore;
 import com.crablet.views.ViewSubscription;
 import com.crablet.views.adapter.ViewProcessorConfig;
 import com.crablet.views.config.ViewsAutoConfiguration;
@@ -248,21 +248,21 @@ class ViewControllerE2ETest extends AbstractViewsTest {
         public EventStore eventStore(
                 DataSource dataSource,
                 tools.jackson.databind.ObjectMapper objectMapper,
-                com.crablet.eventstore.store.EventStoreConfig config,
-                com.crablet.eventstore.clock.ClockProvider clock,
+                com.crablet.eventstore.internal.EventStoreConfig config,
+                com.crablet.eventstore.ClockProvider clock,
                 org.springframework.context.ApplicationEventPublisher eventPublisher) {
-            return new com.crablet.eventstore.store.EventStoreImpl(
+            return new com.crablet.eventstore.internal.EventStoreImpl(
                 dataSource, dataSource, objectMapper, config, clock, eventPublisher);
         }
 
         @Bean
-        public com.crablet.eventstore.store.EventStoreConfig eventStoreConfig() {
-            return new com.crablet.eventstore.store.EventStoreConfig();
+        public com.crablet.eventstore.internal.EventStoreConfig eventStoreConfig() {
+            return new com.crablet.eventstore.internal.EventStoreConfig();
         }
 
         @Bean
-        public com.crablet.eventstore.clock.ClockProvider clockProvider() {
-            return new com.crablet.eventstore.clock.ClockProviderImpl();
+        public com.crablet.eventstore.ClockProvider clockProvider() {
+            return new com.crablet.eventstore.internal.ClockProviderImpl();
         }
 
         @Bean

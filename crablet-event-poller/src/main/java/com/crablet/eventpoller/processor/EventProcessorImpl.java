@@ -8,7 +8,7 @@ import com.crablet.eventpoller.metrics.BackoffStateMetric;
 import com.crablet.eventpoller.metrics.ProcessingCycleMetric;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.StoredEvent;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;

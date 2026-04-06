@@ -5,7 +5,7 @@ import com.crablet.examples.notification.commands.SendWelcomeNotificationCommand
 import com.crablet.examples.wallet.events.WalletEvent;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.automations.AutomationHandler;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.StoredEvent;
 import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

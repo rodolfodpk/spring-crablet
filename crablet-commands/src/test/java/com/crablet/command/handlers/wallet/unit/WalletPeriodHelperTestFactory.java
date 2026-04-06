@@ -1,12 +1,12 @@
 package com.crablet.command.handlers.wallet.unit;
 
-import com.crablet.eventstore.clock.ClockProvider;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.period.PeriodType;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.StreamPosition;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.EventStore;
 import com.crablet.examples.wallet.WalletQueryPatterns;
 import com.crablet.examples.wallet.events.WalletStatementOpened;
 import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.STATEMENT_ID;
 import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
 

@@ -1,15 +1,15 @@
 package com.crablet.examples.wallet;
 
-import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.AppendCondition;
 import com.crablet.eventstore.period.PeriodTags;
 import com.crablet.test.AbstractCrabletTest;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.StreamPosition;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.events.WalletOpened;
@@ -51,7 +51,7 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
     private EventRepository eventRepository;
     
     @Autowired
-    private com.crablet.eventstore.clock.ClockProvider clockProvider;
+    private com.crablet.eventstore.ClockProvider clockProvider;
     
     /**
      * Query for wallet events in a specific period.

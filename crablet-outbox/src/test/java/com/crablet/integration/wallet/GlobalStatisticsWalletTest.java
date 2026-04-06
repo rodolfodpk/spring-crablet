@@ -1,8 +1,8 @@
 package com.crablet.integration.wallet;
 
 import com.crablet.eventpoller.processor.EventProcessor;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.EventStore;
 import com.crablet.integration.AbstractCrabletTest;
 import com.crablet.outbox.adapter.OutboxProcessorConfig;
 import com.crablet.outbox.adapter.TopicPublisherPair;

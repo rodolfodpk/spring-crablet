@@ -2,8 +2,8 @@ package com.crablet.integration;
 
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.progress.ProcessorStatus;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.EventStore;
 import com.crablet.outbox.adapter.TopicPublisherPair;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.testutils.EventProcessorTestHelper;

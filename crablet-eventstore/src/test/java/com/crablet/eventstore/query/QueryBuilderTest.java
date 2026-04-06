@@ -1,9 +1,9 @@
 package com.crablet.eventstore.query;
 
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
-import com.crablet.eventstore.store.StreamPosition;
-import com.crablet.eventstore.store.Tag;
+import com.crablet.eventstore.AppendCondition;
+import com.crablet.eventstore.AppendConditionBuilder;
+import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;

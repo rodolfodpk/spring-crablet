@@ -11,7 +11,7 @@ import com.crablet.outbox.management.OutboxManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.processor.EventProcessorImpl;
 import com.crablet.eventpoller.progress.ProgressTracker;
-import com.crablet.eventstore.clock.ClockProvider;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.TopicConfig;
 import com.crablet.outbox.adapter.OutboxEventFetcher;

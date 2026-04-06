@@ -1,7 +1,7 @@
 package com.crablet.automations;
 
 import com.crablet.command.CommandExecutor;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.StoredEvent;
 
 /**
  * Core interface for event-driven automations (policies/sagas).

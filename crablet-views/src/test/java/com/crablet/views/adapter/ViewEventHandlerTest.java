@@ -1,7 +1,7 @@
 package com.crablet.views.adapter;
 
-import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.eventstore.store.Tag;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.Tag;
 import com.crablet.views.ViewProjector;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

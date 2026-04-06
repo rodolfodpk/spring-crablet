@@ -1,8 +1,8 @@
 package com.crablet.outbox.publishing;
 
 import com.crablet.eventpoller.InstanceIdProvider;
-import com.crablet.eventstore.clock.ClockProvider;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.StoredEvent;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.PublishException;
 import com.crablet.outbox.TopicConfig;
@@ -380,13 +380,13 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
         return String.join(" AND ", conditions);
     }
     
-    private List<com.crablet.eventstore.store.Tag> parseTagsFromArray(java.sql.Array array) throws SQLException {
+    private List<com.crablet.eventstore.Tag> parseTagsFromArray(java.sql.Array array) throws SQLException {
         if (array == null) {
             return List.of();
         }
         
         String[] tagStrings = (String[]) array.getArray();
-        List<com.crablet.eventstore.store.Tag> tags = new ArrayList<>();
+        List<com.crablet.eventstore.Tag> tags = new ArrayList<>();
         
         for (String tagStr : tagStrings) {
             // Format: "key=value" (tags are stored with equals sign, not colon)
@@ -394,7 +394,7 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
             if (equalsIndex > 0) {
                 String key = tagStr.substring(0, equalsIndex);
                 String value = tagStr.substring(equalsIndex + 1);
-                tags.add(new com.crablet.eventstore.store.Tag(key, value));
+                tags.add(new com.crablet.eventstore.Tag(key, value));
             }
         }
         

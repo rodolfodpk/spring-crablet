@@ -1,11 +1,11 @@
 package com.crablet;
 
 import com.crablet.eventpoller.InstanceIdProvider;
-import com.crablet.eventstore.clock.ClockProvider;
-import com.crablet.eventstore.clock.ClockProviderImpl;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.EventStoreConfig;
-import com.crablet.eventstore.store.EventStoreImpl;
+import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.internal.ClockProviderImpl;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.internal.EventStoreConfig;
+import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.outbox.config.GlobalStatisticsConfig;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.config.TopicConfigurationProperties;
@@ -31,7 +31,7 @@ import javax.sql.DataSource;
 @ComponentScan(basePackages = {"com.crablet", "com.crablet.outbox", "com.crablet.eventstore", "com.crablet.eventpoller"},
                excludeFilters = {
                    @ComponentScan.Filter(type = FilterType.REGEX,
-                                        pattern = "com\\.crablet\\.eventstore\\.config\\.DataSourceConfig")
+                                        pattern = "com\\.crablet\\.eventstore\\.internal\\.DataSourceConfig")
                })
 @EnableScheduling
 public class TestApplication {
@@ -123,7 +123,7 @@ public class TestApplication {
     }
     
     // DataSource beans (readDataSource and primaryDataSource) are provided by
-    // com.crablet.eventstore.config.DataSourceConfig from crablet-eventstore module
+    // com.crablet.eventstore.internal.DataSourceConfig from crablet-eventstore module
     
     // OutboxManagementService, OutboxLeaderElector, OutboxPublishingService, and EventProcessor
     // are now created automatically by OutboxAutoConfiguration when crablet.outbox.enabled=true

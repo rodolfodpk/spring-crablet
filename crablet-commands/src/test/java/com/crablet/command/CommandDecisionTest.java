@@ -1,7 +1,7 @@
 package com.crablet.command;
 
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.StreamPosition;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.StreamPosition;
 import com.crablet.eventstore.query.Query;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

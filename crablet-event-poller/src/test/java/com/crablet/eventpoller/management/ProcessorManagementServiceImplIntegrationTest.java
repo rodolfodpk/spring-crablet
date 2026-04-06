@@ -10,9 +10,9 @@ import com.crablet.eventpoller.processor.EventProcessorImpl;
 import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.StoredEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -419,18 +419,18 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
             }
         }
 
-        private List<com.crablet.eventstore.store.Tag> parseTags(java.sql.Array array) throws java.sql.SQLException {
+        private List<com.crablet.eventstore.Tag> parseTags(java.sql.Array array) throws java.sql.SQLException {
             if (array == null) {
                 return List.of();
             }
             String[] tagStrings = (String[]) array.getArray();
-            List<com.crablet.eventstore.store.Tag> tags = new ArrayList<>();
+            List<com.crablet.eventstore.Tag> tags = new ArrayList<>();
             for (String tagStr : tagStrings) {
                 int equalsIndex = tagStr.indexOf('=');
                 if (equalsIndex > 0) {
                     String key = tagStr.substring(0, equalsIndex);
                     String value = tagStr.substring(equalsIndex + 1);
-                    tags.add(new com.crablet.eventstore.store.Tag(key, value));
+                    tags.add(new com.crablet.eventstore.Tag(key, value));
                 }
             }
             return tags;
@@ -476,21 +476,21 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
         public EventStore eventStore(
                 DataSource dataSource,
                 tools.jackson.databind.ObjectMapper objectMapper,
-                com.crablet.eventstore.store.EventStoreConfig config,
-                com.crablet.eventstore.clock.ClockProvider clock,
+                com.crablet.eventstore.internal.EventStoreConfig config,
+                com.crablet.eventstore.ClockProvider clock,
                 org.springframework.context.ApplicationEventPublisher eventPublisher) {
-            return new com.crablet.eventstore.store.EventStoreImpl(
+            return new com.crablet.eventstore.internal.EventStoreImpl(
                 dataSource, dataSource, objectMapper, config, clock, eventPublisher);
         }
 
         @Bean
-        public com.crablet.eventstore.store.EventStoreConfig eventStoreConfig() {
-            return new com.crablet.eventstore.store.EventStoreConfig();
+        public com.crablet.eventstore.internal.EventStoreConfig eventStoreConfig() {
+            return new com.crablet.eventstore.internal.EventStoreConfig();
         }
 
         @Bean
-        public com.crablet.eventstore.clock.ClockProvider clockProvider() {
-            return new com.crablet.eventstore.clock.ClockProviderImpl();
+        public com.crablet.eventstore.ClockProvider clockProvider() {
+            return new com.crablet.eventstore.internal.ClockProviderImpl();
         }
 
         @Bean

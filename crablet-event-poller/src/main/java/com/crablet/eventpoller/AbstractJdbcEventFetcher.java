@@ -1,7 +1,7 @@
 package com.crablet.eventpoller;
 
-import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.eventstore.store.Tag;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

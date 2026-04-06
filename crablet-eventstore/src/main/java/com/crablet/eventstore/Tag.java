@@ -1,0 +1,52 @@
+package com.crablet.eventstore;
+
+import org.jspecify.annotations.Nullable;
+
+import java.util.List;
+import java.util.Locale;
+
+/**
+ * Tag represents a key-value pair for event metadata.
+ * This is a pure data record with no business logic.
+ *
+ * <p><strong>Storage Format:</strong>
+ * Tags are stored in PostgreSQL as {@code TEXT[]} with format {@code "key=value"} (using equals sign).
+ * When querying tags in SQL, use patterns like {@code LIKE 'key=%'} or exact matches like {@code 'key=value'}.
+ *
+ * <p><strong>Example:</strong>
+ * <pre>{@code
+ * Tag tag = new Tag("wallet_id", "wallet-123");
+ * // Stored in database as: "wallet_id=wallet-123"
+ * // Query with: WHERE EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'wallet_id=%')
+ * }</pre>
+ */
+public record Tag(@Nullable String key, @Nullable String value) {
+
+    public Tag {
+        key = (key != null) ? key.toLowerCase(Locale.ROOT) : null;
+    }
+
+    /**
+     * Create a tag from a key-value pair.
+     */
+    public static Tag of(String key, String value) {
+        return new Tag(key, value);
+    }
+
+    /**
+     * Create tags from alternating key-value pairs.
+     */
+    public static List<Tag> of(String... keyValuePairs) {
+        if (keyValuePairs.length % 2 != 0) {
+            throw new IllegalArgumentException("Key-value pairs must be even");
+        }
+
+        var tags = new java.util.ArrayList<Tag>();
+        for (int i = 0; i < keyValuePairs.length; i += 2) {
+            tags.add(new Tag(keyValuePairs[i], keyValuePairs[i + 1]));
+        }
+        return tags;
+    }
+
+
+}

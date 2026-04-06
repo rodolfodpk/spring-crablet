@@ -1,7 +1,7 @@
 package com.crablet.eventstore.query;
 
-import com.crablet.eventstore.store.StreamPosition;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.StoredEvent;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;

@@ -2,7 +2,7 @@ package com.crablet.command.integration;
 
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandDecision;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.EventStore;
 
 import java.util.function.Function;
 

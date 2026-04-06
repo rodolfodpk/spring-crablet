@@ -2,9 +2,9 @@ package com.crablet.command.handlers.courses;
 
 import com.crablet.command.CommandDecision;
 import com.crablet.test.AbstractCrabletTest;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.course.commands.ChangeCourseCapacityCommand;
 import com.crablet.examples.course.events.CourseCapacityChanged;
 import com.crablet.examples.course.events.CourseDefined;

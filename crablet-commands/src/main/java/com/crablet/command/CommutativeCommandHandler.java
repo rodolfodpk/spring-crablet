@@ -1,7 +1,7 @@
 package com.crablet.command;
 
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.EventStore;
 
 import java.util.List;
 
@@ -11,7 +11,7 @@ import java.util.List;
  * (e.g., deposits, credits, batch increments).
  * <p>
  * Implementors return only the events to append; the framework applies
- * {@link com.crablet.eventstore.dcb.AppendCondition#empty()} automatically,
+ * {@link com.crablet.eventstore.AppendCondition#empty()} automatically,
  * allowing parallel appends without conflict detection.
  * <p>
  * Any business validation (e.g., existence checks) must be performed inside

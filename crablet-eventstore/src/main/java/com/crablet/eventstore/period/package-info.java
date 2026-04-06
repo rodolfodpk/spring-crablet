@@ -38,7 +38,7 @@
  * Period segmentation is optional. Commands work normally without it, defaulting
  * to {@code PeriodType.NONE} (no period segmentation).
  *
- * @see com.crablet.eventstore.store.EventStore
+ * @see com.crablet.eventstore.EventStore
  * @see com.crablet.eventstore.query.Query
  */
 @org.jspecify.annotations.NullMarked

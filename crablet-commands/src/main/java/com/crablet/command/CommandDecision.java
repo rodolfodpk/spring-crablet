@@ -1,8 +1,8 @@
 package com.crablet.command;
 
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.StreamPosition;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.StreamPosition;
 
 import java.util.List;
 
@@ -11,8 +11,8 @@ import java.util.List;
  * Each variant corresponds to one of the three DCB concurrency patterns,
  * making the intended consistency semantics visible at the type level.
  * <p>
- * {@link com.crablet.eventstore.dcb.AppendCondition} and
- * {@link com.crablet.eventstore.dcb.AppendConditionBuilder} are implementation
+ * {@link com.crablet.eventstore.AppendCondition} and
+ * {@link com.crablet.eventstore.AppendConditionBuilder} are implementation
  * details; callers never need to construct them directly.
  *
  * <ul>

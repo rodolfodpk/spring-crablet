@@ -1,19 +1,19 @@
 package com.crablet.examples.wallet.period;
 
 import com.crablet.eventstore.period.PeriodType;
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.ConcurrencyException;
+import com.crablet.eventstore.AppendCondition;
+import com.crablet.eventstore.ConcurrencyException;
 import com.crablet.eventstore.query.EventRepository;
-import com.crablet.eventstore.store.EventStoreException;
+import com.crablet.eventstore.EventStoreException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.StreamPosition;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.wallet.WalletQueryPatterns;
 import com.crablet.examples.wallet.events.WalletStatementClosed;
 import com.crablet.examples.wallet.events.WalletStatementOpened;
@@ -23,7 +23,7 @@ import com.crablet.examples.wallet.events.WithdrawalMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
-import com.crablet.eventstore.clock.ClockProvider;
+import com.crablet.eventstore.ClockProvider;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
@@ -33,7 +33,7 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.*;
 
 /**

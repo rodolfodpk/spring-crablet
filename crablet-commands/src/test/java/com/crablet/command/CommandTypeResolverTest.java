@@ -60,7 +60,7 @@ class CommandTypeResolverTest {
         
         class TestHandler implements CommandHandler<TestCommand> {
             @Override
-            public CommandDecision handle(com.crablet.eventstore.store.EventStore eventStore, TestCommand command) {
+            public CommandDecision handle(com.crablet.eventstore.EventStore eventStore, TestCommand command) {
                 return null;
             }
         }
@@ -91,7 +91,7 @@ class CommandTypeResolverTest {
         
         class HandlerWithoutSubType implements CommandHandler<CommandNotInSubTypes> {
             @Override
-            public CommandDecision handle(com.crablet.eventstore.store.EventStore eventStore, CommandNotInSubTypes command) {
+            public CommandDecision handle(com.crablet.eventstore.EventStore eventStore, CommandNotInSubTypes command) {
                 return null;
             }
         }
@@ -116,7 +116,7 @@ class CommandTypeResolverTest {
         // Concrete handler extending the abstract base class
         class ConcreteHandler extends AbstractBaseHandler<OpenWalletCommand> {
             @Override
-            public CommandDecision handle(com.crablet.eventstore.store.EventStore eventStore, OpenWalletCommand command) {
+            public CommandDecision handle(com.crablet.eventstore.EventStore eventStore, OpenWalletCommand command) {
                 return null;
             }
         }
@@ -183,7 +183,7 @@ class CommandTypeResolverTest {
         
         class MultiInterfaceHandler implements CommandHandler<OpenWalletCommand>, OtherInterface {
             @Override
-            public CommandDecision handle(com.crablet.eventstore.store.EventStore eventStore, OpenWalletCommand command) {
+            public CommandDecision handle(com.crablet.eventstore.EventStore eventStore, OpenWalletCommand command) {
                 return null;
             }
         }
@@ -210,7 +210,7 @@ class CommandTypeResolverTest {
         
         class TestHandler implements CommandHandler<TestCommandClass> {
             @Override
-            public CommandDecision handle(com.crablet.eventstore.store.EventStore eventStore, TestCommandClass command) {
+            public CommandDecision handle(com.crablet.eventstore.EventStore eventStore, TestCommandClass command) {
                 return null;
             }
         }

@@ -1,6 +1,6 @@
 package com.crablet.command;
 
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.EventStore;
 
 /**
  * CommandHandler handles command execution and generates events.

@@ -1,16 +1,16 @@
 package com.crablet.eventstore.integration;
 
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.ConcurrencyException;
+import com.crablet.eventstore.AppendCondition;
+import com.crablet.eventstore.ConcurrencyException;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.StreamPosition;
-import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.eventstore.store.Tag;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.Tag;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;

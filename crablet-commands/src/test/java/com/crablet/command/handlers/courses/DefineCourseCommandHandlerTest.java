@@ -2,9 +2,9 @@ package com.crablet.command.handlers.courses;
 
 import com.crablet.command.CommandDecision;
 import com.crablet.test.AbstractCrabletTest;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.course.commands.DefineCourseCommand;
 import com.crablet.examples.course.events.CourseDefined;
 import org.junit.jupiter.api.BeforeEach;
@@ -88,7 +88,7 @@ class DefineCourseCommandHandlerTest extends AbstractCrabletTest {
         CommandDecision.Idempotent result = (CommandDecision.Idempotent) handler.handle(eventStore, cmd);
         assertThatThrownBy(() -> eventStore.appendIdempotent(
                 result.events(), result.eventType(), result.tagKey(), result.tagValue()))
-                .isInstanceOf(com.crablet.eventstore.dcb.ConcurrencyException.class);
+                .isInstanceOf(com.crablet.eventstore.ConcurrencyException.class);
     }
 
     @Test

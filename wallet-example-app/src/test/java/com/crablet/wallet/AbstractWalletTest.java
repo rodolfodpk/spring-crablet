@@ -1,7 +1,7 @@
 package com.crablet.wallet;
 
 import com.crablet.command.CommandExecutor;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.EventStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

@@ -3,9 +3,9 @@ package com.crablet.command.handlers.courses;
 import com.crablet.command.NonCommutativeCommandHandler;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.StreamPosition;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.EventStore;
 import com.crablet.examples.course.CourseQueryPatterns;
 import com.crablet.examples.course.commands.SubscribeStudentToCourseCommand;
 import com.crablet.examples.course.events.StudentSubscribedToCourse;
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.course.CourseTags.COURSE_ID;
 import static com.crablet.examples.course.CourseTags.STUDENT_ID;
 
@@ -129,7 +129,7 @@ public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCom
         }
 
         @Override
-        public SubscriptionState transition(SubscriptionState current, com.crablet.eventstore.store.StoredEvent event,
+        public SubscriptionState transition(SubscriptionState current, com.crablet.eventstore.StoredEvent event,
                                              com.crablet.eventstore.query.EventDeserializer context) {
             return switch (event.type()) {
                 case String s when s.equals(type(com.crablet.examples.course.events.CourseDefined.class)) -> {

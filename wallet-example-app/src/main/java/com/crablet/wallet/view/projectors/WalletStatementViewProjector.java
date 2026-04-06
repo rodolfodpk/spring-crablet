@@ -1,8 +1,8 @@
 package com.crablet.wallet.view.projectors;
 
-import com.crablet.eventstore.clock.ClockProvider;
-import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.eventstore.store.Tag;
+import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.Tag;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.events.WalletEvent;

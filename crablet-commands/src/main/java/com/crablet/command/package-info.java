@@ -32,8 +32,8 @@
  * All operations within a command execution use a single database transaction,
  * ensuring atomicity of queries, projections, appends, and command storage.
  *
- * @see com.crablet.eventstore.store.EventStore
- * @see com.crablet.eventstore.dcb.AppendCondition
+ * @see com.crablet.eventstore.EventStore
+ * @see com.crablet.eventstore.AppendCondition
  */
 @org.jspecify.annotations.NullMarked
 package com.crablet.command;

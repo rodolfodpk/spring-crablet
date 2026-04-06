@@ -1,7 +1,7 @@
 package com.crablet.metrics.micrometer.integration;
 
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.store.AppendEvent;
+import com.crablet.eventstore.AppendCondition;
+import com.crablet.eventstore.AppendEvent;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.WalletOpened;
 import io.micrometer.core.instrument.Counter;

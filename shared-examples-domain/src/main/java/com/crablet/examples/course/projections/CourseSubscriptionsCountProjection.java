@@ -2,7 +2,7 @@ package com.crablet.examples.course.projections;
 
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.StateProjector;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.StoredEvent;
 
 /**
  * Projector for counting course subscriptions.

@@ -1,7 +1,7 @@
 package com.crablet.command.handlers.courses;
 
-import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.eventstore.store.Tag;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.Tag;
 import com.crablet.examples.course.events.CourseCapacityChanged;
 import com.crablet.examples.course.events.CourseDefined;
 import com.crablet.examples.course.events.StudentSubscribedToCourse;
