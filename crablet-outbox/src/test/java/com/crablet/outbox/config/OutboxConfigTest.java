@@ -34,7 +34,7 @@ class OutboxConfigTest {
         assertThat(config.isBackoffEnabled()).isTrue();
         assertThat(config.getBackoffThreshold()).isEqualTo(3);
         assertThat(config.getBackoffMultiplier()).isEqualTo(2);
-        assertThat(config.getBackoffMaxSeconds()).isEqualTo(60);
+        assertThat(config.getBackoffMaxSeconds()).isEqualTo(120);
         assertThat(config.getLeaderElectionRetryIntervalMs()).isEqualTo(30000L);
     }
 

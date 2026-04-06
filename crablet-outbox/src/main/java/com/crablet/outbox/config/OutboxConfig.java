@@ -40,7 +40,7 @@ public class OutboxConfig {
     private boolean backoffEnabled = true;
     private int backoffThreshold = 3;
     private int backoffMultiplier = 2;
-    private int backoffMaxSeconds = 60;
+    private int backoffMaxSeconds = 120;
     
     // Leader election retry interval in milliseconds (for followers to detect leader crashes)
     private long leaderElectionRetryIntervalMs = 30000; // Default: 30 seconds

@@ -15,9 +15,9 @@ public class ViewsConfig {
     private boolean enabled = false;
     private long pollingIntervalMs = 1000L;
     private int batchSize = 100;
-    private int backoffThreshold = 10;
+    private int backoffThreshold = 3;
     private int backoffMultiplier = 2;
-    private int maxBackoffSeconds = 60;
+    private int maxBackoffSeconds = 120;
     private long leaderElectionRetryIntervalMs = 30000L;
     
     /**
