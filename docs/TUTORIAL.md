@@ -237,7 +237,7 @@ The bug is `appendCommutative`. It tells the store "order does not matter, do no
 
 ### The fix: capture the stream position, check it on write
 
-`appendNonCommutative` links the write to the version of reality that was read:
+`ProjectionResult.appendNonCommutative` links the write to the version of reality that was read. The stream position is embedded in the result — it cannot be accidentally dropped:
 
 ```java
 // Thread A — corrected
@@ -249,10 +249,10 @@ if (result.state().acceptedCount() >= CAPACITY) {
     throw new ConferenceFullException();
 }
 
-// appendNonCommutative checks: has any event matching conferenceQuery been appended
-// AFTER result.streamPosition()? If yes — another thread wrote concurrently —
-// throw ConcurrencyException. If no — safe to proceed.
-eventStore.appendNonCommutative(List.of(acceptTalk3), conferenceQuery, result.streamPosition());
+// streamPosition is implicit — impossible to forget.
+// Checks: has any event matching conferenceQuery been appended
+// AFTER the captured stream position? If yes — throw ConcurrencyException.
+result.appendNonCommutative(eventStore, List.of(acceptTalk3), conferenceQuery);
 ```
 
 The check is atomic at the database level (implemented as a PostgreSQL stored function using advisory locks). Thread B's write will find that Thread A's `TalkAccepted` event now exists past Thread B's stream position, and will throw `ConcurrencyException`. The losing thread can retry from scratch: it will re-project, find 2 accepted talks, fail the capacity check, and correctly throw `ConferenceFullException`.
