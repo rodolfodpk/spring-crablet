@@ -2,7 +2,6 @@ package com.crablet.automations.integration;
 
 import com.crablet.automations.AutomationSubscription;
 import com.crablet.automations.internal.AutomationEventFetcher;
-import com.crablet.eventstore.AppendCondition;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.StoredEvent;
@@ -51,7 +50,7 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
     @DisplayName("Should fetch events filtered by event type")
     void shouldFetchEvents_FilteredByEventType() {
         // Given - Events with different types
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", "wallet-1")
                 .data("{\"walletId\":\"wallet-1\"}")
@@ -64,7 +63,7 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
                 .tag("course_id", "course-1")
                 .data("{\"courseId\":\"course-1\"}")
                 .build()
-        ), AppendCondition.empty());
+        ));
 
         // When - wallet-automation only subscribes to WalletOpened and DepositMade
         List<StoredEvent> fetched = eventFetcher.fetchEvents("wallet-automation", 0L, 100);
@@ -79,7 +78,7 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
     @DisplayName("Should fetch events filtered by required tags")
     void shouldFetchEvents_FilteredByRequiredTags() {
         // Given - Events with different tags
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", "wallet-1")
                 .data("{\"walletId\":\"wallet-1\"}")
@@ -88,7 +87,7 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
                 .tag("course_id", "course-1") // missing wallet_id
                 .data("{\"walletId\":\"wallet-2\"}")
                 .build()
-        ), AppendCondition.empty());
+        ));
 
         // When - wallet-automation requires wallet_id tag
         List<StoredEvent> fetched = eventFetcher.fetchEvents("wallet-automation", 0L, 100);
@@ -102,7 +101,7 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
     @DisplayName("Should fetch events filtered by anyOf tags")
     void shouldFetchEvents_FilteredByAnyOfTags() {
         // Given - Events with different tags
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("MoneyMoved")
                 .tag("from_wallet_id", "wallet-1")
                 .data("{\"from\":\"wallet-1\"}")
@@ -115,7 +114,7 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
                 .tag("other_id", "x") // no match
                 .data("{\"other\":\"x\"}")
                 .build()
-        ), AppendCondition.empty());
+        ));
 
         // When - transfer-automation uses anyOf tags [from_wallet_id, to_wallet_id]
         List<StoredEvent> fetched = eventFetcher.fetchEvents("transfer-automation", 0L, 100);
@@ -128,7 +127,7 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
     @DisplayName("Should fetch events after last position")
     void shouldFetchEvents_AfterLastPosition() {
         // Given
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", "wallet-1")
                 .data("{\"walletId\":\"wallet-1\"}")
@@ -137,7 +136,7 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
                 .tag("wallet_id", "wallet-1")
                 .data("{\"amount\":100}")
                 .build()
-        ), AppendCondition.empty());
+        ));
 
         // Get the position of first event
         List<StoredEvent> all = eventFetcher.fetchEvents("wallet-automation", 0L, 100);
@@ -177,12 +176,12 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
     @DisplayName("Should return empty list for non-existent automation subscription")
     void shouldReturnEmptyList_ForNonExistentAutomationSubscription() {
         // Given - Some events in the store
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", "wallet-1")
                 .data("{\"walletId\":\"wallet-1\"}")
                 .build()
-        ), AppendCondition.empty());
+        ));
 
         // When - No subscription registered for this automation
         List<StoredEvent> fetched = eventFetcher.fetchEvents("non-existent-automation", 0L, 100);
@@ -195,12 +194,12 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
     @DisplayName("Should return empty list when no events match filters")
     void shouldReturnEmptyList_WhenNoEventsMatchFilters() {
         // Given - Events that don't match subscription
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("CourseCreated")
                 .tag("course_id", "course-1")
                 .data("{\"courseId\":\"course-1\"}")
                 .build()
-        ), AppendCondition.empty());
+        ));
 
         // When - wallet-automation only cares about WalletOpened/DepositMade with wallet_id
         List<StoredEvent> fetched = eventFetcher.fetchEvents("wallet-automation", 0L, 100);
@@ -213,7 +212,7 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
     @DisplayName("Should return events in position order")
     void shouldReturnEvents_InPositionOrder() {
         // Given
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", "wallet-1")
                 .data("{\"walletId\":\"wallet-1\"}")
@@ -226,7 +225,7 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
                 .tag("wallet_id", "wallet-2")
                 .data("{\"amount\":200}")
                 .build()
-        ), AppendCondition.empty());
+        ));
 
         // When
         List<StoredEvent> fetched = eventFetcher.fetchEvents("wallet-automation", 0L, 100);

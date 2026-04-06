@@ -47,11 +47,6 @@ public sealed interface CommandDecision
             return new NoOp(null);
         }
 
-        /** @deprecated Use {@link #empty()} instead. */
-        @Deprecated
-        public static NoOp noReason() {
-            return empty();
-        }
     }
 
     /**

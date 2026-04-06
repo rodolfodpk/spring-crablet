@@ -1,6 +1,5 @@
 package com.crablet.metrics.micrometer.integration;
 
-import com.crablet.eventstore.AppendCondition;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.WalletOpened;
@@ -46,20 +45,20 @@ class EventStoreMetricsIntegrationTest extends AbstractMetricsIntegrationTest {
     @DisplayName("Should collect event type metrics via Spring Events")
     void shouldCollectEventTypeMetrics() {
         // When: append events with different types
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", "wallet2")
                         .data(WalletOpened.of("wallet2", "Bob", 1000))
                         .build()
-        ), AppendCondition.empty());
+        ));
         
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
                 AppendEvent.builder("DepositMade")
                         .tag("wallet_id", "wallet2")
                         .tag("deposit_id", "deposit1")
                         .data(DepositMade.of("deposit1", "wallet2", 500, 1500, "Test"))
                         .build()
-        ), AppendCondition.empty());
+        ));
 
         // Then: event type metrics should be recorded
         Counter walletOpenedCounter = meterRegistry.find("eventstore.events.by_type")

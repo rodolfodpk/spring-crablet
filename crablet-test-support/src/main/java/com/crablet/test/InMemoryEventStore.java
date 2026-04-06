@@ -1,7 +1,5 @@
 package com.crablet.test;
 
-import com.crablet.eventstore.AppendCondition;
-import com.crablet.eventstore.AppendConditionBuilder;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.ProjectionResult;
@@ -93,22 +91,20 @@ public class InMemoryEventStore implements EventStore {
     
     @Override
     public String appendCommutative(List<AppendEvent> events) {
-        return appendIf(events, AppendCondition.empty());
+        return doAppend(events);
     }
 
     @Override
     public String appendNonCommutative(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {
-        return appendIf(events, AppendConditionBuilder.of(decisionModel, streamPosition).build());
+        return doAppend(events);
     }
 
     @Override
     public String appendIdempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {
-        return appendIf(events, AppendCondition.idempotent(eventType, tagKey, tagValue));
+        return doAppend(events);
     }
 
-    @Override
-    @Deprecated
-    public String appendIf(List<AppendEvent> appendEvents, AppendCondition condition) {
+    private String doAppend(List<AppendEvent> appendEvents) {
         if (appendEvents == null || appendEvents.isEmpty()) {
             throw new IllegalArgumentException("Cannot append empty events list");
         }

@@ -2,7 +2,7 @@ package com.crablet.wallet.e2e;
 
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.views.internal.ViewProcessorConfig;
-import com.crablet.views.config.ViewSubscriptionConfig;
+import com.crablet.views.ViewSubscription;
 import com.crablet.wallet.TestApplication;
 import com.crablet.wallet.api.dto.DepositRequest;
 import com.crablet.wallet.api.dto.OpenWalletRequest;
@@ -65,12 +65,12 @@ class WalletLifecycleE2ETest extends AbstractWalletE2ETest {
     
     @Autowired
     @Qualifier("viewSubscriptions")
-    private Map<String, ViewSubscriptionConfig> subscriptions;
+    private Map<String, ViewSubscription> subscriptions;
     
     /**
      * Process all views to ensure they're up to date.
      * This ensures views are processed synchronously in tests.
-     * Note: Processor IDs are the view names from ViewSubscriptionConfig.getViewName().
+     * Note: Processor IDs are the view names from ViewSubscription.getViewName().
      */
     private void processAllViews() {
         // Use view names as processor IDs (now that processor config map uses view names as keys)

@@ -3,7 +3,6 @@ package com.crablet.eventstore.query;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.StreamPosition;
 import com.crablet.eventstore.StoredEvent;
-import com.crablet.eventstore.AppendCondition;
 import com.crablet.test.InMemoryEventStore;
 
 import java.time.Instant;
@@ -91,12 +90,12 @@ class StateProjectorTest {
     @DisplayName("exists() returns true after matching event is appended")
     void existsReturnsTrueAfterMatchingEvent() {
         // Seed a WalletOpened event
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", "w1")
                 .data("{}")
                 .build()
-        ), AppendCondition.empty());
+        ));
 
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", "w1");
 
@@ -111,12 +110,12 @@ class StateProjectorTest {
     @DisplayName("exists() returns false when event type does not match")
     void existsReturnsFalseWhenEventTypeDoesNotMatch() {
         // Seed a DepositMade event (not WalletOpened)
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("DepositMade")
                 .tag("wallet_id", "w1")
                 .data("{}")
                 .build()
-        ), AppendCondition.empty());
+        ));
 
         // Query for WalletOpened — no such event exists
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", "w1");
@@ -131,12 +130,12 @@ class StateProjectorTest {
     @Test
     @DisplayName("exists() with multiple event types — returns true when any type matches")
     void existsReturnsTrueForAnyMatchingType() {
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("DepositMade")
                 .tag("wallet_id", "w1")
                 .data("{}")
                 .build()
-        ), AppendCondition.empty());
+        ));
 
         // Query without tag filtering
         Query query = Query.forEventAndTag("DepositMade", "wallet_id", "w1");

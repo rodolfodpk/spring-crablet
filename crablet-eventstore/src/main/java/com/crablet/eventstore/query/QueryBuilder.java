@@ -26,12 +26,6 @@ public class QueryBuilder {
         return new QueryBuilder();
     }
 
-    /** @deprecated Use {@link #builder()} instead. */
-    @Deprecated
-    public static QueryBuilder create() {
-        return builder();
-    }
-
     /**
      * Helper method for creating Tag objects.
      */

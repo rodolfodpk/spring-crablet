@@ -1,7 +1,6 @@
 package com.crablet.examples.wallet.period;
 
 import com.crablet.eventstore.period.PeriodType;
-import com.crablet.eventstore.AppendCondition;
 import com.crablet.eventstore.ConcurrencyException;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.EventStoreException;
@@ -307,9 +306,7 @@ public class WalletStatementPeriodResolver {
                     .data(data)
                     .build();
 
-            AppendCondition condition = AppendCondition.idempotent(type(WalletStatementClosed.class), STATEMENT_ID, periodId.toStreamId());
-
-            eventStore.appendIf(List.of(event), condition);
+            eventStore.appendIdempotent(List.of(event), type(WalletStatementClosed.class), STATEMENT_ID, periodId.toStreamId());
         } catch (ConcurrencyException e) {
             if (e.violation != null && "IDEMPOTENCY_VIOLATION".equals(e.violation.errorCode())) {
                 return; // Already exists — idempotent success
@@ -333,9 +330,7 @@ public class WalletStatementPeriodResolver {
                     .data(data)
                     .build();
 
-            AppendCondition condition = AppendCondition.idempotent(type(WalletStatementOpened.class), STATEMENT_ID, periodId.toStreamId());
-
-            eventStore.appendIf(List.of(event), condition);
+            eventStore.appendIdempotent(List.of(event), type(WalletStatementOpened.class), STATEMENT_ID, periodId.toStreamId());
         } catch (ConcurrencyException e) {
             if (e.violation != null && "IDEMPOTENCY_VIOLATION".equals(e.violation.errorCode())) {
                 return; // Already exists — idempotent success

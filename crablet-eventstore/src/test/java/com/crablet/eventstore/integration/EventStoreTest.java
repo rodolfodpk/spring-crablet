@@ -1,6 +1,5 @@
 package com.crablet.eventstore.integration;
 
-import com.crablet.eventstore.AppendCondition;
 import com.crablet.eventstore.ConcurrencyException;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.EventRepository;
@@ -68,25 +67,25 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
         // Then: verify events were stored
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", "wallet1");
         List<StoredEvent> storedEvents = eventRepository.query(query, null);
-        
+
         assertThat(storedEvents).hasSize(1);
         assertThat(storedEvents.get(0).type()).isEqualTo("WalletOpened");
         assertThat(storedEvents.get(0).hasTag("wallet_id", "wallet1")).isTrue();
     }
 
     @Test
-    @DisplayName("Should appendIf with valid stream position condition (DCB pattern)")
+    @DisplayName("Should appendNonCommutative with valid stream position condition (DCB pattern)")
     void shouldAppendIfWithValidCondition() {
         // Given: wallet with initial balance
         String walletId = "wallet2";
         WalletOpened walletOpened = WalletOpened.of(walletId, "Bob", 1000);
 
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(walletOpened)
                         .build()
-        ), AppendCondition.empty());
+        ));
 
         // Project to get current stream position (DCB pattern)
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
@@ -99,15 +98,15 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
 
         // When: deposit with valid stream position condition
         DepositMade deposit = DepositMade.of("deposit1", walletId, 500, 1500, "Bonus");
-        AppendCondition condition = AppendCondition.of(result.streamPosition(), query);
 
-        eventStore.appendIf(
+        eventStore.appendNonCommutative(
                 List.of(AppendEvent.builder("DepositMade")
                         .tag("wallet_id", walletId)
                         .tag("deposit_id", "deposit1")
                         .data(deposit)
                         .build()),
-                condition
+                query,
+                Objects.requireNonNull(result.streamPosition())
         );
 
         // Then: both events should exist
@@ -120,18 +119,18 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("Should throw ConcurrencyException when appendIf with stale stream position (DCB scenario)")
+    @DisplayName("Should throw ConcurrencyException when appendNonCommutative with stale stream position (DCB scenario)")
     void shouldThrowConcurrencyExceptionWhenAppendIfWithStaleStreamPosition() {
         // Given: wallet with initial deposit
         String walletId = "wallet3";
         WalletOpened walletOpened = WalletOpened.of(walletId, "Charlie", 1000);
 
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(walletOpened)
                         .build()
-        ), AppendCondition.empty());
+        ));
 
         // Project to get initial stream position
         Query query = Query.forEventsAndTags(
@@ -147,27 +146,28 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
 
         // Simulate concurrent modification: another deposit happens
         DepositMade concurrentDeposit = DepositMade.of("deposit1", walletId, 500, 1500, "Concurrent deposit");
-        String txId = eventStore.appendIf(List.of(
+        String txId = eventStore.appendCommutative(List.of(
                 AppendEvent.builder("DepositMade")
                         .tag("wallet_id", walletId)
                         .tag("deposit_id", "deposit1")
                         .data(concurrentDeposit)
                         .build()
-        ), AppendCondition.empty());
+        ));
         assertThat(txId).isNotNull();
 
-        // When/Then: try to appendIf with stale stream position (DCB concurrency control)
+        // When/Then: try to appendNonCommutative with stale stream position (DCB concurrency control)
         WithdrawalMade staleWithdrawal = WithdrawalMade.of("withdrawal1", walletId, 200, 800, "Stale withdrawal");
-        AppendCondition staleCondition = AppendCondition.of(result1.streamPosition(), query);
+        StreamPosition staleStreamPosition = Objects.requireNonNull(result1.streamPosition());
 
         assertThatThrownBy(() ->
-                eventStore.appendIf(
+                eventStore.appendNonCommutative(
                         List.of(AppendEvent.builder("WithdrawalMade")
                                 .tag("wallet_id", walletId)
                                 .tag("withdrawal_id", "withdrawal1")
                                 .data(staleWithdrawal)
                                 .build()),
-                        staleCondition
+                        query,
+                        staleStreamPosition
                 )
         )
                 .isInstanceOf(ConcurrencyException.class)
@@ -179,7 +179,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
     void shouldProjectStateWithFilters() {
         // Given: wallet with deposits and withdrawals
         String walletId = "wallet4";
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Diana", 1000))
@@ -194,7 +194,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                         .tag("withdrawal_id", "withdrawal1")
                         .data(WithdrawalMade.of("withdrawal1", walletId, 300, 1200, "Withdrawal 1"))
                         .build()
-        ), AppendCondition.empty());
+        ));
 
         // When: project with all wallet event types
         Query query = Query.forEventsAndTags(
@@ -224,7 +224,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
 
         // When: execute wallet opening and deposit in transaction
         String txId = eventStore.executeInTransaction(txEventStore -> {
-            String transactionId = txEventStore.appendIf(List.of(
+            String transactionId = txEventStore.appendCommutative(List.of(
                     AppendEvent.builder("WalletOpened")
                             .tag("wallet_id", walletId)
                             .data(WalletOpened.of(walletId, "Eve", 1000))
@@ -234,7 +234,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                             .tag("deposit_id", "deposit1")
                             .data(DepositMade.of("deposit1", walletId, 500, 1500, "Initial deposit"))
                             .build()
-            ), AppendCondition.empty());
+            ));
             return transactionId;
         });
 
@@ -257,12 +257,12 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
         // When: transaction throws exception after wallet creation
         assertThatThrownBy(() ->
                 eventStore.executeInTransaction(txEventStore -> {
-                    txEventStore.appendIf(List.of(
+                    txEventStore.appendCommutative(List.of(
                             AppendEvent.builder("WalletOpened")
                                     .tag("wallet_id", walletId)
                                     .data(WalletOpened.of(walletId, "Frank", 1000))
                                     .build()
-                    ), AppendCondition.empty());
+                    ));
                     throw new RuntimeException("Simulated transaction error");
                 })
         ).isInstanceOf(RuntimeException.class);
@@ -282,12 +282,12 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
         // When: store command
         eventStore.executeInTransaction(txEventStore -> {
             // First append an event to get transaction ID
-            String transactionId = txEventStore.appendIf(List.of(
+            String transactionId = txEventStore.appendCommutative(List.of(
                     AppendEvent.builder("WalletOpened")
                             .tag("wallet_id", "wallet8")
                             .data(WalletOpened.of("wallet8", "Grace", 1000))
                             .build()
-            ), AppendCondition.empty());
+            ));
             // Serialize command and extract type
             try {
                 String commandJson = objectMapper.writeValueAsString(openCmd);
@@ -315,24 +315,24 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
     void shouldPaginateWithStreamPosition() {
         // Given: wallet with 5 deposits
         String walletId = "wallet9";
-        String walletTxId = eventStore.appendIf(List.of(
+        String walletTxId = eventStore.appendCommutative(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Henry", 1000))
                         .build()
-        ), AppendCondition.empty());
+        ));
         assertThat(walletTxId).isNotNull();
-        
+
         int runningBalance = 1000;
         for (int i = 1; i <= 5; i++) {
             runningBalance += i * 100;
-            String depositTxId = eventStore.appendIf(List.of(
+            String depositTxId = eventStore.appendCommutative(List.of(
                     AppendEvent.builder("DepositMade")
                             .tag("wallet_id", walletId)
                             .tag("deposit_id", "deposit" + i)
                             .data(DepositMade.of("deposit" + i, walletId, i * 100, runningBalance, "Deposit " + i))
                             .build()
-            ), AppendCondition.empty());
+            ));
             assertThat(depositTxId).isNotNull();
         }
 
@@ -347,7 +347,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                 WalletBalanceState.class,
                 List.of(new WalletBalanceStateProjector())
         );
-        
+
         StreamPosition streamPosition1 = Objects.requireNonNull(result1.streamPosition());
         assertThat(result1.state().balance()).isEqualTo(2500); // 1000 + (100 + 200 + 300 + 400 + 500)
 
@@ -380,14 +380,14 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                 "Complex transfer test"
         );
 
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
                 AppendEvent.builder("MoneyTransferred")
                         .tag("transfer_id", transferId)
                         .tag("from_wallet_id", "wallet10")
                         .tag("to_wallet_id", "wallet11")
                         .data(transfer)
                         .build()
-        ), AppendCondition.empty());
+        ));
 
         // When: query and deserialize
         Query query = Query.forEventAndTag("MoneyTransferred", "transfer_id", transferId);
@@ -396,7 +396,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
         // Then: verify complex event structure is preserved
         assertThat(events).hasSize(1);
         StoredEvent stored = events.get(0);
-        
+
         // Deserialize using EventDeserializer pattern
         EventDeserializer deserializer = new EventDeserializer() {
             @Override
@@ -408,7 +408,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                 }
             }
         };
-        
+
         MoneyTransferred deserialized = deserializer.deserialize(stored, MoneyTransferred.class);
         assertThat(deserialized.transferId()).isEqualTo(transferId);
         assertThat(deserialized.fromWalletId()).isEqualTo("wallet10");
@@ -424,7 +424,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
     void shouldHandleMultipleQueryItems() {
         // Given: wallet with different event types
         String walletId = "wallet12";
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Ivy", 1000))
@@ -434,7 +434,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                         .tag("deposit_id", "deposit1")
                         .data(DepositMade.of("deposit1", walletId, 500, 1500, "Deposit"))
                         .build()
-        ), AppendCondition.empty());
+        ));
 
         // When: query with multiple event types
         Query query = Query.of(List.of(
@@ -453,7 +453,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
     void shouldHandleEmptyQuery() {
         // Given: wallet events
         String walletId = "wallet13";
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Jack", 1000))
@@ -463,7 +463,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                         .tag("deposit_id", "deposit1")
                         .data(DepositMade.of("deposit1", walletId, 500, 1500, "Deposit"))
                         .build()
-        ), AppendCondition.empty());
+        ));
 
         // When: query with empty query
         Query query = Query.empty();
@@ -478,12 +478,12 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
     void shouldHandleStreamPositionZero() {
         // Given: new wallet
         String walletId = "wallet14";
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Kate", 1000))
                         .build()
-        ), AppendCondition.empty());
+        ));
 
         // When: project with stream position zero (initial projection)
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
@@ -501,20 +501,17 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("Should handle appendIf with empty query for wallet")
+    @DisplayName("Should handle commutative append for wallet")
     void shouldAppendIfWithEmptyQuery() {
-        // Given: empty query condition
+        // Given: wallet
         String walletId = "wallet15";
 
-        // When: appendIf with empty query (allows duplicate appends)
-        AppendCondition condition = AppendCondition.of(StreamPosition.zero(), Query.empty());
-        
-        eventStore.appendIf(
+        // When: append commutatively (no conflict detection)
+        eventStore.appendCommutative(
                 List.of(AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Leo", 1000))
-                        .build()),
-                condition
+                        .build())
         );
 
         // Then: should append successfully
@@ -529,8 +526,8 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
         // Given: wallet with initial deposit
         String walletId = "wallet16";
         String depositId = "deposit1";
-        
-        eventStore.appendIf(List.of(
+
+        eventStore.appendCommutative(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Mia", 1000))
@@ -540,25 +537,17 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                         .tag("deposit_id", depositId)
                         .data(DepositMade.of(depositId, walletId, 500, 1500, "Initial deposit"))
                         .build()
-        ), AppendCondition.empty());
+        ));
 
-        // When: try to append same deposit again with idempotency check
-        Query idempotencyQuery = Query.forEventAndTag("DepositMade", "deposit_id", depositId);
-        AppendCondition idempotencyCondition = new AppendCondition(
-                StreamPosition.zero(),  // stream position doesn't matter for idempotency
-                Query.empty(),  // state change query (not checking)
-                idempotencyQuery  // already exists check
-        );
-
-        // Then: should fail because deposit already exists
+        // When/Then: try to append same deposit again with idempotency check — should fail
         assertThatThrownBy(() ->
-                eventStore.appendIf(
+                eventStore.appendIdempotent(
                         List.of(AppendEvent.builder("DepositMade")
                                 .tag("wallet_id", walletId)
                                 .tag("deposit_id", depositId)
                                 .data(DepositMade.of(depositId, walletId, 500, 1500, "Duplicate deposit"))
                                 .build()),
-                        idempotencyCondition
+                        "DepositMade", "deposit_id", depositId
                 )
         ).isInstanceOf(ConcurrencyException.class);
     }
@@ -592,7 +581,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
         // Then: verify all tags were stored
         Query query = Query.forEventAndTag("MoneyTransferred", "transfer_id", transferId);
         List<StoredEvent> stored = eventRepository.query(query, null);
-        
+
         assertThat(stored).hasSize(1);
         StoredEvent event = stored.get(0);
         assertThat(event.tags()).hasSize(4);
@@ -607,7 +596,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
     void shouldProjectWithMultipleProjectors() {
         // Given: wallet with deposits
         String walletId = "wallet19";
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
                         .data(WalletOpened.of(walletId, "Nina", 1000))
@@ -617,7 +606,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                         .tag("deposit_id", "deposit1")
                         .data(DepositMade.of("deposit1", walletId, 500, 1500, "Deposit 1"))
                         .build()
-        ), AppendCondition.empty());
+        ));
 
         // When: project with WalletBalanceStateProjector
         Query query = Query.forEventsAndTags(
@@ -637,4 +626,3 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
         assertThat(state.balance()).isEqualTo(1500);
     }
 }
-

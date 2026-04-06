@@ -1,6 +1,7 @@
 package com.crablet.eventstore.internal;
 
 import com.crablet.eventstore.AppendCondition;
+import com.crablet.eventstore.AppendConditionBuilder;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ConcurrencyException;
@@ -54,7 +55,7 @@ import java.util.stream.Collectors;
  * <p><strong>Read/Write Separation:</strong>
  * <ul>
  *   <li>Read operations (project) use read-only connections</li>
- *   <li>Write operations (append, appendIf, storeCommand) use write connections</li>
+ *   <li>Write operations (appendCommutative, appendNonCommutative, appendIdempotent, storeCommand) use write connections</li>
  *   <li>Transactions (executeInTransaction) use write connections as they may include writes</li>
  * </ul>
  *
@@ -195,8 +196,7 @@ public class EventStoreImpl implements EventStore {
 
     /**
      * Package-private method for appending events without concurrency checks.
-     * Used internally by appendIf for optimization and by tests in the same package.
-     * Production code should use appendIf with AppendCondition.empty() instead.
+     * Used internally by appendCommutative and by tests in the same package.
      */
     @CircuitBreaker(name = "database")
     @Retry(name = "database")
@@ -249,7 +249,21 @@ public class EventStoreImpl implements EventStore {
     }
 
     @Override
-    public String appendIf(List<AppendEvent> events, AppendCondition condition) {
+    public String appendCommutative(List<AppendEvent> events) {
+        return appendIf(events, AppendCondition.empty());
+    }
+
+    @Override
+    public String appendNonCommutative(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {
+        return appendIf(events, AppendConditionBuilder.of(decisionModel, streamPosition).build());
+    }
+
+    @Override
+    public String appendIdempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {
+        return appendIf(events, AppendCondition.idempotent(eventType, tagKey, tagValue));
+    }
+
+    String appendIf(List<AppendEvent> events, AppendCondition condition) {
         if (events.isEmpty()) {
             throw new IllegalArgumentException("Cannot append empty events list");
         }
@@ -1037,8 +1051,18 @@ public class EventStoreImpl implements EventStore {
         }
 
         @Override
-        public String appendIf(List<AppendEvent> events, AppendCondition condition) {
-            return EventStoreImpl.this.appendIfWithConnection(connection, events, condition);
+        public String appendCommutative(List<AppendEvent> events) {
+            return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.empty());
+        }
+
+        @Override
+        public String appendNonCommutative(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {
+            return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendConditionBuilder.of(decisionModel, streamPosition).build());
+        }
+
+        @Override
+        public String appendIdempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {
+            return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.idempotent(eventType, tagKey, tagValue));
         }
 
         @Override

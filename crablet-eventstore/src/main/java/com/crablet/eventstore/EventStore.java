@@ -22,9 +22,7 @@ public interface EventStore {
      * @return The transaction ID of the transaction that appended the events
      * @throws IllegalArgumentException if the events list is empty
      */
-    default String appendCommutative(List<AppendEvent> events) {
-        return appendIf(events, AppendCondition.empty());
-    }
+    String appendCommutative(List<AppendEvent> events);
 
     /**
      * Appends non-commutative events — order-dependent operations with stream-position-based DCB conflict check
@@ -37,41 +35,21 @@ public interface EventStore {
      * @throws IllegalArgumentException if the events list is empty
      * @throws ConcurrencyException if a concurrent modification is detected
      */
-    default String appendNonCommutative(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {
-        return appendIf(events, AppendConditionBuilder.of(decisionModel, streamPosition).build());
-    }
+    String appendNonCommutative(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition);
 
     /**
      * Appends idempotent events — entity creation; fails if an event with the same tag already exists
      * (e.g., OpenWallet, DefineCourse).
      *
-     * @param events   The events to append (must not be empty)
+     * @param events    The events to append (must not be empty)
      * @param eventType The event type name used for the idempotency check
-     * @param tagKey   The tag key used for the idempotency check
-     * @param tagValue The tag value used for the idempotency check
+     * @param tagKey    The tag key used for the idempotency check
+     * @param tagValue  The tag value used for the idempotency check
      * @return The transaction ID of the transaction that appended the events
      * @throws IllegalArgumentException if the events list is empty
      * @throws ConcurrencyException if a duplicate event with the same tag already exists
      */
-    default String appendIdempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {
-        return appendIf(events, AppendCondition.idempotent(eventType, tagKey, tagValue));
-    }
-
-    /**
-     * Low-level escape hatch for appending events with an explicit DCB condition.
-     * Prefer the three semantic overloads ({@link #appendCommutative}, {@link #appendNonCommutative},
-     * {@link #appendIdempotent}) over this method.
-     *
-     * @param events The events to append (must not be empty)
-     * @param condition The append condition for concurrency control
-     * @return The transaction ID of the transaction that appended the events (never null for successful append)
-     * @throws IllegalArgumentException if the events list is empty
-     * @throws ConcurrencyException if the append condition is violated
-     * @deprecated Prefer the semantic overloads: {@link #appendCommutative}, {@link #appendNonCommutative},
-     *             {@link #appendIdempotent}.
-     */
-    @Deprecated
-    String appendIf(List<AppendEvent> events, AppendCondition condition);
+    String appendIdempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue);
 
     /**
      * Project projects state from events matching query with stream position.
@@ -114,7 +92,7 @@ public interface EventStore {
      *   <li>All operations (queries, projections, appends, command storage) use the same database transaction</li>
      *   <li>All operations see a consistent database snapshot</li>
      *   <li>All operations commit atomically, or all rollback on error</li>
-     *   <li>The transactionId returned by {@code appendIf()} represents the entire transaction</li>
+     *   <li>The transactionId returned by append methods represents the entire transaction</li>
      * </ul>
      *
      * @param operation Function that receives a transaction-scoped EventStore

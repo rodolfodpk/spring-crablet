@@ -1,6 +1,5 @@
 package com.crablet.examples.wallet;
 
-import com.crablet.eventstore.AppendCondition;
 import com.crablet.eventstore.period.PeriodTags;
 import com.crablet.test.AbstractCrabletTest;
 import com.crablet.eventstore.query.EventRepository;
@@ -68,34 +67,34 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
         
         // ===== JANUARY 2024 =====
         // January: Open wallet and make transactions
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", walletId)
                 .tags(PeriodTags.monthly(2024, 1))
                 .data(WalletOpened.of(walletId, "Alice", 1000))
                 .build()
-        ), AppendCondition.empty());
+        ));
 
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("DepositMade")
                 .tag("wallet_id", walletId)
                 .tag("deposit_id", "dep1")
                 .tags(PeriodTags.monthly(2024, 1))
                 .data(DepositMade.of("dep1", walletId, 500, 1500, "Jan deposit"))
                 .build()
-        ), AppendCondition.empty());
+        ));
 
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WithdrawalMade")
                 .tag("wallet_id", walletId)
                 .tag("withdrawal_id", "w1")
                 .tags(PeriodTags.monthly(2024, 1))
                 .data(WithdrawalMade.of("w1", walletId, 200, 1300, "Jan withdrawal"))
                 .build()
-        ), AppendCondition.empty());
+        ));
 
         // Close January statement
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WalletStatementClosed")
                 .tag("wallet_id", walletId)
                 .tag("statement_id", "wallet:" + walletId + ":2024-01")
@@ -111,11 +110,11 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
                     1300   // closing
                 ))
                 .build()
-        ), AppendCondition.empty());
+        ));
 
         // ===== FEBRUARY 2024 =====
         // February: Open new statement with opening balance from January
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WalletStatementOpened")
                 .tag("wallet_id", walletId)
                 .tag("statement_id", "wallet:" + walletId + ":2024-02")
@@ -130,26 +129,26 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
                     1300  // Opening balance from January closing
                 ))
                 .build()
-        ), AppendCondition.empty());
+        ));
 
         // February: New transactions
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("DepositMade")
                 .tag("wallet_id", walletId)
                 .tag("deposit_id", "dep2")
                 .tags(PeriodTags.monthly(2024, 2))
                 .data(DepositMade.of("dep2", walletId, 300, 1600, "Feb deposit"))
                 .build()
-        ), AppendCondition.empty());
+        ));
 
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WithdrawalMade")
                 .tag("wallet_id", walletId)
                 .tag("withdrawal_id", "w2")
                 .tags(PeriodTags.monthly(2024, 2))
                 .data(WithdrawalMade.of("w2", walletId, 100, 1500, "Feb withdrawal"))
                 .build()
-        ), AppendCondition.empty());
+        ));
         
         // ===== VERIFY =====
         // Query February events only
@@ -199,7 +198,7 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
         String walletId = "wallet-closing-books-2";
         
         // February: Open statement
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WalletStatementOpened")
                 .tag("wallet_id", walletId)
                 .tag("statement_id", "wallet:" + walletId + ":2024-02")
@@ -214,27 +213,27 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
                     2000  // Opening balance
                 ))
                 .build()
-        ), AppendCondition.empty());
+        ));
 
         // February: Deposit
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("DepositMade")
                 .tag("wallet_id", walletId)
                 .tag("deposit_id", "dep1")
                 .tags(PeriodTags.monthly(2024, 2))
                 .data(DepositMade.of("dep1", walletId, 500, 2500, "Deposit"))
                 .build()
-        ), AppendCondition.empty());
+        ));
 
         // February: Withdrawal
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WithdrawalMade")
                 .tag("wallet_id", walletId)
                 .tag("withdrawal_id", "w1")
                 .tags(PeriodTags.monthly(2024, 2))
                 .data(WithdrawalMade.of("w1", walletId, 200, 2300, "Withdrawal"))
                 .build()
-        ), AppendCondition.empty());
+        ));
         
         // Project February balance
         Query query = walletPeriodQuery(walletId, 2024, 2);
@@ -259,7 +258,7 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
         String walletId = "wallet-closing-books-3";
         
         // Create events in this order
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WalletStatementOpened")
                 .tag("wallet_id", walletId)
                 .tag("statement_id", "wallet:" + walletId + ":2024-02")
@@ -274,34 +273,34 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
                     1000  // Opening balance
                 ))
                 .build()
-        ), AppendCondition.empty());
+        ));
 
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("DepositMade")
                 .tag("wallet_id", walletId)
                 .tag("deposit_id", "dep1")
                 .tags(PeriodTags.monthly(2024, 2))
                 .data(DepositMade.of("dep1", walletId, 300, 1300, "First deposit"))
                 .build()
-        ), AppendCondition.empty());
+        ));
 
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("DepositMade")
                 .tag("wallet_id", walletId)
                 .tag("deposit_id", "dep2")
                 .tags(PeriodTags.monthly(2024, 2))
                 .data(DepositMade.of("dep2", walletId, 200, 1500, "Second deposit"))
                 .build()
-        ), AppendCondition.empty());
+        ));
 
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WithdrawalMade")
                 .tag("wallet_id", walletId)
                 .tag("withdrawal_id", "w1")
                 .tags(PeriodTags.monthly(2024, 2))
                 .data(WithdrawalMade.of("w1", walletId, 100, 1400, "Withdrawal"))
                 .build()
-        ), AppendCondition.empty());
+        ));
         
         // Project and verify
         Query query = walletPeriodQuery(walletId, 2024, 2);
@@ -329,7 +328,7 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
         
         // ===== FEBRUARY 2024 =====
         // Open statements for both wallets
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WalletStatementOpened")
                 .tag("wallet_id", wallet1)
                 .tag("statement_id", "wallet:" + wallet1 + ":2024-02")
@@ -344,9 +343,9 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
                     1000  // Opening balance
                 ))
                 .build()
-        ), AppendCondition.empty());
+        ));
 
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("WalletStatementOpened")
                 .tag("wallet_id", wallet2)
                 .tag("statement_id", "wallet:" + wallet2 + ":2024-02")
@@ -361,10 +360,10 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
                     500  // Opening balance
                 ))
                 .build()
-        ), AppendCondition.empty());
+        ));
         
         // Transfer from wallet1 to wallet2 in February
-        eventStore.appendIf(List.of(
+        eventStore.appendCommutative(List.of(
             AppendEvent.builder("MoneyTransferred")
                 .tag("transfer_id", "t1")
                 .tag("from_wallet_id", wallet1)
@@ -383,7 +382,7 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
                     "Transfer"
                 ))
                 .build()
-        ), AppendCondition.empty());
+        ));
         
         // ===== VERIFY =====
         // Query wallet1 February events
