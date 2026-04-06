@@ -1,5 +1,6 @@
 package com.crablet.examples.wallet.commands;
 
+import com.crablet.command.CommandDecision;
 import com.crablet.command.NonCommutativeCommandHandler;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.AppendEvent;
@@ -48,7 +49,7 @@ public class TransferMoneyCommandHandler implements NonCommutativeCommandHandler
     }
 
     @Override
-    public Decision decide(EventStore eventStore, TransferMoneyCommand command) {
+    public CommandDecision.NonCommutative decide(EventStore eventStore, TransferMoneyCommand command) {
         // Command is already validated at construction with YAVI
 
         PeriodProjectionResult fromPeriodResult = periodHelper.projectCurrentPeriod(
@@ -117,7 +118,7 @@ public class TransferMoneyCommandHandler implements NonCommutativeCommandHandler
 
         AppendEvent event = eventBuilder.data(transfer).build();
 
-        return new Decision(List.of(event), transferProjection.decisionModel(), transferProjection.streamPosition());
+        return CommandDecision.NonCommutative.of(event, transferProjection.decisionModel(), transferProjection.streamPosition());
     }
 
     private TransferProjectionResult projectTransferState(

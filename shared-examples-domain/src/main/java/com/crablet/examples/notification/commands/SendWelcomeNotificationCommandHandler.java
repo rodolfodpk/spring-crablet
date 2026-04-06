@@ -1,5 +1,6 @@
 package com.crablet.examples.notification.commands;
 
+import com.crablet.command.CommandDecision;
 import com.crablet.command.IdempotentCommandHandler;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
@@ -25,7 +26,7 @@ public class SendWelcomeNotificationCommandHandler
     private static final Logger log = LoggerFactory.getLogger(SendWelcomeNotificationCommandHandler.class);
 
     @Override
-    public Decision decide(EventStore eventStore, SendWelcomeNotificationCommand command) {
+    public CommandDecision.Idempotent decide(EventStore eventStore, SendWelcomeNotificationCommand command) {
 
         // Placeholder: in a real system this would call an email/SMS service
         log.info("Welcome notification → owner='{}', walletId='{}'", command.owner(), command.walletId());
@@ -36,6 +37,6 @@ public class SendWelcomeNotificationCommandHandler
                 .build();
 
         // Idempotency: only one WelcomeNotificationSent per wallet_id
-        return Decision.of(event, type(WelcomeNotificationSent.class), WALLET_ID, command.walletId());
+        return CommandDecision.Idempotent.of(event, type(WelcomeNotificationSent.class), WALLET_ID, command.walletId());
     }
 }

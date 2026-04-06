@@ -1,17 +1,14 @@
 package com.crablet.command;
 
-import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
-
-import java.util.List;
 
 /**
  * Specialization of {@link CommandHandler} for <b>commutative</b> operations —
  * those where event order does not affect the final business outcome
  * (e.g., deposits, credits, batch increments).
  * <p>
- * Implementors return only the events to append; the framework applies
- * {@link com.crablet.eventstore.AppendCondition#empty()} automatically,
+ * Implementors return a {@link CommandDecision.Commutative} from {@link #decide};
+ * the framework calls {@code EventStore.appendCommutative} automatically,
  * allowing parallel appends without conflict detection.
  * <p>
  * Any business validation (e.g., existence checks) must be performed inside
@@ -22,33 +19,18 @@ import java.util.List;
 public interface CommutativeCommandHandler<C> extends CommandHandler<C> {
 
     /**
-     * Carries the events to append.
-     *
-     * @param events the events to append
-     */
-    record Decision(List<AppendEvent> events) {
-        /** Single-event factory — the common case. */
-        public static Decision of(AppendEvent event) {
-            return new Decision(List.of(event));
-        }
-        /** Multi-event factory. */
-        public static Decision of(AppendEvent... events) {
-            return new Decision(List.of(events));
-        }
-    }
-
-    /**
-     * Handle the command and return the events to append.
-     * No append condition is needed; the framework handles that automatically.
+     * Handle the command and return a commutative decision carrying the events to append.
+     * Use {@link CommandDecision.Commutative#of(com.crablet.eventstore.AppendEvent)} for
+     * the common single-event case.
      *
      * @param eventStore the event store for projections
      * @param command    the command to handle
-     * @return the decision carrying the events to append
+     * @return commutative decision carrying the events to append
      */
-    Decision decide(EventStore eventStore, C command);
+    CommandDecision.Commutative decide(EventStore eventStore, C command);
 
     @Override
     default CommandDecision handle(EventStore eventStore, C command) {
-        return new CommandDecision.Commutative(decide(eventStore, command).events());
+        return decide(eventStore, command);
     }
 }

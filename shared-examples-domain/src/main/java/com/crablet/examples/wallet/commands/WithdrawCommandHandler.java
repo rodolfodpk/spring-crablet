@@ -1,5 +1,6 @@
 package com.crablet.examples.wallet.commands;
 
+import com.crablet.command.CommandDecision;
 import com.crablet.command.NonCommutativeCommandHandler;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.AppendEvent;
@@ -12,8 +13,6 @@ import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
@@ -36,7 +35,7 @@ public class WithdrawCommandHandler implements NonCommutativeCommandHandler<With
     }
 
     @Override
-    public Decision decide(EventStore eventStore, WithdrawCommand command) {
+    public CommandDecision.NonCommutative decide(EventStore eventStore, WithdrawCommand command) {
         // Command is already validated at construction with YAVI
 
         var periodResult = periodHelper.projectCurrentPeriod(
@@ -75,6 +74,6 @@ public class WithdrawCommandHandler implements NonCommutativeCommandHandler<With
         Query decisionModel = WalletQueryPatterns.singleWalletActivePeriodDecisionModel(
                 command.walletId(), periodId.year(), periodId.month() != null ? periodId.month() : 1);
 
-        return new Decision(List.of(event), decisionModel, periodResult.projection().streamPosition());
+        return CommandDecision.NonCommutative.of(event, decisionModel, periodResult.projection().streamPosition());
     }
 }

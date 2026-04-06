@@ -1,5 +1,6 @@
 package com.crablet.command.handlers.courses;
 
+import com.crablet.command.CommandDecision;
 import com.crablet.command.IdempotentCommandHandler;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
@@ -22,7 +23,7 @@ public class DefineCourseCommandHandler implements IdempotentCommandHandler<Defi
     }
 
     @Override
-    public Decision decide(EventStore eventStore, DefineCourseCommand command) {
+    public CommandDecision.Idempotent decide(EventStore eventStore, DefineCourseCommand command) {
         // Command is already validated at construction with YAVI
 
         CourseDefined courseDefined = CourseDefined.of(
@@ -36,6 +37,6 @@ public class DefineCourseCommandHandler implements IdempotentCommandHandler<Defi
                 .build();
 
         // Idempotency: fails if ANY CourseDefined event exists for this course_id
-        return Decision.of(event, type(CourseDefined.class), COURSE_ID, command.courseId());
+        return CommandDecision.Idempotent.of(event, type(CourseDefined.class), COURSE_ID, command.courseId());
     }
 }

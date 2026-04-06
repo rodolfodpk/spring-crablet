@@ -1,5 +1,6 @@
 package com.crablet.examples.wallet.commands;
 
+import com.crablet.command.CommandDecision;
 import com.crablet.command.CommutativeCommandHandler;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
@@ -9,8 +10,6 @@ import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.DEPOSIT_ID;
@@ -34,7 +33,7 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
     }
 
     @Override
-    public Decision decide(EventStore eventStore, DepositCommand command) {
+    public CommandDecision.Commutative decide(EventStore eventStore, DepositCommand command) {
         // Command is already validated at construction with YAVI
 
         var periodResult = periodHelper.projectCurrentPeriod(
@@ -64,6 +63,6 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
                 .data(deposit)
                 .build();
 
-        return Decision.of(event);
+        return CommandDecision.Commutative.of(event);
     }
 }

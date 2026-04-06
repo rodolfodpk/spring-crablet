@@ -11,9 +11,11 @@ import java.util.List;
  * Each variant corresponds to one of the three DCB concurrency patterns,
  * making the intended consistency semantics visible at the type level.
  * <p>
- * {@link com.crablet.eventstore.AppendCondition} and
- * {@link com.crablet.eventstore.AppendConditionBuilder} are implementation
- * details; callers never need to construct them directly.
+ * Command handlers implement one of the three typed sub-interfaces
+ * ({@link CommutativeCommandHandler}, {@link NonCommutativeCommandHandler},
+ * {@link IdempotentCommandHandler}) and return the matching variant from
+ * {@code decide()}. The {@link com.crablet.command.internal.CommandExecutorImpl}
+ * pattern-matches on the variant to call the correct {@code EventStore} append method.
  *
  * <ul>
  *   <li>{@link Commutative}    — order-independent (deposits, credits)</li>
@@ -27,11 +29,25 @@ public sealed interface CommandDecision
                 CommandDecision.Idempotent, CommandDecision.NoOp {
 
     /** Commutative — order-independent; no conflict detection needed. */
-    record Commutative(List<AppendEvent> events) implements CommandDecision {}
+    record Commutative(List<AppendEvent> events) implements CommandDecision {
+        /** Single-event factory — the common case. */
+        public static Commutative of(AppendEvent event) {
+            return new Commutative(List.of(event));
+        }
+        /** Multi-event factory. */
+        public static Commutative of(AppendEvent... events) {
+            return new Commutative(List.of(events));
+        }
+    }
 
     /** Non-commutative — stream-position-based DCB conflict check. */
     record NonCommutative(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition)
-            implements CommandDecision {}
+            implements CommandDecision {
+        /** Single-event factory — the common case. */
+        public static NonCommutative of(AppendEvent event, Query decisionModel, StreamPosition streamPosition) {
+            return new NonCommutative(List.of(event), decisionModel, streamPosition);
+        }
+    }
 
     /**
      * Idempotent — entity creation; fails if an event with the same tag already exists.
@@ -45,18 +61,31 @@ public sealed interface CommandDecision
         public Idempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {
             this(events, eventType, tagKey, tagValue, OnDuplicate.RETURN_IDEMPOTENT);
         }
+
+        /** Single-event factory — defaults to {@link OnDuplicate#RETURN_IDEMPOTENT}. */
+        public static Idempotent of(AppendEvent event, String eventType, String tagKey, String tagValue) {
+            return new Idempotent(List.of(event), eventType, tagKey, tagValue, OnDuplicate.RETURN_IDEMPOTENT);
+        }
+
+        /**
+         * Single-event factory with explicit duplicate policy.
+         * Use {@link OnDuplicate#THROW} for entity-creation commands that must be unique.
+         */
+        public static Idempotent of(AppendEvent event, String eventType, String tagKey, String tagValue,
+                                    OnDuplicate onDuplicate) {
+            return new Idempotent(List.of(event), eventType, tagKey, tagValue, onDuplicate);
+        }
     }
 
     /**
      * No-op decision for handlers that detect the operation has already been applied.
-     * {@link com.crablet.command.CommandExecutor} skips the append when this is returned.
+     * {@link com.crablet.command.internal.CommandExecutorImpl} skips the append when this is returned.
      */
     record NoOp(String reason) implements CommandDecision {
         /** Convenience factory when no reason is needed. */
         public static NoOp empty() {
             return new NoOp(null);
         }
-
     }
 
     /**

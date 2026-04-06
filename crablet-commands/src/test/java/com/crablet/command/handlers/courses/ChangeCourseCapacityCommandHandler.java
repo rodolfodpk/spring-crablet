@@ -1,5 +1,6 @@
 package com.crablet.command.handlers.courses;
 
+import com.crablet.command.CommandDecision;
 import com.crablet.command.NonCommutativeCommandHandler;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.ProjectionResult;
@@ -39,7 +40,7 @@ public class ChangeCourseCapacityCommandHandler implements NonCommutativeCommand
     }
 
     @Override
-    public Decision decide(EventStore eventStore, ChangeCourseCapacityCommand command) {
+    public CommandDecision.NonCommutative decide(EventStore eventStore, ChangeCourseCapacityCommand command) {
         // Command is already validated at construction with YAVI
 
         Query decisionModel = CourseQueryPatterns.courseDecisionModel(command.courseId());
@@ -69,7 +70,7 @@ public class ChangeCourseCapacityCommandHandler implements NonCommutativeCommand
                 .data(capacityChanged)
                 .build();
 
-        return new Decision(List.of(event), decisionModel, projection.streamPosition());
+        return CommandDecision.NonCommutative.of(event, decisionModel, projection.streamPosition());
     }
 
     record CourseState(boolean courseExists, int courseCapacity) {}

@@ -14,11 +14,11 @@ Pick the sub-interface that matches the DCB pattern for your operation:
 public class YourCommandHandler implements NonCommutativeCommandHandler<YourCommand> {
 
     @Override
-    public Decision decide(EventStore eventStore, YourCommand command) {
+    public CommandDecision.NonCommutative decide(EventStore eventStore, YourCommand command) {
         // 1. Project current state
         Query decisionModel = YourQueryPatterns.yourDecisionModel(command.entityId());
         ProjectionResult<YourState> projection = eventStore.project(
-            decisionModel, StreamPosition.zero(), yourProjector
+            decisionModel, StreamPosition.zero(), YourState.class, List.of(yourProjector)
         );
         YourState state = projection.state();
 
@@ -35,7 +35,7 @@ public class YourCommandHandler implements NonCommutativeCommandHandler<YourComm
             .build();
 
         // 4. Return decision — CommandExecutor calls appendNonCommutative automatically
-        return Decision.of(appendEvent, decisionModel, projection.streamPosition());
+        return CommandDecision.NonCommutative.of(appendEvent, decisionModel, projection.streamPosition());
     }
 }
 ```
@@ -46,9 +46,9 @@ public class YourCommandHandler implements NonCommutativeCommandHandler<YourComm
 public class YourCommandHandler implements CommutativeCommandHandler<YourCommand> {
 
     @Override
-    public Decision decide(EventStore eventStore, YourCommand command) {
+    public CommandDecision.Commutative decide(EventStore eventStore, YourCommand command) {
         // project state, validate, generate event ...
-        return Decision.of(appendEvent);
+        return CommandDecision.Commutative.of(appendEvent);
     }
 }
 ```
@@ -59,9 +59,9 @@ public class YourCommandHandler implements CommutativeCommandHandler<YourCommand
 public class YourCommandHandler implements IdempotentCommandHandler<YourCommand> {
 
     @Override
-    public Decision decide(EventStore eventStore, YourCommand command) {
+    public CommandDecision.Idempotent decide(EventStore eventStore, YourCommand command) {
         // generate event ...
-        return Decision.of(appendEvent, type(YourEvent.class), TAG_KEY, command.entityId());
+        return CommandDecision.Idempotent.of(appendEvent, type(YourEvent.class), TAG_KEY, command.entityId());
     }
 }
 ```

@@ -1,5 +1,6 @@
 package com.crablet.examples.wallet.commands;
 
+import com.crablet.command.CommandDecision;
 import com.crablet.command.IdempotentCommandHandler;
 import com.crablet.command.OnDuplicate;
 import com.crablet.eventstore.AppendEvent;
@@ -23,7 +24,7 @@ public class OpenWalletCommandHandler implements IdempotentCommandHandler<OpenWa
     }
 
     @Override
-    public Decision decide(EventStore eventStore, OpenWalletCommand command) {
+    public CommandDecision.Idempotent decide(EventStore eventStore, OpenWalletCommand command) {
         // Command is already validated at construction with YAVI
 
         WalletOpened walletOpened = WalletOpened.of(
@@ -38,6 +39,6 @@ public class OpenWalletCommandHandler implements IdempotentCommandHandler<OpenWa
                 .build();
 
         // Idempotency: duplicate wallet creation is a conflict, not a silent no-op
-        return Decision.of(event, type(WalletOpened.class), WALLET_ID, command.walletId(), OnDuplicate.THROW);
+        return CommandDecision.Idempotent.of(event, type(WalletOpened.class), WALLET_ID, command.walletId(), OnDuplicate.THROW);
     }
 }

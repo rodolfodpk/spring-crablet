@@ -1,5 +1,6 @@
 package com.crablet.command.handlers.courses;
 
+import com.crablet.command.CommandDecision;
 import com.crablet.command.NonCommutativeCommandHandler;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
@@ -41,7 +42,7 @@ public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCom
     }
 
     @Override
-    public Decision decide(EventStore eventStore, SubscribeStudentToCourseCommand command) {
+    public CommandDecision.NonCommutative decide(EventStore eventStore, SubscribeStudentToCourseCommand command) {
         // Command is already validated at construction with YAVI
 
         Query decisionModel = CourseQueryPatterns.subscriptionDecisionModel(
@@ -94,7 +95,7 @@ public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCom
                 .data(subscription)
                 .build();
 
-        return new Decision(List.of(event), decisionModel, projection.streamPosition());
+        return CommandDecision.NonCommutative.of(event, decisionModel, projection.streamPosition());
     }
 
     /**
