@@ -201,7 +201,7 @@ import org.springframework.stereotype.Component;
 public class WithdrawCommandHandler implements NonCommutativeCommandHandler<WithdrawCommand> {
     
     @Override
-    public Decision decide(EventStore eventStore, WithdrawCommand command) {
+    public CommandDecision.NonCommutative decide(EventStore eventStore, WithdrawCommand command) {
         // Define decision model: which events affect withdrawal decision?
         // This filters events to only those for this wallet
         Query decisionModel = QueryBuilder.builder()
@@ -235,7 +235,7 @@ public class WithdrawCommandHandler implements NonCommutativeCommandHandler<With
             .build();
         
         // 4. Return NonCommutative decision — CommandExecutor calls appendNonCommutative atomically
-        return Decision.of(appendEvent, decisionModel, result.streamPosition());
+        return CommandDecision.NonCommutative.of(appendEvent, decisionModel, result.streamPosition());
     }
 }
 ```

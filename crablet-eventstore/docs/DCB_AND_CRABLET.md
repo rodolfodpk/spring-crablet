@@ -260,7 +260,7 @@ AppendCondition condition = AppendConditionBuilder.of(decisionModel, streamPosit
 public class WithdrawCommandHandler implements NonCommutativeCommandHandler<WithdrawCommand> {
     
     @Override
-    public Decision decide(EventStore eventStore, WithdrawCommand command) {
+    public CommandDecision.NonCommutative decide(EventStore eventStore, WithdrawCommand command) {
         // 1. Define decision model
         Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
         
@@ -294,7 +294,7 @@ public class WithdrawCommandHandler implements NonCommutativeCommandHandler<With
             .build();
         
         // 5. Return non-commutative decision with stream position for conflict detection
-        return Decision.of(event, decisionModel, result.streamPosition());
+        return CommandDecision.NonCommutative.of(event, decisionModel, result.streamPosition());
     }
 }
 ```

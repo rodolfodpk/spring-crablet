@@ -31,7 +31,7 @@ The outbox pattern provides **reliable event publishing** for DCB-based event so
 
 ```java
 // Inside NonCommutativeCommandHandler<TransferCommand>.decide():
-public Decision decide(EventStore eventStore, TransferCommand command) {
+public CommandDecision.NonCommutative decide(EventStore eventStore, TransferCommand command) {
     // 1. DCB: Read current state with stream position
     Query decisionModel = WalletQueryPatterns.transferDecisionModel(
         command.fromWalletId(), command.toWalletId());
@@ -49,7 +49,7 @@ public Decision decide(EventStore eventStore, TransferCommand command) {
         .build();
     
     // 4. All events stored atomically; outbox publishes them to external systems
-    return Decision.of(event, decisionModel, projection.streamPosition());
+    return CommandDecision.NonCommutative.of(event, decisionModel, projection.streamPosition());
 }
 ```
 

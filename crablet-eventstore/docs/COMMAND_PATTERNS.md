@@ -42,7 +42,7 @@ Command handlers are automatically discovered by Spring:
    @Component
    public class DepositCommandHandler implements CommutativeCommandHandler<DepositCommand> {
        @Override
-       public Decision decide(EventStore eventStore, DepositCommand command) {
+       public CommandDecision.Commutative decide(EventStore eventStore, DepositCommand command) {
            // Implementation...
        }
    }
@@ -74,7 +74,7 @@ Operations where order matters — final result depends on execution order (e.g.
 @Component
 public class OpenWalletCommandHandler implements IdempotentCommandHandler<OpenWalletCommand> {
     @Override
-    public Decision decide(EventStore eventStore, OpenWalletCommand command) {
+    public CommandDecision.Idempotent decide(EventStore eventStore, OpenWalletCommand command) {
         WalletOpened walletOpened = WalletOpened.of(
             command.walletId(), command.owner(), command.initialBalance()
         );
@@ -85,7 +85,7 @@ public class OpenWalletCommandHandler implements IdempotentCommandHandler<OpenWa
             .build();
         
         // Idempotency check prevents duplicate wallet creation
-        return Decision.of(event, type(WalletOpened.class), WALLET_ID, command.walletId());
+        return CommandDecision.Idempotent.of(event, type(WalletOpened.class), WALLET_ID, command.walletId());
     }
 }
 ```
@@ -105,7 +105,7 @@ public class OpenWalletCommandHandler implements IdempotentCommandHandler<OpenWa
 @Component
 public class DepositCommandHandler implements CommutativeCommandHandler<DepositCommand> {
     @Override
-    public Decision decide(EventStore eventStore, DepositCommand command) {
+    public CommandDecision.Commutative decide(EventStore eventStore, DepositCommand command) {
         // Project to validate wallet exists
         Query query = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
         ProjectionResult<WalletBalanceState> projection = eventStore.project(
@@ -128,7 +128,7 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
             .build();
         
         // Commutative: order doesn't affect final result
-        return Decision.of(event);
+        return CommandDecision.Commutative.of(event);
     }
 }
 ```
@@ -150,7 +150,7 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
 @Component
 public class WithdrawCommandHandler implements NonCommutativeCommandHandler<WithdrawCommand> {
     @Override
-    public Decision decide(EventStore eventStore, WithdrawCommand command) {
+    public CommandDecision.NonCommutative decide(EventStore eventStore, WithdrawCommand command) {
         Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
         ProjectionResult<WalletBalanceState> projection = eventStore.project(
             decisionModel, StreamPosition.zero(), WalletBalanceState.class, List.of(projector));
@@ -177,7 +177,7 @@ public class WithdrawCommandHandler implements NonCommutativeCommandHandler<With
             .build();
         
         // StreamPosition check prevents concurrent withdrawals exceeding balance
-        return Decision.of(event, decisionModel, projection.streamPosition());
+        return CommandDecision.NonCommutative.of(event, decisionModel, projection.streamPosition());
     }
 }
 ```
@@ -190,7 +190,7 @@ Transfers affect two wallets and require a streamPosition check spanning both:
 @Component
 public class TransferMoneyCommandHandler implements NonCommutativeCommandHandler<TransferMoneyCommand> {
     @Override
-    public Decision decide(EventStore eventStore, TransferMoneyCommand command) {
+    public CommandDecision.NonCommutative decide(EventStore eventStore, TransferMoneyCommand command) {
         // Project both wallet balances with a combined decision model
         Query decisionModel = WalletQueryPatterns.transferDecisionModel(
             command.fromWalletId(), command.toWalletId());
@@ -210,7 +210,7 @@ public class TransferMoneyCommandHandler implements NonCommutativeCommandHandler
             .build();
         
         // StreamPosition check prevents concurrent transfers causing overdrafts
-        return Decision.of(event, decisionModel, projection.streamPosition());
+        return CommandDecision.NonCommutative.of(event, decisionModel, projection.streamPosition());
     }
 }
 ```
@@ -264,37 +264,37 @@ Operation IDs like `deposit_id`, `withdrawal_id`, and `transfer_id` are **option
 ❌ **Not using idempotency check for wallet creation:**
 ```java
 // WRONG: Allows duplicates — use IdempotentCommandHandler instead
-return Decision.of(event);  // CommutativeCommandHandler — no duplicate guard
+return CommandDecision.Commutative.of(event);  // CommutativeCommandHandler — no duplicate guard
 ```
 
 ✅ **Correct:**
 ```java
 // RIGHT: IdempotentCommandHandler with the uniqueness tag
-return Decision.of(event, type(WalletOpened.class), WALLET_ID, walletId);
+return CommandDecision.Idempotent.of(event, type(WalletOpened.class), WALLET_ID, walletId);
 ```
 
 ❌ **Using streamPosition for deposits:**
 ```java
 // WRONG: Deposits don't need streamPosition check — use CommutativeCommandHandler
-return Decision.of(event, decisionModel, projection.streamPosition());
+return CommandDecision.NonCommutative.of(event, decisionModel, projection.streamPosition());
 ```
 
 ✅ **Correct:**
 ```java
 // RIGHT: Deposits are commutative
-return Decision.of(event);
+return CommandDecision.Commutative.of(event);
 ```
 
 ❌ **Not using streamPosition for withdrawals:**
 ```java
-// WRONG: Withdrawals need streamPosition to prevent overdrafts — use CommutativeCommandHandler
-return Decision.of(event);
+// WRONG: Withdrawals need streamPosition to prevent overdrafts — use NonCommutativeCommandHandler
+return CommandDecision.Commutative.of(event);
 ```
 
 ✅ **Correct:**
 ```java
 // RIGHT: Withdrawals are non-commutative — use NonCommutativeCommandHandler
-return Decision.of(event, decisionModel, projection.streamPosition());
+return CommandDecision.NonCommutative.of(event, decisionModel, projection.streamPosition());
 ```
 
 ## Learn More

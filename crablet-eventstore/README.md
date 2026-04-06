@@ -152,7 +152,7 @@ Prevents duplicate wallet creation using `appendIdempotent`:
 
 ```java
 @Override
-public Decision decide(EventStore eventStore, OpenWalletCommand command) {
+public CommandDecision.Idempotent decide(EventStore eventStore, OpenWalletCommand command) {
     // Command is already validated at construction with YAVI
 
     // 1. Create event (optimistic - assume wallet doesn't exist)
@@ -170,13 +170,13 @@ public Decision decide(EventStore eventStore, OpenWalletCommand command) {
     // 2. Return Idempotent decision — CommandExecutor calls appendIdempotent:
     //    - Fails if ANY WalletOpened event exists for this wallet_id
     //    - Append event if wallet doesn't exist
-    return Decision.of(event, WALLET_OPENED, WALLET_ID, command.walletId());
+    return CommandDecision.Idempotent.of(event, WALLET_OPENED, WALLET_ID, command.walletId());
 }
 ```
 
 **Key points:**
 - No decision model or stream position needed
-- `Decision.of(event, type, tagKey, tagValue)` enforces uniqueness atomically
+- `CommandDecision.Idempotent.of(event, type, tagKey, tagValue)` enforces uniqueness atomically
 - Optimistic: creates event first, checks at append time
 
 ### Example 2: Concurrency Control (Withdraw)
@@ -185,7 +185,7 @@ Prevents concurrent balance modifications using streamPosition-based conflict de
 
 ```java
 @Override
-public Decision decide(EventStore eventStore, WithdrawCommand command) {
+public CommandDecision.NonCommutative decide(EventStore eventStore, WithdrawCommand command) {
     // Command is already validated at construction with YAVI
 
     // Use domain-specific decision model query
@@ -227,7 +227,7 @@ public Decision decide(EventStore eventStore, WithdrawCommand command) {
     //    - Check atomically: did any matching events appear after the captured stream position?
     //    - Throw ConcurrencyException if balance changed concurrently
     //    - Append event if condition passes
-    return Decision.of(event, decisionModel, projection.streamPosition());
+    return CommandDecision.NonCommutative.of(event, decisionModel, projection.streamPosition());
 }
 ```
 

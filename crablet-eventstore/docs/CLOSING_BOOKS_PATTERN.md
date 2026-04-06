@@ -136,7 +136,7 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
     private final WalletPeriodHelper periodHelper; // Domain-specific helper
     
     @Override
-    public Decision decide(EventStore eventStore, DepositCommand command) {
+    public CommandDecision.Commutative decide(EventStore eventStore, DepositCommand command) {
         // Project balance for current period (period tags derived from clock, no statement creation)
         var periodResult = periodHelper.projectCurrentPeriod(
             eventStore, command.walletId(), DepositCommand.class);
@@ -166,7 +166,7 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
             .build();
         
         // Deposits are commutative — order-independent, no conflict check needed
-        return Decision.of(event);
+        return CommandDecision.Commutative.of(event);
     }
 }
 ```

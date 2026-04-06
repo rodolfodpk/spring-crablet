@@ -345,7 +345,7 @@ import static com.crablet.examples.talks.TalkTags.TALK_ID;
 public class SubmitTalkCommandHandler implements IdempotentCommandHandler<SubmitTalkCommand> {
 
     @Override
-    public Decision decide(EventStore eventStore, SubmitTalkCommand command) {
+    public CommandDecision.Idempotent decide(EventStore eventStore, SubmitTalkCommand command) {
         TalkSubmitted event = new TalkSubmitted(
             command.talkId(), command.speakerId(), command.title()
         );
@@ -359,7 +359,7 @@ public class SubmitTalkCommandHandler implements IdempotentCommandHandler<Submit
 
         // Idempotency check: fail if a TalkSubmitted with this submissionId already exists.
         // No state projection needed — the constraint is structural.
-        return Decision.of(appendEvent, type(TalkSubmitted.class), SUBMISSION_ID, command.submissionId());
+        return CommandDecision.Idempotent.of(appendEvent, type(TalkSubmitted.class), SUBMISSION_ID, command.submissionId());
     }
 }
 ```
@@ -391,7 +391,7 @@ public class AcceptTalkCommandHandler implements NonCommutativeCommandHandler<Ac
     private final ConferenceStateProjector conferenceProjector = new ConferenceStateProjector();
 
     @Override
-    public Decision decide(EventStore eventStore, AcceptTalkCommand command) {
+    public CommandDecision.NonCommutative decide(EventStore eventStore, AcceptTalkCommand command) {
         // 1. Project state for this specific talk
         Query talkQuery = QueryBuilder.builder()
             .events(
@@ -445,7 +445,7 @@ public class AcceptTalkCommandHandler implements NonCommutativeCommandHandler<Ac
         // 4. Non-commutative: scoped to the conference query.
         //    If any TalkAccepted event for this conference was written after
         //    conferenceResult.streamPosition(), the append will be rejected.
-        return Decision.of(appendEvent, conferenceQuery, conferenceResult.streamPosition());
+        return CommandDecision.NonCommutative.of(appendEvent, conferenceQuery, conferenceResult.streamPosition());
     }
 }
 ```
@@ -555,7 +555,7 @@ Reactions run with at-least-once semantics. The framework guarantees delivery bu
 public class SendConfirmationCommandHandler implements IdempotentCommandHandler<SendConfirmationCommand> {
 
     @Override
-    public Decision decide(EventStore eventStore, SendConfirmationCommand command) {
+    public CommandDecision.Idempotent decide(EventStore eventStore, SendConfirmationCommand command) {
         ConfirmationSent confirmationSent = new ConfirmationSent(
             command.talkId(), command.speakerId()
         );
@@ -567,7 +567,7 @@ public class SendConfirmationCommandHandler implements IdempotentCommandHandler<
 
         // Idempotency check: fail if a ConfirmationSent for this talk_id already exists.
         // Running this command twice produces the same outcome: one confirmation event.
-        return Decision.of(appendEvent, type(ConfirmationSent.class), TALK_ID, command.talkId());
+        return CommandDecision.Idempotent.of(appendEvent, type(ConfirmationSent.class), TALK_ID, command.talkId());
     }
 }
 ```

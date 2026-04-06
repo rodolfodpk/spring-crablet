@@ -105,7 +105,7 @@ public interface WalletCommand {
 @Component
 public class DepositCommandHandler implements CommutativeCommandHandler<DepositCommand> {
     @Override
-    public Decision decide(EventStore eventStore, DepositCommand command) {
+    public CommandDecision.Commutative decide(EventStore eventStore, DepositCommand command) {
         // 1. Project decision model
         Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
         
@@ -126,7 +126,7 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
                 .build();
         
         // 5. Commutative: deposits are order-independent
-        return Decision.of(event);
+        return CommandDecision.Commutative.of(event);
     }
 }
 ```
@@ -290,7 +290,7 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
     private final WalletPeriodHelper periodHelper; // Domain-specific helper
     
     @Override
-    public Decision decide(EventStore eventStore, DepositCommand command) {
+    public CommandDecision.Commutative decide(EventStore eventStore, DepositCommand command) {
         // Project balance for current period (period tags derived from clock, no statement creation)
         var periodResult = periodHelper.projectCurrentPeriod(
             eventStore, command.walletId(), DepositCommand.class);
@@ -324,7 +324,7 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
         AppendEvent event = eventBuilder.data(deposit).build();
         
         // Deposits are commutative — order-independent, no conflict check needed
-        return Decision.of(event);
+        return CommandDecision.Commutative.of(event);
     }
 }
 ```
