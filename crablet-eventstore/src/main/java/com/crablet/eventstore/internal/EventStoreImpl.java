@@ -265,9 +265,6 @@ public class EventStoreImpl implements EventStore {
     }
 
     String appendIf(List<AppendEvent> events, AppendCondition condition) {
-        if (events == null) {
-            throw new NullPointerException("Events list must not be null");
-        }
         if (events.isEmpty()) {
             throw new IllegalArgumentException("Cannot append empty events list");
         }
@@ -491,9 +488,6 @@ public class EventStoreImpl implements EventStore {
      * Used internally by ConnectionScopedEventStore.
      */
     private String appendIfWithConnection(Connection connection, List<AppendEvent> events, AppendCondition condition) {
-        if (events == null) {
-            throw new NullPointerException("Events list must not be null");
-        }
         if (events.isEmpty()) {
             throw new IllegalArgumentException("Cannot append empty events list");
         }
