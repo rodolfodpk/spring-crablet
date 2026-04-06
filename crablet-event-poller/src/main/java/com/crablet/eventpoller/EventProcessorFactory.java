@@ -30,7 +30,6 @@ import java.util.Map;
  *         EventHandler<String> handler,
  *         InstanceIdProvider instanceIdProvider,
  *         @Qualifier("primaryDataSource") DataSource primary,
- *         @Qualifier("readDataSource") DataSource read,
  *         TaskScheduler scheduler,
  *         ApplicationEventPublisher publisher) {
  *     return EventProcessorFactory.createProcessor(
