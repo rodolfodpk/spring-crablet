@@ -1,13 +1,18 @@
 package com.crablet.automations.adapter;
 
 import com.crablet.automations.AutomationHandler;
+import com.crablet.automations.metrics.AutomationExecutionErrorMetric;
+import com.crablet.automations.metrics.AutomationExecutionMetric;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventstore.store.StoredEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 
 import javax.sql.DataSource;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,9 +27,11 @@ public class AutomationDispatcher implements EventHandler<String> {
 
     private final Map<String, AutomationHandler> handlers;
     private final CommandExecutor commandExecutor;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public AutomationDispatcher(List<AutomationHandler> handlers, CommandExecutor commandExecutor) {
+    public AutomationDispatcher(List<AutomationHandler> handlers, CommandExecutor commandExecutor, ApplicationEventPublisher eventPublisher) {
         this.commandExecutor = commandExecutor;
+        this.eventPublisher = eventPublisher;
         this.handlers = new HashMap<>();
         for (AutomationHandler handler : handlers) {
             this.handlers.put(handler.getAutomationName(), handler);
@@ -40,18 +47,21 @@ public class AutomationDispatcher implements EventHandler<String> {
             return 0;
         }
 
+        Instant start = Instant.now();
         int count = 0;
         for (StoredEvent event : events) {
             try {
                 handler.react(event, commandExecutor);
                 count++;
             } catch (Exception e) {
+                eventPublisher.publishEvent(new AutomationExecutionErrorMetric(automationName));
                 log.error("Automation handler {} failed on event type={} position={}: {}",
                     automationName, event.type(), event.position(), e.getMessage(), e);
                 throw e;
             }
         }
 
+        eventPublisher.publishEvent(new AutomationExecutionMetric(automationName, count, Duration.between(start, Instant.now())));
         log.debug("Automation handler {} processed {} events", automationName, count);
         return count;
     }

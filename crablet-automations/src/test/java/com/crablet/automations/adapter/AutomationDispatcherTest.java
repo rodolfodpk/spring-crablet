@@ -6,6 +6,7 @@ import com.crablet.eventstore.store.StoredEvent;
 import com.crablet.eventstore.store.Tag;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 
 import javax.sql.DataSource;
 import java.time.Instant;
@@ -23,6 +24,7 @@ import static org.mockito.Mockito.mock;
 class AutomationDispatcherTest {
 
     private static final CommandExecutor NO_OP_EXECUTOR = mock(CommandExecutor.class);
+    private static final ApplicationEventPublisher NO_OP_PUBLISHER = e -> {};
 
     @Test
     @DisplayName("Should register handlers by automation name")
@@ -31,7 +33,7 @@ class AutomationDispatcherTest {
         TrackingHandler walletHandler = new TrackingHandler("wallet-notification");
         TrackingHandler orderHandler = new TrackingHandler("order-fulfillment");
         AutomationDispatcher dispatcher = new AutomationDispatcher(
-            List.of(walletHandler, orderHandler), NO_OP_EXECUTOR);
+            List.of(walletHandler, orderHandler), NO_OP_EXECUTOR, NO_OP_PUBLISHER);
 
         List<StoredEvent> events = createTestEvents();
 
@@ -50,7 +52,7 @@ class AutomationDispatcherTest {
         TrackingHandler walletHandler = new TrackingHandler("wallet-notification");
         TrackingHandler orderHandler = new TrackingHandler("order-fulfillment");
         AutomationDispatcher dispatcher = new AutomationDispatcher(
-            List.of(walletHandler, orderHandler), NO_OP_EXECUTOR);
+            List.of(walletHandler, orderHandler), NO_OP_EXECUTOR, NO_OP_PUBLISHER);
 
         List<StoredEvent> events = createTestEvents();
 
@@ -69,7 +71,7 @@ class AutomationDispatcherTest {
     @DisplayName("Should return 0 when no handler registered for automation name")
     void shouldReturnZero_WhenNoHandlerRegisteredForAutomationName() throws Exception {
         // Given
-        AutomationDispatcher dispatcher = new AutomationDispatcher(List.of(), NO_OP_EXECUTOR);
+        AutomationDispatcher dispatcher = new AutomationDispatcher(List.of(), NO_OP_EXECUTOR, NO_OP_PUBLISHER);
 
         // When
         int result = dispatcher.handle("non-existent-automation", createTestEvents(), null);
@@ -84,7 +86,7 @@ class AutomationDispatcherTest {
         // Given
         CommandExecutorCapturingHandler handler = new CommandExecutorCapturingHandler("automation");
         CommandExecutor executor = mock(CommandExecutor.class);
-        AutomationDispatcher dispatcher = new AutomationDispatcher(List.of(handler), executor);
+        AutomationDispatcher dispatcher = new AutomationDispatcher(List.of(handler), executor, NO_OP_PUBLISHER);
 
         // When
         dispatcher.handle("automation", createTestEvents(), null);
@@ -98,7 +100,7 @@ class AutomationDispatcherTest {
     void shouldProcessEachEvent_Individually() throws Exception {
         // Given
         TrackingHandler handler = new TrackingHandler("automation");
-        AutomationDispatcher dispatcher = new AutomationDispatcher(List.of(handler), NO_OP_EXECUTOR);
+        AutomationDispatcher dispatcher = new AutomationDispatcher(List.of(handler), NO_OP_EXECUTOR, NO_OP_PUBLISHER);
         List<StoredEvent> events = createTestEvents(); // 2 events
 
         // When
@@ -115,7 +117,7 @@ class AutomationDispatcherTest {
     void shouldPropagateException_FromHandlerAndStopProcessing() {
         // Given
         FailingHandler handler = new FailingHandler("automation");
-        AutomationDispatcher dispatcher = new AutomationDispatcher(List.of(handler), NO_OP_EXECUTOR);
+        AutomationDispatcher dispatcher = new AutomationDispatcher(List.of(handler), NO_OP_EXECUTOR, NO_OP_PUBLISHER);
         List<StoredEvent> events = createTestEvents();
 
         // When & Then
@@ -129,7 +131,7 @@ class AutomationDispatcherTest {
     void shouldReturnZero_ForEmptyEventsList() throws Exception {
         // Given
         TrackingHandler handler = new TrackingHandler("automation");
-        AutomationDispatcher dispatcher = new AutomationDispatcher(List.of(handler), NO_OP_EXECUTOR);
+        AutomationDispatcher dispatcher = new AutomationDispatcher(List.of(handler), NO_OP_EXECUTOR, NO_OP_PUBLISHER);
 
         // When
         int result = dispatcher.handle("automation", List.of(), null);
@@ -146,7 +148,7 @@ class AutomationDispatcherTest {
         TrackingHandler first = new TrackingHandler("automation");
         TrackingHandler second = new TrackingHandler("automation");
         AutomationDispatcher dispatcher = new AutomationDispatcher(
-            List.of(first, second), NO_OP_EXECUTOR);
+            List.of(first, second), NO_OP_EXECUTOR, NO_OP_PUBLISHER);
         List<StoredEvent> events = createTestEvents();
 
         // When

@@ -5,6 +5,7 @@ import com.crablet.eventstore.store.Tag;
 import com.crablet.views.ViewProjector;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;
@@ -31,7 +32,7 @@ class ViewEventHandlerTest {
         List<ViewProjector> projectors = List.of(projector1, projector2);
 
         // When
-        ViewEventHandler handler = new ViewEventHandler(projectors);
+        ViewEventHandler handler = new ViewEventHandler(projectors, e -> {});
 
         // Then - Verify registration by calling handle
         List<StoredEvent> events = createTestEvents();
@@ -47,7 +48,7 @@ class ViewEventHandlerTest {
         TestProjector walletProjector = new TestProjector("wallet-view");
         TestProjector orderProjector = new TestProjector("order-view");
         List<ViewProjector> projectors = List.of(walletProjector, orderProjector);
-        ViewEventHandler handler = new ViewEventHandler(projectors);
+        ViewEventHandler handler = new ViewEventHandler(projectors, e -> {});
 
         List<StoredEvent> events = createTestEvents();
 
@@ -66,7 +67,7 @@ class ViewEventHandlerTest {
     @DisplayName("Should return 0 when no projector registered for view")
     void shouldReturnZero_WhenNoProjectorRegisteredForView() throws Exception {
         // Given
-        ViewEventHandler handler = new ViewEventHandler(List.of());
+        ViewEventHandler handler = new ViewEventHandler(List.of(), e -> {});
         List<StoredEvent> events = createTestEvents();
 
         // When
@@ -81,7 +82,7 @@ class ViewEventHandlerTest {
     void shouldPropagateExceptions_FromProjector() {
         // Given
         FailingProjector projector = new FailingProjector("wallet-view");
-        ViewEventHandler handler = new ViewEventHandler(List.of(projector));
+        ViewEventHandler handler = new ViewEventHandler(List.of(projector), e -> {});
         List<StoredEvent> events = createTestEvents();
 
         // When & Then
@@ -95,7 +96,7 @@ class ViewEventHandlerTest {
     void shouldPassWriteDataSource_ToProjector() throws Exception {
         // Given
         DataSourceCapturingProjector projector = new DataSourceCapturingProjector("wallet-view");
-        ViewEventHandler handler = new ViewEventHandler(List.of(projector));
+        ViewEventHandler handler = new ViewEventHandler(List.of(projector), e -> {});
         List<StoredEvent> events = createTestEvents();
         DataSource testDataSource = new TestDataSource();
 
@@ -113,7 +114,7 @@ class ViewEventHandlerTest {
         TestProjector projector1 = new TestProjector("wallet-view");
         TestProjector projector2 = new TestProjector("wallet-view");
         List<ViewProjector> projectors = List.of(projector1, projector2);
-        ViewEventHandler handler = new ViewEventHandler(projectors);
+        ViewEventHandler handler = new ViewEventHandler(projectors, e -> {});
 
         List<StoredEvent> events = createTestEvents();
 
@@ -129,7 +130,7 @@ class ViewEventHandlerTest {
     @DisplayName("Should handle empty projector list")
     void shouldHandleEmptyProjectorList() throws Exception {
         // Given
-        ViewEventHandler handler = new ViewEventHandler(List.of());
+        ViewEventHandler handler = new ViewEventHandler(List.of(), e -> {});
         List<StoredEvent> events = createTestEvents();
 
         // When
@@ -144,7 +145,7 @@ class ViewEventHandlerTest {
     void shouldHandleEmptyEventsList() throws Exception {
         // Given
         TestProjector projector = new TestProjector("wallet-view");
-        ViewEventHandler handler = new ViewEventHandler(List.of(projector));
+        ViewEventHandler handler = new ViewEventHandler(List.of(projector), e -> {});
 
         // When
         int result = handler.handle("wallet-view", List.of(), null);
@@ -160,7 +161,7 @@ class ViewEventHandlerTest {
     void shouldPassEventsToProjector_Correctly() throws Exception {
         // Given
         TestProjector projector = new TestProjector("wallet-view");
-        ViewEventHandler handler = new ViewEventHandler(List.of(projector));
+        ViewEventHandler handler = new ViewEventHandler(List.of(projector), e -> {});
         List<StoredEvent> events = createTestEvents();
 
         // When
@@ -175,7 +176,7 @@ class ViewEventHandlerTest {
     void shouldReturnCount_FromProjector() throws Exception {
         // Given
         CountingProjector projector = new CountingProjector("wallet-view", 5);
-        ViewEventHandler handler = new ViewEventHandler(List.of(projector));
+        ViewEventHandler handler = new ViewEventHandler(List.of(projector), e -> {});
         List<StoredEvent> events = createTestEvents();
 
         // When

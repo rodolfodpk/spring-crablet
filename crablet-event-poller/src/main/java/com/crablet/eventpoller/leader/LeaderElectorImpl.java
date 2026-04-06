@@ -23,22 +23,27 @@ public class LeaderElectorImpl implements LeaderElector {
     private static final Logger log = LoggerFactory.getLogger(LeaderElectorImpl.class);
     
     private final DataSource dataSource;
+    private final String processorId;
     private final String instanceId;
     private final long lockKey;
     private final ApplicationEventPublisher eventPublisher;
-    
+
     private static final String TRY_ACQUIRE_LOCK_SQL = "SELECT pg_try_advisory_lock(?)";
     private static final String RELEASE_LOCK_SQL = "SELECT pg_advisory_unlock(?)";
-    
+
     private volatile boolean isGlobalLeader = false;
-    
+
     public LeaderElectorImpl(
             DataSource dataSource,
+            String processorId,
             String instanceId,
             long lockKey,
             ApplicationEventPublisher eventPublisher) {
         if (dataSource == null) {
             throw new IllegalArgumentException("dataSource must not be null");
+        }
+        if (processorId == null || processorId.isEmpty()) {
+            throw new IllegalArgumentException("processorId must not be null or empty");
         }
         if (instanceId == null || instanceId.isEmpty()) {
             throw new IllegalArgumentException("instanceId must not be null or empty");
@@ -47,6 +52,7 @@ public class LeaderElectorImpl implements LeaderElector {
             throw new IllegalArgumentException("eventPublisher must not be null");
         }
         this.dataSource = dataSource;
+        this.processorId = processorId;
         this.instanceId = instanceId;
         this.lockKey = lockKey;
         this.eventPublisher = eventPublisher;
@@ -65,12 +71,12 @@ public class LeaderElectorImpl implements LeaderElector {
                     
                     if (Boolean.TRUE.equals(lockAcquired)) {
                         isGlobalLeader = true;
-                        eventPublisher.publishEvent(new LeadershipMetric(instanceId, true));
+                        eventPublisher.publishEvent(new LeadershipMetric(processorId, instanceId, true));
                         log.info("✓ Acquired lock (key: {}) - this instance is the leader", lockKey);
                         return true;
                     } else {
                         isGlobalLeader = false;
-                        eventPublisher.publishEvent(new LeadershipMetric(instanceId, false));
+                        eventPublisher.publishEvent(new LeadershipMetric(processorId, instanceId, false));
                         log.debug("✗ Another instance holds lock (key: {}) - this instance is follower", lockKey);
                         return false;
                     }
@@ -97,7 +103,7 @@ public class LeaderElectorImpl implements LeaderElector {
                 stmt.execute();
                 
                 isGlobalLeader = false;
-                eventPublisher.publishEvent(new LeadershipMetric(instanceId, false));
+                eventPublisher.publishEvent(new LeadershipMetric(processorId, instanceId, false));
                 log.info("Released lock (key: {})", lockKey);
             } catch (SQLException e) {
                 log.error("Failed to release lock (key: {}): {}", lockKey, e.getMessage(), e);

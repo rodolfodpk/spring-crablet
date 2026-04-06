@@ -4,6 +4,7 @@ import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.backoff.BackoffState;
 import com.crablet.eventpoller.leader.LeaderElector;
+import com.crablet.eventpoller.metrics.BackoffStateMetric;
 import com.crablet.eventpoller.metrics.ProcessingCycleMetric;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
@@ -340,20 +341,23 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             return;
         }
         
+        String instanceId = leaderElector.getInstanceId();
         try {
             log.trace("[EventProcessorImpl] Calling process() for processor: {} at {}", processorId, Instant.now());
             int processed = process(processorId);
-            log.trace("[EventProcessorImpl] process() completed for processor: {}, processed: {} events at {}", 
+            log.trace("[EventProcessorImpl] process() completed for processor: {}, processed: {} events at {}",
                      processorId, processed, Instant.now());
-            eventPublisher.publishEvent(new ProcessingCycleMetric());
-            
+            eventPublisher.publishEvent(new ProcessingCycleMetric(processorId.toString(), instanceId, processed, processed == 0));
+
             // Update backoff state
             if (backoffState != null) {
                 if (processed > 0) {
                     backoffState.recordSuccess();
+                    eventPublisher.publishEvent(new BackoffStateMetric(processorId.toString(), instanceId, false, 0));
                     log.debug("Processed {} events for {} - backoff reset", processed, processorId);
                 } else {
                     backoffState.recordEmpty();
+                    eventPublisher.publishEvent(new BackoffStateMetric(processorId.toString(), instanceId, backoffState.getEmptyPollCount() > 0, backoffState.getEmptyPollCount()));
                 }
             } else if (processed > 0) {
                 log.debug("Processed {} events for {}", processed, processorId);
@@ -370,7 +374,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             } else {
                 log.error("Error in scheduler for {}", processorId, e);
             }
-            eventPublisher.publishEvent(new ProcessingCycleMetric());
+            eventPublisher.publishEvent(new ProcessingCycleMetric(processorId.toString(), instanceId, 0, true));
             // Don't update backoff on errors - let it retry normally
         }
     }

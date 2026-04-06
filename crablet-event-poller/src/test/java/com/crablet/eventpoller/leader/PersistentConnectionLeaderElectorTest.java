@@ -85,7 +85,7 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
         List<LeaderElectorImpl> followers = new ArrayList<>();
         for (int i = 1; i <= 3; i++) {
             LeaderElectorImpl follower = new LeaderElectorImpl(
-                dataSource, "follower-pod-" + i, TEST_LOCK_KEY, eventPublisher);
+                dataSource, "test", "follower-pod-" + i, TEST_LOCK_KEY, eventPublisher);
             followers.add(follower);
         }
         
@@ -109,7 +109,7 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
         leader.acquireWithPersistentConnection();
         
         LeaderElectorImpl follower = new LeaderElectorImpl(
-            dataSource, "follower-pod", TEST_LOCK_KEY, eventPublisher);
+            dataSource, "test", "follower-pod", TEST_LOCK_KEY, eventPublisher);
         
         // Verify follower can't acquire while leader holds lock
         assertThat(follower.tryAcquireGlobalLeader()).isFalse();
@@ -143,7 +143,7 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
             Future<Boolean> future = executor.submit(() -> {
                 startLatch.await();
                 LeaderElectorImpl follower = new LeaderElectorImpl(
-                    dataSource, "follower-" + instanceNum, TEST_LOCK_KEY, eventPublisher);
+                    dataSource, "test", "follower-" + instanceNum, TEST_LOCK_KEY, eventPublisher);
                 return follower.tryAcquireGlobalLeader();
             });
             results.add(future);
@@ -239,7 +239,7 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
         List<LeaderElectorImpl> followers = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             LeaderElectorImpl follower = new LeaderElectorImpl(
-                dataSource, "follower-" + i, TEST_LOCK_KEY, eventPublisher);
+                dataSource, "test", "follower-" + i, TEST_LOCK_KEY, eventPublisher);
             followers.add(follower);
             // Try to acquire (will fail, but connection closes immediately)
             follower.tryAcquireGlobalLeader();
@@ -289,7 +289,7 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
                         Boolean lockAcquired = rs.getBoolean(1);
                         if (Boolean.TRUE.equals(lockAcquired)) {
                             isGlobalLeader = true;
-                            eventPublisher.publishEvent(new LeadershipMetric(instanceId, true));
+                            eventPublisher.publishEvent(new LeadershipMetric("test", instanceId, true));
                             return true;
                         }
                     }

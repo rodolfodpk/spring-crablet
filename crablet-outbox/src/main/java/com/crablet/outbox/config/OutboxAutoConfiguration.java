@@ -60,6 +60,7 @@ public class OutboxAutoConfiguration {
             ApplicationEventPublisher eventPublisher) {
         return new LeaderElectorImpl(
             dataSource,
+            "outbox",
             instanceIdProvider.getInstanceId(),
             OUTBOX_LOCK_KEY,
             eventPublisher

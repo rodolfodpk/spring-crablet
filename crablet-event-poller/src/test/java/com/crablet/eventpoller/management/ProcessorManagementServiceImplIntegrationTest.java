@@ -520,6 +520,7 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
                 org.springframework.context.ApplicationEventPublisher eventPublisher) {
             return new LeaderElectorImpl(
                 dataSource,
+                "test",
                 instanceIdProvider.getInstanceId(),
                 1234567890L,
                 eventPublisher

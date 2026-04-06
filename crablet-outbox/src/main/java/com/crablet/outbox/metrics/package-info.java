@@ -9,7 +9,6 @@
  *   <li>{@link com.crablet.outbox.metrics.EventsPublishedMetric} - Published when events are successfully published</li>
  *   <li>{@link com.crablet.outbox.metrics.ProcessingCycleMetric} - Published for each processing cycle</li>
  *   <li>{@link com.crablet.outbox.metrics.OutboxErrorMetric} - Published when publishing errors occur</li>
- *   <li>{@link com.crablet.outbox.metrics.LeadershipMetric} - Published when leadership state changes</li>
  *   <li>{@link com.crablet.outbox.metrics.PublishingDurationMetric} - Published to track publishing duration</li>
  * </ul>
  * <p>

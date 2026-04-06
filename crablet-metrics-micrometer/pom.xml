@@ -40,6 +40,14 @@
             <groupId>com.crablet</groupId>
             <artifactId>crablet-event-poller</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-views</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-automations</artifactId>
+        </dependency>
         
         <!-- Micrometer -->
         <dependency>

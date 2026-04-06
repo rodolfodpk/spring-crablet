@@ -636,7 +636,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
                 DataSource dataSource,
                 TestInstanceIdProvider instanceIdProvider,
                 org.springframework.context.ApplicationEventPublisher eventPublisher) {
-            return new LeaderElectorImpl(dataSource, instanceIdProvider.getInstanceId(), 999999L, eventPublisher);
+            return new LeaderElectorImpl(dataSource, "test", instanceIdProvider.getInstanceId(), 999999L, eventPublisher);
         }
 
         @Bean

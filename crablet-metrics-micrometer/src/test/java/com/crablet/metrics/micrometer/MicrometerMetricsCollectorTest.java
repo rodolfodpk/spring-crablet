@@ -7,8 +7,8 @@ import com.crablet.command.metrics.IdempotentOperationMetric;
 import com.crablet.eventstore.metrics.ConcurrencyViolationMetric;
 import com.crablet.eventstore.metrics.EventTypeMetric;
 import com.crablet.eventstore.metrics.EventsAppendedMetric;
+import com.crablet.eventpoller.metrics.LeadershipMetric;
 import com.crablet.outbox.metrics.EventsPublishedMetric;
-import com.crablet.outbox.metrics.LeadershipMetric;
 import com.crablet.outbox.metrics.OutboxErrorMetric;
 import com.crablet.outbox.metrics.ProcessingCycleMetric;
 import io.micrometer.core.instrument.Counter;
@@ -146,7 +146,7 @@ class MicrometerMetricsCollectorTest {
     @DisplayName("Should record processing cycle metric")
     void shouldRecordProcessingCycle() {
         // When
-        collector.handleProcessingCycle(new ProcessingCycleMetric());
+        collector.handleOutboxProcessingCycle(new ProcessingCycleMetric());
         
         // Then
         Counter counter = registry.find("outbox.processing.cycles").counter();
@@ -172,31 +172,39 @@ class MicrometerMetricsCollectorTest {
     @DisplayName("Should record leadership metric")
     void shouldRecordLeadership() {
         // When
-        collector.handleLeadership(new LeadershipMetric("instance-1", true));
-        
+        collector.handleLeadership(new LeadershipMetric("outbox", "instance-1", true));
+
         // Then
-        Gauge gauge = registry.find("outbox.is_leader")
+        Gauge gauge = registry.find("processor.is_leader")
+            .tag("processor", "outbox")
             .tag("instance", "instance-1")
             .gauge();
         assertThat(gauge).isNotNull();
         assertThat(gauge.value()).isEqualTo(1.0);
-        
+
         // When: leadership changes
-        collector.handleLeadership(new LeadershipMetric("instance-1", false));
-        
+        collector.handleLeadership(new LeadershipMetric("outbox", "instance-1", false));
+
         // Then: gauge should update
         assertThat(gauge.value()).isEqualTo(0.0);
     }
     
     @Test
-    @DisplayName("Should handle command started metric (no-op, for logging)")
-    void shouldHandleCommandStarted() {
-        // When: command started event is published
-        // (This is mainly for logging/debugging, no metrics recorded)
+    @DisplayName("Should record in-flight gauge on command started and decrement on success")
+    void shouldRecordInflightGauge_OnCommandStartedAndSuccess() {
+        // When: command started
         collector.handleCommandStarted(new CommandStartedMetric("deposit", Instant.now()));
-        
-        // Then: no exception thrown
-        // Command duration is recorded via CommandSuccessMetric
+
+        // Then: in-flight gauge is 1
+        Gauge gauge = registry.find("commands.inflight").tag("command_type", "deposit").gauge();
+        assertThat(gauge).isNotNull();
+        assertThat(gauge.value()).isEqualTo(1.0);
+
+        // When: command succeeds
+        collector.handleCommandSuccess(new CommandSuccessMetric("deposit", Duration.ofMillis(50)));
+
+        // Then: in-flight gauge is back to 0
+        assertThat(gauge.value()).isEqualTo(0.0);
     }
 }
 

@@ -50,6 +50,7 @@ public class AutomationsAutoConfiguration {
             ApplicationEventPublisher eventPublisher) {
         return new LeaderElectorImpl(
             dataSource,
+            "automations",
             instanceIdProvider.getInstanceId(),
             AUTOMATIONS_LOCK_KEY,
             eventPublisher
@@ -81,8 +82,9 @@ public class AutomationsAutoConfiguration {
     @Bean
     public EventHandler<String> automationEventHandler(
             List<AutomationHandler> automations,
-            CommandExecutor commandExecutor) {
-        return new AutomationDispatcher(automations, commandExecutor);
+            CommandExecutor commandExecutor,
+            ApplicationEventPublisher eventPublisher) {
+        return new AutomationDispatcher(automations, commandExecutor, eventPublisher);
     }
 
     @Bean

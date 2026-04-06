@@ -53,6 +53,7 @@ public class ViewsAutoConfiguration {
             ApplicationEventPublisher eventPublisher) {
         return new LeaderElectorImpl(
             dataSource,
+            "views",
             instanceIdProvider.getInstanceId(),
             VIEWS_LOCK_KEY,
             eventPublisher
@@ -83,8 +84,8 @@ public class ViewsAutoConfiguration {
      * Collects all ViewProjector beans registered by users.
      */
     @Bean
-    public EventHandler<String> viewEventHandler(List<ViewProjector> projectors) {
-        return new ViewEventHandler(projectors);
+    public EventHandler<String> viewEventHandler(List<ViewProjector> projectors, ApplicationEventPublisher eventPublisher) {
+        return new ViewEventHandler(projectors, eventPublisher);
     }
     
     /**
