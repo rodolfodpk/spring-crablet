@@ -91,10 +91,7 @@ Tags are key/value strings attached to events. They serve two purposes: filterin
 To read an event back you project it into a state type. The simplest projector just records whether the event exists:
 
 ```java
-import com.crablet.eventstore.query.StateProjector;
-import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.QueryBuilder;
-import com.crablet.eventstore.StreamPosition;
 
 import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.talks.TalkTags.TALK_ID;
@@ -104,12 +101,10 @@ var query = QueryBuilder.builder()
     .tag(TALK_ID, "talk-1")
     .build();
 
-boolean exists = eventStore.project(
-    query, StreamPosition.zero(), StateProjector.exists(type(TalkSubmitted.class))
-).state();
+boolean exists = eventStore.exists(query);
 ```
 
-`StateProjector.exists(eventTypes...)` is a built-in factory that returns a projector yielding `true` on the first matching event — no boilerplate class needed.
+`EventStore.exists(query)` is a convenience method that returns `true` if any event matching the query exists — no projector class needed.
 
 `StreamPosition.zero()` means "start from the beginning of the event log". `ProjectionResult` carries both the projected state and a stream position pointing to the last event that was read. You will use that stream position in Part 3.
 
