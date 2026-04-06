@@ -3,18 +3,18 @@
 ## Quick Reference
 
 **Pattern Decision Tree:**
-1. **Creating new entity?** → Use `AppendCondition.idempotent()` (Pattern 1)
-2. **Commutative operation?** (order doesn't matter) → Use `AppendCondition.empty()` (Pattern 2)
-3. **Non-commutative operation?** (order matters) → Use `AppendConditionBuilder(decisionModel, streamPosition)` (Pattern 3)
+1. **Creating new entity?** → Use `IdempotentCommandHandler` / `appendIdempotent` (Pattern 1)
+2. **Commutative operation?** (order doesn't matter) → Use `CommutativeCommandHandler` / `appendCommutative` (Pattern 2)
+3. **Non-commutative operation?** (order matters) → Use `NonCommutativeCommandHandler` / `appendNonCommutative` (Pattern 3)
 
 **Summary:**
 
-| Operation | Type | DCB Check | Can Run Parallel? |
-|-----------|------|-----------|-------------------|
-| **OpenWallet** | Entity Creation | `AppendCondition.idempotent()` | ✅ |
-| **Deposit** | Commutative | `AppendCondition.empty()` | ✅ |
-| **Withdraw** | Non-Commutative | `AppendConditionBuilder(decisionModel, streamPosition)` | ❌ |
-| **Transfer** | Non-Commutative | `AppendConditionBuilder(decisionModel, streamPosition)` | ❌ |
+| Operation | Type | Handler Interface | Can Run Parallel? |
+|-----------|------|------------------|-------------------|
+| **OpenWallet** | Entity Creation | `IdempotentCommandHandler` | ✅ |
+| **Deposit** | Commutative | `CommutativeCommandHandler` | ✅ |
+| **Withdraw** | Non-Commutative | `NonCommutativeCommandHandler` | ❌ |
+| **Transfer** | Non-Commutative | `NonCommutativeCommandHandler` | ❌ |
 
 📖 **Details:** See [patterns below](#patterns) and [when to use each](#when-to-use-each-pattern).
 
@@ -22,7 +22,7 @@
 
 This guide explains when to use DCB streamPosition checks and when operations can run without them. Understanding the difference between **commutative** and **non-commutative** operations is key to proper DCB implementation.
 
-**Note:** Command handlers return `CommandResult`. The `CommandExecutor` automatically calls `appendIf()` with the events and condition from the result.
+**Note:** Command handlers return a `CommandDecision` (via the sub-interface's `decide()` method). The `CommandExecutor` automatically calls the appropriate append method (`appendCommutative`, `appendNonCommutative`, or `appendIdempotent`) based on the decision type.
 
 ## Command Handler Registration
 
@@ -37,12 +37,12 @@ Command handlers are automatically discovered by Spring:
    public interface WalletCommand { }
    ```
 
-2. **Handler Implementation**: Handlers implement `CommandHandler<T>`:
+2. **Handler Implementation**: Handlers implement one of the three sub-interfaces:
    ```java
    @Component
-   public class DepositCommandHandler implements CommandHandler<DepositCommand> {
+   public class DepositCommandHandler implements CommutativeCommandHandler<DepositCommand> {
        @Override
-       public CommandResult handle(EventStore eventStore, DepositCommand command) {
+       public Decision decide(EventStore eventStore, DepositCommand command) {
            // Implementation...
        }
    }
@@ -55,12 +55,12 @@ Command handlers are automatically discovered by Spring:
 ### Commutative Operations
 Operations where order doesn't affect the final result (e.g., deposits: +$10 then +$20 = +$20 then +$10).
 
-**DCB Check:** ❌ Not required - use `AppendCondition.empty()`
+**DCB Check:** ❌ Not required — use `CommutativeCommandHandler` / `appendCommutative`
 
 ### Non-Commutative Operations
-Operations where order matters - final result depends on execution order (e.g., withdrawals depend on current balance).
+Operations where order matters — final result depends on execution order (e.g., withdrawals depend on current balance).
 
-**DCB Check:** ✅ Required - use `AppendConditionBuilder(decisionModel, streamPosition)`
+**DCB Check:** ✅ Required — use `NonCommutativeCommandHandler` / `appendNonCommutative`
 
 ## Patterns
 
@@ -72,9 +72,9 @@ Operations where order matters - final result depends on execution order (e.g., 
 
 ```java
 @Component
-public class OpenWalletCommandHandler implements CommandHandler<OpenWalletCommand> {
+public class OpenWalletCommandHandler implements IdempotentCommandHandler<OpenWalletCommand> {
     @Override
-    public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
+    public Decision decide(EventStore eventStore, OpenWalletCommand command) {
         WalletOpened walletOpened = WalletOpened.of(
             command.walletId(), command.owner(), command.initialBalance()
         );
@@ -85,15 +85,13 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
             .build();
         
         // Idempotency check prevents duplicate wallet creation
-        AppendCondition condition = AppendCondition.idempotent(type(WalletOpened.class), WALLET_ID, command.walletId());
-
-        return CommandResult.of(List.of(event), condition);
+        return Decision.of(event, type(WalletOpened.class), WALLET_ID, command.walletId());
     }
 }
 ```
 
 **Key Points:**
-- ✅ Uses `AppendCondition.idempotent()` for uniqueness
+- ✅ Uses `IdempotentCommandHandler` for uniqueness
 - ✅ No streamPosition check (no prior state)
 - ✅ Idempotent: can run multiple times safely
 
@@ -101,13 +99,13 @@ public class OpenWalletCommandHandler implements CommandHandler<OpenWalletComman
 
 **Use case:** Operations where order doesn't matter (e.g., Deposit).
 
-**Why no streamPosition needed:** Commutative operations don't conflict - parallel operations produce same result regardless of order.
+**Why no streamPosition needed:** Commutative operations don't conflict — parallel operations produce same result regardless of order.
 
 ```java
 @Component
-public class DepositCommandHandler implements CommandHandler<DepositCommand> {
+public class DepositCommandHandler implements CommutativeCommandHandler<DepositCommand> {
     @Override
-    public CommandResult handle(EventStore eventStore, DepositCommand command) {
+    public Decision decide(EventStore eventStore, DepositCommand command) {
         // Project to validate wallet exists
         Query query = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
         ProjectionResult<WalletBalanceState> projection = eventStore.project(
@@ -125,14 +123,12 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
         
         AppendEvent event = AppendEvent.builder(type(DepositMade.class))
             .tag(WALLET_ID, command.walletId())
-            .tag(DEPOSIT_ID, command.depositId())  // Optional: for idempotency
+            .tag(DEPOSIT_ID, command.depositId())  // Optional: for application-level idempotency
             .data(deposit)
             .build();
         
         // Commutative: order doesn't affect final result
-        AppendCondition condition = AppendCondition.empty();
-        
-        return CommandResult.of(List.of(event), condition);
+        return Decision.of(event);
     }
 }
 ```
@@ -152,9 +148,9 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
 
 ```java
 @Component
-public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
+public class WithdrawCommandHandler implements NonCommutativeCommandHandler<WithdrawCommand> {
     @Override
-    public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
+    public Decision decide(EventStore eventStore, WithdrawCommand command) {
         Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
         ProjectionResult<WalletBalanceState> projection = eventStore.project(
             decisionModel, StreamPosition.zero(), WalletBalanceState.class, List.of(projector));
@@ -181,24 +177,21 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
             .build();
         
         // StreamPosition check prevents concurrent withdrawals exceeding balance
-        AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.streamPosition())
-            .build();
-        
-        return CommandResult.of(List.of(event), condition);
+        return Decision.of(event, decisionModel, projection.streamPosition());
     }
 }
 ```
 
 #### Transfer Example
 
-Transfers affect two wallets and require streamPosition checks for both:
+Transfers affect two wallets and require a streamPosition check spanning both:
 
 ```java
 @Component
-public class TransferMoneyCommandHandler implements CommandHandler<TransferMoneyCommand> {
+public class TransferMoneyCommandHandler implements NonCommutativeCommandHandler<TransferMoneyCommand> {
     @Override
-    public CommandResult handle(EventStore eventStore, TransferMoneyCommand command) {
-        // Project both wallet balances
+    public Decision decide(EventStore eventStore, TransferMoneyCommand command) {
+        // Project both wallet balances with a combined decision model
         Query decisionModel = WalletQueryPatterns.transferDecisionModel(
             command.fromWalletId(), command.toWalletId());
         TransferStateProjector projector = new TransferStateProjector(
@@ -217,10 +210,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
             .build();
         
         // StreamPosition check prevents concurrent transfers causing overdrafts
-        AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.streamPosition())
-            .build();
-        
-        return CommandResult.of(List.of(event), condition);
+        return Decision.of(event, decisionModel, projection.streamPosition());
     }
 }
 ```
@@ -234,7 +224,7 @@ public class TransferMoneyCommandHandler implements CommandHandler<TransferMoney
 
 ## When to Use Each Pattern
 
-### Use `AppendCondition.idempotent()` When:
+### Use `IdempotentCommandHandler` When:
 - ✅ Creating new entities with uniqueness requirements
 - ✅ No prior state exists to read stream position from
 - ✅ Need to prevent duplicates atomically
@@ -245,12 +235,11 @@ Idempotency checks use PostgreSQL advisory locks to prevent race conditions when
 
 **Performance:** ~4x slower than streamPosition-based checks (due to advisory locks), but necessary for uniqueness.
 
-### Use `AppendCondition.empty()` When:
+### Use `CommutativeCommandHandler` When:
 - ✅ Operation is **commutative** (order doesn't affect final result)
 - ✅ Want maximum parallel throughput
-- ⚠️ **Note**: Most examples using `AppendCondition.empty()` are for test setup. In production, use it only for truly commutative operations like deposits.
 
-### Use `AppendConditionBuilder(decisionModel, streamPosition)` When:
+### Use `NonCommutativeCommandHandler` When:
 - ✅ Operation **order matters** (Withdraw, Transfer)
 - ✅ Result **depends on current state** (balance checks)
 - ✅ Need to prevent **race conditions** on same resource
@@ -268,43 +257,44 @@ Operation IDs like `deposit_id`, `withdrawal_id`, and `transfer_id` are **option
 - When operations are commutative by design
 - When you rely on DCB streamPosition checks for concurrency control
 
-**Note:** These are different from DCB's `AppendCondition.idempotent()`, which is an atomic database-level check for entity uniqueness.
+**Note:** These are different from DCB's `appendIdempotent`, which is an atomic database-level check for entity uniqueness.
 
 ## Common Mistakes
 
 ❌ **Not using idempotency check for wallet creation:**
 ```java
-// WRONG: Allows duplicates
-AppendCondition condition = AppendCondition.empty();
+// WRONG: Allows duplicates — use IdempotentCommandHandler instead
+return Decision.of(event);  // CommutativeCommandHandler — no duplicate guard
 ```
 
 ✅ **Correct:**
 ```java
-AppendCondition condition = AppendCondition.idempotent(type(WalletOpened.class), WALLET_ID, walletId);
+// RIGHT: IdempotentCommandHandler with the uniqueness tag
+return Decision.of(event, type(WalletOpened.class), WALLET_ID, walletId);
 ```
 
 ❌ **Using streamPosition for deposits:**
 ```java
-// WRONG: Deposits don't need streamPosition check
-AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.streamPosition()).build();
+// WRONG: Deposits don't need streamPosition check — use CommutativeCommandHandler
+return Decision.of(event, decisionModel, projection.streamPosition());
 ```
 
 ✅ **Correct:**
 ```java
 // RIGHT: Deposits are commutative
-AppendCondition condition = AppendCondition.empty();
+return Decision.of(event);
 ```
 
 ❌ **Not using streamPosition for withdrawals:**
 ```java
-// WRONG: Withdrawals need streamPosition to prevent overdrafts
-AppendCondition condition = AppendCondition.empty();
+// WRONG: Withdrawals need streamPosition to prevent overdrafts — use CommutativeCommandHandler
+return Decision.of(event);
 ```
 
 ✅ **Correct:**
 ```java
-// RIGHT: Withdrawals are non-commutative
-AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.streamPosition()).build();
+// RIGHT: Withdrawals are non-commutative — use NonCommutativeCommandHandler
+return Decision.of(event, decisionModel, projection.streamPosition());
 ```
 
 ## Learn More

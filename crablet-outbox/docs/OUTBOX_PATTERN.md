@@ -7,8 +7,8 @@
 The outbox provides **reliable event publishing** for DCB-based event sourcing. It ensures events are published to external systems (Kafka, webhooks, analytics) with the same transactional guarantees as your DCB operations.
 
 **How it works:**
-1. Handler returns `CommandResult(events, condition)`
-2. `CommandExecutor` calls `EventStore.appendIf()` → stores events in `events` table
+1. Handler returns `CommandDecision` (Commutative / NonCommutative / Idempotent)
+2. `CommandExecutor` calls the appropriate `EventStore` append method → stores events in `events` table
 3. Outbox processor polls `events` table (`WHERE position > last_position`)
 4. Publishers send events to external systems
 5. Progress tracking updates `outbox_topic_progress` with new position
@@ -30,41 +30,35 @@ The outbox pattern provides **reliable event publishing** for DCB-based event so
 ### How It Works with DCB
 
 ```java
-public CommandResult handleTransfer(TransferCommand command) {
+// Inside NonCommutativeCommandHandler<TransferCommand>.decide():
+public Decision decide(EventStore eventStore, TransferCommand command) {
     // 1. DCB: Read current state with stream position
-    ProjectionResult<WalletBalanceState> projection = 
-        balanceProjector.projectWalletBalance(eventStore, command.fromWalletId(), decisionModel);
+    Query decisionModel = WalletQueryPatterns.transferDecisionModel(
+        command.fromWalletId(), command.toWalletId());
+    ProjectionResult<TransferState> projection = eventStore.project(
+        decisionModel, StreamPosition.zero(), TransferState.class, List.of(projector));
     
-    // 2. Business logic - generate multiple events
+    // 2. Business logic - generate event(s)
     MoneyTransferred transfer = MoneyTransferred.of(/* ... */);
-    DepositMade deposit = DepositMade.of(/* ... */);
-    WithdrawalMade withdrawal = WithdrawalMade.of(/* ... */);
     
-    // 3. DCB: Append multiple events with concurrency control
-    List<AppendEvent> events = List.of(
-        AppendEvent.builder("MoneyTransferred")
-            .tag("from_wallet_id", command.fromWalletId())
-            .tag("to_wallet_id", command.toWalletId())
-            .data(serializeEvent(transfer))
-            .build(),
-        // ... other events
-    );
-    
-    AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.streamPosition())
+    // 3. DCB: Return decision — CommandExecutor appends with concurrency control
+    AppendEvent event = AppendEvent.builder("MoneyTransferred")
+        .tag("from_wallet_id", command.fromWalletId())
+        .tag("to_wallet_id", command.toWalletId())
+        .data(transfer)
         .build();
     
-    // 4. All events stored atomically with DCB consistency
-    // 5. Outbox automatically publishes all these events to external systems
-    return CommandResult.of(events, condition);
+    // 4. All events stored atomically; outbox publishes them to external systems
+    return Decision.of(event, decisionModel, projection.streamPosition());
 }
 ```
 
-**Key Point**: The events in `CommandResult` (can be 1 or N events) are stored with DCB transactional guarantees, then outbox publishes all these events reliably to external systems.
+**Key Point**: The events in the `CommandDecision` (can be 1 or N events) are stored with DCB transactional guarantees, then outbox publishes all these events reliably to external systems.
 
 ## How It Works
 
-1. **Handler** returns `CommandResult(events, condition)`
-2. **CommandExecutor** calls `EventStore.appendIf()` → stores events in `events` table
+1. **Handler** returns `CommandDecision` (Commutative / NonCommutative / Idempotent)
+2. **CommandExecutor** calls the appropriate EventStore append method → stores events in `events` table
 3. **Outbox processor** polls `events` table (`WHERE position > last_position`)
 4. **Publishers** send events to external systems (Kafka, webhooks, etc.)
 5. **Progress tracking** updates `outbox_topic_progress` with new position

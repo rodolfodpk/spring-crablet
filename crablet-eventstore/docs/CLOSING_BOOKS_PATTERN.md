@@ -132,11 +132,11 @@ See: `crablet-eventstore/src/test/java/com/crablet/examples/wallet/period/Wallet
 
 ```java
 @Component
-public class DepositCommandHandler implements CommandHandler<DepositCommand> {
+public class DepositCommandHandler implements CommutativeCommandHandler<DepositCommand> {
     private final WalletPeriodHelper periodHelper; // Domain-specific helper
     
     @Override
-    public CommandResult handle(EventStore eventStore, DepositCommand command) {
+    public Decision decide(EventStore eventStore, DepositCommand command) {
         // Project balance for current period (period tags derived from clock, no statement creation)
         var periodResult = periodHelper.projectCurrentPeriod(
             eventStore, command.walletId(), DepositCommand.class);
@@ -165,10 +165,8 @@ public class DepositCommandHandler implements CommandHandler<DepositCommand> {
             .data(deposit)
             .build();
         
-        // Deposits are commutative - use empty condition
-        AppendCondition condition = AppendCondition.empty();
-        
-        return CommandResult.of(List.of(event), condition);
+        // Deposits are commutative — order-independent, no conflict check needed
+        return Decision.of(event);
     }
 }
 ```
@@ -252,21 +250,19 @@ This ensures all tags must match (AND condition) for the event to be included.
 
 ```java
 // January 2024: Wallet opened, deposits, withdrawals
-// Note: Using AppendCondition.empty() for test/setup examples
-String txId1 = eventStore.appendIf(List.of(
+String txId1 = eventStore.appendCommutative(List.of(
     AppendEvent.builder("WalletOpened")
         .tag("wallet_id", "alice")
         .tag("year", "2024")
         .tag("month", "1")
         .data(WalletOpened.of("alice", "Alice", 1000))
         .build()
-), AppendCondition.empty());
+));
 
 // ... January transactions ...
 
 // End of January: Close statement
-// Note: Using AppendCondition.empty() for test/setup examples
-String txId2 = eventStore.appendIf(List.of(
+String txId2 = eventStore.appendCommutative(List.of(
     AppendEvent.builder("WalletStatementClosed")
         .tag("wallet_id", "alice")
         .tag("statement_id", "wallet:alice:2024-01")
@@ -280,11 +276,10 @@ String txId2 = eventStore.appendIf(List.of(
             1300   // closing balance
         ))
         .build()
-), AppendCondition.empty());
+));
 
 // February 2024: Open new statement
-// Note: Using AppendCondition.empty() for test/setup examples
-String txId3 = eventStore.appendIf(List.of(
+String txId3 = eventStore.appendCommutative(List.of(
     AppendEvent.builder("WalletStatementOpened")
         .tag("wallet_id", "alice")
         .tag("statement_id", "wallet:alice:2024-02")
@@ -297,7 +292,7 @@ String txId3 = eventStore.appendIf(List.of(
             1300  // opening balance from January
         ))
         .build()
-), AppendCondition.empty());
+));
 
 // Query February events only
 Query febQuery = WalletQueryPatterns.singleWalletPeriodDecisionModel("alice", 2024, 2);

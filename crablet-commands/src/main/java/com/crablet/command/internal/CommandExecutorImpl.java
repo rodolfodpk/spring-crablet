@@ -2,6 +2,7 @@ package com.crablet.command.internal;
 
 import com.crablet.command.CommandDecision;
 import com.crablet.command.CommandExecutor;
+import com.crablet.command.OnDuplicate;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.ExecutionResult;
 import com.crablet.command.InvalidCommandException;
@@ -13,7 +14,7 @@ import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ConcurrencyException;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
-import com.crablet.eventstore.internal.EventStoreConfig;
+import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.Tag;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.core.JacksonException;
@@ -260,8 +261,8 @@ public class CommandExecutorImpl implements CommandExecutor {
                             throw new IllegalStateException("unreachable: empty case handled above");
                     };
                 } catch (ConcurrencyException e) {
-                    // Fail fast: Handle idempotent duplicate operations
-                    return handleConcurrencyException(e, commandType, command);
+                    // Dispatch based on the domain's declared duplicate policy
+                    return handleConcurrencyException(e, commandType, command, result);
                 }
 
                 // Store command for audit and query purposes (if enabled)
@@ -384,22 +385,21 @@ public class CommandExecutorImpl implements CommandExecutor {
     }
 
     /**
-     * Handle ConcurrencyException with fail-fast principles.
+     * Handle ConcurrencyException by consulting the domain's declared {@link OnDuplicate} policy.
      * Returns ExecutionResult for idempotent duplicate operations, throws for others.
      */
-    private <T> ExecutionResult handleConcurrencyException(ConcurrencyException e, String commandType, T command) {
-        // Fail fast: Check if this is NOT an idempotency violation
+    private <T> ExecutionResult handleConcurrencyException(ConcurrencyException e, String commandType, T command,
+                                                           CommandDecision result) {
         String message = e.getMessage();
         if (message == null || !message.toLowerCase().contains("duplicate operation detected")) {
             throw new ConcurrencyException(message, command, e);
         }
 
-        // Fail fast: Wallet creation duplicates should throw exception
-        if ("open_wallet".equals(commandType)) {
+        // Respect the domain's declared policy: THROW or RETURN_IDEMPOTENT
+        if (result instanceof CommandDecision.Idempotent i && i.onDuplicate() == OnDuplicate.THROW) {
             throw new ConcurrencyException(message, command, e);
         }
 
-        // Other operation duplicates should return idempotent result
         log.debug("Transaction committed successfully for command: {} (idempotent - duplicate detected)", commandType);
         return ExecutionResult.idempotent("DUPLICATE_OPERATION");
     }

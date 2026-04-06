@@ -570,7 +570,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         public EventStore eventStore(
                 DataSource dataSource,
                 tools.jackson.databind.ObjectMapper objectMapper,
-                com.crablet.eventstore.internal.EventStoreConfig config,
+                com.crablet.eventstore.EventStoreConfig config,
                 com.crablet.eventstore.ClockProvider clock,
                 org.springframework.context.ApplicationEventPublisher eventPublisher) {
             return new com.crablet.eventstore.internal.EventStoreImpl(
@@ -578,8 +578,8 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         }
 
         @Bean
-        public com.crablet.eventstore.internal.EventStoreConfig eventStoreConfig() {
-            return new com.crablet.eventstore.internal.EventStoreConfig();
+        public com.crablet.eventstore.EventStoreConfig eventStoreConfig() {
+            return new com.crablet.eventstore.EventStoreConfig();
         }
 
         @Bean

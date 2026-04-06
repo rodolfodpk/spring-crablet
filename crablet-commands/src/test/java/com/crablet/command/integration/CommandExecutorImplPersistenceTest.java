@@ -8,7 +8,7 @@ import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
-import com.crablet.eventstore.internal.EventStoreConfig;
+import com.crablet.eventstore.EventStoreConfig;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.BeforeEach;

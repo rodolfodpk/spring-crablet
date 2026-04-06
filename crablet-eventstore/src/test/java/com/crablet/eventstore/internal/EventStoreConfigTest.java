@@ -1,5 +1,6 @@
 package com.crablet.eventstore.internal;
 
+import com.crablet.eventstore.EventStoreConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

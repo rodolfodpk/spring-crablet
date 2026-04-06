@@ -2,10 +2,8 @@ package com.crablet.outbox.config;
 
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
-import com.crablet.eventpoller.internal.InstanceIdProvider;
-import com.crablet.eventpoller.internal.LeaderElectorImpl;
-import com.crablet.eventpoller.internal.EventProcessorImpl;
-import com.crablet.eventpoller.internal.ProcessorManagementServiceImpl;
+import com.crablet.eventpoller.EventProcessorFactory;
+import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.outbox.management.OutboxManagementService;
@@ -47,26 +45,22 @@ import java.util.concurrent.ConcurrentHashMap;
 @ConditionalOnProperty(name = "crablet.outbox.enabled", havingValue = "true", matchIfMissing = false)
 public class OutboxAutoConfiguration {
     
-    // Advisory lock key for outbox (same as OutboxLeaderElector)
+    // Advisory lock key for outbox (different from views and automations)
     private static final long OUTBOX_LOCK_KEY = 4856221667890123456L;
-    
+
     /**
-     * Create LeaderElector bean using generic LeaderElectorImpl.
+     * Create LeaderElector bean for outbox — exposed so tests can inject it directly.
      */
     @Bean
     public LeaderElector outboxLeaderElector(
-            @Qualifier("primaryDataSource") DataSource dataSource,
             InstanceIdProvider instanceIdProvider,
+            @Qualifier("primaryDataSource") DataSource primaryDataSource,
             ApplicationEventPublisher eventPublisher) {
-        return new LeaderElectorImpl(
-            dataSource,
-            "outbox",
-            instanceIdProvider.getInstanceId(),
-            OUTBOX_LOCK_KEY,
-            eventPublisher
-        );
+        return EventProcessorFactory.createLeaderElector(
+                primaryDataSource, "outbox", instanceIdProvider.getInstanceId(),
+                OUTBOX_LOCK_KEY, eventPublisher);
     }
-    
+
     /**
      * Create OutboxProgressTracker bean.
      */
@@ -149,28 +143,27 @@ public class OutboxAutoConfiguration {
     }
     
     /**
-     * Create EventProcessor bean using generic EventProcessorImpl.
+     * Create EventProcessor bean using EventProcessorFactory.
      */
     @Bean
     public EventProcessor<OutboxProcessorConfig, TopicPublisherPair> outboxEventProcessor(
             Map<TopicPublisherPair, OutboxProcessorConfig> configs,
-            LeaderElector leaderElector,
+            LeaderElector outboxLeaderElector,
             ProgressTracker<TopicPublisherPair> progressTracker,
             EventFetcher<TopicPublisherPair> eventFetcher,
             EventHandler<TopicPublisherPair> eventHandler,
-            @Qualifier("primaryDataSource") DataSource writeDataSource,
+            @Qualifier("primaryDataSource") DataSource primaryDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher) {
-        return new EventProcessorImpl<>(
+        return EventProcessorFactory.createProcessor(
             configs,
-            leaderElector,
+            outboxLeaderElector,
             progressTracker,
             eventFetcher,
             eventHandler,
-            writeDataSource,
+            primaryDataSource,
             taskScheduler,
-            eventPublisher
-        );
+            eventPublisher);
     }
     
     /**
@@ -196,7 +189,7 @@ public class OutboxAutoConfiguration {
             @Qualifier("readDataSource") DataSource readDataSource,
             @Qualifier("primaryDataSource") DataSource primaryDataSource) {
         ProcessorManagementService<TopicPublisherPair> delegate =
-                new ProcessorManagementServiceImpl<>(eventProcessor, progressTracker, readDataSource);
+                EventProcessorFactory.createManagementService(eventProcessor, progressTracker, readDataSource);
         return new OutboxManagementService(delegate, primaryDataSource);
     }
 }

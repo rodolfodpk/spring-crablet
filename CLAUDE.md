@@ -348,17 +348,17 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 
 1. **StreamPosition-Based Check** (non-commutative operations):
    - Use for: Operations on existing entities (Withdraw, Transfer)
-   - Pattern: `AppendConditionBuilder.of(decisionModel, streamPosition).build()`
+   - Method: `appendNonCommutative(events, decisionModel, streamPosition)`
    - Detects concurrent modifications via stream position
 
 2. **Idempotency Check** (entity creation):
    - Use for: Preventing duplicate entity creation (OpenWallet)
-   - Pattern: `AppendCondition.idempotent(eventType, tagKey, tagValue)`
+   - Method: `appendIdempotent(events, eventType, tagKey, tagValue)`
    - Fails if event with same tag already exists
 
-3. **Empty Condition** (commutative operations):
+3. **Commutative** (order-independent operations):
    - Use for: Order-independent operations (Deposit)
-   - Pattern: `AppendCondition.empty()`
+   - Method: `appendCommutative(events)`
    - No conflict detection needed
 
 **DCB Flow:**
@@ -366,8 +366,7 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 2. Returns `ProjectionResult<T>` with both state and stream position
 3. Validate business rules against projected state
 4. Generate events
-5. Build `AppendCondition` using captured stream position
-6. Call `eventStore.appendIf(events, condition)` - atomic check and append
+5. Call the appropriate append method — atomic check and append
 
 **Key files:**
 - DCB explanation: `crablet-eventstore/docs/DCB_AND_CRABLET.md`
@@ -376,7 +375,9 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 ### Core Abstractions
 
 **EventStore (crablet-eventstore/src/main/java/com/crablet/eventstore/EventStore.java):**
-- `appendIf(events, condition)` - Atomic append with DCB checks
+- `appendCommutative(events)` - Append without conflict detection (deposits, credits)
+- `appendNonCommutative(events, decisionModel, streamPosition)` - Append with DCB stream-position check (withdrawals, transfers)
+- `appendIdempotent(events, eventType, tagKey, tagValue)` - Append with duplicate-entity guard (entity creation)
 - `project(query, streamPosition, stateType, projectors)` - State reconstruction
 - `executeInTransaction(operation)` - Transaction wrapper
 - `storeCommand(json, type, txId)` - Command audit trail
@@ -403,7 +404,7 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 
 **CommandHandler (crablet-commands/src/main/java/com/crablet/command/):**
 - `handle(eventStore, command)` - Returns `CommandDecision`
-- CommandExecutor automatically calls `appendIf()` with result
+- CommandExecutor automatically calls the correct append method based on the `CommandDecision` type
 - All wrapped in single database transaction
 
 ### Testing Patterns

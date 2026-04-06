@@ -11,7 +11,7 @@ import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.internal.EventRepositoryImpl;
 import com.crablet.eventstore.EventStore;
-import com.crablet.eventstore.internal.EventStoreConfig;
+import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;

@@ -2,20 +2,19 @@ package com.crablet.wallet.config;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.internal.CommandExecutorImpl;
-import com.crablet.eventpoller.internal.InstanceIdProvider;
+import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.internal.EventRepositoryImpl;
 import com.crablet.eventstore.EventStore;
-import com.crablet.eventstore.internal.EventStoreConfig;
+import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
 import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import com.crablet.automations.AutomationSubscription;
-import com.crablet.wallet.reactions.WalletOpenedReaction;
 import com.crablet.views.config.ViewsConfig;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -171,9 +170,11 @@ public class CrabletConfig {
     }
 
     @Bean
-    public AutomationSubscription walletOpenedWelcomeNotificationSubscription(WalletOpenedReaction handler) {
-        return handler.subscription(
-                com.crablet.eventstore.EventType.type(
-                        com.crablet.examples.wallet.events.WalletOpened.class));
+    public AutomationSubscription walletOpenedWelcomeNotificationSubscription() {
+        return AutomationSubscription.builder("wallet-opened-welcome-notification")
+                .eventTypes(com.crablet.eventstore.EventType.type(
+                        com.crablet.examples.wallet.events.WalletOpened.class))
+                .webhookUrl("http://localhost:8080/api/automations/wallet-opened")
+                .build();
     }
 }

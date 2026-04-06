@@ -1,10 +1,10 @@
 package com.crablet;
 
-import com.crablet.eventpoller.internal.InstanceIdProvider;
+import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.EventStore;
-import com.crablet.eventstore.internal.EventStoreConfig;
+import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.outbox.config.GlobalStatisticsConfig;
 import com.crablet.outbox.config.OutboxConfig;

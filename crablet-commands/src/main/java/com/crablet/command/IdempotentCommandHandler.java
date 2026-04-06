@@ -28,10 +28,21 @@ public interface IdempotentCommandHandler<C> extends CommandHandler<C> {
      * @param tagKey     the tag key used for the idempotency check
      * @param tagValue   the tag value used for the idempotency check
      */
-    record Decision(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {
-        /** Single-event factory — the common case. */
+    record Decision(List<AppendEvent> events, String eventType, String tagKey, String tagValue,
+                    OnDuplicate onDuplicate) {
+        /** Single-event factory — defaults to {@link OnDuplicate#RETURN_IDEMPOTENT}. */
         public static Decision of(AppendEvent event, String eventType, String tagKey, String tagValue) {
-            return new Decision(List.of(event), eventType, tagKey, tagValue);
+            return new Decision(List.of(event), eventType, tagKey, tagValue, OnDuplicate.RETURN_IDEMPOTENT);
+        }
+
+        /**
+         * Single-event factory with explicit duplicate policy.
+         * Use {@link OnDuplicate#THROW} for entity-creation commands that must be unique
+         * (e.g., {@code OpenWalletCommand}).
+         */
+        public static Decision of(AppendEvent event, String eventType, String tagKey, String tagValue,
+                                  OnDuplicate onDuplicate) {
+            return new Decision(List.of(event), eventType, tagKey, tagValue, onDuplicate);
         }
     }
 
@@ -47,6 +58,7 @@ public interface IdempotentCommandHandler<C> extends CommandHandler<C> {
     @Override
     default CommandDecision handle(EventStore eventStore, C command) {
         Decision d = decide(eventStore, command);
-        return new CommandDecision.Idempotent(d.events(), d.eventType(), d.tagKey(), d.tagValue());
+        return new CommandDecision.Idempotent(d.events(), d.eventType(), d.tagKey(), d.tagValue(),
+                d.onDuplicate());
     }
 }

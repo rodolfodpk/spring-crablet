@@ -188,11 +188,7 @@ public record WithdrawCommand(
 ```java
 package com.example.wallet.handlers;
 
-import com.crablet.command.CommandHandler;
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.AppendCondition;
-import com.crablet.eventstore.AppendConditionBuilder;
-import com.crablet.eventstore.ConcurrencyException;
+import com.crablet.command.NonCommutativeCommandHandler;
 import com.crablet.eventstore.query.*;
 import com.crablet.eventstore.*;
 import com.example.wallet.commands.WithdrawCommand;
@@ -201,16 +197,11 @@ import com.example.wallet.events.WithdrawalMade;
 import com.example.wallet.projectors.WalletBalanceStateProjector;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 @Component
-public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
-    
-    public WithdrawCommandHandler() {
-    }
+public class WithdrawCommandHandler implements NonCommutativeCommandHandler<WithdrawCommand> {
     
     @Override
-    public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
+    public Decision decide(EventStore eventStore, WithdrawCommand command) {
         // Define decision model: which events affect withdrawal decision?
         // This filters events to only those for this wallet
         Query decisionModel = QueryBuilder.builder()
@@ -229,7 +220,6 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         );
         
         WalletBalance balance = result.state();
-        StreamPosition streamPosition = result.streamPosition();
         
         // 2. Business logic: check sufficient funds
         if (balance.amount().compareTo(command.amount()) < 0) {
@@ -238,22 +228,14 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
         
         // 3. Create event
         WithdrawalMade event = new WithdrawalMade(command.amount(), command.withdrawalId());
-        List<AppendEvent> events = List.of(
-            AppendEvent.builder("WithdrawalMade")
-                .tag("wallet_id", command.walletId())
-                .tag("withdrawal_id", command.withdrawalId())
-                .data(event)
-                .build()
-        );
-        
-        // 4. Build append condition with DCB streamPosition check
-        // Note: No idempotency check - streamPosition advancement detects if operation already succeeded
-        AppendCondition condition = AppendConditionBuilder.of(decisionModel, streamPosition)
+        AppendEvent appendEvent = AppendEvent.builder("WithdrawalMade")
+            .tag("wallet_id", command.walletId())
+            .tag("withdrawal_id", command.withdrawalId())
+            .data(event)
             .build();
         
-        // Return CommandResult - CommandExecutor will call appendIf:
-        //    String transactionId = eventStore.appendIf(events, condition);
-        return CommandResult.of(events, condition);
+        // 4. Return NonCommutative decision — CommandExecutor calls appendNonCommutative atomically
+        return Decision.of(appendEvent, decisionModel, result.streamPosition());
     }
 }
 ```

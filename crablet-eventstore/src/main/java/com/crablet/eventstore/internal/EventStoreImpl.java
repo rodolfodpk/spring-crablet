@@ -10,6 +10,7 @@ import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreException;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.Tag;
 import com.crablet.eventstore.metrics.ConcurrencyViolationMetric;
 import com.crablet.eventstore.metrics.EventTypeMetric;

@@ -1,20 +1,15 @@
 package com.crablet.automations.config;
 
-import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.AutomationSubscription;
 import com.crablet.automations.internal.AutomationDispatcher;
 import com.crablet.automations.internal.AutomationEventFetcher;
 import com.crablet.automations.internal.AutomationProcessorConfig;
 import com.crablet.automations.internal.AutomationProgressTracker;
 import com.crablet.automations.management.AutomationManagementService;
-import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
-import com.crablet.eventpoller.internal.InstanceIdProvider;
-import com.crablet.eventpoller.internal.LeaderElectorImpl;
-import com.crablet.eventpoller.internal.EventProcessorImpl;
-import com.crablet.eventpoller.internal.ProcessorManagementServiceImpl;
-import com.crablet.eventpoller.leader.LeaderElector;
+import com.crablet.eventpoller.EventProcessorFactory;
+import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
@@ -25,6 +20,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
+import org.springframework.web.client.RestClient;
 
 import javax.sql.DataSource;
 import java.util.HashMap;
@@ -42,20 +38,6 @@ public class AutomationsAutoConfiguration {
 
     // Advisory lock key for automations (distinct from views and outbox)
     private static final long AUTOMATIONS_LOCK_KEY = 4856221667890123458L;
-
-    @Bean
-    public LeaderElector automationsLeaderElector(
-            @Qualifier("primaryDataSource") DataSource dataSource,
-            InstanceIdProvider instanceIdProvider,
-            ApplicationEventPublisher eventPublisher) {
-        return new LeaderElectorImpl(
-            dataSource,
-            "automations",
-            instanceIdProvider.getInstanceId(),
-            AUTOMATIONS_LOCK_KEY,
-            eventPublisher
-        );
-    }
 
     @Bean
     public ProgressTracker<String> automationProgressTracker(
@@ -80,11 +62,17 @@ public class AutomationsAutoConfiguration {
     }
 
     @Bean
+    public RestClient automationRestClient(AutomationsConfig automationsConfig) {
+        return RestClient.builder()
+                .build();
+    }
+
+    @Bean
     public EventHandler<String> automationEventHandler(
-            List<AutomationHandler> automations,
-            CommandExecutor commandExecutor,
+            @Qualifier("automationSubscriptions") Map<String, AutomationSubscription> subscriptions,
+            RestClient automationRestClient,
             ApplicationEventPublisher eventPublisher) {
-        return new AutomationDispatcher(automations, commandExecutor, eventPublisher);
+        return new AutomationDispatcher(subscriptions, automationRestClient, eventPublisher);
     }
 
     @Bean
@@ -98,17 +86,19 @@ public class AutomationsAutoConfiguration {
     @org.springframework.context.annotation.DependsOn("flyway")
     public EventProcessor<AutomationProcessorConfig, String> automationsEventProcessor(
             @Qualifier("automationProcessorConfigs") Map<String, AutomationProcessorConfig> automationProcessorConfigs,
-            @Qualifier("automationsLeaderElector") LeaderElector automationsLeaderElector,
             @Qualifier("automationProgressTracker") ProgressTracker<String> automationProgressTracker,
             @Qualifier("automationEventFetcher") EventFetcher<String> automationEventFetcher,
             @Qualifier("automationEventHandler") EventHandler<String> automationEventHandler,
+            InstanceIdProvider instanceIdProvider,
             @Qualifier("primaryDataSource") DataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher) {
 
-        return new EventProcessorImpl<>(
+        return EventProcessorFactory.createProcessor(
             automationProcessorConfigs,
-            automationsLeaderElector,
+            "automations",
+            AUTOMATIONS_LOCK_KEY,
+            instanceIdProvider.getInstanceId(),
             automationProgressTracker,
             automationEventFetcher,
             automationEventHandler,
@@ -123,7 +113,7 @@ public class AutomationsAutoConfiguration {
             @Qualifier("automationsEventProcessor") EventProcessor<AutomationProcessorConfig, String> automationsEventProcessor,
             @Qualifier("automationProgressTracker") ProgressTracker<String> automationProgressTracker,
             @Qualifier("readDataSource") DataSource readDataSource) {
-        return new ProcessorManagementServiceImpl<>(automationsEventProcessor, automationProgressTracker, readDataSource);
+        return EventProcessorFactory.createManagementService(automationsEventProcessor, automationProgressTracker, readDataSource);
     }
 
     @Bean

@@ -3,15 +3,19 @@ package com.crablet.automations;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Tests for {@link AutomationSubscription}.
  */
 @DisplayName("AutomationSubscription Tests")
 class AutomationSubscriptionTest {
+
+    private static final String WEBHOOK_URL = "http://localhost:8080/api/automations/handler";
 
     @Test
     @DisplayName("Given automation name and event types (Set), when creating subscription, then subscription created successfully")
@@ -23,6 +27,7 @@ class AutomationSubscriptionTest {
         // When
         AutomationSubscription subscription = AutomationSubscription.builder(automationName)
             .eventTypes(eventTypes)
+            .webhookUrl(WEBHOOK_URL)
             .build();
 
         // Then
@@ -30,6 +35,7 @@ class AutomationSubscriptionTest {
         assertThat(subscription.getEventTypes()).containsExactlyInAnyOrder("WalletOpened", "DepositMade");
         assertThat(subscription.getRequiredTags()).isEmpty();
         assertThat(subscription.getAnyOfTags()).isEmpty();
+        assertThat(subscription.getWebhookUrl()).isEqualTo(WEBHOOK_URL);
     }
 
     @Test
@@ -38,6 +44,7 @@ class AutomationSubscriptionTest {
         // When
         AutomationSubscription subscription = AutomationSubscription.builder("wallet-notification")
             .eventTypes("WalletOpened", "DepositMade")
+            .webhookUrl(WEBHOOK_URL)
             .build();
 
         // Then
@@ -50,6 +57,7 @@ class AutomationSubscriptionTest {
         // When
         AutomationSubscription subscription = AutomationSubscription.builder("wallet-notification")
             .requiredTags("wallet_id")
+            .webhookUrl(WEBHOOK_URL)
             .build();
 
         // Then
@@ -63,6 +71,7 @@ class AutomationSubscriptionTest {
         // When
         AutomationSubscription subscription = AutomationSubscription.builder("wallet-notification")
             .anyOfTags("wallet_id", "from_wallet_id")
+            .webhookUrl(WEBHOOK_URL)
             .build();
 
         // Then
@@ -78,6 +87,9 @@ class AutomationSubscriptionTest {
             .eventTypes("WalletOpened", "DepositMade", "WithdrawalMade")
             .requiredTags("wallet_id")
             .anyOfTags("from_wallet_id", "to_wallet_id")
+            .webhookUrl(WEBHOOK_URL)
+            .webhookHeaders(Map.of("Authorization", "Bearer token"))
+            .webhookTimeoutMs(3000)
             .build();
 
         // Then
@@ -85,13 +97,18 @@ class AutomationSubscriptionTest {
         assertThat(subscription.getEventTypes()).containsExactlyInAnyOrder("WalletOpened", "DepositMade", "WithdrawalMade");
         assertThat(subscription.getRequiredTags()).containsExactly("wallet_id");
         assertThat(subscription.getAnyOfTags()).containsExactlyInAnyOrder("from_wallet_id", "to_wallet_id");
+        assertThat(subscription.getWebhookUrl()).isEqualTo(WEBHOOK_URL);
+        assertThat(subscription.getWebhookHeaders()).containsEntry("Authorization", "Bearer token");
+        assertThat(subscription.getWebhookTimeoutMs()).isEqualTo(3000);
     }
 
     @Test
-    @DisplayName("Given null event types, when creating subscription, then event types is empty")
-    void givenNullEventTypes_whenCreatingSubscription_thenEventTypesIsEmpty() {
+    @DisplayName("Given builder with no event types, when building, then event types is empty")
+    void givenBuilderWithNoEventTypes_whenBuilding_thenEventTypesIsEmpty() {
         // When
-        AutomationSubscription subscription = new AutomationSubscription("automation", null, null, null);
+        AutomationSubscription subscription = AutomationSubscription.builder("automation")
+                .webhookUrl(WEBHOOK_URL)
+                .build();
 
         // Then
         assertThat(subscription.getEventTypes()).isEmpty();
@@ -105,6 +122,7 @@ class AutomationSubscriptionTest {
         // When
         AutomationSubscription subscription = AutomationSubscription.builder("automation")
             .eventTypes("WalletOpened")
+            .webhookUrl(WEBHOOK_URL)
             .build();
 
         // Then
@@ -114,29 +132,30 @@ class AutomationSubscriptionTest {
     }
 
     @Test
-    @DisplayName("Given builder, when chaining methods, then subscription created successfully")
-    void givenBuilder_whenChainingMethods_thenSubscriptionCreatedSuccessfully() {
-        // When - Verify chaining returns builder
-        AutomationSubscription subscription = AutomationSubscription.builder("automation")
-            .eventTypes("EventA")
-            .requiredTags("tag_a")
-            .anyOfTags("tag_b", "tag_c")
-            .build();
-
-        // Then
-        assertThat(subscription.getAutomationName()).isEqualTo("automation");
-        assertThat(subscription.getEventTypes()).containsExactly("EventA");
-        assertThat(subscription.getRequiredTags()).containsExactly("tag_a");
-        assertThat(subscription.getAnyOfTags()).containsExactlyInAnyOrder("tag_b", "tag_c");
+    @DisplayName("Given missing webhookUrl, when building, then throws IllegalArgumentException")
+    void givenMissingWebhookUrl_whenBuilding_thenThrowsIllegalArgumentException() {
+        assertThatThrownBy(() ->
+            AutomationSubscription.builder("automation").eventTypes("WalletOpened").build()
+        ).isInstanceOf(IllegalArgumentException.class)
+         .hasMessageContaining("webhookUrl");
     }
 
     @Test
-    @DisplayName("Given builder with no event types, when building, then event types is empty")
-    void givenBuilderWithNoEventTypes_whenBuilding_thenEventTypesIsEmpty() {
-        // When
-        AutomationSubscription subscription = AutomationSubscription.builder("automation").build();
+    @DisplayName("Given blank webhookUrl, when building, then throws IllegalArgumentException")
+    void givenBlankWebhookUrl_whenBuilding_thenThrowsIllegalArgumentException() {
+        assertThatThrownBy(() ->
+            AutomationSubscription.builder("automation").webhookUrl("  ").build()
+        ).isInstanceOf(IllegalArgumentException.class)
+         .hasMessageContaining("webhookUrl");
+    }
 
-        // Then
-        assertThat(subscription.getEventTypes()).isEmpty();
+    @Test
+    @DisplayName("Given default timeout, when building, then webhookTimeoutMs defaults to 5000")
+    void givenDefaultTimeout_whenBuilding_thenWebhookTimeoutMsDefaultsTo5000() {
+        AutomationSubscription subscription = AutomationSubscription.builder("automation")
+                .webhookUrl(WEBHOOK_URL)
+                .build();
+
+        assertThat(subscription.getWebhookTimeoutMs()).isEqualTo(5000);
     }
 }

@@ -2,6 +2,7 @@ package com.crablet.eventstore.internal;
 
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;

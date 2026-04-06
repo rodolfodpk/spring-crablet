@@ -33,9 +33,19 @@ public sealed interface CommandDecision
     record NonCommutative(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition)
             implements CommandDecision {}
 
-    /** Idempotent — entity creation; fails if an event with the same tag already exists. */
-    record Idempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue)
-            implements CommandDecision {}
+    /**
+     * Idempotent — entity creation; fails if an event with the same tag already exists.
+     * {@code onDuplicate} controls whether a detected duplicate throws or returns silently.
+     * Defaults to {@link OnDuplicate#RETURN_IDEMPOTENT} for backward compatibility.
+     */
+    record Idempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue,
+                      OnDuplicate onDuplicate)
+            implements CommandDecision {
+        /** Backward-compatible constructor — defaults to RETURN_IDEMPOTENT. */
+        public Idempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {
+            this(events, eventType, tagKey, tagValue, OnDuplicate.RETURN_IDEMPOTENT);
+        }
+    }
 
     /**
      * No-op decision for handlers that detect the operation has already been applied.

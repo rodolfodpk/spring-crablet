@@ -282,7 +282,7 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
         public EventStore eventStore(
                 DataSource dataSource,
                 tools.jackson.databind.ObjectMapper objectMapper,
-                com.crablet.eventstore.internal.EventStoreConfig config,
+                com.crablet.eventstore.EventStoreConfig config,
                 com.crablet.eventstore.ClockProvider clock,
                 org.springframework.context.ApplicationEventPublisher eventPublisher) {
             return new com.crablet.eventstore.internal.EventStoreImpl(
@@ -290,8 +290,8 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
         }
 
         @Bean
-        public com.crablet.eventstore.internal.EventStoreConfig eventStoreConfig() {
-            return new com.crablet.eventstore.internal.EventStoreConfig();
+        public com.crablet.eventstore.EventStoreConfig eventStoreConfig() {
+            return new com.crablet.eventstore.EventStoreConfig();
         }
 
         @Bean
@@ -312,12 +312,14 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
             subscriptions.put("wallet-automation", AutomationSubscription.builder("wallet-automation")
                 .eventTypes("WalletOpened", "DepositMade")
                 .requiredTags("wallet_id")
+                .webhookUrl("http://localhost:8080/api/automations/wallet")
                 .build());
 
             // transfer-automation: listens to transfer events with anyOf tags
             subscriptions.put("transfer-automation", AutomationSubscription.builder("transfer-automation")
                 .eventTypes("MoneyMoved")
                 .anyOfTags("from_wallet_id", "to_wallet_id")
+                .webhookUrl("http://localhost:8080/api/automations/transfer")
                 .build());
 
             return subscriptions;

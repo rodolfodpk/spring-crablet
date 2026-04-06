@@ -1,5 +1,6 @@
 package com.crablet.eventstore.internal;
 
+import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.EventStoreException;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.StreamPosition;

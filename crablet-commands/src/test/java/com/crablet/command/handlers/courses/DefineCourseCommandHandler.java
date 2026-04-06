@@ -7,8 +7,6 @@ import com.crablet.examples.course.commands.DefineCourseCommand;
 import com.crablet.examples.course.events.CourseDefined;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.course.CourseTags.COURSE_ID;
 
@@ -38,6 +36,6 @@ public class DefineCourseCommandHandler implements IdempotentCommandHandler<Defi
                 .build();
 
         // Idempotency: fails if ANY CourseDefined event exists for this course_id
-        return new Decision(List.of(event), type(CourseDefined.class), COURSE_ID, command.courseId());
+        return Decision.of(event, type(CourseDefined.class), COURSE_ID, command.courseId());
     }
 }

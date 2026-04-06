@@ -35,11 +35,11 @@ Traditional event sourcing ties consistency to a single aggregate stream. DCB le
 
 There are three patterns depending on the operation:
 
-| Pattern | Use Case | AppendCondition |
-|---------|----------|----------------|
-| **Idempotency Check** | Entity creation (e.g. OpenWallet) | `AppendCondition.idempotent()` |
-| **StreamPosition-based Check** | State-dependent ops (e.g. Withdraw, Transfer) | `AppendConditionBuilder(decisionModel, streamPosition)` |
-| **Empty Condition** | Commutative, order-independent ops (e.g. Deposit) | `AppendCondition.empty()` |
+| Pattern | Use Case | Method |
+|---------|----------|--------|
+| **Idempotent** | Entity creation (e.g. OpenWallet) | `appendIdempotent(events, eventType, tagKey, tagValue)` |
+| **Non-commutative** | State-dependent ops (e.g. Withdraw, Transfer) | `appendNonCommutative(events, decisionModel, streamPosition)` |
+| **Commutative** | Order-independent ops (e.g. Deposit) | `appendCommutative(events)` |
 
 📖 [Command Patterns Guide](crablet-eventstore/docs/COMMAND_PATTERNS.md) — complete examples and decision tree  
 📖 [DCB Explained](crablet-eventstore/docs/DCB_AND_CRABLET.md) — deep dive into DCB vs aggregates

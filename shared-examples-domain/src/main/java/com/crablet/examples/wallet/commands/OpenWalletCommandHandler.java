@@ -1,12 +1,11 @@
 package com.crablet.examples.wallet.commands;
 
 import com.crablet.command.IdempotentCommandHandler;
+import com.crablet.command.OnDuplicate;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
 import com.crablet.examples.wallet.events.WalletOpened;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
@@ -38,7 +37,7 @@ public class OpenWalletCommandHandler implements IdempotentCommandHandler<OpenWa
                 .data(walletOpened)
                 .build();
 
-        // Idempotency: fails if ANY WalletOpened event already exists for this wallet_id
-        return new Decision(List.of(event), type(WalletOpened.class), WALLET_ID, command.walletId());
+        // Idempotency: duplicate wallet creation is a conflict, not a silent no-op
+        return Decision.of(event, type(WalletOpened.class), WALLET_ID, command.walletId(), OnDuplicate.THROW);
     }
 }

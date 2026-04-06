@@ -1,6 +1,7 @@
 package com.crablet.eventpoller.internal;
 
 import com.crablet.eventpoller.EventFetcher;
+import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.integration.AbstractEventProcessorTest;
 import com.crablet.eventpoller.leader.LeaderElector;
@@ -502,7 +503,7 @@ class ProcessorManagementControllerE2ETest extends AbstractEventProcessorTest {
         public EventStore eventStore(
                 DataSource dataSource,
                 tools.jackson.databind.ObjectMapper objectMapper,
-                com.crablet.eventstore.internal.EventStoreConfig config,
+                com.crablet.eventstore.EventStoreConfig config,
                 com.crablet.eventstore.ClockProvider clock,
                 org.springframework.context.ApplicationEventPublisher eventPublisher) {
             return new com.crablet.eventstore.internal.EventStoreImpl(
@@ -510,8 +511,8 @@ class ProcessorManagementControllerE2ETest extends AbstractEventProcessorTest {
         }
 
         @Bean
-        public com.crablet.eventstore.internal.EventStoreConfig eventStoreConfig() {
-            return new com.crablet.eventstore.internal.EventStoreConfig();
+        public com.crablet.eventstore.EventStoreConfig eventStoreConfig() {
+            return new com.crablet.eventstore.EventStoreConfig();
         }
 
         @Bean

@@ -128,7 +128,7 @@ import com.crablet.eventstore.internal.EventRepositoryImpl;
 - **`store` → root**: Core write-model types are the primary API. Having them in a sub-package
   adds indirection with no benefit.
 - **`dcb` → root**: DCB types (`AppendCondition`, `ConcurrencyException`) are always used
-  alongside `EventStore.appendIf()`. They belong at the same level.
+  alongside the EventStore append methods. They belong at the same level.
 - **`clock` → root**: `ClockProvider` is a simple interface used by domain code. One interface
   does not warrant its own package.
 - **`config` → internal**: Pure Spring infrastructure configuration never touched by domain code.

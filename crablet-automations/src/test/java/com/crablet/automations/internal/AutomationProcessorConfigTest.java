@@ -146,8 +146,8 @@ class AutomationProcessorConfigTest {
         // Given
         AutomationsConfig config = createDefaultConfig();
         Map<String, AutomationSubscription> subscriptions = new HashMap<>();
-        subscriptions.put("wallet-notification", AutomationSubscription.builder("wallet-notification").build());
-        subscriptions.put("order-fulfillment", AutomationSubscription.builder("order-fulfillment").build());
+        subscriptions.put("wallet-notification", AutomationSubscription.builder("wallet-notification").webhookUrl("http://localhost:8080/webhook").build());
+        subscriptions.put("order-fulfillment", AutomationSubscription.builder("order-fulfillment").webhookUrl("http://localhost:8080/webhook").build());
 
         // When
         Map<String, AutomationProcessorConfig> configs = AutomationProcessorConfig.createConfigMap(config, subscriptions);
@@ -182,8 +182,8 @@ class AutomationProcessorConfigTest {
         config.setPollingIntervalMs(3000L);
         config.setBatchSize(75);
         Map<String, AutomationSubscription> subscriptions = new HashMap<>();
-        subscriptions.put("automation-a", AutomationSubscription.builder("automation-a").build());
-        subscriptions.put("automation-b", AutomationSubscription.builder("automation-b").build());
+        subscriptions.put("automation-a", AutomationSubscription.builder("automation-a").webhookUrl("http://localhost:8080/webhook").build());
+        subscriptions.put("automation-b", AutomationSubscription.builder("automation-b").webhookUrl("http://localhost:8080/webhook").build());
 
         // When
         Map<String, AutomationProcessorConfig> configs = AutomationProcessorConfig.createConfigMap(config, subscriptions);

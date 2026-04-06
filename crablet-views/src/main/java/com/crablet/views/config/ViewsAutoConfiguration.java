@@ -2,11 +2,8 @@ package com.crablet.views.config;
 
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
-import com.crablet.eventpoller.internal.InstanceIdProvider;
-import com.crablet.eventpoller.internal.LeaderElectorImpl;
-import com.crablet.eventpoller.internal.EventProcessorImpl;
-import com.crablet.eventpoller.internal.ProcessorManagementServiceImpl;
-import com.crablet.eventpoller.leader.LeaderElector;
+import com.crablet.eventpoller.EventProcessorFactory;
+import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
@@ -31,68 +28,37 @@ import java.util.Map;
 
 /**
  * Auto-configuration for views using the generic event processor.
- * 
+ *
  * <p>This configuration creates all necessary beans to use the generic
  * EventProcessor with view-specific adapters.
- * 
+ *
  * <p>Enabled when {@code crablet.views.enabled=true}.
  */
 @Configuration
 @ConditionalOnProperty(name = "crablet.views.enabled", havingValue = "true", matchIfMissing = false)
 public class ViewsAutoConfiguration {
-    
+
     // Advisory lock key for views (different from outbox)
     private static final long VIEWS_LOCK_KEY = 4856221667890123457L;
-    
-    /**
-     * Create LeaderElector bean using generic LeaderElectorImpl.
-     */
-    @Bean
-    public LeaderElector viewsLeaderElector(
-            @Qualifier("primaryDataSource") DataSource dataSource,
-            InstanceIdProvider instanceIdProvider,
-            ApplicationEventPublisher eventPublisher) {
-        return new LeaderElectorImpl(
-            dataSource,
-            "views",
-            instanceIdProvider.getInstanceId(),
-            VIEWS_LOCK_KEY,
-            eventPublisher
-        );
-    }
-    
-    /**
-     * Create ViewProgressTracker bean.
-     */
+
     @Bean
     public ProgressTracker<String> viewProgressTracker(
             @Qualifier("primaryDataSource") DataSource dataSource) {
         return new ViewProgressTracker(dataSource);
     }
-    
-    /**
-     * Create ViewEventFetcher bean.
-     */
+
     @Bean
     public EventFetcher<String> viewEventFetcher(
             @Qualifier("readDataSource") DataSource readDataSource,
             @Qualifier("viewSubscriptions") Map<String, ViewSubscription> subscriptions) {
         return new ViewEventFetcher(readDataSource, subscriptions);
     }
-    
-    /**
-     * Create ViewEventHandler bean.
-     * Collects all ViewProjector beans registered by users.
-     */
+
     @Bean
     public EventHandler<String> viewEventHandler(List<ViewProjector> projectors, ApplicationEventPublisher eventPublisher) {
         return new ViewEventHandler(projectors, eventPublisher);
     }
-    
-    /**
-     * Create map of subscriptions from ViewSubscription beans.
-     * Users provide ViewSubscription beans; Spring collects them here.
-     */
+
     @Bean
     public Map<String, ViewSubscription> viewSubscriptions(List<ViewSubscription> subscriptionBeans) {
         Map<String, ViewSubscription> subscriptions = new HashMap<>();
@@ -101,64 +67,47 @@ public class ViewsAutoConfiguration {
         }
         return subscriptions;
     }
-    
-    /**
-     * Create map of processor configs from ViewsConfig and subscriptions.
-     */
+
     @Bean
     public Map<String, ViewProcessorConfig> viewProcessorConfigs(
             ViewsConfig viewsConfig,
             @Qualifier("viewSubscriptions") Map<String, ViewSubscription> subscriptions) {
         return ViewProcessorConfig.createConfigMap(viewsConfig, subscriptions);
     }
-    
-    /**
-     * Create ViewManagementService bean for view management.
-     * 
-     * <p>This service extends ProcessorManagementService with detailed progress monitoring.
-     * It can be injected as either ViewManagementService or ProcessorManagementService<String>
-     * for backward compatibility.
-     */
+
     @Bean
     public ViewManagementService viewManagementService(
             @Qualifier("viewsEventProcessor") EventProcessor<ViewProcessorConfig, String> eventProcessor,
             @Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
             @Qualifier("readDataSource") DataSource readDataSource,
             @Qualifier("primaryDataSource") DataSource primaryDataSource) {
-        // Create delegate
-        ProcessorManagementService<String> delegate = new ProcessorManagementServiceImpl<>(
+        ProcessorManagementService<String> delegate = EventProcessorFactory.createManagementService(
             eventProcessor, progressTracker, readDataSource);
-        
-        // Return wrapper with enhanced functionality
         return new ViewManagementService(delegate, primaryDataSource);
     }
-    
-    /**
-     * Create EventProcessor bean using generic EventProcessorImpl.
-     * Depends on Flyway to ensure database migrations complete before schedulers start.
-     */
+
     @Bean
     @org.springframework.context.annotation.DependsOn("flyway")
     public EventProcessor<ViewProcessorConfig, String> viewsEventProcessor(
             Map<String, ViewProcessorConfig> processorConfigs,
-            @Qualifier("viewsLeaderElector") LeaderElector leaderElector,
             @Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
             @Qualifier("viewEventFetcher") EventFetcher<String> eventFetcher,
             @Qualifier("viewEventHandler") EventHandler<String> eventHandler,
-            @Qualifier("primaryDataSource") DataSource writeDataSource,
+            InstanceIdProvider instanceIdProvider,
+            @Qualifier("primaryDataSource") DataSource primaryDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher) {
-        
-        return new EventProcessorImpl<>(
+
+        return EventProcessorFactory.createProcessor(
             processorConfigs,
-            leaderElector,
+            "views",
+            VIEWS_LOCK_KEY,
+            instanceIdProvider.getInstanceId(),
             progressTracker,
             eventFetcher,
             eventHandler,
-            writeDataSource,
+            primaryDataSource,
             taskScheduler,
-            eventPublisher
-        );
+            eventPublisher);
     }
 }
-

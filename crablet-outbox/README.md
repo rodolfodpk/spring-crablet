@@ -83,7 +83,7 @@ List<AppendEvent> events = List.of(
         .data(depositData)
         .build()
 );
-eventStore.appendIf(events, AppendCondition.empty());
+eventStore.appendCommutative(events);
 
 // Outbox processor will automatically publish them to configured publishers
 ```

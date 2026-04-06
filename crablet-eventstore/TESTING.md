@@ -318,10 +318,10 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
         WithdrawCommand command = new WithdrawCommand(
             walletId, withdrawalId, new BigDecimal("50")
         );
-        CommandResult result = handler.handle(eventStore, command);
+        ExecutionResult result = commandExecutor.executeCommand(command);
         
         // Then: withdrawal succeeded
-        assertTrue(result.success());
+        assertTrue(result.wasCreated());
         
         // Verify event was stored
         Query query = QueryBuilder.builder()
@@ -343,12 +343,12 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
         );
         
         // When: withdraw twice with same ID
-        CommandResult result1 = handler.handle(eventStore, command);
-        CommandResult result2 = handler.handle(eventStore, command);
+        ExecutionResult result1 = commandExecutor.executeCommand(command);
+        ExecutionResult result2 = commandExecutor.executeCommand(command);
         
         // Then: both succeed (idempotent), but only one event stored
-        assertTrue(result1.success());
-        assertTrue(result2.success());
+        assertTrue(result1.wasCreated());
+        assertTrue(result2.wasIdempotent());
         
         Query query = QueryBuilder.builder()
             .hasTag("wallet_id", walletId)
@@ -374,8 +374,8 @@ void testConcurrentWithdrawals() {
     WithdrawCommand command2 = new WithdrawCommand(walletId, "w-2", new BigDecimal("80"));
     
     // First withdrawal succeeds
-    CommandResult result1 = handler.handle(eventStore, command1);
-    assertTrue(result1.success());
+    ExecutionResult result1 = commandExecutor.executeCommand(command1);
+    assertTrue(result1.wasCreated());
     
     // Second withdrawal fails (insufficient funds after first)
     assertThrows(InsufficientFundsException.class, 
@@ -432,11 +432,11 @@ String withdrawalId = UUID.randomUUID().toString();
 Always test duplicate operations:
 
 ```java
-CommandResult result1 = handler.handle(eventStore, command);
-CommandResult result2 = handler.handle(eventStore, command);  // Same command
+ExecutionResult result1 = commandExecutor.executeCommand(command);
+ExecutionResult result2 = commandExecutor.executeCommand(command);  // Same command
 
-assertTrue(result1.success());
-assertTrue(result2.success());  // Should also succeed (idempotent)
+assertTrue(result1.wasCreated());
+assertTrue(result2.wasIdempotent());  // Second run is idempotent
 ```
 
 ### 3. Test Error Cases

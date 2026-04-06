@@ -8,8 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.notification.NotificationTags.WALLET_ID;
 
@@ -38,6 +36,6 @@ public class SendWelcomeNotificationCommandHandler
                 .build();
 
         // Idempotency: only one WelcomeNotificationSent per wallet_id
-        return new Decision(List.of(event), type(WelcomeNotificationSent.class), WALLET_ID, command.walletId());
+        return Decision.of(event, type(WelcomeNotificationSent.class), WALLET_ID, command.walletId());
     }
 }

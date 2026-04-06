@@ -86,7 +86,7 @@ class MyIntegrationTest extends AbstractCrabletTest {
     @Test
     void testWithRealDatabase() {
         // eventStore and jdbcTemplate are autowired from AbstractCrabletTest
-        eventStore.appendIf(List.of(myEvent), AppendCondition.empty());
+        eventStore.appendCommutative(List.of(myEvent));
         // ...
     }
 }

@@ -52,7 +52,7 @@ public final class TalkTags {
 
 ## Part 1: Your First Event
 
-**Why this matters.** Event sourcing stores facts — things that happened — rather than the current state of objects. There is no `UPDATE` statement in this model: every change is a new record. The `EventStore` exposes a single write operation, `appendIf`, that appends one or more events atomically. Reading back requires projecting a sequence of those events into a state value.
+**Why this matters.** Event sourcing stores facts — things that happened — rather than the current state of objects. There is no `UPDATE` statement in this model: every change is a new record. The `EventStore` exposes three semantic write operations — `appendCommutative`, `appendNonCommutative`, and `appendIdempotent` — each expressing different concurrency semantics. Reading back requires projecting a sequence of those events into a state value.
 
 Starting here, before commands or DCB, lets you see the raw mechanics without business rule complexity.
 
@@ -61,7 +61,6 @@ Starting here, before commands or DCB, lets you see the raw mechanics without bu
 ```java
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
-import com.crablet.eventstore.AppendCondition;
 
 import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.talks.TalkTags.TALK_ID;
@@ -77,10 +76,10 @@ AppendEvent appendEvent = AppendEvent.builder(type(TalkSubmitted.class))
     .data(submitted)
     .build();
 
-// AppendCondition.empty() means: no conflict check needed.
+// appendCommutative: no conflict check needed.
 // This is correct for a submission: two submissions of different talks
 // do not interfere with each other.
-eventStore.appendIf(List.of(appendEvent), AppendCondition.empty());
+eventStore.appendCommutative(List.of(appendEvent));
 ```
 
 `EventType.type(TalkSubmitted.class)` returns the class simple name `"TalkSubmitted"`. This string must match the `name` in `@JsonSubTypes` on the sealed interface — using the helper everywhere eliminates typos.
@@ -114,7 +113,7 @@ boolean exists = eventStore.project(
 
 `StreamPosition.zero()` means "start from the beginning of the event log". `ProjectionResult` carries both the projected state and a stream position pointing to the last event that was read. You will use that stream position in Part 3.
 
-> **Key insight.** `appendIf` never modifies existing data — it only appends. If you need to change the title of a talk, you append a `TalkTitleUpdated` event and project the latest title from the event sequence. The database table is an append-only log.
+> **Key insight.** Append methods never modify existing data — they only append. If you need to change the title of a talk, you append a `TalkTitleUpdated` event and project the latest title from the event sequence. The database table is an append-only log.
 
 ---
 
@@ -228,18 +227,17 @@ ProjectionResult<ConferenceState> a      ProjectionResult<ConferenceState> b
 // a.state().acceptedCount() == 1        // b.state().acceptedCount() == 1
 // capacity check passes                 // capacity check passes
 
-eventStore.appendIf(                     eventStore.appendIf(
-    List.of(acceptTalk3),                    List.of(acceptTalk4),
-    AppendCondition.empty());  // BUG        AppendCondition.empty());  // BUG
+eventStore.appendCommutative(            eventStore.appendCommutative(
+    List.of(acceptTalk3));  // BUG           List.of(acceptTalk4));  // BUG
 
 // Result: 3 accepted talks. Capacity violated.
 ```
 
-The bug is `AppendCondition.empty()`. It tells the store "do not check for conflicts". Both writes succeed independently because neither knows the other is happening.
+The bug is `appendCommutative`. It tells the store "order does not matter, do not check for conflicts". Both writes succeed independently because neither knows the other is happening.
 
 ### The fix: capture the stream position, check it on write
 
-The `AppendConditionBuilder` links the write to the version of reality that was read:
+`appendNonCommutative` links the write to the version of reality that was read:
 
 ```java
 // Thread A — corrected
@@ -251,13 +249,10 @@ if (result.state().acceptedCount() >= CAPACITY) {
     throw new ConferenceFullException();
 }
 
-AppendCondition condition = AppendConditionBuilder.of(conferenceQuery, result.streamPosition())
-    .build();
-
-// appendIf checks: has any event matching conferenceQuery been appended
+// appendNonCommutative checks: has any event matching conferenceQuery been appended
 // AFTER result.streamPosition()? If yes — another thread wrote concurrently —
 // throw ConcurrencyException. If no — safe to proceed.
-eventStore.appendIf(List.of(acceptTalk3), condition);
+eventStore.appendNonCommutative(List.of(acceptTalk3), conferenceQuery, result.streamPosition());
 ```
 
 The check is atomic at the database level (implemented as a PostgreSQL stored function using advisory locks). Thread B's write will find that Thread A's `TalkAccepted` event now exists past Thread B's stream position, and will throw `ConcurrencyException`. The losing thread can retry from scratch: it will re-project, find 2 accepted talks, fail the capacity check, and correctly throw `ConferenceFullException`.
@@ -302,22 +297,22 @@ This is the DCB insight: consistency boundaries are defined by the query, not by
 
 Not every command needs a streamPosition-based check. Choose the pattern that matches the semantics of the operation:
 
-| Pattern | When to use | Code |
-|---------|-------------|------|
-| **Empty** | Commutative operations — parallel writes cannot conflict (e.g., submitting a talk) | `AppendCondition.empty()` |
-| **Idempotency check** | Entity creation — prevent duplicate creation (e.g., same submission submitted twice) | `AppendCondition.idempotent(type(TalkSubmitted.class), SUBMISSION_ID, id)` |
-| **StreamPosition-based** | State-dependent operations — outcome depends on current state (e.g., accept/reject with capacity check) | `AppendConditionBuilder.of(decisionModel, result.streamPosition()).build()` |
+| Pattern | When to use | Method |
+|---------|-------------|--------|
+| **Commutative** | Order-independent operations — parallel writes cannot conflict (e.g., submitting a talk) | `appendCommutative(events)` |
+| **Idempotent** | Entity creation — prevent duplicate creation (e.g., same submission submitted twice) | `appendIdempotent(events, eventType, tagKey, tagValue)` |
+| **Non-commutative** | State-dependent operations — outcome depends on current state (e.g., accept/reject with capacity check) | `appendNonCommutative(events, decisionModel, streamPosition)` |
 
-**Empty** is appropriate when the operation is order-independent. Submitting two different talks simultaneously does not cause a conflict regardless of ordering.
+**Commutative** is appropriate when the operation is order-independent. Submitting two different talks simultaneously does not cause a conflict regardless of ordering.
 
-**Idempotency check** is for creation events. Rather than projecting state to check for existence (which requires a streamPosition-based check to be safe), you declare "fail if any event of this type with this tag already exists." The store checks this atomically. There is no state projection needed — the constraint is structural.
+**Idempotent** is for creation events. Rather than projecting state to check for existence (which requires a streamPosition-based check to be safe), you declare "fail if any event of this type with this tag already exists." The store checks this atomically. There is no state projection needed — the constraint is structural.
 
 ```java
 // Prevent duplicate submission of the same submissionId
-AppendCondition condition = AppendCondition.idempotent(type(TalkSubmitted.class), SUBMISSION_ID, command.submissionId());
+eventStore.appendIdempotent(List.of(appendEvent), type(TalkSubmitted.class), SUBMISSION_ID, command.submissionId());
 ```
 
-**StreamPosition-based** is for anything where the decision depends on the current state and another concurrent writer could invalidate that decision. The accept-with-capacity-check is the canonical example.
+**Non-commutative** is for anything where the decision depends on the current state and another concurrent writer could invalidate that decision. The accept-with-capacity-check is the canonical example.
 
 > **Key insight.** DCB does not use distributed locks. The stream position is a "read version" — the position of the last event you read. If anything matching your decision model query has been written between your read and your write, the store rejects the write. You retry with a fresh projection. This is optimistic concurrency: assume no conflict, detect if one occurred.
 
@@ -325,30 +320,26 @@ AppendCondition condition = AppendCondition.idempotent(type(TalkSubmitted.class)
 
 ## Part 4: Commands
 
-**Why this matters.** Direct calls to `eventStore.appendIf` work, but they leave you responsible for serializing the command for audit, managing the transaction, and calling `appendIf` at the right moment. `CommandHandler` and `CommandExecutor` handle all of that, letting handlers focus on business logic.
+**Why this matters.** Direct calls to `eventStore.appendCommutative` / `appendNonCommutative` / `appendIdempotent` work, but they leave you responsible for serializing the command for audit and managing the transaction. `CommandHandler` and `CommandExecutor` handle all of that, letting handlers focus on business logic.
 
 ### The CommandHandler interface
 
 ```java
 // From com.crablet.command.CommandHandler
 public interface CommandHandler<T> {
-    CommandResult handle(EventStore eventStore, T command);
+    CommandDecision handle(EventStore eventStore, T command);
 }
 ```
 
-Handlers never call `appendIf` themselves. They project state, validate rules, build events, choose an `AppendCondition`, and return everything wrapped in a `CommandResult`. The `CommandExecutor` calls `appendIf` atomically with the command audit record in a single database transaction.
+Handlers never call append methods themselves. They project state, validate rules, build events, and return a `CommandDecision` — the framework picks the correct append method and wraps everything in a single database transaction. Three sub-interfaces make the DCB pattern explicit at the type level: `CommutativeCommandHandler`, `IdempotentCommandHandler`, and `NonCommutativeCommandHandler`.
 
 ### SubmitTalkCommandHandler — idempotency pattern
 
 ```java
-import com.crablet.command.CommandHandler;
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.AppendCondition;
+import com.crablet.command.IdempotentCommandHandler;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.talks.TalkTags.SPEAKER_ID;
@@ -356,10 +347,10 @@ import static com.crablet.examples.talks.TalkTags.SUBMISSION_ID;
 import static com.crablet.examples.talks.TalkTags.TALK_ID;
 
 @Component
-public class SubmitTalkCommandHandler implements CommandHandler<SubmitTalkCommand> {
+public class SubmitTalkCommandHandler implements IdempotentCommandHandler<SubmitTalkCommand> {
 
     @Override
-    public CommandResult handle(EventStore eventStore, SubmitTalkCommand command) {
+    public Decision decide(EventStore eventStore, SubmitTalkCommand command) {
         TalkSubmitted event = new TalkSubmitted(
             command.talkId(), command.speakerId(), command.title()
         );
@@ -373,9 +364,7 @@ public class SubmitTalkCommandHandler implements CommandHandler<SubmitTalkComman
 
         // Idempotency check: fail if a TalkSubmitted with this submissionId already exists.
         // No state projection needed — the constraint is structural.
-        AppendCondition condition = AppendCondition.idempotent(type(TalkSubmitted.class), SUBMISSION_ID, command.submissionId());
-
-        return CommandResult.of(List.of(appendEvent), condition);
+        return Decision.of(appendEvent, type(TalkSubmitted.class), SUBMISSION_ID, command.submissionId());
     }
 }
 ```
@@ -385,9 +374,7 @@ public class SubmitTalkCommandHandler implements CommandHandler<SubmitTalkComman
 This handler must enforce two invariants simultaneously: the talk must be in PENDING status, and the conference must not be at capacity. The capacity invariant is enforced with a streamPosition-based check.
 
 ```java
-import com.crablet.command.CommandHandler;
-import com.crablet.command.CommandResult;
-import com.crablet.eventstore.AppendConditionBuilder;
+import com.crablet.command.NonCommutativeCommandHandler;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
@@ -396,14 +383,12 @@ import com.crablet.eventstore.StreamPosition;
 import com.crablet.eventstore.EventStore;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.talks.TalkTags.SPEAKER_ID;
 import static com.crablet.examples.talks.TalkTags.TALK_ID;
 
 @Component
-public class AcceptTalkCommandHandler implements CommandHandler<AcceptTalkCommand> {
+public class AcceptTalkCommandHandler implements NonCommutativeCommandHandler<AcceptTalkCommand> {
 
     private static final int CONFERENCE_CAPACITY = 2;
 
@@ -411,7 +396,7 @@ public class AcceptTalkCommandHandler implements CommandHandler<AcceptTalkComman
     private final ConferenceStateProjector conferenceProjector = new ConferenceStateProjector();
 
     @Override
-    public CommandResult handle(EventStore eventStore, AcceptTalkCommand command) {
+    public Decision decide(EventStore eventStore, AcceptTalkCommand command) {
         // 1. Project state for this specific talk
         Query talkQuery = QueryBuilder.builder()
             .events(
@@ -462,21 +447,17 @@ public class AcceptTalkCommandHandler implements CommandHandler<AcceptTalkComman
             .data(accepted)
             .build();
 
-        // 4. StreamPosition-based DCB condition scoped to the conference query.
+        // 4. Non-commutative: scoped to the conference query.
         //    If any TalkAccepted event for this conference was written after
         //    conferenceResult.streamPosition(), the append will be rejected.
-        AppendCondition condition = AppendConditionBuilder.of(
-            conferenceQuery, conferenceResult.streamPosition()
-        ).build();
-
-        return CommandResult.of(List.of(appendEvent), condition);
+        return Decision.of(appendEvent, conferenceQuery, conferenceResult.streamPosition());
     }
 }
 ```
 
 ### CommandExecutor — discovery and execution
 
-`CommandExecutor` discovers all `@Component`-annotated `CommandHandler` beans at startup by inspecting their generic type parameter. When you call `executeCommand(command)`, it finds the matching handler, calls `handle`, stores the command as an audit record, and calls `appendIf` — all in a single database transaction.
+`CommandExecutor` discovers all `@Component`-annotated `CommandHandler` beans at startup by inspecting their generic type parameter. When you call `executeCommand(command)`, it finds the matching handler, calls `handle`, stores the command as an audit record, and calls the correct append method based on the returned `CommandDecision` — all in a single database transaction.
 
 ```java
 @Autowired
@@ -490,7 +471,7 @@ commandExecutor.executeCommand(
 
 The handler never needs to know about transactions, serialization, or audit trails. It is a pure function: state in, events out.
 
-> **Key insight.** Handlers never call `appendIf` directly. They return `CommandResult` and the executor calls it. This makes handlers pure and testable: the unit test just calls `handle` and inspects the returned events without a database.
+> **Key insight.** Handlers never call append methods directly. They return a `CommandDecision` and the executor calls the appropriate append method. This makes handlers pure and testable: the unit test just calls `handle` and inspects the returned events without a database.
 
 ---
 
@@ -576,10 +557,10 @@ Reactions run with at-least-once semantics. The framework guarantees delivery bu
 
 ```java
 @Component
-public class SendConfirmationCommandHandler implements CommandHandler<SendConfirmationCommand> {
+public class SendConfirmationCommandHandler implements IdempotentCommandHandler<SendConfirmationCommand> {
 
     @Override
-    public CommandResult handle(EventStore eventStore, SendConfirmationCommand command) {
+    public Decision decide(EventStore eventStore, SendConfirmationCommand command) {
         ConfirmationSent confirmationSent = new ConfirmationSent(
             command.talkId(), command.speakerId()
         );
@@ -591,14 +572,12 @@ public class SendConfirmationCommandHandler implements CommandHandler<SendConfir
 
         // Idempotency check: fail if a ConfirmationSent for this talk_id already exists.
         // Running this command twice produces the same outcome: one confirmation event.
-        AppendCondition condition = AppendCondition.idempotent(type(ConfirmationSent.class), TALK_ID, command.talkId());
-
-        return CommandResult.of(List.of(appendEvent), condition);
+        return Decision.of(appendEvent, type(ConfirmationSent.class), TALK_ID, command.talkId());
     }
 }
 ```
 
-> **Key insight.** Reactions decouple "what happened" from "what should happen next." They run asynchronously with at-least-once semantics. The downstream command handler must be idempotent — use `AppendCondition.idempotent()` to make running it twice produce the same outcome as running it once.
+> **Key insight.** Reactions decouple "what happened" from "what should happen next." They run asynchronously with at-least-once semantics. The downstream command handler must be idempotent — implement `IdempotentCommandHandler` to make running it twice produce the same outcome as running it once.
 
 ---
 
@@ -1081,8 +1060,8 @@ DCB violations are only testable at the integration level. This is intentional: 
 
 With all eight parts covered, you have seen every major framework feature:
 
-- **EventStore** (`appendIf`, `project`) — the append-only log and state reconstruction
-- **AppendCondition** — three patterns for three situations (empty, idempotency, streamPosition-based)
+- **EventStore** (`appendCommutative`, `appendNonCommutative`, `appendIdempotent`, `project`) — the append-only log and state reconstruction
+- **CommandDecision** — three variants for three situations (Commutative, Idempotent, NonCommutative)
 - **CommandHandler + CommandExecutor** — transactional command execution with automatic audit
 - **AutomationHandler + AutomationSubscription** — async command chains with at-least-once delivery
 - **AbstractTypedViewProjector + ViewSubscription** — materialized read models

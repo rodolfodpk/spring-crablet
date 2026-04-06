@@ -219,7 +219,7 @@ AppendCondition condition = AppendConditionBuilder.of(decisionModel, result.stre
     .build();
 
 try {
-    String transactionId = eventStore.appendIf(events, condition);
+    String transactionId = eventStore.appendNonCommutative(events, decisionModel, result.streamPosition());
 } catch (ConcurrencyException e) {
     // Balance changed - throw to application layer for retry
     throw e;
@@ -229,7 +229,7 @@ try {
 **How it works:**
 - StreamPosition captures position when you read balance
 - Another transaction makes a deposit → balance changes
-- Your appendIf checks: "did ANY WalletOpened/DepositMade/WithdrawalMade events appear after position 42?"
+- `appendNonCommutative` checks: "did ANY WalletOpened/DepositMade/WithdrawalMade events appear after position 42?"
 - Answer: yes → throw ConcurrencyException
 - Application layer should retry with fresh projection
 
@@ -257,10 +257,10 @@ AppendCondition condition = AppendConditionBuilder.of(decisionModel, streamPosit
 
 ```java
 @Component
-public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
+public class WithdrawCommandHandler implements NonCommutativeCommandHandler<WithdrawCommand> {
     
     @Override
-    public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
+    public Decision decide(EventStore eventStore, WithdrawCommand command) {
         // 1. Define decision model
         Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
         
@@ -293,11 +293,8 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
             .data(withdrawal)
             .build();
         
-        // 5. Build condition with streamPosition check
-        AppendCondition condition = AppendConditionBuilder.of(decisionModel, result.streamPosition())
-            .build();
-        
-        return CommandResult.of(List.of(event), condition);
+        // 5. Return non-commutative decision with stream position for conflict detection
+        return Decision.of(event, decisionModel, result.streamPosition());
     }
 }
 ```
@@ -307,22 +304,22 @@ public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
 **Scenario 1: Normal case**
 - Read balance: $100
 - Check: balance >= $50 ✓
-- AppendIf checks: no events after stream position ✓
+- appendNonCommutative checks: no events after stream position ✓
 - Result: withdrawal succeeds
 
 **Scenario 2: Concurrent deposit**
 - Transaction A: reads balance $100 at position 42
 - Transaction B: deposits $50 → position 43
 - Transaction A: tries to withdraw with stream position 42
-- AppendIf checks: found DepositMade at position 43 > 42 ✗
+- appendNonCommutative checks: found DepositMade at position 43 > 42 ✗
 - Result: ConcurrencyException → application should retry
 
 **Scenario 3: Concurrent withdrawals**
 - Balance: $100
 - Transaction A: reads balance $100, withdraws $80
 - Transaction B: reads balance $100, withdraws $80
-- Transaction A: appendIf succeeds (balance was $100)
-- Transaction B: appendIf fails (sees position changed) → application retries → reads fresh balance $20 → insufficient funds
+- Transaction A: appendNonCommutative succeeds (balance was $100)
+- Transaction B: appendNonCommutative fails (sees position changed) → application retries → reads fresh balance $20 → insufficient funds
 
 ## Implementation Details
 

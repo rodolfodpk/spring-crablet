@@ -26,10 +26,10 @@
             <artifactId>crablet-event-poller</artifactId>
         </dependency>
 
-        <!-- Crablet Command (command execution) -->
+        <!-- Spring Boot Web (RestClient for webhook HTTP dispatch) -->
         <dependency>
-            <groupId>com.crablet</groupId>
-            <artifactId>crablet-commands</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
         <!-- Spring Boot JDBC -->

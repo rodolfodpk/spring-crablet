@@ -36,11 +36,8 @@ public void myOperation() {
         decisionModel, StreamPosition.zero(), WalletBalanceState.class, List.of(projector)
     );
     
-    // Append events with concurrency control
-    // appendIf returns the transaction ID for command auditing
-    String transactionId = eventStore.appendIf(events, 
-        AppendConditionBuilder.of(decisionModel, projection.streamPosition()).build()
-    );
+    // Append events with concurrency control — returns the transaction ID for command auditing
+    String transactionId = eventStore.appendNonCommutative(events, decisionModel, projection.streamPosition());
 }
 ```
 
@@ -147,26 +144,18 @@ See [Closing the Books Pattern Guide](docs/CLOSING_BOOKS_PATTERN.md) for complet
 
 ## DCB Pattern Examples
 
-Examples showing distinct DCB patterns. These examples show command handlers that return `CommandResult`. The `CommandExecutor` automatically calls `appendIf()` with the events and condition from the result:
-
-```java
-// CommandExecutor internally does:
-String transactionId = eventStore.appendIf(result.events(), result.appendCondition());
-```
+Examples showing distinct DCB patterns. These examples show command handlers that return `CommandDecision`. The `CommandExecutor` automatically calls the correct append method based on the decision type.
 
 ### Example 1: OpenWallet (Idempotency)
 
-Prevents duplicate wallet creation using `AppendCondition.idempotent()`:
+Prevents duplicate wallet creation using `appendIdempotent`:
 
 ```java
 @Override
-public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
+public Decision decide(EventStore eventStore, OpenWalletCommand command) {
     // Command is already validated at construction with YAVI
 
-    // 2. DCB: NO validation query needed!
-    //    AppendCondition will enforce uniqueness atomically
-
-    // 3. Create event (optimistic - assume wallet doesn't exist)
+    // 1. Create event (optimistic - assume wallet doesn't exist)
     WalletOpened walletOpened = WalletOpened.of(
             command.walletId(),
             command.owner(),
@@ -178,24 +167,17 @@ public CommandResult handle(EventStore eventStore, OpenWalletCommand command) {
             .data(walletOpened)
             .build();
 
-    // 4. Build condition to enforce uniqueness using DCB idempotency
-    //    Fails if ANY WalletOpened event exists for this wallet_id (idempotency check)
-    //    No concurrency check needed for wallet creation - only idempotency matters
-    AppendCondition condition = AppendCondition.idempotent(WALLET_OPENED, WALLET_ID, command.walletId());
-
-    // 5. Return CommandResult - CommandExecutor will call appendIf:
-    //    String transactionId = eventStore.appendIf(List.of(event), condition);
-    //    - Check condition atomically
-    //    - Throw ConcurrencyException if wallet exists
+    // 2. Return Idempotent decision — CommandExecutor calls appendIdempotent:
+    //    - Fails if ANY WalletOpened event exists for this wallet_id
     //    - Append event if wallet doesn't exist
-    return CommandResult.of(List.of(event), condition);
+    return Decision.of(event, WALLET_OPENED, WALLET_ID, command.walletId());
 }
 ```
 
 **Key points:**
 - No decision model or stream position needed
-- `AppendCondition.idempotent()` enforces uniqueness: fails if `WALLET_OPENED` exists for this `wallet_id`
-- Optimistic: creates event first, checks atomically via `appendIf`
+- `Decision.of(event, type, tagKey, tagValue)` enforces uniqueness atomically
+- Optimistic: creates event first, checks at append time
 
 ### Example 2: Concurrency Control (Withdraw)
 
@@ -203,7 +185,7 @@ Prevents concurrent balance modifications using streamPosition-based conflict de
 
 ```java
 @Override
-public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
+public Decision decide(EventStore eventStore, WithdrawCommand command) {
     // Command is already validated at construction with YAVI
 
     // Use domain-specific decision model query
@@ -241,18 +223,11 @@ public CommandResult handle(EventStore eventStore, WithdrawCommand command) {
             .data(withdrawal)
             .build();
 
-    // Build condition: decision model only (streamPosition-based concurrency control)
-    // DCB Principle: StreamPosition check prevents duplicate charges
-    // Note: No idempotency check - streamPosition advancement detects if operation already succeeded
-    AppendCondition condition = AppendConditionBuilder.of(decisionModel, projection.streamPosition())
-            .build();
-
-    // Return CommandResult - CommandExecutor will call appendIf:
-    //    String transactionId = eventStore.appendIf(List.of(event), condition);
-    //    - Check condition atomically
+    // Return NonCommutative decision — CommandExecutor calls appendNonCommutative:
+    //    - Check atomically: did any matching events appear after the captured stream position?
     //    - Throw ConcurrencyException if balance changed concurrently
     //    - Append event if condition passes
-    return CommandResult.of(List.of(event), condition);
+    return Decision.of(event, decisionModel, projection.streamPosition());
 }
 ```
 

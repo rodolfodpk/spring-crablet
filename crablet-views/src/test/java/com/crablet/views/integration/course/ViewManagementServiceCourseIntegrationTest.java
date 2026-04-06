@@ -199,7 +199,7 @@ class ViewManagementServiceCourseIntegrationTest extends AbstractViewsTest {
         public EventStore eventStore(
                 DataSource dataSource,
                 tools.jackson.databind.ObjectMapper objectMapper,
-                com.crablet.eventstore.internal.EventStoreConfig config,
+                com.crablet.eventstore.EventStoreConfig config,
                 com.crablet.eventstore.ClockProvider clock,
                 org.springframework.context.ApplicationEventPublisher eventPublisher) {
             return new com.crablet.eventstore.internal.EventStoreImpl(
@@ -207,8 +207,8 @@ class ViewManagementServiceCourseIntegrationTest extends AbstractViewsTest {
         }
 
         @Bean
-        public com.crablet.eventstore.internal.EventStoreConfig eventStoreConfig() {
-            return new com.crablet.eventstore.internal.EventStoreConfig();
+        public com.crablet.eventstore.EventStoreConfig eventStoreConfig() {
+            return new com.crablet.eventstore.EventStoreConfig();
         }
 
         @Bean
@@ -222,8 +222,8 @@ class ViewManagementServiceCourseIntegrationTest extends AbstractViewsTest {
         }
 
         @Bean
-        public com.crablet.eventpoller.internal.InstanceIdProvider instanceIdProvider(Environment environment) {
-            return new com.crablet.eventpoller.internal.InstanceIdProvider(environment);
+        public com.crablet.eventpoller.InstanceIdProvider instanceIdProvider(Environment environment) {
+            return new com.crablet.eventpoller.InstanceIdProvider(environment);
         }
 
         @Bean
