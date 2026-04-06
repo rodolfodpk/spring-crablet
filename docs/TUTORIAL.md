@@ -59,11 +59,11 @@ Starting here, before commands or DCB, lets you see the raw mechanics without bu
 ### Appending an event
 
 ```java
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.EventStore;
-import com.crablet.eventstore.dcb.AppendCondition;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.AppendCondition;
 
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.talks.TalkTags.TALK_ID;
 import static com.crablet.examples.talks.TalkTags.SPEAKER_ID;
 
@@ -95,9 +95,9 @@ To read an event back you project it into a state type. The simplest projector j
 import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.QueryBuilder;
-import com.crablet.eventstore.store.StreamPosition;
+import com.crablet.eventstore.StreamPosition;
 
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.talks.TalkTags.TALK_ID;
 
 var query = QueryBuilder.builder()
@@ -149,9 +149,9 @@ public record TalkState(
 ```java
 import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.query.EventDeserializer;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.StoredEvent;
 
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 
 public class TalkStateProjector implements StateProjector<TalkState> {
 
@@ -343,14 +343,14 @@ Handlers never call `appendIf` themselves. They project state, validate rules, b
 ```java
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.AppendCondition;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.EventStore;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.talks.TalkTags.SPEAKER_ID;
 import static com.crablet.examples.talks.TalkTags.SUBMISSION_ID;
 import static com.crablet.examples.talks.TalkTags.TALK_ID;
@@ -387,18 +387,18 @@ This handler must enforce two invariants simultaneously: the talk must be in PEN
 ```java
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
+import com.crablet.eventstore.AppendConditionBuilder;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
-import com.crablet.eventstore.store.AppendEvent;
-import com.crablet.eventstore.store.StreamPosition;
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.EventStore;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.talks.TalkTags.SPEAKER_ID;
 import static com.crablet.examples.talks.TalkTags.TALK_ID;
 
@@ -514,7 +514,7 @@ The `react` method receives the raw `StoredEvent` and a `CommandExecutor`. It de
 
 ```java
 import com.crablet.command.CommandExecutor;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.StoredEvent;
 import com.crablet.automations.AutomationHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
@@ -554,7 +554,7 @@ public class TalkAcceptedAutomation implements AutomationHandler {
 `AutomationHandler` provides a `subscription()` default method — pass the handler as a bean parameter to avoid repeating the automation name:
 
 ```java
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 
 @Bean
 public AutomationSubscription talkAcceptedConfirmationSubscription(TalkAcceptedAutomation handler) {
@@ -622,8 +622,8 @@ CREATE TABLE talks_view (
 ### TalksViewProjector
 
 ```java
-import com.crablet.eventstore.clock.ClockProvider;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.StoredEvent;
 import com.crablet.views.AbstractTypedViewProjector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -702,7 +702,7 @@ The `clockProvider` field is available from the base class. Each `handleEvent` c
 `ViewProjector` provides a `subscription()` default method — pass the projector as a bean parameter to avoid repeating the view name:
 
 ```java
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 
 @Bean
 public ViewSubscription talksViewSubscription(TalksViewProjector projector) {
@@ -774,7 +774,7 @@ public interface OutboxPublisher {
 ### EmailNotificationPublisher
 
 ```java
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.StoredEvent;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.PublishException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -859,7 +859,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static com.crablet.eventstore.store.EventType.type;
+import static com.crablet.eventstore.EventType.type;
 import static com.crablet.examples.talks.TalkTags.TALK_ID;
 import static com.crablet.examples.talks.TalkTags.SPEAKER_ID;
 import static org.assertj.core.api.Assertions.assertThat;

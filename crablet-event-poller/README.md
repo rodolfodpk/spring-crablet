@@ -100,10 +100,10 @@ This module is primarily used as infrastructure by other Crablet modules (`crabl
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
-import com.crablet.eventstore.store.StreamPosition;
+import com.crablet.eventstore.StreamPosition;
 
-import com.crablet.eventstore.store.StoredEvent;
-import com.crablet.eventstore.store.Tag;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.Tag;
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.ProcessorConfig;

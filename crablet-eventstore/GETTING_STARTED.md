@@ -96,7 +96,7 @@ package com.example.wallet.projectors;
 
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.StateProjector;
-import com.crablet.eventstore.store.StoredEvent;
+import com.crablet.eventstore.StoredEvent;
 import com.example.wallet.domain.WalletBalance;
 import com.example.wallet.events.*;
 
@@ -190,11 +190,11 @@ package com.example.wallet.handlers;
 
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandResult;
-import com.crablet.eventstore.dcb.AppendCondition;
-import com.crablet.eventstore.dcb.AppendConditionBuilder;
-import com.crablet.eventstore.dcb.ConcurrencyException;
+import com.crablet.eventstore.AppendCondition;
+import com.crablet.eventstore.AppendConditionBuilder;
+import com.crablet.eventstore.ConcurrencyException;
 import com.crablet.eventstore.query.*;
-import com.crablet.eventstore.store.*;
+import com.crablet.eventstore.*;
 import com.example.wallet.commands.WithdrawCommand;
 import com.example.wallet.domain.WalletBalance;
 import com.example.wallet.events.WithdrawalMade;
@@ -328,7 +328,7 @@ Quick example:
 ```java
 package com.example.wallet;
 
-import com.crablet.eventstore.store.EventStore;
+import com.crablet.eventstore.EventStore;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
