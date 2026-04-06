@@ -49,16 +49,15 @@ public interface StateProjector<T> {
     /**
      * Returns a projector that yields {@code true} if any matching event exists.
      * <p>
-     * Eliminates the need to write a dedicated Boolean projector class for existence checks.
-     * Combine with the single-projector overload of {@code EventStore.project()} for a
-     * one-liner existence check:
-     * <pre>{@code
-     * boolean exists = eventStore.project(
-     *     query, StreamPosition.zero(), StateProjector.exists(type(TalkSubmitted.class))
-     * ).state();
-     * }</pre>
+     * For simple existence checks prefer {@code EventStore.exists(query)} which is a one-liner.
+     * Use this factory directly only when composing with other projectors inside a multi-projector
+     * {@code project()} call.
+     * <p>
+     * When called with no arguments, {@code getEventTypes()} returns an empty list which the
+     * framework treats as "accept all types" — the {@code Query} already scopes the event types
+     * at the database level.
      *
-     * @param eventTypes The event types that count as evidence of existence
+     * @param eventTypes optional in-memory type filter (empty = accept all types the query returns)
      * @return A {@code StateProjector<Boolean>} that returns {@code true} on the first matching event
      */
     static StateProjector<Boolean> exists(String... eventTypes) {

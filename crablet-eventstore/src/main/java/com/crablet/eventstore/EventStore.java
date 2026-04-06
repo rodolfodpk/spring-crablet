@@ -80,6 +80,21 @@ public interface EventStore {
     }
 
     /**
+     * Returns {@code true} if at least one event matching {@code query} exists.
+     * <p>
+     * Shorthand for:
+     * <pre>{@code
+     * eventStore.project(query, StreamPosition.zero(), StateProjector.exists()).state()
+     * }</pre>
+     *
+     * @param query the query defining which events to check
+     * @return {@code true} if any matching event exists, {@code false} otherwise
+     */
+    default boolean exists(Query query) {
+        return project(query, StreamPosition.zero(), StateProjector.exists()).state();
+    }
+
+    /**
      * Execute operations within a single transaction.
      * EventStore manages connection lifecycle internally.
      * <p>

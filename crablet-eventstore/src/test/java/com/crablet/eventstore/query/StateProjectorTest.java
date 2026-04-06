@@ -1,7 +1,6 @@
 package com.crablet.eventstore.query;
 
 import com.crablet.eventstore.AppendEvent;
-import com.crablet.eventstore.StreamPosition;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.test.InMemoryEventStore;
 
@@ -79,9 +78,7 @@ class StateProjectorTest {
     void existsReturnsFalseWhenNoEvents() {
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", "w1");
 
-        boolean exists = eventStore.project(
-            query, StreamPosition.zero(), StateProjector.exists("WalletOpened")
-        ).state();
+        boolean exists = eventStore.exists(query);
 
         assertThat(exists).isFalse();
     }
@@ -99,9 +96,7 @@ class StateProjectorTest {
 
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", "w1");
 
-        boolean exists = eventStore.project(
-            query, StreamPosition.zero(), StateProjector.exists("WalletOpened")
-        ).state();
+        boolean exists = eventStore.exists(query);
 
         assertThat(exists).isTrue();
     }
@@ -120,15 +115,13 @@ class StateProjectorTest {
         // Query for WalletOpened — no such event exists
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", "w1");
 
-        boolean exists = eventStore.project(
-            query, StreamPosition.zero(), StateProjector.exists("WalletOpened")
-        ).state();
+        boolean exists = eventStore.exists(query);
 
         assertThat(exists).isFalse();
     }
 
     @Test
-    @DisplayName("exists() with multiple event types — returns true when any type matches")
+    @DisplayName("exists() returns true when any event matching the query exists")
     void existsReturnsTrueForAnyMatchingType() {
         eventStore.appendCommutative(List.of(
             AppendEvent.builder("DepositMade")
@@ -137,12 +130,9 @@ class StateProjectorTest {
                 .build()
         ));
 
-        // Query without tag filtering
         Query query = Query.forEventAndTag("DepositMade", "wallet_id", "w1");
 
-        boolean exists = eventStore.project(
-            query, StreamPosition.zero(), StateProjector.exists("WalletOpened", "DepositMade")
-        ).state();
+        boolean exists = eventStore.exists(query);
 
         assertThat(exists).isTrue();
     }
