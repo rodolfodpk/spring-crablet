@@ -9,10 +9,10 @@
  * The outbox now uses the generic event processor infrastructure:
  * <ul>
  *   <li>{@link com.crablet.eventpoller.processor.EventProcessor} - Generic processor interface</li>
- *   <li>{@link com.crablet.outbox.adapter.OutboxProcessorConfig} - Adapter for outbox-specific configuration</li>
- *   <li>{@link com.crablet.outbox.adapter.OutboxEventHandler} - Adapter for event handling</li>
- *   <li>{@link com.crablet.outbox.adapter.OutboxEventFetcher} - Adapter for event fetching</li>
- *   <li>{@link com.crablet.outbox.adapter.OutboxProgressTracker} - Adapter for progress tracking</li>
+ *   <li>{@link com.crablet.outbox.internal.OutboxProcessorConfig} - Adapter for outbox-specific configuration</li>
+ *   <li>{@link com.crablet.outbox.internal.OutboxEventHandler} - Adapter for event handling</li>
+ *   <li>{@link com.crablet.outbox.internal.OutboxEventFetcher} - Adapter for event fetching</li>
+ *   <li>{@link com.crablet.outbox.internal.OutboxProgressTracker} - Adapter for progress tracking</li>
  * </ul>
  * <p>
  * <strong>Spring Integration:</strong>
@@ -30,7 +30,7 @@
  *
  * @see com.crablet.eventpoller.processor.EventProcessor
  * @see com.crablet.outbox.config.OutboxAutoConfiguration
- * @see com.crablet.outbox.adapter
+ * @see com.crablet.outbox.internal
  */
 @org.jspecify.annotations.NullMarked
 package com.crablet.outbox.processor;

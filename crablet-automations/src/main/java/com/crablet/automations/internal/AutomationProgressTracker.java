@@ -1,4 +1,4 @@
-package com.crablet.automations.adapter;
+package com.crablet.automations.internal;
 
 import com.crablet.eventpoller.progress.AbstractSingleKeyProgressTracker;
 

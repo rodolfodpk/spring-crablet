@@ -1,4 +1,4 @@
-package com.crablet.automations.adapter;
+package com.crablet.automations.internal;
 
 import com.crablet.automations.AutomationHandler;
 import com.crablet.command.CommandExecutor;

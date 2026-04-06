@@ -1,4 +1,4 @@
-package com.crablet.views.adapter;
+package com.crablet.views.internal;
 
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventstore.StoredEvent;

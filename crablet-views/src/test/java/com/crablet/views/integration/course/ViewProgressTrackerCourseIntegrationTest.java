@@ -1,7 +1,7 @@
 package com.crablet.views.integration.course;
 
 import com.crablet.eventpoller.progress.ProcessorStatus;
-import com.crablet.views.adapter.ViewProgressTracker;
+import com.crablet.views.internal.ViewProgressTracker;
 import com.crablet.views.integration.AbstractViewsTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

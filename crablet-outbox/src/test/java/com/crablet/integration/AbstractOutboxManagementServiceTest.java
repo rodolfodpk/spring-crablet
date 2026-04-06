@@ -4,7 +4,7 @@ import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
-import com.crablet.outbox.adapter.TopicPublisherPair;
+import com.crablet.outbox.internal.TopicPublisherPair;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.testutils.EventProcessorTestHelper;
 import org.junit.jupiter.api.Test;
@@ -30,10 +30,10 @@ abstract class AbstractOutboxManagementServiceTest extends AbstractCrabletTest {
     private JdbcTemplate jdbcTemplate;
     
     @Autowired
-    private com.crablet.eventpoller.processor.EventProcessor<com.crablet.outbox.adapter.OutboxProcessorConfig, TopicPublisherPair> eventProcessor;
+    private com.crablet.eventpoller.processor.EventProcessor<com.crablet.outbox.internal.OutboxProcessorConfig, TopicPublisherPair> eventProcessor;
     
     @Autowired
-    private Map<TopicPublisherPair, com.crablet.outbox.adapter.OutboxProcessorConfig> processorConfigs;
+    private Map<TopicPublisherPair, com.crablet.outbox.internal.OutboxProcessorConfig> processorConfigs;
     
     @Autowired
     private OutboxConfig outboxConfig;

@@ -1,4 +1,4 @@
-package com.crablet.views.adapter;
+package com.crablet.views.internal;
 
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;

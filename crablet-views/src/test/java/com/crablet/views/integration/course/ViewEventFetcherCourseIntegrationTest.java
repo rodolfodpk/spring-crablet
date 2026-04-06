@@ -4,7 +4,7 @@ import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.views.ViewSubscription;
-import com.crablet.views.adapter.ViewEventFetcher;
+import com.crablet.views.internal.ViewEventFetcher;
 import com.crablet.views.ViewSubscription;
 import com.crablet.views.integration.AbstractViewsTest;
 import org.junit.jupiter.api.BeforeEach;

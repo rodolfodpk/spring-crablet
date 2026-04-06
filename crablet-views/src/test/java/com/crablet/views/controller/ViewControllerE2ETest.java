@@ -3,7 +3,7 @@ package com.crablet.views.controller;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventstore.EventStore;
 import com.crablet.views.ViewSubscription;
-import com.crablet.views.adapter.ViewProcessorConfig;
+import com.crablet.views.internal.ViewProcessorConfig;
 import com.crablet.views.config.ViewsAutoConfiguration;
 import com.crablet.views.integration.AbstractViewsTest;
 import org.junit.jupiter.api.BeforeEach;

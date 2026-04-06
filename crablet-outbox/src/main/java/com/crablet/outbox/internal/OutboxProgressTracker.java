@@ -1,4 +1,4 @@
-package com.crablet.outbox.adapter;
+package com.crablet.outbox.internal;
 
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;

@@ -1,6 +1,6 @@
 package com.crablet.wallet.e2e;
 
-import com.crablet.automations.adapter.AutomationProcessorConfig;
+import com.crablet.automations.internal.AutomationProcessorConfig;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.wallet.TestApplication;
 import com.crablet.wallet.api.dto.OpenWalletRequest;

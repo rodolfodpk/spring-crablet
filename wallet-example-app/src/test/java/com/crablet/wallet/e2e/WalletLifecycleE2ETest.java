@@ -1,7 +1,7 @@
 package com.crablet.wallet.e2e;
 
 import com.crablet.eventpoller.processor.EventProcessor;
-import com.crablet.views.adapter.ViewProcessorConfig;
+import com.crablet.views.internal.ViewProcessorConfig;
 import com.crablet.views.config.ViewSubscriptionConfig;
 import com.crablet.wallet.TestApplication;
 import com.crablet.wallet.api.dto.DepositRequest;

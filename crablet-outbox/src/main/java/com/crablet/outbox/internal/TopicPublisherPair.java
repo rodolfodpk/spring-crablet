@@ -1,4 +1,4 @@
-package com.crablet.outbox.adapter;
+package com.crablet.outbox.internal;
 
 /**
  * Identifier for an outbox processor: (topic, publisher) pair.

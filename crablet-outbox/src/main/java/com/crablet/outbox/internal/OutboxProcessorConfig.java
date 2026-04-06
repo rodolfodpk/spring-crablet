@@ -1,4 +1,4 @@
-package com.crablet.outbox.adapter;
+package com.crablet.outbox.internal;
 
 import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.outbox.TopicConfig;

@@ -1,4 +1,4 @@
-package com.crablet.views.adapter;
+package com.crablet.views.internal;
 
 import com.crablet.views.ViewSubscription;
 import com.crablet.views.ViewSubscription;

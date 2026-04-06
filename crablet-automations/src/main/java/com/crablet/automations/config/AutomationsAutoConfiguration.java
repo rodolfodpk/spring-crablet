@@ -2,10 +2,10 @@ package com.crablet.automations.config;
 
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.AutomationSubscription;
-import com.crablet.automations.adapter.AutomationDispatcher;
-import com.crablet.automations.adapter.AutomationEventFetcher;
-import com.crablet.automations.adapter.AutomationProcessorConfig;
-import com.crablet.automations.adapter.AutomationProgressTracker;
+import com.crablet.automations.internal.AutomationDispatcher;
+import com.crablet.automations.internal.AutomationEventFetcher;
+import com.crablet.automations.internal.AutomationProcessorConfig;
+import com.crablet.automations.internal.AutomationProgressTracker;
 import com.crablet.automations.management.AutomationManagementService;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventFetcher;

@@ -1,7 +1,7 @@
 package com.crablet.automations.integration;
 
 import com.crablet.automations.AutomationSubscription;
-import com.crablet.automations.adapter.AutomationEventFetcher;
+import com.crablet.automations.internal.AutomationEventFetcher;
 import com.crablet.eventstore.AppendCondition;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
