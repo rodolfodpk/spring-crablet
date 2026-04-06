@@ -20,14 +20,16 @@ No external PostgreSQL needed — integration tests spin up a container via Test
 
 ## Modules
 
-- **crablet-eventstore** (required) — Core event sourcing library with DCB support
-- **crablet-commands** (optional) — Automatic command handler discovery and orchestration
-- **crablet-event-poller** (optional) — Generic polling infrastructure: leader election and backoff
-- **crablet-outbox** (optional) — Transactional outbox for reliable external event publishing
-- **crablet-views** (optional) — Asynchronous materialized read models
-- **crablet-automations** (optional) — Event-driven policies and sagas
-- **crablet-metrics-micrometer** (optional) — Micrometer metrics collection
-- **crablet-test-support** (test) — InMemoryEventStore, AbstractCrabletTest, DCBTestHelpers, and shared DB migrations
+| Module | Scope | Description |
+|--------|-------|-------------|
+| **crablet-eventstore** | required | Core event sourcing library with DCB support |
+| **crablet-commands** | optional | Automatic command handler discovery and orchestration |
+| **crablet-event-poller** | optional | Generic polling infrastructure: leader election and backoff |
+| **crablet-outbox** | optional | Transactional outbox for reliable external event publishing |
+| **crablet-views** | optional | Asynchronous materialized read models |
+| **crablet-automations** | optional | Event-driven policies and sagas |
+| **crablet-metrics-micrometer** | optional | Micrometer metrics collection |
+| **crablet-test-support** | test | InMemoryEventStore, AbstractCrabletTest, DCBTestHelpers, shared DB migrations |
 
 ## DCB at a Glance
 
