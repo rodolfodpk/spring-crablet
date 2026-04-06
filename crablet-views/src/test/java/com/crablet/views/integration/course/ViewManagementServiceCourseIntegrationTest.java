@@ -222,8 +222,8 @@ class ViewManagementServiceCourseIntegrationTest extends AbstractViewsTest {
         }
 
         @Bean
-        public com.crablet.eventpoller.InstanceIdProvider instanceIdProvider(Environment environment) {
-            return new com.crablet.eventpoller.InstanceIdProvider(environment);
+        public com.crablet.eventpoller.internal.InstanceIdProvider instanceIdProvider(Environment environment) {
+            return new com.crablet.eventpoller.internal.InstanceIdProvider(environment);
         }
 
         @Bean

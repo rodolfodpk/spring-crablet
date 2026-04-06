@@ -1,4 +1,4 @@
-package com.crablet.eventpoller.backoff;
+package com.crablet.eventpoller.internal;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -323,4 +323,3 @@ class BackoffStateTest {
         assertThat(state.getCurrentSkipCounter()).isLessThanOrEqualTo(600);
     }
 }
-

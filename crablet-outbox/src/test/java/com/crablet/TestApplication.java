@@ -1,6 +1,6 @@
 package com.crablet;
 
-import com.crablet.eventpoller.InstanceIdProvider;
+import com.crablet.eventpoller.internal.InstanceIdProvider;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.EventStore;

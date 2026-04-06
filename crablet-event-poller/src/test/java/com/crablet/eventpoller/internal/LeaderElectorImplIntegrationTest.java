@@ -1,4 +1,4 @@
-package com.crablet.eventpoller.leader;
+package com.crablet.eventpoller.internal;
 
 import com.crablet.eventpoller.integration.AbstractEventProcessorTest;
 import com.crablet.eventpoller.metrics.LeadershipMetric;
@@ -65,7 +65,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
         // Given - First instance acquires lock and holds connection open
         // Note: PostgreSQL advisory locks are session-scoped, so we need to hold a connection
         LeaderElectorImpl elector1 = new LeaderElectorImpl(dataSource, "test", "instance-1", TEST_LOCK_KEY, eventPublisher);
-        
+
         // Hold lock by keeping connection open
         try (java.sql.Connection conn1 = dataSource.getConnection();
              java.sql.PreparedStatement stmt = conn1.prepareStatement("SELECT pg_try_advisory_lock(?)")) {
@@ -107,7 +107,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
         // Given - First instance acquires and holds lock
         LeaderElectorImpl elector1 = new LeaderElectorImpl(dataSource, "test", "instance-1", TEST_LOCK_KEY, eventPublisher);
         LeaderElectorImpl elector2 = new LeaderElectorImpl(dataSource, "test", "instance-2", TEST_LOCK_KEY, eventPublisher);
-        
+
         // Hold lock by keeping connection open
         try (java.sql.Connection conn1 = dataSource.getConnection();
              java.sql.PreparedStatement stmt = conn1.prepareStatement("SELECT pg_try_advisory_lock(?)")) {
@@ -116,7 +116,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
                 rs.next();
                 assertThat(rs.getBoolean(1)).isTrue();
             }
-            
+
             // Second instance should fail while first holds lock
             assertThat(elector2.tryAcquireGlobalLeader()).isFalse();
         }
@@ -365,4 +365,3 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
         }
     }
 }
-

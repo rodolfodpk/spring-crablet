@@ -1,5 +1,6 @@
-package com.crablet.eventpoller.management;
+package com.crablet.eventpoller.internal;
 
+import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.ResponseEntity;
@@ -13,11 +14,11 @@ import java.util.Map;
 
 /**
  * Generic REST controller for managing processors.
- * 
+ *
  * <p><strong>Note:</strong> This controller works with String-based processor IDs.
  * For other processor ID types, implementations should create their own controllers
  * or provide a String-to-ID converter.
- * 
+ *
  * <p>Endpoints:
  * <ul>
  *   <li>GET /api/processors - Get all processor statuses</li>
@@ -34,13 +35,13 @@ import java.util.Map;
 @RequestMapping("/api/processors")
 @ConditionalOnBean(name = "processorManagementService", value = ProcessorManagementService.class)
 public class ProcessorManagementController {
-    
+
     private final ProcessorManagementService<String> managementService;
-    
+
     public ProcessorManagementController(ProcessorManagementService<String> managementService) {
         this.managementService = managementService;
     }
-    
+
     /**
      * Get status of all processors.
      */
@@ -49,7 +50,7 @@ public class ProcessorManagementController {
         Map<String, ProcessorStatus> statuses = managementService.getAllStatuses();
         return ResponseEntity.ok(statuses);
     }
-    
+
     /**
      * Get status of a specific processor.
      */
@@ -61,7 +62,7 @@ public class ProcessorManagementController {
         }
         return ResponseEntity.ok(status);
     }
-    
+
     /**
      * Pause a processor.
      */
@@ -74,7 +75,7 @@ public class ProcessorManagementController {
             return ResponseEntity.notFound().build();
         }
     }
-    
+
     /**
      * Resume a processor.
      */
@@ -87,7 +88,7 @@ public class ProcessorManagementController {
             return ResponseEntity.notFound().build();
         }
     }
-    
+
     /**
      * Reset a failed processor.
      */
@@ -100,7 +101,7 @@ public class ProcessorManagementController {
             return ResponseEntity.notFound().build();
         }
     }
-    
+
     /**
      * Get processor lag information.
      */
@@ -112,7 +113,7 @@ public class ProcessorManagementController {
         }
         return ResponseEntity.ok(lag);
     }
-    
+
     /**
      * Get backoff information for a specific processor.
      */
@@ -124,7 +125,7 @@ public class ProcessorManagementController {
         }
         return ResponseEntity.ok(info);
     }
-    
+
     /**
      * Get backoff information for all processors.
      */
@@ -134,4 +135,3 @@ public class ProcessorManagementController {
         return ResponseEntity.ok(backoffInfo);
     }
 }
-

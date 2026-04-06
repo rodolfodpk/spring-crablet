@@ -22,7 +22,7 @@
  * <strong>Backoff Strategy:</strong>
  * Exponential backoff is now handled by the generic processor:
  * <ul>
- *   <li>Backoff state is managed in {@link com.crablet.eventpoller.backoff.BackoffState}</li>
+ *   <li>Backoff state is managed in {@link com.crablet.eventpoller.internal.BackoffState}</li>
  *   <li>After a threshold of empty polls, the scheduler skips cycles</li>
  *   <li>Backoff multiplier increases skip duration exponentially</li>
  *   <li>When events are found, backoff is reset</li>

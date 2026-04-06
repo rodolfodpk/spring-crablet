@@ -1,6 +1,7 @@
 package com.crablet.command;
 
 import com.crablet.command.handlers.courses.DefineCourseCommandHandler;
+import com.crablet.command.internal.CommandTypeResolver;
 import com.crablet.examples.wallet.commands.DepositCommandHandler;
 import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;

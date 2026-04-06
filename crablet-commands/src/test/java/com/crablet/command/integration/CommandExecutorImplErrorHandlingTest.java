@@ -1,7 +1,7 @@
 package com.crablet.command.integration;
 
 import com.crablet.command.CommandExecutor;
-import com.crablet.command.CommandExecutorImpl;
+import com.crablet.command.internal.CommandExecutorImpl;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandDecision;
 import com.crablet.command.InvalidCommandException;

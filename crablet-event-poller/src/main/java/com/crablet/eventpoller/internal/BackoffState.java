@@ -1,4 +1,4 @@
-package com.crablet.eventpoller.backoff;
+package com.crablet.eventpoller.internal;
 
 /**
  * Tracks exponential backoff state for a processor instance.
@@ -11,16 +11,16 @@ public class BackoffState {
     private final int threshold;
     private final int multiplier;
     private final long maxSkips;
-    
+
     private int emptyPollCount = 0;
     private int skipCounter = 0;
-    
+
     public BackoffState(int threshold, int multiplier, long pollingIntervalMs, int maxBackoffSeconds) {
         this.threshold = threshold;
         this.multiplier = multiplier;
         this.maxSkips = (maxBackoffSeconds * 1000L) / pollingIntervalMs;
     }
-    
+
     /**
      * Check if the current poll cycle should be skipped.
      */
@@ -31,20 +31,20 @@ public class BackoffState {
         }
         return false;
     }
-    
+
     /**
      * Record an empty poll (no events found).
      */
     public void recordEmpty() {
         emptyPollCount++;
-        
+
         if (emptyPollCount > threshold) {
             int exponent = emptyPollCount - threshold;
             long skipsToAdd = (long) Math.pow(multiplier, exponent) - 1;
             skipCounter = (int) Math.min(skipsToAdd, maxSkips);
         }
     }
-    
+
     /**
      * Record a successful processing (events found and processed).
      * Resets backoff immediately.
@@ -53,14 +53,14 @@ public class BackoffState {
         emptyPollCount = 0;
         skipCounter = 0;
     }
-    
+
     /**
      * Get the number of consecutive empty polls.
      */
     public int getEmptyPollCount() {
         return emptyPollCount;
     }
-    
+
     /**
      * Get the current number of skips remaining.
      */
@@ -68,4 +68,3 @@ public class BackoffState {
         return skipCounter;
     }
 }
-

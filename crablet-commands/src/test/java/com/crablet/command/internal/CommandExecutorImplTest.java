@@ -1,5 +1,8 @@
-package com.crablet.command;
+package com.crablet.command.internal;
 
+import com.crablet.command.CommandDecision;
+import com.crablet.command.ExecutionResult;
+import com.crablet.command.InvalidCommandException;
 import com.crablet.command.integration.AbstractCommandTest;
 import com.crablet.command.integration.TestCommand;
 import com.crablet.command.integration.TestCommandHandler;
@@ -32,10 +35,10 @@ class CommandExecutorImplTest extends AbstractCommandTest {
 
     @Autowired
     private EventRepository eventRepository;
-    
+
     @Autowired
     private javax.sql.DataSource dataSource;
-    
+
     private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
@@ -105,7 +108,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         assertNotNull(result);
         assertTrue(result.wasCreated());
         assertFalse(result.wasIdempotent());
-        
+
         // Verify event persisted in database
         Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
         List<StoredEvent> events = eventRepository.query(query, null);
@@ -129,7 +132,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         assertTrue(result.wasIdempotent());
         assertFalse(result.wasCreated());
         assertEquals("ALREADY_PROCESSED", result.reason());
-        
+
         // Verify no events persisted
         Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
         List<StoredEvent> events = eventRepository.query(query, null);
@@ -185,14 +188,14 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     void executeCommand_WithConcurrencyException_ShouldPropagateException() {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
-        
+
         // This test requires a real concurrency scenario which is complex to set up
         // The real concurrency behavior is tested in OptimisticLockingTest
         // For this test, we verify that RuntimeException from handler is propagated
         TestCommandHandler.setHandlerLogic(cmd -> {
             throw new RuntimeException("Test error");
         });
-        
+
         assertThatThrownBy(() -> commandExecutor.executeCommand(command))
                 .isInstanceOf(RuntimeException.class);
     }
@@ -206,30 +209,30 @@ class CommandExecutorImplTest extends AbstractCommandTest {
                 .tag("operation_id", "op-123") // Idempotency tag
                 .data("{}")
                 .build();
-        
+
         // First execution - should succeed
         CommandDecision commandResult = new CommandDecision.Commutative(List.of(event));
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
-        
+
         ExecutionResult firstResult = commandExecutor.executeCommand(command);
         assertTrue(firstResult.wasCreated());
-        
+
         // Second execution - should be idempotent (duplicate detected)
         ExecutionResult secondResult = commandExecutor.executeCommand(command);
-        
+
         // Assert - should return idempotent due to duplicate operation
         assertNotNull(secondResult);
         // Note: In real scenario, idempotency is detected by EventStore appendIf
         // If the same operation_id tag exists, it will throw ConcurrencyException with "duplicate operation detected"
         // CommandExecutorImpl catches this and returns idempotent
         // But we need the handler to return the same result with idempotency check
-        
+
         // Actually, for this to work, we need AppendCondition with alreadyExists check
         // Let's test the simpler case: handler returns empty events (idempotent)
         TestCommand idempotentCommand = new TestCommand("test_command", "entity-456");
         CommandDecision idempotentResult = new CommandDecision.NoOp("ALREADY_PROCESSED");
         TestCommandHandler.setHandlerLogic(cmd -> idempotentResult);
-        
+
         ExecutionResult idempotentExecution = commandExecutor.executeCommand(idempotentCommand);
         assertTrue(idempotentExecution.wasIdempotent());
     }
@@ -252,7 +255,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         // Assert
         assertNotNull(result);
         assertTrue(result.wasCreated());
-        
+
         // Verify event persisted
         Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
         List<StoredEvent> events = eventRepository.query(query, null);
@@ -278,7 +281,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         // The actual test for disabled persistence requires @TestConfiguration which is complex
         // For now, we verify the enabled case works (tested in next test)
         // TODO: Add separate test class with @TestConfiguration to test disabled persistence
-        
+
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent event = AppendEvent.builder("test_event")
@@ -316,7 +319,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
 
         // Assert
         assertNotNull(result);
-        
+
         // Verify command stored in database
         Integer count = jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM commands WHERE type = ?",
@@ -332,7 +335,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         // We can't easily test "no handlers" without a separate test configuration
         // So we verify that unknown command types throw the exception
         TestCommand command = new TestCommand("nonexistent_command", "entity-123");
-        
+
         assertThatThrownBy(() -> commandExecutor.executeCommand(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("No handler registered");
@@ -382,7 +385,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
 
         // Assert
         assertNotNull(result);
-        
+
         // Verify event persisted
         Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
         List<StoredEvent> events = eventRepository.query(query, null);
@@ -402,7 +405,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
 
         // Assert
         assertNotNull(result);
-        
+
         // Verify event persisted
         Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
         List<StoredEvent> events = eventRepository.query(query, null);
@@ -457,7 +460,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         // We'll create a scenario where appendIf fails due to concurrency violation
         // This is complex to set up in integration tests, so we test the simpler case:
         // Handler throws RuntimeException, which should be propagated
-        
+
         TestCommand command = new TestCommand("test_command", "entity-123");
         TestCommandHandler.setHandlerLogic(cmd -> {
             throw new RuntimeException("Test runtime error");
@@ -473,7 +476,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         // This test verifies duplicate operation handling
         // The actual open_wallet duplicate behavior with idempotency is tested in OpenWalletCommandHandlerTest
         // This test focuses on general duplicate handling with TestCommandHandler
-        
+
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent event = AppendEvent.builder("test_event")
                 .tag("entityId", "entity-123")
@@ -482,16 +485,16 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         CommandDecision commandResult = new CommandDecision.Commutative(List.of(event));
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
-        
+
         // First execution succeeds
         ExecutionResult first = commandExecutor.executeCommand(command);
         assertTrue(first.wasCreated());
-        
+
         // Second execution with same command - should succeed again since we're using AppendCondition.empty()
         // which doesn't check for duplicates. For actual duplicate detection, see OpenWalletCommandHandlerTest
         ExecutionResult second = commandExecutor.executeCommand(command);
         assertTrue(second.wasCreated());
-        
+
         // Verify both events were stored
         Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
         List<StoredEvent> events = eventRepository.query(query, null);
@@ -507,7 +510,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
 
         assertThatThrownBy(() -> commandExecutor.executeCommand(command))
                 .isInstanceOf(RuntimeException.class);
-        
+
         // Note: Metrics are published via Spring Events, not directly verifiable here
     }
 
@@ -532,7 +535,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
 
         assertThatThrownBy(() -> commandExecutor.executeCommand(command))
                 .isInstanceOf(RuntimeException.class);
-        
+
         // Verify no events persisted
         Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
         List<StoredEvent> events = eventRepository.query(query, null);

@@ -1,5 +1,6 @@
-package com.crablet.eventpoller.leader;
+package com.crablet.eventpoller.internal;
 
+import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.metrics.LeadershipMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,15 +14,15 @@ import java.sql.SQLException;
 
 /**
  * Generic implementation of LeaderElector using PostgreSQL advisory locks.
- * 
+ *
  * <p>Uses plain JDBC for consistency with eventstore module and full control.
- * 
+ *
  * @param lockKey Advisory lock key (unique per processor type)
  */
 public class LeaderElectorImpl implements LeaderElector {
-    
+
     private static final Logger log = LoggerFactory.getLogger(LeaderElectorImpl.class);
-    
+
     private final DataSource dataSource;
     private final String processorId;
     private final String instanceId;
@@ -57,18 +58,18 @@ public class LeaderElectorImpl implements LeaderElector {
         this.lockKey = lockKey;
         this.eventPublisher = eventPublisher;
     }
-    
+
     @Override
     public boolean tryAcquireGlobalLeader() {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(TRY_ACQUIRE_LOCK_SQL)) {
-            
+
             stmt.setLong(1, lockKey);
-            
+
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     Boolean lockAcquired = rs.getBoolean(1);
-                    
+
                     if (Boolean.TRUE.equals(lockAcquired)) {
                         isGlobalLeader = true;
                         eventPublisher.publishEvent(new LeadershipMetric(processorId, instanceId, true));
@@ -81,7 +82,7 @@ public class LeaderElectorImpl implements LeaderElector {
                         return false;
                     }
                 }
-                
+
                 // Should not happen, but handle gracefully
                 isGlobalLeader = false;
                 return false;
@@ -92,16 +93,16 @@ public class LeaderElectorImpl implements LeaderElector {
             return false;
         }
     }
-    
+
     @Override
     public void releaseGlobalLeader() {
         if (isGlobalLeader) {
             try (Connection connection = dataSource.getConnection();
                  PreparedStatement stmt = connection.prepareStatement(RELEASE_LOCK_SQL)) {
-                
+
                 stmt.setLong(1, lockKey);
                 stmt.execute();
-                
+
                 isGlobalLeader = false;
                 eventPublisher.publishEvent(new LeadershipMetric(processorId, instanceId, false));
                 log.info("Released lock (key: {})", lockKey);
@@ -112,15 +113,14 @@ public class LeaderElectorImpl implements LeaderElector {
             }
         }
     }
-    
+
     @Override
     public boolean isGlobalLeader() {
         return isGlobalLeader;
     }
-    
+
     @Override
     public String getInstanceId() {
         return instanceId;
     }
 }
-

@@ -1,5 +1,7 @@
-package com.crablet.command;
+package com.crablet.command.internal;
 
+import com.crablet.command.CommandHandler;
+import com.crablet.command.InvalidCommandException;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +12,7 @@ import java.lang.reflect.Type;
 /**
  * Utility to extract command type from handler's generic type parameter.
  * Reads @JsonSubTypes annotation to get the type name, ensuring consistency.
- * 
+ *
  * Flow:
  * 1. Extract T from CommandHandler<T>
  * 2. Find @JsonSubTypes on T or its parent interfaces (e.g., WalletCommand, CourseCommand)
@@ -18,12 +20,12 @@ import java.lang.reflect.Type;
  * 4. Return name from that entry
  */
 public class CommandTypeResolver {
-    
+
     private static final Logger log = LoggerFactory.getLogger(CommandTypeResolver.class);
-    
+
     /**
      * Extract command type string from handler's generic type parameter.
-     * 
+     *
      * @param handlerClass the handler class implementing CommandHandler<T>
      * @return the command type name from @JsonSubTypes
      * @throws InvalidCommandException if type cannot be extracted
@@ -38,7 +40,7 @@ public class CommandTypeResolver {
         }
         Class<?> commandClass = getCommandClassFromHandler(handlerClass);
         JsonSubTypes jsonSubTypes = findJsonSubTypesAnnotation(commandClass);
-        
+
         if (jsonSubTypes == null) {
             throw new InvalidCommandException(
                 "Command class " + commandClass.getName() + " is not part of a @JsonSubTypes hierarchy. " +
@@ -46,7 +48,7 @@ public class CommandTypeResolver {
                 handlerClass.getName()
             );
         }
-        
+
         for (JsonSubTypes.Type type : jsonSubTypes.value()) {
             if (type.value().equals(commandClass)) {
                 log.debug("Extracted command type '{}' from handler {} for command class {}",
@@ -54,14 +56,14 @@ public class CommandTypeResolver {
                 return type.name();
             }
         }
-        
+
         throw new InvalidCommandException(
-            "Command class " + commandClass.getName() + " not found in @JsonSubTypes for handler " + 
+            "Command class " + commandClass.getName() + " not found in @JsonSubTypes for handler " +
             handlerClass.getName() + ". Check that @JsonSubTypes includes this command class.",
             handlerClass.getName()
         );
     }
-    
+
     /**
      * Extract the command class T from CommandHandler<T>.
      * Checks implemented interfaces first, then superclass (for abstract base handlers).
@@ -79,7 +81,7 @@ public class CommandTypeResolver {
                 }
             }
         }
-        
+
         // Check superclass (for abstract base handlers)
         Type genericSuperclass = handlerClass.getGenericSuperclass();
         if (genericSuperclass instanceof ParameterizedType) {
@@ -91,14 +93,14 @@ public class CommandTypeResolver {
                 }
             }
         }
-        
+
         throw new InvalidCommandException(
-            "Cannot extract command type from handler " + handlerClass.getName() + 
+            "Cannot extract command type from handler " + handlerClass.getName() +
             " - CommandHandler<T> not found. Ensure handler implements CommandHandler<T> with a concrete type.",
             handlerClass.getName()
         );
     }
-    
+
     /**
      * Check if ParameterizedType represents CommandHandler<T>.
      */
@@ -106,10 +108,10 @@ public class CommandTypeResolver {
         Type rawType = paramType.getRawType();
         return rawType instanceof Class && CommandHandler.class.isAssignableFrom((Class<?>) rawType);
     }
-    
+
     /**
      * Find @JsonSubTypes annotation on command class or its parent interfaces.
-     * 
+     *
      * Checks:
      * 1. Command class itself (e.g., DepositCommand)
      * 2. Parent interfaces (e.g., WalletCommand, CourseCommand)
@@ -120,7 +122,7 @@ public class CommandTypeResolver {
         if (annotation != null) {
             return annotation;
         }
-        
+
         // Check parent interfaces (WalletCommand, CourseCommand, etc.)
         for (Class<?> iface : commandClass.getInterfaces()) {
             annotation = iface.getAnnotation(JsonSubTypes.class);
@@ -128,8 +130,7 @@ public class CommandTypeResolver {
                 return annotation;
             }
         }
-        
+
         return null;
     }
 }
-

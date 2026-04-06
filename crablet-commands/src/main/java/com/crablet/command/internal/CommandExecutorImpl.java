@@ -1,5 +1,10 @@
-package com.crablet.command;
+package com.crablet.command.internal;
 
+import com.crablet.command.CommandDecision;
+import com.crablet.command.CommandExecutor;
+import com.crablet.command.CommandHandler;
+import com.crablet.command.ExecutionResult;
+import com.crablet.command.InvalidCommandException;
 import com.crablet.command.metrics.CommandFailureMetric;
 import com.crablet.command.metrics.CommandStartedMetric;
 import com.crablet.command.metrics.CommandSuccessMetric;
@@ -38,7 +43,7 @@ import java.util.stream.Collectors;
  * <pre>{@code
  * @Configuration
  * public class CrabletConfig {
- *     
+ *
  *     @Bean
  *     public CommandExecutorImpl commandExecutor(
  *             EventStore eventStore,
@@ -46,11 +51,11 @@ import java.util.stream.Collectors;
  *             EventStoreConfig config,
  *             ClockProvider clock,
  *             ObjectMapper objectMapper,
-     *             ApplicationEventPublisher eventPublisher) {
-     *         return new CommandExecutorImpl(eventStore, commandHandlers, config, clock, objectMapper, eventPublisher);
-     *     }
-     * }
-     * }</pre>
+ *             ApplicationEventPublisher eventPublisher) {
+ *         return new CommandExecutorImpl(eventStore, commandHandlers, config, clock, objectMapper, eventPublisher);
+ *     }
+ * }
+ * }</pre>
  */
 public class CommandExecutorImpl implements CommandExecutor {
 
@@ -75,7 +80,7 @@ public class CommandExecutorImpl implements CommandExecutor {
      *                       Spring Boot automatically provides an ApplicationEventPublisher bean.
      *                       See crablet-metrics-micrometer for automatic metrics collection.
      */
-    public CommandExecutorImpl(EventStore eventStore, List<CommandHandler<?>> commandHandlers, 
+    public CommandExecutorImpl(EventStore eventStore, List<CommandHandler<?>> commandHandlers,
                               EventStoreConfig config, ClockProvider clock,
                               ObjectMapper objectMapper,
                               ApplicationEventPublisher eventPublisher) {
@@ -112,7 +117,7 @@ public class CommandExecutorImpl implements CommandExecutor {
                                 return CommandTypeResolver.extractCommandTypeFromHandler(handler.getClass());
                             } catch (InvalidCommandException e) {
                                 throw new IllegalStateException(
-                                    "Failed to extract command type from handler: " + handler.getClass().getName() + 
+                                    "Failed to extract command type from handler: " + handler.getClass().getName() +
                                     ". " + e.getMessage(), e
                                 );
                             }
@@ -130,7 +135,7 @@ public class CommandExecutorImpl implements CommandExecutor {
         // Log EventStore configuration at startup
         log.info("EventStore - Command persistence: {}", config.isPersistCommands() ? "ENABLED" : "DISABLED");
         log.info("EventStore - Transaction isolation: {}", config.getTransactionIsolation());
-        
+
         // Log handler registration
         if (handlers.isEmpty()) {
             log.warn("No command handlers registered - CommandExecutor will not be functional");
@@ -202,7 +207,7 @@ public class CommandExecutorImpl implements CommandExecutor {
                 }
                 commandType = commandTypeNode.asText();
             }
-            
+
             if (commandType == null || commandType.isEmpty()) {
                 throw new InvalidCommandException(
                     "Command type is null or empty for class: " + command.getClass().getName(),
@@ -268,16 +273,16 @@ public class CommandExecutorImpl implements CommandExecutor {
                 log.debug("Transaction committed successfully for command: {}", commandType);
                 return ExecutionResult.created();
             });
-            
+
             // Calculate duration and publish success metrics
             Duration duration = Duration.between(startTime, clock.now());
             eventPublisher.publishEvent(new CommandSuccessMetric(commandType, duration));
-            
+
             // Track idempotent operations separately
             if (executionResult.wasIdempotent()) {
                 eventPublisher.publishEvent(new IdempotentOperationMetric(commandType));
             }
-            
+
             return executionResult;
         } catch (ConcurrencyException e) {
             log.debug("Transaction rolled back for command: {}", commandType);
@@ -316,7 +321,7 @@ public class CommandExecutorImpl implements CommandExecutor {
         if (handlers.isEmpty()) {
             throw new InvalidCommandException("No command handlers registered", command);
         }
-        
+
         // Extract command type from command object
         // Use lightweight valueToTree() since we're not storing the command here
         JsonNode jsonNode = objectMapper.valueToTree(command);
@@ -328,19 +333,19 @@ public class CommandExecutorImpl implements CommandExecutor {
             );
         }
         String commandType = commandTypeNode.asText();
-        
+
         CommandHandler<?> handler = handlers.get(commandType);
         if (handler == null) {
             throw new InvalidCommandException("No handler registered for command type: " + commandType, command);
         }
-        
+
         // Unchecked cast is safe because:
         // 1. We validate command type matches handler's registered type in executeCommand()
         // 2. Handler registry maps command type string to handler
         // 3. Runtime validation ensures handler can handle this command type
         return (CommandHandler<T>) handler;
     }
-    
+
     /**
      * Validate command result with fail-fast principles.
      * Throws immediately on any validation failure.
@@ -377,7 +382,7 @@ public class CommandExecutorImpl implements CommandExecutor {
             eventIndex++;
         }
     }
-    
+
     /**
      * Handle ConcurrencyException with fail-fast principles.
      * Returns ExecutionResult for idempotent duplicate operations, throws for others.
@@ -388,17 +393,17 @@ public class CommandExecutorImpl implements CommandExecutor {
         if (message == null || !message.toLowerCase().contains("duplicate operation detected")) {
             throw new ConcurrencyException(message, command, e);
         }
-        
+
         // Fail fast: Wallet creation duplicates should throw exception
         if ("open_wallet".equals(commandType)) {
             throw new ConcurrencyException(message, command, e);
         }
-        
+
         // Other operation duplicates should return idempotent result
         log.debug("Transaction committed successfully for command: {} (idempotent - duplicate detected)", commandType);
         return ExecutionResult.idempotent("DUPLICATE_OPERATION");
     }
-    
+
     /**
      * Handle idempotent result with fail-fast principles.
      */
@@ -408,4 +413,3 @@ public class CommandExecutorImpl implements CommandExecutor {
         return ExecutionResult.idempotent(r);
     }
 }
-

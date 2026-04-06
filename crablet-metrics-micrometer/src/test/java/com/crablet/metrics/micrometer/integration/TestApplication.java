@@ -1,12 +1,12 @@
 package com.crablet.metrics.micrometer.integration;
 
 import com.crablet.command.CommandExecutor;
-import com.crablet.command.CommandExecutorImpl;
+import com.crablet.command.internal.CommandExecutorImpl;
 import com.crablet.examples.wallet.commands.DepositCommandHandler;
 import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.commands.TransferMoneyCommandHandler;
 import com.crablet.examples.wallet.commands.WithdrawCommandHandler;
-import com.crablet.eventpoller.InstanceIdProvider;
+import com.crablet.eventpoller.internal.InstanceIdProvider;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.query.EventRepository;

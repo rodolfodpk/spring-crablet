@@ -1,4 +1,4 @@
-package com.crablet.eventpoller;
+package com.crablet.eventpoller.internal;
 
 import org.springframework.core.env.Environment;
 
@@ -17,26 +17,26 @@ import java.net.UnknownHostException;
  * </ol>
  */
 public class InstanceIdProvider {
-    
+
     private final String instanceId;
-    
+
     public InstanceIdProvider(Environment environment) {
         this.instanceId = getInstanceId(environment);
     }
-    
+
     private String getInstanceId(Environment environment) {
         // Try Kubernetes pod name (HOSTNAME env var)
         String podName = environment.getProperty("HOSTNAME");
         if (podName != null && !podName.isEmpty()) {
             return podName;
         }
-        
+
         // Try custom instance ID from config
         String customId = environment.getProperty("crablet.instance.id");
         if (customId != null && !customId.isEmpty()) {
             return customId;
         }
-        
+
         // Fall back to hostname
         try {
             return InetAddress.getLocalHost().getHostName();
@@ -44,9 +44,8 @@ public class InstanceIdProvider {
             return "unknown-" + System.currentTimeMillis();
         }
     }
-    
+
     public String getInstanceId() {
         return instanceId;
     }
 }
-

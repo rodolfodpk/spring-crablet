@@ -1,6 +1,7 @@
 package com.crablet.eventpoller.leader;
 
 import com.crablet.eventpoller.integration.AbstractEventProcessorTest;
+import com.crablet.eventpoller.internal.LeaderElectorImpl;
 import com.crablet.eventpoller.metrics.LeadershipMetric;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

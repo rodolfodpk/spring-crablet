@@ -10,7 +10,7 @@
  * Leader election is now provided by the generic processor infrastructure:
  * <ul>
  *   <li>{@link com.crablet.eventpoller.leader.LeaderElector} - Generic leader election interface</li>
- *   <li>{@link com.crablet.eventpoller.leader.LeaderElectorImpl} - Implementation using PostgreSQL advisory locks</li>
+ *   <li>{@link com.crablet.eventpoller.internal.LeaderElectorImpl} - Implementation using PostgreSQL advisory locks</li>
  * </ul>
  * <p>
  * <strong>Leader Election Strategy:</strong>
@@ -35,7 +35,7 @@
  * when {@code crablet.outbox.enabled=true}. No manual bean configuration is required.
  *
  * @see com.crablet.eventpoller.leader.LeaderElector
- * @see com.crablet.eventpoller.leader.LeaderElectorImpl
+ * @see com.crablet.eventpoller.internal.LeaderElectorImpl
  * @see com.crablet.outbox.config.OutboxAutoConfiguration
  */
 @org.jspecify.annotations.NullMarked

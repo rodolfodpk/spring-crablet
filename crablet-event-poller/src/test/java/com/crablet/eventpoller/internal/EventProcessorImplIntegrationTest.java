@@ -1,10 +1,11 @@
-package com.crablet.eventpoller.processor;
+package com.crablet.eventpoller.internal;
 
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.integration.AbstractEventProcessorTest;
 import com.crablet.eventpoller.leader.LeaderElector;
-import com.crablet.eventpoller.leader.LeaderElectorImpl;
+import com.crablet.eventpoller.processor.EventProcessor;
+import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventstore.AppendEvent;
@@ -62,13 +63,13 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
     void setUp() {
         // Stop any running schedulers to prevent background processing
         eventProcessor.stop();
-        
+
         // Clean database to ensure test isolation
         cleanDatabase(jdbcTemplate);
-        
+
         // Reset handler state
         eventHandler.reset();
-        
+
         // Reset progress tracker state
         progressTracker.positions.clear();
         progressTracker.statuses.clear();
@@ -81,7 +82,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         // Given - Verify database is clean
         Long eventCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM events", Long.class);
         assertThat(eventCount).as("Database should be clean from setUp()").isEqualTo(0L);
-        
+
         // Given - Events in store
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent1")
@@ -96,7 +97,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         // Verify only 2 events were created
         eventCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM events", Long.class);
         assertThat(eventCount).as("Should have exactly 2 events").isEqualTo(2L);
-        
+
         // Verify event positions are 1 and 2
         List<Long> positions = jdbcTemplate.queryForList("SELECT position FROM events ORDER BY position", Long.class);
         assertThat(positions).as("Events should have positions 1 and 2").containsExactly(1L, 2L);
@@ -131,7 +132,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
     void shouldSkipProcessing_WhenProcessorIsPaused() {
         // Given - Processor is paused
         progressTracker.setStatus("test-processor", ProcessorStatus.PAUSED);
-        
+
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent")
                 .data("{\"id\":1}".getBytes())
@@ -152,7 +153,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
     void shouldSkipProcessing_WhenProcessorIsFailed() {
         // Given - Processor is failed
         progressTracker.setStatus("test-processor", ProcessorStatus.FAILED);
-        
+
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent")
                 .data("{\"id\":1}".getBytes())
@@ -195,7 +196,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         );
         eventStore.appendCommutative(firstBatch);
         eventProcessor.process("test-processor");
-        
+
         int initialHandled = eventHandler.getHandledCount();
         assertThat(initialHandled).isEqualTo(2);
 
@@ -219,7 +220,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
     void shouldHandleErrors_AndRecordErrorCount() {
         // Given - Handler that throws exception
         eventHandler.setShouldThrow(true);
-        
+
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent")
                 .data("{\"id\":1}".getBytes())
@@ -242,9 +243,9 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         // Given - Processor with errors
         progressTracker.recordError("test-processor", "Test error", 10);
         assertThat(progressTracker.getErrorCount("test-processor")).isGreaterThan(0);
-        
+
         eventHandler.setShouldThrow(false);
-        
+
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent")
                 .data("{\"id\":1}".getBytes())
@@ -278,7 +279,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         // Then - Should process only batch size
         assertThat(processed).isEqualTo(5); // Batch size is 5
         assertThat(eventHandler.getHandledCount()).isEqualTo(5);
-        
+
         // Process again to get remaining events
         int secondProcessed = eventProcessor.process("test-processor");
         assertThat(secondProcessed).isEqualTo(5);
@@ -491,7 +492,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
                      "FROM events WHERE position > ? ORDER BY position ASC LIMIT ?")) {
                 stmt.setLong(1, lastPosition);
                 stmt.setInt(2, batchSize);
-                
+
                 List<StoredEvent> events = new ArrayList<>();
                 try (var rs = stmt.executeQuery()) {
                     while (rs.next()) {
@@ -670,4 +671,3 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         }
     }
 }
-

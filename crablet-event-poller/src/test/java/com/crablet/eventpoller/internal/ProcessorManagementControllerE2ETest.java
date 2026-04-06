@@ -1,12 +1,11 @@
-package com.crablet.eventpoller.management;
+package com.crablet.eventpoller.internal;
 
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.integration.AbstractEventProcessorTest;
 import com.crablet.eventpoller.leader.LeaderElector;
-import com.crablet.eventpoller.leader.LeaderElectorImpl;
+import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
-import com.crablet.eventpoller.processor.EventProcessorImpl;
 import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
@@ -18,6 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -25,6 +25,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
 import javax.sql.DataSource;
 import java.util.ArrayList;
@@ -32,43 +33,69 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 /**
- * Integration tests for ProcessorManagementServiceImpl.
- * Tests management operations (pause, resume, reset, status, lag, backoff) with real database.
+ * E2E tests for ProcessorManagementController REST endpoints.
+ * Tests all HTTP endpoints using WebTestClient with full Spring Boot context.
  */
-@SpringBootTest(classes = ProcessorManagementServiceImplIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@DisplayName("ProcessorManagementServiceImpl Integration Tests")
-class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcessorTest {
+@SpringBootTest(
+    classes = ProcessorManagementControllerE2ETest.TestConfig.class,
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
+)
+@DisplayName("ProcessorManagementController E2E Tests")
+class ProcessorManagementControllerE2ETest extends AbstractEventProcessorTest {
 
-    @Autowired
-    private ProcessorManagementService<String> managementService;
-
-    @Autowired
-    private EventProcessor<TestProcessorConfig, String> eventProcessor;
-
-    @Autowired
-    private EventStore eventStore;
+    @LocalServerPort
+    private int port;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private TestProgressTracker progressTracker;
+    private EventProcessor<TestProcessorConfig, String> eventProcessor;
+
+    @Autowired
+    private TestProgressTracker testProgressTracker;
+
+    @Autowired
+    private EventStore eventStore;
+
+    private WebTestClient webTestClient;
 
     @BeforeEach
     void setUp() {
         // Stop any running schedulers
         eventProcessor.stop();
-        
+
         // Clean database
         cleanDatabase(jdbcTemplate);
-        
+
         // Reset progress tracker
-        progressTracker.positions.clear();
-        progressTracker.statuses.clear();
-        progressTracker.errorCounts.clear();
+        testProgressTracker.positions.clear();
+        testProgressTracker.statuses.clear();
+        testProgressTracker.errorCounts.clear();
+
+        // Configure WebTestClient
+        webTestClient = WebTestClient
+            .bindToServer()
+            .baseUrl("http://localhost:" + port)
+            .build();
+    }
+
+    @Test
+    @DisplayName("Given existing processors, when getting all statuses, then returns all statuses")
+    void givenExistingProcessors_whenGettingAllStatuses_thenReturnsAllStatuses() {
+        // Given
+        eventProcessor.process("processor-1");
+        eventProcessor.process("processor-2");
+
+        // When & Then
+        webTestClient.get()
+            .uri("/api/processors")
+            .exchange()
+            .expectStatus().isOk()
+            .expectBody()
+            .jsonPath("$.processor-1").exists()
+            .jsonPath("$.processor-2").exists();
     }
 
     @Test
@@ -76,126 +103,126 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
     void givenExistingProcessor_whenGettingStatus_thenReturnsStatus() {
         // Given
         String processorId = "test-processor";
-        eventProcessor.process(processorId); // Auto-registers processor
+        eventProcessor.process(processorId);
 
-        // When
-        ProcessorStatus status = managementService.getStatus(processorId);
-
-        // Then
-        assertThat(status).isNotNull();
-        assertThat(status).isEqualTo(ProcessorStatus.ACTIVE);
+        // When & Then
+        webTestClient.get()
+            .uri("/api/processors/{id}", processorId)
+            .exchange()
+            .expectStatus().isOk()
+            .expectBody(ProcessorStatus.class)
+            .value(status -> {
+                assert status != null;
+                assert status == ProcessorStatus.ACTIVE;
+            });
     }
 
     @Test
-    @DisplayName("Given multiple processors, when getting all statuses, then returns all statuses")
-    void givenMultipleProcessors_whenGettingAllStatuses_thenReturnsAllStatuses() {
+    @DisplayName("Given non-existent processor, when getting status, then returns ACTIVE status")
+    void givenNonExistentProcessor_whenGettingStatus_thenReturnsActiveStatus() {
         // Given
-        eventProcessor.process("processor-1");
-        eventProcessor.process("processor-2");
+        String processorId = "non-existent-processor";
 
-        // When
-        Map<String, ProcessorStatus> statuses = managementService.getAllStatuses();
-
-        // Then
-        assertThat(statuses).containsKey("processor-1");
-        assertThat(statuses).containsKey("processor-2");
-        assertThat(statuses.get("processor-1")).isEqualTo(ProcessorStatus.ACTIVE);
-        assertThat(statuses.get("processor-2")).isEqualTo(ProcessorStatus.ACTIVE);
+        // When & Then - getStatus() returns ACTIVE for non-existent processors (default behavior)
+        webTestClient.get()
+            .uri("/api/processors/{id}", processorId)
+            .exchange()
+            .expectStatus().isOk()
+            .expectBody(ProcessorStatus.class)
+            .value(status -> {
+                assert status != null;
+                assert status == ProcessorStatus.ACTIVE;
+            });
     }
 
     @Test
-    @DisplayName("Given existing processor, when pausing processor, then returns true and processor is paused")
-    void givenExistingProcessor_whenPausingProcessor_thenReturnsTrueAndProcessorIsPaused() {
+    @DisplayName("Given existing processor, when pausing processor, then returns 200")
+    void givenExistingProcessor_whenPausingProcessor_thenReturns200() {
         // Given
         String processorId = "test-processor";
         eventProcessor.process(processorId);
 
-        // When
-        boolean paused = managementService.pause(processorId);
-
-        // Then
-        assertThat(paused).isTrue();
-        assertThat(managementService.getStatus(processorId)).isEqualTo(ProcessorStatus.PAUSED);
+        // When & Then
+        webTestClient.post()
+            .uri("/api/processors/{id}/pause", processorId)
+            .exchange()
+            .expectStatus().isOk();
     }
 
     @Test
-    @DisplayName("Given non-existent processor, when pausing processor, then returns false")
-    void givenNonExistentProcessor_whenPausingProcessor_thenReturnsFalse() {
+    @DisplayName("Given non-existent processor, when pausing processor, then returns 404")
+    void givenNonExistentProcessor_whenPausingProcessor_thenReturns404() {
         // Given
         String processorId = "non-existent-processor";
 
-        // When
-        boolean paused = managementService.pause(processorId);
-
-        // Then
-        assertThat(paused).isFalse();
+        // When & Then
+        webTestClient.post()
+            .uri("/api/processors/{id}/pause", processorId)
+            .exchange()
+            .expectStatus().isNotFound();
     }
 
     @Test
-    @DisplayName("Given paused processor, when resuming processor, then returns true and processor is active")
-    void givenPausedProcessor_whenResumingProcessor_thenReturnsTrueAndProcessorIsActive() {
+    @DisplayName("Given paused processor, when resuming processor, then returns 200")
+    void givenPausedProcessor_whenResumingProcessor_thenReturns200() {
         // Given
         String processorId = "test-processor";
         eventProcessor.process(processorId);
-        managementService.pause(processorId);
+        eventProcessor.pause(processorId);
 
-        // When
-        boolean resumed = managementService.resume(processorId);
-
-        // Then
-        assertThat(resumed).isTrue();
-        assertThat(managementService.getStatus(processorId)).isEqualTo(ProcessorStatus.ACTIVE);
+        // When & Then
+        webTestClient.post()
+            .uri("/api/processors/{id}/resume", processorId)
+            .exchange()
+            .expectStatus().isOk();
     }
 
     @Test
-    @DisplayName("Given non-existent processor, when resuming processor, then returns false")
-    void givenNonExistentProcessor_whenResumingProcessor_thenReturnsFalse() {
+    @DisplayName("Given non-existent processor, when resuming processor, then returns 404")
+    void givenNonExistentProcessor_whenResumingProcessor_thenReturns404() {
         // Given
         String processorId = "non-existent-processor";
 
-        // When
-        boolean resumed = managementService.resume(processorId);
-
-        // Then
-        assertThat(resumed).isFalse();
+        // When & Then
+        webTestClient.post()
+            .uri("/api/processors/{id}/resume", processorId)
+            .exchange()
+            .expectStatus().isNotFound();
     }
 
     @Test
-    @DisplayName("Given failed processor, when resetting processor, then returns true and processor is active")
-    void givenFailedProcessor_whenResettingProcessor_thenReturnsTrueAndProcessorIsActive() {
+    @DisplayName("Given existing processor, when resetting processor, then returns 200")
+    void givenExistingProcessor_whenResettingProcessor_thenReturns200() {
         // Given
         String processorId = "test-processor";
         eventProcessor.process(processorId);
-        progressTracker.recordError(processorId, "Test error", 1); // Mark as failed
-        progressTracker.setStatus(processorId, ProcessorStatus.FAILED);
 
-        // When
-        boolean reset = managementService.reset(processorId);
-
-        // Then
-        assertThat(reset).isTrue();
-        assertThat(managementService.getStatus(processorId)).isEqualTo(ProcessorStatus.ACTIVE);
+        // When & Then
+        webTestClient.post()
+            .uri("/api/processors/{id}/reset", processorId)
+            .exchange()
+            .expectStatus().isOk();
     }
 
     @Test
-    @DisplayName("Given non-existent processor, when resetting processor, then returns false")
-    void givenNonExistentProcessor_whenResettingProcessor_thenReturnsFalse() {
+    @DisplayName("Given non-existent processor, when resetting processor, then returns 404")
+    void givenNonExistentProcessor_whenResettingProcessor_thenReturns404() {
         // Given
         String processorId = "non-existent-processor";
 
-        // When
-        boolean reset = managementService.reset(processorId);
-
-        // Then
-        assertThat(reset).isFalse();
+        // When & Then
+        webTestClient.post()
+            .uri("/api/processors/{id}/reset", processorId)
+            .exchange()
+            .expectStatus().isNotFound();
     }
 
     @Test
-    @DisplayName("Given processor with events, when getting lag, then returns lag value")
-    void givenProcessorWithEvents_whenGettingLag_thenReturnsLagValue() {
+    @DisplayName("Given existing processor with events, when getting lag, then returns lag value")
+    void givenExistingProcessorWithEvents_whenGettingLag_thenReturnsLagValue() {
         // Given
         String processorId = "test-processor";
-        
+
         // Append events
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent")
@@ -203,49 +230,53 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
                 .build()
         );
         eventStore.appendCommutative(events);
-        
+
         // Process to set last position
         eventProcessor.process(processorId);
 
-        // When
-        Long lag = managementService.getLag(processorId);
-
-        // Then
-        assertThat(lag).isNotNull();
-        assertThat(lag).isGreaterThanOrEqualTo(0L);
+        // When & Then
+        webTestClient.get()
+            .uri("/api/processors/{id}/lag", processorId)
+            .exchange()
+            .expectStatus().isOk()
+            .expectBody(Long.class)
+            .value(lag -> {
+                assert lag != null;
+                assert lag >= 0L;
+            });
     }
 
     @Test
-    @DisplayName("Given processor with no events, when getting lag, then returns zero or null")
-    void givenProcessorWithNoEvents_whenGettingLag_thenReturnsZeroOrNull() {
+    @DisplayName("Given non-existent processor, when getting lag, then returns zero lag")
+    void givenNonExistentProcessor_whenGettingLag_thenReturnsZeroLag() {
         // Given
-        String processorId = "test-processor";
-        eventProcessor.process(processorId); // Auto-registers but no events processed
+        String processorId = "non-existent-processor";
 
-        // When
-        Long lag = managementService.getLag(processorId);
-
-        // Then
-        // Lag should be 0 (max position 0 - last position 0) or null if no events exist
-        assertThat(lag).isNotNull();
-        assertThat(lag).isEqualTo(0L);
+        // When & Then - getLag() returns 0 for non-existent processors (max position 0 - last position 0 = 0)
+        webTestClient.get()
+            .uri("/api/processors/{id}/lag", processorId)
+            .exchange()
+            .expectStatus().isOk()
+            .expectBody(Long.class)
+            .value(lag -> {
+                assert lag != null;
+                assert lag == 0L;
+            });
     }
 
     @Test
-    @DisplayName("Given processor with backoff enabled, when getting backoff info, then returns backoff info")
-    void givenProcessorWithBackoffEnabled_whenGettingBackoffInfo_thenReturnsBackoffInfo() {
+    @DisplayName("Given existing processor, when getting backoff info, then returns backoff info or 404")
+    void givenExistingProcessor_whenGettingBackoffInfo_thenReturnsBackoffInfoOr404() {
         // Given
         String processorId = "test-processor";
         eventProcessor.process(processorId);
 
-        // When
-        ProcessorManagementService.BackoffInfo backoffInfo = managementService.getBackoffInfo(processorId);
-
-        // Then
-        // Backoff info might be null if backoff is not enabled or no backoff state exists
-        // This is acceptable - the method returns null when backoff is not active
-        // We just verify the method doesn't throw
-        assertThat(backoffInfo).isNull(); // Backoff not enabled in test config
+        // When & Then
+        // Backoff info might be null if backoff is not enabled, which returns 404
+        webTestClient.get()
+            .uri("/api/processors/{id}/backoff", processorId)
+            .exchange()
+            .expectStatus().isNotFound(); // Backoff not enabled in test config
     }
 
     @Test
@@ -255,22 +286,16 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
         eventProcessor.process("processor-1");
         eventProcessor.process("processor-2");
 
-        // When
-        Map<String, ProcessorManagementService.BackoffInfo> allBackoffInfo = managementService.getAllBackoffInfo();
-
-        // Then
-        assertThat(allBackoffInfo).isNotNull();
-        // Backoff info might be empty if backoff is not enabled
-        // We just verify the method doesn't throw
+        // When & Then
+        webTestClient.get()
+            .uri("/api/processors/backoff")
+            .exchange()
+            .expectStatus().isOk()
+            .expectBody()
+            .jsonPath("$").isMap();
     }
 
-    // Test implementations (reused from EventProcessorImplIntegrationTest pattern)
-
-    static class TestInstanceIdProvider {
-        public String getInstanceId() {
-            return "test-instance";
-        }
-    }
+    // Test implementations (reused from ProcessorManagementServiceImplIntegrationTest)
 
     static class TestProcessorConfig implements ProcessorConfig<String> {
         private final String processorId;
@@ -399,7 +424,7 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
                      "FROM events WHERE position > ? ORDER BY position ASC LIMIT ?")) {
                 stmt.setLong(1, lastPosition);
                 stmt.setInt(2, batchSize);
-                
+
                 List<StoredEvent> events = new ArrayList<>();
                 try (var rs = stmt.executeQuery()) {
                     while (rs.next()) {
@@ -437,6 +462,7 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
         }
     }
 
+    @org.springframework.boot.autoconfigure.SpringBootApplication
     @Configuration
     static class TestConfig {
         @Bean
@@ -499,8 +525,8 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
         }
 
         @Bean
-        public com.crablet.eventpoller.InstanceIdProvider instanceIdProvider(Environment environment) {
-            return new com.crablet.eventpoller.InstanceIdProvider(environment);
+        public InstanceIdProvider instanceIdProvider(Environment environment) {
+            return new InstanceIdProvider(environment);
         }
 
         @Bean
@@ -516,7 +542,7 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
         @Bean
         public LeaderElector leaderElector(
                 DataSource dataSource,
-                com.crablet.eventpoller.InstanceIdProvider instanceIdProvider,
+                InstanceIdProvider instanceIdProvider,
                 org.springframework.context.ApplicationEventPublisher eventPublisher) {
             return new LeaderElectorImpl(
                 dataSource,
@@ -579,6 +605,12 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
                 ProgressTracker<String> progressTracker,
                 DataSource dataSource) {
             return new ProcessorManagementServiceImpl<>(eventProcessor, progressTracker, dataSource);
+        }
+
+        @Bean
+        public ProcessorManagementController processorManagementController(
+                ProcessorManagementService<String> processorManagementService) {
+            return new ProcessorManagementController(processorManagementService);
         }
     }
 }
