@@ -360,17 +360,8 @@ public class EventStoreImpl implements EventStore {
 
     @Override
     public <T> ProjectionResult<T> project(Query query, StreamPosition after, Class<T> stateType, List<StateProjector<T>> projectors) {
-        if (query == null) {
-            throw new NullPointerException("Query must not be null");
-        }
-        if (after == null) {
-            throw new NullPointerException("StreamPosition must not be null");
-        }
-        if (stateType == null) {
-            throw new NullPointerException("State type must not be null");
-        }
-        if (projectors == null || projectors.isEmpty()) {
-            throw new IllegalArgumentException("Projectors must not be null or empty");
+        if (projectors.isEmpty()) {
+            throw new IllegalArgumentException("Projectors must not be empty");
         }
 
         try {
