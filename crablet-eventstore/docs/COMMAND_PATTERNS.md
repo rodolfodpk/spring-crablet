@@ -108,8 +108,7 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
     public CommandDecision.Commutative decide(EventStore eventStore, DepositCommand command) {
         // Project to validate wallet exists
         Query query = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
-        ProjectionResult<WalletBalanceState> projection = eventStore.project(
-            query, StreamPosition.zero(), WalletBalanceState.class, List.of(projector));
+        ProjectionResult<WalletBalanceState> projection = eventStore.project(query, projector);
         
         if (!projection.state().isExisting()) {
             throw new WalletNotFoundException(command.walletId());
@@ -152,8 +151,7 @@ public class WithdrawCommandHandler implements NonCommutativeCommandHandler<With
     @Override
     public CommandDecision.NonCommutative decide(EventStore eventStore, WithdrawCommand command) {
         Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
-        ProjectionResult<WalletBalanceState> projection = eventStore.project(
-            decisionModel, StreamPosition.zero(), WalletBalanceState.class, List.of(projector));
+        ProjectionResult<WalletBalanceState> projection = eventStore.project(decisionModel, projector);
         
         WalletBalanceState state = projection.state();
         if (!state.isExisting()) {
@@ -196,8 +194,7 @@ public class TransferMoneyCommandHandler implements NonCommutativeCommandHandler
             command.fromWalletId(), command.toWalletId());
         TransferStateProjector projector = new TransferStateProjector(
             command.fromWalletId(), command.toWalletId());
-        ProjectionResult<TransferState> projection = eventStore.project(
-            decisionModel, StreamPosition.zero(), TransferState.class, List.of(projector));
+        ProjectionResult<TransferState> projection = eventStore.project(decisionModel, projector);
         
         TransferState state = projection.state();
         // Validate wallets exist and sufficient funds...

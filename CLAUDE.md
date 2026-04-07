@@ -17,9 +17,7 @@ public class YourCommandHandler implements NonCommutativeCommandHandler<YourComm
     public CommandDecision.NonCommutative decide(EventStore eventStore, YourCommand command) {
         // 1. Project current state
         Query decisionModel = YourQueryPatterns.yourDecisionModel(command.entityId());
-        ProjectionResult<YourState> projection = eventStore.project(
-            decisionModel, StreamPosition.zero(), YourState.class, List.of(yourProjector)
-        );
+        ProjectionResult<YourState> projection = eventStore.project(decisionModel, yourProjector);
         YourState state = projection.state();
 
         // 2. Validate business rules

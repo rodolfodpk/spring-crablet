@@ -32,9 +32,7 @@ private EventStore eventStore;
 public void myOperation() {
     // Project state with DCB pattern
     Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(walletId);
-    ProjectionResult<WalletBalanceState> projection = eventStore.project(
-        decisionModel, StreamPosition.zero(), WalletBalanceState.class, List.of(projector)
-    );
+    ProjectionResult<WalletBalanceState> projection = eventStore.project(decisionModel, projector);
     
     // Append events with concurrency control — returns the transaction ID for command auditing
     String transactionId = eventStore.appendNonCommutative(events, decisionModel, projection.streamPosition());

@@ -266,9 +266,7 @@ public class WithdrawCommandHandler implements NonCommutativeCommandHandler<With
         
         // 2. Project current balance with stream position
         WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
-        ProjectionResult<WalletBalanceState> result = eventStore.project(
-            decisionModel, StreamPosition.zero(), WalletBalanceState.class, List.of(projector)
-        );
+        ProjectionResult<WalletBalanceState> result = eventStore.project(decisionModel, projector);
         
         // 3. Business logic
         if (!result.state().isExisting()) {
@@ -366,9 +364,7 @@ Query query = QueryBuilder.builder()
     .tag("wallet_id", walletId)
     .build();
 
-ProjectionResult<WalletBalance> result = eventStore.project(
-    query, StreamPosition.zero(), WalletBalance.class, List.of(new WalletBalanceStateProjector())
-);
+ProjectionResult<WalletBalance> result = eventStore.project(query, new WalletBalanceStateProjector());
 
 WalletBalance balance = result.state();
 StreamPosition streamPosition = result.streamPosition(); // Use for DCB concurrency control

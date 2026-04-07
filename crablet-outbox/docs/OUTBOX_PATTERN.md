@@ -35,8 +35,7 @@ public CommandDecision.NonCommutative decide(EventStore eventStore, TransferComm
     // 1. DCB: Read current state with stream position
     Query decisionModel = WalletQueryPatterns.transferDecisionModel(
         command.fromWalletId(), command.toWalletId());
-    ProjectionResult<TransferState> projection = eventStore.project(
-        decisionModel, StreamPosition.zero(), TransferState.class, List.of(projector));
+    ProjectionResult<TransferState> projection = eventStore.project(decisionModel, projector);
     
     // 2. Business logic - generate event(s)
     MoneyTransferred transfer = MoneyTransferred.of(/* ... */);

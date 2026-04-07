@@ -212,12 +212,7 @@ public class WithdrawCommandHandler implements NonCommutativeCommandHandler<With
         // 1. Project current balance with stream position
         // Create projector instance inline (not a singleton, thread-safe)
         WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
-        ProjectionResult<WalletBalance> result = eventStore.project(
-            decisionModel,
-            StreamPosition.zero(),
-            WalletBalance.class,
-            List.of(projector)
-        );
+        ProjectionResult<WalletBalance> result = eventStore.project(decisionModel, projector);
         
         WalletBalance balance = result.state();
         

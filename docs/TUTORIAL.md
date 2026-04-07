@@ -106,7 +106,7 @@ boolean exists = eventStore.exists(query);
 
 `EventStore.exists(query)` is a convenience method that returns `true` if any event matching the query exists — no projector class needed.
 
-`StreamPosition.zero()` means "start from the beginning of the event log". `ProjectionResult` carries both the projected state and a stream position pointing to the last event that was read. You will use that stream position in Part 3.
+`ProjectionResult` carries both the projected state and a stream position pointing to the last event that was read. You will use that stream position in Part 3. The convenience overload `project(query, projector)` implicitly starts from `StreamPosition.zero()` — the beginning of the event log.
 
 > **Key insight.** Append methods never modify existing data — they only append. If you need to change the title of a talk, you append a `TalkTitleUpdated` event and project the latest title from the event sequence. The database table is an append-only log.
 
@@ -189,9 +189,7 @@ var query = QueryBuilder.builder()
     .tag(TALK_ID, "talk-1")
     .build();
 
-ProjectionResult<TalkState> result = eventStore.project(
-    query, StreamPosition.zero(), TalkState.class, List.of(new TalkStateProjector())
-);
+ProjectionResult<TalkState> result = eventStore.project(query, new TalkStateProjector());
 
 TalkState state = result.state();
 StreamPosition streamPosition = result.streamPosition(); // position of the last event read
@@ -212,12 +210,10 @@ The `streamPosition` field answers the question: "up to which event in the log d
 Suppose the conference accepts a maximum of 2 talks. Two organizers open the system at the same moment. Each sees 1 accepted talk, concludes there is room for one more, and accepts a different pending talk. Without conflict detection, both writes succeed — and now 3 talks are accepted against a capacity of 2.
 
 ```java
-// Thread A                              // Thread B
-ProjectionResult<ConferenceState> a      ProjectionResult<ConferenceState> b
-    = eventStore.project(                    = eventStore.project(
-        conferenceQuery, StreamPosition.zero(),           conferenceQuery, StreamPosition.zero(),
-        ConferenceState.class,                    ConferenceState.class,
-        List.of(conferenceProjector));            List.of(conferenceProjector));
+// Thread A                                          // Thread B
+ProjectionResult<ConferenceState> a                  ProjectionResult<ConferenceState> b
+    = eventStore.project(                                = eventStore.project(
+        conferenceQuery, conferenceProjector);               conferenceQuery, conferenceProjector);
 
 // a.state().acceptedCount() == 1        // b.state().acceptedCount() == 1
 // capacity check passes                 // capacity check passes
@@ -237,8 +233,7 @@ The bug is `appendCommutative`. It tells the store "order does not matter, do no
 ```java
 // Thread A — corrected
 ProjectionResult<ConferenceState> result =
-    eventStore.project(conferenceQuery, StreamPosition.zero(),
-        ConferenceState.class, List.of(conferenceProjector));
+    eventStore.project(conferenceQuery, conferenceProjector);
 
 if (result.state().acceptedCount() >= CAPACITY) {
     throw new ConferenceFullException();
@@ -402,9 +397,7 @@ public class AcceptTalkCommandHandler implements NonCommutativeCommandHandler<Ac
             .tag(TALK_ID, command.talkId())
             .build();
 
-        ProjectionResult<TalkState> talkResult = eventStore.project(
-            talkQuery, StreamPosition.zero(), TalkState.class, List.of(talkStateProjector)
-        );
+        ProjectionResult<TalkState> talkResult = eventStore.project(talkQuery, talkStateProjector);
         TalkState talkState = talkResult.state();
 
         if (!talkState.exists()) {
@@ -424,9 +417,7 @@ public class AcceptTalkCommandHandler implements NonCommutativeCommandHandler<Ac
             .tag("conference_id", command.conferenceId())
             .build();
 
-        ProjectionResult<ConferenceState> conferenceResult = eventStore.project(
-            conferenceQuery, StreamPosition.zero(), ConferenceState.class, List.of(conferenceProjector)
-        );
+        ProjectionResult<ConferenceState> conferenceResult = eventStore.project(conferenceQuery, conferenceProjector);
 
         if (conferenceResult.state().acceptedCount() >= CONFERENCE_CAPACITY) {
             throw new ConferenceFullException(command.conferenceId());
@@ -961,9 +952,7 @@ class TalkLifecycleIntegrationTest extends AbstractCrabletTest {
             .tag(TALK_ID, talkId)
             .build();
 
-        ProjectionResult<TalkState> result = eventStore.project(
-            query, StreamPosition.zero(), TalkState.class, List.of(new TalkStateProjector())
-        );
+        ProjectionResult<TalkState> result = eventStore.project(query, new TalkStateProjector());
 
         assertThat(result.state().isAccepted()).isTrue();
     }
@@ -1026,10 +1015,7 @@ This test cannot be written as a domain test because `InMemoryEventStore` skips 
             .tag("conference_id", "conf-1")
             .build();
 
-        ProjectionResult<ConferenceState> conference = eventStore.project(
-            conferenceQuery, StreamPosition.zero(),
-            ConferenceState.class, List.of(new ConferenceStateProjector())
-        );
+        ProjectionResult<ConferenceState> conference = eventStore.project(conferenceQuery, new ConferenceStateProjector());
 
         assertThat(conference.state().acceptedCount()).isEqualTo(2);
     }
