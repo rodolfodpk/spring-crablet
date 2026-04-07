@@ -250,47 +250,48 @@ This ensures all tags must match (AND condition) for the event to be included.
 
 ```java
 // January 2024: Wallet opened, deposits, withdrawals
+var walletOpened = WalletOpened.of("alice", "Alice", 1000);
 String txId1 = eventStore.appendCommutative(List.of(
     AppendEvent.builder("WalletOpened")
-        .tag("wallet_id", "alice")
+        .tag("wallet_id", walletOpened.walletId())
         .tag("year", "2024")
         .tag("month", "1")
-        .data(WalletOpened.of("alice", "Alice", 1000))
+        .data(walletOpened)
         .build()
 ));
 
 // ... January transactions ...
 
 // End of January: Close statement
+var closed = WalletStatementClosed.of(
+    "alice", "wallet:alice:2024-01",
+    2024, 1, null, null, // year, month, day, hour
+    1000,  // opening balance
+    1300   // closing balance
+);
 String txId2 = eventStore.appendCommutative(List.of(
     AppendEvent.builder("WalletStatementClosed")
-        .tag("wallet_id", "alice")
-        .tag("statement_id", "wallet:alice:2024-01")
+        .tag("wallet_id", closed.walletId())
+        .tag("statement_id", closed.statementId())
         .tag("year", "2024")
         .tag("month", "1")
-        .data(WalletStatementClosed.of(
-            "alice",
-            "wallet:alice:2024-01",
-            2024, 1, null, null, // year, month, day, hour
-            1000,  // opening balance
-            1300   // closing balance
-        ))
+        .data(closed)
         .build()
 ));
 
 // February 2024: Open new statement
+var opened = WalletStatementOpened.of(
+    "alice", "wallet:alice:2024-02",
+    2024, 2, null, null, // year, month, day, hour
+    1300  // opening balance from January
+);
 String txId3 = eventStore.appendCommutative(List.of(
     AppendEvent.builder("WalletStatementOpened")
-        .tag("wallet_id", "alice")
-        .tag("statement_id", "wallet:alice:2024-02")
+        .tag("wallet_id", opened.walletId())
+        .tag("statement_id", opened.statementId())
         .tag("year", "2024")
         .tag("month", "2")
-        .data(WalletStatementOpened.of(
-            "alice",
-            "wallet:alice:2024-02",
-            2024, 2, null, null, // year, month, day, hour
-            1300  // opening balance from January
-        ))
+        .data(opened)
         .build()
 ));
 

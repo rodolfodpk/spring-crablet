@@ -115,9 +115,10 @@ class YourHandlerUnitTest extends AbstractHandlerUnitTest {
     @Test
     void givenExistingEntity_whenExecutingCommand_thenEventGenerated() {
         // Given
+        var created = EntityCreated.of("entity1", "data");
         given().event(type(EntityCreated.class), builder -> builder
-            .data(EntityCreated.of("entity1", "data"))
-            .tag(ENTITY_ID, "entity1")
+            .data(created)
+            .tag(ENTITY_ID, created.id())
         );
 
         // When

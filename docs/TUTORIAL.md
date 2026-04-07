@@ -71,8 +71,8 @@ TalkSubmitted submitted = new TalkSubmitted("talk-1", "alice", "Event Sourcing i
 
 // Wrap it in an AppendEvent — the write-side envelope
 AppendEvent appendEvent = AppendEvent.builder(type(TalkSubmitted.class))
-    .tag(TALK_ID, "talk-1")
-    .tag(SPEAKER_ID, "alice")
+    .tag(TALK_ID, submitted.talkId())
+    .tag(SPEAKER_ID, submitted.speakerId())
     .data(submitted)
     .build();
 
@@ -852,10 +852,11 @@ class AcceptTalkCommandHandlerTest extends AbstractHandlerUnitTest {
     @Test
     void givenPendingTalk_whenAccepting_thenTalkAcceptedEventGenerated() {
         // Given: a submitted talk exists
+        var submitted = new TalkSubmitted("talk-1", "alice", "Event Sourcing in Practice");
         given().event(type(TalkSubmitted.class), builder -> builder
-            .data(new TalkSubmitted("talk-1", "alice", "Event Sourcing in Practice"))
-            .tag(TALK_ID, "talk-1")
-            .tag(SPEAKER_ID, "alice")
+            .data(submitted)
+            .tag(TALK_ID, submitted.talkId())
+            .tag(SPEAKER_ID, submitted.speakerId())
         );
 
         // When
@@ -887,26 +888,26 @@ class AcceptTalkCommandHandlerTest extends AbstractHandlerUnitTest {
     @Test
     void givenConferenceAtCapacity_whenAcceptingAnotherTalk_thenConferenceFullExceptionThrown() {
         // Given: two talks already accepted (conference capacity = 2)
+        var s1 = new TalkSubmitted("talk-1", "alice", "Talk A");
+        var a1 = new TalkAccepted("talk-1", "alice");
+        var s2 = new TalkSubmitted("talk-2", "bob", "Talk B");
+        var a2 = new TalkAccepted("talk-2", "bob");
+        var s3 = new TalkSubmitted("talk-3", "carol", "Talk C");
         given()
             .event(type(TalkSubmitted.class), builder -> builder
-                .data(new TalkSubmitted("talk-1", "alice", "Talk A"))
-                .tag(TALK_ID, "talk-1").tag(SPEAKER_ID, "alice").tag("conference_id", "conf-1")
+                .data(s1).tag(TALK_ID, s1.talkId()).tag(SPEAKER_ID, s1.speakerId()).tag("conference_id", "conf-1")
             )
             .event(type(TalkAccepted.class), builder -> builder
-                .data(new TalkAccepted("talk-1", "alice"))
-                .tag(TALK_ID, "talk-1").tag(SPEAKER_ID, "alice").tag("conference_id", "conf-1")
+                .data(a1).tag(TALK_ID, a1.talkId()).tag(SPEAKER_ID, a1.speakerId()).tag("conference_id", "conf-1")
             )
             .event(type(TalkSubmitted.class), builder -> builder
-                .data(new TalkSubmitted("talk-2", "bob", "Talk B"))
-                .tag(TALK_ID, "talk-2").tag(SPEAKER_ID, "bob").tag("conference_id", "conf-1")
+                .data(s2).tag(TALK_ID, s2.talkId()).tag(SPEAKER_ID, s2.speakerId()).tag("conference_id", "conf-1")
             )
             .event(type(TalkAccepted.class), builder -> builder
-                .data(new TalkAccepted("talk-2", "bob"))
-                .tag(TALK_ID, "talk-2").tag(SPEAKER_ID, "bob").tag("conference_id", "conf-1")
+                .data(a2).tag(TALK_ID, a2.talkId()).tag(SPEAKER_ID, a2.speakerId()).tag("conference_id", "conf-1")
             )
             .event(type(TalkSubmitted.class), builder -> builder
-                .data(new TalkSubmitted("talk-3", "carol", "Talk C"))
-                .tag(TALK_ID, "talk-3").tag(SPEAKER_ID, "carol").tag("conference_id", "conf-1")
+                .data(s3).tag(TALK_ID, s3.talkId()).tag(SPEAKER_ID, s3.speakerId()).tag("conference_id", "conf-1")
             );
 
         // When/Then: accepting a third talk fails
