@@ -80,6 +80,29 @@ public interface EventStore {
     }
 
     /**
+     * Convenience overload that projects from {@link StreamPosition#zero()} with a single projector.
+     * Use this for the common case where you want to project the full event history.
+     *
+     * @param query     The query to filter events
+     * @param projector The single projector to apply
+     */
+    default <T> ProjectionResult<T> project(Query query, StateProjector<T> projector) {
+        return project(query, StreamPosition.zero(), projector);
+    }
+
+    /**
+     * Convenience overload that projects from {@link StreamPosition#zero()} with multiple projectors.
+     * Use this when projecting several independent state slices from the same event stream in one pass.
+     *
+     * @param query      The query to filter events
+     * @param projectors The projectors to apply
+     */
+    @SuppressWarnings("unchecked")
+    default <T> ProjectionResult<T> project(Query query, List<StateProjector<T>> projectors) {
+        return project(query, StreamPosition.zero(), (Class<T>) Object.class, projectors);
+    }
+
+    /**
      * Returns {@code true} if at least one event matching {@code query} exists.
      * <p>
      * The production implementation uses {@code SELECT EXISTS(SELECT 1 FROM events WHERE ...)}
