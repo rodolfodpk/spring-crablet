@@ -14,6 +14,23 @@ import static com.crablet.examples.wallet.WalletTags.*;
 public class WalletQueryPatterns {
 
     /**
+     * Lifecycle guard query — includes only events that represent wallet existence or closure.
+     * <p>
+     * Use as the {@code guardQuery} in {@link com.crablet.command.CommandDecision.Commutative#of(
+     * com.crablet.eventstore.AppendEvent, Query, com.crablet.eventstore.StreamPosition)}
+     * for commutative operations (e.g., deposits) that must respect wallet lifecycle state.
+     * <p>
+     * This query intentionally excludes {@code DepositMade} and {@code WithdrawalMade} so that
+     * concurrent deposits/withdrawals do NOT trigger the guard — only lifecycle changes do.
+     * If a {@code WalletClosed} event type is added to the domain, include it here.
+     */
+    public static Query walletLifecycleModel(String walletId) {
+        return QueryBuilder.builder()
+                .event(type(WalletOpened.class), WALLET_ID, walletId)
+                .build();
+    }
+
+    /**
      * Complete decision model query for single wallet operations.
      * Used by Deposit and Withdraw handlers.
      */

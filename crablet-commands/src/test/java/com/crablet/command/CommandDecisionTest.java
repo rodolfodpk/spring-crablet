@@ -31,7 +31,7 @@ class CommandDecisionTest {
     @DisplayName("Commutative should carry events")
     void commutative_ShouldCarryEvents() {
         AppendEvent event = sampleEvent("TestEvent");
-        CommandDecision result = new CommandDecision.Commutative(List.of(event));
+        CommandDecision result = CommandDecision.Commutative.of(event);
 
         assertThat(result.events()).containsExactly(event);
         assertThat(result).isInstanceOf(CommandDecision.Commutative.class);
@@ -42,7 +42,7 @@ class CommandDecisionTest {
     void commutative_MultipleEvents_ShouldPreserveOrder() {
         AppendEvent e1 = sampleEvent("Event1");
         AppendEvent e2 = sampleEvent("Event2");
-        CommandDecision result = new CommandDecision.Commutative(List.of(e1, e2));
+        CommandDecision result = CommandDecision.Commutative.of(e1, e2);
 
         assertThat(result.events()).containsExactly(e1, e2);
     }
@@ -132,7 +132,7 @@ class CommandDecisionTest {
     @Test
     @DisplayName("Switch on sealed CommandDecision should be exhaustive")
     void sealedSwitch_ShouldBeExhaustive() {
-        CommandDecision commutative = new CommandDecision.Commutative(List.of());
+        CommandDecision commutative = CommandDecision.Commutative.of();
         CommandDecision nonCommutative = new CommandDecision.NonCommutative(List.of(), Query.empty(), StreamPosition.zero());
         CommandDecision idempotent = new CommandDecision.Idempotent(List.of(), "T", "k", "v");
         CommandDecision empty = CommandDecision.NoOp.empty();

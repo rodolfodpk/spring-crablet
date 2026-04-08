@@ -77,7 +77,7 @@ class CommandExecutorImplPersistenceTest {
                 .tag("entityId", "entity-123")
                 .data("{}")
                 .build();
-        CommandDecision commandResult = new CommandDecision.Commutative(List.of(event));
+        CommandDecision commandResult = CommandDecision.Commutative.of(event);
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
         
@@ -125,7 +125,7 @@ class CommandExecutorImplPersistenceTest {
                 .tag("entityId", "entity-123")
                 .data("{}")
                 .build();
-        CommandDecision commandResult = new CommandDecision.Commutative(List.of(event));
+        CommandDecision commandResult = CommandDecision.Commutative.of(event);
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
         

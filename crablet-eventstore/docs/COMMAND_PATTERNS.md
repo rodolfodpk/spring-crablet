@@ -99,14 +99,16 @@ public class OpenWalletCommandHandler implements IdempotentCommandHandler<OpenWa
 
 **Use case:** Operations where order doesn't matter (e.g., Deposit).
 
-**Why no streamPosition needed:** Commutative operations don't conflict — parallel operations produce same result regardless of order.
+**Why no full streamPosition check needed:** Commutative operations don't conflict with each other — parallel deposits produce the same result regardless of order.
+
+**Lifecycle guard:** Use an optional guard query with the stream position captured during projection to detect lifecycle changes (e.g., `WalletClosed`) without blocking concurrent commutative operations. The guard query must exclude commutative event types.
 
 ```java
 @Component
 public class DepositCommandHandler implements CommutativeCommandHandler<DepositCommand> {
     @Override
     public CommandDecision.Commutative decide(EventStore eventStore, DepositCommand command) {
-        // Project to validate wallet exists
+        // Project to validate wallet exists and get stream position
         Query query = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
         ProjectionResult<WalletBalanceState> projection = eventStore.project(query, projector);
         
@@ -122,20 +124,31 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
         
         AppendEvent event = AppendEvent.builder(type(DepositMade.class))
             .tag(WALLET_ID, command.walletId())
-            .tag(DEPOSIT_ID, command.depositId())  // Optional: for application-level idempotency
+            .tag(DEPOSIT_ID, command.depositId())
             .data(deposit)
             .build();
         
-        // Commutative: order doesn't affect final result
-        return CommandDecision.Commutative.of(event);
+        // Lifecycle guard: detect if wallet state changed (e.g., WalletClosed) since projection.
+        // The guard query excludes DepositMade so concurrent deposits are still allowed.
+        Query lifecycleGuard = WalletQueryPatterns.walletLifecycleModel(command.walletId());
+        return CommandDecision.Commutative.of(event, lifecycleGuard, projection.streamPosition());
     }
 }
 ```
 
 **Key Points:**
 - ✅ Commutative: +$10 then +$20 = +$20 then +$10
-- ✅ No streamPosition check: parallel deposits don't conflict
+- ✅ No full streamPosition check: parallel deposits don't conflict
+- ✅ Lifecycle guard: detects WalletClosed (or similar) between projection and append
 - ✅ Optional `deposit_id` tag for application-level idempotency
+
+**Guard vs NonCommutative:**
+
+| Scenario | Use |
+|----------|-----|
+| Operation is commutative with itself, lifecycle is stable | `Commutative.of(event)` — no guard |
+| Operation is commutative with itself, lifecycle can change | `Commutative.of(event, lifecycleGuard, streamPosition)` — selective guard |
+| Operation order matters (Withdraw, Transfer) | `NonCommutativeCommandHandler` — full DCB check |
 
 ### Pattern 3: Non-Commutative Operations
 

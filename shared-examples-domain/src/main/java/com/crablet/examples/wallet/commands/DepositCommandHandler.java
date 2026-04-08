@@ -4,6 +4,8 @@ import com.crablet.command.CommandDecision;
 import com.crablet.command.CommutativeCommandHandler;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.query.Query;
+import com.crablet.examples.wallet.WalletQueryPatterns;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.exceptions.WalletNotFoundException;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
@@ -63,6 +65,9 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
                 .data(deposit)
                 .build();
 
-        return CommandDecision.Commutative.of(event);
+        // Lifecycle guard: detect if wallet state changed (e.g., WalletClosed) between projection
+        // and append, without blocking concurrent deposits (DepositMade is not in the guard query).
+        Query lifecycleGuard = WalletQueryPatterns.walletLifecycleModel(command.walletId());
+        return CommandDecision.Commutative.of(event, lifecycleGuard, periodResult.projection().streamPosition());
     }
 }

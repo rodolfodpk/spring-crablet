@@ -443,6 +443,18 @@ public class EventStoreImpl implements EventStore {
         }
     }
 
+    @Override
+    public boolean hasConflict(Query query, StreamPosition after) {
+        try (Connection connection = readDataSource.getConnection()) {
+            connection.setReadOnly(true);
+            return hasConflictWithConnection(connection, query, after);
+        } catch (EventStoreException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new EventStoreException("Failed to check event conflict", e);
+        }
+    }
+
     /**
      * Private method to append events using a provided connection.
      * Used internally by ConnectionScopedEventStore.
@@ -804,6 +816,34 @@ public class EventStoreImpl implements EventStore {
         }
     }
 
+    private boolean hasConflictWithConnection(Connection connection, Query query, StreamPosition after) {
+        try {
+            List<Object> params = new ArrayList<>();
+            String whereClause = sqlBuilder.buildWhereClause(query, after, params);
+            StringBuilder sql = new StringBuilder("SELECT EXISTS(SELECT 1 FROM events");
+            if (!whereClause.isEmpty()) {
+                sql.append(" WHERE ").append(whereClause);
+            }
+            sql.append(") AS result");
+
+            try (PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
+                for (int i = 0; i < params.size(); i++) {
+                    Object param = params.get(i);
+                    if (param instanceof String[]) {
+                        stmt.setArray(i + 1, connection.createArrayOf("text", (String[]) param));
+                    } else {
+                        stmt.setObject(i + 1, param);
+                    }
+                }
+                try (ResultSet rs = stmt.executeQuery()) {
+                    return rs.next() && rs.getBoolean("result");
+                }
+            }
+        } catch (Exception e) {
+            throw new EventStoreException("Failed to check event conflict", e);
+        }
+    }
+
     // Helper methods
 
 
@@ -1105,6 +1145,11 @@ public class EventStoreImpl implements EventStore {
         @Override
         public boolean exists(Query query) {
             return EventStoreImpl.this.existsWithConnection(connection, query);
+        }
+
+        @Override
+        public boolean hasConflict(Query query, StreamPosition after) {
+            return EventStoreImpl.this.hasConflictWithConnection(connection, query, after);
         }
 
         @Override

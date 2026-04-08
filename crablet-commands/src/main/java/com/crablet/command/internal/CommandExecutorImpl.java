@@ -12,6 +12,7 @@ import com.crablet.command.metrics.CommandSuccessMetric;
 import com.crablet.command.metrics.IdempotentOperationMetric;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ConcurrencyException;
+import com.crablet.eventstore.DCBViolation;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
@@ -251,8 +252,21 @@ public class CommandExecutorImpl implements CommandExecutor {
                 @Nullable String transactionId;
                 try {
                     transactionId = switch (result) {
-                        case CommandDecision.Commutative c ->
-                            txStore.appendCommutative(c.events());
+                        case CommandDecision.Commutative c -> {
+                            // If the handler provided a selective lifecycle guard, enforce it atomically
+                            // before appending. The guard detects lifecycle changes (e.g., WalletClosed)
+                            // without blocking concurrent commutative operations (e.g., DepositMade).
+                            if (c.guard() != null) {
+                                CommandDecision.Commutative.Guard g = c.guard();
+                                if (txStore.hasConflict(g.query(), g.streamPosition())) {
+                                    throw new ConcurrencyException(
+                                        "Commutative guard violated: lifecycle state changed since projection",
+                                        new DCBViolation(
+                                            "GUARD_VIOLATION", "Concurrent lifecycle event detected", 1));
+                                }
+                            }
+                            yield txStore.appendCommutative(c.events());
+                        }
                         case CommandDecision.NonCommutative nc ->
                             txStore.appendNonCommutative(nc.events(), nc.decisionModel(), nc.streamPosition());
                         case CommandDecision.Idempotent i ->

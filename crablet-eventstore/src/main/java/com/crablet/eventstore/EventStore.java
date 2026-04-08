@@ -117,6 +117,25 @@ public interface EventStore {
     }
 
     /**
+     * Returns {@code true} if any event matching {@code query} appeared <em>after</em> {@code after}.
+     * <p>
+     * Used by {@link com.crablet.command.internal.CommandExecutorImpl} to enforce a selective DCB guard
+     * on commutative operations: the guard checks only lifecycle events (e.g., WalletOpened, WalletClosed),
+     * not the full decision model, so concurrent commutative operations (e.g., deposits) are still allowed
+     * while lifecycle changes (e.g., wallet closing) are detected.
+     * <p>
+     * The {@code default} implementation uses {@code project()} for compatibility with custom implementors.
+     * The production implementation uses {@code SELECT EXISTS(...)} for efficiency.
+     *
+     * @param query the query defining which events to check for conflicts
+     * @param after the stream position after which to look for events
+     * @return {@code true} if a conflicting event was found, {@code false} otherwise
+     */
+    default boolean hasConflict(Query query, StreamPosition after) {
+        return project(query, after, StateProjector.exists()).state();
+    }
+
+    /**
      * Execute operations within a single transaction.
      * EventStore manages connection lifecycle internally.
      * <p>

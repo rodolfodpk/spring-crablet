@@ -42,7 +42,7 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
                 .build();
         
         // First execution to establish a stream position
-        CommandDecision firstResult = new CommandDecision.Commutative(List.of(event));
+        CommandDecision firstResult = CommandDecision.Commutative.of(event);
         TestCommandHandler.setHandlerLogic(cmd -> firstResult);
         ExecutionResult first = commandExecutor.executeCommand(command);
         assertTrue(first.wasCreated());

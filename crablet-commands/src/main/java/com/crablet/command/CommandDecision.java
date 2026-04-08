@@ -3,6 +3,7 @@ package com.crablet.command;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.StreamPosition;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -28,15 +29,49 @@ public sealed interface CommandDecision
         permits CommandDecision.Commutative, CommandDecision.NonCommutative,
                 CommandDecision.Idempotent, CommandDecision.NoOp {
 
-    /** Commutative — order-independent; no conflict detection needed. */
-    record Commutative(List<AppendEvent> events) implements CommandDecision {
-        /** Single-event factory — the common case. */
+    /**
+     * Commutative — order-independent; no full DCB conflict check needed.
+     * <p>
+     * Optionally carries a {@link Guard} that applies a selective DCB check on a narrower
+     * lifecycle query before appending. The guard detects lifecycle state changes
+     * (e.g., WalletClosed) without blocking concurrent commutative operations
+     * (e.g., DepositMade is not in the guard query, so parallel deposits still succeed).
+     */
+    record Commutative(List<AppendEvent> events, @Nullable Guard guard)
+            implements CommandDecision {
+
+        /**
+         * Selective DCB guard for commutative operations.
+         * Carries a narrow lifecycle query and the stream position captured during projection.
+         * The executor checks whether any event matching {@code query} appeared after
+         * {@code streamPosition}; if so, it throws {@link com.crablet.eventstore.ConcurrencyException}
+         * so the caller can retry and re-project the current state.
+         */
+        public record Guard(Query query, StreamPosition streamPosition) {}
+
+        /** Single-event factory — no guard, current behavior. */
         public static Commutative of(AppendEvent event) {
-            return new Commutative(List.of(event));
+            return new Commutative(List.of(event), null);
         }
-        /** Multi-event factory. */
+        /** Multi-event factory — no guard. */
         public static Commutative of(AppendEvent... events) {
-            return new Commutative(List.of(events));
+            return new Commutative(List.of(events), null);
+        }
+
+        /**
+         * Single-event factory with selective lifecycle guard.
+         * <p>
+         * Use when the commutative operation has a lifecycle precondition that must hold atomically:
+         * the {@code guardQuery} should include only lifecycle event types (e.g., WalletOpened,
+         * WalletClosed) — NOT the commutative event types (e.g., DepositMade) — so that
+         * concurrent commutative operations do not cause spurious conflicts.
+         *
+         * @param event          the event to append
+         * @param guardQuery     narrow lifecycle query (must not include commutative event types)
+         * @param guardPosition  stream position captured during projection
+         */
+        public static Commutative of(AppendEvent event, Query guardQuery, StreamPosition guardPosition) {
+            return new Commutative(List.of(event), new Guard(guardQuery, guardPosition));
         }
     }
 
