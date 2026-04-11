@@ -226,22 +226,27 @@ crablet-commands (Optional)
 
 crablet-event-poller (Generic Infrastructure)
 ├── EventProcessor - Reusable polling infrastructure
+├── EventSelection - Shared event matching contract
+├── ProcessorRuntimeOverrides - Shared per-instance override contract
 ├── Leader election - PostgreSQL advisory locks
 ├── Progress tracking - Per-processor position tracking
-└── Used by crablet-views and crablet-outbox
+└── Used by crablet-views, crablet-outbox, and crablet-automations
 
 crablet-views (Optional)
 ├── ViewProjector interface - Materialized read models
 ├── Async event processing - Eventual consistency
-└── Leader election per view
+├── ViewSubscription - Event selection + per-view poller config
+└── Leader election per view processor
 
 crablet-outbox (Optional)
 ├── OutboxPublisher interface - External event publishing
 ├── Transactional outbox pattern
+├── One processor per (topic, publisher) pair
 └── Multiple publishers support
 
 crablet-automations (Optional)
-├── Event-driven automations - Policies and sagas
+├── AutomationHandler - Single public automation contract
+├── Webhook delivery is a mode on AutomationHandler
 ├── Listen to events, execute commands automatically
 └── Leader election per automation processor
 
@@ -264,6 +269,33 @@ wallet-example-app (Example application)
 - `crablet-views`: Depends on `crablet-eventstore` + `crablet-event-poller`
 - `crablet-outbox`: Depends on `crablet-eventstore` + `crablet-event-poller`
 - `crablet-automations`: Depends on `crablet-eventstore` + `crablet-event-poller` + `crablet-commands`
+
+### Current Architecture Decisions
+
+These decisions reflect the current repository state and should be treated as the preferred direction:
+
+- `AutomationHandler` is the single public automation contract.
+- Webhook delivery is a mode on `AutomationHandler`, not a separate public type.
+- `AutomationSubscription` has been removed.
+- `crablet-event-poller` now owns the shared matching and per-instance override abstractions:
+  - `EventSelection`
+  - `EventSelectionSqlBuilder`
+  - `ProcessorRuntimeOverrides`
+  - `ProcessorRuntimeOverrideResolver`
+- Generic `EventHandler<I>` no longer accepts a raw `DataSource`.
+- Write-database access for views is owned by the `crablet-views` bridge (`ViewEventHandler` -> `ViewProjector`), not by the generic poller contract.
+- Poller-backed modules should model configuration at two levels:
+  - global module config with shared defaults
+  - per-poller-instance config for one processor
+- Examples:
+  - views: global `ViewsConfig` + one `ViewSubscription` per view
+  - automations: global `AutomationsConfig` + one `AutomationHandler` per automation
+  - outbox: global `OutboxConfig` + one resolved processor per `(topic, publisher)` pair
+- Poller deployment guidance:
+  - prefer `1` application instance by default
+  - use `2` instances at most for active/failover behavior
+  - extra replicas do not increase throughput for the same processor set
+- The root tutorial is now a tutorial series under `docs/tutorials/`, not one monolithic walkthrough.
 
 ### Cyclic Dependency Handling
 
