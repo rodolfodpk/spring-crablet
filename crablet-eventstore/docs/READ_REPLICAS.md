@@ -4,7 +4,13 @@
 
 Crablet supports optional PostgreSQL read replicas to enable horizontal read scaling in production environments. This feature routes read operations (event projections) to a read replica while keeping all write operations on the primary database.
 
-**Important:** Load balancing across multiple replicas is handled externally (AWS RDS read replica endpoints, PgBouncer, pgcat, or hardware load balancers). Crablet connects to a single replica URL that points to your load balancing infrastructure.
+**Important:** Load balancing across multiple replicas is handled externally (AWS RDS read replica endpoints, PgBouncer, PgCat, or hardware load balancers). Crablet connects to a single replica URL that points to your load balancing infrastructure.
+
+Crablet is intentionally built around **two explicit datasource roles**:
+- `primaryDataSource` for writes and session-scoped features such as advisory locks
+- `readDataSource` for read-only fetches that can be served by replicas
+
+If you use a proxy or pooler, prefer **separate endpoints for write and read intent** rather than relying on automatic SQL parsing.
 
 ## DataSource Configuration
 
@@ -127,7 +133,7 @@ crablet.eventstore.read-replicas.url=jdbc:postgresql://read-replica-cluster.us-e
 crablet.eventstore.read-replicas.url=jdbc:postgresql://pgbouncer-read:6432/crablet
 ```
 
-**pgcat Connection Pooler:**
+**PgCat Connection Pooler:**
 ```properties
 crablet.eventstore.read-replicas.url=jdbc:postgresql://pgcat-read:5432/crablet
 ```
@@ -161,7 +167,7 @@ Crablet **does not implement client-side load balancing**. Instead, it connects 
 **External load balancing options:**
 1. **AWS RDS Read Replica Endpoint** - AWS handles load balancing across multiple read replicas
 2. **PgBouncer** - Connection pooler with multiple backend servers
-3. **pgcat** - Modern PostgreSQL connection pooler
+3. **PgCat** - Modern PostgreSQL pooler/proxy
 4. **Hardware/Software Load Balancer** - HAProxy, NGINX, or cloud load balancers
 
 **Benefits of external load balancing:**
@@ -341,7 +347,7 @@ INFO - Falling back to primary database
 1. **Use external load balancing** - AWS RDS read replica endpoints, PgBouncer, or pgcat
 2. **Monitor replication lag** - Keep under 5 seconds for acceptable outbox latency
 3. **Configure multiple replicas** behind your load balancer for redundancy and capacity
-4. **Consider PgBouncer** for additional connection pooling (see [PgBouncer Guide](./PGBOUNCER.md))
+4. **Consider PgBouncer or PgCat** for additional connection pooling
 
 ## Troubleshooting
 
@@ -370,7 +376,7 @@ INFO - Falling back to primary database
 
 ## See Also
 
-- [PgBouncer Guide](./PGBOUNCER.md) - Using PgBouncer for load balancing
+- [PgBouncer Guide](./PGBOUNCER.md) - PgBouncer compatibility and deployment patterns
+- [PgCat Guide](./PGCAT.md) - PgCat compatibility and read/write routing guidance
 - [Outbox Implementation](../../crablet-outbox/docs/OUTBOX_PATTERN.md) - Understanding outbox implementation
 - [Performance Optimizations](../../etc/PERFORMANCE_OPTIMIZATIONS.md) - General performance tips
-

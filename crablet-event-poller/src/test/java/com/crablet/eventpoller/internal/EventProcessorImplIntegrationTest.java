@@ -331,6 +331,29 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         assertThat(eventProcessor.getStatus("test-processor")).isEqualTo(ProcessorStatus.ACTIVE);
     }
 
+    @Test
+    @DisplayName("Should restart schedulers after stop and start")
+    void shouldRestartSchedulers_AfterStopAndStart() throws Exception {
+        // Given
+        List<AppendEvent> events = List.of(
+            AppendEvent.builder("RestartEvent")
+                .data("{\"id\":1}".getBytes())
+                .build()
+        );
+        eventStore.appendCommutative(events);
+
+        // When
+        eventProcessor.start();
+
+        // Then
+        waitFor(() -> eventHandler.getHandledCount() > 0, 3000);
+        assertThat(progressTracker.getLastPosition("test-processor")
+                + progressTracker.getLastPosition("test-processor-2")).isGreaterThan(0L);
+
+        // Cleanup: stop again so this test does not leak background schedulers
+        eventProcessor.stop();
+    }
+
     // Test implementations
 
     static class TestInstanceIdProvider {
@@ -669,5 +692,21 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
                 eventPublisher
             );
         }
+    }
+
+    private void waitFor(Check check, long timeoutMs) throws Exception {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (System.currentTimeMillis() < deadline) {
+            if (check.evaluate()) {
+                return;
+            }
+            Thread.sleep(100);
+        }
+        assertThat(check.evaluate()).isTrue();
+    }
+
+    @FunctionalInterface
+    private interface Check {
+        boolean evaluate() throws Exception;
     }
 }

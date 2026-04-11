@@ -6,6 +6,7 @@ import com.crablet.eventpoller.metrics.LeadershipMetric;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.postgresql.Driver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -46,19 +47,30 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
     private ApplicationEventPublisher eventPublisher;
 
     private static final long TEST_LOCK_KEY = 9876543210L;
+    private final List<LeaderElectorImpl> createdElectors = new ArrayList<>();
+    private final List<LeaderElectorWithPersistentConnection> persistentElectors = new ArrayList<>();
 
     @BeforeEach
     void setUp() {
-        // Ensure no locks are held from previous tests
-        // Advisory locks are automatically released on connection close
+        createdElectors.clear();
+        persistentElectors.clear();
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        createdElectors.forEach(LeaderElectorImpl::releaseGlobalLeader);
+        for (LeaderElectorWithPersistentConnection elector : persistentElectors) {
+            elector.close();
+        }
+        createdElectors.clear();
+        persistentElectors.clear();
     }
 
     @Test
     @DisplayName("Should maintain lock across multiple processing cycles when using persistent connection")
     void shouldMaintainLock_AcrossMultipleProcessingCycles() throws Exception {
         // Given - Leader pod with persistent connection
-        LeaderElectorWithPersistentConnection leader = 
-            new LeaderElectorWithPersistentConnection(dataSource, "leader-pod", TEST_LOCK_KEY, eventPublisher);
+        LeaderElectorWithPersistentConnection leader = createPersistentElector("leader-pod", TEST_LOCK_KEY);
         
         // When - Acquire lock with persistent connection
         boolean acquired = leader.acquireWithPersistentConnection();
@@ -78,15 +90,13 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
     @DisplayName("Should prevent followers from acquiring lock while leader holds persistent connection")
     void shouldPreventFollowers_WhileLeaderHoldsPersistentConnection() throws Exception {
         // Given - Leader pod holds lock with persistent connection
-        LeaderElectorWithPersistentConnection leader = 
-            new LeaderElectorWithPersistentConnection(dataSource, "leader-pod", TEST_LOCK_KEY, eventPublisher);
+        LeaderElectorWithPersistentConnection leader = createPersistentElector("leader-pod", TEST_LOCK_KEY);
         leader.acquireWithPersistentConnection();
         
         // When - Multiple follower pods try to acquire
         List<LeaderElectorImpl> followers = new ArrayList<>();
         for (int i = 1; i <= 3; i++) {
-            LeaderElectorImpl follower = new LeaderElectorImpl(
-                dataSource, "test", "follower-pod-" + i, TEST_LOCK_KEY, eventPublisher);
+            LeaderElectorImpl follower = createElector("follower-pod-" + i, TEST_LOCK_KEY);
             followers.add(follower);
         }
         
@@ -105,12 +115,10 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
     @DisplayName("Should allow follower to acquire lock after leader connection closes (simulating crash)")
     void shouldAllowFollower_AfterLeaderConnectionCloses() throws Exception {
         // Given - Leader pod holds lock with persistent connection
-        LeaderElectorWithPersistentConnection leader = 
-            new LeaderElectorWithPersistentConnection(dataSource, "leader-pod", TEST_LOCK_KEY, eventPublisher);
+        LeaderElectorWithPersistentConnection leader = createPersistentElector("leader-pod", TEST_LOCK_KEY);
         leader.acquireWithPersistentConnection();
-        
-        LeaderElectorImpl follower = new LeaderElectorImpl(
-            dataSource, "test", "follower-pod", TEST_LOCK_KEY, eventPublisher);
+
+        LeaderElectorImpl follower = createElector("follower-pod", TEST_LOCK_KEY);
         
         // Verify follower can't acquire while leader holds lock
         assertThat(follower.tryAcquireGlobalLeader()).isFalse();
@@ -129,8 +137,7 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
     @DisplayName("Should handle concurrent lock attempts with persistent connection")
     void shouldHandleConcurrentLockAttempts_WithPersistentConnection() throws Exception {
         // Given - Leader holds lock with persistent connection
-        LeaderElectorWithPersistentConnection leader = 
-            new LeaderElectorWithPersistentConnection(dataSource, "leader-pod", TEST_LOCK_KEY, eventPublisher);
+        LeaderElectorWithPersistentConnection leader = createPersistentElector("leader-pod", TEST_LOCK_KEY);
         leader.acquireWithPersistentConnection();
         
         int numFollowers = 5;
@@ -143,8 +150,7 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
             final int instanceNum = i;
             Future<Boolean> future = executor.submit(() -> {
                 startLatch.await();
-                LeaderElectorImpl follower = new LeaderElectorImpl(
-                    dataSource, "test", "follower-" + instanceNum, TEST_LOCK_KEY, eventPublisher);
+                LeaderElectorImpl follower = createElector("follower-" + instanceNum, TEST_LOCK_KEY);
                 return follower.tryAcquireGlobalLeader();
             });
             results.add(future);
@@ -175,10 +181,8 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
         long outboxLockKey = 2222222222L;
         
         // When - Pod A becomes leader for views, Pod B becomes leader for outbox
-        LeaderElectorWithPersistentConnection viewsLeader = 
-            new LeaderElectorWithPersistentConnection(dataSource, "pod-a", viewsLockKey, eventPublisher);
-        LeaderElectorWithPersistentConnection outboxLeader = 
-            new LeaderElectorWithPersistentConnection(dataSource, "pod-b", outboxLockKey, eventPublisher);
+        LeaderElectorWithPersistentConnection viewsLeader = createPersistentElector("pod-a", viewsLockKey);
+        LeaderElectorWithPersistentConnection outboxLeader = createPersistentElector("pod-b", outboxLockKey);
         
         boolean viewsAcquired = viewsLeader.acquireWithPersistentConnection();
         boolean outboxAcquired = outboxLeader.acquireWithPersistentConnection();
@@ -202,10 +206,8 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
         long outboxLockKey = 2222222222L;
         
         // When - Same pod acquires both locks
-        LeaderElectorWithPersistentConnection viewsLeader = 
-            new LeaderElectorWithPersistentConnection(dataSource, "pod-1", viewsLockKey, eventPublisher);
-        LeaderElectorWithPersistentConnection outboxLeader = 
-            new LeaderElectorWithPersistentConnection(dataSource, "pod-1", outboxLockKey, eventPublisher);
+        LeaderElectorWithPersistentConnection viewsLeader = createPersistentElector("pod-1", viewsLockKey);
+        LeaderElectorWithPersistentConnection outboxLeader = createPersistentElector("pod-1", outboxLockKey);
         
         boolean viewsAcquired = viewsLeader.acquireWithPersistentConnection();
         boolean outboxAcquired = outboxLeader.acquireWithPersistentConnection();
@@ -232,15 +234,13 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
         // Note: This is a simplified test - real connection pool monitoring would be more complex
         
         // When - Leader acquires lock with persistent connection
-        LeaderElectorWithPersistentConnection leader = 
-            new LeaderElectorWithPersistentConnection(dataSource, "leader-pod", TEST_LOCK_KEY, eventPublisher);
+        LeaderElectorWithPersistentConnection leader = createPersistentElector("leader-pod", TEST_LOCK_KEY);
         leader.acquireWithPersistentConnection();
         
         // Create followers (should not hold connections)
         List<LeaderElectorImpl> followers = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
-            LeaderElectorImpl follower = new LeaderElectorImpl(
-                dataSource, "test", "follower-" + i, TEST_LOCK_KEY, eventPublisher);
+            LeaderElectorImpl follower = createElector("follower-" + i, TEST_LOCK_KEY);
             followers.add(follower);
             // Try to acquire (will fail, but connection closes immediately)
             follower.tryAcquireGlobalLeader();
@@ -367,5 +367,17 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
             events.add(event);
         }
     }
-}
 
+    private LeaderElectorImpl createElector(String instanceId, long key) {
+        LeaderElectorImpl elector = new LeaderElectorImpl(dataSource, "test", instanceId, key, eventPublisher);
+        createdElectors.add(elector);
+        return elector;
+    }
+
+    private LeaderElectorWithPersistentConnection createPersistentElector(String instanceId, long key) {
+        LeaderElectorWithPersistentConnection elector =
+            new LeaderElectorWithPersistentConnection(dataSource, instanceId, key, eventPublisher);
+        persistentElectors.add(elector);
+        return elector;
+    }
+}

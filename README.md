@@ -79,6 +79,7 @@ Crablet maps DCB's consistency model onto three append methods. These are **Crab
 - **[Closing the Books](crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md)** — Period segmentation with `@PeriodConfig` for performance
 - **[Read Replicas](crablet-eventstore/docs/READ_REPLICAS.md)** — Primary and read replica datasource setup
 - **[PgBouncer](crablet-eventstore/docs/PGBOUNCER.md)** — Connection pooling compatibility
+- **[PgCat](crablet-eventstore/docs/PGCAT.md)** — PgCat compatibility and read/write routing guidance
 - **[Command Patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md)** — Commutative vs non-commutative operations
 - **[Outbox Pattern](crablet-outbox/docs/OUTBOX_PATTERN.md)** — How the outbox integrates with DCB
 - **[Build Guide](docs/BUILD.md)** — Build order, Makefile commands, cyclic dependency explanation

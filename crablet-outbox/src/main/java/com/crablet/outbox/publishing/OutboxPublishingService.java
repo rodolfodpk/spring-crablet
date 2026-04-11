@@ -1,19 +1,22 @@
 package com.crablet.outbox.publishing;
 
+import com.crablet.eventstore.StoredEvent;
+
+import java.util.List;
+
 /**
- * Service responsible for fetching, publishing, and updating position for outbox events.
- * Separated from scheduling logic to improve separation of concerns.
+ * Service responsible for publishing outbox event batches to a configured publisher.
  */
 public interface OutboxPublishingService {
-    
+
     /**
-     * Fetch, publish, and update position for a (topic, publisher) pair.
-     * 
+     * Publish the batch already fetched by the generic event processor.
+     *
      * @param topicName Topic name
      * @param publisherName Publisher name
+     * @param events Events to publish
      * @return number of events published
      * @throws RuntimeException if publishing fails
      */
-    int publishForTopicPublisher(String topicName, String publisherName);
+    int publish(String topicName, String publisherName, List<StoredEvent> events);
 }
-

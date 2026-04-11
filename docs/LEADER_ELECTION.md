@@ -10,6 +10,8 @@ Leader election is used by:
 
 Both modules use the generic event processor infrastructure (`crablet-event-poller`) which provides the leader election mechanism.
 
+Because PostgreSQL advisory locks are session-scoped, the datasource behind leader election must preserve session semantics. If you use connection poolers such as PgBouncer or PgCat, the write path must use a session-compatible endpoint.
+
 ## How It Works
 
 ### PostgreSQL Advisory Locks
@@ -72,14 +74,14 @@ Follower instances use **two retry mechanisms** to detect leader crashes:
 A dedicated scheduler runs independently of processor schedulers:
 
 ```java
-// Runs every 30 seconds (default, hardcoded)
+// Runs every 30 seconds by default (configurable per processor)
 leaderRetryScheduler = taskScheduler.scheduleAtFixedRate(
     this::leaderRetryTask,
     Duration.ofMillis(30000)
 );
 ```
 
-- **Interval**: 30 seconds (default, currently hardcoded)
+- **Interval**: 30 seconds by default (configurable per processor)
 - **Purpose**: Periodic check for leader availability
 - **Behavior**: If not leader, attempts to acquire lock
 
@@ -135,12 +137,12 @@ Each module uses a unique advisory lock key to prevent conflicts:
 
 ## Configuration
 
-Currently, retry intervals and cooldown periods are **hardcoded** in the implementation:
+Retry behavior is split into:
 
-- **Dedicated retry interval**: 30 seconds (in `EventProcessorImpl.initializeSchedulers()`)
-- **Cooldown period**: 5 seconds (in `EventProcessorImpl.LEADER_RETRY_COOLDOWN_MS`)
+- **Dedicated retry interval**: configurable per processor via `ProcessorConfig.getLeaderElectionRetryIntervalMs()` (default 30 seconds)
+- **Cooldown period**: 5 seconds (currently hardcoded in `EventProcessorImpl.LEADER_RETRY_COOLDOWN_MS`)
 
-These values provide a good balance between failover speed and database load. For faster failover, you could modify the code to make these configurable, but this would increase database load from more frequent lock attempts.
+These values provide a good balance between failover speed and database load. Lower retry intervals improve takeover time but increase lock-attempt traffic against PostgreSQL.
 
 ## Deployment Recommendations
 
@@ -298,4 +300,3 @@ if (!leaderElector.isGlobalLeader()) {
 - **[Event Processor README](crablet-event-poller/README.md)** - Generic event processing infrastructure
 - **[Outbox README](crablet-outbox/README.md)** - Outbox pattern implementation
 - **[Views README](crablet-views/README.md)** - View projections implementation
-

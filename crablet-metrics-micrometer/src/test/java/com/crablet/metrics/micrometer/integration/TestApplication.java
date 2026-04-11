@@ -190,11 +190,7 @@ public class TestApplication {
     
     @Bean
     public OutboxPublishingService outboxPublishingService(
-            OutboxConfig config,
-            org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
-            DataSource readDataSource,
             List<com.crablet.outbox.OutboxPublisher> publishers,
-            InstanceIdProvider instanceIdProvider,
             ClockProvider clock,
             io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitBreakerRegistry,
             GlobalStatisticsPublisher globalStatistics,
@@ -207,8 +203,7 @@ public class TestApplication {
         }
         
         return new OutboxPublishingServiceImpl(
-            config, jdbcTemplate, readDataSource, publisherByName,
-            instanceIdProvider, clock, circuitBreakerRegistry, globalStatistics, eventPublisher
+            publisherByName, clock, circuitBreakerRegistry, globalStatistics, eventPublisher
         );
     }
     
@@ -243,4 +238,3 @@ public class TestApplication {
         return flyway;
     }
 }
-

@@ -90,11 +90,7 @@ public class OutboxAutoConfiguration {
      */
     @Bean
     public OutboxPublishingService outboxPublishingService(
-            OutboxConfig config,
-            @Qualifier("primaryDataSource") DataSource writeDataSource,
-            @Qualifier("readDataSource") DataSource readDataSource,
             List<OutboxPublisher> publishers,
-            InstanceIdProvider instanceIdProvider,
             ClockProvider clock,
             CircuitBreakerRegistry circuitBreakerRegistry,
             GlobalStatisticsPublisher globalStatistics,
@@ -105,18 +101,9 @@ public class OutboxAutoConfiguration {
         for (OutboxPublisher publisher : publishers) {
             publisherByName.put(publisher.getName(), publisher);
         }
-        
-        // Create JdbcTemplate from DataSource for OutboxPublishingServiceImpl
-        // TODO: Refactor OutboxPublishingServiceImpl to use plain JDBC
-        org.springframework.jdbc.core.JdbcTemplate jdbcTemplate = 
-            new org.springframework.jdbc.core.JdbcTemplate(writeDataSource);
-        
+
         return new OutboxPublishingServiceImpl(
-            config,
-            jdbcTemplate,
-            readDataSource,
             publisherByName,
-            instanceIdProvider,
             clock,
             circuitBreakerRegistry,
             globalStatistics,
@@ -193,4 +180,3 @@ public class OutboxAutoConfiguration {
         return new OutboxManagementService(delegate, primaryDataSource);
     }
 }
-

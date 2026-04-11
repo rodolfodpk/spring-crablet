@@ -32,6 +32,7 @@ public class LeaderElectorImpl implements LeaderElector {
     private static final String TRY_ACQUIRE_LOCK_SQL = "SELECT pg_try_advisory_lock(?)";
     private static final String RELEASE_LOCK_SQL = "SELECT pg_advisory_unlock(?)";
 
+    private Connection leaderConnection;
     private volatile boolean isGlobalLeader = false;
 
     public LeaderElectorImpl(
@@ -60,34 +61,36 @@ public class LeaderElectorImpl implements LeaderElector {
     }
 
     @Override
-    public boolean tryAcquireGlobalLeader() {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(TRY_ACQUIRE_LOCK_SQL)) {
+    public synchronized boolean tryAcquireGlobalLeader() {
+        if (hasActiveLeaderConnection()) {
+            return true;
+        }
 
-            stmt.setLong(1, lockKey);
+        closeLeaderConnectionQuietly();
 
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    Boolean lockAcquired = rs.getBoolean(1);
+        try {
+            Connection connection = dataSource.getConnection();
+            try (PreparedStatement stmt = connection.prepareStatement(TRY_ACQUIRE_LOCK_SQL)) {
+                stmt.setLong(1, lockKey);
 
-                    if (Boolean.TRUE.equals(lockAcquired)) {
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next() && rs.getBoolean(1)) {
+                        leaderConnection = connection;
                         isGlobalLeader = true;
                         eventPublisher.publishEvent(new LeadershipMetric(processorId, instanceId, true));
-                        log.info("✓ Acquired lock (key: {}) - this instance is the leader", lockKey);
+                        log.info("Acquired lock (key: {}) - this instance is the leader", lockKey);
                         return true;
-                    } else {
-                        isGlobalLeader = false;
-                        eventPublisher.publishEvent(new LeadershipMetric(processorId, instanceId, false));
-                        log.debug("✗ Another instance holds lock (key: {}) - this instance is follower", lockKey);
-                        return false;
                     }
                 }
-
-                // Should not happen, but handle gracefully
-                isGlobalLeader = false;
-                return false;
             }
+
+            connection.close();
+            isGlobalLeader = false;
+            eventPublisher.publishEvent(new LeadershipMetric(processorId, instanceId, false));
+            log.debug("Another instance holds lock (key: {}) - this instance is follower", lockKey);
+            return false;
         } catch (SQLException e) {
+            closeLeaderConnectionQuietly();
             log.error("Failed to acquire lock (key: {}): {}", lockKey, e.getMessage(), e);
             isGlobalLeader = false;
             return false;
@@ -95,28 +98,62 @@ public class LeaderElectorImpl implements LeaderElector {
     }
 
     @Override
-    public void releaseGlobalLeader() {
-        if (isGlobalLeader) {
-            try (Connection connection = dataSource.getConnection();
-                 PreparedStatement stmt = connection.prepareStatement(RELEASE_LOCK_SQL)) {
+    public synchronized void releaseGlobalLeader() {
+        if (!hasActiveLeaderConnection()) {
+            closeLeaderConnectionQuietly();
+            isGlobalLeader = false;
+            return;
+        }
 
-                stmt.setLong(1, lockKey);
-                stmt.execute();
+        try (PreparedStatement stmt = leaderConnection.prepareStatement(RELEASE_LOCK_SQL)) {
+            stmt.setLong(1, lockKey);
+            stmt.execute();
 
-                isGlobalLeader = false;
-                eventPublisher.publishEvent(new LeadershipMetric(processorId, instanceId, false));
-                log.info("Released lock (key: {})", lockKey);
-            } catch (SQLException e) {
-                log.error("Failed to release lock (key: {}): {}", lockKey, e.getMessage(), e);
-                // Still mark as not leader even if release failed
-                isGlobalLeader = false;
-            }
+            log.info("Released lock (key: {})", lockKey);
+        } catch (SQLException e) {
+            log.error("Failed to release lock (key: {}): {}", lockKey, e.getMessage(), e);
+        } finally {
+            closeLeaderConnectionQuietly();
+            isGlobalLeader = false;
+            eventPublisher.publishEvent(new LeadershipMetric(processorId, instanceId, false));
         }
     }
 
     @Override
-    public boolean isGlobalLeader() {
-        return isGlobalLeader;
+    public synchronized boolean isGlobalLeader() {
+        if (!hasActiveLeaderConnection()) {
+            closeLeaderConnectionQuietly();
+            isGlobalLeader = false;
+            return false;
+        }
+        return true;
+    }
+
+    private boolean hasActiveLeaderConnection() {
+        if (!isGlobalLeader || leaderConnection == null) {
+            return false;
+        }
+        try {
+            return !leaderConnection.isClosed();
+        } catch (SQLException e) {
+            log.warn("Leader connection check failed for lock {}: {}", lockKey, e.getMessage());
+            return false;
+        }
+    }
+
+    private void closeLeaderConnectionQuietly() {
+        if (leaderConnection == null) {
+            return;
+        }
+        try {
+            if (!leaderConnection.isClosed()) {
+                leaderConnection.close();
+            }
+        } catch (SQLException e) {
+            log.warn("Failed to close leader connection for lock {}: {}", lockKey, e.getMessage());
+        } finally {
+            leaderConnection = null;
+        }
     }
 
     @Override

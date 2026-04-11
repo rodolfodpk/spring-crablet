@@ -19,7 +19,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.TaskScheduler;
-
 import javax.sql.DataSource;
 import java.io.EOFException;
 import java.time.Duration;
@@ -42,9 +41,10 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     private final ProgressTracker<I> progressTracker;
     private final EventFetcher<I> eventFetcher;
     private final EventHandler<I> eventHandler;
-    private final DataSource writeDataSource;  // For handlers that need DB writes (e.g., views)
+    private final DataSource writeDataSource;
     private final TaskScheduler taskScheduler;
     private final ApplicationEventPublisher eventPublisher;
+    private final Object lifecycleMonitor = new Object();
 
     // Track active schedulers
     private final Map<I, ScheduledFuture<?>> activeSchedulers = new ConcurrentHashMap<>();
@@ -90,7 +90,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
      */
     @PostConstruct
     public void initializeSchedulers() {
-        log.info("[EventProcessorImpl] @PostConstruct called at {}. Bean created, waiting for context refresh before starting schedulers.", Instant.now());
+        log.debug("[EventProcessorImpl] Bean created at {}. Waiting for Spring lifecycle event before starting schedulers.", Instant.now());
     }
 
     /**
@@ -100,31 +100,8 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
      */
     @EventListener(ContextRefreshedEvent.class)
     public void initializeSchedulersOnContextRefresh(ContextRefreshedEvent event) {
-        if (schedulersInitialized) {
-            log.debug("[EventProcessorImpl] Schedulers already initialized, skipping ContextRefreshedEvent");
-            return;
-        }
-
-        log.info("[EventProcessorImpl] ContextRefreshedEvent received at {}. All beans should be initialized now (including Flyway).", Instant.now());
-
-        // Check if any processor is enabled
-        boolean anyEnabled = configs.values().stream()
-            .anyMatch(ProcessorConfig::isEnabled);
-
-        if (!anyEnabled) {
-            log.info("[EventProcessorImpl] No processors enabled, skipping scheduler initialization");
-            schedulersInitialized = true;
-            return;
-        }
-
-        try {
-            log.info("[EventProcessorImpl] Starting scheduler initialization at {}", Instant.now());
-            doInitializeSchedulers();
-            schedulersInitialized = true;
-            log.info("[EventProcessorImpl] Scheduler initialization completed successfully at {}", Instant.now());
-        } catch (Exception e) {
-            log.error("[EventProcessorImpl] Failed to initialize schedulers at {}", Instant.now(), e);
-        }
+        log.debug("[EventProcessorImpl] ContextRefreshedEvent received at {}.", Instant.now());
+        initializeSchedulersIfNeeded("ContextRefreshedEvent");
     }
 
     /**
@@ -133,47 +110,53 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
      */
     @EventListener(ApplicationReadyEvent.class)
     public void initializeSchedulersOnReady(ApplicationReadyEvent event) {
-        if (schedulersInitialized) {
-            log.debug("[EventProcessorImpl] Schedulers already initialized via ContextRefreshedEvent, skipping ApplicationReadyEvent");
-            return;
-        }
+        log.debug("[EventProcessorImpl] ApplicationReadyEvent received at {}.", Instant.now());
+        initializeSchedulersIfNeeded("ApplicationReadyEvent");
+    }
 
-        log.info("[EventProcessorImpl] ApplicationReadyEvent received at {} (ContextRefreshedEvent may not have fired). Initializing schedulers now.", Instant.now());
+    private void initializeSchedulersIfNeeded(String trigger) {
+        synchronized (lifecycleMonitor) {
+            if (schedulersInitialized) {
+                log.debug("[EventProcessorImpl] Schedulers already initialized, skipping {}", trigger);
+                return;
+            }
 
-        // Check if any processor is enabled
-        boolean anyEnabled = configs.values().stream()
-            .anyMatch(ProcessorConfig::isEnabled);
+            boolean anyEnabled = configs.values().stream()
+                .anyMatch(ProcessorConfig::isEnabled);
 
-        if (!anyEnabled) {
-            log.info("[EventProcessorImpl] No processors enabled, skipping scheduler initialization");
-            schedulersInitialized = true;
-            return;
-        }
+            if (!anyEnabled) {
+                log.info("[EventProcessorImpl] No processors enabled, skipping scheduler initialization");
+                schedulersInitialized = true;
+                return;
+            }
 
-        try {
-            log.info("[EventProcessorImpl] Starting scheduler initialization via ApplicationReadyEvent at {}", Instant.now());
-            doInitializeSchedulers();
-            schedulersInitialized = true;
-            log.info("[EventProcessorImpl] Scheduler initialization completed successfully at {}", Instant.now());
-        } catch (Exception e) {
-            log.error("[EventProcessorImpl] Failed to initialize schedulers via ApplicationReadyEvent at {}", Instant.now(), e);
+            try {
+                log.info("Starting event processor schedulers via {}", trigger);
+                doInitializeSchedulers();
+                schedulersInitialized = true;
+                shuttingDown = false;
+                log.info("Event processor schedulers started");
+            } catch (Exception e) {
+                log.error("Failed to initialize event processor schedulers via {}", trigger, e);
+            }
         }
     }
 
     private void doInitializeSchedulers() {
-        log.info("[EventProcessorImpl] doInitializeSchedulers() called at {}", Instant.now());
-
         // Try to acquire global leader lock on startup
-        log.debug("[EventProcessorImpl] Attempting to acquire global leader lock");
         leaderElector.tryAcquireGlobalLeader();
 
         // Register dedicated scheduler for leader election retry
-        long leaderRetryInterval = 30000; // Default, could be configurable
+        long leaderRetryInterval = configs.values().stream()
+            .filter(ProcessorConfig::isEnabled)
+            .findFirst()
+            .map(ProcessorConfig::getLeaderElectionRetryIntervalMs)
+            .orElse(30000L);
         leaderRetryScheduler = taskScheduler.scheduleAtFixedRate(
             this::leaderRetryTask,
             Duration.ofMillis(leaderRetryInterval)
         );
-        log.info("[EventProcessorImpl] Registered leader election retry scheduler with interval {}ms", leaderRetryInterval);
+        log.debug("[EventProcessorImpl] Registered leader election retry scheduler with interval {}ms", leaderRetryInterval);
 
         // Register one scheduler per processor
         int enabledCount = 0;
@@ -189,7 +172,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             enabledCount++;
             long pollingInterval = config.getPollingIntervalMs();
 
-            log.info("[EventProcessorImpl] Registering scheduler for processor {} with polling interval {}ms", processorId, pollingInterval);
+            log.debug("[EventProcessorImpl] Registering scheduler for processor {} with polling interval {}ms", processorId, pollingInterval);
 
             // Create backoff state if enabled
             if (config.isBackoffEnabled()) {
@@ -206,12 +189,8 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             // Schedule with initial delay to ensure database migrations complete
             // Use a small delay to allow any remaining initialization to complete
             long initialDelayMs = 500; // 500ms initial delay - Flyway should be done by now via ContextRefreshedEvent
-            log.debug("[EventProcessorImpl] Scheduling processor {} with initial delay {}ms, then interval {}ms",
-                     processorId, initialDelayMs, pollingInterval);
-
             // Schedule first execution with delay, then start recurring schedule
             ScheduledFuture<?> initialTask = taskScheduler.schedule(() -> {
-                log.debug("[EventProcessorImpl] First scheduled task executing for {} at {}", processorId, Instant.now());
                 scheduledTask(processorId);
 
                 // After first execution, schedule recurring task
@@ -225,33 +204,48 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
 
             // Store the initial task future temporarily (will be replaced by recurring future)
             activeSchedulers.put(processorId, initialTask);
-            log.info("[EventProcessorImpl] Registered scheduler for processor {} with initial delay {}ms, then interval {}ms",
+            log.debug("[EventProcessorImpl] Registered scheduler for processor {} with initial delay {}ms, then interval {}ms",
                     processorId, initialDelayMs, pollingInterval);
         }
 
-        log.info("[EventProcessorImpl] Scheduler initialization complete. Registered {} enabled processors.", enabledCount);
+        log.debug("[EventProcessorImpl] Scheduler initialization complete. Registered {} enabled processors.", enabledCount);
     }
 
     @PreDestroy
     public void shutdownSchedulers() {
-        shuttingDown = true;
-        log.info("Shutting down {} active schedulers", activeSchedulers.size());
-        activeSchedulers.values().forEach(future -> {
-            if (future != null) {
-                future.cancel(false);
+        synchronized (lifecycleMonitor) {
+            shuttingDown = true;
+            boolean hadActiveWork = !activeSchedulers.isEmpty() || leaderRetryScheduler != null || schedulersInitialized;
+            if (hadActiveWork) {
+                log.info("Stopping event processor schedulers");
+            } else {
+                log.debug("[EventProcessorImpl] shutdownSchedulers called with no active schedulers");
             }
-        });
-        activeSchedulers.clear();
-        backoffStates.clear();
+            activeSchedulers.values().forEach(future -> {
+                if (future != null) {
+                    future.cancel(false);
+                }
+            });
+            activeSchedulers.clear();
+            backoffStates.clear();
 
-        // Cancel leader retry scheduler
-        if (leaderRetryScheduler != null) {
-            leaderRetryScheduler.cancel(false);
-            leaderRetryScheduler = null;
+            // Cancel leader retry scheduler
+            if (leaderRetryScheduler != null) {
+                leaderRetryScheduler.cancel(false);
+                leaderRetryScheduler = null;
+            }
+
+            // Allow a future manual start() to recreate the schedulers.
+            schedulersInitialized = false;
+            lastLeaderRetryTimestamp = 0;
+
+            // Release global leader lock
+            leaderElector.releaseGlobalLeader();
+
+            if (hadActiveWork) {
+                log.info("Event processor schedulers stopped");
+            }
         }
-
-        // Release global leader lock
-        leaderElector.releaseGlobalLeader();
     }
 
     /**
@@ -425,7 +419,6 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             return 0;
         }
 
-        // Handle events - pass write DataSource for handlers that need it (e.g., views)
         try {
             int handled = eventHandler.handle(processorId, events, writeDataSource);
 
@@ -436,26 +429,14 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
 
             return handled;
         } catch (Exception e) {
-            progressTracker.recordError(processorId, e.getMessage(), 10); // Default max errors
+            progressTracker.recordError(processorId, e.getMessage(), config.getMaxErrors());
             throw new RuntimeException("Failed to handle events for processor: " + processorId, e);
         }
     }
 
     @Override
     public void start() {
-        // Reset shuttingDown flag to allow schedulers to run
-        shuttingDown = false;
-        // Initialize schedulers if not already done (for manual start calls)
-        if (!schedulersInitialized) {
-            log.info("[EventProcessorImpl] Manual start() called at {}, initializing schedulers", Instant.now());
-            try {
-                doInitializeSchedulers();
-                schedulersInitialized = true;
-                log.info("[EventProcessorImpl] Manual scheduler initialization completed at {}", Instant.now());
-            } catch (Exception e) {
-                log.error("[EventProcessorImpl] Failed to initialize schedulers via manual start()", e);
-            }
-        }
+        initializeSchedulersIfNeeded("manual start()");
     }
 
     @Override

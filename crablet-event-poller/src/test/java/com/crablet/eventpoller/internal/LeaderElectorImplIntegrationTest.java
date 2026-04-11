@@ -5,6 +5,7 @@ import com.crablet.eventpoller.metrics.LeadershipMetric;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
@@ -38,17 +39,24 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
     private ApplicationEventPublisher eventPublisher;
 
     private static final long TEST_LOCK_KEY = 1234567890L;
+    private final List<LeaderElectorImpl> createdElectors = new ArrayList<>();
 
     @BeforeEach
     void setUp() {
-        // No cleanup needed - advisory locks are automatically released on connection close
+        createdElectors.clear();
+    }
+
+    @AfterEach
+    void tearDown() {
+        createdElectors.forEach(LeaderElectorImpl::releaseGlobalLeader);
+        createdElectors.clear();
     }
 
     @Test
     @DisplayName("Should successfully acquire lock when available")
     void shouldSuccessfullyAcquireLock_WhenAvailable() {
         // Given
-        LeaderElectorImpl elector = new LeaderElectorImpl(dataSource, "test", "instance-1", TEST_LOCK_KEY, eventPublisher);
+        LeaderElectorImpl elector = createElector("instance-1", TEST_LOCK_KEY, eventPublisher);
 
         // When
         boolean acquired = elector.tryAcquireGlobalLeader();
@@ -64,7 +72,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
     void shouldReturnFalse_WhenLockAlreadyHeldByAnotherInstance() throws Exception {
         // Given - First instance acquires lock and holds connection open
         // Note: PostgreSQL advisory locks are session-scoped, so we need to hold a connection
-        LeaderElectorImpl elector1 = new LeaderElectorImpl(dataSource, "test", "instance-1", TEST_LOCK_KEY, eventPublisher);
+        LeaderElectorImpl elector1 = createElector("instance-1", TEST_LOCK_KEY, eventPublisher);
 
         // Hold lock by keeping connection open
         try (java.sql.Connection conn1 = dataSource.getConnection();
@@ -76,7 +84,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
             }
 
             // When - Second instance tries to acquire same lock (while first holds it)
-            LeaderElectorImpl elector2 = new LeaderElectorImpl(dataSource, "test", "instance-2", TEST_LOCK_KEY, eventPublisher);
+            LeaderElectorImpl elector2 = createElector("instance-2", TEST_LOCK_KEY, eventPublisher);
             boolean acquired = elector2.tryAcquireGlobalLeader();
 
             // Then
@@ -90,7 +98,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
     @DisplayName("Should release lock successfully")
     void shouldReleaseLock_Successfully() {
         // Given
-        LeaderElectorImpl elector = new LeaderElectorImpl(dataSource, "test", "instance-1", TEST_LOCK_KEY, eventPublisher);
+        LeaderElectorImpl elector = createElector("instance-1", TEST_LOCK_KEY, eventPublisher);
         elector.tryAcquireGlobalLeader();
         assertThat(elector.isGlobalLeader()).isTrue();
 
@@ -105,8 +113,8 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
     @DisplayName("Should allow lock acquisition after release")
     void shouldAllowLockAcquisition_AfterRelease() throws Exception {
         // Given - First instance acquires and holds lock
-        LeaderElectorImpl elector1 = new LeaderElectorImpl(dataSource, "test", "instance-1", TEST_LOCK_KEY, eventPublisher);
-        LeaderElectorImpl elector2 = new LeaderElectorImpl(dataSource, "test", "instance-2", TEST_LOCK_KEY, eventPublisher);
+        LeaderElectorImpl elector1 = createElector("instance-1", TEST_LOCK_KEY, eventPublisher);
+        LeaderElectorImpl elector2 = createElector("instance-2", TEST_LOCK_KEY, eventPublisher);
 
         // Hold lock by keeping connection open
         try (java.sql.Connection conn1 = dataSource.getConnection();
@@ -152,8 +160,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
                 final int instanceNum = i;
                 Future<Boolean> future = executor.submit(() -> {
                     startLatch.await();
-                    LeaderElectorImpl elector = new LeaderElectorImpl(
-                        dataSource, "test", "instance-" + instanceNum, TEST_LOCK_KEY, eventPublisher);
+                    LeaderElectorImpl elector = createElector("instance-" + instanceNum, TEST_LOCK_KEY, eventPublisher);
                     return elector.tryAcquireGlobalLeader();
                 });
                 results.add(future);
@@ -182,8 +189,8 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
         long lockKey1 = 1111111111L;
         long lockKey2 = 2222222222L;
 
-        LeaderElectorImpl elector1 = new LeaderElectorImpl(dataSource, "test", "instance-1", lockKey1, eventPublisher);
-        LeaderElectorImpl elector2 = new LeaderElectorImpl(dataSource, "test", "instance-2", lockKey2, eventPublisher);
+        LeaderElectorImpl elector1 = createElector("instance-1", lockKey1, eventPublisher);
+        LeaderElectorImpl elector2 = createElector("instance-2", lockKey2, eventPublisher);
 
         // When - Both try to acquire locks with different keys
         boolean acquired1 = elector1.tryAcquireGlobalLeader();
@@ -200,7 +207,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
     @DisplayName("Should not release lock if not leader")
     void shouldNotReleaseLock_IfNotLeader() {
         // Given
-        LeaderElectorImpl elector = new LeaderElectorImpl(dataSource, "test", "instance-1", TEST_LOCK_KEY, eventPublisher);
+        LeaderElectorImpl elector = createElector("instance-1", TEST_LOCK_KEY, eventPublisher);
         // Don't acquire lock - not leader
 
         // When
@@ -214,7 +221,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
     @DisplayName("Should handle release when already released")
     void shouldHandleRelease_WhenAlreadyReleased() {
         // Given
-        LeaderElectorImpl elector = new LeaderElectorImpl(dataSource, "test", "instance-1", TEST_LOCK_KEY, eventPublisher);
+        LeaderElectorImpl elector = createElector("instance-1", TEST_LOCK_KEY, eventPublisher);
         elector.tryAcquireGlobalLeader();
         elector.releaseGlobalLeader();
 
@@ -230,7 +237,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
     void shouldPublishLeadershipMetricEvent_OnAcquisition() {
         // Given
         TestEventPublisher testPublisher = new TestEventPublisher();
-        LeaderElectorImpl elector = new LeaderElectorImpl(dataSource, "test", "instance-1", TEST_LOCK_KEY, testPublisher);
+        LeaderElectorImpl elector = createElector("instance-1", TEST_LOCK_KEY, testPublisher);
 
         // When
         elector.tryAcquireGlobalLeader();
@@ -248,7 +255,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
     void shouldPublishLeadershipMetricEvent_OnRelease() {
         // Given
         TestEventPublisher testPublisher = new TestEventPublisher();
-        LeaderElectorImpl elector = new LeaderElectorImpl(dataSource, "test", "instance-1", TEST_LOCK_KEY, testPublisher);
+        LeaderElectorImpl elector = createElector("instance-1", TEST_LOCK_KEY, testPublisher);
         elector.tryAcquireGlobalLeader();
         testPublisher.events.clear(); // Clear acquisition event
 
@@ -268,7 +275,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
     void shouldPublishLeadershipMetricEvent_OnFailedAcquisition() throws Exception {
         // Given - Hold lock with first connection
         TestEventPublisher testPublisher = new TestEventPublisher();
-        LeaderElectorImpl elector2 = new LeaderElectorImpl(dataSource, "test", "instance-2", TEST_LOCK_KEY, testPublisher);
+        LeaderElectorImpl elector2 = createElector("instance-2", TEST_LOCK_KEY, testPublisher);
 
         // Hold lock by keeping connection open
         try (java.sql.Connection conn1 = dataSource.getConnection();
@@ -319,7 +326,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
     @DisplayName("Should handle multiple acquire attempts from same instance")
     void shouldHandleMultipleAcquireAttempts_FromSameInstance() {
         // Given
-        LeaderElectorImpl elector = new LeaderElectorImpl(dataSource, "test", "instance-1", TEST_LOCK_KEY, eventPublisher);
+        LeaderElectorImpl elector = createElector("instance-1", TEST_LOCK_KEY, eventPublisher);
 
         // When - Try to acquire multiple times
         boolean first = elector.tryAcquireGlobalLeader();
@@ -363,5 +370,11 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
         public void publishEvent(Object event) {
             events.add(event);
         }
+    }
+
+    private LeaderElectorImpl createElector(String instanceId, long key, ApplicationEventPublisher publisher) {
+        LeaderElectorImpl elector = new LeaderElectorImpl(dataSource, "test", instanceId, key, publisher);
+        createdElectors.add(elector);
+        return elector;
     }
 }

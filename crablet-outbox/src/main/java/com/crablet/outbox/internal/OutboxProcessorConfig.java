@@ -79,6 +79,16 @@ public class OutboxProcessorConfig implements ProcessorConfig<TopicPublisherPair
     public int getBackoffMaxSeconds() {
         return outboxConfig.getBackoffMaxSeconds();
     }
+
+    @Override
+    public int getMaxErrors() {
+        return outboxConfig.getMaxRetries();
+    }
+
+    @Override
+    public long getLeaderElectionRetryIntervalMs() {
+        return outboxConfig.getLeaderElectionRetryIntervalMs();
+    }
     
     @Override
     public boolean isEnabled() {
@@ -110,4 +120,3 @@ public class OutboxProcessorConfig implements ProcessorConfig<TopicPublisherPair
         return configs;
     }
 }
-
