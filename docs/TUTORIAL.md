@@ -362,17 +362,55 @@ public class SubmitTalkCommandHandler implements IdempotentCommandHandler<Submit
 }
 ```
 
-### AcceptTalkCommandHandler — streamPosition-based DCB pattern
+### Extracting query patterns
 
-This handler must enforce two invariants simultaneously: the talk must be in PENDING status, and the conference must not be at capacity. The capacity invariant is enforced with a streamPosition-based check.
+As handlers grow, `QueryBuilder` chains get long and are often repeated across handlers and tests. The recommended pattern is to extract them into a dedicated class. This makes queries named, reusable, and testable in isolation.
+
+```java
+import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.query.QueryBuilder;
+
+import static com.crablet.eventstore.EventType.type;
+import static com.crablet.examples.talks.TalkTags.TALK_ID;
+
+public class TalkQueryPatterns {
+
+    /**
+     * Talk lifecycle model — used as lifecycle guard in commutative operations.
+     * Includes only events that represent talk existence or resolution.
+     * Intentionally excludes SpeakerBioAdded so concurrent bio updates do not conflict with each other.
+     */
+    public static Query talkLifecycleModel(String talkId) {
+        return QueryBuilder.builder()
+            .events(type(TalkSubmitted.class), type(TalkAccepted.class), type(TalkRejected.class))
+            .tag(TALK_ID, talkId)
+            .build();
+    }
+
+    /**
+     * Conference decision model — used by AcceptTalkCommandHandler to detect concurrent accepts.
+     * Has NO talk_id tag — spans all talks in the conference.
+     */
+    public static Query conferenceDecisionModel(String conferenceId) {
+        return QueryBuilder.builder()
+            .events(type(TalkAccepted.class))
+            .tag("conference_id", conferenceId)
+            .build();
+    }
+}
+```
+
+The handlers below use these patterns instead of inlining `QueryBuilder` calls.
+
+### AcceptTalkCommandHandler — non-commutative pattern
+
+This handler must enforce two invariants simultaneously: the talk must be in PENDING status, and the conference must not be at capacity. The capacity invariant is enforced with a stream-position check.
 
 ```java
 import com.crablet.command.NonCommutativeCommandHandler;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.query.QueryBuilder;
 import com.crablet.eventstore.AppendEvent;
-import com.crablet.eventstore.StreamPosition;
 import com.crablet.eventstore.EventStore;
 import org.springframework.stereotype.Component;
 
@@ -391,15 +429,7 @@ public class AcceptTalkCommandHandler implements NonCommutativeCommandHandler<Ac
     @Override
     public CommandDecision.NonCommutative decide(EventStore eventStore, AcceptTalkCommand command) {
         // 1. Project state for this specific talk
-        Query talkQuery = QueryBuilder.builder()
-            .events(
-                type(TalkSubmitted.class),
-                type(TalkAccepted.class),
-                type(TalkRejected.class)
-            )
-            .tag(TALK_ID, command.talkId())
-            .build();
-
+        Query talkQuery = TalkQueryPatterns.talkLifecycleModel(command.talkId());
         ProjectionResult<TalkState> talkResult = eventStore.project(talkQuery, talkStateProjector);
         TalkState talkState = talkResult.state();
 
@@ -414,12 +444,8 @@ public class AcceptTalkCommandHandler implements NonCommutativeCommandHandler<Ac
         }
 
         // 2. Project conference-wide accepted count
-        //    This query has NO talk_id tag — it spans ALL talks in the conference
-        Query conferenceQuery = QueryBuilder.builder()
-            .events(type(TalkAccepted.class))
-            .tag("conference_id", command.conferenceId())
-            .build();
-
+        //    conferenceDecisionModel has NO talk_id tag — it spans ALL talks in the conference
+        Query conferenceQuery = TalkQueryPatterns.conferenceDecisionModel(command.conferenceId());
         ProjectionResult<ConferenceState> conferenceResult = eventStore.project(conferenceQuery, conferenceProjector);
 
         if (conferenceResult.state().acceptedCount() >= CONFERENCE_CAPACITY) {
@@ -443,6 +469,55 @@ public class AcceptTalkCommandHandler implements NonCommutativeCommandHandler<Ac
     }
 }
 ```
+
+### AddSpeakerBioCommandHandler — commutative with lifecycle guard
+
+A speaker can update their bio after a talk is accepted. Concurrent bio updates are fine — the order does not affect correctness (commutative). But the talk must still exist: if it gets rejected concurrently, the bio update should fail.
+
+```java
+import com.crablet.command.CommutativeCommandHandler;
+import com.crablet.eventstore.query.ProjectionResult;
+import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.EventStore;
+import org.springframework.stereotype.Component;
+
+import static com.crablet.eventstore.EventType.type;
+import static com.crablet.examples.talks.TalkTags.SPEAKER_ID;
+import static com.crablet.examples.talks.TalkTags.TALK_ID;
+
+@Component
+public class AddSpeakerBioCommandHandler implements CommutativeCommandHandler<AddSpeakerBioCommand> {
+
+    private final TalkStateProjector talkStateProjector = new TalkStateProjector();
+
+    @Override
+    public CommandDecision.CommutativeDecision decide(EventStore eventStore, AddSpeakerBioCommand command) {
+        // 1. Project talk lifecycle state — only lifecycle events, not bio events
+        Query lifecycleModel = TalkQueryPatterns.talkLifecycleModel(command.talkId());
+        ProjectionResult<TalkState> result = eventStore.project(lifecycleModel, talkStateProjector);
+
+        if (!result.state().exists()) {
+            throw new TalkNotFoundException(command.talkId());
+        }
+
+        // 2. Build event
+        SpeakerBioAdded event = new SpeakerBioAdded(command.talkId(), command.speakerId(), command.bio());
+        AppendEvent appendEvent = AppendEvent.builder(type(SpeakerBioAdded.class))
+            .tag(TALK_ID, command.talkId())
+            .tag(SPEAKER_ID, command.speakerId())
+            .data(event)
+            .build();
+
+        // 3. Commutative with lifecycle guard: concurrent bio updates do not conflict with each other
+        //    (SpeakerBioAdded is not in talkLifecycleModel), but a concurrent TalkRejected will trigger a retry.
+        return CommandDecision.CommutativeGuarded.withLifecycleGuard(
+            appendEvent, lifecycleModel, result.streamPosition());
+    }
+}
+```
+
+> **Key insight.** The guard query (`talkLifecycleModel`) does NOT include `SpeakerBioAdded`. This is intentional: two speakers updating bios concurrently will not conflict with each other — only a lifecycle change (talk rejected) causes a retry. Compare this to `AcceptTalkCommandHandler`, where any concurrent accept on the same conference does cause a conflict.
 
 ### CommandExecutor — discovery and execution
 
