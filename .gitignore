@@ -37,6 +37,9 @@ build/
 !.cursor/plans/
 !.cursor/plans/**
 
+### Claude local tooling ###
+.claude/
+
 ### Application Logs ###
 *.log
 app.log

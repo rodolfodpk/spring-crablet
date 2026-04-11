@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Quality Review — EventStore and CommandHandler</title>
+<style>
+  :root {
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+    --max-width: 820px;
+  }
+
+  :root[data-theme="light"] {
+    --bg: #ffffff;
+    --bg-secondary: #f6f8fa;
+    --bg-tertiary: #eef1f5;
+    --text: #1a1a1a;
+    --text-secondary: #4a5568;
+    --text-muted: #718096;
+    --border: #e2e8f0;
+    --accent: #2b6cb0;
+    --accent-light: #ebf4ff;
+    --severity-critical: #c53030;
+    --severity-critical-bg: #fff5f5;
+    --severity-significant: #c05621;
+    --severity-significant-bg: #fffaf0;
+    --severity-minor: #2b6cb0;
+    --severity-minor-bg: #ebf8ff;
+    --table-stripe: #f7fafc;
+    --link: #2b6cb0;
+    --link-hover: #1a4971;
+    --shadow: rgba(0, 0, 0, 0.06);
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #1a1a1a;
+    --bg-secondary: #242424;
+    --bg-tertiary: #2e2e2e;
+    --text: #e2e2e2;
+    --text-secondary: #a0a0a0;
+    --text-muted: #717171;
+    --border: #333333;
+    --accent: #b0b0b0;
+    --accent-light: #2a2a2a;
+    --severity-critical: #fc8181;
+    --severity-critical-bg: #2d1b1b;
+    --severity-significant: #f6ad55;
+    --severity-significant-bg: #2d2415;
+    --severity-minor: #a0a0a0;
+    --severity-minor-bg: #282828;
+    --table-stripe: #222222;
+    --link: #e0c97f;
+    --link-hover: #f0dca0;
+    --shadow: rgba(0, 0, 0, 0.2);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    margin: 0;
+    padding: 2rem 1.5rem;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  .container {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  .theme-toggle {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: var(--text);
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    z-index: 100;
+  }
+
+  .theme-toggle:hover {
+    background: var(--bg-tertiary);
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.5rem 0;
+    color: var(--text);
+  }
+
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 2.5rem 0 1rem 0;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 1.8rem 0 0.6rem 0;
+    color: var(--text);
+  }
+
+  p {
+    margin: 0 0 1rem 0;
+    color: var(--text-secondary);
+  }
+
+  a {
+    color: var(--link);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+  }
+
+  a:hover {
+    color: var(--link-hover);
+    border-bottom-color: var(--link-hover);
+  }
+
+  .meta {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .meta strong {
+    color: var(--text-secondary);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+  }
+
+  th {
+    background: var(--bg-secondary);
+    font-weight: 600;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  td {
+    padding: 0.65rem 1rem;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+
+  tr:nth-child(even) td {
+    background: var(--table-stripe);
+  }
+
+  .severity {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.15rem 0.6rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .severity-critical {
+    color: var(--severity-critical);
+    background: var(--severity-critical-bg);
+  }
+
+  .severity-significant {
+    color: var(--severity-significant);
+    background: var(--severity-significant-bg);
+  }
+
+  .severity-minor {
+    color: var(--severity-minor);
+    background: var(--severity-minor-bg);
+  }
+
+  .issue {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem 2rem;
+    margin: 1.5rem 0;
+    box-shadow: 0 1px 3px var(--shadow);
+  }
+
+  .issue h2 {
+    margin-top: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .issue h3 {
+    font-size: 1rem;
+  }
+
+  .issue-meta {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
+
+  ul, ol {
+    padding-left: 1.5rem;
+    color: var(--text-secondary);
+  }
+
+  li {
+    margin-bottom: 0.35rem;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    background: var(--bg-tertiary);
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+  }
+
+  pre {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    line-height: 1.6;
+    margin: 1rem 0;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 3rem 0 1.5rem 0;
+  }
+
+  .footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .footer a {
+    color: var(--text-muted);
+    border-bottom-color: var(--border);
+  }
+
+  .footer a:hover {
+    color: var(--link);
+  }
+
+  @media print {
+    .theme-toggle { display: none; }
+    body { padding: 0; }
+    .issue { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+  <span id="theme-icon"></span>
+</button>
+
+<div class="container">
+
+  <h1>API Quality Review — EventStore and CommandHandler</h1>
+
+  <div class="meta">
+    <strong>Scope</strong>: <code>EventStore</code> interface (<code>crablet-eventstore</code>) and CommandHandler API surface (<code>crablet-commands</code>): <code>CommandDecision</code> sealed type, <code>CommandHandler</code> sub-interfaces, <code>CommandExecutor</code><br>
+    <strong>Date</strong>: April 2026
+  </div>
+
+  <h2>Executive Summary</h2>
+
+  <p>Spring-Crablet is a lightweight Java 25 event-sourcing framework built on the DCB (Dynamic Consistency Boundary) pattern. The framework's core APIs are well-conceived: the <code>CommandDecision</code> sealed type cleanly encodes concurrency intent, and the typed command-handler sub-interfaces give users a clear contract to implement. The overall <a href="https://coupling.dev/posts/core-concepts/modularity/">modularity</a> is healthy, with one critical issue and two significant issues that should be addressed before the API stabilizes. The most important finding is that <code>EventStore</code>'s public interface has been shaped by <code>CommandExecutorImpl</code>'s internal needs, introducing <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">functional coupling</a> from a higher abstraction layer back into the foundational module — the opposite of the intended dependency direction.</p>
+
+  <h2>Coupling Overview</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Integration</th>
+        <th><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Strength</a></th>
+        <th><a href="https://coupling.dev/posts/dimensions-of-coupling/distance/">Distance</a></th>
+        <th><a href="https://coupling.dev/posts/dimensions-of-coupling/volatility/">Volatility</a></th>
+        <th><a href="https://coupling.dev/posts/core-concepts/balance/">Balanced?</a></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>CommandExecutorImpl</code> → <code>EventStore</code> (core usage)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Model</a></td>
+        <td>Low</td>
+        <td>High</td>
+        <td>✅ Yes</td>
+      </tr>
+      <tr>
+        <td><code>EventStore</code> API ← <code>CommandExecutorImpl</code> internals (<code>storeCommand</code>, <code>hasConflict</code>)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Functional</a></td>
+        <td>High (different abstraction layers)</td>
+        <td>High</td>
+        <td>❌ No</td>
+      </tr>
+      <tr>
+        <td><code>CommutativeGuarded</code> ↔ <code>NonCommutative</code> (identical structure, different semantics)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Model</a></td>
+        <td>Low</td>
+        <td>High</td>
+        <td>❌ No</td>
+      </tr>
+      <tr>
+        <td><code>CommutativeCommandHandler.decide()</code> → <code>CommandDecision</code> (widened return type)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a></td>
+        <td>Low</td>
+        <td>Medium</td>
+        <td>❌ No</td>
+      </tr>
+      <tr>
+        <td><code>appendIdempotent</code> raw strings vs <code>appendNonCommutative</code> typed <code>Query</code></td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a></td>
+        <td>Low</td>
+        <td>Low</td>
+        <td>✅ Tolerable</td>
+      </tr>
+      <tr>
+        <td><code>ProjectionResult</code> → <code>EventStore</code> (write method on read result)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Functional</a></td>
+        <td>Low</td>
+        <td>Low</td>
+        <td>✅ Tolerable</td>
+      </tr>
+      <tr>
+        <td><code>Query.empty()</code> dual semantics</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Contract</a></td>
+        <td>Low</td>
+        <td>Low</td>
+        <td>✅ Tolerable</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ISSUE 1 -->
+  <div class="issue">
+    <h2>Issue: Command-layer internals bleeding into EventStore interface</h2>
+    <div class="issue-meta">
+      <strong>Integration</strong>: <code>CommandExecutorImpl</code> (<code>crablet-commands</code>) → <code>EventStore</code> (<code>crablet-eventstore</code>) — reversed knowledge flow &nbsp;|&nbsp;
+      <span class="severity severity-critical">Critical</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+    <p><code>EventStore</code> exposes two methods that exist solely to serve <code>CommandExecutorImpl</code>'s internal needs:</p>
+    <ul>
+      <li><code>storeCommand(commandJson, commandType, transactionId)</code> — writes a command audit trail as the final step of a transaction. The command executor calls this; nothing in the event-store layer needs it. The Javadoc does not explain why command auditing belongs in a foundational event-storage interface.</li>
+      <li><code>hasConflict(Query, StreamPosition)</code> — the Javadoc explicitly states <em>"Used by <code>CommandExecutorImpl</code> to enforce a selective DCB guard on commutative operations."</em> That is a private implementation detail of one caller, published in the contract of the thing it calls.</li>
+    </ul>
+    <p>Neither concern belongs to event storage. Storing commands is a command-execution concern. Checking for lifecycle conflicts is a concurrency strategy of the command layer. Both are leaking <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">functional coupling</a> from <code>crablet-commands</code> backwards into <code>crablet-eventstore</code>.</p>
+
+    <h3>Complexity Impact</h3>
+    <p><code>crablet-eventstore</code> is designed to be the foundational module, usable independently of <code>crablet-commands</code> — for views, outbox, automations, or standalone event queries. Yet every consumer of <code>EventStore</code> (views, outbox, test implementations, future integrations) is now exposed to <code>storeCommand</code> and <code>hasConflict</code>, two methods they will never call.</p>
+    <p>This violates the principle of <a href="https://coupling.dev/posts/core-concepts/modularity/">modularity</a> that a module's interface should reflect only its own responsibilities. The cognitive overhead is real: a developer approaching <code>EventStore</code> for the first time sees 11 methods and must reason about why an event store stores commands and checks concurrency guards.</p>
+
+    <h3>Cascading Changes</h3>
+    <p>If the <code>CommutativeGuarded</code> guard mechanism evolves — for example, if it needs to check a different kind of conflict, accumulate results, or be made atomic at the database level — the change touches <code>CommandExecutorImpl</code> (which orchestrates the guard) <strong>and</strong> <code>EventStore</code> (whose <code>hasConflict</code> signature may need to change) <strong>and</strong> <code>EventStoreImpl</code> (which implements it). A change logically confined to <code>crablet-commands</code> cascades into the foundational interface.</p>
+    <p>Similarly, if command auditing grows to store additional metadata (correlation IDs, causation chains), <code>storeCommand</code>'s signature widens — a change forced onto every <code>EventStore</code> implementor, including <code>InMemoryEventStore</code> in <code>crablet-test-support</code>.</p>
+
+    <h3>Recommended Improvement</h3>
+    <p><strong>For <code>storeCommand</code></strong>: Move to a separate <code>CommandAuditStore</code> interface in <code>crablet-commands</code>, co-located with the command execution pipeline that needs it. <code>EventStoreImpl</code> can implement it via a package-accessible path without exposing it on the public <code>EventStore</code> contract.</p>
+    <p><strong>For <code>hasConflict</code></strong>: Remove from <code>EventStore</code>. The default implementation already delegates to <code>project()</code>:</p>
+    <pre><code>default boolean hasConflict(Query query, StreamPosition after) {
+    return project(query, after, StateProjector.exists()).state();
+}</code></pre>
+    <p><code>CommandExecutorImpl</code> can call <code>project()</code> directly. The guard logic then lives entirely within <code>crablet-commands</code> where it belongs, and <code>EventStore</code> loses nothing — it already provides all the primitives needed.</p>
+    <p>The trade-off: <code>CommandExecutorImpl</code> gains a slightly more verbose guard check. The benefit: <code>EventStore</code>'s contract no longer couples to command-layer implementation details, and implementors of <code>EventStore</code> (including <code>InMemoryEventStore</code>) no longer carry a method imposed by a module they know nothing about.</p>
+  </div>
+
+  <!-- ISSUE 2 -->
+  <div class="issue">
+    <h2>Issue: <code>CommutativeGuarded</code> and <code>NonCommutative</code> are structurally identical</h2>
+    <div class="issue-meta">
+      <strong>Integration</strong>: <code>CommandExecutorImpl</code> → <code>CommandDecision.CommutativeGuarded</code> / <code>CommandDecision.NonCommutative</code> &nbsp;|&nbsp;
+      <span class="severity severity-significant">Significant</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+    <p>Both variants are records with exactly the same structure:</p>
+    <pre><code>record CommutativeGuarded(List&lt;AppendEvent&gt; events, Query guardQuery,   StreamPosition guardPosition)
+record NonCommutative    (List&lt;AppendEvent&gt; events, Query decisionModel, StreamPosition streamPosition)</code></pre>
+    <p>Their factory methods have identical call signatures:</p>
+    <pre><code>CommutativeGuarded.of(event, guardQuery, position)
+NonCommutative.of(event, decisionModel, position)</code></pre>
+    <p>The only distinction is what <code>CommandExecutorImpl</code> does with them: <code>NonCommutative</code> triggers a full DCB conflict check on all events matching the decision model; <code>CommutativeGuarded</code> checks only lifecycle events and then calls <code>appendCommutative</code>. These are fundamentally different concurrency semantics, but the type system communicates nothing of that difference. The only hint is the parameter name (<code>guardQuery</code> vs <code>decisionModel</code>) — which neither the compiler nor the IDE can enforce.</p>
+
+    <h3>Complexity Impact</h3>
+    <p>Choosing the wrong variant is a silent correctness bug. A developer who mistakenly returns <code>NonCommutative</code> from a <code>CommutativeCommandHandler</code> will serialize deposits that should be parallel. A developer who mistakenly returns <code>CommutativeGuarded</code> from a <code>NonCommutativeCommandHandler</code> will allow concurrent withdrawals that should be blocked. Neither mistake produces a compile error or a clear runtime failure — the application just behaves incorrectly under concurrency.</p>
+    <p>This is a classic case where <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">model coupling</a> without semantic differentiation leaves a correctness invariant expressed only in documentation, not in code.</p>
+
+    <h3>Cascading Changes</h3>
+    <p>If the guard semantics of <code>CommutativeGuarded</code> are refined (e.g., the guard needs to express "lifecycle only — no deposit types") and the enforcement moves from a runtime convention to a validated constraint, both the type and <code>CommandExecutorImpl</code>'s handling of it must change in sync. Nothing in the current structure makes it easy to discover all the places that depend on the implicit "guard query must be lifecycle-only" rule.</p>
+
+    <h3>Recommended Improvement</h3>
+    <p>Make the semantic distinction visible at the construction site. Two complementary options:</p>
+    <p><strong>Option A — rename the factory to encode intent</strong>:</p>
+    <pre><code>// Instead of:
+CommutativeGuarded.of(event, guardQuery, position)
+// Use:
+CommutativeGuarded.withLifecycleGuard(event, lifecycleOnlyQuery, position)</code></pre>
+    <p>The factory name makes it explicit that the <code>Query</code> parameter must contain only lifecycle event types, not the commutative type being appended.</p>
+    <p><strong>Option B — validate the constraint at construction</strong>: In the <code>CommutativeGuarded</code> compact constructor, verify that none of the guard-query event types appear in the events being appended. This catches the most common mistake at the earliest possible moment with a clear error message.</p>
+    <p>Both options are low-cost and can coexist. Option A improves readability immediately; Option B adds a runtime safety net.</p>
+  </div>
+
+  <!-- ISSUE 3 -->
+  <div class="issue">
+    <h2>Issue: <code>CommutativeCommandHandler.decide()</code> returns the parent sealed type</h2>
+    <div class="issue-meta">
+      <strong>Integration</strong>: <code>CommutativeCommandHandler&lt;C&gt;</code> → <code>CommandDecision</code> variants &nbsp;|&nbsp;
+      <span class="severity severity-significant">Significant</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+    <p>The three typed sub-interfaces establish a consistent pattern: each narrows the return type of <code>decide()</code> to the specific <code>CommandDecision</code> variant it is expected to return.</p>
+    <table>
+      <thead>
+        <tr><th>Sub-interface</th><th><code>decide()</code> return type</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>NonCommutativeCommandHandler&lt;C&gt;</code></td><td><code>CommandDecision.NonCommutative</code></td></tr>
+        <tr><td><code>IdempotentCommandHandler&lt;C&gt;</code></td><td><code>CommandDecision.Idempotent</code></td></tr>
+        <tr><td><code>CommutativeCommandHandler&lt;C&gt;</code></td><td><code>CommandDecision</code> ← parent sealed type</td></tr>
+      </tbody>
+    </table>
+    <p><code>CommutativeCommandHandler</code> breaks this pattern. It returns the parent <code>CommandDecision</code> because it is designed to support two variants — <code>Commutative</code> and <code>CommutativeGuarded</code> — and Java does not allow a covariant return type that unions two sibling types. The legitimate intent is correct; the consequence is that the <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">contract coupling</a> is weakened: a <code>CommutativeCommandHandler</code> implementor could accidentally return <code>NonCommutative</code> or <code>Idempotent</code> and the compiler would not object.</p>
+    <p>The <code>CommutativeCommandHandler</code> Javadoc compensates by listing the valid return types in prose. This is knowledge that belongs in types.</p>
+
+    <h3>Complexity Impact</h3>
+    <p>The inconsistency creates two levels of cognitive load. First, a developer implementing <code>CommutativeCommandHandler</code> cannot rely on the return type to guide them — they must read the Javadoc to discover the valid options. Second, a developer reading an existing implementation cannot verify at a glance that the return type is correct — they must pattern-match manually against the Javadoc contract.</p>
+    <p>This gap will widen as more command patterns are introduced. If a new variant is added to <code>CommandDecision</code>, the compiler will not warn that <code>CommutativeCommandHandler</code> implementations have not been updated to consider it.</p>
+
+    <h3>Cascading Changes</h3>
+    <p>If a new commutative variant is introduced, <code>CommandExecutorImpl</code>'s switch must be updated, but <code>CommutativeCommandHandler</code>'s contract gives no signal. In contrast, if a new <code>NonCommutativeDecision</code> variant were needed, the typed return would force consideration at every implementation site.</p>
+
+    <h3>Recommended Improvement</h3>
+    <p>Introduce a sealed intermediate type that the two commutative variants can implement:</p>
+    <pre><code>sealed interface CommutativeDecision extends CommandDecision
+    permits CommandDecision.Commutative, CommandDecision.CommutativeGuarded {}</code></pre>
+    <p>Then:</p>
+    <pre><code>public interface CommutativeCommandHandler&lt;C&gt; extends CommandHandler&lt;C&gt; {
+    CommutativeDecision decide(EventStore eventStore, C command);
+}</code></pre>
+    <p><code>CommandExecutorImpl</code> pattern-matches on <code>CommutativeDecision</code> as the parent case, then dispatches within it. The change restores the compile-time guarantee for commutative implementors and makes <code>CommutativeCommandHandler</code> consistent with its siblings. The only trade-off is a small structural change to <code>CommandDecision</code>'s sealed hierarchy.</p>
+  </div>
+
+  <!-- ISSUE 4 -->
+  <div class="issue">
+    <h2>Issue: <code>appendIdempotent</code> uses raw strings where <code>appendNonCommutative</code> uses a typed <code>Query</code></h2>
+    <div class="issue-meta">
+      <strong>Integration</strong>: <code>EventStore.appendIdempotent</code> ↔ <code>EventStore.appendNonCommutative</code> (same interface, different abstraction levels) &nbsp;|&nbsp;
+      <span class="severity severity-minor">Minor</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+    <p>The three append methods on <code>EventStore</code> operate at inconsistent abstraction levels:</p>
+    <pre><code>appendCommutative(List&lt;AppendEvent&gt; events)
+appendNonCommutative(List&lt;AppendEvent&gt; events, Query decisionModel, StreamPosition after)
+appendIdempotent(List&lt;AppendEvent&gt; events, String eventType, String tagKey, String tagValue)</code></pre>
+    <p><code>appendNonCommutative</code> receives a typed <code>Query</code> — the same abstraction used for projection throughout the API. <code>appendIdempotent</code> receives three raw <code>String</code> parameters that together represent a degenerate single-item query. Callers can use <code>EventType.type(MyEvent.class)</code> for the first string, but there is no typed counterpart for the tag key.</p>
+
+    <h3>Complexity Impact</h3>
+    <p>A developer familiar with <code>appendNonCommutative</code> and <code>Query</code> will be surprised by the flat-string signature of <code>appendIdempotent</code>. The inconsistency signals that these methods were designed at different points in time, inviting the question: <em>is there a deeper reason for the difference?</em> There isn't — it is accidental.</p>
+
+    <h3>Cascading Changes</h3>
+    <p>If idempotency checks ever need to span multiple tags or event types, a new method overload would be required. With a typed <code>Query</code>, that extension is already handled by the existing abstraction.</p>
+
+    <h3>Recommended Improvement</h3>
+    <p>Add a <code>Query</code>-accepting overload alongside the existing raw-string signature:</p>
+    <pre><code>String appendIdempotent(List&lt;AppendEvent&gt; events, Query idempotencyQuery);</code></pre>
+    <p>Keep the existing raw-string method as a convenience overload (or deprecate it over time). <code>AppendCondition.idempotent()</code> already builds the equivalent <code>Query</code> internally, showing the pattern is viable.</p>
+  </div>
+
+  <!-- ISSUE 5 -->
+  <div class="issue">
+    <h2>Issue: <code>CommandExecutor.execute()</code> returns <code>void</code> while <code>executeCommand()</code> returns <code>ExecutionResult</code></h2>
+    <div class="issue-meta">
+      <strong>Integration</strong>: <code>CommandExecutor.execute</code> ↔ <code>CommandExecutor.executeCommand</code> &nbsp;|&nbsp;
+      <span class="severity severity-minor">Minor</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+    <p><code>CommandExecutor</code> exposes two methods for the same logical operation:</p>
+    <pre><code>&lt;T&gt; ExecutionResult executeCommand(T command);
+&lt;T&gt; void execute(T command, CommandHandler&lt;T&gt; handler);</code></pre>
+    <p>The method that auto-discovers the handler returns an <code>ExecutionResult</code> (carrying idempotency information). The method that accepts an explicit handler returns <code>void</code>, silently discarding the result. The naming is also inconsistent: <code>executeCommand</code> versus <code>execute</code> for the same concept.</p>
+
+    <h3>Complexity Impact</h3>
+    <p>Callers using the explicit-handler path lose the ability to distinguish a new write from an idempotent replay — information needed to emit the correct HTTP status code (<code>201 Created</code> vs <code>200 OK</code>) or record the correct metric. The loss is invisible: the method compiles and runs, but the caller has less information than they would have had using the auto-discovery path.</p>
+
+    <h3>Cascading Changes</h3>
+    <p>This inconsistency is low-<a href="https://coupling.dev/posts/dimensions-of-coupling/volatility/">volatility</a>. It is unlikely to cause cascading changes, but it does create an invisible trap for callers who switch between the two methods expecting equivalent behavior.</p>
+
+    <h3>Recommended Improvement</h3>
+    <p>Align the return types and use overloads of the same method name:</p>
+    <pre><code>&lt;T&gt; ExecutionResult execute(T command);
+&lt;T&gt; ExecutionResult execute(T command, CommandHandler&lt;T&gt; handler);</code></pre>
+  </div>
+
+  <!-- ISSUE 6 -->
+  <div class="issue">
+    <h2>Issue: <code>ProjectionResult</code> carries a write side-effect method</h2>
+    <p><strong>Update (April 2026):</strong> <code>ProjectionResult.appendNonCommutative(...)</code> has since been removed from the public API. Direct <code>EventStore</code> callers now pass <code>projection.streamPosition()</code> explicitly to <code>EventStore.appendNonCommutative(...)</code>.</p>
+    <div class="issue-meta">
+      <strong>Integration</strong>: <code>ProjectionResult&lt;T&gt;</code> → <code>EventStore</code> (write path) &nbsp;|&nbsp;
+      <span class="severity severity-minor">Minor</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+    <p><code>ProjectionResult&lt;T&gt;</code> is a query result value carrying projected state and a stream position. It also exposes:</p>
+    <pre><code>public String appendNonCommutative(EventStore eventStore, List&lt;AppendEvent&gt; events, Query decisionModel)</code></pre>
+    <p>The rationale — stated clearly in the Javadoc — is ergonomic: embedding the stream position in the result prevents callers from accidentally discarding or misusing it. This is a deliberate trade-off, not an oversight. The cost is that a read result type can trigger a write, blurring the <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">functional coupling</a> boundary between the query and command paths.</p>
+
+    <h3>Complexity Impact</h3>
+    <p>The impact is limited because the method is narrow in scope and low-volatility. However, the existence of <code>CommandDecision</code> patterns means that most command handlers today never call <code>ProjectionResult.appendNonCommutative</code> directly — they return a <code>CommandDecision</code> instead. The method's primary audience is now reduced to callers working with <code>EventStore</code> outside the command framework.</p>
+
+    <h3>Cascading Changes</h3>
+    <p>Minimal. The method is stable and the use case is narrow. The main risk is that future contributors treat it as the canonical append path rather than the <code>CommandDecision</code> pattern.</p>
+
+    <h3>Recommended Improvement</h3>
+    <p>Accept the trade-off as intentional. Reinforce the distinction in the class Javadoc: this method is provided for direct-<code>EventStore</code> usage patterns only; within the command framework, return <code>CommandDecision.NonCommutative</code> instead. Consider a <code>@deprecated</code> notice if the method's usage has been fully subsumed by <code>CommandDecision</code>, to signal that the direct-append path is no longer the recommended one.</p>
+  </div>
+
+  <!-- ISSUE 7 -->
+  <div class="issue">
+    <h2>Issue: <code>Query.empty()</code> serves two semantically opposite roles</h2>
+    <div class="issue-meta">
+      <strong>Integration</strong>: <code>Query.empty()</code> used in both <code>EventStore.exists()</code> (match-all) and <code>AppendCondition</code> (skip-check) &nbsp;|&nbsp;
+      <span class="severity severity-minor">Minor</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+    <p><code>Query.empty()</code> is used in two distinct roles across the codebase:</p>
+    <ol>
+      <li><strong>Match-all filter</strong>: in <code>exists()</code> and <code>StateProjector.exists()</code>, an empty item list means no type filter is applied, so all events from the database query are considered.</li>
+      <li><strong>No-check sentinel</strong>: in <code>AppendCondition.empty()</code> and idempotency check paths, an empty <code>Query</code> signals that the check should be skipped entirely.</li>
+    </ol>
+    <p>These are semantically opposite — one means <em>"everything qualifies"</em>, the other means <em>"nothing is checked"</em>. The value works in both roles only because the implementation handles both correctly, not because the type makes intent clear.</p>
+
+    <h3>Complexity Impact</h3>
+    <p>The ambiguity is low-volatility and unlikely to cause runtime bugs. The risk is misuse by future contributors who see <code>Query.empty()</code> in one context and apply it in the other. It also makes code reviews harder: <code>AppendCondition.empty()</code> reads as "no events match" when it actually means "no check is performed".</p>
+
+    <h3>Cascading Changes</h3>
+    <p>Minimal. This is a naming clarity issue, not an architectural one.</p>
+
+    <h3>Recommended Improvement</h3>
+    <p>Introduce <code>Query.noCondition()</code> (or <code>Query.unchecked()</code>) as an explicit factory for the skip-check role, and reserve <code>Query.empty()</code> exclusively for the match-all filter role. The implementation can return the same underlying value — this is a naming change for clarity, not a structural one.</p>
+  </div>
+
+  <h2>Summary</h2>
+
+  <table>
+    <thead>
+      <tr><th>#</th><th>Issue</th><th>Severity</th><th>Area</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td><code>storeCommand</code> + <code>hasConflict</code> on <code>EventStore</code></td><td><span class="severity severity-critical">Critical</span></td><td><code>EventStore</code></td></tr>
+      <tr><td>2</td><td><code>CommutativeGuarded</code> / <code>NonCommutative</code> structurally identical</td><td><span class="severity severity-significant">Significant</span></td><td><code>CommandDecision</code></td></tr>
+      <tr><td>3</td><td><code>CommutativeCommandHandler.decide()</code> returns parent sealed type</td><td><span class="severity severity-significant">Significant</span></td><td><code>CommandHandler</code></td></tr>
+      <tr><td>4</td><td><code>appendIdempotent</code> raw strings vs typed <code>Query</code></td><td><span class="severity severity-minor">Minor</span></td><td><code>EventStore</code></td></tr>
+      <tr><td>5</td><td><code>execute()</code> returns <code>void</code>; <code>executeCommand()</code> returns <code>ExecutionResult</code></td><td><span class="severity severity-minor">Minor</span></td><td><code>CommandExecutor</code></td></tr>
+      <tr><td>6</td><td><code>ProjectionResult.appendNonCommutative()</code> — side-effect on a read result</td><td><span class="severity severity-minor">Minor</span></td><td><code>EventStore</code> / Query</td></tr>
+      <tr><td>7</td><td><code>Query.empty()</code> dual semantics</td><td><span class="severity severity-minor">Minor</span></td><td><code>EventStore</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <p>This analysis was performed using the <a href="https://coupling.dev">Balanced Coupling</a> model by <a href="https://vladikk.com">Vlad Khononov</a>.</p>
+  </div>
+
+</div>
+
+<script>
+  function getDefaultTheme() {
+    const hour = new Date().getHours();
+    return (hour >= 7 && hour < 19) ? 'light' : 'dark';
+  }
+
+  function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('modularity-review-theme', theme);
+    document.getElementById('theme-icon').textContent = theme === 'light' ? '☾' : '☀';
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    setTheme(current === 'light' ? 'dark' : 'light');
+  }
+
+  const saved = localStorage.getItem('modularity-review-theme');
+  setTheme(saved || getDefaultTheme());
+</script>
+</body>
+</html>

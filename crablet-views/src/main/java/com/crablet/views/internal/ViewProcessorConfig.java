@@ -60,6 +60,11 @@ public class ViewProcessorConfig implements ProcessorConfig<String> {
     public int getBackoffMaxSeconds() {
         return viewsConfig.getMaxBackoffSeconds();
     }
+
+    @Override
+    public long getLeaderElectionRetryIntervalMs() {
+        return viewsConfig.getLeaderElectionRetryIntervalMs();
+    }
     
     @Override
     public boolean isEnabled() {
@@ -95,4 +100,3 @@ public class ViewProcessorConfig implements ProcessorConfig<String> {
         return configs;
     }
 }
-

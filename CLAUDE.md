@@ -102,8 +102,21 @@ public class YourCommandHandler implements IdempotentCommandHandler<YourCommand>
 @Component
 public class YourViewProjector extends AbstractTypedViewProjector<YourEvent> {
 
-    public YourViewProjector() {
-        super("your_view_name", YourEvent.class);
+    public YourViewProjector(
+            ObjectMapper objectMapper,
+            ClockProvider clockProvider,
+            PlatformTransactionManager transactionManager) {
+        super(objectMapper, clockProvider, transactionManager);
+    }
+
+    @Override
+    public String getViewName() {
+        return "your_view_name";
+    }
+
+    @Override
+    protected Class<YourEvent> getEventType() {
+        return YourEvent.class;
     }
 
     @Override
@@ -413,6 +426,10 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 **CommandAuditStore (crablet-eventstore/src/main/java/com/crablet/eventstore/CommandAuditStore.java):**
 - `storeCommand(json, type, txId)` - Command audit trail (implemented by `EventStoreImpl`; accessed via `instanceof` cast in `CommandExecutorImpl`)
 
+**CommandExecutors (crablet-commands/src/main/java/com/crablet/command/CommandExecutors.java):**
+- Public factory for creating `CommandExecutor`
+- Preferred wiring entry point instead of instantiating `CommandExecutorImpl` directly
+
 **AppendEvent vs StoredEvent:**
 - `AppendEvent` - For writing (type, tags, data)
 - `StoredEvent` - For reading (includes position, occurredAt, transactionId)
@@ -422,9 +439,9 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 - Used for filtering, DCB conflict detection, state projection
 - Built with `QueryBuilder`
 
-**StreamPosition (crablet-eventstore/src/main/java/com/crablet/eventstore/store/):**
+**StreamPosition:**
 - Captures event position (sequence number + timestamp + txId)
-- Returned from `project()` via `ProjectionResult.streamPosition()`, used in `AppendConditionBuilder`
+- Returned from `project()` via `ProjectionResult.streamPosition()`
 - Core of DCB optimistic concurrency control
 
 **StateProjector (crablet-eventstore/src/main/java/com/crablet/eventstore/projector/):**
@@ -495,6 +512,7 @@ Asynchronous materialized read models from events.
 - Use `ON CONFLICT` or upserts for idempotency
 - Each batch committed atomically
 - Tag-based filtering for event subscriptions
+- View projection runs on the write-side datasource via the poller/handler boundary
 
 ### Event Publishing (crablet-outbox)
 
@@ -504,6 +522,7 @@ Transactional outbox for reliable external event publishing.
 - Events → Outbox table (same tx) → Polling → Multiple publishers → External systems
 - Leader election with global lock strategy
 - Per-publisher schedulers (independent polling)
+- The generic poller owns fetch, progress, and retry/error tracking; outbox publishers only publish the batch they receive
 
 **OutboxPublisher interface:**
 - `publish(topic, events)` - Publish to external system
@@ -518,8 +537,19 @@ PostgreSQL advisory locks for distributed coordination.
 - Leader: Acquired lock, processes events
 - Follower: Failed lock, waits for next cycle
 - Automatic failover: 5-30 seconds
+- Advisory locks are session-scoped; leader election must stay on a session-safe write connection
+- With PgBouncer or PgCat, keep leader election on the primary/write path in session mode
 
 **Documentation:** `docs/LEADER_ELECTION.md`
+
+### DataSource Model
+
+Crablet intentionally exposes two datasource roles:
+
+- `primaryDataSource` for writes, progress tracking, and leader election
+- `readDataSource` for read-only fetches that may be served by replicas
+
+Prefer explicit read/write endpoints over relying on pooler SQL parsing for correctness.
 
 ## Common Gotchas & Troubleshooting
 
@@ -832,6 +862,17 @@ public EventStore eventStore(
 - Event fetching (views, outbox) uses read replicas
 - Command appends go to primary
 - Reduces load on primary database
+- Leader election and other session-scoped features must remain on `primaryDataSource`
+
+### Automation Pattern
+
+Recommended separation of concerns:
+
+- command handlers record facts
+- views model current decision state
+- automations react asynchronously and own external side effects
+
+If an automation needs to call an email provider, webhook, or other external HTTP API, keep that call in the automation layer and use commands/events to record the outcome.
 
 **Documentation:** `crablet-eventstore/docs/READ_REPLICAS.md`
 

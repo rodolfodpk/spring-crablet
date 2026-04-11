@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modularity Review</title>
+<style>
+  :root {
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+    --max-width: 820px;
+  }
+
+  :root[data-theme="light"] {
+    --bg: #ffffff;
+    --bg-secondary: #f6f8fa;
+    --bg-tertiary: #eef1f5;
+    --text: #1a1a1a;
+    --text-secondary: #4a5568;
+    --text-muted: #718096;
+    --border: #e2e8f0;
+    --accent: #2b6cb0;
+    --accent-light: #ebf4ff;
+    --severity-critical: #c53030;
+    --severity-critical-bg: #fff5f5;
+    --severity-significant: #c05621;
+    --severity-significant-bg: #fffaf0;
+    --severity-minor: #2b6cb0;
+    --severity-minor-bg: #ebf8ff;
+    --table-stripe: #f7fafc;
+    --link: #2b6cb0;
+    --link-hover: #1a4971;
+    --shadow: rgba(0, 0, 0, 0.06);
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #1a1a1a;
+    --bg-secondary: #242424;
+    --bg-tertiary: #2e2e2e;
+    --text: #e2e2e2;
+    --text-secondary: #a0a0a0;
+    --text-muted: #717171;
+    --border: #333333;
+    --accent: #b0b0b0;
+    --accent-light: #2a2a2a;
+    --severity-critical: #fc8181;
+    --severity-critical-bg: #2d1b1b;
+    --severity-significant: #f6ad55;
+    --severity-significant-bg: #2d2415;
+    --severity-minor: #a0a0a0;
+    --severity-minor-bg: #282828;
+    --table-stripe: #222222;
+    --link: #e0c97f;
+    --link-hover: #f0dca0;
+    --shadow: rgba(0, 0, 0, 0.2);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    margin: 0;
+    padding: 2rem 1.5rem;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  .container {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  /* Theme toggle */
+  .theme-toggle {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: var(--text);
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    z-index: 100;
+  }
+
+  .theme-toggle:hover {
+    background: var(--bg-tertiary);
+  }
+
+  /* Typography */
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.5rem 0;
+    color: var(--text);
+  }
+
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 2.5rem 0 1rem 0;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 1.8rem 0 0.6rem 0;
+    color: var(--text);
+  }
+
+  p {
+    margin: 0 0 1rem 0;
+    color: var(--text-secondary);
+  }
+
+  a {
+    color: var(--link);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+  }
+
+  a:hover {
+    color: var(--link-hover);
+    border-bottom-color: var(--link-hover);
+  }
+
+  /* Metadata */
+  .meta {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .meta strong {
+    color: var(--text-secondary);
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+  }
+
+  th {
+    background: var(--bg-secondary);
+    font-weight: 600;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  td {
+    padding: 0.65rem 1rem;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+
+  tr:nth-child(even) td {
+    background: var(--table-stripe);
+  }
+
+  /* Severity badges */
+  .severity {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.15rem 0.6rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .severity-critical {
+    color: var(--severity-critical);
+    background: var(--severity-critical-bg);
+  }
+
+  .severity-significant {
+    color: var(--severity-significant);
+    background: var(--severity-significant-bg);
+  }
+
+  .severity-minor {
+    color: var(--severity-minor);
+    background: var(--severity-minor-bg);
+  }
+
+  /* Issue cards */
+  .issue {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem 2rem;
+    margin: 1.5rem 0;
+    box-shadow: 0 1px 3px var(--shadow);
+  }
+
+  .issue h2 {
+    margin-top: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .issue h3 {
+    font-size: 1rem;
+  }
+
+  .issue-meta {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
+
+  /* Lists */
+  ul, ol {
+    padding-left: 1.5rem;
+    color: var(--text-secondary);
+  }
+
+  li {
+    margin-bottom: 0.35rem;
+  }
+
+  /* Code */
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    background: var(--bg-tertiary);
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+  }
+
+  pre {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: 0.85em;
+    line-height: 1.6;
+  }
+
+  /* Horizontal rule */
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 3rem 0 1.5rem 0;
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .footer a {
+    color: var(--text-muted);
+    border-bottom-color: var(--border);
+  }
+
+  .footer a:hover {
+    color: var(--link);
+  }
+
+  /* Print */
+  @media print {
+    .theme-toggle { display: none; }
+    body { padding: 0; }
+    .issue { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+  <span id="theme-icon"></span>
+</button>
+
+<div class="container">
+  <h1>Modularity Review</h1>
+
+  <div class="meta">
+    <strong>Scope:</strong> Framework modules — <code>crablet-eventstore</code>, <code>crablet-commands</code>, <code>crablet-event-poller</code>, <code>crablet-views</code>, <code>crablet-outbox</code>, <code>crablet-automations</code><br>
+    <strong>Date:</strong> 2026-04-06
+  </div>
+
+  <h2>Executive Summary</h2>
+
+  <p>Spring-Crablet is a Java 25 event sourcing framework built on the DCB (Dynamic Consistency Boundary) pattern, providing event storage, command execution, read model projections, transactional outbox, and event-driven automations as a suite of optional Maven modules. The overall module structure is well-conceived: a clean layering of core and optional capabilities, with appropriate dependency direction. However, three <a href="https://coupling.dev/posts/core-concepts/coupling/">coupling</a> issues were identified, one of which is critical. The most important finding is that a concrete domain command name (<code>"open_wallet"</code>) is hardcoded inside the generic <code>crablet-commands</code> framework module — a breach of the boundary between infrastructure and domain that will compound as the framework and its example domains continue to evolve under active development.</p>
+
+  <h2>Coupling Overview</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Integration</th>
+        <th><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Strength</a></th>
+        <th><a href="https://coupling.dev/posts/dimensions-of-coupling/distance/">Distance</a></th>
+        <th><a href="https://coupling.dev/posts/dimensions-of-coupling/volatility/">Volatility</a></th>
+        <th><a href="https://coupling.dev/posts/core-concepts/balance/">Balanced?</a></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>commands</code> → <code>eventstore</code> (EventStore API)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Functional</a></td>
+        <td>Low</td>
+        <td>Medium</td>
+        <td>✓ Yes — high cohesion, low distance</td>
+      </tr>
+      <tr>
+        <td><code>CommandExecutorImpl</code> ← <code>"open_wallet"</code> domain logic</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Intrusive</a></td>
+        <td>Low</td>
+        <td>High</td>
+        <td>✗ <strong>No</strong> — domain knowledge embedded in framework</td>
+      </tr>
+      <tr>
+        <td><code>views</code> / <code>outbox</code> / <code>automations</code> → <code>eventpoller.internal.*</code></td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Functional</a></td>
+        <td>Low–Medium</td>
+        <td>Medium</td>
+        <td>✗ <strong>No</strong> — <code>internal</code> boundary violated across modules</td>
+      </tr>
+      <tr>
+        <td><code>commands</code> → <code>eventstore.internal.EventStoreConfig</code></td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Functional</a></td>
+        <td>Low</td>
+        <td>Low</td>
+        <td>✓ Tolerable — low volatility</td>
+      </tr>
+      <tr>
+        <td><code>views</code> / <code>outbox</code> / <code>automations</code> → <code>AbstractJdbcEventFetcher</code> (inheritance)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Functional</a></td>
+        <td>Low</td>
+        <td>Medium</td>
+        <td>✓ Yes — low distance offsets inheritance strength</td>
+      </tr>
+      <tr>
+        <td><code>automations</code> → <code>commands</code> (<code>CommandExecutor</code> in <code>AutomationHandler</code> API)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Model</a></td>
+        <td>Low</td>
+        <td>Medium</td>
+        <td>✓ Yes — intended integration point</td>
+      </tr>
+      <tr>
+        <td><code>event-poller</code> → <code>eventstore</code> (<code>StoredEvent</code>, <code>Tag</code>)</td>
+        <td><a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">Model</a></td>
+        <td>Low</td>
+        <td>Low</td>
+        <td>✓ Yes — well-bounded model sharing</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="issue">
+    <h2>Issue: Domain Logic Contamination in a Generic Framework Module</h2>
+    <div class="issue-meta">
+      <strong>Integration:</strong> <code>crablet-commands</code> ← wallet domain &nbsp;|&nbsp;
+      <span class="severity severity-critical">Critical</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+
+    <p><code>CommandExecutorImpl</code> contains the following code in <code>handleConcurrencyException</code>:</p>
+
+    <pre><code>// Fail fast: Wallet creation duplicates should throw exception
+if ("open_wallet".equals(commandType)) {
+    throw new ConcurrencyException(message, command, e);
+}</code></pre>
+
+    <p>This is <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">intrusive coupling</a> in an unusual direction: instead of a consumer reaching into a module's private internals, domain-specific knowledge has penetrated the generic infrastructure layer. The framework module now encodes a business rule — "wallet creation duplicates are errors, not idempotent results" — that belongs exclusively in the wallet domain.</p>
+
+    <p>The leaked knowledge is implicit. There is no interface or contract that expresses this policy; it is buried inside exception-handling logic. The rule cannot be discovered through the public API of <code>crablet-commands</code>, and developers adopting the framework for a different domain (e.g., insurance, logistics) have no mechanism to express an equivalent policy for their own creation commands.</p>
+
+    <h3>Complexity Impact</h3>
+
+    <p>When the wallet domain command type is renamed — a routine refactoring — this line silently stops working: duplicate wallet creation will return <code>idempotent</code> instead of throwing, and no compiler or test will catch the inconsistency unless the specific scenario is covered by an integration test. The <a href="https://coupling.dev/posts/core-concepts/complexity/">complexity</a> here is that the cost of renaming a command type now extends into framework internals that a domain developer would not reasonably inspect.</p>
+
+    <p>Conversely, any developer reading <code>CommandExecutorImpl</code> to understand the generic framework behavior is forced to hold the wallet domain in working memory to understand why this branch exists — exceeding the 4 ± 1 units that cognitive capacity studies suggest is the limit for keeping context simultaneous.</p>
+
+    <h3>Cascading Changes</h3>
+
+    <ul>
+      <li><strong>Renaming <code>open_wallet</code></strong> requires a matching change in <code>CommandExecutorImpl</code> to avoid silent behavioral regression.</li>
+      <li><strong>Adding a new domain</strong> that has its own entity-creation command (e.g., <code>create_policy</code>, <code>open_account</code>) finds no equivalent mechanism — the framework either swallows their duplicate-creation error as idempotent or requires adding another hardcoded branch into <code>CommandExecutorImpl</code>.</li>
+      <li><strong>Removing the wallet example</strong> from the repository would leave dead code and incorrect documentation comments in the core framework.</li>
+      <li>As the framework moves toward active development and v1.0, this will appear in documentation and user onboarding, teaching a wrong mental model of how the command framework handles idempotency.</li>
+    </ul>
+
+    <h3>Recommended Improvement</h3>
+
+    <p>The <a href="https://coupling.dev/posts/core-concepts/balance/">balance rule</a> calls for reducing strength when the coupling is problematic: introduce an explicit mechanism that lets each domain express its own idempotency policy instead of hardcoding it in the framework.</p>
+
+    <p>The most targeted fix is to extend the <code>CommandDecision.Idempotent</code> variant with a policy flag:</p>
+
+    <pre><code>// Domain decides: throw on duplicate (creation) or return silently (operations)
+return Decision.idempotent(appendEvent, eventType, tagKey, entityId, OnDuplicate.THROW);</code></pre>
+
+    <p><code>CommandExecutorImpl</code> then dispatches on <code>decision.onDuplicate()</code> — generic behavior, no command names. The wallet handler for <code>OpenWalletCommand</code> passes <code>OnDuplicate.THROW</code>; every other handler passes <code>OnDuplicate.RETURN_IDEMPOTENT</code>. The framework has zero knowledge of command names; each domain owns its own duplicate policy.</p>
+
+    <p>The trade-off is a small API surface addition to <code>CommandDecision.Idempotent</code>. This is outweighed by removing permanently the only domain-specific branch in the framework's core.</p>
+  </div>
+
+  <div class="issue">
+    <h2>Issue: Processing Modules Import <code>event-poller</code> Internal Classes</h2>
+    <div class="issue-meta">
+      <strong>Integration:</strong> <code>crablet-views</code> / <code>crablet-outbox</code> / <code>crablet-automations</code> → <code>com.crablet.eventpoller.internal.*</code> &nbsp;|&nbsp;
+      <span class="severity severity-significant">Significant</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+
+    <p>All three processing module auto-configurations directly import and instantiate classes from <code>crablet-event-poller</code>'s <code>internal</code> package:</p>
+
+    <ul>
+      <li><code>LeaderElectorImpl</code> — leader election via PostgreSQL advisory locks</li>
+      <li><code>EventProcessorImpl</code> — the generic poll-process-track engine</li>
+      <li><code>ProcessorManagementServiceImpl</code> — pause/resume/status management</li>
+      <li><code>InstanceIdProvider</code> — instance identity for lock naming</li>
+    </ul>
+
+    <p>In Java, the <code>internal</code> package convention communicates: <em>this is an implementation detail; it may change without notice; do not depend on it from outside this module.</em> Three sibling modules freely cross that boundary. The <code>internal</code> package label provides false encapsulation: it appears to hide internal details, but it does not.</p>
+
+    <p>The shared knowledge is <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">functional coupling</a> — the configuration classes must know the exact constructor signatures, parameter ordering, and initialization semantics of the internal implementations. When <code>LeaderElectorImpl</code>'s constructor gains a new parameter, or when <code>EventProcessorImpl</code> is split into a specialized subtype, all three modules must be updated simultaneously.</p>
+
+    <h3>Complexity Impact</h3>
+
+    <p>A developer working on <code>crablet-event-poller</code> sees the <code>internal</code> package and reasonably assumes they can refactor its contents freely — changing a constructor, extracting an interface, merging two classes — without needing to notify consumers. That assumption is wrong: three other modules will fail to compile. The <a href="https://coupling.dev/posts/core-concepts/modularity/">modularity</a> signal from the <code>internal</code> label points in the opposite direction from the actual coupling.</p>
+
+    <p>Because the violation is in <code>@Configuration</code> classes (not in business logic), it is easy to overlook during code review and unlikely to be caught by unit tests.</p>
+
+    <h3>Cascading Changes</h3>
+
+    <ul>
+      <li><strong>Any constructor change</strong> to <code>EventProcessorImpl</code>, <code>LeaderElectorImpl</code>, or <code>ProcessorManagementServiceImpl</code> breaks the <code>@Configuration</code> class in every module that uses it. In a project with active development, internal constructors are the most likely thing to change during refactoring.</li>
+      <li><strong>Splitting <code>EventProcessorImpl</code></strong> into variants (e.g., for batch vs. streaming) forces updates across three modules before any of them can compile.</li>
+      <li><strong>Adding a fourth processing module</strong> (e.g., a <code>crablet-sagas</code> module) has no documented contract to follow — it must reverse-engineer the existing <code>@Configuration</code> classes to discover which internal classes to use and how to instantiate them.</li>
+    </ul>
+
+    <h3>Recommended Improvement</h3>
+
+    <p>The <a href="https://coupling.dev/posts/core-concepts/balance/">balance rule</a> prescribes reducing strength: introduce an <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">integration contract</a> in <code>crablet-event-poller</code>'s public API that encapsulates the internal construction details.</p>
+
+    <p>An <code>EventProcessorFactory</code> (or an <code>EventProcessorBuilder</code>) in <code>com.crablet.eventpoller</code> would expose a stable construction API:</p>
+
+    <pre><code>// In crablet-event-poller public API
+public class EventProcessorFactory {
+    public static &lt;C, I&gt; EventProcessor&lt;C, I&gt; create(
+            EventProcessorSpec&lt;C, I&gt; spec,
+            DataSource primary,
+            DataSource read,
+            TaskScheduler scheduler,
+            ApplicationEventPublisher publisher) { ... }
+}</code></pre>
+
+    <p>Each processing module's <code>@Configuration</code> would call <code>EventProcessorFactory.create(...)</code> instead of <code>new EventProcessorImpl(...)</code>. The internal constructor signature becomes an implementation detail that <code>crablet-event-poller</code> can change freely. Any future module follows the same documented factory contract.</p>
+
+    <p>The trade-off is adding a factory to <code>event-poller</code>'s public API. This is a one-time cost that pays ongoing dividends as the three existing modules and any future modules gain a stable construction contract.</p>
+  </div>
+
+  <div class="issue">
+    <h2>Issue: <code>EventStoreConfig</code> Belongs in the Public API</h2>
+    <div class="issue-meta">
+      <strong>Integration:</strong> <code>crablet-commands</code> → <code>com.crablet.eventstore.internal.EventStoreConfig</code> &nbsp;|&nbsp;
+      <span class="severity severity-minor">Minor</span>
+    </div>
+
+    <h3>Knowledge Leakage</h3>
+
+    <p><code>CommandExecutorImpl</code> declares <code>EventStoreConfig</code> as a required constructor parameter:</p>
+
+    <pre><code>public CommandExecutorImpl(EventStore eventStore,
+                           List&lt;CommandHandler&lt;?&gt;&gt; commandHandlers,
+                           EventStoreConfig config,   // ← from eventstore.internal
+                           ClockProvider clock, ...)</code></pre>
+
+    <p>Application developers wiring <code>CommandExecutorImpl</code> manually must import <code>com.crablet.eventstore.internal.EventStoreConfig</code> — a class from the <code>internal</code> package of another module — in their <code>@Configuration</code> class. This is <a href="https://coupling.dev/posts/dimensions-of-coupling/integration-strength/">functional coupling</a> that crosses the <code>internal</code> package boundary of <code>crablet-eventstore</code>.</p>
+
+    <h3>Complexity Impact</h3>
+
+    <p>The <code>internal</code> placement of <code>EventStoreConfig</code> is misleading: it is in the internal package, suggesting it is an implementation detail, but it is a required part of the public wiring API for the commands module. Framework users encounter an apparent contradiction — a Spring <code>@ConfigurationProperties</code> class that they must wire explicitly but that lives in a package they are not supposed to touch.</p>
+
+    <p><a href="https://coupling.dev/posts/dimensions-of-coupling/volatility/">Volatility</a> is low (config properties rarely change), so the practical impact is limited. This is technical debt that increases cognitive friction for new framework adopters rather than an active source of cascading changes.</p>
+
+    <h3>Cascading Changes</h3>
+
+    <ul>
+      <li><strong>Renaming or moving <code>EventStoreConfig</code></strong> would break the <code>CommandExecutorImpl</code> constructor signature, requiring an update in any application that wires the command executor manually.</li>
+      <li><strong>Adding Spring Boot auto-configuration</strong> to <code>crablet-commands</code> (the natural next step as the framework matures) would need to reference an internal class to register the config bean, which is visible in any auto-configuration diagnostic output.</li>
+    </ul>
+
+    <h3>Recommended Improvement</h3>
+
+    <p>Move <code>EventStoreConfig</code> to <code>com.crablet.eventstore</code> (the public package). This is a single file relocation with a package declaration change. The class is already annotated <code>@ConfigurationProperties</code> and has no dependency on other internal eventstore classes, so no structural changes are required.</p>
+
+    <p>As a secondary improvement, consider providing a <code>crablet-commands</code> Spring Boot auto-configuration that wires <code>CommandExecutorImpl</code> automatically — removing the burden from application developers entirely and eliminating the internal class from user-visible wiring code.</p>
+  </div>
+
+  <div class="footer">
+    <p><em>This analysis was performed using the <a href="https://coupling.dev">Balanced Coupling</a> model by <a href="https://vladikk.com">Vlad Khononov</a>.</em></p>
+  </div>
+</div>
+
+<script>
+  function getDefaultTheme() {
+    const hour = new Date().getHours();
+    return (hour >= 7 && hour < 19) ? 'light' : 'dark';
+  }
+
+  function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('modularity-review-theme', theme);
+    document.getElementById('theme-icon').textContent = theme === 'light' ? '☾' : '☀';
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    setTheme(current === 'light' ? 'dark' : 'light');
+  }
+
+  const saved = localStorage.getItem('modularity-review-theme');
+  setTheme(saved || getDefaultTheme());
+</script>
+</body>
+</html>

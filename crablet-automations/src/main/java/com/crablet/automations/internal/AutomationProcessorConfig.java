@@ -43,6 +43,9 @@ public class AutomationProcessorConfig implements ProcessorConfig<String> {
     public int getBackoffMaxSeconds() { return automationsConfig.getMaxBackoffSeconds(); }
 
     @Override
+    public long getLeaderElectionRetryIntervalMs() { return automationsConfig.getLeaderElectionRetryIntervalMs(); }
+
+    @Override
     public boolean isEnabled() { return automationsConfig.isEnabled(); }
 
     public static Map<String, AutomationProcessorConfig> createConfigMap(
