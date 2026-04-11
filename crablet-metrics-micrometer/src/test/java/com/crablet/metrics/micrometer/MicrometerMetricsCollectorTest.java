@@ -83,7 +83,7 @@ class MicrometerMetricsCollectorTest {
     @DisplayName("Should record command success metric")
     void shouldRecordCommandSuccess() {
         // When
-        collector.handleCommandSuccess(new CommandSuccessMetric("deposit", Duration.ofMillis(150)));
+        collector.handleCommandSuccess(new CommandSuccessMetric("deposit", Duration.ofMillis(150), "commutative"));
         
         // Then
         Timer timer = registry.find("eventstore.commands.duration")
@@ -201,7 +201,7 @@ class MicrometerMetricsCollectorTest {
         assertThat(gauge.value()).isEqualTo(1.0);
 
         // When: command succeeds
-        collector.handleCommandSuccess(new CommandSuccessMetric("deposit", Duration.ofMillis(50)));
+        collector.handleCommandSuccess(new CommandSuccessMetric("deposit", Duration.ofMillis(50), "commutative"));
 
         // Then: in-flight gauge is back to 0
         assertThat(gauge.value()).isEqualTo(0.0);

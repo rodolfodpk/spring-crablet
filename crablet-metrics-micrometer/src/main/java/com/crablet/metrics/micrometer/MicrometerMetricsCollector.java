@@ -109,12 +109,14 @@ public class MicrometerMetricsCollector {
         Timer.builder("eventstore.commands.duration")
             .description("Command execution time")
             .tag("command_type", event.commandType())
+            .tag("operation_type", event.operationType())
             .register(registry)
             .record(event.duration());
 
         Counter.builder("eventstore.commands.total")
             .description("Total commands processed")
             .tag("command_type", event.commandType())
+            .tag("operation_type", event.operationType())
             .register(registry)
             .increment();
     }

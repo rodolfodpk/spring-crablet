@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
@@ -221,6 +222,8 @@ public class CommandExecutorImpl implements CommandExecutor {
         Instant startTime = clock.now();
         eventPublisher.publishEvent(new CommandStartedMetric(commandType, startTime));
 
+        AtomicReference<String> operationType = new AtomicReference<>("unknown");
+
         try {
             ExecutionResult executionResult = eventStore.executeInTransaction(txStore -> {
                 // Handle command and generate events
@@ -232,16 +235,20 @@ public class CommandExecutorImpl implements CommandExecutor {
 
                 // Idempotent re-execution: handler signals no events to append
                 if (result instanceof CommandDecision.NoOp e) {
+                    operationType.set("no_op");
                     return handleIdempotentResult(e.reason(), commandType);
                 }
 
-                // Append events using the appropriate DCB semantic method
+                // Append events using the appropriate Crablet semantic method
                 @Nullable String transactionId;
                 try {
                     transactionId = switch (result) {
-                        case CommandDecision.Commutative c ->
-                            txStore.appendCommutative(c.events());
+                        case CommandDecision.Commutative c -> {
+                            operationType.set("commutative");
+                            yield txStore.appendCommutative(c.events());
+                        }
                         case CommandDecision.CommutativeGuarded cg -> {
+                            operationType.set("commutative_guarded");
                             // Selective lifecycle guard: detect if entity state changed (e.g., WalletClosed)
                             // between the handler's projection and this append, without blocking
                             // concurrent commutative operations (e.g., DepositMade not in guard query).
@@ -253,10 +260,14 @@ public class CommandExecutorImpl implements CommandExecutor {
                             }
                             yield txStore.appendCommutative(cg.events());
                         }
-                        case CommandDecision.NonCommutative nc ->
-                            txStore.appendNonCommutative(nc.events(), nc.decisionModel(), nc.streamPosition());
-                        case CommandDecision.Idempotent i ->
-                            txStore.appendIdempotent(i.events(), i.eventType(), i.tagKey(), i.tagValue());
+                        case CommandDecision.NonCommutative nc -> {
+                            operationType.set("non_commutative");
+                            yield txStore.appendNonCommutative(nc.events(), nc.decisionModel(), nc.streamPosition());
+                        }
+                        case CommandDecision.Idempotent i -> {
+                            operationType.set("idempotent");
+                            yield txStore.appendIdempotent(i.events(), i.eventType(), i.tagKey(), i.tagValue());
+                        }
                         case CommandDecision.NoOp e ->
                             throw new IllegalStateException("unreachable: empty case handled above");
                     };
@@ -278,7 +289,7 @@ public class CommandExecutorImpl implements CommandExecutor {
 
             // Calculate duration and publish success metrics
             Duration duration = Duration.between(startTime, clock.now());
-            eventPublisher.publishEvent(new CommandSuccessMetric(commandType, duration));
+            eventPublisher.publishEvent(new CommandSuccessMetric(commandType, duration, operationType.get()));
 
             // Track idempotent operations separately
             if (executionResult.wasIdempotent()) {

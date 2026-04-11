@@ -9,14 +9,12 @@ import java.time.Duration;
  * <p>
  * Published by CommandExecutorImpl after successful command execution.
  * Duration is calculated using ClockProvider for consistent timing.
+ * <p>
+ * Operation type values: {@code "commutative"}, {@code "commutative_guarded"},
+ * {@code "non_commutative"}, {@code "idempotent"}, {@code "no_op"}.
  */
-public record CommandSuccessMetric(String commandType, Duration duration) implements MetricEvent {
-    /**
-     * Create a metric event for successful command execution.
-     * 
-     * @param commandType The command type name (must not be null or empty)
-     * @param duration The execution duration calculated from ClockProvider (must not be null or negative)
-     */
+public record CommandSuccessMetric(String commandType, Duration duration, String operationType)
+        implements MetricEvent {
     public CommandSuccessMetric {
         if (commandType == null || commandType.isEmpty()) {
             throw new IllegalArgumentException("Command type cannot be null or empty");
@@ -27,6 +25,8 @@ public record CommandSuccessMetric(String commandType, Duration duration) implem
         if (duration.isNegative()) {
             throw new IllegalArgumentException("Duration cannot be negative");
         }
+        if (operationType == null || operationType.isEmpty()) {
+            throw new IllegalArgumentException("Operation type cannot be null or empty");
+        }
     }
 }
-
