@@ -19,6 +19,13 @@ You can call `EventStore` directly, but `CommandHandler` gives you:
 ## Example
 
 ```java
+public record SubmitTalkCommand(
+    String talkId,
+    String speakerId,
+    String title,
+    String submissionId
+) {}
+
 @Component
 public class SubmitTalkCommandHandler implements IdempotentCommandHandler<SubmitTalkCommand> {
 

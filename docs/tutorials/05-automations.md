@@ -19,6 +19,12 @@ crablet.automations.batch-size=100
 ## In-Process Automation
 
 ```java
+public record WelcomeNotificationView(String walletId, boolean shouldSendWelcomeNotification) {}
+
+public interface WelcomeNotificationViewRepository {
+    WelcomeNotificationView get(String walletId);
+}
+
 @Component
 public class WelcomeNotificationAutomation implements AutomationHandler {
 
@@ -35,7 +41,12 @@ public class WelcomeNotificationAutomation implements AutomationHandler {
 
     @Override
     public void react(StoredEvent event, CommandExecutor commandExecutor) {
-        String walletId = ...;
+        String walletId = event.tags().stream()
+            .filter(tag -> tag.key().equals("wallet_id"))
+            .map(Tag::value)
+            .findFirst()
+            .orElseThrow();
+
         WelcomeNotificationView view = viewRepository.get(walletId);
         if (view.shouldSendWelcomeNotification()) {
             commandExecutor.execute(SendWelcomeNotificationCommand.of(walletId));
@@ -47,9 +58,28 @@ public class WelcomeNotificationAutomation implements AutomationHandler {
 ## Webhook Delivery
 
 ```java
-@Override
-public String getWebhookUrl() {
-    return "http://localhost:8080/api/automations/wallet-opened";
+@Component
+public class WelcomeNotificationWebhookAutomation implements AutomationHandler {
+
+    @Override
+    public String getAutomationName() {
+        return "welcome-notification-webhook";
+    }
+
+    @Override
+    public Set<String> getEventTypes() {
+        return Set.of(type(WalletOpened.class));
+    }
+
+    @Override
+    public Set<String> getRequiredTags() {
+        return Set.of("wallet_id");
+    }
+
+    @Override
+    public String getWebhookUrl() {
+        return "http://localhost:8080/api/automations/wallet-opened";
+    }
 }
 ```
 

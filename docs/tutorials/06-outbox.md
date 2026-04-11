@@ -22,6 +22,12 @@ crablet.outbox.topics.default.publishers=KafkaPublisher,LogPublisher
 @Component
 public class KafkaPublisher implements OutboxPublisher {
 
+    private final KafkaTemplate<String, StoredEvent> kafkaTemplate;
+
+    public KafkaPublisher(KafkaTemplate<String, StoredEvent> kafkaTemplate) {
+        this.kafkaTemplate = kafkaTemplate;
+    }
+
     @Override
     public void publish(String topic, List<StoredEvent> events) {
         for (StoredEvent event : events) {

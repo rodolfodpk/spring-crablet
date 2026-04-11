@@ -18,6 +18,21 @@ public record TalkAccepted(String talkId, String speakerId) implements TalkEvent
 public record TalkRejected(String talkId, String speakerId, String reason) implements TalkEvent {}
 ```
 
+```java
+public enum TalkStatus { PENDING, ACCEPTED, REJECTED }
+
+public record TalkState(
+    String talkId,
+    String speakerId,
+    TalkStatus status,
+    boolean exists
+) {
+    public static TalkState empty() {
+        return new TalkState(null, null, null, false);
+    }
+}
+```
+
 ## Append An Event
 
 ```java
@@ -46,6 +61,33 @@ boolean exists = eventStore.exists(query);
 ## Project Full State
 
 ```java
+public class TalkStateProjector implements StateProjector<TalkState> {
+
+    @Override
+    public List<String> getEventTypes() {
+        return List.of(
+            type(TalkSubmitted.class),
+            type(TalkAccepted.class),
+            type(TalkRejected.class)
+        );
+    }
+
+    @Override
+    public TalkState getInitialState() {
+        return TalkState.empty();
+    }
+
+    @Override
+    public TalkState transition(TalkState state, StoredEvent event, EventDeserializer deserializer) {
+        TalkEvent talkEvent = deserializer.deserialize(event, TalkEvent.class);
+        return switch (talkEvent) {
+            case TalkSubmitted s -> new TalkState(s.talkId(), s.speakerId(), TalkStatus.PENDING, true);
+            case TalkAccepted a -> new TalkState(state.talkId(), state.speakerId(), TalkStatus.ACCEPTED, true);
+            case TalkRejected r -> new TalkState(state.talkId(), state.speakerId(), TalkStatus.REJECTED, true);
+        };
+    }
+}
+
 ProjectionResult<TalkState> result =
     eventStore.project(query, new TalkStateProjector());
 ```

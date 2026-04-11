@@ -19,6 +19,8 @@ crablet.views.batch-size=100
 ## Create A Projector
 
 ```java
+public sealed interface WalletEvent permits WalletOpened, DepositMade, WithdrawalMade {}
+
 @Component
 public class WalletViewProjector extends AbstractTypedViewProjector<WalletEvent> {
 
@@ -37,6 +39,37 @@ public class WalletViewProjector extends AbstractTypedViewProjector<WalletEvent>
     @Override
     protected Class<WalletEvent> getEventType() {
         return WalletEvent.class;
+    }
+
+    @Override
+    protected boolean handleEvent(WalletEvent event, StoredEvent storedEvent, JdbcTemplate jdbc) {
+        return switch (event) {
+            case WalletOpened opened -> {
+                jdbc.update(
+                    "insert into wallet_view (wallet_id, balance) values (?, ?) " +
+                    "on conflict (wallet_id) do update set balance = excluded.balance",
+                    opened.walletId(),
+                    opened.initialBalance()
+                );
+                yield true;
+            }
+            case DepositMade deposit -> {
+                jdbc.update(
+                    "update wallet_view set balance = ? where wallet_id = ?",
+                    deposit.newBalance(),
+                    deposit.walletId()
+                );
+                yield true;
+            }
+            case WithdrawalMade withdrawal -> {
+                jdbc.update(
+                    "update wallet_view set balance = ? where wallet_id = ?",
+                    withdrawal.newBalance(),
+                    withdrawal.walletId()
+                );
+                yield true;
+            }
+        };
     }
 }
 ```
