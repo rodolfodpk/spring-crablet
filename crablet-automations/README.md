@@ -6,6 +6,23 @@ Light framework component for event-driven automations (policies) with Spring Bo
 
 Crablet Automations implements the "when X happens, do Y" pattern from event storming — also known as policies or process managers. When a domain event is stored, an automation can listen for it and automatically execute one or more commands.
 
+## Recommended Pattern
+
+Crablet automations should follow an Event Modeling-style automation pattern:
+
+- **Command handlers persist facts**. They should not perform external side effects such as HTTP calls, email delivery, or message publication.
+- **Views model decision state**. The automation decision should be based on the current view model, not on raw event occurrence alone.
+- **Automations perform side effects**. An automation may be triggered by events, but it should evaluate modeled state, call external services through injected gateways/clients, and then record the outcome through the normal command/event flow.
+
+Short version:
+
+- command handlers write facts
+- views model decision state
+- automations read modeled state
+- automations perform side effects
+
+This separation keeps transactional consistency concerns in command handling and moves non-transactional work to automations, where retries and idempotency are expected.
+
 **Key Features:**
 - Implement `AutomationHandler` — one interface, two methods
 - Tag-based and event-type-based subscriptions
@@ -44,16 +61,18 @@ crablet.automations.batch-size=100
 
 ### 2. Implement AutomationHandler
 
+Treat the incoming event as a trigger, not as the decision source. The automation should load the current view-model state, decide from that state whether work is needed, and then execute the next command.
+
 ```java
 @Component
-public class WalletOpenedAutomation implements AutomationHandler {
+public class WelcomeNotificationAutomation implements AutomationHandler {
 
-    private static final String AUTOMATION_NAME = "wallet-opened-welcome-notification";
+    private static final String AUTOMATION_NAME = "welcome-notification";
 
-    private final ObjectMapper objectMapper;
+    private final WelcomeNotificationViewRepository viewRepository;
 
-    public WalletOpenedAutomation(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public WelcomeNotificationAutomation(WelcomeNotificationViewRepository viewRepository) {
+        this.viewRepository = viewRepository;
     }
 
     @Override
@@ -63,11 +82,15 @@ public class WalletOpenedAutomation implements AutomationHandler {
 
     @Override
     public void react(StoredEvent event, CommandExecutor commandExecutor) {
-        WalletEvent walletEvent = objectMapper.readValue(event.data(), WalletEvent.class);
-        if (walletEvent instanceof WalletOpened opened) {
-            commandExecutor.execute(
-                SendWelcomeNotificationCommand.of(opened.walletId(), opened.owner())
-            );
+        String walletId = event.tags().stream()
+                .filter(tag -> tag.key().equals("wallet_id"))
+                .map(Tag::value)
+                .findFirst()
+                .orElseThrow();
+
+        WelcomeNotificationView view = viewRepository.get(walletId);
+        if (view.shouldSendWelcomeNotification()) {
+            commandExecutor.execute(SendWelcomeNotificationCommand.of(walletId));
         }
     }
 }
@@ -80,7 +103,7 @@ Declare an `AutomationSubscription` bean that matches the automation's name and 
 ```java
 @Bean
 public AutomationSubscription walletOpenedWelcomeNotificationSubscription() {
-    return AutomationSubscription.builder("wallet-opened-welcome-notification")
+    return AutomationSubscription.builder("welcome-notification")
         .eventTypes(EventType.type(WalletOpened.class))
         .build();
 }
@@ -115,14 +138,16 @@ public interface AutomationHandler {
     /** Unique name — must match the corresponding AutomationSubscription. */
     String getAutomationName();
 
-    /** Called once per matching event. Execute commands here. */
+    /** Called once per matching event. Use the event as a trigger, then decide from modeled state. */
     void react(StoredEvent event, CommandExecutor commandExecutor);
 }
 ```
 
+The event tells the automation that something changed. The automation should then read the relevant view model and decide from that modeled state whether it should act.
+
 ### AutomationSubscription
 
-Controls which events trigger an automation. Filters by event type and/or tags:
+Controls which events wake up an automation. Filters by event type and/or tags:
 
 ```java
 // Subscribe to all WalletOpened events
@@ -138,12 +163,24 @@ AutomationSubscription.builder("my-automation")
     .build();
 ```
 
+### View-Model-Driven Decisions
+
+Recommended automation flow:
+
+1. A matching event wakes up the automation
+2. The automation loads the relevant view model
+3. The automation decides from the current modeled state whether action is needed
+4. The automation executes the next command or calls an external gateway
+5. The outcome is recorded through the normal command/event flow
+
+This keeps automations aligned with Event Modeling: events are triggers, while the decision is based on current state.
+
 ### Idempotency
 
-Automations run with at-least-once semantics — the same event may trigger `react()` more than once (e.g., after a crash). Protect against duplicate side effects by using DCB idempotency checks in the command handler:
+Automations run with at-least-once semantics — the same event may trigger `react()` more than once (e.g., after a crash). Protect against duplicate work by making the downstream command or side-effect path idempotent:
 
 ```java
-// In your command handler:
+// In the downstream command handler:
 AppendCondition condition = AppendCondition.idempotent(type(WelcomeNotificationSent.class), WALLET_ID, walletId);
 ```
 
@@ -158,7 +195,9 @@ AutomationEventFetcher  — filters by subscription (eventTypes, tags)
     ↓
 AutomationDispatcher  — routes each event to the matching AutomationHandler
     ↓
-Automation.react()      — executes commands via CommandExecutor
+Automation.react()      — loads view state and decides next action
+    ↓
+CommandExecutor / external gateway
     ↓
 reaction_progress     — progress tracked per automation name
 ```
@@ -189,10 +228,10 @@ crablet.automations.max-backoff-seconds=60
 
 The `shared-examples-domain` module contains a complete working example:
 
-- **`WalletOpenedReaction`** (in `wallet-example-app`) — listens for `WalletOpened`, executes `SendWelcomeNotificationCommand`
-- **`SendWelcomeNotificationCommandHandler`** — logs a welcome message and records a `WelcomeNotificationSent` event with an idempotency check
+- **`WalletOpenedReaction`** (in `wallet-example-app`) — listens for `WalletOpened` as a trigger for follow-up work
+- **`SendWelcomeNotificationCommandHandler`** — records a `WelcomeNotificationSent` event with an idempotency check
 
-This demonstrates the full automation → command → event chain.
+The recommended pattern is to keep the decision in a view model and use the automation to bridge from trigger to side effect or follow-up command.
 
 ## See Also
 

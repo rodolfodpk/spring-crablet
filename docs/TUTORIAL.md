@@ -228,7 +228,7 @@ The bug is `appendCommutative`. It tells the store "order does not matter, do no
 
 ### The fix: capture the stream position, check it on write
 
-`ProjectionResult.appendNonCommutative` links the write to the version of reality that was read. The stream position is embedded in the result — it cannot be accidentally dropped:
+Use `appendNonCommutative` with the `ProjectionResult`'s `streamPosition` so the write is linked to the version of reality that was read:
 
 ```java
 // Thread A — corrected
@@ -239,10 +239,13 @@ if (result.state().acceptedCount() >= CAPACITY) {
     throw new ConferenceFullException();
 }
 
-// streamPosition is implicit — impossible to forget.
 // Checks: has any event matching conferenceQuery been appended
 // AFTER the captured stream position? If yes — throw ConcurrencyException.
-result.appendNonCommutative(eventStore, List.of(acceptTalk3), conferenceQuery);
+eventStore.appendNonCommutative(
+    List.of(acceptTalk3),
+    conferenceQuery,
+    result.streamPosition()
+);
 ```
 
 The check is atomic at the database level (implemented as a PostgreSQL stored function using advisory locks). Thread B's write will find that Thread A's `TalkAccepted` event now exists past Thread B's stream position, and will throw `ConcurrencyException`. The losing thread can retry from scratch: it will re-project, find 2 accepted talks, fail the capacity check, and correctly throw `ConferenceFullException`.
@@ -463,7 +466,7 @@ The handler never needs to know about transactions, serialization, or audit trai
 
 ## Part 5: Automations
 
-**Why this matters.** When a talk is accepted, the speaker should receive a confirmation. You could put that logic in `AcceptTalkCommandHandler`, but that couples two concerns: enforcing consistency (the handler's job) and notifying an external party (a side effect). Automations decouple them. An automation is triggered asynchronously after an event is persisted, runs in its own transaction, and retries automatically on failure.
+**Why this matters.** When a talk is accepted, the speaker should receive a confirmation. You could put that logic in `AcceptTalkCommandHandler`, but that couples two concerns: enforcing consistency (the handler's job) and notifying an external party (a side effect). Automations decouple them. An automation is triggered asynchronously after an event is persisted, runs in its own transaction, and retries automatically on failure. In the recommended model, the automation owns the external notification call and command handlers only record facts.
 
 ### The AutomationHandler interface
 
@@ -475,9 +478,11 @@ public interface AutomationHandler {
 }
 ```
 
-The `react` method receives the raw `StoredEvent` and a `CommandExecutor`. It deserializes the event, derives a command, and executes it. The downstream command handler is responsible for being idempotent.
+The `react` method receives the raw `StoredEvent` and a `CommandExecutor`. In the lightweight bridge pattern it can deserialize the event, derive a follow-up command, and execute it. In the recommended model, the automation treats the event as a trigger, loads the relevant view state, performs any external side effect through an injected gateway/client, and records the outcome through the normal command/event flow. Any downstream command handler is responsible only for idempotently recording facts.
 
 ### TalkAcceptedAutomation
+
+This example shows the lightweight bridge pattern: the automation reacts to `TalkAccepted` and dispatches a follow-up command. Use this when the automation is only orchestrating internal command flow. If sending the confirmation requires calling an email provider or another external HTTP API, inject that gateway into the automation instead of the command handler.
 
 ```java
 import com.crablet.command.CommandExecutor;
@@ -516,6 +521,97 @@ public class TalkAcceptedAutomation implements AutomationHandler {
 }
 ```
 
+### Recommended pattern: side effect in the automation
+
+When the follow-up work involves an external provider, keep that call in the automation and use a command only to record the fact that the side effect succeeded:
+
+```java
+public interface ConfirmationGateway {
+    void sendTalkAcceptedConfirmation(String talkId, String speakerId);
+}
+```
+
+```java
+import com.crablet.command.CommandExecutor;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.automations.AutomationHandler;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.stereotype.Component;
+
+@Component
+public class TalkAcceptedAutomation implements AutomationHandler {
+
+    private final ObjectMapper objectMapper;
+    private final ConfirmationGateway confirmationGateway;
+
+    public TalkAcceptedAutomation(
+            ObjectMapper objectMapper,
+            ConfirmationGateway confirmationGateway) {
+        this.objectMapper = objectMapper;
+        this.confirmationGateway = confirmationGateway;
+    }
+
+    @Override
+    public String getAutomationName() {
+        return "talk-accepted-confirmation";
+    }
+
+    @Override
+    public void react(StoredEvent event, CommandExecutor commandExecutor) {
+        try {
+            TalkEvent talkEvent = objectMapper.readValue(event.data(), TalkEvent.class);
+            if (talkEvent instanceof TalkAccepted accepted) {
+                confirmationGateway.sendTalkAcceptedConfirmation(
+                    accepted.talkId(),
+                    accepted.speakerId()
+                );
+
+                commandExecutor.execute(
+                    new RecordConfirmationSentCommand(
+                        accepted.talkId(),
+                        accepted.speakerId()
+                    )
+                );
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("TalkAcceptedAutomation failed", e);
+        }
+    }
+}
+```
+
+The automation may retry after a crash, so both the gateway call and the fact-recording command should be safe to repeat. The command handler stays focused on appending the domain fact:
+
+```java
+@Component
+public class RecordConfirmationSentCommandHandler
+        implements IdempotentCommandHandler<RecordConfirmationSentCommand> {
+
+    @Override
+    public CommandDecision.Idempotent decide(
+            EventStore eventStore,
+            RecordConfirmationSentCommand command) {
+        ConfirmationSent confirmationSent = new ConfirmationSent(
+            command.talkId(), command.speakerId()
+        );
+
+        AppendEvent appendEvent = AppendEvent.builder(type(ConfirmationSent.class))
+            .tag(TALK_ID, command.talkId())
+            .data(confirmationSent)
+            .build();
+
+        return CommandDecision.Idempotent.of(
+            appendEvent,
+            type(ConfirmationSent.class),
+            TALK_ID,
+            command.talkId()
+        );
+    }
+}
+```
+
+This is the preferred arrangement for email providers, webhooks, third-party HTTP APIs, and similar integrations: the automation owns the side effect, and the command handler records the outcome.
+
 ### Declaring the subscription
 
 `AutomationHandler` provides a `subscription()` default method — pass the handler as a bean parameter to avoid repeating the automation name:
@@ -539,7 +635,7 @@ crablet.automations.batch-size=100
 
 ### Idempotency in the downstream handler
 
-Reactions run with at-least-once semantics. The framework guarantees delivery but not exactly-once: if the process crashes after the command executes but before progress is saved, the reaction runs again. The `SendConfirmationCommandHandler` must protect against this:
+Reactions run with at-least-once semantics. The framework guarantees delivery but not exactly-once: if the process crashes after the command executes but before progress is saved, the reaction runs again. If your automation dispatches a follow-up command to record that a confirmation was sent, the `SendConfirmationCommandHandler` must protect against duplicate recording:
 
 ```java
 @Component
@@ -563,7 +659,7 @@ public class SendConfirmationCommandHandler implements IdempotentCommandHandler<
 }
 ```
 
-> **Key insight.** Reactions decouple "what happened" from "what should happen next." They run asynchronously with at-least-once semantics. The downstream command handler must be idempotent — implement `IdempotentCommandHandler` to make running it twice produce the same outcome as running it once.
+> **Key insight.** Reactions decouple "what happened" from "what should happen next." In the recommended model, automations own side effects and command handlers record facts. If an automation triggers a downstream command, that command handler must still be idempotent — implement `IdempotentCommandHandler` to make running it twice produce the same outcome as running it once.
 
 ---
 

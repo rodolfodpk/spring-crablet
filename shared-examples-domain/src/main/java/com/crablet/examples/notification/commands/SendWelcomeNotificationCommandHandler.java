@@ -15,8 +15,8 @@ import static com.crablet.examples.notification.NotificationTags.WALLET_ID;
 /**
  * Handles {@link SendWelcomeNotificationCommand}.
  *
- * <p>Logs the notification (placeholder for real delivery) and appends a
- * {@link WelcomeNotificationSent} event. Idempotency is enforced via DCB:
+ * <p>Appends a {@link WelcomeNotificationSent} event after the automation
+ * layer has determined delivery succeeded. Idempotency is enforced via DCB:
  * only one welcome notification is ever recorded per wallet.
  */
 @Component
@@ -28,8 +28,7 @@ public class SendWelcomeNotificationCommandHandler
     @Override
     public CommandDecision.Idempotent decide(EventStore eventStore, SendWelcomeNotificationCommand command) {
 
-        // Placeholder: in a real system this would call an email/SMS service
-        log.info("Welcome notification → owner='{}', walletId='{}'", command.owner(), command.walletId());
+        log.info("Recording welcome notification sent → owner='{}', walletId='{}'", command.owner(), command.walletId());
 
         AppendEvent event = AppendEvent.builder(type(WelcomeNotificationSent.class))
                 .tag(WALLET_ID, command.walletId())

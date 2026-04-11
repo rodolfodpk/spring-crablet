@@ -104,7 +104,7 @@ sealed interface CourseEvent permits
 
 ## Notification Domain
 
-Demonstrates the reaction → command → event chain triggered by the wallet domain.
+Demonstrates the automation → command → event chain triggered by the wallet domain.
 
 ### Flow
 
@@ -128,7 +128,7 @@ public interface NotificationCommand {}
 
 ### Handler
 
-`SendWelcomeNotificationCommandHandler` logs a welcome message and appends `WelcomeNotificationSent` with an idempotency check on `(WelcomeNotificationSent, wallet_id, walletId)` — safe to re-execute if the reaction fires more than once.
+`SendWelcomeNotificationCommandHandler` appends `WelcomeNotificationSent` with an idempotency check on `(WelcomeNotificationSent, wallet_id, walletId)` — safe to re-execute if the automation fires more than once. In the recommended model, any real email/SMS/HTTP delivery belongs in the automation layer, and this handler only records the fact that delivery succeeded.
 
 ## Build Notes
 

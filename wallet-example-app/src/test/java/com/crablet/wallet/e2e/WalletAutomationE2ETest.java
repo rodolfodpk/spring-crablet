@@ -20,7 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * E2E test verifying the automation pipeline:
  * WalletOpened event → WalletOpenedReaction → SendWelcomeNotificationCommand → WelcomeNotificationSent event.
  * <p>
- * Also verifies idempotency: running the automation twice produces exactly one notification.
+ * The example uses the lightweight automation-to-command bridge pattern; the
+ * command handler only records the resulting fact. Also verifies idempotency:
+ * running the automation twice produces exactly one notification.
  */
 @SpringBootTest(
     classes = TestApplication.class,
