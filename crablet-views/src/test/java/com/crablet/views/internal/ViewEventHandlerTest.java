@@ -5,10 +5,7 @@ import com.crablet.eventstore.Tag;
 import com.crablet.views.ViewProjector;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.context.ApplicationEventPublisher;
 
-import javax.sql.DataSource;
-import java.io.PrintWriter;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,15 +26,13 @@ class ViewEventHandlerTest {
         // Given
         TestProjector projector1 = new TestProjector("wallet-view");
         TestProjector projector2 = new TestProjector("order-view");
-        List<ViewProjector> projectors = List.of(projector1, projector2);
-        DataSource testDataSource = new TestDataSource();
+        ViewEventHandler handler = new ViewEventHandler(List.of(projector1, projector2), e -> {});
 
         // When
-        ViewEventHandler handler = new ViewEventHandler(projectors, testDataSource, e -> {});
-
-        // Then - Verify registration by calling handle
         List<StoredEvent> events = createTestEvents();
         handler.handle("wallet-view", events);
+
+        // Then
         assertThat(projector1.handledCount).isEqualTo(1);
         assertThat(projector2.handledCount).isEqualTo(0);
     }
@@ -48,8 +43,7 @@ class ViewEventHandlerTest {
         // Given
         TestProjector walletProjector = new TestProjector("wallet-view");
         TestProjector orderProjector = new TestProjector("order-view");
-        List<ViewProjector> projectors = List.of(walletProjector, orderProjector);
-        ViewEventHandler handler = new ViewEventHandler(projectors, new TestDataSource(), e -> {});
+        ViewEventHandler handler = new ViewEventHandler(List.of(walletProjector, orderProjector), e -> {});
 
         List<StoredEvent> events = createTestEvents();
 
@@ -68,7 +62,7 @@ class ViewEventHandlerTest {
     @DisplayName("Should return 0 when no projector registered for view")
     void shouldReturnZero_WhenNoProjectorRegisteredForView() throws Exception {
         // Given
-        ViewEventHandler handler = new ViewEventHandler(List.of(), new TestDataSource(), e -> {});
+        ViewEventHandler handler = new ViewEventHandler(List.of(), e -> {});
         List<StoredEvent> events = createTestEvents();
 
         // When
@@ -83,7 +77,7 @@ class ViewEventHandlerTest {
     void shouldPropagateExceptions_FromProjector() {
         // Given
         FailingProjector projector = new FailingProjector("wallet-view");
-        ViewEventHandler handler = new ViewEventHandler(List.of(projector), new TestDataSource(), e -> {});
+        ViewEventHandler handler = new ViewEventHandler(List.of(projector), e -> {});
         List<StoredEvent> events = createTestEvents();
 
         // When & Then
@@ -93,29 +87,12 @@ class ViewEventHandlerTest {
     }
 
     @Test
-    @DisplayName("Should pass writeDataSource to projector")
-    void shouldPassWriteDataSource_ToProjector() throws Exception {
-        // Given
-        DataSourceCapturingProjector projector = new DataSourceCapturingProjector("wallet-view");
-        List<StoredEvent> events = createTestEvents();
-        DataSource testDataSource = new TestDataSource();
-        ViewEventHandler handler = new ViewEventHandler(List.of(projector), testDataSource, e -> {});
-
-        // When
-        handler.handle("wallet-view", events);
-
-        // Then
-        assertThat(projector.receivedDataSource).isSameAs(testDataSource);
-    }
-
-    @Test
     @DisplayName("Should handle multiple projectors with same view name (last one wins)")
     void shouldHandleMultipleProjectors_WithSameViewName() throws Exception {
         // Given
         TestProjector projector1 = new TestProjector("wallet-view");
         TestProjector projector2 = new TestProjector("wallet-view");
-        List<ViewProjector> projectors = List.of(projector1, projector2);
-        ViewEventHandler handler = new ViewEventHandler(projectors, new TestDataSource(), e -> {});
+        ViewEventHandler handler = new ViewEventHandler(List.of(projector1, projector2), e -> {});
 
         List<StoredEvent> events = createTestEvents();
 
@@ -131,7 +108,7 @@ class ViewEventHandlerTest {
     @DisplayName("Should handle empty projector list")
     void shouldHandleEmptyProjectorList() throws Exception {
         // Given
-        ViewEventHandler handler = new ViewEventHandler(List.of(), new TestDataSource(), e -> {});
+        ViewEventHandler handler = new ViewEventHandler(List.of(), e -> {});
         List<StoredEvent> events = createTestEvents();
 
         // When
@@ -146,7 +123,7 @@ class ViewEventHandlerTest {
     void shouldHandleEmptyEventsList() throws Exception {
         // Given
         TestProjector projector = new TestProjector("wallet-view");
-        ViewEventHandler handler = new ViewEventHandler(List.of(projector), new TestDataSource(), e -> {});
+        ViewEventHandler handler = new ViewEventHandler(List.of(projector), e -> {});
 
         // When
         int result = handler.handle("wallet-view", List.of());
@@ -162,7 +139,7 @@ class ViewEventHandlerTest {
     void shouldPassEventsToProjector_Correctly() throws Exception {
         // Given
         TestProjector projector = new TestProjector("wallet-view");
-        ViewEventHandler handler = new ViewEventHandler(List.of(projector), new TestDataSource(), e -> {});
+        ViewEventHandler handler = new ViewEventHandler(List.of(projector), e -> {});
         List<StoredEvent> events = createTestEvents();
 
         // When
@@ -177,7 +154,7 @@ class ViewEventHandlerTest {
     void shouldReturnCount_FromProjector() throws Exception {
         // Given
         CountingProjector projector = new CountingProjector("wallet-view", 5);
-        ViewEventHandler handler = new ViewEventHandler(List.of(projector), new TestDataSource(), e -> {});
+        ViewEventHandler handler = new ViewEventHandler(List.of(projector), e -> {});
         List<StoredEvent> events = createTestEvents();
 
         // When
@@ -204,7 +181,7 @@ class ViewEventHandlerTest {
         }
 
         @Override
-        public int handle(String viewName, List<StoredEvent> events, DataSource writeDataSource) throws Exception {
+        public int handle(String viewName, List<StoredEvent> events) throws Exception {
             handledCount++;
             lastEventsReceived = events;
             return events.size();
@@ -224,28 +201,8 @@ class ViewEventHandlerTest {
         }
 
         @Override
-        public int handle(String viewName, List<StoredEvent> events, DataSource writeDataSource) throws Exception {
+        public int handle(String viewName, List<StoredEvent> events) throws Exception {
             throw new RuntimeException("Test exception");
-        }
-    }
-
-    static class DataSourceCapturingProjector implements ViewProjector {
-        private final String viewName;
-        DataSource receivedDataSource;
-
-        DataSourceCapturingProjector(String viewName) {
-            this.viewName = viewName;
-        }
-
-        @Override
-        public String getViewName() {
-            return viewName;
-        }
-
-        @Override
-        public int handle(String viewName, List<StoredEvent> events, DataSource writeDataSource) throws Exception {
-            receivedDataSource = writeDataSource;
-            return events.size();
         }
     }
 
@@ -264,56 +221,8 @@ class ViewEventHandlerTest {
         }
 
         @Override
-        public int handle(String viewName, List<StoredEvent> events, DataSource writeDataSource) throws Exception {
+        public int handle(String viewName, List<StoredEvent> events) throws Exception {
             return returnCount;
-        }
-    }
-
-    static class TestDataSource implements DataSource {
-        // Minimal implementation for testing
-        @Override
-        public java.sql.Connection getConnection() {
-            throw new UnsupportedOperationException("Not implemented for test");
-        }
-
-        @Override
-        public java.sql.Connection getConnection(String username, String password) {
-            throw new UnsupportedOperationException("Not implemented for test");
-        }
-
-        @Override
-        public PrintWriter getLogWriter() {
-            throw new UnsupportedOperationException("Not implemented for test");
-        }
-
-        @Override
-        public void setLogWriter(PrintWriter out) {
-            throw new UnsupportedOperationException("Not implemented for test");
-        }
-
-        @Override
-        public void setLoginTimeout(int seconds) {
-            throw new UnsupportedOperationException("Not implemented for test");
-        }
-
-        @Override
-        public int getLoginTimeout() {
-            throw new UnsupportedOperationException("Not implemented for test");
-        }
-
-        @Override
-        public java.util.logging.Logger getParentLogger() {
-            throw new UnsupportedOperationException("Not implemented for test");
-        }
-
-        @Override
-        public <T> T unwrap(Class<T> iface) {
-            throw new UnsupportedOperationException("Not implemented for test");
-        }
-
-        @Override
-        public boolean isWrapperFor(Class<?> iface) {
-            throw new UnsupportedOperationException("Not implemented for test");
         }
     }
 

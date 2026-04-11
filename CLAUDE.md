@@ -297,113 +297,13 @@ These decisions reflect the current repository state and should be treated as th
   - extra replicas do not increase throughput for the same processor set
 - The root tutorial is now a tutorial series under `docs/tutorials/`, not one monolithic walkthrough.
 
-### Cyclic Dependency Handling
+### Build graph, examples, and `crablet-test-support`
 
-**Important:** There is an intentional cyclic dependency between `crablet-eventstore` and `shared-examples-domain`:
-- `shared-examples-domain` depends on `crablet-eventstore` (main scope) - uses framework interfaces
-- `crablet-eventstore` depends on `shared-examples-domain` (test scope) - uses examples in tests
+- `shared-examples-domain` depends on `crablet-eventstore` (main) for real domain types; framework modules use it in **test** scope for realistic tests and shared scenarios.
+- **`crablet-test-support`** holds shared test utilities (`InMemoryEventStore`, `AbstractHandlerUnitTest`, `AbstractCrabletTest`, `DCBTestHelpers`) so modules do not re-copy that code.
+- **`shared-examples-domain`** and **`wallet-example-app`** are excluded from the reactor; **`make install`** (see `docs/BUILD.md`) applies the correct build order and stub JAR steps.
 
-**Rationale:** This design allows all framework modules to share the same example domains in their tests, ensuring:
-1. Consistency across module tests (all test against same domain logic)
-2. Realistic testing (real domain implementations, not mocks)
-3. Living documentation (examples show actual framework usage)
-4. Test infrastructure reuse (`AbstractHandlerUnitTest`, `InMemoryEventStore`)
-
-**Trade-off:** Build complexity (requires specific build order) vs maintainability and test quality. The Makefile handles this automatically via stub JARs and ordered builds.
-
-**Both `shared-examples-domain` and `wallet-example-app` are excluded from the reactor** to avoid cyclic dependency issues.
-
-**When creating your own application:**
-- Your application depends on framework modules (normal dependency)
-- Your application does NOT need to be in the same build (separate repository is fine)
-- Framework tests use `shared-examples-domain`, your tests use your own domain
-
-### Refactoring: Eliminating Cyclic Dependencies (COMPLETED ✅)
-
-**Goal:** Eliminate cyclic dependencies between framework modules and `shared-examples-domain` by introducing `crablet-test-support` module.
-
-**Current Problem:**
-```
-crablet-eventstore (test scope) → shared-examples-domain (main scope) → crablet-eventstore (main scope)
-crablet-commands (test scope) → shared-examples-domain (main scope) → crablet-commands (main scope)
-```
-
-**Solution: Create `crablet-test-support` Module**
-
-**Architecture:**
-```
-crablet-test-support (NEW MODULE)
-├── Dependencies: crablet-eventstore (main scope only)
-├── Contains: Test utilities (InMemoryEventStore, AbstractCrabletTest, DCBTestHelpers)
-├── Build order: After crablet-eventstore, before reactor
-└── Used by: All modules in test scope
-
-Flow:
-1. crablet-eventstore (main) → NO dependencies on examples
-2. crablet-test-support → depends on crablet-eventstore (main)
-3. shared-examples-domain → depends on crablet-eventstore + crablet-test-support (test)
-4. All other modules → depend on crablet-test-support (test scope)
-```
-
-**Implementation Steps:**
-
-1. **Create `crablet-test-support` module**
-   - Location: `crablet-test-support/`
-   - Dependencies: `crablet-eventstore` (main scope), Spring Test, Testcontainers, PostgreSQL, Jackson
-   - Scope: Provides test utilities to all modules
-
-2. **Move test utilities to `crablet-test-support`**
-   - `InMemoryEventStore` → from `crablet-commands/src/test/java` to `crablet-test-support/src/main/java/com/crablet/test/`
-   - `AbstractCrabletTest` → from `crablet-eventstore/src/test/java` to `crablet-test-support/src/main/java/com/crablet/test/`
-   - `DCBTestHelpers` → from `crablet-eventstore/src/test/java` to `crablet-test-support/src/main/java/com/crablet/eventstore/integration/`
-
-3. **Handle wallet-dependent integration tests**
-   - Tests remain in `crablet-eventstore`: `EventStoreTest`, `EventStoreErrorHandlingTest`, `EventStoreQueryTest`, `ClosingBooksPatternTest`
-   - `crablet-eventstore` keeps `shared-examples-domain` as test scope dependency for these tests
-   - This allows framework tests to verify functionality with real domain examples
-
-4. **Update module dependencies**
-   - `crablet-eventstore`: Add `crablet-test-support` (test scope), keep `shared-examples-domain` (test scope) for wallet-dependent tests
-   - `crablet-commands`: Replace eventstore test-jar with `crablet-test-support` (test scope)
-   - `shared-examples-domain`: Add `crablet-test-support` (test scope)
-   - All other modules: Add `crablet-test-support` (test scope) as needed
-
-5. **Update imports and extends clauses**
-   - Change `import com.crablet.eventstore.integration.AbstractCrabletTest` to `import com.crablet.test.AbstractCrabletTest`
-   - Change `extends com.crablet.eventstore.integration.AbstractCrabletTest` to `extends com.crablet.test.AbstractCrabletTest`
-   - Update all DCBTestHelpers imports
-
-6. **Update build order**
-   - Makefile: Build `crablet-test-support` after `crablet-eventstore` (main), before reactor
-   - Reactor pom: Exclude `crablet-test-support` and `shared-examples-domain` from reactor
-   - Create stub JAR for `crablet-test-support` in Makefile
-
-7. **Copy database migrations**
-   - Copy migrations to `crablet-commands/src/test/resources/db/migration/`
-   - Required because integration tests need access to schema (V1__eventstore_schema.sql, V2__outbox_schema.sql, V3__view_progress_schema.sql)
-
-8. **Verify all tests pass** ✅
-   - ✅ Ran full build: `make install`
-   - ✅ All 900+ tests pass
-   - ✅ No cyclic dependency errors from Maven
-   - ✅ Committed to `feature/eliminate-cyclic-dependency-v2` (commit 95ccc23)
-
-**Benefits:**
-- Clean dependency graph (no cycles)
-- Test utilities available to all modules
-- Simplified build process (no stub JAR workarounds needed)
-- Better separation of concerns (test code in dedicated module)
-- Framework tests remain independent of example domains
-
-**Build Order After Refactoring:**
-```
-1. crablet-eventstore (main only, skip tests)
-2. crablet-test-support (full build with tests)
-3. shared-examples-domain (full build with tests)
-4. Reactor modules (all modules with full tests)
-```
-
-**Status:** ✅ **COMPLETED** - All 900+ tests passing, cyclic dependencies eliminated, committed to `feature/eliminate-cyclic-dependency-v2` branch (commit 95ccc23)
+**When creating your own application:** depend on framework modules normally; your app does not need to live in this repo. Use your own domain in tests; framework tests keep using `shared-examples-domain` where needed.
 
 ### DCB (Dynamic Consistency Boundary) Pattern
 
@@ -578,10 +478,26 @@ PostgreSQL advisory locks for distributed coordination.
 
 Crablet intentionally exposes two datasource roles:
 
-- `primaryDataSource` for writes, progress tracking, and leader election
-- `readDataSource` for read-only fetches that may be served by replicas
+- `WriteDataSource` for writes, progress tracking, and leader election
+- `ReadDataSource` for read-only fetches that may be served by replicas
 
 Prefer explicit read/write endpoints over relying on pooler SQL parsing for correctness.
+
+**DataSource ownership by layer** (important when extending framework classes):
+
+| Layer | DataSource used | Why |
+|-------|----------------|-----|
+| Event fetching (views, automations, outbox) | `ReadDataSource` | Read-only; safe to serve from replica |
+| View projection writes | `WriteDataSource` | Writes to the materialized view table |
+| Progress tracking | `WriteDataSource` | Must be durable and consistent with writes |
+| Leader election | `WriteDataSource` | Advisory locks are session-scoped; must stay on the write path |
+| Command appends / EventStore | `WriteDataSource` | All writes go to primary |
+
+**View projector DataSource:** `AbstractViewProjector` and `AbstractTypedViewProjector` inject
+`WriteDataSource` in their constructors. This is intentional —
+view projection writes (SQL upserts to the view table) must go to the primary database.
+The `PlatformTransactionManager` also wraps the same write datasource for atomicity.
+Do **not** inject `ReadDataSource` into a view projector constructor.
 
 ## Common Gotchas & Troubleshooting
 
@@ -795,7 +711,7 @@ if (!state.isExisting()) {
 
 ### Spring Boot Auto-Configuration
 
-Modules use Spring Boot auto-configuration via `META-INF/spring.factories`:
+Modules use Spring Boot auto-configuration via `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`:
 - `crablet-views`: Auto-configures view processing infrastructure
 - `crablet-outbox`: Auto-configures outbox processing infrastructure
 - Add `@SpringBootApplication` and the framework auto-wires itself
@@ -820,62 +736,15 @@ Modules use Spring Boot auto-configuration via `META-INF/spring.factories`:
 
 9. **Type Safety**: Use `EventType.type(Class)` for event types and sealed interfaces for pattern matching
 
-## Developer Experience Improvements
+## Developer experience (diagnostics)
 
-### Enhanced Error Diagnostics (v1.0+)
+- **Concurrency / idempotency:** `ConcurrencyException` and related errors include violation codes, matching event counts, and short `Hint:` text. Use `getDiagnostics()` for structured logs.
+- **DCB debugging:** `logging.level.com.crablet.eventstore=DEBUG` logs query parameters, stream position, and tags used in append checks.
+- **Views:** projector failures log event type, position, `transaction_id`, tags, and view name; confirm `getEventTypes()` and SQL match every variant you emit.
 
-The framework includes enhanced error diagnostics to help troubleshoot common issues:
+**ConcurrencyException:** read the hint, check `matchingEventsCount`, enable DEBUG, verify decision-model tags match appended events.
 
-**1. ConcurrencyException Improvements:**
-- Includes DCBViolation details with error code and matching event count
-- Automatic diagnostic hints based on violation type
-- `getDiagnostics()` method for structured logging
-- Clear guidance on idempotency vs concurrency violations
-
-Example enhanced message:
-```
-AppendCondition violated: duplicate operation detected | DCBViolation{errorCode='IDEMPOTENCY_VIOLATION', message='duplicate operation detected', matchingEvents=1}
-  Hint: Check that your idempotency tag uniquely identifies the operation (e.g., deposit_id, not just wallet_id)
-```
-
-**2. Debug Logging for DCB Checks:**
-- Enable with: `logging.level.com.crablet.eventstore=DEBUG`
-- Shows exact query parameters, stream position, tags being checked
-- Helps diagnose query/tag mismatches
-- Useful for understanding why concurrency exceptions occur
-
-Example debug output:
-```
-AppendIf DCB checks: events=[DepositMade], streamPosition=42, concurrencyTypes=[WalletOpened, DepositMade],
-concurrencyTags=[wallet_id=alice], idempotencyTypes=[DepositMade], idempotencyTags=[deposit_id=d123]
-```
-
-**3. Enhanced View Projector Errors:**
-- Full event context in error logs (type, position, transaction_id, tags)
-- Hints about missing event type handlers
-- Clear exception messages with view name and event details
-- Easier to identify which specific event caused projection failure
-
-Example enhanced error:
-```
-Failed to project event for view 'wallet_balance'. Event details: type=DepositMade, position=12345,
-transaction_id=1234567, occurred_at=2024-01-15T10:30:00Z, tags=[wallet_id=alice, deposit_id=d123].
-Error: Column 'amount' not found. Hint: Check that your view projector handles all event types in getEventTypes().
-```
-
-### Troubleshooting Workflow
-
-**When you encounter a ConcurrencyException:**
-1. Read the hint in the exception message (idempotency vs concurrency)
-2. Check the `matchingEventsCount` - shows how many conflicting events exist
-3. Enable DEBUG logging to see exact DCB check parameters
-4. Verify your query tags match the tags on your events
-
-**When a view projector fails:**
-1. Check the enhanced error log for full event details
-2. Verify the event type is in your projector's `getEventTypes()`
-3. Check if your SQL expects columns that don't exist in the event
-4. Test with the specific event that failed (position and transaction_id are in logs)
+**View projector errors:** read the log line for the failing event, confirm the type is subscribed and handled, align SQL with the event payload.
 
 ## Performance Considerations
 
@@ -886,11 +755,11 @@ Configure separate read and write datasources for horizontal scaling:
 ```java
 @Bean
 public EventStore eventStore(
-    @Qualifier("primaryDataSource") DataSource writeDataSource,
-    @Qualifier("readDataSource") DataSource readDataSource,
+    WriteDataSource writeDataSource,
+    ReadDataSource readDataSource,
     // ...
 ) {
-    return new EventStoreImpl(writeDataSource, readDataSource, ...);
+    return new EventStoreImpl(writeDataSource.dataSource(), readDataSource.dataSource(), ...);
 }
 ```
 
@@ -898,7 +767,7 @@ public EventStore eventStore(
 - Event fetching (views, outbox) uses read replicas
 - Command appends go to primary
 - Reduces load on primary database
-- Leader election and other session-scoped features must remain on `primaryDataSource`
+- Leader election and other session-scoped features must remain on `WriteDataSource`
 
 ### Automation Pattern
 

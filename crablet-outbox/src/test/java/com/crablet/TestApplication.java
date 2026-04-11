@@ -15,9 +15,7 @@ import tools.jackson.databind.json.JsonMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.jdbc.DataSourceBuilder;
-import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
@@ -27,40 +25,14 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import javax.sql.DataSource;
 
 @SpringBootApplication
-@EnableConfigurationProperties(DataSourceProperties.class)
 @ComponentScan(basePackages = {"com.crablet", "com.crablet.outbox", "com.crablet.eventstore", "com.crablet.eventpoller"},
                excludeFilters = {
-                   @ComponentScan.Filter(type = FilterType.REGEX,
-                                        pattern = "com\\.crablet\\.eventstore\\.internal\\.DataSourceConfig")
+                   @ComponentScan.Filter(type = FilterType.ANNOTATION,
+                                        classes = AutoConfiguration.class)
                })
 @EnableScheduling
 public class TestApplication {
-    
-    /**
-     * Primary DataSource bean (required by crablet-views if enabled).
-     * DataSourceProperties is auto-configured by Spring Boot via @EnableConfigurationProperties.
-     */
-    @Bean(name = "primaryDataSource")
-    @Primary
-    public DataSource primaryDataSource(DataSourceProperties properties) {
-        return DataSourceBuilder.create()
-            .type(com.zaxxer.hikari.HikariDataSource.class)
-            .url(properties.getUrl())
-            .username(properties.getUsername())
-            .password(properties.getPassword())
-            .driverClassName(properties.getDriverClassName())
-            .build();
-    }
-    
-    /**
-     * Read DataSource bean (required by crablet-views if enabled).
-     * For this test app, we use the same DataSource for reads and writes.
-     */
-    @Bean(name = "readDataSource")
-    public DataSource readDataSource(@org.springframework.beans.factory.annotation.Qualifier("primaryDataSource") DataSource primaryDataSource) {
-        return primaryDataSource;
-    }
-    
+
     /**
      * ObjectMapper bean for JSON serialization.
      * Registers Java 8 time module for Instant, LocalDateTime, etc.
@@ -122,8 +94,8 @@ public class TestApplication {
         return new InstanceIdProvider(environment);
     }
     
-    // DataSource beans (readDataSource and primaryDataSource) are provided by
-    // com.crablet.eventstore.internal.DataSourceConfig from crablet-eventstore module
+    // Spring Boot provides the base DataSource; Crablet auto-configuration adds
+    // the framework's typed read/write datasource beans and compatibility aliases.
     
     // OutboxManagementService, OutboxLeaderElector, OutboxPublishingService, and EventProcessor
     // are now created automatically by OutboxAutoConfiguration when crablet.outbox.enabled=true
@@ -142,8 +114,7 @@ public class TestApplication {
      * Uses migrations from src/test/resources/db/migration.
      */
     @Bean
-    @org.springframework.context.annotation.DependsOn("primaryDataSource")
-    public org.flywaydb.core.Flyway flyway(@org.springframework.beans.factory.annotation.Qualifier("primaryDataSource") DataSource dataSource) {
+    public org.flywaydb.core.Flyway flyway(DataSource dataSource) {
         org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TestApplication.class);
         log.info("[TestApplication] Flyway bean creation started at {}", java.time.Instant.now());
         

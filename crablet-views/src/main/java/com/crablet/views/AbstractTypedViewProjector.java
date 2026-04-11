@@ -2,6 +2,7 @@ package com.crablet.views;
 
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.WriteDataSource;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -58,12 +59,16 @@ public abstract class AbstractTypedViewProjector<E> extends AbstractViewProjecto
      * Initialises the typed projector with the dependencies required for deserialization,
      * clock access, and transactional batch processing.
      * Spring will inject these automatically when the subclass is annotated with {@code @Component}.
+     * <p>
+     * The {@code writeDataSource} parameter must be the write database — not the read replica.
+     * View projection writes must go to the primary; event fetching uses the read replica separately.
      */
     protected AbstractTypedViewProjector(
             ObjectMapper objectMapper,
             ClockProvider clockProvider,
-            PlatformTransactionManager transactionManager) {
-        super(objectMapper, clockProvider, transactionManager);
+            PlatformTransactionManager transactionManager,
+            WriteDataSource writeDataSource) {
+        super(objectMapper, clockProvider, transactionManager, writeDataSource);
     }
 
     /**

@@ -8,6 +8,8 @@ import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.internal.EventStoreImpl;
+import com.crablet.eventstore.ReadDataSource;
+import com.crablet.eventstore.WriteDataSource;
 import com.crablet.views.config.ViewsAutoConfiguration;
 import com.crablet.views.config.ViewsConfig;
 import com.crablet.views.ViewSubscription;
@@ -27,7 +29,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -372,15 +373,13 @@ class ViewManagementServiceTest extends AbstractViewsTest {
         }
 
         @Bean
-        @Primary
-        public DataSource primaryDataSource(DataSource dataSource) {
-            return dataSource;
+        public WriteDataSource writeDataSource(DataSource dataSource) {
+            return new WriteDataSource(dataSource);
         }
 
         @Bean
-        @Qualifier("readDataSource")
-        public DataSource readDataSource(DataSource dataSource) {
-            return dataSource;
+        public ReadDataSource readReplicaDataSource(DataSource dataSource) {
+            return new ReadDataSource(dataSource);
         }
 
         @Bean

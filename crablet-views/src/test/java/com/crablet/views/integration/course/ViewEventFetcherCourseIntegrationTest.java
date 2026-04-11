@@ -2,6 +2,8 @@ package com.crablet.views.integration.course;
 
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.ReadDataSource;
+import com.crablet.eventstore.WriteDataSource;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.views.ViewSubscription;
 import com.crablet.views.internal.ViewEventFetcher;
@@ -11,11 +13,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
@@ -320,15 +320,13 @@ class ViewEventFetcherCourseIntegrationTest extends AbstractViewsTest {
         }
 
         @Bean
-        @Primary
-        public javax.sql.DataSource primaryDataSource(DataSource dataSource) {
-            return dataSource;
+        public WriteDataSource writeDataSource(DataSource dataSource) {
+            return new WriteDataSource(dataSource);
         }
 
         @Bean
-        @Qualifier("readDataSource")
-        public javax.sql.DataSource readDataSource(DataSource dataSource) {
-            return dataSource;
+        public ReadDataSource readReplicaDataSource(DataSource dataSource) {
+            return new ReadDataSource(dataSource);
         }
 
         @Bean
@@ -395,10 +393,9 @@ class ViewEventFetcherCourseIntegrationTest extends AbstractViewsTest {
 
         @Bean
         public ViewEventFetcher viewEventFetcher(
-                @Qualifier("readDataSource") DataSource readDataSource,
+                ReadDataSource readDataSource,
                 Map<String, ViewSubscription> subscriptions) {
-            return new ViewEventFetcher(readDataSource, subscriptions);
+            return new ViewEventFetcher(readDataSource.dataSource(), subscriptions);
         }
     }
 }
-

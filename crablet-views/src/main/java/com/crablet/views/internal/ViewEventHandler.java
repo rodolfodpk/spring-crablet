@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 
-import javax.sql.DataSource;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
@@ -19,20 +18,20 @@ import java.util.Map;
 /**
  * Event handler for view projections.
  * Delegates to user-provided ViewProjector implementations registered per view.
+ * <p>
+ * The write datasource is owned by each ViewProjector (injected at construction time),
+ * not passed here. This handler is responsible only for routing and metrics.
  */
 public class ViewEventHandler implements EventHandler<String> {
 
     private static final Logger log = LoggerFactory.getLogger(ViewEventHandler.class);
 
     private final Map<String, ViewProjector> projectors;
-    private final DataSource writeDataSource;
     private final ApplicationEventPublisher eventPublisher;
 
     public ViewEventHandler(
             List<ViewProjector> projectors,
-            DataSource writeDataSource,
             ApplicationEventPublisher eventPublisher) {
-        this.writeDataSource = writeDataSource;
         this.eventPublisher = eventPublisher;
         this.projectors = new HashMap<>();
         for (ViewProjector projector : projectors) {
@@ -53,7 +52,7 @@ public class ViewEventHandler implements EventHandler<String> {
 
         Instant start = Instant.now();
         try {
-            int handled = projector.handle(viewName, events, writeDataSource);
+            int handled = projector.handle(viewName, events);
             eventPublisher.publishEvent(new ViewProjectionMetric(viewName, handled, Duration.between(start, Instant.now())));
             log.debug("Projector {} handled {} events for view {}",
                 projector.getClass().getSimpleName(), handled, viewName);

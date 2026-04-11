@@ -5,8 +5,8 @@
 PgCat is a PostgreSQL pooler and proxy with support for pooling, query routing, load balancing, and failover. This guide explains how to use PgCat with Crablet's two-datasource model.
 
 Crablet already distinguishes:
-- `primaryDataSource` for writes, progress tracking, and leader election
-- `readDataSource` for read-only queries that may be served by replicas
+- `WriteDataSource` for writes, progress tracking, and leader election
+- `ReadDataSource` for read-only queries that may be served by replicas
 
 That separation should stay explicit even when PgCat is present.
 
@@ -22,11 +22,11 @@ PgCat's official documentation states:
 - session mode supports prepared statements, `SET`, and advisory locks
 - transaction mode does **not** support advisory locks
 
-Therefore, the endpoint behind `primaryDataSource` must use **session mode**.
+Therefore, the endpoint behind `WriteDataSource` must use **session mode**.
 
 ### Read Path: Separate Pool Preferred
 
-For `readDataSource`, Crablet's internal fetch paths are read-only. That means:
+For `ReadDataSource`, Crablet's internal fetch paths are read-only. That means:
 - session mode is the safest default
 - transaction mode may be acceptable for replica-backed reads if you have validated your environment
 
@@ -55,11 +55,11 @@ Why this model fits Crablet:
 PgCat can parse SQL and route `SELECT` queries to replicas and writes to the primary. That feature is useful in some applications, but it should not be your main read/write boundary for Crablet.
 
 Prefer explicit datasource separation because:
-- Crablet already exposes `primaryDataSource` and `readDataSource`
+- Crablet already exposes `WriteDataSource` and `ReadDataSource`
 - leader election must stay on a session-safe primary path
 - explicit routing is easier to reason about under replication lag and failover
 
-Treat PgCat's parser as an optimization layer behind `readDataSource`, not as the source of truth for correctness.
+Treat PgCat's parser as an optimization layer behind `ReadDataSource`, not as the source of truth for correctness.
 
 ## Deployment Guidance
 
@@ -92,7 +92,7 @@ This endpoint is used for:
 Advisory locks are session-scoped PostgreSQL features. If the pooler reassigns backend connections between transactions, lock ownership is no longer stable.
 
 For Crablet, that means:
-- `primaryDataSource` must not use transaction-mode pooling for processors that elect leaders
+- `WriteDataSource` must not use transaction-mode pooling for processors that elect leaders
 - a single mixed read/write PgCat endpoint in transaction mode is not sufficient
 
 ## Best Practices
@@ -100,7 +100,7 @@ For Crablet, that means:
 1. Use separate PgCat pools or endpoints for read and write intent.
 2. Use session mode on the write path.
 3. Keep leader election on the primary path only.
-4. Use replica-backed PgCat only for `readDataSource`.
+4. Use replica-backed PgCat only for `ReadDataSource`.
 5. Validate replica lag against your poll interval and freshness requirements.
 6. Prefer explicit datasource wiring over SQL-parser-based routing for correctness.
 

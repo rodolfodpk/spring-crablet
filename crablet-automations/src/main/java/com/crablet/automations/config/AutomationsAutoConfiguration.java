@@ -15,6 +15,8 @@ import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
+import com.crablet.eventstore.ReadDataSource;
+import com.crablet.eventstore.WriteDataSource;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -27,7 +29,6 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 
-import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -49,8 +50,8 @@ public class AutomationsAutoConfiguration {
 
     @Bean
     public ProgressTracker<String> automationProgressTracker(
-            @Qualifier("primaryDataSource") DataSource dataSource) {
-        return new AutomationProgressTracker(dataSource);
+            WriteDataSource writeDataSource) {
+        return new AutomationProgressTracker(writeDataSource.dataSource());
     }
 
     @Bean
@@ -67,9 +68,9 @@ public class AutomationsAutoConfiguration {
 
     @Bean
     public EventFetcher<String> automationEventFetcher(
-            @Qualifier("readDataSource") DataSource readDataSource,
+            ReadDataSource readDataSource,
             @Qualifier("automationHandlers") Map<String, AutomationHandler> handlers) {
-        return new AutomationEventFetcher(readDataSource, handlers);
+        return new AutomationEventFetcher(readDataSource.dataSource(), handlers);
     }
 
     @Bean
@@ -117,7 +118,7 @@ public class AutomationsAutoConfiguration {
             @Qualifier("automationEventFetcher") EventFetcher<String> automationEventFetcher,
             @Qualifier("automationEventHandler") EventHandler<String> automationEventHandler,
             InstanceIdProvider instanceIdProvider,
-            @Qualifier("primaryDataSource") DataSource writeDataSource,
+            WriteDataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher) {
 
@@ -139,15 +140,15 @@ public class AutomationsAutoConfiguration {
     public ProcessorManagementService<String> automationProcessorManagementService(
             @Qualifier("automationsEventProcessor") EventProcessor<AutomationProcessorConfig, String> automationsEventProcessor,
             @Qualifier("automationProgressTracker") ProgressTracker<String> automationProgressTracker,
-            @Qualifier("readDataSource") DataSource readDataSource) {
+            ReadDataSource readDataSource) {
         return EventProcessorFactory.createManagementService(automationsEventProcessor, automationProgressTracker, readDataSource);
     }
 
     @Bean
     public AutomationManagementService automationManagementService(
             @Qualifier("automationProcessorManagementService") ProcessorManagementService<String> delegate,
-            @Qualifier("primaryDataSource") DataSource dataSource) {
-        return new AutomationManagementService(delegate, dataSource);
+            WriteDataSource writeDataSource) {
+        return new AutomationManagementService(delegate, writeDataSource.dataSource());
     }
 
     private static void validateUniqueHandlerNames(List<AutomationHandler> handlers) {

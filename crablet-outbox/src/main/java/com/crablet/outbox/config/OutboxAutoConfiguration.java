@@ -10,6 +10,8 @@ import com.crablet.outbox.management.OutboxManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.ReadDataSource;
+import com.crablet.eventstore.WriteDataSource;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.TopicConfig;
 import com.crablet.outbox.internal.OutboxEventFetcher;
@@ -28,7 +30,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
 
-import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,10 +55,10 @@ public class OutboxAutoConfiguration {
     @Bean
     public LeaderElector outboxLeaderElector(
             InstanceIdProvider instanceIdProvider,
-            @Qualifier("primaryDataSource") DataSource primaryDataSource,
+            WriteDataSource writeDataSource,
             ApplicationEventPublisher eventPublisher) {
         return EventProcessorFactory.createLeaderElector(
-                primaryDataSource, "outbox", instanceIdProvider.getInstanceId(),
+                writeDataSource, "outbox", instanceIdProvider.getInstanceId(),
                 OUTBOX_LOCK_KEY, eventPublisher);
     }
 
@@ -66,8 +67,8 @@ public class OutboxAutoConfiguration {
      */
     @Bean
     public ProgressTracker<TopicPublisherPair> outboxProgressTracker(
-            @Qualifier("primaryDataSource") DataSource dataSource) {
-        return new OutboxProgressTracker(dataSource);
+            WriteDataSource writeDataSource) {
+        return new OutboxProgressTracker(writeDataSource.dataSource());
     }
     
     /**
@@ -75,10 +76,10 @@ public class OutboxAutoConfiguration {
      */
     @Bean
     public EventFetcher<TopicPublisherPair> outboxEventFetcher(
-            @Qualifier("readDataSource") DataSource readDataSource,
+            ReadDataSource readDataSource,
             OutboxConfig outboxConfig,
             Map<String, TopicConfig> topicConfigs) {
-        return new OutboxEventFetcher(readDataSource, outboxConfig, topicConfigs);
+        return new OutboxEventFetcher(readDataSource.dataSource(), outboxConfig, topicConfigs);
     }
     
     /**
@@ -139,7 +140,7 @@ public class OutboxAutoConfiguration {
             ProgressTracker<TopicPublisherPair> progressTracker,
             EventFetcher<TopicPublisherPair> eventFetcher,
             EventHandler<TopicPublisherPair> eventHandler,
-            @Qualifier("primaryDataSource") DataSource primaryDataSource,
+            WriteDataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher) {
         return EventProcessorFactory.createProcessor(
@@ -148,7 +149,7 @@ public class OutboxAutoConfiguration {
             progressTracker,
             eventFetcher,
             eventHandler,
-            primaryDataSource,
+            writeDataSource,
             taskScheduler,
             eventPublisher);
     }
@@ -173,10 +174,10 @@ public class OutboxAutoConfiguration {
     public OutboxManagementService outboxManagementService(
             EventProcessor<OutboxProcessorConfig, TopicPublisherPair> eventProcessor,
             ProgressTracker<TopicPublisherPair> progressTracker,
-            @Qualifier("readDataSource") DataSource readDataSource,
-            @Qualifier("primaryDataSource") DataSource primaryDataSource) {
+            ReadDataSource readDataSource,
+            WriteDataSource writeDataSource) {
         ProcessorManagementService<TopicPublisherPair> delegate =
                 EventProcessorFactory.createManagementService(eventProcessor, progressTracker, readDataSource);
-        return new OutboxManagementService(delegate, primaryDataSource);
+        return new OutboxManagementService(delegate, writeDataSource.dataSource());
     }
 }

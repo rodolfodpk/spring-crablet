@@ -7,6 +7,8 @@ import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
+import com.crablet.eventstore.ReadDataSource;
+import com.crablet.eventstore.WriteDataSource;
 import com.crablet.views.ViewProjector;
 import com.crablet.views.ViewSubscription;
 import com.crablet.views.internal.ViewEventFetcher;
@@ -14,14 +16,13 @@ import com.crablet.views.internal.ViewEventHandler;
 import com.crablet.views.internal.ViewProcessorConfig;
 import com.crablet.views.internal.ViewProgressTracker;
 import com.crablet.views.service.ViewManagementService;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
 
-import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ import java.util.Map;
  */
 @Configuration
 @ConditionalOnProperty(name = "crablet.views.enabled", havingValue = "true", matchIfMissing = false)
+@EnableConfigurationProperties(ViewsConfig.class)
 public class ViewsAutoConfiguration {
 
     // Advisory lock key for views (different from outbox)
@@ -43,23 +45,22 @@ public class ViewsAutoConfiguration {
 
     @Bean
     public ProgressTracker<String> viewProgressTracker(
-            @Qualifier("primaryDataSource") DataSource dataSource) {
-        return new ViewProgressTracker(dataSource);
+            WriteDataSource writeDataSource) {
+        return new ViewProgressTracker(writeDataSource.dataSource());
     }
 
     @Bean
     public EventFetcher<String> viewEventFetcher(
-            @Qualifier("readDataSource") DataSource readDataSource,
-            @Qualifier("viewSubscriptions") Map<String, ViewSubscription> subscriptions) {
-        return new ViewEventFetcher(readDataSource, subscriptions);
+            ReadDataSource readDataSource,
+            @org.springframework.beans.factory.annotation.Qualifier("viewSubscriptions") Map<String, ViewSubscription> subscriptions) {
+        return new ViewEventFetcher(readDataSource.dataSource(), subscriptions);
     }
 
     @Bean
     public EventHandler<String> viewEventHandler(
             List<ViewProjector> projectors,
-            @Qualifier("primaryDataSource") DataSource primaryDataSource,
             ApplicationEventPublisher eventPublisher) {
-        return new ViewEventHandler(projectors, primaryDataSource, eventPublisher);
+        return new ViewEventHandler(projectors, eventPublisher);
     }
 
     @Bean
@@ -74,30 +75,30 @@ public class ViewsAutoConfiguration {
     @Bean
     public Map<String, ViewProcessorConfig> viewProcessorConfigs(
             ViewsConfig viewsConfig,
-            @Qualifier("viewSubscriptions") Map<String, ViewSubscription> subscriptions) {
+            @org.springframework.beans.factory.annotation.Qualifier("viewSubscriptions") Map<String, ViewSubscription> subscriptions) {
         return ViewProcessorConfig.createConfigMap(viewsConfig, subscriptions);
     }
 
     @Bean
     public ViewManagementService viewManagementService(
-            @Qualifier("viewsEventProcessor") EventProcessor<ViewProcessorConfig, String> eventProcessor,
-            @Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
-            @Qualifier("readDataSource") DataSource readDataSource,
-            @Qualifier("primaryDataSource") DataSource primaryDataSource) {
+            @org.springframework.beans.factory.annotation.Qualifier("viewsEventProcessor") EventProcessor<ViewProcessorConfig, String> eventProcessor,
+            @org.springframework.beans.factory.annotation.Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
+            ReadDataSource readDataSource,
+            WriteDataSource writeDataSource) {
         ProcessorManagementService<String> delegate = EventProcessorFactory.createManagementService(
             eventProcessor, progressTracker, readDataSource);
-        return new ViewManagementService(delegate, primaryDataSource);
+        return new ViewManagementService(delegate, writeDataSource.dataSource());
     }
 
     @Bean
     @org.springframework.context.annotation.DependsOn("flyway")
     public EventProcessor<ViewProcessorConfig, String> viewsEventProcessor(
             Map<String, ViewProcessorConfig> processorConfigs,
-            @Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
-            @Qualifier("viewEventFetcher") EventFetcher<String> eventFetcher,
-            @Qualifier("viewEventHandler") EventHandler<String> eventHandler,
+            @org.springframework.beans.factory.annotation.Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
+            @org.springframework.beans.factory.annotation.Qualifier("viewEventFetcher") EventFetcher<String> eventFetcher,
+            @org.springframework.beans.factory.annotation.Qualifier("viewEventHandler") EventHandler<String> eventHandler,
             InstanceIdProvider instanceIdProvider,
-            @Qualifier("primaryDataSource") DataSource primaryDataSource,
+            WriteDataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher) {
 
@@ -109,7 +110,7 @@ public class ViewsAutoConfiguration {
             progressTracker,
             eventFetcher,
             eventHandler,
-            primaryDataSource,
+            writeDataSource,
             taskScheduler,
             eventPublisher);
     }

@@ -3,7 +3,6 @@ package com.crablet.views.internal;
 import com.crablet.eventpoller.AbstractJdbcEventFetcher;
 import com.crablet.eventpoller.EventSelectionSqlBuilder;
 import com.crablet.views.ViewSubscription;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 import javax.sql.DataSource;
 import java.util.Map;
@@ -17,7 +16,7 @@ public class ViewEventFetcher extends AbstractJdbcEventFetcher<String> {
     private final Map<String, ViewSubscription> subscriptions;
 
     public ViewEventFetcher(
-            @Qualifier("readDataSource") DataSource readDataSource,
+            DataSource readDataSource,
             Map<String, ViewSubscription> subscriptions) {
         super(readDataSource);
         this.subscriptions = subscriptions;

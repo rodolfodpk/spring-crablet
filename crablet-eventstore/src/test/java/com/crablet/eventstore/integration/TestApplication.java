@@ -12,10 +12,9 @@ import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
 import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
@@ -24,13 +23,14 @@ import org.springframework.context.annotation.Primary;
 import javax.sql.DataSource;
 
 @SpringBootApplication
-@EnableConfigurationProperties(DataSourceProperties.class)
 @ComponentScan(
     basePackages = {"com.crablet.eventstore", "com.crablet.examples"},
-    excludeFilters = @ComponentScan.Filter(
-        type = FilterType.REGEX,
-        pattern = "com\\.crablet\\.eventstore\\.internal\\.DataSourceConfig"
-    )
+    excludeFilters = {
+        @ComponentScan.Filter(
+            type = FilterType.ANNOTATION,
+            classes = AutoConfiguration.class
+        )
+    }
 )
 public class TestApplication {
     

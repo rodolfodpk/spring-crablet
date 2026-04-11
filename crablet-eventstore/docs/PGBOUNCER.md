@@ -5,8 +5,8 @@
 PgBouncer is a lightweight connection pooler for PostgreSQL that sits between your application and the database. This guide explains how to use PgBouncer with Crablet, compatibility requirements, and deployment patterns.
 
 For Crablet, the important design point is that the framework already distinguishes:
-- `primaryDataSource` for writes and leader election
-- `readDataSource` for read-only queries that may be served by replicas
+- `WriteDataSource` for writes and leader election
+- `ReadDataSource` for read-only queries that may be served by replicas
 
 Treat PgBouncer as transport and pooling infrastructure behind those two roles, not as the place where Crablet decides read vs write intent.
 
@@ -67,7 +67,7 @@ This affects:
 - `crablet-views`
 - any other processor using the generic leader election infrastructure
 
-At minimum, the endpoint backing `primaryDataSource` must preserve session semantics.
+At minimum, the endpoint backing `WriteDataSource` must preserve session semantics.
 
 ### Configuring PgBouncer for Session Pooling
 
@@ -78,7 +78,7 @@ At minimum, the endpoint backing `primaryDataSource` must preserve session seman
 crablet = host=postgres-server port=5432 dbname=crablet
 
 [pgbouncer]
-pool_mode = session  # ← Required for leader election on primaryDataSource
+pool_mode = session  # ← Required for leader election on WriteDataSource
 max_client_conn = 1000
 default_pool_size = 25
 ```
@@ -194,7 +194,7 @@ Why this is the preferred model:
 
 ### Read Pooling Modes
 
-For the endpoint behind `readDataSource`:
+For the endpoint behind `ReadDataSource`:
 - `session` pooling is the safest option
 - `transaction` pooling can be acceptable for Crablet's current read-only fetch paths
 - `statement` pooling is not recommended
@@ -203,7 +203,7 @@ If you are unsure, use `session` for both endpoints.
 
 ### If You Want PgBouncer to Spread Reads Across Replicas
 
-Point `readDataSource` at a PgBouncer-managed read endpoint:
+Point `ReadDataSource` at a PgBouncer-managed read endpoint:
 
 ```properties
 # Single read endpoint used by Crablet

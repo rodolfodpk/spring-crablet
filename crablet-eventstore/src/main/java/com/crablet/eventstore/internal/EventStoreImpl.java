@@ -28,7 +28,6 @@ import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -71,13 +70,19 @@ import java.util.stream.Collectors;
  *
  *     @Bean
  *     public EventStore eventStore(
- *             @Qualifier("primaryDataSource") DataSource writeDataSource,
- *             @Qualifier("readDataSource") DataSource readDataSource,
+ *             WriteDataSource writeDataSource,
+ *             ReadDataSource readDataSource,
  *             ObjectMapper objectMapper,
  *             EventStoreConfig config,
  *             ClockProvider clock,
  *             ApplicationEventPublisher eventPublisher) {
- *         return new EventStoreImpl(writeDataSource, readDataSource, objectMapper, config, clock, eventPublisher);
+ *         return new EventStoreImpl(
+ *             writeDataSource.dataSource(),
+ *             readDataSource.dataSource(),
+ *             objectMapper,
+ *             config,
+ *             clock,
+ *             eventPublisher);
  *     }
  * }
  * }</pre>
@@ -163,8 +168,8 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
      *                       See crablet-metrics-micrometer for automatic metrics collection.
      */
     public EventStoreImpl(
-            @Qualifier("primaryDataSource") DataSource writeDataSource,
-            @Qualifier("readDataSource") DataSource readDataSource,
+            DataSource writeDataSource,
+            DataSource readDataSource,
             ObjectMapper objectMapper,
             EventStoreConfig config,
             ClockProvider clock,

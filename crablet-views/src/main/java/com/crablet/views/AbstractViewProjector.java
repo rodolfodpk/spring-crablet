@@ -2,6 +2,7 @@ package com.crablet.views;
 
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.WriteDataSource;
 import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +11,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import javax.sql.DataSource;
 import java.util.List;
 
 /**
@@ -35,36 +35,42 @@ public abstract class AbstractViewProjector implements ViewProjector {
     protected final ObjectMapper objectMapper;
     protected final ClockProvider clockProvider;
     protected final TransactionTemplate transactionTemplate;
+    private final JdbcTemplate writeJdbc;
 
     /**
      * Initialises the projector with the dependencies required for deserialization,
      * clock access, and transactional batch processing.
      * Spring will inject these automatically when the subclass is annotated with {@code @Component}.
+     * <p>
+     * <strong>DataSource:</strong> must be the write datasource.
+     * Event fetching uses the read replica, but view projection writes go to the primary.
+     * The {@code PlatformTransactionManager} also wraps the primary datasource for atomicity.
      */
     protected AbstractViewProjector(
             ObjectMapper objectMapper,
             ClockProvider clockProvider,
-            PlatformTransactionManager transactionManager) {
+            PlatformTransactionManager transactionManager,
+            WriteDataSource writeDataSource) {
         this.objectMapper = objectMapper;
         this.clockProvider = clockProvider;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
-        // Configure transaction template
         this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
         this.transactionTemplate.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
+        this.writeJdbc = new JdbcTemplate(writeDataSource.dataSource());
     }
 
     /**
-     * Implements {@link ViewProjector#handle(String, List, DataSource)}.
-     * Delegates to {@link #processEvents(String, List, DataSource)} for actual processing.
+     * Implements {@link ViewProjector#handle(String, List)}.
+     * Delegates to {@link #processEvents(String, List)} for actual processing.
      */
     @Override
-    public final int handle(String viewName, List<StoredEvent> events, DataSource writeDataSource) {
-        return processEvents(viewName, events, writeDataSource);
+    public final int handle(String viewName, List<StoredEvent> events) {
+        return processEvents(viewName, events);
     }
 
     /**
      * Process events with error handling and transaction support.
-     * All events in the batch are processed atomically - if any event fails,
+     * All events in the batch are processed atomically — if any event fails,
      * the entire batch is rolled back.
      * <p>
      * <strong>Transaction Behavior:</strong>
@@ -77,16 +83,11 @@ public abstract class AbstractViewProjector implements ViewProjector {
      *
      * @param viewName View name for logging
      * @param events List of events to process
-     * @param writeDataSource DataSource for database operations
      * @return Number of events successfully handled
      */
-    protected int processEvents(
-            String viewName,
-            List<StoredEvent> events,
-            DataSource writeDataSource) {
+    protected int processEvents(String viewName, List<StoredEvent> events) {
         return transactionTemplate.execute(status -> {
             int handled = 0;
-            JdbcTemplate writeJdbc = new JdbcTemplate(writeDataSource);
 
             for (StoredEvent event : events) {
                 try {

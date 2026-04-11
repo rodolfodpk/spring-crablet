@@ -4,7 +4,6 @@ import com.crablet.eventpoller.AbstractJdbcEventFetcher;
 import com.crablet.eventpoller.EventSelectionSqlBuilder;
 import com.crablet.outbox.TopicConfig;
 import com.crablet.outbox.config.OutboxConfig;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 import javax.sql.DataSource;
 import java.util.Map;
@@ -18,7 +17,7 @@ public class OutboxEventFetcher extends AbstractJdbcEventFetcher<TopicPublisherP
     private final Map<String, TopicConfig> topicConfigs;
 
     public OutboxEventFetcher(
-            @Qualifier("readDataSource") DataSource readDataSource,
+            DataSource readDataSource,
             OutboxConfig outboxConfig,
             Map<String, TopicConfig> topicConfigs) {
         super(readDataSource);

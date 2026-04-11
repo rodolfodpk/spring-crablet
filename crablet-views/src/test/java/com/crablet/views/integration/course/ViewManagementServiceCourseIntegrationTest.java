@@ -3,6 +3,8 @@ package com.crablet.views.integration.course;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.ReadDataSource;
+import com.crablet.eventstore.WriteDataSource;
 import com.crablet.views.ViewSubscription;
 import com.crablet.views.config.ViewsAutoConfiguration;
 import com.crablet.views.integration.AbstractViewsTest;
@@ -10,12 +12,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.TaskScheduler;
@@ -168,15 +168,13 @@ class ViewManagementServiceCourseIntegrationTest extends AbstractViewsTest {
         }
 
         @Bean
-        @Primary
-        public DataSource primaryDataSource(DataSource dataSource) {
-            return dataSource;
+        public WriteDataSource writeDataSource(DataSource dataSource) {
+            return new WriteDataSource(dataSource);
         }
 
         @Bean
-        @Qualifier("readDataSource")
-        public DataSource readDataSource(DataSource dataSource) {
-            return dataSource;
+        public ReadDataSource readReplicaDataSource(DataSource dataSource) {
+            return new ReadDataSource(dataSource);
         }
 
         @Bean
@@ -250,4 +248,3 @@ class ViewManagementServiceCourseIntegrationTest extends AbstractViewsTest {
         }
     }
 }
-

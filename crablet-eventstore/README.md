@@ -92,13 +92,20 @@ public class EventStoreConfig {
     
     @Bean
     public EventStore eventStore(
-            @Qualifier("primaryDataSource") DataSource writeDataSource,
-            @Qualifier("readDataSource") DataSource readDataSource,
+            WriteDataSource writeDataSource,
+            ReadDataSource readDataSource,
             ObjectMapper objectMapper,
             EventStoreConfig config,
             ClockProvider clock,
             ApplicationEventPublisher eventPublisher) {
-        return new EventStoreImpl(writeDataSource, readDataSource, objectMapper, config, clock, eventPublisher);
+        return new EventStoreImpl(
+            writeDataSource.dataSource(),
+            readDataSource.dataSource(),
+            objectMapper,
+            config,
+            clock,
+            eventPublisher
+        );
     }
 }
 ```

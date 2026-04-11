@@ -1,60 +1,37 @@
 package com.crablet.wallet.config;
 
-import com.crablet.command.CommandExecutor;
-import com.crablet.command.internal.CommandExecutorImpl;
-import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventstore.ClockProvider;
-import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.query.EventRepository;
-import com.crablet.eventstore.internal.EventRepositoryImpl;
-import com.crablet.eventstore.EventStore;
-import com.crablet.eventstore.EventStoreConfig;
-import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
 import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
-import com.crablet.views.config.ViewsConfig;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.cfg.DateTimeFeature;
 import tools.jackson.databind.json.JsonMapper;
 
-import org.flywaydb.core.Flyway;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.core.env.Environment;
-import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-
-import javax.sql.DataSource;
-import java.util.List;
 
 /**
- * Configuration for Crablet components.
+ * Application-specific bean configuration.
+ * <p>
+ * Framework infrastructure (EventStore, CommandExecutor, DataSources, TaskScheduler,
+ * InstanceIdProvider, ClockProvider) is auto-configured by the crablet modules via
+ * Spring Boot auto-configuration. Only beans that are wallet-domain-specific or
+ * that override framework defaults belong here.
  */
 @Configuration
 public class CrabletConfig {
 
     /**
-     * Expose the auto-configured DataSource as "primaryDataSource" for framework modules that use @Qualifier.
-     * In this example app, primary and read use the same datasource (no read replica).
+     * Override the default ObjectMapper to disable timestamp serialization for dates.
+     * This ensures ISO-8601 strings in JSON responses instead of epoch millis.
      */
-    @Bean("primaryDataSource")
-    public DataSource primaryDataSource(DataSource dataSource) {
-        return dataSource;
-    }
-
-    @Bean("readDataSource")
-    public DataSource readDataSource(DataSource dataSource) {
-        return dataSource;
-    }
-
     @Bean
     @Primary
     public ObjectMapper objectMapper() {
@@ -63,71 +40,17 @@ public class CrabletConfig {
                 .build();
     }
 
-    @Bean(initMethod = "migrate")
-    public Flyway flyway(@Qualifier("primaryDataSource") DataSource dataSource) {
-        return Flyway.configure()
-                .dataSource(dataSource)
-                .locations("classpath:db/migration")
-                .load();
-    }
-
+    /**
+     * SimpleMeterRegistry for local development.
+     * In production, Spring Boot Actuator provides a real registry automatically.
+     */
     @Bean
-    @ConfigurationProperties(prefix = "crablet.eventstore")
-    public EventStoreConfig eventStoreConfig() {
-        return new EventStoreConfig();
-    }
-
-    @Bean
-    @ConfigurationProperties(prefix = "crablet.views")
-    public ViewsConfig viewsConfig() {
-        return new ViewsConfig();
-    }
-
-
-    @Bean
-    public InstanceIdProvider instanceIdProvider(Environment environment) {
-        return new InstanceIdProvider(environment);
-    }
-
-    @Bean
-    public TaskScheduler taskScheduler() {
-        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-        scheduler.setPoolSize(5);
-        scheduler.setThreadNamePrefix("views-scheduler-");
-        scheduler.setWaitForTasksToCompleteOnShutdown(true);
-        scheduler.setAwaitTerminationSeconds(60);
-        scheduler.initialize();
-        return scheduler;
-    }
-
-    @Bean
+    @ConditionalOnMissingBean
     public MeterRegistry meterRegistry() {
         return new SimpleMeterRegistry();
     }
 
-    @Bean
-    @Primary
-    public ClockProvider clockProvider() {
-        return new ClockProviderImpl();
-    }
-
-    @Bean
-    @Primary
-    public EventStore eventStore(
-            DataSource dataSource,
-            ObjectMapper objectMapper,
-            EventStoreConfig config,
-            ClockProvider clock,
-            ApplicationEventPublisher eventPublisher) {
-        // Use same datasource for read and write in this example
-        return new EventStoreImpl(
-                dataSource, dataSource, objectMapper, config, clock, eventPublisher);
-    }
-
-    @Bean
-    public EventRepository eventRepository(DataSource dataSource, EventStoreConfig config) {
-        return new EventRepositoryImpl(dataSource, config);
-    }
+    // --- Wallet domain beans ---
 
     @Bean
     public WalletBalanceStateProjector walletBalanceStateProjector() {
@@ -156,16 +79,4 @@ public class CrabletConfig {
             ClockProvider clockProvider) {
         return new WalletPeriodHelper(periodResolver, configProvider, balanceProjector, clockProvider);
     }
-
-    @Bean
-    public CommandExecutor commandExecutor(
-            EventStore eventStore,
-            List<com.crablet.command.CommandHandler<?>> commandHandlers,
-            EventStoreConfig config,
-            ClockProvider clock,
-            ObjectMapper objectMapper,
-            ApplicationEventPublisher eventPublisher) {
-        return new CommandExecutorImpl(eventStore, commandHandlers, config, clock, objectMapper, eventPublisher);
-    }
-
 }

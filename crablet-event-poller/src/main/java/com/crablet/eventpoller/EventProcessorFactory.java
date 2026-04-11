@@ -1,5 +1,7 @@
 package com.crablet.eventpoller;
 
+import com.crablet.eventstore.ReadDataSource;
+import com.crablet.eventstore.WriteDataSource;
 import com.crablet.eventpoller.internal.EventProcessorImpl;
 import com.crablet.eventpoller.internal.LeaderElectorImpl;
 import com.crablet.eventpoller.internal.ProcessorManagementServiceImpl;
@@ -11,7 +13,6 @@ import com.crablet.eventpoller.progress.ProgressTracker;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.TaskScheduler;
 
-import javax.sql.DataSource;
 import java.util.Map;
 
 /**
@@ -29,12 +30,12 @@ import java.util.Map;
  *         EventFetcher<String> fetcher,
  *         EventHandler<String> handler,
  *         InstanceIdProvider instanceIdProvider,
- *         @Qualifier("primaryDataSource") DataSource primary,
+ *         WriteDataSource writeDataSource,
  *         TaskScheduler scheduler,
  *         ApplicationEventPublisher publisher) {
  *     return EventProcessorFactory.createProcessor(
  *         configs, "my-processor", MY_LOCK_KEY, instanceIdProvider.getInstanceId(),
- *         progressTracker, fetcher, handler, primary, scheduler, publisher);
+ *         progressTracker, fetcher, handler, writeDataSource, scheduler, publisher);
  * }
  * }</pre>
  */
@@ -54,21 +55,22 @@ public final class EventProcessorFactory {
      * @param progressTracker  tracks last-processed position per processor
      * @param eventFetcher     fetches events from the read replica
      * @param eventHandler     processes fetched event batches
-     * @param primaryDataSource write datasource (used for lock acquisition and progress writes)
+     * @param writeDataSource  write datasource (used for lock acquisition and progress writes)
      * @param taskScheduler    Spring task scheduler for polling intervals
      * @param eventPublisher   publishes processing metrics
      */
     /**
-     * Creates a {@link LeaderElector} for use with {@link #createProcessor(Map, LeaderElector, ProgressTracker, EventFetcher, EventHandler, DataSource, TaskScheduler, ApplicationEventPublisher)}.
+     * Creates a {@link LeaderElector} for use with
+     * {@link #createProcessor(Map, LeaderElector, ProgressTracker, EventFetcher, EventHandler, WriteDataSource, TaskScheduler, ApplicationEventPublisher)}.
      * Expose this as a separate bean when tests or management components need to inject the elector directly.
      */
     public static LeaderElector createLeaderElector(
-            DataSource primaryDataSource,
+            WriteDataSource writeDataSource,
             String processorName,
             String instanceId,
             long lockKey,
             ApplicationEventPublisher eventPublisher) {
-        return new LeaderElectorImpl(primaryDataSource, processorName, instanceId, lockKey, eventPublisher);
+        return new LeaderElectorImpl(writeDataSource.dataSource(), processorName, instanceId, lockKey, eventPublisher);
     }
 
     /**
@@ -81,13 +83,13 @@ public final class EventProcessorFactory {
             ProgressTracker<I> progressTracker,
             EventFetcher<I> eventFetcher,
             EventHandler<I> eventHandler,
-            DataSource primaryDataSource,
+            WriteDataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher) {
 
         return new EventProcessorImpl<>(
                 configs, leaderElector, progressTracker, eventFetcher, eventHandler,
-                primaryDataSource, taskScheduler, eventPublisher);
+                writeDataSource.dataSource(), taskScheduler, eventPublisher);
     }
 
     public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
@@ -98,16 +100,16 @@ public final class EventProcessorFactory {
             ProgressTracker<I> progressTracker,
             EventFetcher<I> eventFetcher,
             EventHandler<I> eventHandler,
-            DataSource primaryDataSource,
+            WriteDataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher) {
 
         var leaderElector = new LeaderElectorImpl(
-                primaryDataSource, processorName, instanceId, lockKey, eventPublisher);
+                writeDataSource.dataSource(), processorName, instanceId, lockKey, eventPublisher);
 
         return new EventProcessorImpl<>(
                 configs, leaderElector, progressTracker, eventFetcher, eventHandler,
-                primaryDataSource, taskScheduler, eventPublisher);
+                writeDataSource.dataSource(), taskScheduler, eventPublisher);
     }
 
     /**
@@ -120,7 +122,7 @@ public final class EventProcessorFactory {
     public static <C extends ProcessorConfig<I>, I> ProcessorManagementService<I> createManagementService(
             EventProcessor<C, I> eventProcessor,
             ProgressTracker<I> progressTracker,
-            DataSource readDataSource) {
-        return new ProcessorManagementServiceImpl<>(eventProcessor, progressTracker, readDataSource);
+            ReadDataSource readDataSource) {
+        return new ProcessorManagementServiceImpl<>(eventProcessor, progressTracker, readDataSource.dataSource());
     }
 }

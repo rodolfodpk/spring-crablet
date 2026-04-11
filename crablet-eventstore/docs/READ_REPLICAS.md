@@ -7,8 +7,8 @@ Crablet supports optional PostgreSQL read replicas to enable horizontal read sca
 **Important:** Load balancing across multiple replicas is handled externally (AWS RDS read replica endpoints, PgBouncer, PgCat, or hardware load balancers). Crablet connects to a single replica URL that points to your load balancing infrastructure.
 
 Crablet is intentionally built around **two explicit datasource roles**:
-- `primaryDataSource` for writes and session-scoped features such as advisory locks
-- `readDataSource` for read-only fetches that can be served by replicas
+- `WriteDataSource` for writes and session-scoped features such as advisory locks
+- `ReadDataSource` for read-only fetches that can be served by replicas
 
 If you use a proxy or pooler, prefer **separate endpoints for write and read intent** rather than relying on automatic SQL parsing.
 
@@ -16,7 +16,7 @@ If you use a proxy or pooler, prefer **separate endpoints for write and read int
 
 ### Primary (Write) DataSource
 
-The primary datasource is automatically configured from Spring Boot's standard datasource properties. Crablet creates a `primaryDataSource` bean from these properties:
+The primary datasource is automatically configured from Spring Boot's standard datasource properties. Crablet wraps that datasource as `WriteDataSource`:
 
 ```properties
 # Primary database configuration (Spring Boot standard properties)
@@ -28,7 +28,8 @@ spring.datasource.driver-class-name=org.postgresql.Driver
 
 **How it works:**
 - Spring Boot auto-configures a `DataSource` from `spring.datasource.*` properties
-- Crablet's `DataSourceConfig` registers this as `primaryDataSource` bean (marked `@Primary`)
+- Crablet wraps it as `WriteDataSource`
+- Compatibility aliases `primaryDataSource` / `readDataSource` still exist, but new code should prefer the typed beans
 - All write operations use this datasource: `appendCommutative()`, `appendNonCommutative()`, `appendIdempotent()`, `CommandAuditStore.storeCommand()`, outbox position tracking
 
 ### Read Replica DataSource
@@ -44,8 +45,8 @@ crablet.eventstore.read-replicas.hikari.minimum-idle=10
 ```
 
 **How it works:**
-- When `crablet.eventstore.read-replicas.enabled=true`, Crablet creates a `readDataSource` bean
-- When disabled (default), `readDataSource` falls back to `primaryDataSource` for seamless compatibility
+- When `crablet.eventstore.read-replicas.enabled=true`, Crablet creates a `ReadDataSource`
+- When disabled (default), `ReadDataSource` falls back to the write datasource
 - All read operations use this datasource: `project()`, `fetchEventsForTopic()`
 
 ### Complete Configuration Example
@@ -77,18 +78,25 @@ public class EventStoreConfig {
     
     @Bean
     public EventStore eventStore(
-            @Qualifier("primaryDataSource") DataSource writeDataSource,
-            @Qualifier("readDataSource") DataSource readDataSource,
+            WriteDataSource writeDataSource,
+            ReadDataSource readDataSource,
             ObjectMapper objectMapper,
             EventStoreConfig config,
             ClockProvider clock,
             ApplicationEventPublisher eventPublisher) {
-        return new EventStoreImpl(writeDataSource, readDataSource, objectMapper, config, clock, eventPublisher);
+        return new EventStoreImpl(
+            writeDataSource.dataSource(),
+            readDataSource.dataSource(),
+            objectMapper,
+            config,
+            clock,
+            eventPublisher
+        );
     }
 }
 ```
 
-**Note:** Both `primaryDataSource` and `readDataSource` beans are automatically created by Crablet's `DataSourceConfig`. You only need to configure the properties above.
+**Note:** `WriteDataSource` and `ReadDataSource` are created automatically by Crablet auto-configuration. You only need to configure the properties above.
 
 ## Configuration
 

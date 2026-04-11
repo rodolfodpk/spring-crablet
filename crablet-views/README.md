@@ -305,8 +305,8 @@ public class WalletViewProjector implements ViewProjector {
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
     
-    public WalletViewProjector(DataSource dataSource, ObjectMapper objectMapper) {
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+    public WalletViewProjector(WriteDataSource writeDataSource, ObjectMapper objectMapper) {
+        this.jdbcTemplate = new JdbcTemplate(writeDataSource.dataSource());
         this.objectMapper = objectMapper;
     }
     
@@ -316,7 +316,7 @@ public class WalletViewProjector implements ViewProjector {
     }
     
     @Override
-    public int handle(String viewName, List<StoredEvent> events, DataSource writeDataSource) {
+    public int handle(String viewName, List<StoredEvent> events) {
         // Manual implementation - no transaction support or base class features
         // You must handle transactions, deserialization, and error handling yourself
     }

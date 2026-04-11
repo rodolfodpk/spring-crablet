@@ -2,6 +2,8 @@ package com.crablet.views.controller;
 
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.ReadDataSource;
+import com.crablet.eventstore.WriteDataSource;
 import com.crablet.views.ViewSubscription;
 import com.crablet.views.internal.ViewProcessorConfig;
 import com.crablet.views.config.ViewsAutoConfiguration;
@@ -16,7 +18,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.TaskScheduler;
@@ -217,15 +218,13 @@ class ViewControllerE2ETest extends AbstractViewsTest {
         }
 
         @Bean
-        @Primary
-        public DataSource primaryDataSource(DataSource dataSource) {
-            return dataSource;
+        public WriteDataSource writeDataSource(DataSource dataSource) {
+            return new WriteDataSource(dataSource);
         }
 
         @Bean
-        @Qualifier("readDataSource")
-        public DataSource readDataSource(DataSource dataSource) {
-            return dataSource;
+        public ReadDataSource readReplicaDataSource(DataSource dataSource) {
+            return new ReadDataSource(dataSource);
         }
 
         @Bean

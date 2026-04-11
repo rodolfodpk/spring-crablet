@@ -2,6 +2,7 @@ package com.crablet.wallet.view.projectors;
 
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.WriteDataSource;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.events.WalletEvent;
@@ -75,10 +76,11 @@ public class WalletSummaryViewProjector extends AbstractTypedViewProjector<Walle
         """;
 
     public WalletSummaryViewProjector(
-            ObjectMapper objectMapper, 
+            ObjectMapper objectMapper,
             ClockProvider clockProvider,
-            PlatformTransactionManager transactionManager) {
-        super(objectMapper, clockProvider, transactionManager);
+            PlatformTransactionManager transactionManager,
+            WriteDataSource writeDataSource) {
+        super(objectMapper, clockProvider, transactionManager, writeDataSource);
     }
 
     @Override

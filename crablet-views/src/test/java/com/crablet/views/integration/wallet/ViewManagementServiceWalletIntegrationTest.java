@@ -8,6 +8,8 @@ import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.internal.EventStoreImpl;
+import com.crablet.eventstore.ReadDataSource;
+import com.crablet.eventstore.WriteDataSource;
 import com.crablet.views.config.ViewsAutoConfiguration;
 import com.crablet.views.config.ViewsConfig;
 import com.crablet.views.ViewSubscription;
@@ -20,7 +22,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.postgresql.Driver;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
@@ -181,15 +182,13 @@ class ViewManagementServiceWalletIntegrationTest extends AbstractViewsTest {
         }
 
         @Bean
-        @Primary
-        public DataSource primaryDataSource(DataSource dataSource) {
-            return dataSource;
+        public WriteDataSource writeDataSource(DataSource dataSource) {
+            return new WriteDataSource(dataSource);
         }
 
         @Bean
-        @Qualifier("readDataSource")
-        public DataSource readDataSource(DataSource dataSource) {
-            return dataSource;
+        public ReadDataSource readReplicaDataSource(DataSource dataSource) {
+            return new ReadDataSource(dataSource);
         }
 
         @Bean
@@ -263,4 +262,3 @@ class ViewManagementServiceWalletIntegrationTest extends AbstractViewsTest {
         }
     }
 }
-
