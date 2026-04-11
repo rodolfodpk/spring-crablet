@@ -35,18 +35,21 @@ No external PostgreSQL needed — integration tests spin up a container via Test
 
 Traditional event sourcing ties consistency to a single aggregate stream. DCB lets you define consistency boundaries dynamically — a single command can check consistency across multiple entity types using a query, without distributed locks.
 
-There are three patterns depending on the operation:
+**DCB was introduced by [Sara Pellegrini](https://dcb.events/) in her blog post "Killing the Aggregate"** — see the [official spec](https://dcb.events/) and [presentation](https://www.youtube.com/watch?v=0iP65Durhbs).
 
-| Pattern | Use Case | Method |
-|---------|----------|--------|
-| **Idempotent** | Entity creation (e.g. OpenWallet) | `appendIdempotent(events, eventType, tagKey, tagValue)` |
-| **Non-commutative** | State-dependent ops (e.g. Withdraw, Transfer) | `appendNonCommutative(events, decisionModel, streamPosition)` |
-| **Commutative** | Order-independent ops (e.g. Deposit) | `appendCommutative(events)` |
-
-📖 [Command Patterns Guide](crablet-eventstore/docs/COMMAND_PATTERNS.md) — complete examples and decision tree  
 📖 [DCB Explained](crablet-eventstore/docs/DCB_AND_CRABLET.md) — deep dive into DCB vs aggregates
 
-**DCB was introduced by [Sara Pellegrini](https://dcb.events/) in her blog post "Killing the Aggregate"** — see the [official spec](https://dcb.events/) and [presentation](https://www.youtube.com/watch?v=0iP65Durhbs).
+## Crablet's API at a Glance
+
+Crablet maps DCB's consistency model onto three append methods. These are **Crablet's library API** — not DCB spec vocabulary:
+
+| Method | Use Case | Concurrency check |
+|--------|----------|-------------------|
+| `appendIdempotent` | Entity creation (e.g. OpenWallet) | Advisory lock uniqueness check |
+| `appendNonCommutative` | State-dependent ops (e.g. Withdraw, Transfer) | StreamPosition-based conflict detection |
+| `appendCommutative` | Order-independent ops (e.g. Deposit) | None (optional lifecycle guard) |
+
+📖 [Command Patterns Guide](crablet-eventstore/docs/COMMAND_PATTERNS.md) — complete examples and decision tree
 
 ## Requirements
 
