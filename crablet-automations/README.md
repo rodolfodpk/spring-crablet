@@ -296,6 +296,10 @@ crablet.automations.backoff-multiplier=2
 crablet.automations.max-backoff-seconds=60
 ```
 
+`crablet.automations.*` is the global config for the automations module. It supplies defaults for every automation processor.
+
+Each `AutomationHandler` is also the per-automation poller config. A handler can override polling interval, batch size, and backoff settings for that one automation while the rest keep the global defaults.
+
 ## Examples
 
 The `shared-examples-domain` module contains a complete working example:

@@ -16,6 +16,8 @@ crablet.outbox.polling-interval-ms=1000
 crablet.outbox.topics.default.publishers=KafkaPublisher,LogPublisher
 ```
 
+`crablet.outbox.*` is the global module config. These values are defaults for the outbox module as a whole.
+
 ## Define A Publisher
 
 ```java
@@ -41,6 +43,8 @@ public class KafkaPublisher implements OutboxPublisher {
     }
 }
 ```
+
+Outbox still runs per poller instance. In practice that usually means one processor per `(topic, publisher)` pair, with optional per-publisher overrides on top of the global defaults.
 
 ## Deployment Guidance
 

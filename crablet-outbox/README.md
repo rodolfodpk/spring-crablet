@@ -147,6 +147,10 @@ crablet.outbox.topics.default.publisher-configs[1].name=LogPublisher
 crablet.outbox.topics.default.publisher-configs[1].polling-interval-ms=2000
 ```
 
+`crablet.outbox.*` is the global config for the outbox module. It supplies defaults for all outbox processors.
+
+Outbox processors still run per `(topic, publisher)` pair. That means the global outbox config defines module-wide defaults, while topic and publisher config define the per-poller-instance behavior.
+
 ## Metrics
 
 Outbox components support metrics collection via Spring's `ApplicationEventPublisher`:

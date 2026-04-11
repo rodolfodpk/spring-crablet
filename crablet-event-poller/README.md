@@ -108,6 +108,21 @@ The event processor is built around a few key interfaces:
 
 5. **Progress Tracking**: Each processor tracks its own position independently in the `processor_progress` table
 
+## Configuration Model
+
+Poller-backed modules should normally expose configuration at two levels:
+
+- **global module config**: shared defaults for the whole module
+- **per-processor config**: settings or overrides for one poller instance
+
+Examples:
+
+- `crablet-views`: global `ViewsConfig` plus one `ViewSubscription` per view
+- `crablet-automations`: global `AutomationsConfig` plus one `AutomationHandler` per automation
+- `crablet-outbox`: global `OutboxConfig` plus one resolved processor per `(topic, publisher)` pair
+
+This is important because the engine always runs per processor instance. Even when many processors share the same module defaults, the poller still creates one `ProcessorConfig` per processor.
+
 ## Usage
 
 This module is primarily used as infrastructure by other Crablet modules (`crablet-outbox` and `crablet-views`). However, you can use it directly to build custom event processors.

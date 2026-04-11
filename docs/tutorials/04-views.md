@@ -16,6 +16,8 @@ crablet.views.polling-interval-ms=1000
 crablet.views.batch-size=100
 ```
 
+`crablet.views.*` is the global module config. These values are defaults for all view processors.
+
 ## Create A Projector
 
 ```java
@@ -86,6 +88,8 @@ public ViewSubscription walletViewSubscription(WalletViewProjector projector) {
     );
 }
 ```
+
+`ViewSubscription` is the per-poller-instance config for this view. It defines event selection and can override polling interval, batch size, and backoff settings for this one view.
 
 ## Deployment Guidance
 

@@ -16,6 +16,8 @@ crablet.automations.polling-interval-ms=1000
 crablet.automations.batch-size=100
 ```
 
+`crablet.automations.*` is the global module config. These values are defaults for all automation processors.
+
 ## In-Process Automation
 
 ```java
@@ -54,6 +56,8 @@ public class WelcomeNotificationAutomation implements AutomationHandler {
     }
 }
 ```
+
+Each `AutomationHandler` is also the per-poller-instance config for that automation. It defines matching rules and can override polling and backoff settings for that one automation.
 
 ## Webhook Delivery
 

@@ -55,4 +55,19 @@ In production, the normal recommendation is:
 
 This guidance is the same whether you deploy with Docker Compose, Kubernetes, ECS, Nomad, or plain VMs. The poller uses leader election so only one instance is actively processing at a time. Extra replicas do not increase throughput for the same processor set; they mostly add standby capacity and operational complexity.
 
+## Configuration Note For Poller-Based Modules
+
+Poller-backed modules use two configuration levels:
+
+- a **global module config** with shared defaults
+- a **per-poller-instance config** for one processor
+
+Examples:
+
+- views: global `crablet.views.*` plus one `ViewSubscription` per view
+- automations: global `crablet.automations.*` plus one `AutomationHandler` per automation
+- outbox: global `crablet.outbox.*` plus one resolved processor per `(topic, publisher)` pair
+
+This is intentional. The event poller always runs per processor instance, even when many processors share the same module-level defaults.
+
 For deeper details, see [Leader Election](LEADER_ELECTION.md) and the module READMEs for `event-poller`, `views`, `automations`, and `outbox`.

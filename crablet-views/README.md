@@ -397,7 +397,11 @@ crablet.views.max-backoff-seconds=60
 crablet.views.leader-election-retry-interval-ms=30000
 ```
 
+`crablet.views.*` is the global config for the views module. It supplies defaults for every view processor.
+
 ### Subscription Configuration
+
+Each `ViewSubscription` is the per-view poller config. A subscription can override polling interval, batch size, and backoff settings for one specific view while other views continue using the global defaults.
 
 Use `projector.subscription(eventTypes...)` for the common case, or the full builder for tag filtering:
 
