@@ -56,10 +56,13 @@ public class QueryBuilder {
         return Query.of(new ArrayList<>(items));
     }
 
-    // ===== NEW DSL METHODS =====
-
     /**
-     * Convert to AppendConditionBuilder for creating conditions.
+     * Convert this query into an {@link AppendConditionBuilder} for advanced
+     * direct-{@link com.crablet.eventstore.EventStore} usage.
+     * <p>
+     * Most applications should use the semantic append methods on
+     * {@code EventStore} directly instead of constructing low-level append
+     * conditions.
      */
     public AppendConditionBuilder toAppendCondition(StreamPosition streamPosition) {
         return new AppendConditionBuilder(this.build(), streamPosition);
@@ -110,4 +113,3 @@ public class QueryBuilder {
         }
     }
 }
-

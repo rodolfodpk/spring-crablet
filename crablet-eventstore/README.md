@@ -32,6 +32,11 @@ Crablet maps DCB's consistency model onto three append methods, each with differ
 
 These method names are Crablet's API — not DCB spec vocabulary. See [DCB_AND_CRABLET.md](docs/DCB_AND_CRABLET.md) for the full explanation.
 
+For most applications, these three append methods are the supported primary API.
+Lower-level condition types such as `AppendCondition` and `AppendConditionBuilder`
+remain available for advanced direct `EventStore` usage, but they are not the
+recommended path for command handlers.
+
 ## Usage
 
 Inject `EventStore` and use it directly:
@@ -277,4 +282,3 @@ See [TESTING.md](TESTING.md) for complete testing guide and examples.
 ## License
 
 MIT
-

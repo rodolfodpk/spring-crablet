@@ -33,7 +33,7 @@
  * Queries are used to define decision models for DCB concurrency control:
  * <ul>
  *   <li>Query defines which events to read for decision-making</li>
- *   <li>Projection stream position is used in AppendCondition to detect concurrent modifications</li>
+ *   <li>Projection stream position is used by {@code EventStore.appendNonCommutative(...)} to detect concurrent modifications</li>
  *   <li>Tag-based filtering happens in Query, not in projectors</li>
  * </ul>
  * <p>
@@ -45,10 +45,13 @@
  *     decisionModel, StreamPosition.zero(), WalletBalanceState.class, List.of(projector)
  * );
  * }</pre>
+ * <p>
+ * Most applications should use this package together with the semantic append
+ * methods on {@link com.crablet.eventstore.EventStore}. Lower-level append
+ * condition APIs exist for advanced direct-{@code EventStore} usage, but they
+ * are not the primary path for command handlers.
  *
  * @see com.crablet.eventstore.EventStore
- * @see com.crablet.eventstore.AppendCondition
  */
 @org.jspecify.annotations.NullMarked
 package com.crablet.eventstore.query;
-

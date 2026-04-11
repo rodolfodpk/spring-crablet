@@ -63,8 +63,10 @@ public interface EventStore {
     String appendIdempotent(List<AppendEvent> events, Query idempotencyQuery);
 
     /**
-     * Project projects state from events matching query with stream position.
-     * Returns final aggregated states and append condition for DCB concurrency control
+     * Project state from events matching the query, together with the stream
+     * position of the last matching event.
+     * The returned stream position can be fed into non-commutative append flows
+     * for DCB concurrency control.
      *
      * @param query The query to filter events
      * @param after StreamPosition to project events after (use StreamPosition.zero() for all events)

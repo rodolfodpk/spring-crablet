@@ -8,9 +8,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Builder for creating AppendCondition with dual conditions.
+ * Advanced builder for creating {@link AppendCondition} with dual conditions.
  * <p>
- * DCB Pattern: Separates concurrency check (with stream position) and idempotency check (no stream position).
+ * Most applications should prefer the semantic append methods on {@link EventStore}
+ * or use {@code crablet-commands}. This builder is retained for advanced direct
+ * {@code EventStore} usage that needs explicit low-level condition composition.
+ * <p>
+ * DCB Pattern: separates concurrency check (with stream position) and idempotency
+ * check (no stream position).
  */
 public class AppendConditionBuilder {
     private final @Nullable Query decisionModelQuery;
@@ -34,7 +39,7 @@ public class AppendConditionBuilder {
     }
 
     /**
-     * Add idempotency check for duplicate operations.
+     * Add idempotency check for duplicate operations in advanced direct-{@link EventStore} flows.
      *
      * @param eventType The event type to check for duplicates
      * @param tags      Tags identifying the unique operation (e.g., transfer_id)
@@ -45,7 +50,8 @@ public class AppendConditionBuilder {
     }
 
     /**
-     * Add idempotency check for duplicate operations (convenience method).
+     * Add idempotency check for duplicate operations (convenience method) in
+     * advanced direct-{@link EventStore} flows.
      *
      * @param eventType The event type to check for duplicates
      * @param tagKey    The tag key identifying the unique operation
@@ -59,7 +65,7 @@ public class AppendConditionBuilder {
     /**
      * Build the final AppendCondition with dual conditions.
      * - concurrencyQuery: decision model query + stream position (checks events AFTER last read)
-     * - idempotencyQuery: operation ID tags (checks ALL events, no stream position limit); Query.empty() = no check
+     * - idempotencyQuery: operation ID tags (checks ALL events, no stream position limit); {@link Query#noCondition()} = no check
      */
     public AppendCondition build() {
         var idempotencyQuery = idempotencyItems.isEmpty()

@@ -4,10 +4,20 @@ import com.crablet.eventstore.query.Query;
 import org.jspecify.annotations.Nullable;
 
 /**
- * AppendCondition defines the conditions for appending events.
- * Supports two independent checks:
- * - concurrencyQuery: detects conflicting writes after a captured stream position
- * - idempotencyQuery: detects duplicate operations regardless of position (Query.empty() = no check)
+ * Advanced low-level append condition for direct {@link EventStore} usage.
+ * <p>
+ * Most applications should prefer the semantic append methods on
+ * {@link EventStore} ({@code appendCommutative}, {@code appendNonCommutative},
+ * {@code appendIdempotent}) or, in the command framework, return
+ * {@link com.crablet.command.CommandDecision} variants from handlers.
+ * <p>
+ * This type remains public for advanced direct-{@code EventStore} scenarios
+ * that need to compose concurrency and idempotency checks explicitly.
+ * It supports two independent checks:
+ * <ul>
+ *   <li>{@code concurrencyQuery}: detects conflicting writes after a captured stream position</li>
+ *   <li>{@code idempotencyQuery}: detects duplicate operations regardless of position</li>
+ * </ul>
  */
 public record AppendCondition(
         StreamPosition afterPosition,
@@ -17,7 +27,7 @@ public record AppendCondition(
 
     /**
      * Low-level factory — concurrency check only, no idempotency check.
-     * Prefer {@link AppendConditionBuilder} for constructing conditions in command handlers.
+     * Intended for advanced direct-{@link EventStore} usage, not command handlers.
      */
     public static AppendCondition of(@Nullable StreamPosition afterPosition, @Nullable Query concurrencyQuery) {
         if (afterPosition == null) {
@@ -31,7 +41,7 @@ public record AppendCondition(
 
     /**
      * Low-level factory — concurrency check with optional idempotency check.
-     * Prefer {@link AppendConditionBuilder} for constructing conditions in command handlers.
+     * Intended for advanced direct-{@link EventStore} usage, not command handlers.
      */
     public static AppendCondition of(@Nullable StreamPosition afterPosition, @Nullable Query concurrencyQuery, @Nullable Query idempotencyQuery) {
         if (afterPosition == null) {
@@ -45,7 +55,7 @@ public record AppendCondition(
 
     /**
      * Low-level factory — stream position check against an empty query (passes unconditionally).
-     * Prefer {@link AppendConditionBuilder} for constructing conditions in command handlers.
+     * Intended for advanced direct-{@link EventStore} usage, not command handlers.
      */
     public static AppendCondition of(StreamPosition afterPosition) {
         return of(afterPosition, Query.noCondition());
@@ -91,6 +101,9 @@ public record AppendCondition(
      * or for new stream creation when duplicate protection is handled via
      * {@link AppendConditionBuilder#withIdempotencyCheck}.
      * These operations can safely run in parallel without conflicts.
+     * <p>
+     * Most callers should prefer {@link EventStore#appendCommutative(java.util.List)}
+     * instead of constructing this directly.
      */
     public static AppendCondition empty() {
         return new AppendCondition(StreamPosition.zero(), Query.noCondition(), Query.noCondition());

@@ -7,10 +7,15 @@
  * <strong>Key Components:</strong>
  * <ul>
  *   <li>{@link com.crablet.eventstore.EventStore} - Core interface for appending and reading events</li>
- *   <li>{@link com.crablet.eventstore.AppendCondition} - Defines DCB conditions for atomic event appends</li>
  *   <li>{@link com.crablet.eventstore.query.Query} - Tag-based event querying and filtering</li>
  *   <li>{@link com.crablet.eventstore.query.StateProjector} - Projects current state from events</li>
  * </ul>
+ * <p>
+ * <strong>Primary public API:</strong>
+ * {@link com.crablet.eventstore.EventStore} exposes three semantic append modes:
+ * commutative, non-commutative, and idempotent. Most applications should build on
+ * those methods directly, or use {@code crablet-commands} and return
+ * {@link com.crablet.command.CommandDecision} variants from handlers.
  * <p>
  * <strong>DCB Pattern:</strong>
  * Dynamic Consistency Boundary redefines consistency granularity in event-sourced systems,
@@ -33,6 +38,7 @@
  *   <li>{@link com.crablet.eventstore.query} - Query operations and state projections</li>
  *   <li>{@link com.crablet.eventstore.period} - Period segmentation for time-based event organization</li>
  *   <li>{@link com.crablet.eventstore.metrics} - EventStore metrics</li>
+ *   <li>{@link com.crablet.eventstore.AppendCondition} - Advanced low-level append conditions for direct EventStore usage</li>
  *   <li>{@link com.crablet.eventstore.internal} - Internal implementation classes (not public API)</li>
  * </ul>
  *
@@ -41,4 +47,3 @@
  */
 @org.jspecify.annotations.NullMarked
 package com.crablet.eventstore;
-
