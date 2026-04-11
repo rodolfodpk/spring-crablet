@@ -42,18 +42,22 @@ import java.util.Set;
  * <p>Webhooks remain for external integrations. In-process handlers are preferred for
  * internal command dispatch within the same deployment unit.
  */
-public interface AutomationHandler {
+public interface AutomationHandler extends AutomationDefinition {
 
     /** Unique name identifying this automation. Must match no webhook {@link AutomationSubscription}. */
+    @Override
     String getAutomationName();
 
     /** Event types that trigger this handler. Empty set means all events (use with care). */
+    @Override
     Set<String> getEventTypes();
 
     /** ALL of these tag keys must be present on the event to trigger this handler. */
+    @Override
     default Set<String> getRequiredTags() { return Set.of(); }
 
     /** At least ONE of these tag keys must be present on the event to trigger this handler. */
+    @Override
     default Set<String> getAnyOfTags() { return Set.of(); }
 
     /**

@@ -24,7 +24,7 @@ import java.util.Set;
  * }
  * }</pre>
  */
-public class AutomationSubscription {
+public class AutomationSubscription implements AutomationDefinition {
 
     private final String automationName;
     private final Set<String> eventTypes;
@@ -74,9 +74,13 @@ public class AutomationSubscription {
         this.backoffMaxSeconds = backoffMaxSeconds;
     }
 
+    @Override
     public String getAutomationName() { return automationName; }
+    @Override
     public Set<String> getEventTypes() { return eventTypes; }
+    @Override
     public Set<String> getRequiredTags() { return requiredTags; }
+    @Override
     public Set<String> getAnyOfTags() { return anyOfTags; }
     public String getWebhookUrl() { return webhookUrl; }
     public Map<String, String> getWebhookHeaders() { return webhookHeaders; }

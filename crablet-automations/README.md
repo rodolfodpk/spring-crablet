@@ -24,8 +24,10 @@ Short version:
 This separation keeps transactional consistency concerns in command handling and moves non-transactional work to automations, where retries and idempotency are expected.
 
 **Key Features:**
-- Implement `AutomationHandler` — one interface, two methods
-- Tag-based and event-type-based subscriptions
+- Shared matching contract via `AutomationDefinition`
+- In-process automations via `AutomationHandler`
+- Webhook automations via `AutomationSubscription`
+- Tag-based and event-type-based matching
 - At-least-once semantics with idempotency via DCB checks
 - Independent progress tracking per automation
 - Leader election: only one instance processes per automation
@@ -59,7 +61,23 @@ crablet.automations.polling-interval-ms=1000
 crablet.automations.batch-size=100
 ```
 
-### 2. Implement AutomationHandler
+### 2. Choose an Automation Style
+
+Crablet automations support two delivery styles:
+
+- `AutomationHandler` for in-process work in the same JVM
+- `AutomationSubscription` for webhook delivery to HTTP endpoints
+
+Both styles share the same matching contract through `AutomationDefinition`:
+
+- `getAutomationName()`
+- `getEventTypes()`
+- `getRequiredTags()`
+- `getAnyOfTags()`
+
+Use `AutomationHandler` when the automation should execute commands or call injected collaborators directly.
+
+### 3. Implement AutomationHandler
 
 Treat the incoming event as a trigger, not as the decision source. The automation should load the current view-model state, decide from that state whether work is needed, and then execute the next command.
 
@@ -96,22 +114,32 @@ public class WelcomeNotificationAutomation implements AutomationHandler {
 }
 ```
 
-### 3. Register a Subscription
+### 4. Or Declare a Webhook Automation
 
-Declare an `AutomationSubscription` bean that matches the automation's name and specifies which events trigger it:
+Use `AutomationSubscription` when matching events should be delivered over HTTP instead of handled in-process:
 
 ```java
 @Bean
-public AutomationSubscription walletOpenedWelcomeNotificationSubscription() {
-    return AutomationSubscription.builder("welcome-notification")
+public AutomationSubscription walletOpenedWebhookAutomation() {
+    return AutomationSubscription.builder("welcome-notification-webhook")
         .eventTypes(EventType.type(WalletOpened.class))
+        .requiredTags("wallet_id")
+        .webhookUrl("http://localhost:8080/api/automations/wallet-opened")
         .build();
 }
 ```
 
-The subscription name must match `AutomationHandler.getAutomationName()` exactly.
+### 5. Registration Rules
 
-### 4. Database Migration
+Each automation name must be unique across the application:
+
+- two `AutomationHandler` beans cannot share the same name
+- two `AutomationSubscription` beans cannot share the same name
+- a handler and a subscription cannot share the same name
+
+Invalid overlap now fails fast at startup.
+
+### 6. Database Migration
 
 Add the `reaction_progress` table to your application's Flyway migrations:
 
@@ -131,12 +159,30 @@ CREATE TABLE IF NOT EXISTS reaction_progress (
 
 ## Core Concepts
 
-### Automation Interface
+### AutomationDefinition
+
+`AutomationDefinition` is the shared matching contract for automations:
 
 ```java
-public interface AutomationHandler {
-    /** Unique name — must match the corresponding AutomationSubscription. */
+public interface AutomationDefinition {
     String getAutomationName();
+    Set<String> getEventTypes();
+    Set<String> getRequiredTags();
+    Set<String> getAnyOfTags();
+}
+```
+
+`AutomationHandler` and `AutomationSubscription` both implement this contract.
+
+### AutomationHandler
+
+```java
+public interface AutomationHandler extends AutomationDefinition {
+    /** Unique name — must not overlap any AutomationSubscription. */
+    String getAutomationName();
+
+    /** Matching filters come from AutomationDefinition. */
+    Set<String> getEventTypes();
 
     /** Called once per matching event. Use the event as a trigger, then decide from modeled state. */
     void react(StoredEvent event, CommandExecutor commandExecutor);
@@ -147,12 +193,25 @@ The event tells the automation that something changed. The automation should the
 
 ### AutomationSubscription
 
-Controls which events wake up an automation. Filters by event type and/or tags:
+Defines a webhook automation: matching rules plus HTTP delivery details.
+
+```java
+public class AutomationSubscription implements AutomationDefinition {
+    String getAutomationName();
+    Set<String> getEventTypes();
+    Set<String> getRequiredTags();
+    Set<String> getAnyOfTags();
+    String getWebhookUrl();
+}
+```
+
+Examples:
 
 ```java
 // Subscribe to all WalletOpened events
 AutomationSubscription.builder("my-automation")
     .eventTypes("WalletOpened")
+    .webhookUrl("http://localhost:8080/webhook")
     .build();
 
 // Subscribe only to events with a specific tag
@@ -160,6 +219,7 @@ AutomationSubscription.builder("my-automation")
     .eventTypes("DepositMade")
     .requiredTags("wallet_id")   // ALL of these tags must be present
     .anyOfTags("region-us", "region-eu") // AT LEAST ONE must be present
+    .webhookUrl("http://localhost:8080/webhook")
     .build();
 ```
 
@@ -191,11 +251,11 @@ This ensures the downstream event is recorded at most once regardless of how man
 ```
 Events table (PostgreSQL)
     ↓  polling (configurable interval)
-AutomationEventFetcher  — filters by subscription (eventTypes, tags)
+AutomationEventFetcher  — filters by automation definition (eventTypes, tags)
     ↓
-AutomationDispatcher  — routes each event to the matching AutomationHandler
+AutomationDispatcher  — routes each event to the matching handler or webhook
     ↓
-Automation.react()      — loads view state and decides next action
+AutomationHandler.react() / webhook POST
     ↓
 CommandExecutor / external gateway
     ↓
@@ -228,7 +288,7 @@ crablet.automations.max-backoff-seconds=60
 
 The `shared-examples-domain` module contains a complete working example:
 
-- **`WalletOpenedReaction`** (in `wallet-example-app`) — listens for `WalletOpened` as a trigger for follow-up work
+- **`WalletOpenedReaction`** (in `wallet-example-app`) — in-process `AutomationHandler` for `WalletOpened`
 - **`SendWelcomeNotificationCommandHandler`** — records a `WelcomeNotificationSent` event with an idempotency check
 
 The recommended pattern is to keep the decision in a view model and use the automation to bridge from trigger to side effect or follow-up command.

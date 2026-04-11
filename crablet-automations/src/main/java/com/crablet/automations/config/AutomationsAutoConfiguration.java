@@ -27,9 +27,11 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.client.RestClient;
 
 import javax.sql.DataSource;
+import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Auto-configuration for automations using the generic event processor.
@@ -53,6 +55,7 @@ public class AutomationsAutoConfiguration {
     public Map<String, AutomationSubscription> automationSubscriptions(
             ObjectProvider<List<AutomationSubscription>> subscriptionBeansProvider) {
         List<AutomationSubscription> beans = subscriptionBeansProvider.getIfAvailable(List::of);
+        validateUniqueSubscriptionNames(beans);
         Map<String, AutomationSubscription> subscriptions = new HashMap<>();
         for (AutomationSubscription subscription : beans) {
             subscriptions.put(subscription.getAutomationName(), subscription);
@@ -64,6 +67,7 @@ public class AutomationsAutoConfiguration {
     public Map<String, AutomationHandler> inProcessAutomationHandlers(
             ObjectProvider<List<AutomationHandler>> handlerBeansProvider) {
         List<AutomationHandler> handlers = handlerBeansProvider.getIfAvailable(List::of);
+        validateUniqueHandlerNames(handlers);
         Map<String, AutomationHandler> map = new HashMap<>();
         for (AutomationHandler handler : handlers) {
             map.put(handler.getAutomationName(), handler);
@@ -110,6 +114,7 @@ public class AutomationsAutoConfiguration {
             AutomationsConfig automationsConfig,
             @Qualifier("automationSubscriptions") Map<String, AutomationSubscription> subscriptions,
             @Qualifier("inProcessAutomationHandlers") Map<String, AutomationHandler> inProcessHandlers) {
+        validateNoOverlap(subscriptions.keySet(), inProcessHandlers.keySet());
         return AutomationProcessorConfig.createConfigMap(automationsConfig, subscriptions, inProcessHandlers);
     }
 
@@ -152,5 +157,45 @@ public class AutomationsAutoConfiguration {
             @Qualifier("automationProcessorManagementService") ProcessorManagementService<String> delegate,
             @Qualifier("primaryDataSource") DataSource dataSource) {
         return new AutomationManagementService(delegate, dataSource);
+    }
+
+    private static void validateUniqueSubscriptionNames(List<AutomationSubscription> subscriptions) {
+        Set<String> seen = new HashSet<>();
+        Set<String> duplicates = new HashSet<>();
+        for (AutomationSubscription subscription : subscriptions) {
+            if (!seen.add(subscription.getAutomationName())) {
+                duplicates.add(subscription.getAutomationName());
+            }
+        }
+        if (!duplicates.isEmpty()) {
+            throw new IllegalStateException(
+                    "Duplicate AutomationSubscription names found: " + duplicates +
+                    ". Each automation name must be unique.");
+        }
+    }
+
+    private static void validateUniqueHandlerNames(List<AutomationHandler> handlers) {
+        Set<String> seen = new HashSet<>();
+        Set<String> duplicates = new HashSet<>();
+        for (AutomationHandler handler : handlers) {
+            if (!seen.add(handler.getAutomationName())) {
+                duplicates.add(handler.getAutomationName());
+            }
+        }
+        if (!duplicates.isEmpty()) {
+            throw new IllegalStateException(
+                    "Duplicate AutomationHandler names found: " + duplicates +
+                    ". Each automation name must be unique.");
+        }
+    }
+
+    private static void validateNoOverlap(Set<String> subscriptionNames, Set<String> handlerNames) {
+        Set<String> overlap = new HashSet<>(subscriptionNames);
+        overlap.retainAll(handlerNames);
+        if (!overlap.isEmpty()) {
+            throw new IllegalStateException(
+                    "Automation names cannot be registered as both AutomationSubscription and " +
+                    "AutomationHandler: " + overlap + ".");
+        }
     }
 }

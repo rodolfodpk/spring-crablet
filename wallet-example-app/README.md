@@ -327,7 +327,7 @@ The application includes four view projections:
   - Aggregates period totals (deposits, withdrawals, transfers in/out, transaction count)
   - Supports reconciliation by providing period activity summaries
 
-## Reactions
+## Automations
 
 The `WalletOpenedReaction` listens for `WalletOpened` events and executes a `SendWelcomeNotificationCommand`, which logs a welcome message and records a `WelcomeNotificationSent` event.
 
@@ -339,7 +339,7 @@ WalletOpened event
     → WelcomeNotificationSent (with idempotency check)
 ```
 
-The automation is registered via an `AutomationSubscription` bean in `CrabletConfig.java`.
+In the current example, `WalletOpenedReaction` is an in-process `AutomationHandler`, so no webhook `AutomationSubscription` bean is needed.
 
 ## Configuration
 
@@ -489,4 +489,3 @@ cd wallet-example-app
 - **[Shared Examples Domain](../shared-examples-domain/README.md)** - Example domains (wallet, course, notification)
 - **[Leader Election](../docs/LEADER_ELECTION.md)** - Leader election mechanism
 - **[Build Guide](../docs/BUILD.md)** - Build instructions
-
