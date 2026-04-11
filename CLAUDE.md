@@ -375,21 +375,18 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 - Query-based optimistic locking (not stream-based revisions)
 - Enables parallel, unrelated writes while maintaining consistency for cross-entity constraints
 
-**Three DCB Patterns in Spring-Crablet:**
+**Crablet's three append methods** (library API — not DCB spec vocabulary):
 
-1. **StreamPosition-Based Check** (non-commutative operations):
+1. **`appendNonCommutative`** (non-commutative operations):
    - Use for: Operations on existing entities (Withdraw, Transfer)
-   - Method: `appendNonCommutative(events, decisionModel, streamPosition)`
    - Detects concurrent modifications via stream position
 
-2. **Idempotency Check** (entity creation):
+2. **`appendIdempotent`** (entity creation):
    - Use for: Preventing duplicate entity creation (OpenWallet)
-   - Method: `appendIdempotent(events, eventType, tagKey, tagValue)`
    - Fails if event with same tag already exists
 
-3. **Commutative / CommutativeGuarded** (order-independent operations):
+3. **`appendCommutative`** (order-independent operations):
    - Use for: Order-independent operations (Deposit, Credit)
-   - Method: `appendCommutative(events)` for both variants
    - `Commutative` — no conflict detection (truly state-independent operations)
    - `CommutativeGuarded` — concurrent same-type operations are still allowed, but atomically checks that no lifecycle event (e.g., `EntityClosed`) appeared after the projected position; use this when the entity must be active to accept the operation
 
