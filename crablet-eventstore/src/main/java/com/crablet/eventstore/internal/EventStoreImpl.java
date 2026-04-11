@@ -4,6 +4,7 @@ import com.crablet.eventstore.AppendCondition;
 import com.crablet.eventstore.AppendConditionBuilder;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.CommandAuditStore;
 import com.crablet.eventstore.ConcurrencyException;
 import com.crablet.eventstore.DCBViolation;
 import com.crablet.eventstore.EventStore;
@@ -81,7 +82,7 @@ import java.util.stream.Collectors;
  * }
  * }</pre>
  */
-public class EventStoreImpl implements EventStore {
+public class EventStoreImpl implements EventStore, CommandAuditStore {
 
     private static final Logger log = LoggerFactory.getLogger(EventStoreImpl.class);
 
@@ -264,6 +265,11 @@ public class EventStoreImpl implements EventStore {
         return appendIf(events, AppendCondition.idempotent(eventType, tagKey, tagValue));
     }
 
+    @Override
+    public String appendIdempotent(List<AppendEvent> events, Query idempotencyQuery) {
+        return appendIf(events, AppendCondition.idempotent(idempotencyQuery));
+    }
+
     String appendIf(List<AppendEvent> events, AppendCondition condition) {
         if (events.isEmpty()) {
             throw new IllegalArgumentException("Cannot append empty events list");
@@ -440,18 +446,6 @@ public class EventStoreImpl implements EventStore {
             throw e;
         } catch (Exception e) {
             throw new EventStoreException("Failed to check event existence", e);
-        }
-    }
-
-    @Override
-    public boolean hasConflict(Query query, StreamPosition after) {
-        try (Connection connection = readDataSource.getConnection()) {
-            connection.setReadOnly(true);
-            return hasConflictWithConnection(connection, query, after);
-        } catch (EventStoreException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new EventStoreException("Failed to check event conflict", e);
         }
     }
 
@@ -816,34 +810,6 @@ public class EventStoreImpl implements EventStore {
         }
     }
 
-    private boolean hasConflictWithConnection(Connection connection, Query query, StreamPosition after) {
-        try {
-            List<Object> params = new ArrayList<>();
-            String whereClause = sqlBuilder.buildWhereClause(query, after, params);
-            StringBuilder sql = new StringBuilder("SELECT EXISTS(SELECT 1 FROM events");
-            if (!whereClause.isEmpty()) {
-                sql.append(" WHERE ").append(whereClause);
-            }
-            sql.append(") AS result");
-
-            try (PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
-                for (int i = 0; i < params.size(); i++) {
-                    Object param = params.get(i);
-                    if (param instanceof String[]) {
-                        stmt.setArray(i + 1, connection.createArrayOf("text", (String[]) param));
-                    } else {
-                        stmt.setObject(i + 1, param);
-                    }
-                }
-                try (ResultSet rs = stmt.executeQuery()) {
-                    return rs.next() && rs.getBoolean("result");
-                }
-            }
-        } catch (Exception e) {
-            throw new EventStoreException("Failed to check event conflict", e);
-        }
-    }
-
     // Helper methods
 
 
@@ -1067,7 +1033,7 @@ public class EventStoreImpl implements EventStore {
 
 
     @Override
-    public void storeCommand(String commandJson, @Nullable String commandType, String transactionId) {
+    public void storeCommand(String commandJson, String commandType, String transactionId) {
         try (Connection connection = writeDataSource.getConnection()) {
             storeCommandWithConnection(connection, commandJson, commandType, transactionId);
         } catch (SQLException e) {
@@ -1079,7 +1045,7 @@ public class EventStoreImpl implements EventStore {
      * Store a command using a provided connection.
      * Used internally by ConnectionScopedEventStore.
      */
-    private void storeCommandWithConnection(Connection connection, String commandJson, @Nullable String commandType, String transactionId) {
+    private void storeCommandWithConnection(Connection connection, String commandJson, String commandType, String transactionId) {
         try {
             try (PreparedStatement stmt = connection.prepareStatement(INSERT_COMMAND_SQL)) {
                 stmt.setString(1, transactionId);
@@ -1115,7 +1081,7 @@ public class EventStoreImpl implements EventStore {
     }
 
     // Inner class for connection-scoped EventStore
-    private class ConnectionScopedEventStore implements EventStore {
+    private class ConnectionScopedEventStore implements EventStore, CommandAuditStore {
         private final Connection connection;
 
         public ConnectionScopedEventStore(Connection connection) {
@@ -1138,6 +1104,11 @@ public class EventStoreImpl implements EventStore {
         }
 
         @Override
+        public String appendIdempotent(List<AppendEvent> events, Query idempotencyQuery) {
+            return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.idempotent(idempotencyQuery));
+        }
+
+        @Override
         public <T> ProjectionResult<T> project(Query query, StreamPosition after, Class<T> stateType, List<StateProjector<T>> projectors) {
             return EventStoreImpl.this.projectWithConnection(connection, query, after, stateType, projectors);
         }
@@ -1148,18 +1119,13 @@ public class EventStoreImpl implements EventStore {
         }
 
         @Override
-        public boolean hasConflict(Query query, StreamPosition after) {
-            return EventStoreImpl.this.hasConflictWithConnection(connection, query, after);
-        }
-
-        @Override
         public <T> T executeInTransaction(Function<EventStore, T> operation) {
             // Delegate to parent's implementation
             return EventStoreImpl.this.executeInTransaction(operation);
         }
 
         @Override
-        public void storeCommand(String commandJson, @Nullable String commandType, String transactionId) {
+        public void storeCommand(String commandJson, String commandType, String transactionId) {
             EventStoreImpl.this.storeCommandWithConnection(connection, commandJson, commandType, transactionId);
         }
     }

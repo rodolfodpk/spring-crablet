@@ -105,28 +105,30 @@ public interface WalletCommand {
 @Component
 public class DepositCommandHandler implements CommutativeCommandHandler<DepositCommand> {
     @Override
-    public CommandDecision.Commutative decide(EventStore eventStore, DepositCommand command) {
-        // 1. Project decision model
-        Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
-        
-        // 2. Project state
-        ProjectionResult<WalletBalanceState> projection =
-                balanceProjector.projectWalletBalance(eventStore, command.walletId(), decisionModel);
-        
-        // 3. Validate business rules
+    public CommandDecision.CommutativeDecision decide(EventStore eventStore, DepositCommand command) {
+        // 1. Project lifecycle state
+        Query lifecycleModel = WalletQueryPatterns.walletLifecycleModel(command.walletId());
+        ProjectionResult<WalletBalanceState> projection = eventStore.project(lifecycleModel, balanceProjector);
+
+        // 2. Validate business rules
         if (!projection.state().isExisting()) {
             throw new WalletNotFoundException(command.walletId());
         }
-        
-        // 4. Create event
+
+        // 3. Create event
         DepositMade depositMade = DepositMade.of(...);
         AppendEvent event = AppendEvent.builder("DepositMade")
                 .tag("wallet_id", command.walletId())
+                .tag("deposit_id", command.depositId())
                 .data(depositMade)
                 .build();
-        
-        // 5. Commutative: deposits are order-independent
-        return CommandDecision.Commutative.of(event);
+
+        // 4. CommutativeGuarded: concurrent deposits are still allowed, but a concurrent
+        //    WalletClosed event (in the guard query) will trigger a ConcurrencyException.
+        //    The guard query must contain only lifecycle event types — NOT DepositMade —
+        //    so parallel deposits do not block each other.
+        Query lifecycleGuard = WalletQueryPatterns.walletLifecycleModel(command.walletId());
+        return CommandDecision.CommutativeGuarded.withLifecycleGuard(event, lifecycleGuard, projection.streamPosition());
     }
 }
 ```
@@ -164,7 +166,7 @@ public class WalletService {
     
     public ExecutionResult deposit(String walletId, String depositId, int amount) {
         DepositCommand command = DepositCommand.of(depositId, walletId, amount, "Salary");
-        return commandExecutor.executeCommand(command);
+        return commandExecutor.execute(command);
     }
 }
 ```
@@ -190,14 +192,21 @@ eventStore.executeInTransaction(txStore -> {
     // 2. Append events via the correct semantic method based on decision type
     //    (uses same transaction, returns transactionId)
     String transactionId = switch (decision) {
-        case CommandDecision.Commutative c    -> txStore.appendCommutative(c.events());
+        case CommandDecision.Commutative c     -> txStore.appendCommutative(c.events());
+        case CommandDecision.CommutativeGuarded cg -> {
+            // Lifecycle guard: detect if entity state changed between projection and append
+            // without blocking concurrent commutative operations of the same type
+            if (txStore.project(cg.guardQuery(), cg.guardPosition(), StateProjector.exists()).state()) throw new ConcurrencyException(...);
+            yield txStore.appendCommutative(cg.events());
+        }
         case CommandDecision.NonCommutative nc -> txStore.appendNonCommutative(nc.events(), nc.decisionModel(), nc.streamPosition());
-        case CommandDecision.Idempotent i     -> txStore.appendIdempotent(i.events(), i.eventType(), i.tagKey(), i.tagValue());
-        case CommandDecision.NoOp noOp        -> null; // nothing to append
+        case CommandDecision.Idempotent i      -> txStore.appendIdempotent(i.events(), i.eventType(), i.tagKey(), i.tagValue());
+        case CommandDecision.NoOp noOp         -> null; // nothing to append
     };
     
     // 3. Store command (uses same transaction, uses transactionId from step 2)
-    if (transactionId != null) txStore.storeCommand(commandJson, commandType, transactionId);
+    if (transactionId != null && txStore instanceof CommandAuditStore auditStore)
+        auditStore.storeCommand(commandJson, commandType, transactionId);
     
     // All operations commit atomically, or all rollback on error
 });
@@ -209,7 +218,7 @@ eventStore.executeInTransaction(txStore -> {
 2. **ConnectionScopedEventStore**: All operations receive a `ConnectionScopedEventStore` that uses the same `Connection`
 3. **Handler Queries**: When handler calls `txStore.project()`, it uses `projectWithConnection(connection, ...)` - same transaction
 4. **Event Append**: When the append method is called, it uses `appendIfWithConnection(connection, ...)` internally - same transaction
-5. **Command Storage**: When `txStore.storeCommand()` is called, it uses `storeCommandWithConnection(connection, ...)` - same transaction
+5. **Command Storage**: `txStore` is cast to `CommandAuditStore`; `storeCommand()` uses `storeCommandWithConnection(connection, ...)` — same transaction
 6. **Atomic Commit**: All operations commit together, or all rollback on any error
 
 ### Transaction ID
@@ -250,7 +259,9 @@ Crablet Command supports three DCB patterns via typed sub-interfaces:
 
 - **`IdempotentCommandHandler`**: entity creation with duplicate guard (`appendIdempotent`)
 - **`NonCommutativeCommandHandler`**: state-dependent operations with stream-position conflict check (`appendNonCommutative`)
-- **`CommutativeCommandHandler`**: order-independent operations with no conflict check (`appendCommutative`)
+- **`CommutativeCommandHandler`**: order-independent operations (`appendCommutative`); can return either:
+  - `CommandDecision.Commutative` — no conflict detection (truly state-independent events)
+  - `CommandDecision.CommutativeGuarded` — concurrent same-type operations are still allowed, but a lifecycle guard query is checked atomically before appending; use this when the entity must be active (e.g., wallet must be open to receive a deposit)
 
 See [Command Patterns Guide](../crablet-eventstore/docs/COMMAND_PATTERNS.md) for complete examples.
 
@@ -288,29 +299,28 @@ public interface WalletCommand {
 @Component
 public class DepositCommandHandler implements CommutativeCommandHandler<DepositCommand> {
     private final WalletPeriodHelper periodHelper; // Domain-specific helper
-    
+
     @Override
-    public CommandDecision.Commutative decide(EventStore eventStore, DepositCommand command) {
+    public CommandDecision decide(EventStore eventStore, DepositCommand command) {
         // Project balance for current period (period tags derived from clock, no statement creation)
         var periodResult = periodHelper.projectCurrentPeriod(
             eventStore, command.walletId(), DepositCommand.class);
-        
-        // Project balance for current period only
+
         var state = periodResult.projection().state();
-        
-        // Validate wallet exists
+
+        // Validate wallet exists and is open
         if (!state.isExisting()) {
             throw new WalletNotFoundException(command.walletId());
         }
-        
+
         // Create deposit event with period tags
         var periodId = periodResult.periodId();
         DepositMade deposit = DepositMade.of(
-            command.depositId(), command.walletId(), 
-            command.amount(), state.balance() + command.amount(), 
+            command.depositId(), command.walletId(),
+            command.amount(), state.balance() + command.amount(),
             command.description()
         );
-        
+
         AppendEvent.Builder eventBuilder = AppendEvent.builder("DepositMade")
             .tag("wallet_id", command.walletId())
             .tag("deposit_id", command.depositId())
@@ -322,9 +332,11 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
         if (periodId.hour() != null) eventBuilder.tag("hour", periodId.hour());
 
         AppendEvent event = eventBuilder.data(deposit).build();
-        
-        // Deposits are commutative — order-independent, no conflict check needed
-        return CommandDecision.Commutative.of(event);
+
+        // CommutativeGuarded: concurrent deposits are still allowed, but a concurrent
+        // WalletClosed event detected by the guard will trigger a ConcurrencyException.
+        Query lifecycleGuard = WalletQueryPatterns.walletLifecycleModel(command.walletId());
+        return CommandDecision.CommutativeGuarded.withLifecycleGuard(event, lifecycleGuard, periodResult.projection().streamPosition());
     }
 }
 ```

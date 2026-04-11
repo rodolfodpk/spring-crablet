@@ -266,7 +266,7 @@ public class WalletService {
         // - Command persistence (if enabled)
         // Note: On ConcurrencyException, application should implement retry logic
         // (e.g., using Resilience4j @Retry annotation)
-        return commandExecutor.executeCommand(command);
+        return commandExecutor.execute(command);
     }
 }
 ```

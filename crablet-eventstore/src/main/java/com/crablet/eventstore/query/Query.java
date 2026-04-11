@@ -25,8 +25,25 @@ public record Query(List<QueryItem> items) {
 
     /**
      * Create an empty query (matches all events).
+     * <p>
+     * Use this when you want to project or check existence across all event types
+     * without filtering. For signalling "skip this condition check" inside an
+     * {@link com.crablet.eventstore.AppendCondition}, use {@link #noCondition()} instead.
      */
     public static Query empty() {
+        return new Query(List.of());
+    }
+
+    /**
+     * Sentinel value meaning "no condition check required" — used inside
+     * {@link com.crablet.eventstore.AppendCondition} to indicate that a particular
+     * check (concurrency or idempotency) should be skipped entirely.
+     * <p>
+     * Structurally identical to {@link #empty()} but semantically distinct:
+     * {@code empty()} means "accept all event types"; {@code noCondition()} means
+     * "this check does not apply".
+     */
+    public static Query noCondition() {
         return new Query(List.of());
     }
 

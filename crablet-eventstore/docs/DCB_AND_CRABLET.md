@@ -112,6 +112,15 @@ DCB supports two concurrency control strategies:
 
 **Key Insight**: StreamPosition-based checks can rely on snapshot isolation because they're checking for changes to existing state. Idempotency checks need advisory locks because they're checking for the existence of something that may not exist yet, and snapshot isolation cannot prevent the race condition in this scenario.
 
+### Commutative Operations and Lifecycle Guards
+
+Some operations are order-independent with respect to each other (e.g., two concurrent deposits do not conflict) but still require the entity to be in an active state (e.g., the wallet must be open). For these cases, Spring-Crablet provides `CommutativeGuarded`:
+
+- Concurrent operations of the same type (e.g., two deposits) **do not** conflict with each other — they use `appendCommutative` with no stream-position check between them.
+- A **lifecycle guard query** — containing only lifecycle event types such as `WalletOpened`/`WalletClosed`, **not** `DepositMade` — is checked before appending. If a lifecycle event appeared after the projected position, a `ConcurrencyException` is thrown.
+
+This gives the best of both worlds: high parallelism for the common case, with protection against operations on a closed/deleted entity.
+
 ## Entity Scoping
 
 DCB checks are scoped to specific entities via tags:

@@ -54,6 +54,7 @@ class WalletCommandsTest extends com.crablet.test.AbstractCrabletTest {
     private void appendResult(CommandDecision result) {
         switch (result) {
             case CommandDecision.Commutative c -> eventStore.appendCommutative(c.events());
+            case CommandDecision.CommutativeGuarded cg -> eventStore.appendCommutative(cg.events());
             case CommandDecision.NonCommutative nc ->
                 eventStore.appendNonCommutative(nc.events(), nc.decisionModel(), nc.streamPosition());
             case CommandDecision.Idempotent i ->

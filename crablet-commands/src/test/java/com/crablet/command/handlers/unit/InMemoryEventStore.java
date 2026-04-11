@@ -6,6 +6,7 @@ import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.CommandAuditStore;
 import com.crablet.eventstore.StreamPosition;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.StoredEvent;
@@ -53,7 +54,7 @@ import java.util.stream.Collectors;
  *   <li>Transaction boundary testing</li>
  * </ul>
  */
-public class InMemoryEventStore implements EventStore {
+public class InMemoryEventStore implements EventStore, CommandAuditStore {
     
     /**
      * Internal record for storing events with original objects.
@@ -100,6 +101,11 @@ public class InMemoryEventStore implements EventStore {
 
     @Override
     public String appendIdempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {
+        return doAppend(events);
+    }
+
+    @Override
+    public String appendIdempotent(List<AppendEvent> events, com.crablet.eventstore.query.Query idempotencyQuery) {
         return doAppend(events);
     }
 

@@ -318,7 +318,7 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
         WithdrawCommand command = new WithdrawCommand(
             walletId, withdrawalId, new BigDecimal("50")
         );
-        ExecutionResult result = commandExecutor.executeCommand(command);
+        ExecutionResult result = commandExecutor.execute(command);
         
         // Then: withdrawal succeeded
         assertTrue(result.wasCreated());
@@ -343,8 +343,8 @@ class WithdrawCommandHandlerTest extends AbstractCrabletTest {
         );
         
         // When: withdraw twice with same ID
-        ExecutionResult result1 = commandExecutor.executeCommand(command);
-        ExecutionResult result2 = commandExecutor.executeCommand(command);
+        ExecutionResult result1 = commandExecutor.execute(command);
+        ExecutionResult result2 = commandExecutor.execute(command);
         
         // Then: both succeed (idempotent), but only one event stored
         assertTrue(result1.wasCreated());
@@ -374,7 +374,7 @@ void testConcurrentWithdrawals() {
     WithdrawCommand command2 = new WithdrawCommand(walletId, "w-2", new BigDecimal("80"));
     
     // First withdrawal succeeds
-    ExecutionResult result1 = commandExecutor.executeCommand(command1);
+    ExecutionResult result1 = commandExecutor.execute(command1);
     assertTrue(result1.wasCreated());
     
     // Second withdrawal fails (insufficient funds after first)
@@ -432,8 +432,8 @@ String withdrawalId = UUID.randomUUID().toString();
 Always test duplicate operations:
 
 ```java
-ExecutionResult result1 = commandExecutor.executeCommand(command);
-ExecutionResult result2 = commandExecutor.executeCommand(command);  // Same command
+ExecutionResult result1 = commandExecutor.execute(command);
+ExecutionResult result2 = commandExecutor.execute(command);  // Same command
 
 assertTrue(result1.wasCreated());
 assertTrue(result2.wasIdempotent());  // Second run is idempotent

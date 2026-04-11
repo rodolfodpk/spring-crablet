@@ -35,7 +35,7 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
     }
 
     @Override
-    public CommandDecision.Commutative decide(EventStore eventStore, DepositCommand command) {
+    public CommandDecision.CommutativeDecision decide(EventStore eventStore, DepositCommand command) {
         // Command is already validated at construction with YAVI
 
         var periodResult = periodHelper.projectCurrentPeriod(
@@ -68,6 +68,6 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
         // Lifecycle guard: detect if wallet state changed (e.g., WalletClosed) between projection
         // and append, without blocking concurrent deposits (DepositMade is not in the guard query).
         Query lifecycleGuard = WalletQueryPatterns.walletLifecycleModel(command.walletId());
-        return CommandDecision.Commutative.of(event, lifecycleGuard, periodResult.projection().streamPosition());
+        return CommandDecision.CommutativeGuarded.withLifecycleGuard(event, lifecycleGuard, periodResult.projection().streamPosition());
     }
 }

@@ -8,7 +8,7 @@ Your DCB event sourcing provides excellent consistency guarantees, but what abou
 // ❌ Problematic - not atomic with DCB
 public ExecutionResult handleTransfer(TransferCommand command) {
     // DCB: Store multiple events atomically
-    ExecutionResult result = commandExecutor.executeCommand(command);
+    ExecutionResult result = commandExecutor.execute(command);
     
     // External publishing - what if this fails?
     // Events are already stored, but external publishing can fail independently
@@ -28,7 +28,7 @@ The outbox pattern extends DCB's transactional guarantees to external publishing
 public ExecutionResult handleTransfer(TransferCommand command) {
     // DCB: Store multiple events atomically — outbox picks up events automatically
     // (Kafka, webhooks, analytics) with same transactional guarantees
-    return commandExecutor.executeCommand(command);
+    return commandExecutor.execute(command);
 }
 ```
 

@@ -44,7 +44,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
         OpenWalletCommand cmd = OpenWalletCommand.of("wallet1", "Alice", 1000);
 
         // When: execute via CommandExecutor
-        ExecutionResult result = commandExecutor.executeCommand(cmd);
+        ExecutionResult result = commandExecutor.execute(cmd);
 
         // Then: verify command executed
         assertThat(result).isNotNull();
@@ -62,11 +62,11 @@ class CommandExecutorTest extends AbstractCrabletTest {
     void shouldExecuteDepositCommandSuccessfully() {
         // Given: wallet exists
         OpenWalletCommand openCmd = OpenWalletCommand.of("wallet2", "Bob", 1000);
-        commandExecutor.executeCommand(openCmd);
+        commandExecutor.execute(openCmd);
 
         // When: deposit money
         DepositCommand depositCmd = DepositCommand.of("deposit1", "wallet2", 500, "Salary");
-        ExecutionResult result = commandExecutor.executeCommand(depositCmd);
+        ExecutionResult result = commandExecutor.execute(depositCmd);
 
         // Then: deposit should succeed
         assertThat(result).isNotNull();
@@ -83,11 +83,11 @@ class CommandExecutorTest extends AbstractCrabletTest {
     void shouldExecuteWithdrawCommandSuccessfully() {
         // Given: wallet with balance
         OpenWalletCommand openCmd = OpenWalletCommand.of("wallet3", "Charlie", 1000);
-        commandExecutor.executeCommand(openCmd);
+        commandExecutor.execute(openCmd);
 
         // When: withdraw money
         WithdrawCommand withdrawCmd = WithdrawCommand.of("withdrawal1", "wallet3", 300, "ATM withdrawal");
-        ExecutionResult result = commandExecutor.executeCommand(withdrawCmd);
+        ExecutionResult result = commandExecutor.execute(withdrawCmd);
 
         // Then: withdrawal should succeed
         assertThat(result).isNotNull();
@@ -103,8 +103,8 @@ class CommandExecutorTest extends AbstractCrabletTest {
     @DisplayName("Should execute transfer command successfully")
     void shouldExecuteTransferCommandSuccessfully() {
         // Given: two wallets
-        commandExecutor.executeCommand(OpenWalletCommand.of("wallet4", "Diana", 1000));
-        commandExecutor.executeCommand(OpenWalletCommand.of("wallet5", "Eve", 500));
+        commandExecutor.execute(OpenWalletCommand.of("wallet4", "Diana", 1000));
+        commandExecutor.execute(OpenWalletCommand.of("wallet5", "Eve", 500));
 
         // When: transfer money
         TransferMoneyCommand transferCmd = TransferMoneyCommand.of(
@@ -114,7 +114,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
                 300,
                 "Transfer test"
         );
-        ExecutionResult result = commandExecutor.executeCommand(transferCmd);
+        ExecutionResult result = commandExecutor.execute(transferCmd);
 
         // Then: transfer should succeed
         assertThat(result).isNotNull();
@@ -133,7 +133,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
         DepositCommand depositCmd = DepositCommand.of("deposit2", "wallet_nonexistent", 500, "Invalid deposit");
 
         // When/Then: should throw WalletNotFoundException
-        assertThatThrownBy(() -> commandExecutor.executeCommand(depositCmd))
+        assertThatThrownBy(() -> commandExecutor.execute(depositCmd))
                 .isInstanceOf(WalletNotFoundException.class);
 
         // Verify no events were persisted
@@ -146,11 +146,11 @@ class CommandExecutorTest extends AbstractCrabletTest {
     @DisplayName("Should handle withdrawal with insufficient funds")
     void shouldHandleWithdrawalWithInsufficientFunds() {
         // Given: wallet with limited balance
-        commandExecutor.executeCommand(OpenWalletCommand.of("wallet6", "Frank", 100));
+        commandExecutor.execute(OpenWalletCommand.of("wallet6", "Frank", 100));
 
         // When/Then: try to withdraw more than balance
         WithdrawCommand withdrawCmd = WithdrawCommand.of("withdrawal2", "wallet6", 500, "Invalid withdrawal");
-        assertThatThrownBy(() -> commandExecutor.executeCommand(withdrawCmd))
+        assertThatThrownBy(() -> commandExecutor.execute(withdrawCmd))
                 .isInstanceOf(InsufficientFundsException.class);
 
         // Verify no withdrawal event
@@ -166,10 +166,10 @@ class CommandExecutorTest extends AbstractCrabletTest {
         String walletId = "wallet7";
 
         // When: execute wallet lifecycle
-        commandExecutor.executeCommand(OpenWalletCommand.of(walletId, "Grace", 1000));
-        commandExecutor.executeCommand(DepositCommand.of("deposit3", walletId, 500, "Deposit 1"));
-        commandExecutor.executeCommand(DepositCommand.of("deposit4", walletId, 300, "Deposit 2"));
-        commandExecutor.executeCommand(WithdrawCommand.of("withdrawal3", walletId, 200, "Withdrawal 1"));
+        commandExecutor.execute(OpenWalletCommand.of(walletId, "Grace", 1000));
+        commandExecutor.execute(DepositCommand.of("deposit3", walletId, 500, "Deposit 1"));
+        commandExecutor.execute(DepositCommand.of("deposit4", walletId, 300, "Deposit 2"));
+        commandExecutor.execute(WithdrawCommand.of("withdrawal3", walletId, 200, "Withdrawal 1"));
 
         // Then: verify all events persisted
         Query query = Query.forEventsAndTags(
@@ -193,11 +193,11 @@ class CommandExecutorTest extends AbstractCrabletTest {
     void shouldHandleConcurrentDepositsWithDCB() {
         // Given: wallet
         String walletId = "wallet9";
-        commandExecutor.executeCommand(OpenWalletCommand.of(walletId, "Henry", 1000));
+        commandExecutor.execute(OpenWalletCommand.of(walletId, "Henry", 1000));
 
         // When: execute two deposits (simulating concurrent operations)
-        commandExecutor.executeCommand(DepositCommand.of("deposit6", walletId, 100, "Deposit 1"));
-        commandExecutor.executeCommand(DepositCommand.of("deposit7", walletId, 200, "Deposit 2"));
+        commandExecutor.execute(DepositCommand.of("deposit6", walletId, 100, "Deposit 1"));
+        commandExecutor.execute(DepositCommand.of("deposit7", walletId, 200, "Deposit 2"));
 
         // Then: both should succeed (DCB ensures consistency)
         Query query = Query.forEventAndTag("DepositMade", "wallet_id", walletId);
@@ -212,7 +212,7 @@ class CommandExecutorTest extends AbstractCrabletTest {
         OpenWalletCommand cmd = OpenWalletCommand.of("wallet10", "Ivy", 1000);
 
         // When: execute command
-        commandExecutor.executeCommand(cmd);
+        commandExecutor.execute(cmd);
 
         // Then: verify command metadata stored in commands table
         Integer count = jdbcTemplate.queryForObject(

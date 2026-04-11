@@ -44,7 +44,7 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
         // First execution to establish a stream position
         CommandDecision firstResult = CommandDecision.Commutative.of(event);
         TestCommandHandler.setHandlerLogic(cmd -> firstResult);
-        ExecutionResult first = commandExecutor.executeCommand(command);
+        ExecutionResult first = commandExecutor.execute(command);
         assertTrue(first.wasCreated());
 
         // Second execution with stale stream position - should trigger ConcurrencyException
@@ -56,7 +56,7 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> secondResult);
 
         // Act & Assert - should throw ConcurrencyException (not idempotent)
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(ConcurrencyException.class);
     }
 
@@ -75,7 +75,7 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
                 List.of(event), "test_event", "operation_id", "op-123");
         TestCommandHandler.setHandlerLogic(cmd -> firstResult);
 
-        ExecutionResult first = commandExecutor.executeCommand(command);
+        ExecutionResult first = commandExecutor.execute(command);
         assertTrue(first.wasCreated());
 
         // Second execution with same operation_id - should be idempotent
@@ -85,7 +85,7 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> secondResult);
 
         // Act
-        ExecutionResult second = commandExecutor.executeCommand(command);
+        ExecutionResult second = commandExecutor.execute(command);
 
         // Assert - should return idempotent result (not throw)
         assertTrue(second.wasIdempotent());
@@ -100,7 +100,7 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
             com.crablet.examples.wallet.commands.OpenWalletCommand.of("wallet-123", "Alice", 1000);
         
         // First execution succeeds
-        ExecutionResult first = commandExecutor.executeCommand(firstCommand);
+        ExecutionResult first = commandExecutor.execute(firstCommand);
         assertTrue(first.wasCreated());
         
         // Second execution with same wallet_id - should throw (not idempotent for open_wallet)
@@ -108,7 +108,7 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
             com.crablet.examples.wallet.commands.OpenWalletCommand.of("wallet-123", "Bob", 2000);
 
         // Act & Assert - should throw ConcurrencyException (open_wallet always throws on duplicate)
-        assertThatThrownBy(() -> commandExecutor.executeCommand(secondCommand))
+        assertThatThrownBy(() -> commandExecutor.execute(secondCommand))
                 .isInstanceOf(ConcurrencyException.class);
     }
 }

@@ -137,9 +137,14 @@ class CommandDecisionTest {
         CommandDecision idempotent = new CommandDecision.Idempotent(List.of(), "T", "k", "v");
         CommandDecision empty = CommandDecision.NoOp.empty();
 
-        for (CommandDecision result : List.of(commutative, nonCommutative, idempotent, empty)) {
+        AppendEvent dummyEvent = AppendEvent.builder("test_event").data("{}").build();
+        CommandDecision guardedCommutative = CommandDecision.CommutativeGuarded.withLifecycleGuard(
+            dummyEvent, Query.empty(), StreamPosition.zero());
+
+        for (CommandDecision result : List.of(commutative, guardedCommutative, nonCommutative, idempotent, empty)) {
             String label = switch (result) {
                 case CommandDecision.Commutative c -> "commutative";
+                case CommandDecision.CommutativeGuarded cg -> "commutative-guarded";
                 case CommandDecision.NonCommutative nc -> "non-commutative";
                 case CommandDecision.Idempotent i -> "idempotent";
                 case CommandDecision.NoOp e -> "empty";

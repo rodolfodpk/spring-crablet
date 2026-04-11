@@ -35,12 +35,12 @@ class CommandExecutorImplValidationTest extends AbstractCommandTest {
     void executeCommand_WithNullEvents_ShouldThrowInvalidCommandException() {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
-        CommandDecision commandResult = new CommandDecision.Commutative(null, null);
+        CommandDecision commandResult = new CommandDecision.Commutative(null);
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act & Assert
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("null events");
     }
@@ -55,7 +55,7 @@ class CommandExecutorImplValidationTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act & Assert
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("empty type");
     }
@@ -70,7 +70,7 @@ class CommandExecutorImplValidationTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act & Assert
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("empty type");
     }
@@ -86,7 +86,7 @@ class CommandExecutorImplValidationTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act & Assert
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("Empty tag key");
     }
@@ -102,7 +102,7 @@ class CommandExecutorImplValidationTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act & Assert
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("Empty tag key");
     }
@@ -118,7 +118,7 @@ class CommandExecutorImplValidationTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act & Assert
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("Empty tag value");
     }
@@ -134,7 +134,7 @@ class CommandExecutorImplValidationTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act & Assert
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("Empty tag value");
     }
@@ -152,7 +152,7 @@ class CommandExecutorImplValidationTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act
-        ExecutionResult result = commandExecutor.executeCommand(command);
+        ExecutionResult result = commandExecutor.execute(command);
 
         // Assert
         assertNotNull(result);

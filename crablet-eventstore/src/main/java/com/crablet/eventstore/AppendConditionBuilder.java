@@ -63,7 +63,7 @@ public class AppendConditionBuilder {
      */
     public AppendCondition build() {
         var idempotencyQuery = idempotencyItems.isEmpty()
-            ? Query.empty()
+            ? Query.noCondition()
             : Query.of(idempotencyItems);
 
         return AppendCondition.of(streamPosition, decisionModelQuery, idempotencyQuery);

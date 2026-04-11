@@ -16,7 +16,7 @@
  * <ol>
  *   <li>Implement {@code CommandHandler<T>} for each command type</li>
  *   <li>Handlers are auto-discovered via Spring {@code @Component} annotation</li>
- *   <li>Inject {@code CommandExecutor} and call {@code executeCommand()}</li>
+ *   <li>Inject {@code CommandExecutor} and call {@code execute()}</li>
  *   <li>CommandExecutor manages transaction lifecycle and DCB concurrency control</li>
  * </ol>
  * <p>

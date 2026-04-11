@@ -46,7 +46,7 @@ class OptimisticLockingTest extends AbstractCrabletTest {
 
         // Create wallet
         OpenWalletCommand openCommand = OpenWalletCommand.of(walletId, "Alice", 1000);
-        commandExecutor.executeCommand(openCommand);
+        commandExecutor.execute(openCommand);
 
         // Get current stream position
         Query query = Query.of(QueryItem.of(List.of("WalletOpened"), List.of(new Tag("wallet_id", walletId))));
@@ -57,7 +57,7 @@ class OptimisticLockingTest extends AbstractCrabletTest {
         DepositCommand depositCommand = DepositCommand.of("deposit-1", walletId, 100, "Test deposit");
 
         // This should succeed because we're using the correct stream position
-        commandExecutor.executeCommand(depositCommand);
+        commandExecutor.execute(depositCommand);
 
         // Verify deposit was applied
         Query depositQuery = Query.of(QueryItem.of(List.of("DepositMade"), List.of(new Tag("wallet_id", walletId))));
@@ -72,7 +72,7 @@ class OptimisticLockingTest extends AbstractCrabletTest {
 
         // Create wallet
         OpenWalletCommand openCommand = OpenWalletCommand.of(walletId, "Bob", 1000);
-        commandExecutor.executeCommand(openCommand);
+        commandExecutor.execute(openCommand);
 
         // Get initial stream position
         Query query = Query.of(QueryItem.of(List.of("WalletOpened"), List.of(new Tag("wallet_id", walletId))));
@@ -80,7 +80,7 @@ class OptimisticLockingTest extends AbstractCrabletTest {
 
         // Make a deposit to advance the stream position
         DepositCommand firstDeposit = DepositCommand.of("deposit-1", walletId, 100, "First deposit");
-        commandExecutor.executeCommand(firstDeposit);
+        commandExecutor.execute(firstDeposit);
 
         // Now try to use the stale stream position - this should fail
         // We need to simulate a scenario where the stream position is stale
@@ -90,7 +90,7 @@ class OptimisticLockingTest extends AbstractCrabletTest {
         DepositCommand secondDeposit = DepositCommand.of("deposit-2", walletId, 200, "Second deposit");
 
         // This should succeed because CommandExecutor handles stream position management
-        commandExecutor.executeCommand(secondDeposit);
+        commandExecutor.execute(secondDeposit);
 
         // Verify both deposits were applied
         Query depositQuery = Query.of(QueryItem.of(List.of("DepositMade"), List.of(new Tag("wallet_id", walletId))));
@@ -105,15 +105,15 @@ class OptimisticLockingTest extends AbstractCrabletTest {
 
         // Create wallet
         OpenWalletCommand openCommand = OpenWalletCommand.of(walletId, "Charlie", 1000);
-        commandExecutor.executeCommand(openCommand);
+        commandExecutor.execute(openCommand);
 
         // Create two deposit commands with different IDs
         DepositCommand deposit1 = DepositCommand.of("deposit-1", walletId, 100, "Deposit 1");
         DepositCommand deposit2 = DepositCommand.of("deposit-2", walletId, 200, "Deposit 2");
 
         // Both should succeed as they have different operation IDs
-        commandExecutor.executeCommand(deposit1);
-        commandExecutor.executeCommand(deposit2);
+        commandExecutor.execute(deposit1);
+        commandExecutor.execute(deposit2);
 
         // Verify both deposits were applied
         Query depositQuery = Query.of(QueryItem.of(List.of("DepositMade"), List.of(new Tag("wallet_id", walletId))));
@@ -128,7 +128,7 @@ class OptimisticLockingTest extends AbstractCrabletTest {
 
         // Create wallet
         OpenWalletCommand openCommand = OpenWalletCommand.of(walletId, "David", 1000);
-        commandExecutor.executeCommand(openCommand);
+        commandExecutor.execute(openCommand);
 
         // Create multiple operations that might conflict
         DepositCommand deposit1 = DepositCommand.of("concurrent-deposit-1", walletId, 100, "Concurrent deposit 1");
@@ -137,19 +137,19 @@ class OptimisticLockingTest extends AbstractCrabletTest {
 
         // Execute operations - some may succeed, some may fail due to concurrency
         try {
-            commandExecutor.executeCommand(deposit1);
+            commandExecutor.execute(deposit1);
         } catch (ConcurrencyException e) {
             // Expected for some operations
         }
 
         try {
-            commandExecutor.executeCommand(deposit2);
+            commandExecutor.execute(deposit2);
         } catch (ConcurrencyException e) {
             // Expected for some operations
         }
 
         try {
-            commandExecutor.executeCommand(withdraw1);
+            commandExecutor.execute(withdraw1);
         } catch (ConcurrencyException e) {
             // Expected for some operations
         }
@@ -169,8 +169,8 @@ class OptimisticLockingTest extends AbstractCrabletTest {
         // Create both wallets
         OpenWalletCommand openCommand1 = OpenWalletCommand.of(wallet1Id, "Eve", 1000);
         OpenWalletCommand openCommand2 = OpenWalletCommand.of(wallet2Id, "Frank", 500);
-        commandExecutor.executeCommand(openCommand1);
-        commandExecutor.executeCommand(openCommand2);
+        commandExecutor.execute(openCommand1);
+        commandExecutor.execute(openCommand2);
 
         // Create transfer commands
         TransferMoneyCommand transfer1 = TransferMoneyCommand.of("transfer-1", wallet1Id, wallet2Id, 100, "Transfer 1");
@@ -178,13 +178,13 @@ class OptimisticLockingTest extends AbstractCrabletTest {
 
         // Execute transfers - some may succeed, some may fail due to concurrency
         try {
-            commandExecutor.executeCommand(transfer1);
+            commandExecutor.execute(transfer1);
         } catch (ConcurrencyException e) {
             // Expected for some operations
         }
 
         try {
-            commandExecutor.executeCommand(transfer2);
+            commandExecutor.execute(transfer2);
         } catch (ConcurrencyException e) {
             // Expected for some operations
         }
@@ -202,7 +202,7 @@ class OptimisticLockingTest extends AbstractCrabletTest {
 
         // Create wallet
         OpenWalletCommand openCommand = OpenWalletCommand.of(walletId, "Grace", 1000);
-        commandExecutor.executeCommand(openCommand);
+        commandExecutor.execute(openCommand);
 
         // Create multiple operations
         DepositCommand deposit1 = DepositCommand.of("consistency-deposit-1", walletId, 100, "Consistency deposit 1");
@@ -213,21 +213,21 @@ class OptimisticLockingTest extends AbstractCrabletTest {
 
         // Execute operations and count successes
         try {
-            commandExecutor.executeCommand(deposit1);
+            commandExecutor.execute(deposit1);
             successfulOperations++;
         } catch (ConcurrencyException e) {
             // Expected for some operations
         }
 
         try {
-            commandExecutor.executeCommand(deposit2);
+            commandExecutor.execute(deposit2);
             successfulOperations++;
         } catch (ConcurrencyException e) {
             // Expected for some operations
         }
 
         try {
-            commandExecutor.executeCommand(withdraw1);
+            commandExecutor.execute(withdraw1);
             successfulOperations++;
         } catch (ConcurrencyException e) {
             // Expected for some operations
@@ -249,13 +249,13 @@ class OptimisticLockingTest extends AbstractCrabletTest {
 
         // Create wallet
         OpenWalletCommand openCommand = OpenWalletCommand.of(walletId, "Henry", 1000);
-        commandExecutor.executeCommand(openCommand);
+        commandExecutor.execute(openCommand);
 
         // Create deposit with specific tags
         DepositCommand depositCommand = DepositCommand.of("multi-tag-deposit", walletId, 100, "Multi-tag deposit");
 
         // This should succeed
-        commandExecutor.executeCommand(depositCommand);
+        commandExecutor.execute(depositCommand);
 
         // Verify deposit was applied with correct tags
         Query depositQuery = Query.of(QueryItem.of(
@@ -281,13 +281,13 @@ class OptimisticLockingTest extends AbstractCrabletTest {
 
         // Create wallet
         OpenWalletCommand openCommand = OpenWalletCommand.of(walletId, "Iris", 1000);
-        commandExecutor.executeCommand(openCommand);
+        commandExecutor.execute(openCommand);
 
         // Create deposit command
         DepositCommand depositCommand = DepositCommand.of("empty-condition-deposit", walletId, 100, "Empty condition deposit");
 
         // This should succeed even with empty condition (no uniqueness constraint)
-        commandExecutor.executeCommand(depositCommand);
+        commandExecutor.execute(depositCommand);
 
         // Verify deposit was applied
         Query depositQuery = Query.of(QueryItem.of(List.of("DepositMade"), List.of(new Tag("wallet_id", walletId))));

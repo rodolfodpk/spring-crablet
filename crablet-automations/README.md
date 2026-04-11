@@ -65,7 +65,7 @@ public class WalletOpenedAutomation implements AutomationHandler {
     public void react(StoredEvent event, CommandExecutor commandExecutor) {
         WalletEvent walletEvent = objectMapper.readValue(event.data(), WalletEvent.class);
         if (walletEvent instanceof WalletOpened opened) {
-            commandExecutor.executeCommand(
+            commandExecutor.execute(
                 SendWelcomeNotificationCommand.of(opened.walletId(), opened.owner())
             );
         }

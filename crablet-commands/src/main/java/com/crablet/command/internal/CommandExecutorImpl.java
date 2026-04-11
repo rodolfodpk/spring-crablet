@@ -11,12 +11,14 @@ import com.crablet.command.metrics.CommandStartedMetric;
 import com.crablet.command.metrics.CommandSuccessMetric;
 import com.crablet.command.metrics.IdempotentOperationMetric;
 import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.CommandAuditStore;
 import com.crablet.eventstore.ConcurrencyException;
 import com.crablet.eventstore.DCBViolation;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.Tag;
+import com.crablet.eventstore.query.StateProjector;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
@@ -147,30 +149,15 @@ public class CommandExecutorImpl implements CommandExecutor {
     }
 
     @Override
-    public <T> void execute(T command, CommandHandler<T> handler) {
-        executeCommand(command, handler);
-    }
-
-    @Override
-    public <T> ExecutionResult executeCommand(T command) {
+    public <T> ExecutionResult execute(T command) {
         // Determine the appropriate handler based on command type
         // Type inference: T is inferred from command parameter
         CommandHandler<T> handler = getHandlerForCommand(command);
-        return executeCommand(command, handler);
+        return execute(command, handler);
     }
 
-    /**
-     * Execute a command within a single transaction.
-     * EventStore manages all transaction operations internally.
-     * <p>
-     * Type safety: Handler type parameter must match command type.
-     *
-     * @param <T> the command type (inferred from parameter)
-     * @param command the command to execute
-     * @param handler the handler for this command (must be CommandHandler<T>)
-     * @return ExecutionResult indicating whether the operation was idempotent
-     */
-    public <T> ExecutionResult executeCommand(T command, CommandHandler<T> handler) {
+    @Override
+    public <T> ExecutionResult execute(T command, CommandHandler<T> handler) {
         // Validate command
         if (command == null) {
             throw new InvalidCommandException("Command cannot be null", "NULL_COMMAND");
@@ -252,20 +239,19 @@ public class CommandExecutorImpl implements CommandExecutor {
                 @Nullable String transactionId;
                 try {
                     transactionId = switch (result) {
-                        case CommandDecision.Commutative c -> {
-                            // If the handler provided a selective lifecycle guard, enforce it atomically
-                            // before appending. The guard detects lifecycle changes (e.g., WalletClosed)
-                            // without blocking concurrent commutative operations (e.g., DepositMade).
-                            if (c.guard() != null) {
-                                CommandDecision.Commutative.Guard g = c.guard();
-                                if (txStore.hasConflict(g.query(), g.streamPosition())) {
-                                    throw new ConcurrencyException(
-                                        "Commutative guard violated: lifecycle state changed since projection",
-                                        new DCBViolation(
-                                            "GUARD_VIOLATION", "Concurrent lifecycle event detected", 1));
-                                }
+                        case CommandDecision.Commutative c ->
+                            txStore.appendCommutative(c.events());
+                        case CommandDecision.CommutativeGuarded cg -> {
+                            // Selective lifecycle guard: detect if entity state changed (e.g., WalletClosed)
+                            // between the handler's projection and this append, without blocking
+                            // concurrent commutative operations (e.g., DepositMade not in guard query).
+                            if (txStore.project(cg.guardQuery(), cg.guardPosition(), StateProjector.exists()).state()) {
+                                throw new ConcurrencyException(
+                                    "Commutative guard violated: lifecycle state changed since projection",
+                                    new DCBViolation(
+                                        "GUARD_VIOLATION", "Concurrent lifecycle event detected", 1));
                             }
-                            yield txStore.appendCommutative(c.events());
+                            yield txStore.appendCommutative(cg.events());
                         }
                         case CommandDecision.NonCommutative nc ->
                             txStore.appendNonCommutative(nc.events(), nc.decisionModel(), nc.streamPosition());
@@ -280,8 +266,9 @@ public class CommandExecutorImpl implements CommandExecutor {
                 }
 
                 // Store command for audit and query purposes (if enabled)
-                if (config.isPersistCommands() && transactionId != null) {
-                    txStore.storeCommand(commandJson, commandType, transactionId);
+                if (config.isPersistCommands() && commandJson != null && transactionId != null
+                        && txStore instanceof CommandAuditStore auditStore) {
+                    auditStore.storeCommand(commandJson, commandType, transactionId);
                 }
 
                 // Return success result
@@ -355,7 +342,7 @@ public class CommandExecutorImpl implements CommandExecutor {
         }
 
         // Unchecked cast is safe because:
-        // 1. We validate command type matches handler's registered type in executeCommand()
+        // 1. We validate command type matches handler's registered type in execute()
         // 2. Handler registry maps command type string to handler
         // 3. Runtime validation ensures handler can handle this command type
         return (CommandHandler<T>) handler;

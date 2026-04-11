@@ -7,23 +7,23 @@ package com.crablet.command;
  * It delegates to appropriate CommandHandlers based on command type.
  */
 public interface CommandExecutor {
-    
+
     /**
      * Execute a command within a single transaction.
-     * All EventStore operations (queries, projections, appends) will use the same transaction.
+     * The handler is discovered automatically from the Spring context.
      * <p>
      * Type inference: The command type {@code T} is automatically inferred from the command parameter.
-     * Example: {@code executeCommand(walletCommand)} infers {@code T = WalletCommand}
+     * Example: {@code execute(walletCommand)} infers {@code T = WalletCommand}
      *
      * @param <T> the command type (inferred from parameter)
      * @param command the command to execute
-     * @return ExecutionResult indicating whether the operation was idempotent
+     * @return ExecutionResult indicating whether the operation was new or idempotent
      */
-    <T> ExecutionResult executeCommand(T command);
-    
+    <T> ExecutionResult execute(T command);
+
     /**
-     * Execute a command within a single transaction using a specific handler.
-     * All EventStore operations (queries, projections, appends) will use the same transaction.
+     * Execute a command within a single transaction using an explicit handler.
+     * Use this when you need to supply the handler directly instead of relying on auto-discovery.
      * <p>
      * Type safety: The handler type parameter must match the command type.
      * Example: {@code execute(walletCommand, walletHandler)} ensures types match at compile time.
@@ -31,7 +31,8 @@ public interface CommandExecutor {
      * @param <T> the command type (inferred from parameter)
      * @param command the command to execute
      * @param handler the handler to use for this command (must be CommandHandler<T>)
+     * @return ExecutionResult indicating whether the operation was new or idempotent
      */
-    <T> void execute(T command, CommandHandler<T> handler);
+    <T> ExecutionResult execute(T command, CommandHandler<T> handler);
 }
 

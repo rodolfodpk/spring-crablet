@@ -34,7 +34,7 @@ class CommandExecutorImplIdempotentTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> emptyResult);
 
         // Act
-        ExecutionResult result = commandExecutor.executeCommand(command);
+        ExecutionResult result = commandExecutor.execute(command);
 
         // Assert
         assertNotNull(result);
@@ -51,7 +51,7 @@ class CommandExecutorImplIdempotentTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> emptyResult);
 
         // Act
-        ExecutionResult result = commandExecutor.executeCommand(command);
+        ExecutionResult result = commandExecutor.execute(command);
 
         // Assert
         assertNotNull(result);
@@ -69,7 +69,7 @@ class CommandExecutorImplIdempotentTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> emptyResult);
 
         // Act
-        ExecutionResult result = commandExecutor.executeCommand(command);
+        ExecutionResult result = commandExecutor.execute(command);
 
         // Assert
         assertTrue(result.wasIdempotent());

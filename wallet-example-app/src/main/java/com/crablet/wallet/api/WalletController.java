@@ -73,7 +73,7 @@ public class WalletController {
                 request.initialBalance()
         );
         
-        var result = commandExecutor.executeCommand(command);
+        var result = commandExecutor.execute(command);
         
         WalletResponse response = new WalletResponse(
                 request.walletId(),
@@ -117,7 +117,7 @@ public class WalletController {
                 request.description()
         );
         
-        var result = commandExecutor.executeCommand(command);
+        var result = commandExecutor.execute(command);
         
         // Note: Balance would come from view projection in real implementation
         WalletResponse response = new WalletResponse(
@@ -162,7 +162,7 @@ public class WalletController {
                 request.description()
         );
         
-        var result = commandExecutor.executeCommand(command);
+        var result = commandExecutor.execute(command);
         
         // Note: Balance would come from view projection in real implementation
         WalletResponse response = new WalletResponse(
@@ -203,7 +203,7 @@ public class WalletController {
                 request.description()
         );
         
-        var result = commandExecutor.executeCommand(command);
+        var result = commandExecutor.execute(command);
         
         return ResponseEntity.ok(Map.of(
                 "transferId", request.transferId(),

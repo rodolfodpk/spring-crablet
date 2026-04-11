@@ -40,7 +40,7 @@ public class WalletOpenedReaction {
             String walletId = (String) data.get("walletId");
             String owner = (String) data.get("owner");
 
-            commandExecutor.executeCommand(SendWelcomeNotificationCommand.of(walletId, owner));
+            commandExecutor.execute(SendWelcomeNotificationCommand.of(walletId, owner));
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Failed to process wallet-opened webhook: {}", e.getMessage(), e);

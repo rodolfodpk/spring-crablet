@@ -38,14 +38,46 @@ public class YourCommandHandler implements NonCommutativeCommandHandler<YourComm
 }
 ```
 
-**Commutative** (order-independent — e.g. Deposit, Credit):
+**Commutative with lifecycle guard** (order-independent but requires entity to be active — e.g. Deposit, Credit):
 ```java
 @Component
 public class YourCommandHandler implements CommutativeCommandHandler<YourCommand> {
 
     @Override
-    public CommandDecision.Commutative decide(EventStore eventStore, YourCommand command) {
-        // project state, validate, generate event ...
+    public CommandDecision.CommutativeDecision decide(EventStore eventStore, YourCommand command) {
+        // 1. Project lifecycle state
+        Query lifecycleModel = YourQueryPatterns.yourLifecycleModel(command.entityId());
+        ProjectionResult<YourState> projection = eventStore.project(lifecycleModel, yourProjector);
+        YourState state = projection.state();
+
+        // 2. Validate business rules
+        if (!state.isExisting()) {
+            throw new YourEntityNotFoundException(command.entityId());
+        }
+
+        // 3. Generate event
+        YourEvent event = YourEvent.of(/* ... */);
+        AppendEvent appendEvent = AppendEvent.builder(type(YourEvent.class))
+            .tag(YOUR_TAG_KEY, command.entityId())
+            .data(event)
+            .build();
+
+        // 4. Guard query: lifecycle events only — NOT the commutative event type —
+        //    so concurrent operations of the same type do not conflict with each other.
+        Query lifecycleGuard = YourQueryPatterns.yourLifecycleGuard(command.entityId());
+        return CommandDecision.CommutativeGuarded.withLifecycleGuard(appendEvent, lifecycleGuard, projection.streamPosition());
+    }
+}
+```
+
+**Commutative (pure, no guard — e.g. analytics events with no lifecycle dependency):**
+```java
+@Component
+public class YourCommandHandler implements CommutativeCommandHandler<YourCommand> {
+
+    @Override
+    public CommandDecision.CommutativeDecision decide(EventStore eventStore, YourCommand command) {
+        // generate event ...
         return CommandDecision.Commutative.of(appendEvent);
     }
 }
@@ -355,10 +387,11 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
    - Method: `appendIdempotent(events, eventType, tagKey, tagValue)`
    - Fails if event with same tag already exists
 
-3. **Commutative** (order-independent operations):
-   - Use for: Order-independent operations (Deposit)
-   - Method: `appendCommutative(events)`
-   - No conflict detection needed
+3. **Commutative / CommutativeGuarded** (order-independent operations):
+   - Use for: Order-independent operations (Deposit, Credit)
+   - Method: `appendCommutative(events)` for both variants
+   - `Commutative` — no conflict detection (truly state-independent operations)
+   - `CommutativeGuarded` — concurrent same-type operations are still allowed, but atomically checks that no lifecycle event (e.g., `EntityClosed`) appeared after the projected position; use this when the entity must be active to accept the operation
 
 **DCB Flow:**
 1. Project current state using `eventStore.project(query, streamPosition, stateType, projectors)`
@@ -374,12 +407,14 @@ DCB is the core architectural pattern that replaces traditional aggregate-based 
 ### Core Abstractions
 
 **EventStore (crablet-eventstore/src/main/java/com/crablet/eventstore/EventStore.java):**
-- `appendCommutative(events)` - Append without conflict detection (deposits, credits)
+- `appendCommutative(events)` - Append without commutative-operation conflict (deposits, credits); used by both `Commutative` and `CommutativeGuarded` decisions — the guard check is performed before the append by `CommandExecutorImpl`
 - `appendNonCommutative(events, decisionModel, streamPosition)` - Append with DCB stream-position check (withdrawals, transfers)
 - `appendIdempotent(events, eventType, tagKey, tagValue)` - Append with duplicate-entity guard (entity creation)
 - `project(query, streamPosition, stateType, projectors)` - State reconstruction
 - `executeInTransaction(operation)` - Transaction wrapper
-- `storeCommand(json, type, txId)` - Command audit trail
+
+**CommandAuditStore (crablet-eventstore/src/main/java/com/crablet/eventstore/CommandAuditStore.java):**
+- `storeCommand(json, type, txId)` - Command audit trail (implemented by `EventStoreImpl`; accessed via `instanceof` cast in `CommandExecutorImpl`)
 
 **AppendEvent vs StoredEvent:**
 - `AppendEvent` - For writing (type, tags, data)

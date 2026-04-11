@@ -40,9 +40,13 @@ public record ProjectionResult<T>(
      * stream position captured by this projection.
      *
      * <p>The stream position is implicit — it cannot be accidentally omitted or
-     * replaced with a stale value. Use this method instead of calling
-     * {@code eventStore.appendNonCommutative(...)} directly when working outside
-     * a {@link com.crablet.command.NonCommutativeCommandHandler}.
+     * replaced with a stale value.
+     *
+     * <p><strong>Prefer {@link com.crablet.command.CommandDecision.NonCommutative} instead.</strong>
+     * Within the command framework, return
+     * {@code CommandDecision.NonCommutative.of(event, decisionModel, projection.streamPosition())}
+     * from your handler — {@code CommandExecutor} will call {@code appendNonCommutative} automatically.
+     * Use this method only when working with {@link EventStore} directly outside a command handler.
      *
      * @param eventStore    the event store to append to
      * @param events        the events to append
@@ -50,7 +54,11 @@ public record ProjectionResult<T>(
      * @return the transaction ID
      * @throws ConcurrencyException  if a concurrent modification is detected after the captured stream position
      * @throws IllegalStateException if this result carries no stream position (no events matched the query)
+     * @deprecated Prefer returning {@link com.crablet.command.CommandDecision.NonCommutative} from a
+     *             {@link com.crablet.command.NonCommutativeCommandHandler}. This method is retained
+     *             for direct {@link EventStore} usage outside the command framework.
      */
+    @Deprecated(since = "1.1", forRemoval = false)
     public String appendNonCommutative(EventStore eventStore, List<AppendEvent> events, Query decisionModel) {
         if (streamPosition == null) {
             throw new IllegalStateException(

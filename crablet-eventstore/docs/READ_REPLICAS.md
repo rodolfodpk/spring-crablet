@@ -23,7 +23,7 @@ spring.datasource.driver-class-name=org.postgresql.Driver
 **How it works:**
 - Spring Boot auto-configures a `DataSource` from `spring.datasource.*` properties
 - Crablet's `DataSourceConfig` registers this as `primaryDataSource` bean (marked `@Primary`)
-- All write operations use this datasource: `appendCommutative()`, `appendNonCommutative()`, `appendIdempotent()`, `storeCommand()`, outbox position tracking
+- All write operations use this datasource: `appendCommutative()`, `appendNonCommutative()`, `appendIdempotent()`, `CommandAuditStore.storeCommand()`, outbox position tracking
 
 ### Read Replica DataSource
 
@@ -151,7 +151,7 @@ crablet.eventstore.read-replicas.hikari.password=${REPLICA_PASSWORD}
 
 **Write Operations (use primary):**
 - `EventStore.appendCommutative()` / `appendNonCommutative()` / `appendIdempotent()` - Event writes with DCB concurrency control
-- `EventStore.storeCommand()` - Storing commands
+- `CommandAuditStore.storeCommand()` - Storing commands (implemented by `EventStoreImpl`)
 - All outbox position tracking and leader election
 
 ### Load Balancing
@@ -227,7 +227,7 @@ Read replicas provide **horizontal read scaling** by distributing read operation
 
 **With replicas:**
 - Read operations (`project()`, `fetchEventsForTopic()`) are routed to replicas
-- Primary database handles only writes (`appendCommutative()`, `appendNonCommutative()`, `appendIdempotent()`, `storeCommand()`)
+- Primary database handles only writes (`appendCommutative()`, `appendNonCommutative()`, `appendIdempotent()`, `CommandAuditStore.storeCommand()`)
 - Write performance remains consistent regardless of read load
 
 #### 2. **Horizontal Read Scaling**

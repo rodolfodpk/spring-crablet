@@ -26,7 +26,7 @@ public record AppendCondition(
         if (concurrencyQuery == null) {
             throw new IllegalArgumentException("concurrencyQuery cannot be null");
         }
-        return new AppendCondition(afterPosition, concurrencyQuery, Query.empty());
+        return new AppendCondition(afterPosition, concurrencyQuery, Query.noCondition());
     }
 
     /**
@@ -40,7 +40,7 @@ public record AppendCondition(
         if (concurrencyQuery == null) {
             throw new IllegalArgumentException("concurrencyQuery cannot be null");
         }
-        return new AppendCondition(afterPosition, concurrencyQuery, idempotencyQuery != null ? idempotencyQuery : Query.empty());
+        return new AppendCondition(afterPosition, concurrencyQuery, idempotencyQuery != null ? idempotencyQuery : Query.noCondition());
     }
 
     /**
@@ -48,7 +48,7 @@ public record AppendCondition(
      * Prefer {@link AppendConditionBuilder} for constructing conditions in command handlers.
      */
     public static AppendCondition of(StreamPosition afterPosition) {
-        return of(afterPosition, Query.empty());
+        return of(afterPosition, Query.noCondition());
     }
 
     /**
@@ -67,9 +67,22 @@ public record AppendCondition(
      * }</pre>
      */
     public static AppendCondition idempotent(String eventType, String tagKey, String tagValue) {
-        return AppendConditionBuilder.of(Query.empty(), StreamPosition.zero())
+        return AppendConditionBuilder.of(Query.noCondition(), StreamPosition.zero())
                 .withIdempotencyCheck(eventType, tagKey, tagValue)
                 .build();
+    }
+
+    /**
+     * Create an idempotency-only condition from a pre-built {@link Query}.
+     * Prefer this overload when the idempotency criteria involve multiple event types or tags.
+     * <p>
+     * Equivalent to:
+     * <pre>{@code
+     * AppendCondition.of(StreamPosition.zero(), Query.noCondition(), idempotencyQuery);
+     * }</pre>
+     */
+    public static AppendCondition idempotent(Query idempotencyQuery) {
+        return new AppendCondition(StreamPosition.zero(), Query.noCondition(), idempotencyQuery);
     }
 
     /**
@@ -80,6 +93,6 @@ public record AppendCondition(
      * These operations can safely run in parallel without conflicts.
      */
     public static AppendCondition empty() {
-        return new AppendCondition(StreamPosition.zero(), Query.empty(), Query.empty());
+        return new AppendCondition(StreamPosition.zero(), Query.noCondition(), Query.noCondition());
     }
 }

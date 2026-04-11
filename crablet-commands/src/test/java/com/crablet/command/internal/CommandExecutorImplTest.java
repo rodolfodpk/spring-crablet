@@ -75,7 +75,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
 
     @Test
     void executeCommand_WithNullCommand_ShouldThrowInvalidCommandException() {
-        assertThatThrownBy(() -> commandExecutor.executeCommand(null))
+        assertThatThrownBy(() -> commandExecutor.execute(null))
                 .isInstanceOf(InvalidCommandException.class);
     }
 
@@ -84,7 +84,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         // This test verifies internal validation - in integration tests, handler is found via Spring
         // The null handler case is tested via missing handler registration
         TestCommand unknownCommand = new TestCommand("unknown_command_type", "entity-123");
-        assertThatThrownBy(() -> commandExecutor.executeCommand(unknownCommand))
+        assertThatThrownBy(() -> commandExecutor.execute(unknownCommand))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("No handler registered");
     }
@@ -102,7 +102,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act
-        ExecutionResult result = commandExecutor.executeCommand(command);
+        ExecutionResult result = commandExecutor.execute(command);
 
         // Assert
         assertNotNull(result);
@@ -125,7 +125,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act
-        ExecutionResult result = commandExecutor.executeCommand(command);
+        ExecutionResult result = commandExecutor.execute(command);
 
         // Assert
         assertNotNull(result);
@@ -143,12 +143,12 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     void executeCommand_WithNullEvents_ShouldThrowInvalidCommandException() {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
-        CommandDecision commandResult = new CommandDecision.Commutative(null, null);
+        CommandDecision commandResult = new CommandDecision.Commutative(null);
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act & Assert
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("null events");
     }
@@ -163,7 +163,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act & Assert
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("empty type");
     }
@@ -179,7 +179,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act & Assert
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("Empty tag key");
     }
@@ -196,7 +196,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
             throw new RuntimeException("Test error");
         });
 
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(RuntimeException.class);
     }
 
@@ -214,11 +214,11 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         CommandDecision commandResult = CommandDecision.Commutative.of(event);
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
-        ExecutionResult firstResult = commandExecutor.executeCommand(command);
+        ExecutionResult firstResult = commandExecutor.execute(command);
         assertTrue(firstResult.wasCreated());
 
         // Second execution - should be idempotent (duplicate detected)
-        ExecutionResult secondResult = commandExecutor.executeCommand(command);
+        ExecutionResult secondResult = commandExecutor.execute(command);
 
         // Assert - should return idempotent due to duplicate operation
         assertNotNull(secondResult);
@@ -233,7 +233,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         CommandDecision idempotentResult = new CommandDecision.NoOp("ALREADY_PROCESSED");
         TestCommandHandler.setHandlerLogic(cmd -> idempotentResult);
 
-        ExecutionResult idempotentExecution = commandExecutor.executeCommand(idempotentCommand);
+        ExecutionResult idempotentExecution = commandExecutor.execute(idempotentCommand);
         assertTrue(idempotentExecution.wasIdempotent());
     }
 
@@ -250,7 +250,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act
-        ExecutionResult result = commandExecutor.executeCommand(command);
+        ExecutionResult result = commandExecutor.execute(command);
 
         // Assert
         assertNotNull(result);
@@ -268,7 +268,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         TestCommand command = new TestCommand("unknown_command", "entity-123");
 
         // Act & Assert
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("No handler registered");
     }
@@ -293,7 +293,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act
-        ExecutionResult result = commandExecutor.executeCommand(command);
+        ExecutionResult result = commandExecutor.execute(command);
 
         // Assert
         assertNotNull(result);
@@ -315,7 +315,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act
-        ExecutionResult result = commandExecutor.executeCommand(command);
+        ExecutionResult result = commandExecutor.execute(command);
 
         // Assert
         assertNotNull(result);
@@ -336,7 +336,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         // So we verify that unknown command types throw the exception
         TestCommand command = new TestCommand("nonexistent_command", "entity-123");
 
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("No handler registered");
     }
@@ -345,7 +345,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     void executeCommand_WithCommandMissingCommandTypeProperty_ShouldThrowInvalidCommandException() {
         TestCommand command = new TestCommand(null, "entity-123");
 
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("commandType");
     }
@@ -354,7 +354,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     void executeCommand_WithCommandHavingNullCommandType_ShouldThrowInvalidCommandException() {
         TestCommand command = new TestCommand(null, "entity-123");
 
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("commandType");
     }
@@ -367,7 +367,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("empty type");
     }
@@ -381,7 +381,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act - Should not throw, null tags are acceptable
-        ExecutionResult result = commandExecutor.executeCommand(command);
+        ExecutionResult result = commandExecutor.execute(command);
 
         // Assert
         assertNotNull(result);
@@ -401,7 +401,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // Act - Should not throw, empty tags list is acceptable
-        ExecutionResult result = commandExecutor.executeCommand(command);
+        ExecutionResult result = commandExecutor.execute(command);
 
         // Assert
         assertNotNull(result);
@@ -421,7 +421,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("Empty tag key");
     }
@@ -435,7 +435,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("Empty tag value");
     }
@@ -449,7 +449,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("Empty tag value");
     }
@@ -466,7 +466,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
             throw new RuntimeException("Test runtime error");
         });
 
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Test runtime error");
     }
@@ -487,12 +487,12 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
         // First execution succeeds
-        ExecutionResult first = commandExecutor.executeCommand(command);
+        ExecutionResult first = commandExecutor.execute(command);
         assertTrue(first.wasCreated());
 
         // Second execution with same command - should succeed again since we're using AppendCondition.empty()
         // which doesn't check for duplicates. For actual duplicate detection, see OpenWalletCommandHandlerTest
-        ExecutionResult second = commandExecutor.executeCommand(command);
+        ExecutionResult second = commandExecutor.execute(command);
         assertTrue(second.wasCreated());
 
         // Verify both events were stored
@@ -508,7 +508,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
             throw new RuntimeException("Test runtime error");
         });
 
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(RuntimeException.class);
 
         // Note: Metrics are published via Spring Events, not directly verifiable here
@@ -522,7 +522,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(InvalidCommandException.class);
     }
 
@@ -533,7 +533,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
             throw new RuntimeException("Test error");
         });
 
-        assertThatThrownBy(() -> commandExecutor.executeCommand(command))
+        assertThatThrownBy(() -> commandExecutor.execute(command))
                 .isInstanceOf(RuntimeException.class);
 
         // Verify no events persisted
@@ -549,7 +549,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
 
         TestCommandHandler.setHandlerLogic(cmd -> commandResult);
 
-        ExecutionResult result = commandExecutor.executeCommand(command);
+        ExecutionResult result = commandExecutor.execute(command);
 
         assertTrue(result.wasIdempotent());
         assertEquals("ALREADY_PROCESSED", result.reason());

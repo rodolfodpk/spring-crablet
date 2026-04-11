@@ -30,7 +30,7 @@ class CommandMetricsIntegrationTest extends AbstractMetricsIntegrationTest {
         // When: execute a command (CommandExecutorImpl publishes CommandSuccessMetric via Spring Events)
         OpenWalletCommand command = new OpenWalletCommand("wallet1", "Alice", 1000);
         CommandExecutor commandExecutor = applicationContext.getBean(CommandExecutor.class);
-        commandExecutor.executeCommand(command);
+        commandExecutor.execute(command);
 
         // Then: MicrometerMetricsCollector should have recorded the metrics
         Counter finalCounter = meterRegistry.find("eventstore.commands.total")
@@ -62,7 +62,7 @@ class CommandMetricsIntegrationTest extends AbstractMetricsIntegrationTest {
         CommandExecutor commandExecutor = applicationContext.getBean(CommandExecutor.class);
         
         try {
-            commandExecutor.executeCommand(command);
+            commandExecutor.execute(command);
             // If it doesn't throw, the test should still verify metrics were recorded
         } catch (Exception e) {
             // Expected to fail - this is fine
@@ -98,7 +98,7 @@ class CommandMetricsIntegrationTest extends AbstractMetricsIntegrationTest {
         // When: execute a command that succeeds
         OpenWalletCommand command = new OpenWalletCommand("wallet2", "Bob", 1000);
         CommandExecutor commandExecutor = applicationContext.getBean(CommandExecutor.class);
-        commandExecutor.executeCommand(command);
+        commandExecutor.execute(command);
 
         // Then: idempotent counter should not have changed (open_wallet doesn't support idempotency)
         Counter finalCounter = meterRegistry.find("eventstore.commands.idempotent")
@@ -114,7 +114,7 @@ class CommandMetricsIntegrationTest extends AbstractMetricsIntegrationTest {
         // When: execute a command
         OpenWalletCommand command = new OpenWalletCommand("wallet3", "Charlie", 1000);
         CommandExecutor commandExecutor = applicationContext.getBean(CommandExecutor.class);
-        commandExecutor.executeCommand(command);
+        commandExecutor.execute(command);
 
         // Then: duration timer should be recorded
         Timer timer = meterRegistry.find("eventstore.commands.duration")

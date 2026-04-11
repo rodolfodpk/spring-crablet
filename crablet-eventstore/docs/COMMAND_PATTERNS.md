@@ -131,7 +131,7 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
         // Lifecycle guard: detect if wallet state changed (e.g., WalletClosed) since projection.
         // The guard query excludes DepositMade so concurrent deposits are still allowed.
         Query lifecycleGuard = WalletQueryPatterns.walletLifecycleModel(command.walletId());
-        return CommandDecision.Commutative.of(event, lifecycleGuard, projection.streamPosition());
+        return CommandDecision.CommutativeGuarded.withLifecycleGuard(event, lifecycleGuard, projection.streamPosition());
     }
 }
 ```

@@ -3,8 +3,6 @@ package com.crablet.eventstore;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.StateProjector;
-import org.jspecify.annotations.Nullable;
-
 import java.util.List;
 import java.util.function.Function;
 
@@ -50,6 +48,19 @@ public interface EventStore {
      * @throws ConcurrencyException if a duplicate event with the same tag already exists
      */
     String appendIdempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue);
+
+    /**
+     * Appends idempotent events using a pre-built idempotency {@link com.crablet.eventstore.query.Query}.
+     * Prefer this overload when the idempotency criteria involve multiple event types or tags,
+     * or when consistency with {@link #appendNonCommutative} is desired.
+     *
+     * @param events           The events to append (must not be empty)
+     * @param idempotencyQuery The query used for the idempotency check
+     * @return The transaction ID of the transaction that appended the events
+     * @throws IllegalArgumentException if the events list is empty
+     * @throws ConcurrencyException if a duplicate event matching the query already exists
+     */
+    String appendIdempotent(List<AppendEvent> events, Query idempotencyQuery);
 
     /**
      * Project projects state from events matching query with stream position.
@@ -117,25 +128,6 @@ public interface EventStore {
     }
 
     /**
-     * Returns {@code true} if any event matching {@code query} appeared <em>after</em> {@code after}.
-     * <p>
-     * Used by {@link com.crablet.command.internal.CommandExecutorImpl} to enforce a selective DCB guard
-     * on commutative operations: the guard checks only lifecycle events (e.g., WalletOpened, WalletClosed),
-     * not the full decision model, so concurrent commutative operations (e.g., deposits) are still allowed
-     * while lifecycle changes (e.g., wallet closing) are detected.
-     * <p>
-     * The {@code default} implementation uses {@code project()} for compatibility with custom implementors.
-     * The production implementation uses {@code SELECT EXISTS(...)} for efficiency.
-     *
-     * @param query the query defining which events to check for conflicts
-     * @param after the stream position after which to look for events
-     * @return {@code true} if a conflicting event was found, {@code false} otherwise
-     */
-    default boolean hasConflict(Query query, StreamPosition after) {
-        return project(query, after, StateProjector.exists()).state();
-    }
-
-    /**
      * Execute operations within a single transaction.
      * EventStore manages connection lifecycle internally.
      * <p>
@@ -158,14 +150,4 @@ public interface EventStore {
      */
     <T> T executeInTransaction(Function<EventStore, T> operation);
 
-    /**
-     * Store a command in the database for audit and query purposes.
-     * This method stores command metadata alongside events for traceability.
-     *
-     * @param commandJson   The command serialized as JSON string
-     * @param commandType   The command type string
-     * @param transactionId The transaction ID associated with this command
-     * @throws RuntimeException if storage fails
-     */
-    void storeCommand(String commandJson, @Nullable String commandType, String transactionId);
 }

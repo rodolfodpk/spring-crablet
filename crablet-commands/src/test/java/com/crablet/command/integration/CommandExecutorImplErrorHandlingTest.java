@@ -46,8 +46,8 @@ class CommandExecutorImplErrorHandlingTest extends AbstractCommandTest {
     }
 
     @Test
-    @DisplayName("executeCommand(command, handler) with empty commandType should throw InvalidCommandException")
-    void executeCommand_WithEmptyCommandType_ShouldThrowInvalidCommandException() {
+    @DisplayName("execute(command, handler) with empty commandType should throw InvalidCommandException")
+    void execute_WithEmptyCommandType_ShouldThrowInvalidCommandException() {
         // Arrange - command with empty string commandType
         TestCommand command = new TestCommand("", "entity-123");
         TestCommandHandler handler = new TestCommandHandler();
@@ -57,7 +57,7 @@ class CommandExecutorImplErrorHandlingTest extends AbstractCommandTest {
         assertThat(commandExecutor).isInstanceOf(CommandExecutorImpl.class);
         CommandExecutorImpl impl = (CommandExecutorImpl) commandExecutor;
         
-        assertThatThrownBy(() -> impl.executeCommand(command, handler))
+        assertThatThrownBy(() -> impl.execute(command, handler))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("Command type is null or empty");
     }

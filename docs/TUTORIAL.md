@@ -443,14 +443,14 @@ public class AcceptTalkCommandHandler implements NonCommutativeCommandHandler<Ac
 
 ### CommandExecutor — discovery and execution
 
-`CommandExecutor` discovers all `@Component`-annotated `CommandHandler` beans at startup by inspecting their generic type parameter. When you call `executeCommand(command)`, it finds the matching handler, calls `handle`, stores the command as an audit record, and calls the correct append method based on the returned `CommandDecision` — all in a single database transaction.
+`CommandExecutor` discovers all `@Component`-annotated `CommandHandler` beans at startup by inspecting their generic type parameter. When you call `execute(command)`, it finds the matching handler, calls `handle`, stores the command as an audit record, and calls the correct append method based on the returned `CommandDecision` — all in a single database transaction.
 
 ```java
 @Autowired
 private CommandExecutor commandExecutor;
 
 // Executes SubmitTalkCommandHandler.handle(...) in one transaction
-commandExecutor.executeCommand(
+commandExecutor.execute(
     new SubmitTalkCommand("sub-1", "talk-1", "alice", "Event Sourcing in Practice")
 );
 ```
@@ -505,7 +505,7 @@ public class TalkAcceptedAutomation implements AutomationHandler {
         try {
             TalkEvent talkEvent = objectMapper.readValue(event.data(), TalkEvent.class);
             if (talkEvent instanceof TalkAccepted accepted) {
-                commandExecutor.executeCommand(
+                commandExecutor.execute(
                     new SendConfirmationCommand(accepted.talkId(), accepted.speakerId())
                 );
             }
@@ -937,12 +937,12 @@ class TalkLifecycleIntegrationTest extends AbstractCrabletTest {
         String subId   = "sub-"  + System.currentTimeMillis();
 
         // Submit
-        commandExecutor.executeCommand(
+        commandExecutor.execute(
             new SubmitTalkCommand(subId, talkId, "alice", "DCB in Practice")
         );
 
         // Accept
-        commandExecutor.executeCommand(
+        commandExecutor.execute(
             new AcceptTalkCommand("conf-1", talkId)
         );
 
@@ -973,10 +973,10 @@ This test cannot be written as a domain test because `InMemoryEventStore` skips 
         String talkB = "talk-B-" + System.currentTimeMillis();
         String talkC = "talk-C-" + System.currentTimeMillis();
 
-        commandExecutor.executeCommand(new SubmitTalkCommand("sub-a", talkA, "alice", "Talk A"));
-        commandExecutor.executeCommand(new SubmitTalkCommand("sub-b", talkB, "bob",   "Talk B"));
-        commandExecutor.executeCommand(new SubmitTalkCommand("sub-c", talkC, "carol", "Talk C"));
-        commandExecutor.executeCommand(new AcceptTalkCommand("conf-1", talkA));
+        commandExecutor.execute(new SubmitTalkCommand("sub-a", talkA, "alice", "Talk A"));
+        commandExecutor.execute(new SubmitTalkCommand("sub-b", talkB, "bob",   "Talk B"));
+        commandExecutor.execute(new SubmitTalkCommand("sub-c", talkC, "carol", "Talk C"));
+        commandExecutor.execute(new AcceptTalkCommand("conf-1", talkA));
 
         // Both threads try to accept the last slot simultaneously
         CountDownLatch ready  = new CountDownLatch(2);
@@ -986,14 +986,14 @@ This test cannot be written as a domain test because `InMemoryEventStore` skips 
         Runnable acceptB = () -> {
             ready.countDown();
             try { start.await(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-            try { commandExecutor.executeCommand(new AcceptTalkCommand("conf-1", talkB)); }
+            try { commandExecutor.execute(new AcceptTalkCommand("conf-1", talkB)); }
             catch (Exception e) { errors.add(e); }
         };
 
         Runnable acceptC = () -> {
             ready.countDown();
             try { start.await(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-            try { commandExecutor.executeCommand(new AcceptTalkCommand("conf-1", talkC)); }
+            try { commandExecutor.execute(new AcceptTalkCommand("conf-1", talkC)); }
             catch (Exception e) { errors.add(e); }
         };
 

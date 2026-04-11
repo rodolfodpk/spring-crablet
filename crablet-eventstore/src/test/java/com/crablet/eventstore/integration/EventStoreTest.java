@@ -1,5 +1,6 @@
 package com.crablet.eventstore.integration;
 
+import com.crablet.eventstore.CommandAuditStore;
 import com.crablet.eventstore.ConcurrencyException;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.EventRepository;
@@ -294,7 +295,9 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                 tools.jackson.databind.JsonNode jsonNode = objectMapper.readTree(commandJson);
                 tools.jackson.databind.JsonNode commandTypeNode = jsonNode.get("commandType");
                 String commandType = commandTypeNode != null ? commandTypeNode.asText() : null;
-                txEventStore.storeCommand(commandJson, commandType, transactionId);
+                if (txEventStore instanceof CommandAuditStore auditStore) {
+                    auditStore.storeCommand(commandJson, commandType != null ? commandType : "unknown", transactionId);
+                }
             } catch (tools.jackson.core.JacksonException e) {
                 throw new RuntimeException("Failed to serialize command", e);
             }
