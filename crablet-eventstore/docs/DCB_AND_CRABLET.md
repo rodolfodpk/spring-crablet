@@ -96,27 +96,28 @@ Request B: Read@42 → Check → Conflict (position 43 exists) → 409 Conflict
            Application retries: Read@43 → Check → Write@44 (success)
 ```
 
-## StreamPosition-Based vs Idempotency Checks
+## Crablet's Concurrency Strategies
 
-DCB supports two concurrency control strategies:
+DCB defines the core mechanism: criteria-based consistency boundaries and streamPosition-based optimistic locking. Crablet builds on this with **three append methods** that cover the common operational patterns, each with different concurrency semantics.
 
-| Aspect | StreamPosition-Based Checks | Idempotency Checks |
-|--------|-------------------|-------------------|
-| **Use Case** | Operations on existing entities (Withdraw, Transfer) | Creating new entities (OpenWallet) |
-| **What It Checks** | "Has anything changed AFTER stream position X?" | "Does entity already exist?" |
-| **Advisory Locks** | ❌ Not needed | ✅ Required |
-| **Protection Mechanism** | PostgreSQL snapshot isolation (MVCC) | Advisory locks serialize duplicate checks |
-| **Performance** | ~4x faster (no lock contention) | Slower (lock serialization) |
-| **Behavior** | 201 CREATED for all successful requests, 409 Conflict for stale stream positions | 201 CREATED for new entities, 200 OK for duplicates |
-| **Why Different?** | Can check "has state changed since I read?" | Cannot check prior state (entity doesn't exist yet) |
+> These method names (`appendNonCommutative`, `appendCommutative`, `appendIdempotent`) are Crablet's API — not DCB spec vocabulary. The underlying streamPosition conflict detection is DCB; the three-way taxonomy is Crablet's implementation decision.
 
-**Key Insight**: StreamPosition-based checks can rely on snapshot isolation because they're checking for changes to existing state. Idempotency checks need advisory locks because they're checking for the existence of something that may not exist yet, and snapshot isolation cannot prevent the race condition in this scenario.
+| Aspect | `appendNonCommutative` | `appendCommutative` | `appendIdempotent` |
+|--------|-------------------|-------------------|-------------------|
+| **Use Case** | State-dependent operations (Withdraw, Transfer) | Order-independent operations (Deposit, Credit) | Entity creation (OpenWallet) |
+| **What It Checks** | "Has anything changed AFTER stream position X?" | Nothing (or optional lifecycle guard) | "Does entity already exist?" |
+| **Advisory Locks** | ❌ Not needed | ❌ Not needed | ✅ Required |
+| **Protection Mechanism** | PostgreSQL snapshot isolation (MVCC) | Optional lifecycle guard | Advisory locks serialize duplicate checks |
+| **Performance** | ~4x faster than idempotent (no lock contention) | Fastest (no conflict check) | Slowest (lock serialization) |
+| **Behavior** | 201 CREATED on success, 409 Conflict on stale position | Always succeeds (order-independent) | 201 CREATED for new entities, 200 OK for duplicates |
+
+**Key Insight**: `appendNonCommutative` can rely on snapshot isolation because it checks changes to existing state. `appendIdempotent` needs advisory locks because it checks for the existence of something that may not exist yet — snapshot isolation cannot prevent that race condition.
 
 ### Commutative Operations and Lifecycle Guards
 
-Some operations are order-independent with respect to each other (e.g., two concurrent deposits do not conflict) but still require the entity to be in an active state (e.g., the wallet must be open). For these cases, Spring-Crablet provides `CommutativeGuarded`:
+Some operations are order-independent with respect to each other (e.g., two concurrent deposits do not conflict) but still require the entity to be in an active state (e.g., the wallet must be open). Crablet provides `CommutativeGuarded` for this case:
 
-- Concurrent operations of the same type (e.g., two deposits) **do not** conflict with each other — they use `appendCommutative` with no stream-position check between them.
+- Concurrent operations of the same type (e.g., two deposits) **do not** conflict with each other — Crablet calls `appendCommutative` with no stream-position check between them.
 - A **lifecycle guard query** — containing only lifecycle event types such as `WalletOpened`/`WalletClosed`, **not** `DepositMade` — is checked before appending. If a lifecycle event appeared after the projected position, a `ConcurrencyException` is thrown.
 
 This gives the best of both worlds: high parallelism for the common case, with protection against operations on a closed/deleted entity.

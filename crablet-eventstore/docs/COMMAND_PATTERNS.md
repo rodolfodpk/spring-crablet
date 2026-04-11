@@ -20,9 +20,9 @@
 
 ## Overview
 
-This guide explains when to use DCB streamPosition checks and when operations can run without them. Understanding the difference between **commutative** and **non-commutative** operations is key to proper DCB implementation.
+This guide explains Crablet's three concurrency patterns — the library's implementation of DCB-inspired consistency control. DCB defines the core mechanism (criteria-based consistency boundaries, streamPosition-based optimistic locking). Crablet maps this to three append methods: `appendNonCommutative`, `appendCommutative`, and `appendIdempotent`. Understanding the difference between **commutative** and **non-commutative** operations is key to choosing the right one.
 
-**Note:** Command handlers return a `CommandDecision` (via the sub-interface's `decide()` method). The `CommandExecutor` automatically calls the appropriate append method (`appendCommutative`, `appendNonCommutative`, or `appendIdempotent`) based on the decision type.
+**Note:** Command handlers return a `CommandDecision` (via the sub-interface's `decide()` method). The `CommandExecutor` automatically calls the appropriate append method based on the decision type.
 
 ## Command Handler Registration
 
@@ -55,12 +55,12 @@ Command handlers are automatically discovered by Spring:
 ### Commutative Operations
 Operations where order doesn't affect the final result (e.g., deposits: +$10 then +$20 = +$20 then +$10).
 
-**DCB Check:** ❌ Not required — use `CommutativeCommandHandler` / `appendCommutative`
+**Stream-position conflict check:** ❌ Not needed — use `CommutativeCommandHandler` / `appendCommutative`
 
 ### Non-Commutative Operations
 Operations where order matters — final result depends on execution order (e.g., withdrawals depend on current balance).
 
-**DCB Check:** ✅ Required — use `NonCommutativeCommandHandler` / `appendNonCommutative`
+**Stream-position conflict check:** ✅ Required — use `NonCommutativeCommandHandler` / `appendNonCommutative`
 
 ## Patterns
 

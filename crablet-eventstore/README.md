@@ -140,9 +140,9 @@ public interface WalletCommand {
 
 See [Closing the Books Pattern Guide](docs/CLOSING_BOOKS_PATTERN.md) for complete documentation.
 
-## DCB Pattern Examples
+## Crablet Command Pattern Examples
 
-Examples showing distinct DCB patterns. These examples show command handlers that return `CommandDecision`. The `CommandExecutor` automatically calls the correct append method based on the decision type.
+The following examples show Crablet's three concurrency patterns — the library's implementation of DCB-inspired consistency control. `CommandExecutor` automatically calls the correct append method (`appendIdempotent`, `appendCommutative`, or `appendNonCommutative`) based on the `CommandDecision` type returned by the handler.
 
 ### Example 1: OpenWallet (Idempotency)
 
