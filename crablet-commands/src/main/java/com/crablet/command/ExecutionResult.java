@@ -3,9 +3,12 @@ package com.crablet.command;
 /**
  * Result of command execution indicating whether operation was idempotent.
  * <p>
- * CommandExecutor observes the CommandDecision from handlers:
- * - If handler returns CommandDecision.empty(), operation was idempotent
- * - If handler returns events, operation created new state
+ * {@link CommandExecutor} returns this after interpreting the handler's
+ * {@link CommandDecision}:
+ * <ul>
+ *   <li>{@link CommandDecision.NoOp} or a duplicate idempotent command maps to an idempotent result</li>
+ *   <li>A successful append maps to a created result</li>
+ * </ul>
  * <p>
  * The reason field provides context for internal components (logging, monitoring, debugging).
  * REST clients only need to check wasCreated() to determine HTTP status code.
@@ -24,4 +27,3 @@ public record ExecutionResult(boolean wasIdempotent, String reason) {
         return !wasIdempotent;
     }
 }
-

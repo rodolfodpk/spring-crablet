@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Unit tests for the sealed CommandDecision interface.
@@ -45,6 +46,33 @@ class CommandDecisionTest {
         CommandDecision result = CommandDecision.Commutative.of(e1, e2);
 
         assertThat(result.events()).containsExactly(e1, e2);
+    }
+
+    @Test
+    @DisplayName("CommutativeGuarded should reject lifecycle query containing appended event type")
+    void commutativeGuarded_ShouldRejectLifecycleQueryContainingAppendedEventType() {
+        AppendEvent event = sampleEvent("DepositMade");
+        Query invalidLifecycleQuery = Query.forEvent("DepositMade");
+
+        assertThatThrownBy(() -> CommandDecision.CommutativeGuarded.withLifecycleGuard(
+                event, invalidLifecycleQuery, StreamPosition.zero()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("DepositMade");
+    }
+
+    @Test
+    @DisplayName("CommutativeGuarded should allow lifecycle query with distinct event types")
+    void commutativeGuarded_ShouldAllowDistinctLifecycleEventTypes() {
+        AppendEvent event = sampleEvent("DepositMade");
+        Query lifecycleQuery = Query.forEventsAndTags(
+                List.of("WalletOpened", "WalletClosed"),
+                List.of());
+
+        CommandDecision.CommutativeGuarded result = CommandDecision.CommutativeGuarded.withLifecycleGuard(
+                event, lifecycleQuery, StreamPosition.zero());
+
+        assertThat(result.events()).containsExactly(event);
+        assertThat(result.guardQuery()).isEqualTo(lifecycleQuery);
     }
 
     // --- NonCommutative ---

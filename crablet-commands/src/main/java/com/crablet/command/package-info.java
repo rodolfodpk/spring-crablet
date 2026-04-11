@@ -8,7 +8,8 @@
  * <ul>
  *   <li>{@link com.crablet.command.CommandHandler} - Interface for type-safe command handling</li>
  *   <li>{@link com.crablet.command.CommandExecutor} - Orchestrates command execution and transaction management</li>
- *   <li>{@link com.crablet.command.CommandDecision} - Encapsulates events and append conditions from handlers</li>
+ *   <li>{@link com.crablet.command.CommandExecutors} - Public factory for constructing executors in application wiring</li>
+ *   <li>{@link com.crablet.command.CommandDecision} - Encodes append semantics and carries the events from handlers</li>
  *   <li>{@link com.crablet.command.ExecutionResult} - Indicates whether an operation was idempotent</li>
  * </ul>
  * <p>
@@ -25,16 +26,14 @@
  *   <li>Project decision model (read events via tags)</li>
  *   <li>Validate business rules from projected state</li>
  *   <li>Create events</li>
- *   <li>Build AppendCondition from projection stream position</li>
- *   <li>Return events + condition (CommandExecutor atomically appends with condition)</li>
+ *   <li>Return the appropriate {@link com.crablet.command.CommandDecision} variant</li>
+ *   <li>{@code CommandExecutor} atomically calls the matching {@code EventStore.append*} method</li>
  * </ol>
  * <p>
  * All operations within a command execution use a single database transaction,
  * ensuring atomicity of queries, projections, appends, and command storage.
  *
  * @see com.crablet.eventstore.EventStore
- * @see com.crablet.eventstore.AppendCondition
  */
 @org.jspecify.annotations.NullMarked
 package com.crablet.command;
-

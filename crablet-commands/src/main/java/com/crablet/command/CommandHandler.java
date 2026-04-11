@@ -3,29 +3,29 @@ package com.crablet.command;
 import com.crablet.eventstore.EventStore;
 
 /**
- * CommandHandler handles command execution and generates events.
- * Based on the Go implementation's CommandHandler interface.
+ * Generic interface for type-safe command handling.
  * <p>
- * Generic interface for type-safe command handling with self-identification.
+ * Handlers project state from the {@link EventStore}, validate business rules,
+ * and return a {@link CommandDecision} describing the intended concurrency
+ * semantics and events to append.
  */
 public interface CommandHandler<T> {
 
     /**
      * Handle a command following DCB pattern.
      * <p>
-     * DCB Flow:
-     * 1. Project decision model (read events via tags)
-     * 2. Validate business rules from state
+     * Typical flow:
+     * 1. Project the decision model from the event store
+     * 2. Validate business rules from the projected state
      * 3. Create events
-     * 4. Build AppendCondition from projection
-     * 5. Return events + condition
+     * 4. Return the appropriate {@link CommandDecision} variant
      * <p>
-     * CommandExecutor will atomically append events with condition.
+     * {@link CommandExecutor} atomically interprets the returned decision and
+     * calls the matching {@link EventStore} append method.
      *
      * @param eventStore The event store for projections
      * @param command    The command to handle
-     * @return CommandDecision with events and append condition
+     * @return the command decision describing how the events should be appended
      */
     CommandDecision handle(EventStore eventStore, T command);
 }
-

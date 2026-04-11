@@ -147,10 +147,15 @@ public class CrabletConfig {
             ClockProvider clock,
             ObjectMapper objectMapper,
             ApplicationEventPublisher eventPublisher) {
-        return new CommandExecutorImpl(eventStore, commandHandlers, config, clock, objectMapper, eventPublisher);
+        return CommandExecutors.create(
+                eventStore, commandHandlers, config, clock, objectMapper, eventPublisher);
     }
 }
 ```
+
+At the moment, explicit bean wiring is the supported setup for `CommandExecutor`.
+Use the public `CommandExecutors.create(...)` factory rather than instantiating
+the internal executor implementation directly.
 
 ### 4. Execute Commands
 
@@ -375,4 +380,3 @@ The following metrics are published:
 ## License
 
 MIT
-

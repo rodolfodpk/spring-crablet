@@ -1,6 +1,7 @@
 package com.crablet.command.integration;
 
 import com.crablet.command.CommandExecutor;
+import com.crablet.command.CommandExecutors;
 import com.crablet.command.internal.CommandExecutorImpl;
 import com.crablet.examples.wallet.commands.DepositCommandHandler;
 import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
@@ -169,7 +170,7 @@ public class TestApplication {
                                            ClockProvider clock,
                                            tools.jackson.databind.ObjectMapper objectMapper,
                                            org.springframework.context.ApplicationEventPublisher eventPublisher) {
-        return new CommandExecutorImpl(eventStore, commandHandlers, config, clock, objectMapper, eventPublisher);
+        return CommandExecutors.create(eventStore, commandHandlers, config, clock, objectMapper, eventPublisher);
     }
     
     /**
@@ -195,4 +196,3 @@ public class TestApplication {
         return flyway;
     }
 }
-

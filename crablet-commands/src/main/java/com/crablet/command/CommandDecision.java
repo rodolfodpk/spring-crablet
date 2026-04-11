@@ -70,6 +70,25 @@ public sealed interface CommandDecision
             Query guardQuery,
             StreamPosition guardPosition
     ) implements CommandDecision.CommutativeDecision {
+        public CommutativeGuarded {
+            var appendedEventTypes = events.stream()
+                    .map(AppendEvent::type)
+                    .collect(java.util.stream.Collectors.toSet());
+
+            var overlappingTypes = guardQuery.items().stream()
+                    .flatMap(item -> item.eventTypes().stream())
+                    .filter(appendedEventTypes::contains)
+                    .distinct()
+                    .sorted()
+                    .toList();
+
+            if (!overlappingTypes.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "CommutativeGuarded lifecycle query must not include appended event types: " +
+                                String.join(", ", overlappingTypes));
+            }
+        }
+
         /**
          * Factory for commutative operations with a lifecycle guard.
          * Use this to allow concurrent operations of the same type (e.g., deposits) while
@@ -79,6 +98,7 @@ public sealed interface CommandDecision
          * @param event         the event to append
          * @param lifecycleQuery query scoped to lifecycle event types only (e.g., WalletOpened, WalletClosed)
          * @param guardPosition  the stream position captured during the handler's projection
+         * @throws IllegalArgumentException if the lifecycle query includes the appended event type
          */
         public static CommutativeGuarded withLifecycleGuard(
                 AppendEvent event, Query lifecycleQuery, StreamPosition guardPosition) {

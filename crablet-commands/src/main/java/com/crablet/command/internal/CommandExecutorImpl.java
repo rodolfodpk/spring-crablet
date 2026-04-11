@@ -44,20 +44,24 @@ import java.util.stream.Collectors;
  * This is based on the Go implementation's CommandExecutor pattern.
  * <p>
  * <strong>Spring Integration:</strong>
- * This class does NOT have @Component annotation. Users must define an explicit @Bean:
+ * This class does NOT have {@code @Component} annotation. Prefer wiring
+ * {@link com.crablet.command.CommandExecutors#create(EventStore, List, EventStoreConfig, ClockProvider, ObjectMapper, ApplicationEventPublisher)}
+ * from application configuration instead of constructing this internal type directly.
+ * For example:
  * <pre>{@code
  * @Configuration
  * public class CrabletConfig {
  *
  *     @Bean
- *     public CommandExecutorImpl commandExecutor(
+ *     public CommandExecutor commandExecutor(
  *             EventStore eventStore,
  *             List<CommandHandler<?>> commandHandlers,
  *             EventStoreConfig config,
  *             ClockProvider clock,
  *             ObjectMapper objectMapper,
  *             ApplicationEventPublisher eventPublisher) {
- *         return new CommandExecutorImpl(eventStore, commandHandlers, config, clock, objectMapper, eventPublisher);
+ *         return CommandExecutors.create(
+ *                 eventStore, commandHandlers, config, clock, objectMapper, eventPublisher);
  *     }
  * }
  * }</pre>
