@@ -6,20 +6,31 @@ Light event sourcing framework with Dynamic Consistency Boundary (DCB) support a
 
 ## Overview
 
-Crablet EventStore is an event sourcing framework with DCB (Dynamic Consistency Boundary) support:
+Crablet EventStore is an event sourcing framework inspired by the [DCB (Dynamic Consistency Boundary)](docs/DCB_AND_CRABLET.md) pattern:
 
-- **DCB**: Optimistic concurrency control without distributed locks
+- **DCB**: Criteria-based consistency boundaries using streamPosition-based optimistic locking — no fixed aggregates, no distributed locks for most operations
 - **Event Sourcing**: Complete audit trail with state reconstruction
 - **Spring Integration**: Ready-to-use Spring Boot components
 
 ## Features
 
-- **Event Store Interface**: Simple, idiomatic event sourcing API
-- **DCB**: Optimistic concurrency control using stream positions
+- **Event Store Interface**: Simple, idiomatic event sourcing API with three append methods (see below)
 - **Flexible Querying**: Tag-based event querying and filtering
 - **State Projection**: Built-in support for projecting current state from events
 - **Spring Integration**: Ready-to-use Spring Boot components and configuration
 - **Read Replicas**: Optional PostgreSQL read replica support for horizontal scaling
+
+### Crablet's Three Append Methods
+
+Crablet maps DCB's consistency model onto three append methods, each with different concurrency semantics:
+
+| Method | Use Case | Concurrency Check |
+|--------|----------|-------------------|
+| `appendNonCommutative` | State-dependent operations (Withdraw, Transfer) | StreamPosition-based conflict detection |
+| `appendCommutative` | Order-independent operations (Deposit, Credit) | None (optional lifecycle guard) |
+| `appendIdempotent` | Entity creation (OpenWallet) | Advisory lock uniqueness check |
+
+These method names are Crablet's API — not DCB spec vocabulary. See [DCB_AND_CRABLET.md](docs/DCB_AND_CRABLET.md) for the full explanation.
 
 ## Usage
 
@@ -30,11 +41,11 @@ Inject `EventStore` and use it directly:
 private EventStore eventStore;
 
 public void myOperation() {
-    // Project state with DCB pattern
+    // 1. Project current state (DCB: read current position and state)
     Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(walletId);
     ProjectionResult<WalletBalanceState> projection = eventStore.project(decisionModel, projector);
     
-    // Append events with concurrency control — returns the transaction ID for command auditing
+    // 2. Append with streamPosition check (Crablet: appendNonCommutative detects concurrent changes)
     String transactionId = eventStore.appendNonCommutative(events, decisionModel, projection.streamPosition());
 }
 ```
