@@ -1,184 +1,244 @@
 package com.crablet.automations.internal;
 
+import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.AutomationSubscription;
+import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
-import org.junit.jupiter.api.BeforeEach;
+import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.env.Environment;
-import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+import static com.github.tomakehurst.wiremock.matching.RequestPatternBuilder.newRequestPattern;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link AutomationDispatcher}.
+ * Webhook tests use WireMock for real HTTP verification.
+ * In-process tests use a direct handler invocation.
  */
+@WireMockTest
 @DisplayName("AutomationDispatcher Unit Tests")
 class AutomationDispatcherTest {
 
     private static final ApplicationEventPublisher NO_OP_PUBLISHER = e -> {};
 
-    private RestClient restClient;
-    private RestClient.RequestBodyUriSpec postSpec;
-    private RestClient.RequestBodySpec bodySpec;
-    private RestClient.ResponseSpec responseSpec;
-    private Environment environment;
-
-    @BeforeEach
-    void setUp() {
-        restClient = mock(RestClient.class);
-        postSpec = mock(RestClient.RequestBodyUriSpec.class);
-        bodySpec = mock(RestClient.RequestBodySpec.class);
-        responseSpec = mock(RestClient.ResponseSpec.class);
-        environment = mock(Environment.class);
-
-        when(restClient.post()).thenReturn(postSpec);
-        when(postSpec.uri(anyString())).thenReturn(bodySpec);
-        when(bodySpec.contentType(any(MediaType.class))).thenReturn(bodySpec);
-        when(bodySpec.body(anyString())).thenReturn(bodySpec);
-        when(bodySpec.header(anyString(), anyString())).thenReturn(bodySpec);
-        when(bodySpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.toBodilessEntity()).thenReturn(null);
-        when(environment.getProperty("local.server.port", Integer.class)).thenReturn(null);
-        when(environment.getProperty("server.port", Integer.class)).thenReturn(null);
-    }
-
-    @Test
-    @DisplayName("Should POST to webhook URL for matching automation")
-    void shouldPostToWebhookUrl_ForMatchingAutomation() throws Exception {
-        // Given
-        AutomationSubscription subscription = AutomationSubscription.builder("wallet-notification")
-                .webhookUrl("http://localhost:8080/api/automations/wallet-opened")
+    private AutomationDispatcher webhookDispatcher(String automationName, String webhookUrl,
+                                                    WireMockRuntimeInfo wm) {
+        AutomationSubscription subscription = AutomationSubscription.builder(automationName)
+                .webhookUrl(webhookUrl)
                 .build();
-        AutomationDispatcher dispatcher = new AutomationDispatcher(
-                Map.of("wallet-notification", subscription), restClient, NO_OP_PUBLISHER, environment);
+        return new AutomationDispatcher(
+                Map.of(automationName, subscription), Map.of(),
+                RestClient.builder().build(), null,
+                NO_OP_PUBLISHER, envWithNoPort());
+    }
 
-        // When
-        int count = dispatcher.handle("wallet-notification", createTestEvents(), null);
-
-        // Then — one POST per event (2 events total)
-        assertThat(count).isEqualTo(2);
-        verify(postSpec, times(2)).uri("http://localhost:8080/api/automations/wallet-opened");
+    private AutomationDispatcher webhookDispatcherWithHeaders(String automationName, String webhookUrl,
+                                                               Map<String, String> headers,
+                                                               WireMockRuntimeInfo wm) {
+        AutomationSubscription subscription = AutomationSubscription.builder(automationName)
+                .webhookUrl(webhookUrl)
+                .webhookHeaders(headers)
+                .build();
+        return new AutomationDispatcher(
+                Map.of(automationName, subscription), Map.of(),
+                RestClient.builder().build(), null,
+                NO_OP_PUBLISHER, envWithNoPort());
     }
 
     @Test
-    @DisplayName("Should return 0 when no subscription registered for automation name")
-    void shouldReturnZero_WhenNoSubscriptionRegistered() throws Exception {
-        // Given
-        AutomationDispatcher dispatcher = new AutomationDispatcher(Map.of(), restClient, NO_OP_PUBLISHER, environment);
+    @DisplayName("Should POST to webhook URL for each matching event")
+    void shouldPostToWebhookUrl_ForEachMatchingEvent(WireMockRuntimeInfo wm) throws Exception {
+        stubFor(post("/webhook").willReturn(ok()));
 
-        // When
+        String webhookUrl = wm.getHttpBaseUrl() + "/webhook";
+        AutomationDispatcher dispatcher = webhookDispatcher("automation", webhookUrl, wm);
+
+        int count = dispatcher.handle("automation", createTestEvents(), null);
+
+        assertThat(count).isEqualTo(2);
+        verify(2, postRequestedFor(urlEqualTo("/webhook")));
+    }
+
+    @Test
+    @DisplayName("Should return 0 when no subscription or handler registered for automation name")
+    void shouldReturnZero_WhenNothingRegistered(WireMockRuntimeInfo wm) throws Exception {
+        AutomationDispatcher dispatcher = new AutomationDispatcher(
+                Map.of(), Map.of(), RestClient.builder().build(), null,
+                NO_OP_PUBLISHER, envWithNoPort());
+
         int result = dispatcher.handle("non-existent-automation", createTestEvents(), null);
 
-        // Then
         assertThat(result).isEqualTo(0);
-        verify(restClient, never()).post();
-    }
-
-    @Test
-    @DisplayName("Should process each event individually via separate POST requests")
-    void shouldPostForEachEvent_Individually() throws Exception {
-        // Given
-        AutomationSubscription subscription = AutomationSubscription.builder("automation")
-                .webhookUrl("http://localhost:8080/api/automations/handler")
-                .build();
-        AutomationDispatcher dispatcher = new AutomationDispatcher(
-                Map.of("automation", subscription), restClient, NO_OP_PUBLISHER, environment);
-        List<StoredEvent> events = createTestEvents(); // 2 events
-
-        // When
-        int count = dispatcher.handle("automation", events, null);
-
-        // Then - one POST per event (2 events)
-        assertThat(count).isEqualTo(2);
-        verify(restClient, times(2)).post();
-    }
-
-    @Test
-    @DisplayName("Should include webhook headers in POST request")
-    void shouldIncludeWebhookHeaders_InPostRequest() throws Exception {
-        // Given
-        AutomationSubscription subscription = AutomationSubscription.builder("automation")
-                .webhookUrl("http://localhost:8080/api/automations/handler")
-                .webhookHeaders(Map.of("Authorization", "Bearer secret-token"))
-                .build();
-        AutomationDispatcher dispatcher = new AutomationDispatcher(
-                Map.of("automation", subscription), restClient, NO_OP_PUBLISHER, environment);
-
-        // When
-        dispatcher.handle("automation", List.of(createTestEvents().get(0)), null);
-
-        // Then
-        verify(bodySpec).header("Authorization", "Bearer secret-token");
+        verify(0, newRequestPattern());
     }
 
     @Test
     @DisplayName("Should return 0 for empty events list")
-    void shouldReturnZero_ForEmptyEventsList() throws Exception {
-        // Given
-        AutomationSubscription subscription = AutomationSubscription.builder("automation")
-                .webhookUrl("http://localhost:8080/api/automations/handler")
-                .build();
-        AutomationDispatcher dispatcher = new AutomationDispatcher(
-                Map.of("automation", subscription), restClient, NO_OP_PUBLISHER, environment);
+    void shouldReturnZero_ForEmptyEventsList(WireMockRuntimeInfo wm) throws Exception {
+        stubFor(post("/webhook").willReturn(ok()));
 
-        // When
+        String webhookUrl = wm.getHttpBaseUrl() + "/webhook";
+        AutomationDispatcher dispatcher = webhookDispatcher("automation", webhookUrl, wm);
+
         int result = dispatcher.handle("automation", List.of(), null);
 
-        // Then
         assertThat(result).isEqualTo(0);
-        verify(restClient, never()).post();
+        verify(0, postRequestedFor(urlEqualTo("/webhook")));
     }
 
     @Test
-    @DisplayName("Should propagate exception from RestClient and stop processing")
-    void shouldPropagateException_FromRestClientAndStopProcessing() {
-        // Given
-        when(responseSpec.toBodilessEntity()).thenThrow(new RuntimeException("Connection refused"));
+    @DisplayName("Should include webhook headers in POST request")
+    void shouldIncludeWebhookHeaders_InPostRequest(WireMockRuntimeInfo wm) throws Exception {
+        stubFor(post("/webhook").willReturn(ok()));
 
-        AutomationSubscription subscription = AutomationSubscription.builder("automation")
-                .webhookUrl("http://localhost:8080/api/automations/handler")
-                .build();
-        AutomationDispatcher dispatcher = new AutomationDispatcher(
-                Map.of("automation", subscription), restClient, NO_OP_PUBLISHER, environment);
+        String webhookUrl = wm.getHttpBaseUrl() + "/webhook";
+        AutomationDispatcher dispatcher = webhookDispatcherWithHeaders(
+                "automation", webhookUrl, Map.of("Authorization", "Bearer secret-token"), wm);
 
-        // When & Then
+        dispatcher.handle("automation", List.of(createTestEvents().get(0)), null);
+
+        verify(1, postRequestedFor(urlEqualTo("/webhook"))
+                .withHeader("Authorization", equalTo("Bearer secret-token")));
+    }
+
+    @Test
+    @DisplayName("Should propagate HTTP error from webhook and stop processing")
+    void shouldPropagateHttpError_FromWebhookAndStopProcessing(WireMockRuntimeInfo wm) {
+        stubFor(post("/webhook").willReturn(serverError()));
+
+        String webhookUrl = wm.getHttpBaseUrl() + "/webhook";
+        AutomationDispatcher dispatcher = webhookDispatcher("automation", webhookUrl, wm);
+
         assertThatThrownBy(() -> dispatcher.handle("automation", createTestEvents(), null))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("Connection refused");
+                .isInstanceOf(Exception.class);
     }
 
     @Test
     @DisplayName("Should resolve relative webhook URL against active web server port")
-    void shouldResolveRelativeWebhookUrlAgainstActiveWebServerPort() throws Exception {
-        when(environment.getProperty("local.server.port", Integer.class)).thenReturn(58529);
+    void shouldResolveRelativeWebhookUrl_AgainstActiveWebServerPort(WireMockRuntimeInfo wm) throws Exception {
+        stubFor(post("/api/automations/handler").willReturn(ok()));
 
         AutomationSubscription subscription = AutomationSubscription.builder("automation")
                 .webhookUrl("/api/automations/handler")
                 .build();
         AutomationDispatcher dispatcher = new AutomationDispatcher(
-                Map.of("automation", subscription), restClient, NO_OP_PUBLISHER, environment);
+                Map.of("automation", subscription), Map.of(),
+                RestClient.builder().build(), null,
+                NO_OP_PUBLISHER, envWithPort(wm.getHttpPort()));
 
-        // When & Then
         int count = dispatcher.handle("automation", List.of(createTestEvents().get(0)), null);
 
         assertThat(count).isEqualTo(1);
-        verify(postSpec).uri("http://localhost:58529/api/automations/handler");
+        verify(1, postRequestedFor(urlEqualTo("/api/automations/handler")));
+    }
+
+    @Test
+    @DisplayName("Should call in-process handler directly without HTTP")
+    void shouldCallInProcessHandler_DirectlyWithoutHttp(WireMockRuntimeInfo wm) throws Exception {
+        CommandExecutor executor = mock(CommandExecutor.class);
+        AtomicReference<StoredEvent> received = new AtomicReference<>();
+
+        AutomationHandler handler = new AutomationHandler() {
+            @Override public String getAutomationName() { return "automation"; }
+            @Override public Set<String> getEventTypes() { return Set.of("WalletOpened"); }
+            @Override public void react(StoredEvent event, CommandExecutor ce) { received.set(event); }
+        };
+
+        AutomationDispatcher dispatcher = new AutomationDispatcher(
+                Map.of(), Map.of("automation", handler),
+                RestClient.builder().build(), executor,
+                NO_OP_PUBLISHER, envWithNoPort());
+
+        int count = dispatcher.handle("automation", List.of(createTestEvents().get(0)), null);
+
+        assertThat(count).isEqualTo(1);
+        assertThat(received.get()).isNotNull();
+        assertThat(received.get().type()).isEqualTo("WalletOpened");
+        verify(0, newRequestPattern()); // no HTTP calls
+    }
+
+    @Test
+    @DisplayName("Should pass CommandExecutor to in-process handler")
+    void shouldPassCommandExecutor_ToInProcessHandler(WireMockRuntimeInfo wm) throws Exception {
+        CommandExecutor executor = mock(CommandExecutor.class);
+        AtomicReference<CommandExecutor> receivedExecutor = new AtomicReference<>();
+
+        AutomationHandler handler = new AutomationHandler() {
+            @Override public String getAutomationName() { return "automation"; }
+            @Override public Set<String> getEventTypes() { return Set.of("WalletOpened"); }
+            @Override public void react(StoredEvent event, CommandExecutor ce) { receivedExecutor.set(ce); }
+        };
+
+        AutomationDispatcher dispatcher = new AutomationDispatcher(
+                Map.of(), Map.of("automation", handler),
+                RestClient.builder().build(), executor,
+                NO_OP_PUBLISHER, envWithNoPort());
+
+        dispatcher.handle("automation", List.of(createTestEvents().get(0)), null);
+
+        assertThat(receivedExecutor.get()).isSameAs(executor);
+    }
+
+    @Test
+    @DisplayName("Should propagate exception from in-process handler")
+    void shouldPropagateException_FromInProcessHandler(WireMockRuntimeInfo wm) {
+        CommandExecutor executor = mock(CommandExecutor.class);
+
+        AutomationHandler handler = new AutomationHandler() {
+            @Override public String getAutomationName() { return "automation"; }
+            @Override public Set<String> getEventTypes() { return Set.of("WalletOpened"); }
+            @Override public void react(StoredEvent event, CommandExecutor ce) {
+                throw new RuntimeException("handler error");
+            }
+        };
+
+        AutomationDispatcher dispatcher = new AutomationDispatcher(
+                Map.of(), Map.of("automation", handler),
+                RestClient.builder().build(), executor,
+                NO_OP_PUBLISHER, envWithNoPort());
+
+        assertThatThrownBy(() -> dispatcher.handle("automation", List.of(createTestEvents().get(0)), null))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("handler error");
+    }
+
+    // --- helpers ---
+
+    private Environment envWithPort(int port) {
+        Environment env = mock(Environment.class);
+        when(env.getProperty("local.server.port", Integer.class)).thenReturn(port);
+        when(env.getProperty("server.port", Integer.class)).thenReturn(null);
+        return env;
+    }
+
+    private Environment envWithNoPort() {
+        Environment env = mock(Environment.class);
+        when(env.getProperty("local.server.port", Integer.class)).thenReturn(null);
+        when(env.getProperty("server.port", Integer.class)).thenReturn(null);
+        return env;
     }
 
     private List<StoredEvent> createTestEvents() {
@@ -186,7 +246,7 @@ class AutomationDispatcherTest {
             new StoredEvent(
                 "WalletOpened",
                 List.of(new Tag("wallet_id", "wallet-1")),
-                "{\"walletId\":\"wallet-1\"}".getBytes(),
+                "{\"wallet_id\":\"wallet-1\",\"owner\":\"Alice\"}".getBytes(),
                 "tx-1",
                 1L,
                 Instant.now()

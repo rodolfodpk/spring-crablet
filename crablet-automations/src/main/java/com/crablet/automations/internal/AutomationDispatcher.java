@@ -1,8 +1,10 @@
 package com.crablet.automations.internal;
 
+import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.AutomationSubscription;
 import com.crablet.automations.metrics.AutomationExecutionErrorMetric;
 import com.crablet.automations.metrics.AutomationExecutionMetric;
+import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
@@ -11,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
+import org.springframework.lang.Nullable;
 import org.springframework.web.client.RestClient;
 
 import javax.sql.DataSource;
@@ -20,40 +23,79 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Dispatches events to automation webhook endpoints via HTTP POST.
- * <p>
- * For each matching event, fires a POST request to the URL configured in the
- * corresponding {@link AutomationSubscription}. The payload is the event serialized
- * as JSON. On HTTP 4xx/5xx or network errors, throws so the event processor retries.
+ * Dispatches events to automations — either via HTTP POST (webhook) or directly
+ * in-process (via {@link AutomationHandler}).
+ *
+ * <p>Routing is by automation name: if an {@link AutomationHandler} is registered
+ * under the name, the handler's {@link AutomationHandler#react} method is called
+ * directly. Otherwise, the corresponding {@link AutomationSubscription}'s webhook URL
+ * is used.
  */
 public class AutomationDispatcher implements EventHandler<String> {
 
     private static final Logger log = LoggerFactory.getLogger(AutomationDispatcher.class);
 
     private final Map<String, AutomationSubscription> subscriptions;
+    private final Map<String, AutomationHandler> inProcessHandlers;
     private final RestClient restClient;
+    private final CommandExecutor commandExecutor;
     private final ApplicationEventPublisher eventPublisher;
     private final Environment environment;
 
     public AutomationDispatcher(
             Map<String, AutomationSubscription> subscriptions,
+            Map<String, AutomationHandler> inProcessHandlers,
             RestClient restClient,
+            @Nullable CommandExecutor commandExecutor,
             ApplicationEventPublisher eventPublisher,
             Environment environment) {
         this.subscriptions = subscriptions;
+        this.inProcessHandlers = inProcessHandlers;
         this.restClient = restClient;
+        this.commandExecutor = commandExecutor;
         this.eventPublisher = eventPublisher;
         this.environment = environment;
     }
 
     @Override
     public int handle(String automationName, List<StoredEvent> events, DataSource writeDataSource) throws Exception {
-        AutomationSubscription subscription = subscriptions.get(automationName);
-        if (subscription == null) {
-            log.warn("No subscription registered for automation: {}", automationName);
-            return 0;
+        if (inProcessHandlers.containsKey(automationName)) {
+            return handleInProcess(automationName, events);
         }
 
+        AutomationSubscription subscription = subscriptions.get(automationName);
+        if (subscription == null) {
+            log.warn("No subscription or handler registered for automation: {}", automationName);
+            return 0;
+        }
+        return handleWebhook(automationName, subscription, events);
+    }
+
+    private int handleInProcess(String automationName, List<StoredEvent> events) throws Exception {
+        AutomationHandler handler = inProcessHandlers.get(automationName);
+        Instant start = Instant.now();
+        int count = 0;
+
+        for (StoredEvent event : events) {
+            try {
+                handler.react(event, commandExecutor);
+                count++;
+            } catch (Exception e) {
+                eventPublisher.publishEvent(new AutomationExecutionErrorMetric(automationName));
+                log.error("Automation {} (in-process) failed on event type={} position={}: {}",
+                        automationName, event.type(), event.position(), e.getMessage(), e);
+                throw e;
+            }
+        }
+
+        eventPublisher.publishEvent(new AutomationExecutionMetric(
+                automationName, count, Duration.between(start, Instant.now())));
+        log.debug("Automation {} (in-process) processed {} events", automationName, count);
+        return count;
+    }
+
+    private int handleWebhook(String automationName, AutomationSubscription subscription,
+                               List<StoredEvent> events) throws Exception {
         String webhookUrl = resolveWebhookUrl(subscription.getWebhookUrl());
         Instant start = Instant.now();
         int count = 0;
@@ -65,7 +107,7 @@ public class AutomationDispatcher implements EventHandler<String> {
             } catch (Exception e) {
                 eventPublisher.publishEvent(new AutomationExecutionErrorMetric(automationName));
                 log.error("Automation {} failed to POST event type={} position={} to {}: {}",
-                    automationName, event.type(), event.position(), webhookUrl, e.getMessage(), e);
+                        automationName, event.type(), event.position(), webhookUrl, e.getMessage(), e);
                 throw e;
             }
         }

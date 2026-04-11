@@ -329,7 +329,7 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
         public AutomationEventFetcher automationEventFetcher(
                 @Qualifier("readDataSource") DataSource readDataSource,
                 Map<String, AutomationSubscription> automationSubscriptions) {
-            return new AutomationEventFetcher(readDataSource, automationSubscriptions);
+            return new AutomationEventFetcher(readDataSource, automationSubscriptions, Map.of());
         }
     }
 }

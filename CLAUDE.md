@@ -645,6 +645,10 @@ cd wallet-example-app && ./mvnw spring-boot:run
 
 ## Important Coding Patterns & Conventions
 
+### Java Style
+
+- **Never use fully qualified class names in code.** Always add import statements at the top of the file. Fully qualified names (e.g., `com.crablet.eventstore.StoredEvent event` inline) are forbidden; use imports instead.
+
 ### Naming Conventions
 
 **Tags** (snake_case):

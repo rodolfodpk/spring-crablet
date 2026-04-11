@@ -1,60 +1,55 @@
 package com.crablet.wallet.reactions;
 
+import com.crablet.automations.AutomationHandler;
 import com.crablet.command.CommandExecutor;
+import com.crablet.eventstore.EventType;
+import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.notification.commands.SendWelcomeNotificationCommand;
 import com.crablet.examples.wallet.events.WalletOpened;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
-import java.util.Map;
+import java.util.Set;
 
 /**
- * Webhook endpoint for the "wallet-opened-welcome-notification" automation.
+ * In-process automation handler for the "wallet-opened-welcome-notification" automation.
  *
- * <p>The automations module fires an HTTP POST here whenever a {@code WalletOpened}
- * event is dispatched. This controller extracts the wallet data from the payload
- * and executes a {@link SendWelcomeNotificationCommand}.
+ * <p>Called directly by the automation processor whenever a {@code WalletOpened} event
+ * is detected. Deserializes the event and executes a {@link SendWelcomeNotificationCommand}.
+ * No HTTP round-trip involved.
  */
-@RestController
-@RequestMapping("/api/automations")
-public class WalletOpenedReaction {
+@Component
+public class WalletOpenedReaction implements AutomationHandler {
 
     private static final Logger log = LoggerFactory.getLogger(WalletOpenedReaction.class);
 
-    private final CommandExecutor commandExecutor;
+    private final ObjectMapper objectMapper;
 
-    public WalletOpenedReaction(CommandExecutor commandExecutor) {
-        this.commandExecutor = commandExecutor;
+    public WalletOpenedReaction(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
     }
 
-    @PostMapping("/wallet-opened")
-    public ResponseEntity<Void> onWalletOpened(@RequestBody Map<String, Object> payload) {
-        try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> data = (Map<String, Object>) payload.get("data");
-            String walletId = stringValue(data, "wallet_id", "walletId");
-            String owner = (String) data.get("owner");
+    @Override
+    public String getAutomationName() {
+        return "wallet-opened-welcome-notification";
+    }
 
-            commandExecutor.execute(SendWelcomeNotificationCommand.of(walletId, owner));
-            return ResponseEntity.ok().build();
+    @Override
+    public Set<String> getEventTypes() {
+        return Set.of(EventType.type(WalletOpened.class));
+    }
+
+    @Override
+    public void react(StoredEvent event, CommandExecutor commandExecutor) {
+        try {
+            WalletOpened opened = objectMapper.readValue(event.data(), WalletOpened.class);
+            commandExecutor.execute(SendWelcomeNotificationCommand.of(opened.walletId(), opened.owner()));
+            log.info("Sent welcome notification for wallet: {}", opened.walletId());
         } catch (Exception e) {
-            log.error("Failed to process wallet-opened webhook: {}", e.getMessage(), e);
+            log.error("Failed to process WalletOpened event position={}: {}", event.position(), e.getMessage(), e);
             throw new RuntimeException("WalletOpenedReaction failed", e);
         }
-    }
-
-    private String stringValue(Map<String, Object> data, String... keys) {
-        for (String key : keys) {
-            Object value = data.get(key);
-            if (value instanceof String string && !string.isBlank()) {
-                return string;
-            }
-        }
-        return null;
     }
 }

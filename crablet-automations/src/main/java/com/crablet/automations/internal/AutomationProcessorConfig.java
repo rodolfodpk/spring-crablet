@@ -1,8 +1,10 @@
 package com.crablet.automations.internal;
 
+import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.AutomationSubscription;
 import com.crablet.automations.config.AutomationsConfig;
 import com.crablet.eventpoller.processor.ProcessorConfig;
+import org.springframework.lang.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,6 +12,7 @@ import java.util.Map;
 /**
  * Adapter that creates {@link ProcessorConfig} instances from {@link AutomationsConfig}
  * and {@link AutomationSubscription} definitions. One config per automation.
+ * In-process handlers (no subscription) use global config only.
  */
 public class AutomationProcessorConfig implements ProcessorConfig<String> {
 
@@ -18,7 +21,7 @@ public class AutomationProcessorConfig implements ProcessorConfig<String> {
     private final AutomationSubscription subscription;
 
     public AutomationProcessorConfig(String automationName, AutomationsConfig automationsConfig,
-                                     AutomationSubscription subscription) {
+                                     @Nullable AutomationSubscription subscription) {
         this.automationName = automationName;
         this.automationsConfig = automationsConfig;
         this.subscription = subscription;
@@ -29,38 +32,56 @@ public class AutomationProcessorConfig implements ProcessorConfig<String> {
 
     @Override
     public long getPollingIntervalMs() {
-        Long override = subscription.getPollingIntervalMs();
-        return override != null ? override : automationsConfig.getPollingIntervalMs();
+        if (subscription != null) {
+            Long override = subscription.getPollingIntervalMs();
+            if (override != null) return override;
+        }
+        return automationsConfig.getPollingIntervalMs();
     }
 
     @Override
     public int getBatchSize() {
-        Integer override = subscription.getBatchSize();
-        return override != null ? override : automationsConfig.getBatchSize();
+        if (subscription != null) {
+            Integer override = subscription.getBatchSize();
+            if (override != null) return override;
+        }
+        return automationsConfig.getBatchSize();
     }
 
     @Override
     public boolean isBackoffEnabled() {
-        Boolean override = subscription.getBackoffEnabled();
-        return override != null ? override : true;
+        if (subscription != null) {
+            Boolean override = subscription.getBackoffEnabled();
+            if (override != null) return override;
+        }
+        return true;
     }
 
     @Override
     public int getBackoffThreshold() {
-        Integer override = subscription.getBackoffThreshold();
-        return override != null ? override : automationsConfig.getBackoffThreshold();
+        if (subscription != null) {
+            Integer override = subscription.getBackoffThreshold();
+            if (override != null) return override;
+        }
+        return automationsConfig.getBackoffThreshold();
     }
 
     @Override
     public int getBackoffMultiplier() {
-        Integer override = subscription.getBackoffMultiplier();
-        return override != null ? override : automationsConfig.getBackoffMultiplier();
+        if (subscription != null) {
+            Integer override = subscription.getBackoffMultiplier();
+            if (override != null) return override;
+        }
+        return automationsConfig.getBackoffMultiplier();
     }
 
     @Override
     public int getBackoffMaxSeconds() {
-        Integer override = subscription.getBackoffMaxSeconds();
-        return override != null ? override : automationsConfig.getMaxBackoffSeconds();
+        if (subscription != null) {
+            Integer override = subscription.getBackoffMaxSeconds();
+            if (override != null) return override;
+        }
+        return automationsConfig.getMaxBackoffSeconds();
     }
 
     @Override
@@ -71,12 +92,17 @@ public class AutomationProcessorConfig implements ProcessorConfig<String> {
 
     public static Map<String, AutomationProcessorConfig> createConfigMap(
             AutomationsConfig automationsConfig,
-            Map<String, AutomationSubscription> subscriptions) {
+            Map<String, AutomationSubscription> subscriptions,
+            Map<String, AutomationHandler> inProcessHandlers) {
 
         Map<String, AutomationProcessorConfig> configs = new HashMap<>();
         for (AutomationSubscription subscription : subscriptions.values()) {
             String name = subscription.getAutomationName();
             configs.put(name, new AutomationProcessorConfig(name, automationsConfig, subscription));
+        }
+        for (String name : inProcessHandlers.keySet()) {
+            // In-process handlers use global config only (no per-instance overrides)
+            configs.put(name, new AutomationProcessorConfig(name, automationsConfig, null));
         }
         return configs;
     }

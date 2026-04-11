@@ -14,7 +14,6 @@ import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
 import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
-import com.crablet.automations.AutomationSubscription;
 import com.crablet.views.config.ViewsConfig;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -169,12 +168,4 @@ public class CrabletConfig {
         return new CommandExecutorImpl(eventStore, commandHandlers, config, clock, objectMapper, eventPublisher);
     }
 
-    @Bean
-    public AutomationSubscription walletOpenedWelcomeNotificationSubscription() {
-        return AutomationSubscription.builder("wallet-opened-welcome-notification")
-                .eventTypes(com.crablet.eventstore.EventType.type(
-                        com.crablet.examples.wallet.events.WalletOpened.class))
-                .webhookUrl("/api/automations/wallet-opened")
-                .build();
-    }
 }

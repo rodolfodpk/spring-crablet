@@ -1,11 +1,13 @@
 package com.crablet.automations.config;
 
+import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.AutomationSubscription;
 import com.crablet.automations.internal.AutomationDispatcher;
 import com.crablet.automations.internal.AutomationEventFetcher;
 import com.crablet.automations.internal.AutomationProcessorConfig;
 import com.crablet.automations.internal.AutomationProgressTracker;
 import com.crablet.automations.management.AutomationManagementService;
+import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventProcessorFactory;
@@ -13,6 +15,7 @@ import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -47,46 +50,67 @@ public class AutomationsAutoConfiguration {
     }
 
     @Bean
-    public Map<String, AutomationSubscription> automationSubscriptions(List<AutomationSubscription> subscriptionBeans) {
+    public Map<String, AutomationSubscription> automationSubscriptions(
+            ObjectProvider<List<AutomationSubscription>> subscriptionBeansProvider) {
+        List<AutomationSubscription> beans = subscriptionBeansProvider.getIfAvailable(List::of);
         Map<String, AutomationSubscription> subscriptions = new HashMap<>();
-        for (AutomationSubscription subscription : subscriptionBeans) {
+        for (AutomationSubscription subscription : beans) {
             subscriptions.put(subscription.getAutomationName(), subscription);
         }
         return subscriptions;
     }
 
     @Bean
+    public Map<String, AutomationHandler> inProcessAutomationHandlers(
+            ObjectProvider<List<AutomationHandler>> handlerBeansProvider) {
+        List<AutomationHandler> handlers = handlerBeansProvider.getIfAvailable(List::of);
+        Map<String, AutomationHandler> map = new HashMap<>();
+        for (AutomationHandler handler : handlers) {
+            map.put(handler.getAutomationName(), handler);
+        }
+        return map;
+    }
+
+    @Bean
     public EventFetcher<String> automationEventFetcher(
             @Qualifier("readDataSource") DataSource readDataSource,
-            @Qualifier("automationSubscriptions") Map<String, AutomationSubscription> subscriptions) {
-        return new AutomationEventFetcher(readDataSource, subscriptions);
+            @Qualifier("automationSubscriptions") Map<String, AutomationSubscription> subscriptions,
+            @Qualifier("inProcessAutomationHandlers") Map<String, AutomationHandler> inProcessHandlers) {
+        return new AutomationEventFetcher(readDataSource, subscriptions, inProcessHandlers);
     }
 
     @Bean
     public RestClient automationRestClient(AutomationsConfig automationsConfig) {
-        return RestClient.builder()
-                .build();
+        return RestClient.builder().build();
     }
 
     @Bean
     public EventHandler<String> automationEventHandler(
             @Qualifier("automationSubscriptions") Map<String, AutomationSubscription> subscriptions,
+            @Qualifier("inProcessAutomationHandlers") Map<String, AutomationHandler> inProcessHandlers,
             RestClient automationRestClient,
+            ObjectProvider<CommandExecutor> commandExecutorProvider,
             ApplicationEventPublisher eventPublisher,
             Environment environment) {
-        return new AutomationDispatcher(
-                subscriptions,
-                automationRestClient,
-                eventPublisher,
-                environment
-        );
+
+        CommandExecutor commandExecutor = commandExecutorProvider.getIfAvailable();
+        if (!inProcessHandlers.isEmpty() && commandExecutor == null) {
+            throw new IllegalStateException(
+                    "In-process AutomationHandlers require a CommandExecutor bean. " +
+                    "Found handlers: " + inProcessHandlers.keySet() + ". " +
+                    "Ensure crablet-commands is on the classpath and a CommandExecutor bean is defined.");
+        }
+
+        return new AutomationDispatcher(subscriptions, inProcessHandlers, automationRestClient,
+                commandExecutor, eventPublisher, environment);
     }
 
     @Bean
     public Map<String, AutomationProcessorConfig> automationProcessorConfigs(
             AutomationsConfig automationsConfig,
-            @Qualifier("automationSubscriptions") Map<String, AutomationSubscription> subscriptions) {
-        return AutomationProcessorConfig.createConfigMap(automationsConfig, subscriptions);
+            @Qualifier("automationSubscriptions") Map<String, AutomationSubscription> subscriptions,
+            @Qualifier("inProcessAutomationHandlers") Map<String, AutomationHandler> inProcessHandlers) {
+        return AutomationProcessorConfig.createConfigMap(automationsConfig, subscriptions, inProcessHandlers);
     }
 
     @Bean

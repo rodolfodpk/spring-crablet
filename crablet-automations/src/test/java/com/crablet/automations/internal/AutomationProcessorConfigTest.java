@@ -150,7 +150,7 @@ class AutomationProcessorConfigTest {
         subscriptions.put("order-fulfillment", AutomationSubscription.builder("order-fulfillment").webhookUrl("http://localhost:8080/webhook").build());
 
         // When
-        Map<String, AutomationProcessorConfig> configs = AutomationProcessorConfig.createConfigMap(config, subscriptions);
+        Map<String, AutomationProcessorConfig> configs = AutomationProcessorConfig.createConfigMap(config, subscriptions, Map.of());
 
         // Then
         assertThat(configs).hasSize(2);
@@ -168,7 +168,7 @@ class AutomationProcessorConfigTest {
         Map<String, AutomationSubscription> subscriptions = new HashMap<>();
 
         // When
-        Map<String, AutomationProcessorConfig> configs = AutomationProcessorConfig.createConfigMap(config, subscriptions);
+        Map<String, AutomationProcessorConfig> configs = AutomationProcessorConfig.createConfigMap(config, subscriptions, Map.of());
 
         // Then
         assertThat(configs).isEmpty();
@@ -186,7 +186,7 @@ class AutomationProcessorConfigTest {
         subscriptions.put("automation-b", AutomationSubscription.builder("automation-b").webhookUrl("http://localhost:8080/webhook").build());
 
         // When
-        Map<String, AutomationProcessorConfig> configs = AutomationProcessorConfig.createConfigMap(config, subscriptions);
+        Map<String, AutomationProcessorConfig> configs = AutomationProcessorConfig.createConfigMap(config, subscriptions, Map.of());
 
         // Then
         assertThat(configs.get("automation-a").getPollingIntervalMs()).isEqualTo(3000L);
