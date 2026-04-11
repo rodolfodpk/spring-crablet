@@ -342,4 +342,3 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
         }
     }
 }
-

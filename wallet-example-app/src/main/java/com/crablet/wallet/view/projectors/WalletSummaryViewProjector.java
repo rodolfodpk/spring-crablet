@@ -157,4 +157,3 @@ public class WalletSummaryViewProjector extends AbstractTypedViewProjector<Walle
         return true;
     }
 }
-

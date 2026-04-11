@@ -136,4 +136,3 @@ public abstract class AbstractViewProjector implements ViewProjector {
      */
     protected abstract boolean handleEvent(StoredEvent event, JdbcTemplate jdbcTemplate);
 }
-

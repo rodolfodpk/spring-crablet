@@ -54,4 +54,3 @@ public interface EventHandler<I> {
      */
     int handle(I processorId, List<StoredEvent> events, DataSource writeDataSource) throws Exception;
 }
-

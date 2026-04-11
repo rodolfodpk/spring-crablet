@@ -115,4 +115,3 @@ public class WalletTransactionViewProjector extends AbstractTypedViewProjector<W
         return true;
     }
 }
-

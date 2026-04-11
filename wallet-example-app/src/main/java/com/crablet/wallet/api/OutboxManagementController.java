@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -42,6 +43,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/outbox")
 @Tag(name = "Outbox Management", description = "Transactional outbox publisher management and monitoring")
+@ConditionalOnBean(OutboxManagementService.class)
 public class OutboxManagementController {
 
     private final OutboxManagementService outboxManagementService;

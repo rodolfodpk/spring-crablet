@@ -61,4 +61,3 @@ public class ViewEventHandler implements EventHandler<String> {
         }
     }
 }
-

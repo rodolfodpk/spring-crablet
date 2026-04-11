@@ -119,4 +119,3 @@ public class WalletBalanceViewProjector extends AbstractTypedViewProjector<Walle
         return true;
     }
 }
-

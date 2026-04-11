@@ -95,4 +95,3 @@ public abstract class AbstractTypedViewProjector<E> extends AbstractViewProjecto
      */
     protected abstract Class<E> getEventType();
 }
-

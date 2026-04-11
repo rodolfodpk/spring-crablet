@@ -9,6 +9,7 @@ import com.crablet.eventstore.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 
@@ -32,14 +33,17 @@ public class AutomationDispatcher implements EventHandler<String> {
     private final Map<String, AutomationSubscription> subscriptions;
     private final RestClient restClient;
     private final ApplicationEventPublisher eventPublisher;
+    private final Environment environment;
 
     public AutomationDispatcher(
             Map<String, AutomationSubscription> subscriptions,
             RestClient restClient,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher,
+            Environment environment) {
         this.subscriptions = subscriptions;
         this.restClient = restClient;
         this.eventPublisher = eventPublisher;
+        this.environment = environment;
     }
 
     @Override
@@ -50,7 +54,7 @@ public class AutomationDispatcher implements EventHandler<String> {
             return 0;
         }
 
-        String webhookUrl = subscription.getWebhookUrl();
+        String webhookUrl = resolveWebhookUrl(subscription.getWebhookUrl());
         Instant start = Instant.now();
         int count = 0;
 
@@ -89,6 +93,27 @@ public class AutomationDispatcher implements EventHandler<String> {
                 .toBodilessEntity();
 
         log.debug("Automation {} delivered event type={} position={}", automationName, event.type(), event.position());
+    }
+
+    private String resolveWebhookUrl(String webhookUrl) {
+        if (webhookUrl.startsWith("http://") || webhookUrl.startsWith("https://")) {
+            return webhookUrl;
+        }
+        if (!webhookUrl.startsWith("/")) {
+            throw new IllegalArgumentException("webhookUrl must be absolute or start with '/': " + webhookUrl);
+        }
+
+        Integer port = environment.getProperty("local.server.port", Integer.class);
+        if (port == null || port <= 0) {
+            port = environment.getProperty("server.port", Integer.class);
+        }
+        if (port == null || port <= 0) {
+            throw new IllegalStateException(
+                    "Relative automation webhookUrl requires local.server.port or server.port: " + webhookUrl
+            );
+        }
+
+        return "http://localhost:" + port + webhookUrl;
     }
 
     /**

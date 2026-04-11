@@ -174,7 +174,7 @@ public class CrabletConfig {
         return AutomationSubscription.builder("wallet-opened-welcome-notification")
                 .eventTypes(com.crablet.eventstore.EventType.type(
                         com.crablet.examples.wallet.events.WalletOpened.class))
-                .webhookUrl("http://localhost:8080/api/automations/wallet-opened")
+                .webhookUrl("/api/automations/wallet-opened")
                 .build();
     }
 }

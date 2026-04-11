@@ -37,7 +37,7 @@ public class WalletOpenedReaction {
         try {
             @SuppressWarnings("unchecked")
             Map<String, Object> data = (Map<String, Object>) payload.get("data");
-            String walletId = (String) data.get("walletId");
+            String walletId = stringValue(data, "wallet_id", "walletId");
             String owner = (String) data.get("owner");
 
             commandExecutor.execute(SendWelcomeNotificationCommand.of(walletId, owner));
@@ -46,5 +46,15 @@ public class WalletOpenedReaction {
             log.error("Failed to process wallet-opened webhook: {}", e.getMessage(), e);
             throw new RuntimeException("WalletOpenedReaction failed", e);
         }
+    }
+
+    private String stringValue(Map<String, Object> data, String... keys) {
+        for (String key : keys) {
+            Object value = data.get(key);
+            if (value instanceof String string && !string.isBlank()) {
+                return string;
+            }
+        }
+        return null;
     }
 }

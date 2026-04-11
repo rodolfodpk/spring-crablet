@@ -105,7 +105,8 @@
                 <span class="badge bg-secondary" th:text="${outboxList.size()} + ' publishers'">0 publishers</span>
             </div>
             <div class="card-body p-0">
-                <p th:if="${outboxList.empty}" class="p-3 text-muted mb-0">No outbox publishers registered.</p>
+                <p th:if="${!outboxEnabled}" class="p-3 text-muted mb-0">Outbox module is disabled.</p>
+                <p th:if="${outboxEnabled and outboxList.empty}" class="p-3 text-muted mb-0">No outbox publishers registered.</p>
                 <table th:unless="${outboxList.empty}" class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
@@ -172,7 +173,8 @@
                 <span class="badge bg-secondary" th:text="${automations.size()} + ' automations'">0 automations</span>
             </div>
             <div class="card-body p-0">
-                <p th:if="${automations.empty}" class="p-3 text-muted mb-0">No automations registered.</p>
+                <p th:if="${!automationsEnabled}" class="p-3 text-muted mb-0">Automations module is disabled.</p>
+                <p th:if="${automationsEnabled and automations.empty}" class="p-3 text-muted mb-0">No automations registered.</p>
                 <table th:unless="${automations.empty}" class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>

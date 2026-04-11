@@ -19,6 +19,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.client.RestClient;
 
@@ -71,8 +72,14 @@ public class AutomationsAutoConfiguration {
     public EventHandler<String> automationEventHandler(
             @Qualifier("automationSubscriptions") Map<String, AutomationSubscription> subscriptions,
             RestClient automationRestClient,
-            ApplicationEventPublisher eventPublisher) {
-        return new AutomationDispatcher(subscriptions, automationRestClient, eventPublisher);
+            ApplicationEventPublisher eventPublisher,
+            Environment environment) {
+        return new AutomationDispatcher(
+                subscriptions,
+                automationRestClient,
+                eventPublisher,
+                environment
+        );
     }
 
     @Bean

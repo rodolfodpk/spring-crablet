@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 
@@ -36,6 +37,7 @@ class AutomationDispatcherTest {
     private RestClient.RequestBodyUriSpec postSpec;
     private RestClient.RequestBodySpec bodySpec;
     private RestClient.ResponseSpec responseSpec;
+    private Environment environment;
 
     @BeforeEach
     void setUp() {
@@ -43,6 +45,7 @@ class AutomationDispatcherTest {
         postSpec = mock(RestClient.RequestBodyUriSpec.class);
         bodySpec = mock(RestClient.RequestBodySpec.class);
         responseSpec = mock(RestClient.ResponseSpec.class);
+        environment = mock(Environment.class);
 
         when(restClient.post()).thenReturn(postSpec);
         when(postSpec.uri(anyString())).thenReturn(bodySpec);
@@ -51,6 +54,8 @@ class AutomationDispatcherTest {
         when(bodySpec.header(anyString(), anyString())).thenReturn(bodySpec);
         when(bodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.toBodilessEntity()).thenReturn(null);
+        when(environment.getProperty("local.server.port", Integer.class)).thenReturn(null);
+        when(environment.getProperty("server.port", Integer.class)).thenReturn(null);
     }
 
     @Test
@@ -61,7 +66,7 @@ class AutomationDispatcherTest {
                 .webhookUrl("http://localhost:8080/api/automations/wallet-opened")
                 .build();
         AutomationDispatcher dispatcher = new AutomationDispatcher(
-                Map.of("wallet-notification", subscription), restClient, NO_OP_PUBLISHER);
+                Map.of("wallet-notification", subscription), restClient, NO_OP_PUBLISHER, environment);
 
         // When
         int count = dispatcher.handle("wallet-notification", createTestEvents(), null);
@@ -75,7 +80,7 @@ class AutomationDispatcherTest {
     @DisplayName("Should return 0 when no subscription registered for automation name")
     void shouldReturnZero_WhenNoSubscriptionRegistered() throws Exception {
         // Given
-        AutomationDispatcher dispatcher = new AutomationDispatcher(Map.of(), restClient, NO_OP_PUBLISHER);
+        AutomationDispatcher dispatcher = new AutomationDispatcher(Map.of(), restClient, NO_OP_PUBLISHER, environment);
 
         // When
         int result = dispatcher.handle("non-existent-automation", createTestEvents(), null);
@@ -93,7 +98,7 @@ class AutomationDispatcherTest {
                 .webhookUrl("http://localhost:8080/api/automations/handler")
                 .build();
         AutomationDispatcher dispatcher = new AutomationDispatcher(
-                Map.of("automation", subscription), restClient, NO_OP_PUBLISHER);
+                Map.of("automation", subscription), restClient, NO_OP_PUBLISHER, environment);
         List<StoredEvent> events = createTestEvents(); // 2 events
 
         // When
@@ -113,7 +118,7 @@ class AutomationDispatcherTest {
                 .webhookHeaders(Map.of("Authorization", "Bearer secret-token"))
                 .build();
         AutomationDispatcher dispatcher = new AutomationDispatcher(
-                Map.of("automation", subscription), restClient, NO_OP_PUBLISHER);
+                Map.of("automation", subscription), restClient, NO_OP_PUBLISHER, environment);
 
         // When
         dispatcher.handle("automation", List.of(createTestEvents().get(0)), null);
@@ -130,7 +135,7 @@ class AutomationDispatcherTest {
                 .webhookUrl("http://localhost:8080/api/automations/handler")
                 .build();
         AutomationDispatcher dispatcher = new AutomationDispatcher(
-                Map.of("automation", subscription), restClient, NO_OP_PUBLISHER);
+                Map.of("automation", subscription), restClient, NO_OP_PUBLISHER, environment);
 
         // When
         int result = dispatcher.handle("automation", List.of(), null);
@@ -150,12 +155,30 @@ class AutomationDispatcherTest {
                 .webhookUrl("http://localhost:8080/api/automations/handler")
                 .build();
         AutomationDispatcher dispatcher = new AutomationDispatcher(
-                Map.of("automation", subscription), restClient, NO_OP_PUBLISHER);
+                Map.of("automation", subscription), restClient, NO_OP_PUBLISHER, environment);
 
         // When & Then
         assertThatThrownBy(() -> dispatcher.handle("automation", createTestEvents(), null))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("Connection refused");
+    }
+
+    @Test
+    @DisplayName("Should resolve relative webhook URL against active web server port")
+    void shouldResolveRelativeWebhookUrlAgainstActiveWebServerPort() throws Exception {
+        when(environment.getProperty("local.server.port", Integer.class)).thenReturn(58529);
+
+        AutomationSubscription subscription = AutomationSubscription.builder("automation")
+                .webhookUrl("/api/automations/handler")
+                .build();
+        AutomationDispatcher dispatcher = new AutomationDispatcher(
+                Map.of("automation", subscription), restClient, NO_OP_PUBLISHER, environment);
+
+        // When & Then
+        int count = dispatcher.handle("automation", List.of(createTestEvents().get(0)), null);
+
+        assertThat(count).isEqualTo(1);
+        verify(postSpec).uri("http://localhost:58529/api/automations/handler");
     }
 
     private List<StoredEvent> createTestEvents() {

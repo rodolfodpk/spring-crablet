@@ -4,6 +4,7 @@ import com.crablet.automations.management.AutomationManagementService;
 import com.crablet.outbox.internal.TopicPublisherPair;
 import com.crablet.outbox.management.OutboxManagementService;
 import com.crablet.views.service.ViewManagementService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,20 +12,22 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import java.util.List;
+
 @Controller
 @RequestMapping("/dashboard")
 public class DashboardController {
 
     private final ViewManagementService viewManagementService;
-    private final OutboxManagementService outboxManagementService;
-    private final AutomationManagementService automationManagementService;
+    private final ObjectProvider<OutboxManagementService> outboxManagementServiceProvider;
+    private final ObjectProvider<AutomationManagementService> automationManagementServiceProvider;
 
     public DashboardController(ViewManagementService viewManagementService,
-                               OutboxManagementService outboxManagementService,
-                               AutomationManagementService automationManagementService) {
+                               ObjectProvider<OutboxManagementService> outboxManagementServiceProvider,
+                               ObjectProvider<AutomationManagementService> automationManagementServiceProvider) {
         this.viewManagementService = viewManagementService;
-        this.outboxManagementService = outboxManagementService;
-        this.automationManagementService = automationManagementService;
+        this.outboxManagementServiceProvider = outboxManagementServiceProvider;
+        this.automationManagementServiceProvider = automationManagementServiceProvider;
     }
 
     // ========== Full Page ==========
@@ -84,21 +87,21 @@ public class DashboardController {
 
     @PostMapping("/outbox/{topic}/publishers/{publisher}/pause")
     public String pauseOutbox(@PathVariable String topic, @PathVariable String publisher, Model model) {
-        outboxManagementService.pause(new TopicPublisherPair(topic, publisher));
+        requireOutboxManagementService().pause(new TopicPublisherPair(topic, publisher));
         populateOutbox(model);
         return "dashboard :: outbox-section";
     }
 
     @PostMapping("/outbox/{topic}/publishers/{publisher}/resume")
     public String resumeOutbox(@PathVariable String topic, @PathVariable String publisher, Model model) {
-        outboxManagementService.resume(new TopicPublisherPair(topic, publisher));
+        requireOutboxManagementService().resume(new TopicPublisherPair(topic, publisher));
         populateOutbox(model);
         return "dashboard :: outbox-section";
     }
 
     @PostMapping("/outbox/{topic}/publishers/{publisher}/reset")
     public String resetOutbox(@PathVariable String topic, @PathVariable String publisher, Model model) {
-        outboxManagementService.reset(new TopicPublisherPair(topic, publisher));
+        requireOutboxManagementService().reset(new TopicPublisherPair(topic, publisher));
         populateOutbox(model);
         return "dashboard :: outbox-section";
     }
@@ -107,21 +110,21 @@ public class DashboardController {
 
     @PostMapping("/automations/{name}/pause")
     public String pauseAutomation(@PathVariable String name, Model model) {
-        automationManagementService.pause(name);
+        requireAutomationManagementService().pause(name);
         populateAutomations(model);
         return "dashboard :: automations-section";
     }
 
     @PostMapping("/automations/{name}/resume")
     public String resumeAutomation(@PathVariable String name, Model model) {
-        automationManagementService.resume(name);
+        requireAutomationManagementService().resume(name);
         populateAutomations(model);
         return "dashboard :: automations-section";
     }
 
     @PostMapping("/automations/{name}/reset")
     public String resetAutomation(@PathVariable String name, Model model) {
-        automationManagementService.reset(name);
+        requireAutomationManagementService().reset(name);
         populateAutomations(model);
         return "dashboard :: automations-section";
     }
@@ -129,14 +132,43 @@ public class DashboardController {
     // ========== Helpers ==========
 
     private void populateViews(Model model) {
+        model.addAttribute("viewsEnabled", true);
         model.addAttribute("views", viewManagementService.getAllProgressDetails().values());
     }
 
     private void populateOutbox(Model model) {
-        model.addAttribute("outboxList", outboxManagementService.getAllProgressDetails());
+        OutboxManagementService outboxManagementService = outboxManagementServiceProvider.getIfAvailable();
+        boolean outboxEnabled = outboxManagementService != null;
+        model.addAttribute("outboxEnabled", outboxEnabled);
+        model.addAttribute(
+                "outboxList",
+                outboxEnabled ? outboxManagementService.getAllProgressDetails() : List.of()
+        );
     }
 
     private void populateAutomations(Model model) {
-        model.addAttribute("automations", automationManagementService.getAllProgressDetails().values());
+        AutomationManagementService automationManagementService = automationManagementServiceProvider.getIfAvailable();
+        boolean automationsEnabled = automationManagementService != null;
+        model.addAttribute("automationsEnabled", automationsEnabled);
+        model.addAttribute(
+                "automations",
+                automationsEnabled ? automationManagementService.getAllProgressDetails().values() : List.of()
+        );
+    }
+
+    private OutboxManagementService requireOutboxManagementService() {
+        OutboxManagementService outboxManagementService = outboxManagementServiceProvider.getIfAvailable();
+        if (outboxManagementService == null) {
+            throw new IllegalStateException("Outbox management is not enabled");
+        }
+        return outboxManagementService;
+    }
+
+    private AutomationManagementService requireAutomationManagementService() {
+        AutomationManagementService automationManagementService = automationManagementServiceProvider.getIfAvailable();
+        if (automationManagementService == null) {
+            throw new IllegalStateException("Automation management is not enabled");
+        }
+        return automationManagementService;
     }
 }
