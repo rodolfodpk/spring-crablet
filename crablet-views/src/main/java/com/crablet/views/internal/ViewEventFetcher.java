@@ -1,15 +1,12 @@
 package com.crablet.views.internal;
 
 import com.crablet.eventpoller.AbstractJdbcEventFetcher;
+import com.crablet.eventpoller.EventSelectionSqlBuilder;
 import com.crablet.views.ViewSubscription;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 import javax.sql.DataSource;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Event fetcher for view projections.
@@ -33,31 +30,6 @@ public class ViewEventFetcher extends AbstractJdbcEventFetcher<String> {
             log.warn("Subscription not found for view: {} (available: {})", viewName, subscriptions.keySet());
             return null;
         }
-
-        Set<String> eventTypes = subscription.getEventTypes();
-        Set<String> requiredTags = subscription.getRequiredTags();
-        Set<String> anyOfTags = subscription.getAnyOfTags();
-
-        List<String> conditions = new ArrayList<>();
-
-        if (!eventTypes.isEmpty()) {
-            String typeCondition = eventTypes.stream()
-                .map(type -> "'" + type + "'")
-                .collect(Collectors.joining(", "));
-            conditions.add("type IN (" + typeCondition + ")");
-        }
-
-        for (String tagKey : requiredTags) {
-            conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE '" + tagKey + "=%')");
-        }
-
-        if (!anyOfTags.isEmpty()) {
-            String anyOfCondition = anyOfTags.stream()
-                .map(tagKey -> "t LIKE '" + tagKey + "=%'")
-                .collect(Collectors.joining(" OR "));
-            conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE " + anyOfCondition + ")");
-        }
-
-        return conditions.isEmpty() ? "TRUE" : String.join(" AND ", conditions);
+        return EventSelectionSqlBuilder.buildWhereClause(subscription);
     }
 }

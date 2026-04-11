@@ -25,9 +25,14 @@ public class ViewEventHandler implements EventHandler<String> {
     private static final Logger log = LoggerFactory.getLogger(ViewEventHandler.class);
 
     private final Map<String, ViewProjector> projectors;
+    private final DataSource writeDataSource;
     private final ApplicationEventPublisher eventPublisher;
 
-    public ViewEventHandler(List<ViewProjector> projectors, ApplicationEventPublisher eventPublisher) {
+    public ViewEventHandler(
+            List<ViewProjector> projectors,
+            DataSource writeDataSource,
+            ApplicationEventPublisher eventPublisher) {
+        this.writeDataSource = writeDataSource;
         this.eventPublisher = eventPublisher;
         this.projectors = new HashMap<>();
         for (ViewProjector projector : projectors) {
@@ -38,7 +43,7 @@ public class ViewEventHandler implements EventHandler<String> {
     }
 
     @Override
-    public int handle(String viewName, List<StoredEvent> events, DataSource writeDataSource) throws Exception {
+    public int handle(String viewName, List<StoredEvent> events) throws Exception {
         ViewProjector projector = projectors.get(viewName);
 
         if (projector == null) {

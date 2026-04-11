@@ -1,12 +1,15 @@
 package com.crablet.automations.internal;
 
-import com.crablet.automations.AutomationSubscription;
+import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.config.AutomationsConfig;
+import com.crablet.command.CommandExecutor;
+import com.crablet.eventstore.StoredEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -18,177 +21,117 @@ class AutomationProcessorConfigTest {
 
     @Test
     @DisplayName("Should use automation name as processor ID")
-    void shouldUseAutomationName_AsProcessorId() {
-        // Given
+    void shouldUseAutomationNameAsProcessorId() {
         AutomationsConfig config = createDefaultConfig();
 
-        // When
         AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("wallet-notification", config, noOverrides("wallet-notification"));
 
-        // Then
         assertThat(processorConfig.getProcessorId()).isEqualTo("wallet-notification");
     }
 
     @Test
     @DisplayName("Should delegate pollingIntervalMs from AutomationsConfig")
-    void shouldDelegatePollingIntervalMs_FromAutomationsConfig() {
-        // Given
+    void shouldDelegatePollingIntervalMsFromAutomationsConfig() {
         AutomationsConfig config = createDefaultConfig();
         config.setPollingIntervalMs(2000L);
 
-        // When
         AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, noOverrides("automation"));
 
-        // Then
         assertThat(processorConfig.getPollingIntervalMs()).isEqualTo(2000L);
     }
 
     @Test
+    @DisplayName("Should use handler pollingIntervalMs override when present")
+    void shouldUseHandlerPollingIntervalOverrideWhenPresent() {
+        AutomationsConfig config = createDefaultConfig();
+        AutomationHandler handler = webhookHandler("automation", "http://localhost/webhook", 5000L, null);
+
+        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, handler);
+
+        assertThat(processorConfig.getPollingIntervalMs()).isEqualTo(5000L);
+    }
+
+    @Test
     @DisplayName("Should delegate batchSize from AutomationsConfig")
-    void shouldDelegateBatchSize_FromAutomationsConfig() {
-        // Given
+    void shouldDelegateBatchSizeFromAutomationsConfig() {
         AutomationsConfig config = createDefaultConfig();
         config.setBatchSize(50);
 
-        // When
         AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, noOverrides("automation"));
 
-        // Then
         assertThat(processorConfig.getBatchSize()).isEqualTo(50);
     }
 
     @Test
-    @DisplayName("Should always return true for isBackoffEnabled")
-    void shouldAlwaysReturnTrue_ForIsBackoffEnabled() {
-        // Given
+    @DisplayName("Should use handler batchSize override when present")
+    void shouldUseHandlerBatchSizeOverrideWhenPresent() {
+        AutomationsConfig config = createDefaultConfig();
+        AutomationHandler handler = webhookHandler("automation", "http://localhost/webhook", null, 7);
+
+        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, handler);
+
+        assertThat(processorConfig.getBatchSize()).isEqualTo(7);
+    }
+
+    @Test
+    @DisplayName("Should always return true for isBackoffEnabled when no override is set")
+    void shouldAlwaysReturnTrueForIsBackoffEnabled() {
         AutomationsConfig config = createDefaultConfig();
 
-        // When
         AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, noOverrides("automation"));
 
-        // Then
         assertThat(processorConfig.isBackoffEnabled()).isTrue();
     }
 
     @Test
-    @DisplayName("Should delegate backoffThreshold from AutomationsConfig")
-    void shouldDelegateBackoffThreshold_FromAutomationsConfig() {
-        // Given
+    @DisplayName("Should use handler backoffEnabled override when present")
+    void shouldUseHandlerBackoffEnabledOverrideWhenPresent() {
         AutomationsConfig config = createDefaultConfig();
-        config.setBackoffThreshold(5);
+        AutomationHandler handler = new BaseHandler("automation") {
+            @Override public Boolean getBackoffEnabled() { return false; }
+        };
 
-        // When
-        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, noOverrides("automation"));
+        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, handler);
 
-        // Then
-        assertThat(processorConfig.getBackoffThreshold()).isEqualTo(5);
+        assertThat(processorConfig.isBackoffEnabled()).isFalse();
     }
 
     @Test
-    @DisplayName("Should delegate backoffMultiplier from AutomationsConfig")
-    void shouldDelegateBackoffMultiplier_FromAutomationsConfig() {
-        // Given
+    @DisplayName("Should create config map for all handlers")
+    void shouldCreateConfigMapForAllHandlers() {
         AutomationsConfig config = createDefaultConfig();
-        config.setBackoffMultiplier(3);
+        Map<String, AutomationHandler> handlers = new HashMap<>();
+        handlers.put("wallet-notification", noOverrides("wallet-notification"));
+        handlers.put("order-fulfillment", noOverrides("order-fulfillment"));
 
-        // When
-        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, noOverrides("automation"));
+        Map<String, AutomationProcessorConfig> configs = AutomationProcessorConfig.createConfigMap(config, handlers);
 
-        // Then
-        assertThat(processorConfig.getBackoffMultiplier()).isEqualTo(3);
-    }
-
-    @Test
-    @DisplayName("Should delegate backoffMaxSeconds from AutomationsConfig")
-    void shouldDelegateBackoffMaxSeconds_FromAutomationsConfig() {
-        // Given
-        AutomationsConfig config = createDefaultConfig();
-        config.setMaxBackoffSeconds(120);
-
-        // When
-        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, noOverrides("automation"));
-
-        // Then
-        assertThat(processorConfig.getBackoffMaxSeconds()).isEqualTo(120);
-    }
-
-    @Test
-    @DisplayName("Should delegate isEnabled from AutomationsConfig")
-    void shouldDelegateIsEnabled_FromAutomationsConfig() {
-        // Given
-        AutomationsConfig config = createDefaultConfig();
-        config.setEnabled(true);
-
-        // When
-        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, noOverrides("automation"));
-
-        // Then
-        assertThat(processorConfig.isEnabled()).isTrue();
-    }
-
-    @Test
-    @DisplayName("Should handle disabled AutomationsConfig")
-    void shouldHandleDisabledAutomationsConfig() {
-        // Given
-        AutomationsConfig config = createDefaultConfig();
-        config.setEnabled(false);
-
-        // When
-        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, noOverrides("automation"));
-
-        // Then
-        assertThat(processorConfig.isEnabled()).isFalse();
-    }
-
-    @Test
-    @DisplayName("Should create config map for all subscriptions")
-    void shouldCreateConfigMap_ForAllSubscriptions() {
-        // Given
-        AutomationsConfig config = createDefaultConfig();
-        Map<String, AutomationSubscription> subscriptions = new HashMap<>();
-        subscriptions.put("wallet-notification", AutomationSubscription.builder("wallet-notification").webhookUrl("http://localhost:8080/webhook").build());
-        subscriptions.put("order-fulfillment", AutomationSubscription.builder("order-fulfillment").webhookUrl("http://localhost:8080/webhook").build());
-
-        // When
-        Map<String, AutomationProcessorConfig> configs = AutomationProcessorConfig.createConfigMap(config, subscriptions, Map.of());
-
-        // Then
         assertThat(configs).hasSize(2);
-        assertThat(configs).containsKey("wallet-notification");
-        assertThat(configs).containsKey("order-fulfillment");
-        assertThat(configs.get("wallet-notification").getProcessorId()).isEqualTo("wallet-notification");
-        assertThat(configs.get("order-fulfillment").getProcessorId()).isEqualTo("order-fulfillment");
+        assertThat(configs).containsKeys("wallet-notification", "order-fulfillment");
     }
 
     @Test
-    @DisplayName("Should create empty config map for empty subscriptions")
-    void shouldCreateEmptyConfigMap_ForEmptySubscriptions() {
-        // Given
+    @DisplayName("Should create empty config map for empty handlers")
+    void shouldCreateEmptyConfigMapForEmptyHandlers() {
         AutomationsConfig config = createDefaultConfig();
-        Map<String, AutomationSubscription> subscriptions = new HashMap<>();
 
-        // When
-        Map<String, AutomationProcessorConfig> configs = AutomationProcessorConfig.createConfigMap(config, subscriptions, Map.of());
+        Map<String, AutomationProcessorConfig> configs = AutomationProcessorConfig.createConfigMap(config, Map.of());
 
-        // Then
         assertThat(configs).isEmpty();
     }
 
     @Test
     @DisplayName("Should propagate global config to all entries in config map")
-    void shouldPropagateGlobalConfig_ToAllEntriesInConfigMap() {
-        // Given
+    void shouldPropagateGlobalConfigToAllEntriesInConfigMap() {
         AutomationsConfig config = createDefaultConfig();
         config.setPollingIntervalMs(3000L);
         config.setBatchSize(75);
-        Map<String, AutomationSubscription> subscriptions = new HashMap<>();
-        subscriptions.put("automation-a", AutomationSubscription.builder("automation-a").webhookUrl("http://localhost:8080/webhook").build());
-        subscriptions.put("automation-b", AutomationSubscription.builder("automation-b").webhookUrl("http://localhost:8080/webhook").build());
+        Map<String, AutomationHandler> handlers = new HashMap<>();
+        handlers.put("automation-a", noOverrides("automation-a"));
+        handlers.put("automation-b", noOverrides("automation-b"));
 
-        // When
-        Map<String, AutomationProcessorConfig> configs = AutomationProcessorConfig.createConfigMap(config, subscriptions, Map.of());
+        Map<String, AutomationProcessorConfig> configs = AutomationProcessorConfig.createConfigMap(config, handlers);
 
-        // Then
         assertThat(configs.get("automation-a").getPollingIntervalMs()).isEqualTo(3000L);
         assertThat(configs.get("automation-a").getBatchSize()).isEqualTo(75);
         assertThat(configs.get("automation-b").getPollingIntervalMs()).isEqualTo(3000L);
@@ -206,7 +149,28 @@ class AutomationProcessorConfigTest {
         return config;
     }
 
-    private AutomationSubscription noOverrides(String name) {
-        return AutomationSubscription.builder(name).webhookUrl("http://localhost/webhook").build();
+    private AutomationHandler noOverrides(String name) {
+        return new BaseHandler(name);
+    }
+
+    private AutomationHandler webhookHandler(String name, String webhookUrl, Long pollingIntervalMs, Integer batchSize) {
+        return new BaseHandler(name) {
+            @Override public String getWebhookUrl() { return webhookUrl; }
+            @Override public Long getPollingIntervalMs() { return pollingIntervalMs; }
+            @Override public Integer getBatchSize() { return batchSize; }
+        };
+    }
+
+    private static class BaseHandler implements AutomationHandler {
+        private final String name;
+
+        private BaseHandler(String name) {
+            this.name = name;
+        }
+
+        @Override public String getAutomationName() { return name; }
+        @Override public Set<String> getEventTypes() { return Set.of("WalletOpened"); }
+        @Override public void react(StoredEvent event, CommandExecutor commandExecutor) {
+        }
     }
 }

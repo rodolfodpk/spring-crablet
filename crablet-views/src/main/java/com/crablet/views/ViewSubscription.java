@@ -1,5 +1,8 @@
 package com.crablet.views;
 
+import com.crablet.eventpoller.EventSelection;
+import com.crablet.eventpoller.processor.ProcessorRuntimeOverrides;
+
 import java.util.Set;
 
 /**
@@ -9,7 +12,7 @@ import java.util.Set;
  * <p>Use {@link ViewProjector#subscription(String...)} for the common case (event types only).
  * Use {@link #builder(String)} when tag-based filtering is also needed.
  */
-public class ViewSubscription {
+public class ViewSubscription implements EventSelection, ProcessorRuntimeOverrides {
 
     private final String viewName;
     private final Set<String> eventTypes;
@@ -39,33 +42,42 @@ public class ViewSubscription {
         return viewName;
     }
 
+    @Override
     public Set<String> getEventTypes() {
         return eventTypes;
     }
 
+    @Override
     public Set<String> getRequiredTags() {
         return requiredTags;
     }
 
+    @Override
     public Set<String> getAnyOfTags() {
         return anyOfTags;
     }
 
+    @Override
     public Long getPollingIntervalMs() { return pollingIntervalMs; }
     public void setPollingIntervalMs(Long pollingIntervalMs) { this.pollingIntervalMs = pollingIntervalMs; }
 
+    @Override
     public Integer getBatchSize() { return batchSize; }
     public void setBatchSize(Integer batchSize) { this.batchSize = batchSize; }
 
+    @Override
     public Boolean getBackoffEnabled() { return backoffEnabled; }
     public void setBackoffEnabled(Boolean backoffEnabled) { this.backoffEnabled = backoffEnabled; }
 
+    @Override
     public Integer getBackoffThreshold() { return backoffThreshold; }
     public void setBackoffThreshold(Integer backoffThreshold) { this.backoffThreshold = backoffThreshold; }
 
+    @Override
     public Integer getBackoffMultiplier() { return backoffMultiplier; }
     public void setBackoffMultiplier(Integer backoffMultiplier) { this.backoffMultiplier = backoffMultiplier; }
 
+    @Override
     public Integer getBackoffMaxSeconds() { return backoffMaxSeconds; }
     public void setBackoffMaxSeconds(Integer backoffMaxSeconds) { this.backoffMaxSeconds = backoffMaxSeconds; }
 

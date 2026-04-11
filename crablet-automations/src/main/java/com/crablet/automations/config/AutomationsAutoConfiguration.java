@@ -1,11 +1,11 @@
 package com.crablet.automations.config;
 
 import com.crablet.automations.AutomationHandler;
-import com.crablet.automations.AutomationSubscription;
 import com.crablet.automations.internal.AutomationDispatcher;
 import com.crablet.automations.internal.AutomationEventFetcher;
 import com.crablet.automations.internal.AutomationProcessorConfig;
 import com.crablet.automations.internal.AutomationProgressTracker;
+import com.crablet.automations.internal.AutomationWebhookClient;
 import com.crablet.automations.management.AutomationManagementService;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventFetcher;
@@ -25,13 +25,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.client.RestClient;
+import tools.jackson.databind.ObjectMapper;
 
 import javax.sql.DataSource;
-import java.util.HashSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * Auto-configuration for automations using the generic event processor.
@@ -52,19 +54,7 @@ public class AutomationsAutoConfiguration {
     }
 
     @Bean
-    public Map<String, AutomationSubscription> automationSubscriptions(
-            ObjectProvider<List<AutomationSubscription>> subscriptionBeansProvider) {
-        List<AutomationSubscription> beans = subscriptionBeansProvider.getIfAvailable(List::of);
-        validateUniqueSubscriptionNames(beans);
-        Map<String, AutomationSubscription> subscriptions = new HashMap<>();
-        for (AutomationSubscription subscription : beans) {
-            subscriptions.put(subscription.getAutomationName(), subscription);
-        }
-        return subscriptions;
-    }
-
-    @Bean
-    public Map<String, AutomationHandler> inProcessAutomationHandlers(
+    public Map<String, AutomationHandler> automationHandlers(
             ObjectProvider<List<AutomationHandler>> handlerBeansProvider) {
         List<AutomationHandler> handlers = handlerBeansProvider.getIfAvailable(List::of);
         validateUniqueHandlerNames(handlers);
@@ -78,44 +68,45 @@ public class AutomationsAutoConfiguration {
     @Bean
     public EventFetcher<String> automationEventFetcher(
             @Qualifier("readDataSource") DataSource readDataSource,
-            @Qualifier("automationSubscriptions") Map<String, AutomationSubscription> subscriptions,
-            @Qualifier("inProcessAutomationHandlers") Map<String, AutomationHandler> inProcessHandlers) {
-        return new AutomationEventFetcher(readDataSource, subscriptions, inProcessHandlers);
+            @Qualifier("automationHandlers") Map<String, AutomationHandler> handlers) {
+        return new AutomationEventFetcher(readDataSource, handlers);
     }
 
     @Bean
-    public RestClient automationRestClient(AutomationsConfig automationsConfig) {
-        return RestClient.builder().build();
+    public AutomationWebhookClient automationWebhookClient(
+            ObjectProvider<RestClient.Builder> restClientBuilderProvider,
+            ObjectMapper objectMapper,
+            ObjectProvider<List<Consumer<RestClient.Builder>>> restClientBuilderCustomizersProvider) {
+        List<Consumer<RestClient.Builder>> customizers = restClientBuilderCustomizersProvider.getIfAvailable(List::of);
+        return new AutomationWebhookClient(restClientBuilderProvider, objectMapper, customizers);
     }
 
     @Bean
     public EventHandler<String> automationEventHandler(
-            @Qualifier("automationSubscriptions") Map<String, AutomationSubscription> subscriptions,
-            @Qualifier("inProcessAutomationHandlers") Map<String, AutomationHandler> inProcessHandlers,
-            RestClient automationRestClient,
+            @Qualifier("automationHandlers") Map<String, AutomationHandler> handlers,
+            AutomationWebhookClient automationWebhookClient,
             ObjectProvider<CommandExecutor> commandExecutorProvider,
             ApplicationEventPublisher eventPublisher,
             Environment environment) {
 
         CommandExecutor commandExecutor = commandExecutorProvider.getIfAvailable();
-        if (!inProcessHandlers.isEmpty() && commandExecutor == null) {
+        boolean hasInProcessHandler = handlers.values().stream()
+                .anyMatch(handler -> handler.getWebhookUrl() == null || handler.getWebhookUrl().isBlank());
+        if (hasInProcessHandler && commandExecutor == null) {
             throw new IllegalStateException(
                     "In-process AutomationHandlers require a CommandExecutor bean. " +
-                    "Found handlers: " + inProcessHandlers.keySet() + ". " +
+                    "Found handlers: " + handlers.keySet() + ". " +
                     "Ensure crablet-commands is on the classpath and a CommandExecutor bean is defined.");
         }
 
-        return new AutomationDispatcher(subscriptions, inProcessHandlers, automationRestClient,
-                commandExecutor, eventPublisher, environment);
+        return new AutomationDispatcher(handlers, automationWebhookClient, commandExecutor, eventPublisher, environment);
     }
 
     @Bean
     public Map<String, AutomationProcessorConfig> automationProcessorConfigs(
             AutomationsConfig automationsConfig,
-            @Qualifier("automationSubscriptions") Map<String, AutomationSubscription> subscriptions,
-            @Qualifier("inProcessAutomationHandlers") Map<String, AutomationHandler> inProcessHandlers) {
-        validateNoOverlap(subscriptions.keySet(), inProcessHandlers.keySet());
-        return AutomationProcessorConfig.createConfigMap(automationsConfig, subscriptions, inProcessHandlers);
+            @Qualifier("automationHandlers") Map<String, AutomationHandler> handlers) {
+        return AutomationProcessorConfig.createConfigMap(automationsConfig, handlers);
     }
 
     @Bean
@@ -159,21 +150,6 @@ public class AutomationsAutoConfiguration {
         return new AutomationManagementService(delegate, dataSource);
     }
 
-    private static void validateUniqueSubscriptionNames(List<AutomationSubscription> subscriptions) {
-        Set<String> seen = new HashSet<>();
-        Set<String> duplicates = new HashSet<>();
-        for (AutomationSubscription subscription : subscriptions) {
-            if (!seen.add(subscription.getAutomationName())) {
-                duplicates.add(subscription.getAutomationName());
-            }
-        }
-        if (!duplicates.isEmpty()) {
-            throw new IllegalStateException(
-                    "Duplicate AutomationSubscription names found: " + duplicates +
-                    ". Each automation name must be unique.");
-        }
-    }
-
     private static void validateUniqueHandlerNames(List<AutomationHandler> handlers) {
         Set<String> seen = new HashSet<>();
         Set<String> duplicates = new HashSet<>();
@@ -186,16 +162,6 @@ public class AutomationsAutoConfiguration {
             throw new IllegalStateException(
                     "Duplicate AutomationHandler names found: " + duplicates +
                     ". Each automation name must be unique.");
-        }
-    }
-
-    private static void validateNoOverlap(Set<String> subscriptionNames, Set<String> handlerNames) {
-        Set<String> overlap = new HashSet<>(subscriptionNames);
-        overlap.retainAll(handlerNames);
-        if (!overlap.isEmpty()) {
-            throw new IllegalStateException(
-                    "Automation names cannot be registered as both AutomationSubscription and " +
-                    "AutomationHandler: " + overlap + ".");
         }
     }
 }

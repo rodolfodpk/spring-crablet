@@ -1,9 +1,9 @@
 package com.crablet.automations.integration;
 
 import com.crablet.automations.AutomationHandler;
-import com.crablet.automations.AutomationSubscription;
 import com.crablet.automations.internal.AutomationDispatcher;
 import com.crablet.automations.internal.AutomationEventFetcher;
+import com.crablet.automations.internal.AutomationWebhookClient;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandExecutors;
 import com.crablet.eventstore.AppendEvent;
@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,7 +33,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.cfg.DateTimeFeature;
 import tools.jackson.databind.json.JsonMapper;
@@ -56,10 +56,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * Integration tests for {@link AutomationDispatcher} with real EventStore and PostgreSQL.
- * Verifies in-process handler routing and webhook dispatch using real stored events.
- */
 @SpringBootTest(classes = AutomationDispatcherIntegrationTest.TestConfig.class,
         webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DisplayName("AutomationDispatcher Integration Tests")
@@ -98,72 +94,58 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
         wireMock.resetAll();
     }
 
-    // --- In-process handler tests ---
-
     @Test
     @DisplayName("Should route to in-process handler for matching automation name")
-    void shouldRouteToInProcessHandler_ForMatchingAutomationName() throws Exception {
-        // Given
+    void shouldRouteToInProcessHandlerForMatchingAutomationName() throws Exception {
         List<StoredEvent> events = storedWalletOpenedEvents("wallet-1", "wallet-notification");
         AutomationDispatcher dispatcher = inProcessDispatcher();
 
-        // When
-        int count = dispatcher.handle("wallet-notification", events, null);
+        int count = dispatcher.handle("wallet-notification", events);
 
-        // Then
         assertThat(count).isEqualTo(1);
         assertThat(recordingHandler.getReceivedEvents()).hasSize(1);
-        assertThat(recordingHandler.getReceivedEvents().get(0).type())
-                .isEqualTo(type(WalletOpened.class));
+        assertThat(recordingHandler.getReceivedEvents().get(0).type()).isEqualTo(type(WalletOpened.class));
     }
 
     @Test
     @DisplayName("Should pass real CommandExecutor to in-process handler")
-    void shouldPassRealCommandExecutor_ToInProcessHandler() throws Exception {
-        // Given
+    void shouldPassRealCommandExecutorToInProcessHandler() throws Exception {
         List<StoredEvent> events = storedWalletOpenedEvents("wallet-2", "wallet-notification");
         AutomationDispatcher dispatcher = inProcessDispatcher();
 
-        // When
-        dispatcher.handle("wallet-notification", events, null);
+        dispatcher.handle("wallet-notification", events);
 
-        // Then - commandExecutor passed is the real bean, not null
         assertThat(recordingHandler.getReceivedExecutors()).hasSize(1);
         assertThat(recordingHandler.getReceivedExecutors().get(0)).isSameAs(commandExecutor);
     }
 
     @Test
-    @DisplayName("Should execute command via CommandExecutor in react() and persist resulting event")
-    void shouldExecuteCommand_ViaCommandExecutorInReact_AndPersistResultingEvent() throws Exception {
-        // Given - a handler that actually executes a command
+    @DisplayName("Should execute command via CommandExecutor in react and persist resulting event")
+    void shouldExecuteCommandViaCommandExecutorInReactAndPersistResultingEvent() throws Exception {
         AutomationHandler executingHandler = new AutomationHandler() {
             @Override public String getAutomationName() { return "executing-handler"; }
             @Override public Set<String> getEventTypes() { return Set.of(type(WalletOpened.class)); }
-            @Override
-            public void react(StoredEvent event, CommandExecutor ce) {
+            @Override public void react(StoredEvent event, CommandExecutor ce) {
                 ce.execute(SendWelcomeNotificationCommand.of("wallet-3", "Alice"));
             }
         };
 
         AutomationDispatcher dispatcher = new AutomationDispatcher(
-                Map.of(), Map.of("executing-handler", executingHandler),
-                RestClient.builder().build(), commandExecutor,
+                Map.of("executing-handler", executingHandler),
+                webhookClient(), commandExecutor,
                 e -> {}, noPortEnv());
 
         List<StoredEvent> events = storedWalletOpenedEvents("wallet-3", "executing-handler");
 
-        // When
-        int count = dispatcher.handle("executing-handler", events, null);
+        int count = dispatcher.handle("executing-handler", events);
 
-        // Then - command was executed, WelcomeNotificationSent event stored
         assertThat(count).isEqualTo(1);
         assertThat(notificationEventCount("wallet-3")).isEqualTo(1);
     }
 
     @Test
     @DisplayName("Should propagate exception from in-process handler")
-    void shouldPropagateException_FromInProcessHandler() {
-        // Given
+    void shouldPropagateExceptionFromInProcessHandler() {
         AutomationHandler failingHandler = new AutomationHandler() {
             @Override public String getAutomationName() { return "failing"; }
             @Override public Set<String> getEventTypes() { return Set.of(type(WalletOpened.class)); }
@@ -173,88 +155,68 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
         };
 
         AutomationDispatcher dispatcher = new AutomationDispatcher(
-                Map.of(), Map.of("failing", failingHandler),
-                RestClient.builder().build(), commandExecutor,
+                Map.of("failing", failingHandler),
+                webhookClient(), commandExecutor,
                 e -> {}, noPortEnv());
 
         List<StoredEvent> events = storedWalletOpenedEvents("wallet-4", "failing");
 
-        // When & Then
-        assertThatThrownBy(() -> dispatcher.handle("failing", events, null))
+        assertThatThrownBy(() -> dispatcher.handle("failing", events))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("handler blew up");
     }
 
-    // --- Webhook dispatch tests ---
-
     @Test
-    @DisplayName("Should POST to webhook URL for matching automation subscription")
-    void shouldPostToWebhookUrl_ForMatchingAutomationSubscription() throws Exception {
-        // Given
+    @DisplayName("Should POST to webhook URL for webhook-configured handler")
+    void shouldPostToWebhookUrlForWebhookConfiguredHandler() throws Exception {
         wireMock.stubFor(post("/webhook").willReturn(ok()));
         AutomationDispatcher dispatcher = webhookDispatcher("/webhook");
         List<StoredEvent> events = storedWalletOpenedEvents("wallet-5", "webhook-automation");
 
-        // When
-        int count = dispatcher.handle("webhook-automation", events, null);
+        int count = dispatcher.handle("webhook-automation", events);
 
-        // Then
         assertThat(count).isEqualTo(1);
         wireMock.verify(1, postRequestedFor(urlEqualTo("/webhook")));
     }
 
     @Test
     @DisplayName("Should include event payload in webhook POST body")
-    void shouldIncludeEventPayload_InWebhookPostBody() throws Exception {
-        // Given
+    void shouldIncludeEventPayloadInWebhookPostBody() throws Exception {
         wireMock.stubFor(post("/webhook").willReturn(ok()));
         AutomationDispatcher dispatcher = webhookDispatcher("/webhook");
         List<StoredEvent> events = storedWalletOpenedEvents("wallet-6", "webhook-automation");
 
-        // When
-        dispatcher.handle("webhook-automation", events, null);
+        dispatcher.handle("webhook-automation", events);
 
-        // Then - body contains event type
         wireMock.verify(1, postRequestedFor(urlEqualTo("/webhook"))
                 .withRequestBody(com.github.tomakehurst.wiremock.client.WireMock.containing(type(WalletOpened.class))));
     }
 
     @Test
-    @DisplayName("Should return 0 for automation with no subscription or handler")
-    void shouldReturnZero_ForAutomationWithNoSubscriptionOrHandler() throws Exception {
-        // Given - dispatcher with empty maps
+    @DisplayName("Should return 0 for automation with no handler")
+    void shouldReturnZeroForAutomationWithNoHandler() throws Exception {
         AutomationDispatcher dispatcher = new AutomationDispatcher(
-                Map.of(), Map.of(), RestClient.builder().build(), null,
+                Map.of(), webhookClient(), null,
                 e -> {}, noPortEnv());
 
-        // When
-        int result = dispatcher.handle("unknown-automation", storedWalletOpenedEvents("wallet-7", "wallet-notification"), null);
+        int result = dispatcher.handle("unknown-automation", storedWalletOpenedEvents("wallet-7", "wallet-notification"));
 
-        // Then
         assertThat(result).isEqualTo(0);
     }
-
-    // --- helpers ---
 
     private List<StoredEvent> storedWalletOpenedEvents(String walletId, String automationName) {
         String json = String.format(
                 "{\"wallet_id\":\"%s\",\"owner\":\"Alice\",\"initial_balance\":0,\"opened_at\":\"2024-01-01T00:00:00Z\"}",
                 walletId);
         eventStore.appendCommutative(List.of(
-                AppendEvent.builder(type(WalletOpened.class))
-                        .tag("wallet_id", walletId)
-                        .data(json)
-                        .build()
+                AppendEvent.builder(type(WalletOpened.class)).tag("wallet_id", walletId).data(json).build()
         ));
-        // Create a local fetcher scoped to this automation name so it can fetch WalletOpened events
-        // regardless of whether the automation is registered in the test-config fetcher bean.
         AutomationHandler walletOpenedFilter = new AutomationHandler() {
             @Override public String getAutomationName() { return automationName; }
             @Override public Set<String> getEventTypes() { return Set.of(type(WalletOpened.class)); }
             @Override public void react(StoredEvent event, CommandExecutor ce) {}
         };
-        AutomationEventFetcher localFetcher = new AutomationEventFetcher(
-                readDataSource, Map.of(), Map.of(automationName, walletOpenedFilter));
+        AutomationEventFetcher localFetcher = new AutomationEventFetcher(readDataSource, Map.of(automationName, walletOpenedFilter));
         return localFetcher.fetchEvents(automationName, 0L, 10);
     }
 
@@ -269,9 +231,8 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
 
     private AutomationDispatcher inProcessDispatcher() {
         return new AutomationDispatcher(
-                Map.of(),
                 Map.of("wallet-notification", recordingHandler),
-                RestClient.builder().build(),
+                webhookClient(),
                 commandExecutor,
                 e -> {},
                 noPortEnv());
@@ -279,14 +240,14 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
 
     private AutomationDispatcher webhookDispatcher(String path) {
         String url = "http://localhost:" + wireMock.getPort() + path;
-        AutomationSubscription sub = AutomationSubscription.builder("webhook-automation")
-                .eventTypes(type(WalletOpened.class))
-                .webhookUrl(url)
-                .build();
+        AutomationHandler handler = new AutomationHandler() {
+            @Override public String getAutomationName() { return "webhook-automation"; }
+            @Override public Set<String> getEventTypes() { return Set.of(type(WalletOpened.class)); }
+            @Override public String getWebhookUrl() { return url; }
+        };
         return new AutomationDispatcher(
-                Map.of("webhook-automation", sub),
-                Map.of(),
-                RestClient.builder().build(),
+                Map.of("webhook-automation", handler),
+                webhookClient(),
                 null,
                 e -> {},
                 noPortEnv());
@@ -299,7 +260,22 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
         return env;
     }
 
-    // --- recording handler ---
+    private AutomationWebhookClient webhookClient() {
+        ObjectProvider<org.springframework.web.client.RestClient.Builder> builderProvider = providerOf(org.springframework.web.client.RestClient.builder());
+        return new AutomationWebhookClient(
+                builderProvider,
+                JsonMapper.builder().disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build(),
+                List.of());
+    }
+
+    private <T> ObjectProvider<T> providerOf(T value) {
+        return new ObjectProvider<>() {
+            @Override public T getObject(Object... args) { return value; }
+            @Override public T getIfAvailable() { return value; }
+            @Override public T getIfUnique() { return value; }
+            @Override public T getObject() { return value; }
+        };
+    }
 
     static class RecordingAutomationHandler implements AutomationHandler {
         private final List<StoredEvent> receivedEvents = new CopyOnWriteArrayList<>();
@@ -307,8 +283,7 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
 
         @Override public String getAutomationName() { return "wallet-notification"; }
         @Override public Set<String> getEventTypes() { return Set.of(type(WalletOpened.class)); }
-        @Override
-        public void react(StoredEvent event, CommandExecutor ce) {
+        @Override public void react(StoredEvent event, CommandExecutor ce) {
             receivedEvents.add(event);
             receivedExecutors.add(ce);
         }
@@ -318,11 +293,8 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
         public void clear() { receivedEvents.clear(); receivedExecutors.clear(); }
     }
 
-    // --- test configuration ---
-
     @Configuration
     static class TestConfig {
-
         @Bean
         public DataSource dataSource() {
             org.springframework.jdbc.datasource.SimpleDriverDataSource ds =
@@ -334,8 +306,7 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
             return ds;
         }
 
-        @Bean
-        @Primary
+        @Bean @Primary
         public DataSource primaryDataSource(DataSource dataSource) { return dataSource; }
 
         @Bean
@@ -361,11 +332,8 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
             return new EventStoreImpl(dataSource, dataSource, objectMapper, config, clock, publisher);
         }
 
-        @Bean
-        public EventStoreConfig eventStoreConfig() { return new EventStoreConfig(); }
-
-        @Bean
-        public ClockProvider clockProvider() { return new ClockProviderImpl(); }
+        @Bean public EventStoreConfig eventStoreConfig() { return new EventStoreConfig(); }
+        @Bean public ClockProvider clockProvider() { return new ClockProviderImpl(); }
 
         @Bean
         public ObjectMapper objectMapper() {

@@ -51,6 +51,17 @@ Crablet Views provides a complete solution for building materialized read models
 - **Flexible Database Access**: Use JdbcTemplate (recommended), Spring Data JDBC, JOOQ, or any database access technology
 - **Idempotent Operations**: Built-in support for at-least-once processing semantics
 
+## Deployment Recommendation
+
+`crablet-views` is built on `crablet-event-poller`.
+
+Recommended production shape:
+
+- run **1 application instance** in the normal case
+- run **2 instances at most** when you want active/failover behavior
+
+This is true whether the app runs in Docker, Kubernetes, ECS, Nomad, or plain VMs. Because the poller uses leader election, only one instance actively projects a given view processor set at a time. More replicas do not improve throughput for the same views; they mostly provide standby capacity.
+
 ## Maven Coordinates
 
 ```xml

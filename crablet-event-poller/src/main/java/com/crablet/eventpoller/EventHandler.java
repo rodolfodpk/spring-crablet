@@ -1,8 +1,6 @@
 package com.crablet.eventpoller;
 
 import com.crablet.eventstore.StoredEvent;
-
-import javax.sql.DataSource;
 import java.util.List;
 
 /**
@@ -46,11 +44,8 @@ public interface EventHandler<I> {
      * 
      * @param processorId Processor identifier
      * @param events Events to handle
-     * @param writeDataSource Write DataSource for database operations (e.g., updating view tables).
-     *                       For handlers that don't need DB writes (e.g., external publishing),
-     *                       this parameter can be ignored.
      * @return Number of events successfully handled
      * @throws Exception if handling fails
      */
-    int handle(I processorId, List<StoredEvent> events, DataSource writeDataSource) throws Exception;
+    int handle(I processorId, List<StoredEvent> events) throws Exception;
 }

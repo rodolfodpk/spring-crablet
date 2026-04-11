@@ -1,5 +1,7 @@
 package com.crablet.outbox;
 
+import com.crablet.eventpoller.EventSelection;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -11,7 +13,7 @@ import java.util.Set;
  * Configuration for an outbox topic.
  * Defines which events belong to this topic based on tag keys.
  */
-public class TopicConfig {
+public class TopicConfig implements EventSelection {
     private final String name;
     private final Set<String> requiredTags;       // ALL must be present
     private final Set<String> anyOfTags;          // At least ONE must be present
@@ -35,14 +37,17 @@ public class TopicConfig {
         return publishers;
     }
     
+    @Override
     public Set<String> getRequiredTags() {
         return requiredTags;
     }
     
+    @Override
     public Set<String> getAnyOfTags() {
         return anyOfTags;
     }
     
+    @Override
     public Map<String, String> getExactTags() {
         return exactTags;
     }

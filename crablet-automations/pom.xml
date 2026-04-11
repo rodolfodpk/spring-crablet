@@ -32,10 +32,10 @@
             <artifactId>crablet-commands</artifactId>
         </dependency>
 
-        <!-- Spring Boot Web (RestClient for webhook HTTP dispatch) -->
+        <!-- Spring Boot Rest Client (RestClient for webhook HTTP dispatch) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-restclient</artifactId>
         </dependency>
 
         <!-- Spring Boot JDBC -->

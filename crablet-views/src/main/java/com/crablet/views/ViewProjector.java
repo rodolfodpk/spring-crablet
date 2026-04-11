@@ -1,17 +1,26 @@
 package com.crablet.views;
 
-import com.crablet.eventpoller.EventHandler;
+import com.crablet.eventstore.StoredEvent;
+
+import javax.sql.DataSource;
+import java.util.List;
 
 /**
  * Marker interface for view projectors.
- * Projectors implementing this interface declare which view they handle.
+ * Projectors implementing this interface declare which view they handle and
+ * process batches using the primary/write datasource.
  */
-public interface ViewProjector extends EventHandler<String> {
+public interface ViewProjector {
 
     /**
      * Get the view name this projector handles.
      */
     String getViewName();
+
+    /**
+     * Handle a batch of events using the primary/write datasource.
+     */
+    int handle(String viewName, List<StoredEvent> events, DataSource writeDataSource) throws Exception;
 
     /**
      * Build a {@link ViewSubscription} for this projector using the given event types.
@@ -32,4 +41,3 @@ public interface ViewProjector extends EventHandler<String> {
                 .build();
     }
 }
-

@@ -1,7 +1,6 @@
 package com.crablet.automations.internal;
 
 import com.crablet.automations.AutomationHandler;
-import com.crablet.automations.AutomationSubscription;
 import com.crablet.automations.config.AutomationsConfig;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandHandler;
@@ -10,8 +9,12 @@ import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.web.client.RestClient;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;
@@ -33,25 +36,26 @@ class AutomationDefinitionConsistencyTest {
     private static final ApplicationEventPublisher NO_OP_PUBLISHER = event -> {};
 
     @Test
-    @DisplayName("Handler automation should use handler filters, global config, and in-process dispatch")
-    void handlerAutomationShouldUseHandlerFiltersGlobalConfigAndInProcessDispatch() throws Exception {
+    @DisplayName("In-process handler should use handler filters, global config, and in-process dispatch")
+    void inProcessHandlerShouldUseHandlerFiltersGlobalConfigAndInProcessDispatch() throws Exception {
         TestAutomationHandler handler = new TestAutomationHandler(
                 "handler-automation",
                 Set.of("WalletOpened"),
                 Set.of("wallet_id"),
-                Set.of("owner_id")
+                Set.of("owner_id"),
+                null
         );
         Map<String, AutomationHandler> handlers = Map.of(handler.getAutomationName(), handler);
 
-        TestAutomationEventFetcher fetcher = new TestAutomationEventFetcher(Map.of(), handlers);
+        TestAutomationEventFetcher fetcher = new TestAutomationEventFetcher(handlers);
         Map<String, AutomationProcessorConfig> configs =
-                AutomationProcessorConfig.createConfigMap(configWithDefaults(), Map.of(), handlers);
+                AutomationProcessorConfig.createConfigMap(configWithDefaults(), handlers);
 
         CommandExecutor executor = noOpExecutor();
         AutomationDispatcher dispatcher = new AutomationDispatcher(
-                Map.of(), handlers, null, executor, NO_OP_PUBLISHER, noPortEnv());
+                handlers, webhookClient(), executor, NO_OP_PUBLISHER, noPortEnv());
 
-        int count = dispatcher.handle(handler.getAutomationName(), List.of(testEvent("WalletOpened")), null);
+        int count = dispatcher.handle(handler.getAutomationName(), List.of(testEvent("WalletOpened")));
 
         assertThat(fetcher.sqlFilterFor(handler.getAutomationName()))
                 .isEqualTo("type IN ('WalletOpened') AND EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'wallet_id=%') " +
@@ -64,27 +68,29 @@ class AutomationDefinitionConsistencyTest {
     }
 
     @Test
-    @DisplayName("Webhook automation should use subscription filters and subscription config")
-    void webhookAutomationShouldUseSubscriptionFiltersAndSubscriptionConfig() {
-        AutomationSubscription subscription = AutomationSubscription.builder("webhook-automation")
-                .eventTypes(Set.of("WalletOpened"))
-                .requiredTags("wallet_id")
-                .anyOfTags("owner_id")
-                .pollingIntervalMs(5000L)
-                .batchSize(7)
-                .webhookUrl("http://localhost/webhook")
-                .build();
+    @DisplayName("Webhook handler should use handler filters and handler config overrides")
+    void webhookHandlerShouldUseHandlerFiltersAndHandlerConfigOverrides() {
+        AutomationHandler handler = new TestAutomationHandler(
+                "webhook-automation",
+                Set.of("WalletOpened"),
+                Set.of("wallet_id"),
+                Set.of("owner_id"),
+                "http://localhost/webhook"
+        ) {
+            @Override public Long getPollingIntervalMs() { return 5000L; }
+            @Override public Integer getBatchSize() { return 7; }
+        };
 
-        Map<String, AutomationSubscription> subscriptions = Map.of(subscription.getAutomationName(), subscription);
-        TestAutomationEventFetcher fetcher = new TestAutomationEventFetcher(subscriptions, Map.of());
+        Map<String, AutomationHandler> handlers = Map.of(handler.getAutomationName(), handler);
+        TestAutomationEventFetcher fetcher = new TestAutomationEventFetcher(handlers);
         Map<String, AutomationProcessorConfig> configs =
-                AutomationProcessorConfig.createConfigMap(configWithDefaults(), subscriptions, Map.of());
+                AutomationProcessorConfig.createConfigMap(configWithDefaults(), handlers);
 
-        assertThat(fetcher.sqlFilterFor(subscription.getAutomationName()))
+        assertThat(fetcher.sqlFilterFor(handler.getAutomationName()))
                 .isEqualTo("type IN ('WalletOpened') AND EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'wallet_id=%') " +
                         "AND EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'owner_id=%')");
-        assertThat(configs.get(subscription.getAutomationName()).getPollingIntervalMs()).isEqualTo(5000L);
-        assertThat(configs.get(subscription.getAutomationName()).getBatchSize()).isEqualTo(7);
+        assertThat(configs.get(handler.getAutomationName()).getPollingIntervalMs()).isEqualTo(5000L);
+        assertThat(configs.get(handler.getAutomationName()).getBatchSize()).isEqualTo(7);
     }
 
     private static AutomationsConfig configWithDefaults() {
@@ -110,9 +116,8 @@ class AutomationDefinitionConsistencyTest {
     }
 
     private static final class TestAutomationEventFetcher extends AutomationEventFetcher {
-        TestAutomationEventFetcher(Map<String, AutomationSubscription> subscriptions,
-                                   Map<String, AutomationHandler> handlers) {
-            super(new NoOpDataSource(), subscriptions, handlers);
+        TestAutomationEventFetcher(Map<String, AutomationHandler> handlers) {
+            super(new NoOpDataSource(), handlers);
         }
 
         String sqlFilterFor(String automationName) {
@@ -120,44 +125,30 @@ class AutomationDefinitionConsistencyTest {
         }
     }
 
-    private static final class TestAutomationHandler implements AutomationHandler {
+    private static class TestAutomationHandler implements AutomationHandler {
         private final String automationName;
         private final Set<String> eventTypes;
         private final Set<String> requiredTags;
         private final Set<String> anyOfTags;
+        private final String webhookUrl;
         private final AtomicReference<StoredEvent> lastEvent = new AtomicReference<>();
         private final AtomicReference<CommandExecutor> lastExecutor = new AtomicReference<>();
 
         private TestAutomationHandler(String automationName, Set<String> eventTypes,
-                                      Set<String> requiredTags, Set<String> anyOfTags) {
+                                      Set<String> requiredTags, Set<String> anyOfTags, String webhookUrl) {
             this.automationName = automationName;
             this.eventTypes = eventTypes;
             this.requiredTags = requiredTags;
             this.anyOfTags = anyOfTags;
+            this.webhookUrl = webhookUrl;
         }
 
-        @Override
-        public String getAutomationName() {
-            return automationName;
-        }
-
-        @Override
-        public Set<String> getEventTypes() {
-            return eventTypes;
-        }
-
-        @Override
-        public Set<String> getRequiredTags() {
-            return requiredTags;
-        }
-
-        @Override
-        public Set<String> getAnyOfTags() {
-            return anyOfTags;
-        }
-
-        @Override
-        public void react(StoredEvent event, CommandExecutor commandExecutor) {
+        @Override public String getAutomationName() { return automationName; }
+        @Override public Set<String> getEventTypes() { return eventTypes; }
+        @Override public Set<String> getRequiredTags() { return requiredTags; }
+        @Override public Set<String> getAnyOfTags() { return anyOfTags; }
+        @Override public String getWebhookUrl() { return webhookUrl; }
+        @Override public void react(StoredEvent event, CommandExecutor commandExecutor) {
             lastEvent.set(event);
             lastExecutor.set(commandExecutor);
         }
@@ -165,60 +156,35 @@ class AutomationDefinitionConsistencyTest {
 
     private static CommandExecutor noOpExecutor() {
         return new CommandExecutor() {
-            @Override
-            public <T> ExecutionResult execute(T command) {
-                return null;
-            }
+            @Override public <T> ExecutionResult execute(T command) { return null; }
+            @Override public <T> ExecutionResult execute(T command, CommandHandler<T> handler) { return null; }
+        };
+    }
 
-            @Override
-            public <T> ExecutionResult execute(T command, CommandHandler<T> handler) {
-                return null;
-            }
+    private static AutomationWebhookClient webhookClient() {
+        ObjectProvider<RestClient.Builder> builderProvider = providerOf(RestClient.builder());
+        ObjectMapper objectMapper = JsonMapper.builder().build();
+        return new AutomationWebhookClient(builderProvider, objectMapper, List.of());
+    }
+
+    private static <T> ObjectProvider<T> providerOf(T value) {
+        return new ObjectProvider<>() {
+            @Override public T getObject(Object... args) { return value; }
+            @Override public T getIfAvailable() { return value; }
+            @Override public T getIfUnique() { return value; }
+            @Override public T getObject() { return value; }
         };
     }
 
     private static final class NoOpDataSource implements DataSource {
-        @Override
-        public Connection getConnection() throws SQLException {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Connection getConnection(String username, String password) throws SQLException {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public <T> T unwrap(Class<T> iface) throws SQLException {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean isWrapperFor(Class<?> iface) {
-            return false;
-        }
-
-        @Override
-        public PrintWriter getLogWriter() {
-            return null;
-        }
-
-        @Override
-        public void setLogWriter(PrintWriter out) {
-        }
-
-        @Override
-        public void setLoginTimeout(int seconds) {
-        }
-
-        @Override
-        public int getLoginTimeout() {
-            return 0;
-        }
-
-        @Override
-        public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-            throw new SQLFeatureNotSupportedException();
-        }
+        @Override public Connection getConnection() throws SQLException { throw new UnsupportedOperationException(); }
+        @Override public Connection getConnection(String username, String password) throws SQLException { throw new UnsupportedOperationException(); }
+        @Override public <T> T unwrap(Class<T> iface) throws SQLException { throw new UnsupportedOperationException(); }
+        @Override public boolean isWrapperFor(Class<?> iface) { return false; }
+        @Override public PrintWriter getLogWriter() { return null; }
+        @Override public void setLogWriter(PrintWriter out) {}
+        @Override public void setLoginTimeout(int seconds) {}
+        @Override public int getLoginTimeout() { return 0; }
+        @Override public Logger getParentLogger() throws SQLFeatureNotSupportedException { throw new SQLFeatureNotSupportedException(); }
     }
 }

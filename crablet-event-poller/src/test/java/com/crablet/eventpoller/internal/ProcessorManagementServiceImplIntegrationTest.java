@@ -379,7 +379,7 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
 
     static class TestEventHandler implements EventHandler<String> {
         @Override
-        public int handle(String processorId, List<StoredEvent> events, DataSource writeDataSource) throws Exception {
+        public int handle(String processorId, List<StoredEvent> events) throws Exception {
             return events.size();
         }
     }

@@ -476,7 +476,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         private volatile boolean shouldThrow = false;
 
         @Override
-        public int handle(String processorId, List<StoredEvent> events, DataSource writeDataSource) throws Exception {
+        public int handle(String processorId, List<StoredEvent> events) throws Exception {
             if (shouldThrow) {
                 throw new RuntimeException("Test exception");
             }

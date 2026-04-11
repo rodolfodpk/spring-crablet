@@ -15,7 +15,7 @@ make install
 
 No external PostgreSQL needed — integration tests spin up a container via Testcontainers.
 
-- New to Crablet? → **[Tutorial](docs/TUTORIAL.md)** walks through a full example step by step
+- New to Crablet? → **[Tutorial Series](docs/TUTORIAL.md)** introduces one concept and module at a time
 - Build details → **[Build Guide](docs/BUILD.md)**
 
 ## Modules
@@ -60,7 +60,13 @@ Crablet maps DCB's consistency model onto three append methods. These are **Crab
 ## Documentation
 
 ### Start here
-- **[Tutorial](docs/TUTORIAL.md)** — Step-by-step introduction to all framework features
+- **[Tutorial Series](docs/TUTORIAL.md)** — Structured onboarding path
+- **[Part 1: Event Store Basics](docs/tutorials/01-event-store-basics.md)** — Append and project events
+- **[Part 2: Commands](docs/tutorials/02-commands.md)** — Command handlers and transactional execution
+- **[Part 3: DCB Consistency Boundaries](docs/tutorials/03-dcb-consistency-boundaries.md)** — Dynamic consistency boundaries
+- **[Part 4: Views](docs/tutorials/04-views.md)** — Asynchronous read models
+- **[Part 5: Automations](docs/tutorials/05-automations.md)** — Event-driven policies and side effects
+- **[Part 6: Outbox](docs/tutorials/06-outbox.md)** — Transactional external publishing
 - **[Getting Started](crablet-eventstore/GETTING_STARTED.md)** — Integrate Crablet into your own project
 
 ### Module guides

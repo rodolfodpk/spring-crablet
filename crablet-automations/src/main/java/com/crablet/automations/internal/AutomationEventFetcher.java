@@ -2,32 +2,24 @@ package com.crablet.automations.internal;
 
 import com.crablet.automations.AutomationDefinition;
 import com.crablet.automations.AutomationHandler;
-import com.crablet.automations.AutomationSubscription;
 import com.crablet.eventpoller.AbstractJdbcEventFetcher;
+import com.crablet.eventpoller.EventSelectionSqlBuilder;
 
 import javax.sql.DataSource;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Fetches events for automation processors using event type and tag filtering.
- * Supports both webhook subscriptions and in-process handlers.
  */
 public class AutomationEventFetcher extends AbstractJdbcEventFetcher<String> {
 
-    private final Map<String, AutomationSubscription> subscriptions;
-    private final Map<String, AutomationHandler> inProcessHandlers;
+    private final Map<String, AutomationHandler> handlers;
 
-    public AutomationEventFetcher(DataSource readDataSource,
-                                   Map<String, AutomationSubscription> subscriptions,
-                                   Map<String, AutomationHandler> inProcessHandlers) {
+    public AutomationEventFetcher(DataSource readDataSource, Map<String, AutomationHandler> handlers) {
         super(readDataSource);
-        this.subscriptions = subscriptions;
-        this.inProcessHandlers = inProcessHandlers;
+        this.handlers = handlers;
     }
 
     @Override
@@ -36,48 +28,17 @@ public class AutomationEventFetcher extends AbstractJdbcEventFetcher<String> {
         if (definition == null) {
             return null;
         }
-
-        List<String> conditions = new ArrayList<>();
-
-        Set<String> eventTypes = definition.getEventTypes();
-        if (!eventTypes.isEmpty()) {
-            String typeList = eventTypes.stream()
-                .map(t -> "'" + t + "'")
-                .collect(Collectors.joining(", "));
-            conditions.add("type IN (" + typeList + ")");
-        }
-
-        for (String tagKey : definition.getRequiredTags()) {
-            conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE '" + tagKey + "=%')");
-        }
-
-        Set<String> anyOfTags = definition.getAnyOfTags();
-        if (!anyOfTags.isEmpty()) {
-            String anyOfCondition = anyOfTags.stream()
-                .map(tagKey -> "t LIKE '" + tagKey + "=%'")
-                .collect(Collectors.joining(" OR "));
-            conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE " + anyOfCondition + ")");
-        }
-
-        return conditions.isEmpty() ? "TRUE" : String.join(" AND ", conditions);
+        return EventSelectionSqlBuilder.buildWhereClause(definition);
     }
 
     private AutomationDefinition resolveDefinition(String automationName) {
-        AutomationSubscription subscription = subscriptions.get(automationName);
-        if (subscription != null) {
-            return subscription;
-        }
-
-        AutomationHandler handler = inProcessHandlers.get(automationName);
+        AutomationHandler handler = handlers.get(automationName);
         if (handler != null) {
             return handler;
         }
 
-        Set<String> available = new HashSet<>();
-        available.addAll(subscriptions.keySet());
-        available.addAll(inProcessHandlers.keySet());
-        log.warn("Neither subscription nor handler found for automation: {} (available: {})",
-                automationName, available);
+        Set<String> available = new HashSet<>(handlers.keySet());
+        log.warn("No handler found for automation: {} (available: {})", automationName, available);
         return null;
     }
 }

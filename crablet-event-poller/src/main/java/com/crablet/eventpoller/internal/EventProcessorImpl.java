@@ -420,7 +420,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
         }
 
         try {
-            int handled = eventHandler.handle(processorId, events, writeDataSource);
+            int handled = eventHandler.handle(processorId, events);
 
             // Update progress (uses write DataSource via ProgressTracker)
             long newPosition = events.get(events.size() - 1).position();

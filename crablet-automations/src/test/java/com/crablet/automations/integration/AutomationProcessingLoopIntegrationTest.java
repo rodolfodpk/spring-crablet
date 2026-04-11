@@ -6,6 +6,7 @@ import com.crablet.automations.internal.AutomationDispatcher;
 import com.crablet.automations.internal.AutomationEventFetcher;
 import com.crablet.automations.internal.AutomationProcessorConfig;
 import com.crablet.automations.internal.AutomationProgressTracker;
+import com.crablet.automations.internal.AutomationWebhookClient;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandExecutors;
 import com.crablet.eventpoller.EventFetcher;
@@ -23,6 +24,7 @@ import com.crablet.examples.wallet.events.WalletOpened;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,7 +34,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.cfg.DateTimeFeature;
 import tools.jackson.databind.json.JsonMapper;
@@ -204,11 +205,11 @@ class AutomationProcessingLoopIntegrationTest extends AbstractAutomationsTest {
 
         Map<String, AutomationHandler> handlers = Map.of("executing-handler-loop", executingHandler);
         SynchronousAutomationProcessor cmdProcessor = new SynchronousAutomationProcessor(
-                new AutomationEventFetcher(dataSource, Map.of(), handlers),
-                new AutomationDispatcher(Map.of(), handlers, RestClient.builder().build(),
+                new AutomationEventFetcher(dataSource, handlers),
+                new AutomationDispatcher(handlers, webhookClient(),
                         commandExecutor, e -> {}, noPortEnv),
                 new AutomationProgressTracker(dataSource),
-                AutomationProcessorConfig.createConfigMap(new AutomationsConfig(), Map.of(), handlers));
+                AutomationProcessorConfig.createConfigMap(new AutomationsConfig(), handlers));
 
         appendWalletOpenedEvent("wallet-loop-cmd");
 
@@ -290,7 +291,7 @@ class AutomationProcessingLoopIntegrationTest extends AbstractAutomationsTest {
                     automationName, lastPosition, config != null ? config.getBatchSize() : 100);
             if (events.isEmpty()) return 0;
             try {
-                int handled = eventHandler.handle(automationName, events, null);
+                int handled = eventHandler.handle(automationName, events);
                 progressTracker.updateProgress(automationName, events.get(events.size() - 1).position());
                 return handled;
             } catch (Exception e) {
@@ -382,15 +383,32 @@ class AutomationProcessingLoopIntegrationTest extends AbstractAutomationsTest {
             when(noPortEnv.getProperty("local.server.port", Integer.class)).thenReturn(null);
             when(noPortEnv.getProperty("server.port", Integer.class)).thenReturn(null);
 
-            EventFetcher<String> fetcher = new AutomationEventFetcher(dataSource, Map.of(), handlers);
+            EventFetcher<String> fetcher = new AutomationEventFetcher(dataSource, handlers);
             EventHandler<String> dispatcher = new AutomationDispatcher(
-                    Map.of(), handlers, RestClient.builder().build(),
+                    handlers, webhookClient(),
                     commandExecutor, eventPublisher, noPortEnv);
             AutomationProgressTracker progressTracker = new AutomationProgressTracker(dataSource);
             Map<String, AutomationProcessorConfig> configs =
-                    AutomationProcessorConfig.createConfigMap(new AutomationsConfig(), Map.of(), handlers);
+                    AutomationProcessorConfig.createConfigMap(new AutomationsConfig(), handlers);
 
             return new SynchronousAutomationProcessor(fetcher, dispatcher, progressTracker, configs);
         }
+    }
+
+    private static AutomationWebhookClient webhookClient() {
+        ObjectProvider<org.springframework.web.client.RestClient.Builder> builderProvider = providerOf(org.springframework.web.client.RestClient.builder());
+        return new AutomationWebhookClient(
+                builderProvider,
+                JsonMapper.builder().disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build(),
+                List.of());
+    }
+
+    private static <T> ObjectProvider<T> providerOf(T value) {
+        return new ObjectProvider<>() {
+            @Override public T getObject(Object... args) { return value; }
+            @Override public T getIfAvailable() { return value; }
+            @Override public T getIfUnique() { return value; }
+            @Override public T getObject() { return value; }
+        };
     }
 }

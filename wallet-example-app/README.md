@@ -339,7 +339,7 @@ WalletOpened event
     → WelcomeNotificationSent (with idempotency check)
 ```
 
-In the current example, `WalletOpenedReaction` is an in-process `AutomationHandler`, so no webhook `AutomationSubscription` bean is needed.
+In the current example, `WalletOpenedReaction` is an in-process `AutomationHandler`, so it does not override `getWebhookUrl()`.
 
 ## Configuration
 

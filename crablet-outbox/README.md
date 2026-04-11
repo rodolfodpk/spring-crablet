@@ -95,9 +95,11 @@ Crablet Outbox uses:
 - **Global leader election**: PostgreSQL advisory locks for automatic failover. See [Leader Election Guide](../docs/LEADER_ELECTION.md) for details.
 - **At-least-once delivery**: Events may be published multiple times (idempotent consumers required)
 
-**Recommended deployment:** 
-- **1 instance**: Works fine in Kubernetes (auto-restart on crash, brief downtime)
-- **2+ instances**: Recommended for zero-downtime failover (follower takes over within 5-30 seconds)
+**Recommended deployment:**
+- **1 instance**: The normal default in Docker, Kubernetes, ECS, Nomad, or plain VMs
+- **2 instances at most**: Recommended when you want active/failover behavior (follower takes over within 5-30 seconds)
+
+Additional replicas do not increase throughput for the same `(topic, publisher)` processors because leader election keeps only one active leader per processor set.
 
 **Scalability:** Optimized for 1-50 topic/publisher pairs.
 
@@ -192,4 +194,3 @@ Metrics are automatically exposed via Micrometer:
 ## License
 
 MIT
-

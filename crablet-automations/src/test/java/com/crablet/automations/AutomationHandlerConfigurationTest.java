@@ -1,0 +1,75 @@
+package com.crablet.automations;
+
+import com.crablet.command.CommandExecutor;
+import com.crablet.eventstore.StoredEvent;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@DisplayName("AutomationHandler Configuration Tests")
+class AutomationHandlerConfigurationTest {
+
+    @Test
+    @DisplayName("Default webhook configuration should be disabled")
+    void defaultWebhookConfigurationShouldBeDisabled() {
+        AutomationHandler handler = baseHandler();
+
+        assertThat(handler.getWebhookUrl()).isNull();
+        assertThat(handler.getWebhookHeaders()).isEmpty();
+        assertThat(handler.getWebhookTimeoutMs()).isEqualTo(5000);
+    }
+
+    @Test
+    @DisplayName("Default runtime override configuration should be absent")
+    void defaultRuntimeOverrideConfigurationShouldBeAbsent() {
+        AutomationHandler handler = baseHandler();
+
+        assertThat(handler.getPollingIntervalMs()).isNull();
+        assertThat(handler.getBatchSize()).isNull();
+        assertThat(handler.getBackoffEnabled()).isNull();
+        assertThat(handler.getBackoffThreshold()).isNull();
+        assertThat(handler.getBackoffMultiplier()).isNull();
+        assertThat(handler.getBackoffMaxSeconds()).isNull();
+    }
+
+    @Test
+    @DisplayName("Webhook-only handler can override delivery and runtime settings")
+    void webhookOnlyHandlerCanOverrideDeliveryAndRuntimeSettings() {
+        AutomationHandler handler = new AutomationHandler() {
+            @Override public String getAutomationName() { return "webhook-handler"; }
+            @Override public Set<String> getEventTypes() { return Set.of("WalletOpened"); }
+            @Override public String getWebhookUrl() { return "http://localhost:8080/webhook"; }
+            @Override public Map<String, String> getWebhookHeaders() { return Map.of("Authorization", "Bearer token"); }
+            @Override public int getWebhookTimeoutMs() { return 3000; }
+            @Override public Long getPollingIntervalMs() { return 2000L; }
+            @Override public Integer getBatchSize() { return 25; }
+            @Override public Boolean getBackoffEnabled() { return false; }
+            @Override public Integer getBackoffThreshold() { return 3; }
+            @Override public Integer getBackoffMultiplier() { return 4; }
+            @Override public Integer getBackoffMaxSeconds() { return 90; }
+        };
+
+        assertThat(handler.getWebhookUrl()).isEqualTo("http://localhost:8080/webhook");
+        assertThat(handler.getWebhookHeaders()).containsEntry("Authorization", "Bearer token");
+        assertThat(handler.getWebhookTimeoutMs()).isEqualTo(3000);
+        assertThat(handler.getPollingIntervalMs()).isEqualTo(2000L);
+        assertThat(handler.getBatchSize()).isEqualTo(25);
+        assertThat(handler.getBackoffEnabled()).isFalse();
+        assertThat(handler.getBackoffThreshold()).isEqualTo(3);
+        assertThat(handler.getBackoffMultiplier()).isEqualTo(4);
+        assertThat(handler.getBackoffMaxSeconds()).isEqualTo(90);
+    }
+
+    private AutomationHandler baseHandler() {
+        return new AutomationHandler() {
+            @Override public String getAutomationName() { return "test"; }
+            @Override public Set<String> getEventTypes() { return Set.of("SomeEvent"); }
+            @Override public void react(StoredEvent event, CommandExecutor commandExecutor) {
+            }
+        };
+    }
+}

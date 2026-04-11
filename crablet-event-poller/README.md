@@ -18,6 +18,24 @@ Crablet Event Processor provides a generic, reusable infrastructure for building
 This module is used by:
 - **crablet-outbox**: For publishing events to external systems
 - **crablet-views**: For projecting events into materialized read models
+- **crablet-automations**: For event-driven policies and side effects
+
+## Deployment Recommendation
+
+For modules built on `crablet-event-poller`, the normal production recommendation is:
+
+- run **1 application instance** when short downtime during restart is acceptable
+- run **2 instances at most** when you want active/failover behavior
+
+This recommendation is the same whether you deploy with Docker Compose, Kubernetes, ECS, Nomad, or plain VMs.
+
+Important:
+
+- the poller uses leader election, so only one instance is actively processing a given processor set
+- extra replicas do **not** increase throughput for the same processors
+- extra replicas mainly add standby capacity and operational complexity
+
+If you need more throughput, split processor responsibilities or reduce polling cost; do not assume many replicas will help.
 
 ## Features
 
@@ -158,7 +176,7 @@ public class MyEventFetcher implements EventFetcher<String> {
 @Component
 public class MyEventHandler implements EventHandler<String> {
     @Override
-    public int handle(String processorId, List<StoredEvent> events, DataSource writeDataSource) {
+    public int handle(String processorId, List<StoredEvent> events) {
         // Process events (must be idempotent!)
         for (StoredEvent event : events) {
             // Handle event
@@ -243,4 +261,3 @@ See [crablet-metrics-micrometer](../crablet-metrics-micrometer/README.md) for au
 ## License
 
 MIT
-

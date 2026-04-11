@@ -55,8 +55,11 @@ public class ViewsAutoConfiguration {
     }
 
     @Bean
-    public EventHandler<String> viewEventHandler(List<ViewProjector> projectors, ApplicationEventPublisher eventPublisher) {
-        return new ViewEventHandler(projectors, eventPublisher);
+    public EventHandler<String> viewEventHandler(
+            List<ViewProjector> projectors,
+            @Qualifier("primaryDataSource") DataSource primaryDataSource,
+            ApplicationEventPublisher eventPublisher) {
+        return new ViewEventHandler(projectors, primaryDataSource, eventPublisher);
     }
 
     @Bean

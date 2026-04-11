@@ -1,6 +1,7 @@
 package com.crablet.views.internal;
 
 import com.crablet.eventpoller.processor.ProcessorConfig;
+import com.crablet.eventpoller.processor.ProcessorRuntimeOverrideResolver;
 import com.crablet.views.ViewSubscription;
 import com.crablet.views.config.ViewsConfig;
 
@@ -33,38 +34,32 @@ public class ViewProcessorConfig implements ProcessorConfig<String> {
     
     @Override
     public long getPollingIntervalMs() {
-        Long override = subscriptionConfig.getPollingIntervalMs();
-        return override != null ? override : viewsConfig.getPollingIntervalMs();
+        return ProcessorRuntimeOverrideResolver.pollingIntervalMs(subscriptionConfig, viewsConfig.getPollingIntervalMs());
     }
 
     @Override
     public int getBatchSize() {
-        Integer override = subscriptionConfig.getBatchSize();
-        return override != null ? override : viewsConfig.getBatchSize();
+        return ProcessorRuntimeOverrideResolver.batchSize(subscriptionConfig, viewsConfig.getBatchSize());
     }
 
     @Override
     public boolean isBackoffEnabled() {
-        Boolean override = subscriptionConfig.getBackoffEnabled();
-        return override != null ? override : true;
+        return ProcessorRuntimeOverrideResolver.backoffEnabled(subscriptionConfig, true);
     }
 
     @Override
     public int getBackoffThreshold() {
-        Integer override = subscriptionConfig.getBackoffThreshold();
-        return override != null ? override : viewsConfig.getBackoffThreshold();
+        return ProcessorRuntimeOverrideResolver.backoffThreshold(subscriptionConfig, viewsConfig.getBackoffThreshold());
     }
 
     @Override
     public int getBackoffMultiplier() {
-        Integer override = subscriptionConfig.getBackoffMultiplier();
-        return override != null ? override : viewsConfig.getBackoffMultiplier();
+        return ProcessorRuntimeOverrideResolver.backoffMultiplier(subscriptionConfig, viewsConfig.getBackoffMultiplier());
     }
 
     @Override
     public int getBackoffMaxSeconds() {
-        Integer override = subscriptionConfig.getBackoffMaxSeconds();
-        return override != null ? override : viewsConfig.getMaxBackoffSeconds();
+        return ProcessorRuntimeOverrideResolver.backoffMaxSeconds(subscriptionConfig, viewsConfig.getMaxBackoffSeconds());
     }
 
     @Override

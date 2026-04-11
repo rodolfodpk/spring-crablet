@@ -5,7 +5,6 @@ import com.crablet.eventstore.StoredEvent;
 import com.crablet.outbox.publishing.OutboxPublishingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import javax.sql.DataSource;
 import java.util.List;
 
 /**
@@ -26,7 +25,7 @@ public class OutboxEventHandler implements EventHandler<TopicPublisherPair> {
     }
     
     @Override
-    public int handle(TopicPublisherPair processorId, List<StoredEvent> events, DataSource writeDataSource) throws Exception {
+    public int handle(TopicPublisherPair processorId, List<StoredEvent> events) throws Exception {
         String topicName = processorId.topic();
         String publisherName = processorId.publisher();
 

@@ -6,6 +6,17 @@ Light framework component for event-driven automations (policies) with Spring Bo
 
 Crablet Automations implements the "when X happens, do Y" pattern from event storming — also known as policies or process managers. When a domain event is stored, an automation can listen for it and automatically execute one or more commands.
 
+## Deployment Recommendation
+
+`crablet-automations` is built on `crablet-event-poller`.
+
+Recommended production shape:
+
+- run **1 application instance** in the normal case
+- run **2 instances at most** when you want active/failover behavior
+
+This guidance is the same whether you deploy with Docker Compose, Kubernetes, ECS, Nomad, or plain VMs. The poller elects one active leader for the automation processors, so additional replicas do not make the same automations process faster; they mainly act as standby instances.
+
 ## Recommended Pattern
 
 Crablet automations should follow an Event Modeling-style automation pattern:
@@ -25,8 +36,8 @@ This separation keeps transactional consistency concerns in command handling and
 
 **Key Features:**
 - Shared matching contract via `AutomationDefinition`
-- In-process automations via `AutomationHandler`
-- Webhook automations via `AutomationSubscription`
+- Unified automations via `AutomationHandler`
+- Optional webhook delivery on the same handler contract
 - Tag-based and event-type-based matching
 - At-least-once semantics with idempotency via DCB checks
 - Independent progress tracking per automation
@@ -63,10 +74,10 @@ crablet.automations.batch-size=100
 
 ### 2. Choose an Automation Style
 
-Crablet automations support two delivery styles:
+Crablet automations use a single public definition type:
 
 - `AutomationHandler` for in-process work in the same JVM
-- `AutomationSubscription` for webhook delivery to HTTP endpoints
+- Override `getWebhookUrl()` on the same handler when delivery should happen over HTTP
 
 Both styles share the same matching contract through `AutomationDefinition`:
 
@@ -75,7 +86,9 @@ Both styles share the same matching contract through `AutomationDefinition`:
 - `getRequiredTags()`
 - `getAnyOfTags()`
 
-Use `AutomationHandler` when the automation should execute commands or call injected collaborators directly.
+Use `AutomationHandler` when the automation should execute commands or call injected collaborators directly. Add `getWebhookUrl()` when the same automation definition should deliver events to an HTTP endpoint instead.
+
+This is intentional: delivery is treated as an execution detail of one automation contract, not as a separate public concept. The matching rules, processor tuning, and automation name stay the same whether the work runs in-process or over HTTP.
 
 ### 3. Implement AutomationHandler
 
@@ -114,30 +127,39 @@ public class WelcomeNotificationAutomation implements AutomationHandler {
 }
 ```
 
-### 4. Or Declare a Webhook Automation
+### 4. Or Configure Webhook Delivery
 
-Use `AutomationSubscription` when matching events should be delivered over HTTP instead of handled in-process:
+Use the same `AutomationHandler` contract when matching events should be delivered over HTTP instead of handled in-process:
 
 ```java
-@Bean
-public AutomationSubscription walletOpenedWebhookAutomation() {
-    return AutomationSubscription.builder("welcome-notification-webhook")
-        .eventTypes(EventType.type(WalletOpened.class))
-        .requiredTags("wallet_id")
-        .webhookUrl("http://localhost:8080/api/automations/wallet-opened")
-        .build();
+@Component
+public class WelcomeNotificationWebhookAutomation implements AutomationHandler {
+
+    @Override
+    public String getAutomationName() {
+        return "welcome-notification-webhook";
+    }
+
+    @Override
+    public Set<String> getEventTypes() {
+        return Set.of(EventType.type(WalletOpened.class));
+    }
+
+    @Override
+    public Set<String> getRequiredTags() {
+        return Set.of("wallet_id");
+    }
+
+    @Override
+    public String getWebhookUrl() {
+        return "http://localhost:8080/api/automations/wallet-opened";
+    }
 }
 ```
 
 ### 5. Registration Rules
 
-Each automation name must be unique across the application:
-
-- two `AutomationHandler` beans cannot share the same name
-- two `AutomationSubscription` beans cannot share the same name
-- a handler and a subscription cannot share the same name
-
-Invalid overlap now fails fast at startup.
+Each `AutomationHandler` bean must have a unique automation name. Invalid overlap fails fast at startup.
 
 ### 6. Database Migration
 
@@ -172,55 +194,45 @@ public interface AutomationDefinition {
 }
 ```
 
-`AutomationHandler` and `AutomationSubscription` both implement this contract.
+`AutomationHandler` implements this contract for both in-process and webhook delivery.
 
 ### AutomationHandler
 
 ```java
 public interface AutomationHandler extends AutomationDefinition {
-    /** Unique name — must not overlap any AutomationSubscription. */
     String getAutomationName();
-
-    /** Matching filters come from AutomationDefinition. */
     Set<String> getEventTypes();
-
-    /** Called once per matching event. Use the event as a trigger, then decide from modeled state. */
+    String getWebhookUrl(); // optional
     void react(StoredEvent event, CommandExecutor commandExecutor);
 }
 ```
 
 The event tells the automation that something changed. The automation should then read the relevant view model and decide from that modeled state whether it should act.
 
-### AutomationSubscription
+### Webhook Delivery
 
-Defines a webhook automation: matching rules plus HTTP delivery details.
+Webhook delivery is configured on `AutomationHandler` itself by overriding `getWebhookUrl()`. The same handler can also override headers, timeout, and per-automation polling settings.
 
-```java
-public class AutomationSubscription implements AutomationDefinition {
-    String getAutomationName();
-    Set<String> getEventTypes();
-    Set<String> getRequiredTags();
-    Set<String> getAnyOfTags();
-    String getWebhookUrl();
-}
-```
+If you need shared outbound HTTP behavior such as interceptors, auth defaults, or observation hooks, register a `Consumer<RestClient.Builder>` bean and the automations module will apply it to webhook clients before building the request.
 
 Examples:
 
 ```java
-// Subscribe to all WalletOpened events
-AutomationSubscription.builder("my-automation")
-    .eventTypes("WalletOpened")
-    .webhookUrl("http://localhost:8080/webhook")
-    .build();
+// Deliver all WalletOpened events to a webhook
+AutomationHandler handler = new AutomationHandler() {
+    @Override public String getAutomationName() { return "my-automation"; }
+    @Override public Set<String> getEventTypes() { return Set.of("WalletOpened"); }
+    @Override public String getWebhookUrl() { return "http://localhost:8080/webhook"; }
+};
 
-// Subscribe only to events with a specific tag
-AutomationSubscription.builder("my-automation")
-    .eventTypes("DepositMade")
-    .requiredTags("wallet_id")   // ALL of these tags must be present
-    .anyOfTags("region-us", "region-eu") // AT LEAST ONE must be present
-    .webhookUrl("http://localhost:8080/webhook")
-    .build();
+// Deliver only events with specific tag filters
+AutomationHandler filtered = new AutomationHandler() {
+    @Override public String getAutomationName() { return "my-automation"; }
+    @Override public Set<String> getEventTypes() { return Set.of("DepositMade"); }
+    @Override public Set<String> getRequiredTags() { return Set.of("wallet_id"); }
+    @Override public Set<String> getAnyOfTags() { return Set.of("region-us", "region-eu"); }
+    @Override public String getWebhookUrl() { return "http://localhost:8080/webhook"; }
+};
 ```
 
 ### View-Model-Driven Decisions
