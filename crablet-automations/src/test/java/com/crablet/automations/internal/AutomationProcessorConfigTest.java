@@ -23,7 +23,7 @@ class AutomationProcessorConfigTest {
         AutomationsConfig config = createDefaultConfig();
 
         // When
-        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("wallet-notification", config);
+        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("wallet-notification", config, noOverrides("wallet-notification"));
 
         // Then
         assertThat(processorConfig.getProcessorId()).isEqualTo("wallet-notification");
@@ -37,7 +37,7 @@ class AutomationProcessorConfigTest {
         config.setPollingIntervalMs(2000L);
 
         // When
-        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config);
+        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, noOverrides("automation"));
 
         // Then
         assertThat(processorConfig.getPollingIntervalMs()).isEqualTo(2000L);
@@ -51,7 +51,7 @@ class AutomationProcessorConfigTest {
         config.setBatchSize(50);
 
         // When
-        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config);
+        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, noOverrides("automation"));
 
         // Then
         assertThat(processorConfig.getBatchSize()).isEqualTo(50);
@@ -64,7 +64,7 @@ class AutomationProcessorConfigTest {
         AutomationsConfig config = createDefaultConfig();
 
         // When
-        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config);
+        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, noOverrides("automation"));
 
         // Then
         assertThat(processorConfig.isBackoffEnabled()).isTrue();
@@ -78,7 +78,7 @@ class AutomationProcessorConfigTest {
         config.setBackoffThreshold(5);
 
         // When
-        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config);
+        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, noOverrides("automation"));
 
         // Then
         assertThat(processorConfig.getBackoffThreshold()).isEqualTo(5);
@@ -92,7 +92,7 @@ class AutomationProcessorConfigTest {
         config.setBackoffMultiplier(3);
 
         // When
-        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config);
+        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, noOverrides("automation"));
 
         // Then
         assertThat(processorConfig.getBackoffMultiplier()).isEqualTo(3);
@@ -106,7 +106,7 @@ class AutomationProcessorConfigTest {
         config.setMaxBackoffSeconds(120);
 
         // When
-        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config);
+        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, noOverrides("automation"));
 
         // Then
         assertThat(processorConfig.getBackoffMaxSeconds()).isEqualTo(120);
@@ -120,7 +120,7 @@ class AutomationProcessorConfigTest {
         config.setEnabled(true);
 
         // When
-        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config);
+        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, noOverrides("automation"));
 
         // Then
         assertThat(processorConfig.isEnabled()).isTrue();
@@ -134,7 +134,7 @@ class AutomationProcessorConfigTest {
         config.setEnabled(false);
 
         // When
-        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config);
+        AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, noOverrides("automation"));
 
         // Then
         assertThat(processorConfig.isEnabled()).isFalse();
@@ -204,5 +204,9 @@ class AutomationProcessorConfigTest {
         config.setBackoffMultiplier(2);
         config.setMaxBackoffSeconds(60);
         return config;
+    }
+
+    private AutomationSubscription noOverrides(String name) {
+        return AutomationSubscription.builder(name).webhookUrl("http://localhost/webhook").build();
     }
 }

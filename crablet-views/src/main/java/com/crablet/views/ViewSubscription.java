@@ -16,6 +16,14 @@ public class ViewSubscription {
     private final Set<String> requiredTags;
     private final Set<String> anyOfTags;
 
+    // Per-view polling overrides — null means "use global default from ViewsConfig"
+    private Long pollingIntervalMs;
+    private Integer batchSize;
+    private Boolean backoffEnabled;
+    private Integer backoffThreshold;
+    private Integer backoffMultiplier;
+    private Integer backoffMaxSeconds;
+
     protected ViewSubscription(
             String viewName,
             Set<String> eventTypes,
@@ -43,6 +51,24 @@ public class ViewSubscription {
         return anyOfTags;
     }
 
+    public Long getPollingIntervalMs() { return pollingIntervalMs; }
+    public void setPollingIntervalMs(Long pollingIntervalMs) { this.pollingIntervalMs = pollingIntervalMs; }
+
+    public Integer getBatchSize() { return batchSize; }
+    public void setBatchSize(Integer batchSize) { this.batchSize = batchSize; }
+
+    public Boolean getBackoffEnabled() { return backoffEnabled; }
+    public void setBackoffEnabled(Boolean backoffEnabled) { this.backoffEnabled = backoffEnabled; }
+
+    public Integer getBackoffThreshold() { return backoffThreshold; }
+    public void setBackoffThreshold(Integer backoffThreshold) { this.backoffThreshold = backoffThreshold; }
+
+    public Integer getBackoffMultiplier() { return backoffMultiplier; }
+    public void setBackoffMultiplier(Integer backoffMultiplier) { this.backoffMultiplier = backoffMultiplier; }
+
+    public Integer getBackoffMaxSeconds() { return backoffMaxSeconds; }
+    public void setBackoffMaxSeconds(Integer backoffMaxSeconds) { this.backoffMaxSeconds = backoffMaxSeconds; }
+
     /** Entry point for building a subscription. Use {@code projector.subscription(eventTypes)} for the common case. */
     public static Builder builder(String viewName) {
         return new Builder(viewName);
@@ -53,6 +79,12 @@ public class ViewSubscription {
         private Set<String> eventTypes = Set.of();
         private Set<String> requiredTags = Set.of();
         private Set<String> anyOfTags = Set.of();
+        private Long pollingIntervalMs;
+        private Integer batchSize;
+        private Boolean backoffEnabled;
+        private Integer backoffThreshold;
+        private Integer backoffMultiplier;
+        private Integer backoffMaxSeconds;
 
         public Builder(String viewName) {
             this.viewName = viewName;
@@ -106,9 +138,52 @@ public class ViewSubscription {
             return this;
         }
 
+        /** Override polling interval for this view only (ms). Null = use global default. */
+        public Builder pollingIntervalMs(long pollingIntervalMs) {
+            this.pollingIntervalMs = pollingIntervalMs;
+            return this;
+        }
+
+        /** Override batch size for this view only. Null = use global default. */
+        public Builder batchSize(int batchSize) {
+            this.batchSize = batchSize;
+            return this;
+        }
+
+        /** Override backoff enabled for this view only. Null = use global default (true). */
+        public Builder backoffEnabled(boolean backoffEnabled) {
+            this.backoffEnabled = backoffEnabled;
+            return this;
+        }
+
+        /** Override backoff threshold for this view only. Null = use global default. */
+        public Builder backoffThreshold(int backoffThreshold) {
+            this.backoffThreshold = backoffThreshold;
+            return this;
+        }
+
+        /** Override backoff multiplier for this view only. Null = use global default. */
+        public Builder backoffMultiplier(int backoffMultiplier) {
+            this.backoffMultiplier = backoffMultiplier;
+            return this;
+        }
+
+        /** Override max backoff seconds for this view only. Null = use global default. */
+        public Builder backoffMaxSeconds(int backoffMaxSeconds) {
+            this.backoffMaxSeconds = backoffMaxSeconds;
+            return this;
+        }
+
         /** Builds the {@link ViewSubscription}. */
         public ViewSubscription build() {
-            return new ViewSubscription(viewName, eventTypes, requiredTags, anyOfTags);
+            ViewSubscription s = new ViewSubscription(viewName, eventTypes, requiredTags, anyOfTags);
+            s.pollingIntervalMs = pollingIntervalMs;
+            s.batchSize = batchSize;
+            s.backoffEnabled = backoffEnabled;
+            s.backoffThreshold = backoffThreshold;
+            s.backoffMultiplier = backoffMultiplier;
+            s.backoffMaxSeconds = backoffMaxSeconds;
+            return s;
         }
     }
 }

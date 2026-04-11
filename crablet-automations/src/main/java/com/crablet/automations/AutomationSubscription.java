@@ -34,6 +34,14 @@ public class AutomationSubscription {
     private final Map<String, String> webhookHeaders;
     private final int webhookTimeoutMs;
 
+    // Per-automation polling overrides — null means "use global default from AutomationsConfig"
+    private final Long pollingIntervalMs;
+    private final Integer batchSize;
+    private final Boolean backoffEnabled;
+    private final Integer backoffThreshold;
+    private final Integer backoffMultiplier;
+    private final Integer backoffMaxSeconds;
+
     protected AutomationSubscription(
             String automationName,
             Set<String> eventTypes,
@@ -41,7 +49,13 @@ public class AutomationSubscription {
             Set<String> anyOfTags,
             String webhookUrl,
             Map<String, String> webhookHeaders,
-            int webhookTimeoutMs) {
+            int webhookTimeoutMs,
+            Long pollingIntervalMs,
+            Integer batchSize,
+            Boolean backoffEnabled,
+            Integer backoffThreshold,
+            Integer backoffMultiplier,
+            Integer backoffMaxSeconds) {
         if (webhookUrl == null || webhookUrl.isBlank()) {
             throw new IllegalArgumentException("webhookUrl must not be null or blank for automation: " + automationName);
         }
@@ -52,6 +66,12 @@ public class AutomationSubscription {
         this.webhookUrl = webhookUrl;
         this.webhookHeaders = webhookHeaders != null ? Collections.unmodifiableMap(new HashMap<>(webhookHeaders)) : Map.of();
         this.webhookTimeoutMs = webhookTimeoutMs;
+        this.pollingIntervalMs = pollingIntervalMs;
+        this.batchSize = batchSize;
+        this.backoffEnabled = backoffEnabled;
+        this.backoffThreshold = backoffThreshold;
+        this.backoffMultiplier = backoffMultiplier;
+        this.backoffMaxSeconds = backoffMaxSeconds;
     }
 
     public String getAutomationName() { return automationName; }
@@ -61,6 +81,12 @@ public class AutomationSubscription {
     public String getWebhookUrl() { return webhookUrl; }
     public Map<String, String> getWebhookHeaders() { return webhookHeaders; }
     public int getWebhookTimeoutMs() { return webhookTimeoutMs; }
+    public Long getPollingIntervalMs() { return pollingIntervalMs; }
+    public Integer getBatchSize() { return batchSize; }
+    public Boolean getBackoffEnabled() { return backoffEnabled; }
+    public Integer getBackoffThreshold() { return backoffThreshold; }
+    public Integer getBackoffMultiplier() { return backoffMultiplier; }
+    public Integer getBackoffMaxSeconds() { return backoffMaxSeconds; }
 
     /** Entry point for building a subscription. */
     public static Builder builder(String automationName) {
@@ -75,6 +101,12 @@ public class AutomationSubscription {
         private String webhookUrl;
         private Map<String, String> webhookHeaders = Map.of();
         private int webhookTimeoutMs = 5000;
+        private Long pollingIntervalMs;
+        private Integer batchSize;
+        private Boolean backoffEnabled;
+        private Integer backoffThreshold;
+        private Integer backoffMultiplier;
+        private Integer backoffMaxSeconds;
 
         public Builder(String automationName) {
             this.automationName = automationName;
@@ -122,10 +154,48 @@ public class AutomationSubscription {
             return this;
         }
 
+        /** Override polling interval for this automation only (ms). Null = use global default. */
+        public Builder pollingIntervalMs(long pollingIntervalMs) {
+            this.pollingIntervalMs = pollingIntervalMs;
+            return this;
+        }
+
+        /** Override batch size for this automation only. Null = use global default. */
+        public Builder batchSize(int batchSize) {
+            this.batchSize = batchSize;
+            return this;
+        }
+
+        /** Override backoff enabled for this automation only. Null = use global default (true). */
+        public Builder backoffEnabled(boolean backoffEnabled) {
+            this.backoffEnabled = backoffEnabled;
+            return this;
+        }
+
+        /** Override backoff threshold for this automation only. Null = use global default. */
+        public Builder backoffThreshold(int backoffThreshold) {
+            this.backoffThreshold = backoffThreshold;
+            return this;
+        }
+
+        /** Override backoff multiplier for this automation only. Null = use global default. */
+        public Builder backoffMultiplier(int backoffMultiplier) {
+            this.backoffMultiplier = backoffMultiplier;
+            return this;
+        }
+
+        /** Override max backoff seconds for this automation only. Null = use global default. */
+        public Builder backoffMaxSeconds(int backoffMaxSeconds) {
+            this.backoffMaxSeconds = backoffMaxSeconds;
+            return this;
+        }
+
         /** Builds the {@link AutomationSubscription}. */
         public AutomationSubscription build() {
             return new AutomationSubscription(automationName, eventTypes, requiredTags, anyOfTags,
-                    webhookUrl, webhookHeaders, webhookTimeoutMs);
+                    webhookUrl, webhookHeaders, webhookTimeoutMs,
+                    pollingIntervalMs, batchSize, backoffEnabled,
+                    backoffThreshold, backoffMultiplier, backoffMaxSeconds);
         }
     }
 }

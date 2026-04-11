@@ -33,32 +33,38 @@ public class ViewProcessorConfig implements ProcessorConfig<String> {
     
     @Override
     public long getPollingIntervalMs() {
-        return viewsConfig.getPollingIntervalMs();
+        Long override = subscriptionConfig.getPollingIntervalMs();
+        return override != null ? override : viewsConfig.getPollingIntervalMs();
     }
-    
+
     @Override
     public int getBatchSize() {
-        return viewsConfig.getBatchSize();
+        Integer override = subscriptionConfig.getBatchSize();
+        return override != null ? override : viewsConfig.getBatchSize();
     }
-    
+
     @Override
     public boolean isBackoffEnabled() {
-        return true; // Always enabled for views
+        Boolean override = subscriptionConfig.getBackoffEnabled();
+        return override != null ? override : true;
     }
-    
+
     @Override
     public int getBackoffThreshold() {
-        return viewsConfig.getBackoffThreshold();
+        Integer override = subscriptionConfig.getBackoffThreshold();
+        return override != null ? override : viewsConfig.getBackoffThreshold();
     }
-    
+
     @Override
     public int getBackoffMultiplier() {
-        return viewsConfig.getBackoffMultiplier();
+        Integer override = subscriptionConfig.getBackoffMultiplier();
+        return override != null ? override : viewsConfig.getBackoffMultiplier();
     }
-    
+
     @Override
     public int getBackoffMaxSeconds() {
-        return viewsConfig.getMaxBackoffSeconds();
+        Integer override = subscriptionConfig.getBackoffMaxSeconds();
+        return override != null ? override : viewsConfig.getMaxBackoffSeconds();
     }
 
     @Override
