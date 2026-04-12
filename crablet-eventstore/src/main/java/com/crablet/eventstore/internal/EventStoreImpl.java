@@ -16,6 +16,8 @@ import com.crablet.eventstore.Tag;
 import com.crablet.eventstore.metrics.ConcurrencyViolationMetric;
 import com.crablet.eventstore.metrics.EventTypeMetric;
 import com.crablet.eventstore.metrics.EventsAppendedMetric;
+import com.crablet.eventstore.notify.EventAppendNotifier;
+import com.crablet.eventstore.notify.NoopEventAppendNotifier;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
@@ -116,6 +118,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     private final ClockProvider clock;
     private final QuerySqlBuilder sqlBuilder;
     private final ApplicationEventPublisher eventPublisher;
+    private final EventAppendNotifier eventAppendNotifier;
 
     /**
      * Singleton RowMapper for StoredEvent objects.
@@ -174,6 +177,17 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             EventStoreConfig config,
             ClockProvider clock,
             ApplicationEventPublisher eventPublisher) {
+        this(writeDataSource, readDataSource, objectMapper, config, clock, eventPublisher, new NoopEventAppendNotifier());
+    }
+
+    public EventStoreImpl(
+            DataSource writeDataSource,
+            DataSource readDataSource,
+            ObjectMapper objectMapper,
+            EventStoreConfig config,
+            ClockProvider clock,
+            ApplicationEventPublisher eventPublisher,
+            EventAppendNotifier eventAppendNotifier) {
         if (writeDataSource == null) {
             throw new IllegalArgumentException("writeDataSource must not be null");
         }
@@ -192,12 +206,16 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         if (eventPublisher == null) {
             throw new IllegalArgumentException("eventPublisher must not be null");
         }
+        if (eventAppendNotifier == null) {
+            throw new IllegalArgumentException("eventAppendNotifier must not be null");
+        }
         this.writeDataSource = writeDataSource;
         this.readDataSource = readDataSource;
         this.objectMapper = objectMapper;
         this.config = config;
         this.clock = clock;
         this.eventPublisher = eventPublisher;
+        this.eventAppendNotifier = eventAppendNotifier;
         this.sqlBuilder = new QuerySqlBuilderImpl();
     }
 
@@ -240,6 +258,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             for (AppendEvent event : events) {
                 eventPublisher.publishEvent(new EventTypeMetric(event.type()));
             }
+            publishAppendNotification();
         } catch (SQLException e) {
             // Handle PostgreSQL function errors like go-crablet does
             String sqlState = e.getSQLState();
@@ -353,6 +372,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                     for (AppendEvent event : events) {
                         eventPublisher.publishEvent(new EventTypeMetric(event.type()));
                     }
+                    publishAppendNotification();
 
                     return transactionId;
                 }
@@ -586,6 +606,9 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 EventStore txStore = createConnectionScopedStore(connection);
                 T result = operation.apply(txStore);
                 connection.commit();
+                if (txStore instanceof ConnectionScopedEventStore connectionScopedStore && connectionScopedStore.hasAppendedEvents()) {
+                    publishAppendNotification();
+                }
                 log.debug("Transaction committed successfully");
                 return result;
             } catch (Exception e) {
@@ -1036,6 +1059,14 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         return tags;
     }
 
+    private void publishAppendNotification() {
+        try {
+            eventAppendNotifier.notifyEventsAppended();
+        } catch (RuntimeException e) {
+            log.warn("Event append notification failed: {}", e.getMessage());
+        }
+    }
+
 
     @Override
     public void storeCommand(String commandJson, String commandType, String transactionId) {
@@ -1088,6 +1119,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     // Inner class for connection-scoped EventStore
     private class ConnectionScopedEventStore implements EventStore, CommandAuditStore {
         private final Connection connection;
+        private boolean appendedEvents;
 
         public ConnectionScopedEventStore(Connection connection) {
             this.connection = connection;
@@ -1095,21 +1127,25 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
 
         @Override
         public String appendCommutative(List<AppendEvent> events) {
+            appendedEvents = true;
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.empty());
         }
 
         @Override
         public String appendNonCommutative(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {
+            appendedEvents = true;
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendConditionBuilder.of(decisionModel, streamPosition).build());
         }
 
         @Override
         public String appendIdempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {
+            appendedEvents = true;
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.idempotent(eventType, tagKey, tagValue));
         }
 
         @Override
         public String appendIdempotent(List<AppendEvent> events, Query idempotencyQuery) {
+            appendedEvents = true;
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.idempotent(idempotencyQuery));
         }
 
@@ -1132,6 +1168,10 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         @Override
         public void storeCommand(String commandJson, String commandType, String transactionId) {
             EventStoreImpl.this.storeCommandWithConnection(connection, commandJson, commandType, transactionId);
+        }
+
+        public boolean hasAppendedEvents() {
+            return appendedEvents;
         }
     }
 }

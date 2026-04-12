@@ -6,6 +6,8 @@ import com.crablet.eventpoller.EventProcessorFactory;
 import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.management.ProcessorManagementService;
+import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
+import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
 import com.crablet.outbox.management.OutboxManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
@@ -32,6 +34,7 @@ import org.springframework.scheduling.TaskScheduler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -142,7 +145,8 @@ public class OutboxAutoConfiguration {
             EventHandler<TopicPublisherPair> eventHandler,
             WriteDataSource writeDataSource,
             TaskScheduler taskScheduler,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher,
+            Optional<ProcessorWakeupSourceFactory> wakeupSourceFactory) {
         return EventProcessorFactory.createProcessor(
             configs,
             outboxLeaderElector,
@@ -151,7 +155,8 @@ public class OutboxAutoConfiguration {
             eventHandler,
             writeDataSource,
             taskScheduler,
-            eventPublisher);
+            eventPublisher,
+            wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new));
     }
     
     /**

@@ -9,6 +9,8 @@ import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
+import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSource;
+import com.crablet.eventpoller.wakeup.ProcessorWakeupSource;
 import com.crablet.eventstore.StoredEvent;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -44,6 +46,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     private final DataSource writeDataSource;
     private final TaskScheduler taskScheduler;
     private final ApplicationEventPublisher eventPublisher;
+    private final ProcessorWakeupSource wakeupSource;
     private final Object lifecycleMonitor = new Object();
 
     // Track active schedulers
@@ -51,6 +54,8 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
 
     // Track backoff states
     private final Map<I, BackoffState> backoffStates = new ConcurrentHashMap<>();
+    private final Map<I, Boolean> runningProcessors = new ConcurrentHashMap<>();
+    private final Map<I, Boolean> immediateRunRequested = new ConcurrentHashMap<>();
 
     // Leader retry scheduler
     private ScheduledFuture<?> leaderRetryScheduler;
@@ -71,6 +76,19 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             DataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher) {
+        this(configs, leaderElector, progressTracker, eventFetcher, eventHandler, writeDataSource, taskScheduler, eventPublisher, new NoopProcessorWakeupSource());
+    }
+
+    public EventProcessorImpl(
+            Map<I, T> configs,
+            LeaderElector leaderElector,
+            ProgressTracker<I> progressTracker,
+            EventFetcher<I> eventFetcher,
+            EventHandler<I> eventHandler,
+            DataSource writeDataSource,
+            TaskScheduler taskScheduler,
+            ApplicationEventPublisher eventPublisher,
+            ProcessorWakeupSource wakeupSource) {
         this.configs = configs;
         this.leaderElector = leaderElector;
         this.progressTracker = progressTracker;
@@ -79,6 +97,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
         this.writeDataSource = writeDataSource;
         this.taskScheduler = taskScheduler;
         this.eventPublisher = eventPublisher;
+        this.wakeupSource = wakeupSource;
     }
 
     // Track if schedulers have been initialized
@@ -131,10 +150,11 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             }
 
             try {
+                shuttingDown = false;
                 log.info("Starting event processor schedulers via {}", trigger);
                 doInitializeSchedulers();
+                wakeupSource.start(this::requestImmediatePoll);
                 schedulersInitialized = true;
-                shuttingDown = false;
                 log.info("Event processor schedulers started");
             } catch (Exception e) {
                 log.error("Failed to initialize event processor schedulers via {}", trigger, e);
@@ -186,26 +206,10 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
                 log.debug("[EventProcessorImpl] Created backoff state for processor {}", processorId);
             }
 
-            // Schedule with initial delay to ensure database migrations complete
-            // Use a small delay to allow any remaining initialization to complete
             long initialDelayMs = 500; // 500ms initial delay - Flyway should be done by now via ContextRefreshedEvent
-            // Schedule first execution with delay, then start recurring schedule
-            ScheduledFuture<?> initialTask = taskScheduler.schedule(() -> {
-                scheduledTask(processorId);
-
-                // After first execution, schedule recurring task
-                ScheduledFuture<?> recurringFuture = taskScheduler.scheduleAtFixedRate(
-                    () -> scheduledTask(processorId),
-                    Duration.ofMillis(pollingInterval)
-                );
-                activeSchedulers.put(processorId, recurringFuture);
-                log.debug("[EventProcessorImpl] Started recurring scheduler for {} with interval {}ms", processorId, pollingInterval);
-            }, Instant.now().plusMillis(initialDelayMs));
-
-            // Store the initial task future temporarily (will be replaced by recurring future)
-            activeSchedulers.put(processorId, initialTask);
-            log.debug("[EventProcessorImpl] Registered scheduler for processor {} with initial delay {}ms, then interval {}ms",
-                    processorId, initialDelayMs, pollingInterval);
+            scheduleProcessorRun(processorId, initialDelayMs);
+            log.debug("[EventProcessorImpl] Registered scheduler for processor {} with initial delay {}ms",
+                    processorId, initialDelayMs);
         }
 
         log.debug("[EventProcessorImpl] Scheduler initialization complete. Registered {} enabled processors.", enabledCount);
@@ -228,12 +232,16 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             });
             activeSchedulers.clear();
             backoffStates.clear();
+            runningProcessors.clear();
+            immediateRunRequested.clear();
 
             // Cancel leader retry scheduler
             if (leaderRetryScheduler != null) {
                 leaderRetryScheduler.cancel(false);
                 leaderRetryScheduler = null;
             }
+
+            wakeupSource.close();
 
             // Allow a future manual start() to recreate the schedulers.
             schedulersInitialized = false;
@@ -299,45 +307,45 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
 
     private void scheduledTask(I processorId) {
         log.trace("[EventProcessorImpl] scheduledTask() called for processor: {} at {}", processorId, Instant.now());
+        long nextDelayMs = 0L;
+        String instanceId = leaderElector.getInstanceId();
+        boolean acquiredRunSlot = false;
 
-        // Skip processing if shutting down
-        if (shuttingDown) {
-            log.trace("[EventProcessorImpl] Shutting down, skipping scheduled task for {}", processorId);
-            return;
-        }
-
-        T config = configs.get(processorId);
-        if (config == null || !config.isEnabled()) {
-            return;
-        }
-
-        // If not leader, retry lock acquisition with cooldown
-        if (!leaderElector.isGlobalLeader()) {
-            long now = System.currentTimeMillis();
-            if (now - lastLeaderRetryTimestamp >= LEADER_RETRY_COOLDOWN_MS) {
-                lastLeaderRetryTimestamp = now;
-                boolean acquired = leaderElector.tryAcquireGlobalLeader();
-                if (acquired) {
-                    log.info("Became leader after retry in scheduledTask - starting to process");
-                }
-            }
-            // Still return if not leader
-            if (!leaderElector.isGlobalLeader()) {
+        try {
+            // Skip processing if shutting down
+            if (shuttingDown) {
+                log.trace("[EventProcessorImpl] Shutting down, skipping scheduled task for {}", processorId);
                 return;
             }
-        }
 
-        BackoffState backoffState = backoffStates.get(processorId);
+            T config = configs.get(processorId);
+            if (config == null || !config.isEnabled()) {
+                return;
+            }
+            nextDelayMs = config.getPollingIntervalMs();
 
-        // Check if we should skip this cycle
-        if (backoffState != null && backoffState.shouldSkip()) {
-            log.trace("Skipping poll for {} due to backoff (empty polls: {})",
-                processorId, backoffState.getEmptyPollCount());
-            return;
-        }
+            // If not leader, retry lock acquisition with cooldown
+            if (!leaderElector.isGlobalLeader()) {
+                long now = System.currentTimeMillis();
+                if (now - lastLeaderRetryTimestamp >= LEADER_RETRY_COOLDOWN_MS) {
+                    lastLeaderRetryTimestamp = now;
+                    boolean acquired = leaderElector.tryAcquireGlobalLeader();
+                    if (acquired) {
+                        log.info("Became leader after retry in scheduledTask - starting to process");
+                    }
+                }
+                // Still return if not leader
+                if (!leaderElector.isGlobalLeader()) {
+                    return;
+                }
+            }
 
-        String instanceId = leaderElector.getInstanceId();
-        try {
+            BackoffState backoffState = backoffStates.get(processorId);
+            acquiredRunSlot = runningProcessors.putIfAbsent(processorId, Boolean.TRUE) == null;
+            if (!acquiredRunSlot) {
+                log.trace("Processor {} is already running, skipping duplicate scheduled task", processorId);
+                return;
+            }
             log.trace("[EventProcessorImpl] Calling process() for processor: {} at {}", processorId, Instant.now());
             int processed = process(processorId);
             log.trace("[EventProcessorImpl] process() completed for processor: {}, processed: {} events at {}",
@@ -353,6 +361,9 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
                 } else {
                     backoffState.recordEmpty();
                     eventPublisher.publishEvent(new BackoffStateMetric(processorId.toString(), instanceId, backoffState.getEmptyPollCount() > 0, backoffState.getEmptyPollCount()));
+                    nextDelayMs = backoffState.getNextDelayMs();
+                    log.trace("Scheduling next poll for {} in {}ms after {} consecutive empty polls",
+                        processorId, nextDelayMs, backoffState.getEmptyPollCount());
                 }
             } else if (processed > 0) {
                 log.debug("Processed {} events for {}", processed, processorId);
@@ -371,7 +382,56 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             }
             eventPublisher.publishEvent(new ProcessingCycleMetric(processorId.toString(), instanceId, 0, true));
             // Don't update backoff on errors - let it retry normally
+        } finally {
+            if (acquiredRunSlot) {
+                runningProcessors.remove(processorId);
+                if (immediateRunRequested.remove(processorId) != null) {
+                    nextDelayMs = 0L;
+                }
+                scheduleProcessorRun(processorId, nextDelayMs);
+            }
         }
+    }
+
+    private void requestImmediatePoll() {
+        if (shuttingDown) {
+            return;
+        }
+
+        for (var entry : configs.entrySet()) {
+            I processorId = entry.getKey();
+            T config = entry.getValue();
+            if (!config.isEnabled()) {
+                continue;
+            }
+
+            immediateRunRequested.put(processorId, Boolean.TRUE);
+            ScheduledFuture<?> existing = activeSchedulers.get(processorId);
+            if (existing != null) {
+                existing.cancel(false);
+            }
+            scheduleProcessorRun(processorId, 0L);
+        }
+    }
+
+    private void scheduleProcessorRun(I processorId, long delayMs) {
+        if (shuttingDown) {
+            return;
+        }
+
+        T config = configs.get(processorId);
+        if (config == null || !config.isEnabled()) {
+            activeSchedulers.remove(processorId);
+            return;
+        }
+
+        long sanitizedDelayMs = Math.max(delayMs, 0L);
+        ScheduledFuture<?> future = taskScheduler.schedule(
+            () -> scheduledTask(processorId),
+            Instant.now().plusMillis(sanitizedDelayMs)
+        );
+        activeSchedulers.put(processorId, future);
+        log.trace("[EventProcessorImpl] Scheduled next run for {} in {}ms", processorId, sanitizedDelayMs);
     }
 
     @Override

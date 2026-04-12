@@ -6,9 +6,13 @@ import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.eventstore.internal.ClockProviderImpl;
+import com.crablet.eventstore.internal.EventStoreNotificationProperties;
 import com.crablet.eventstore.internal.EventRepositoryImpl;
 import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.eventstore.internal.ReadReplicaProperties;
+import com.crablet.eventstore.notify.EventAppendNotifier;
+import com.crablet.eventstore.notify.NoopEventAppendNotifier;
+import com.crablet.eventstore.notify.PostgresNotifyEventAppendNotifier;
 import com.crablet.eventstore.query.EventRepository;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -41,7 +45,7 @@ import javax.sql.DataSource;
  * </ul>
  */
 @AutoConfiguration
-@EnableConfigurationProperties(ReadReplicaProperties.class)
+@EnableConfigurationProperties({ReadReplicaProperties.class, EventStoreNotificationProperties.class})
 public class EventStoreAutoConfiguration {
 
     @Bean
@@ -145,20 +149,37 @@ public class EventStoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public EventAppendNotifier eventAppendNotifier(
+            WriteDataSource writeDataSource,
+            EventStoreNotificationProperties notificationProperties) {
+        if (!notificationProperties.isEnabled()) {
+            return new NoopEventAppendNotifier();
+        }
+
+        return new PostgresNotifyEventAppendNotifier(
+                writeDataSource.dataSource(),
+                notificationProperties.getChannel(),
+                notificationProperties.getPayload());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public EventStore eventStore(
             WriteDataSource writeDataSource,
             ReadDataSource readDataSource,
             ObjectMapper objectMapper,
             EventStoreConfig config,
             ClockProvider clock,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher,
+            EventAppendNotifier eventAppendNotifier) {
         return new EventStoreImpl(
                 writeDataSource.dataSource(),
                 readDataSource.dataSource(),
                 objectMapper,
                 config,
                 clock,
-                eventPublisher);
+                eventPublisher,
+                eventAppendNotifier);
     }
 
     @Bean

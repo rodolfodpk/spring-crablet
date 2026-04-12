@@ -8,6 +8,7 @@ package com.crablet.eventpoller.internal;
  * Backoff resets immediately when events are found.
  */
 public class BackoffState {
+    private final long pollingIntervalMs;
     private final int threshold;
     private final int multiplier;
     private final long maxSkips;
@@ -16,6 +17,7 @@ public class BackoffState {
     private int skipCounter = 0;
 
     public BackoffState(int threshold, int multiplier, long pollingIntervalMs, int maxBackoffSeconds) {
+        this.pollingIntervalMs = pollingIntervalMs;
         this.threshold = threshold;
         this.multiplier = multiplier;
         this.maxSkips = (maxBackoffSeconds * 1000L) / pollingIntervalMs;
@@ -66,5 +68,12 @@ public class BackoffState {
      */
     public int getCurrentSkipCounter() {
         return skipCounter;
+    }
+
+    /**
+     * Get the recommended delay before the next poll.
+     */
+    public long getNextDelayMs() {
+        return pollingIntervalMs * (skipCounter + 1L);
     }
 }

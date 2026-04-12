@@ -15,6 +15,8 @@ import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
+import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
+import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import org.springframework.beans.factory.ObjectProvider;
@@ -33,6 +35,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -120,7 +123,8 @@ public class AutomationsAutoConfiguration {
             InstanceIdProvider instanceIdProvider,
             WriteDataSource writeDataSource,
             TaskScheduler taskScheduler,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher,
+            Optional<ProcessorWakeupSourceFactory> wakeupSourceFactory) {
 
         return EventProcessorFactory.createProcessor(
             automationProcessorConfigs,
@@ -132,7 +136,8 @@ public class AutomationsAutoConfiguration {
             automationEventHandler,
             writeDataSource,
             taskScheduler,
-            eventPublisher
+            eventPublisher,
+            wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new)
         );
     }
 

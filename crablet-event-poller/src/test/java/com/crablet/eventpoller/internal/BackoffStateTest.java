@@ -27,6 +27,7 @@ class BackoffStateTest {
         // Then
         assertThat(state.getEmptyPollCount()).isEqualTo(0);
         assertThat(state.getCurrentSkipCounter()).isEqualTo(0);
+        assertThat(state.getNextDelayMs()).isEqualTo(1000L);
         assertThat(state.shouldSkip()).isFalse();
     }
 
@@ -62,6 +63,7 @@ class BackoffStateTest {
         assertThat(state.getEmptyPollCount()).isEqualTo(4);
         // After threshold, should calculate: 2^1 - 1 = 1 skip
         assertThat(state.getCurrentSkipCounter()).isEqualTo(1);
+        assertThat(state.getNextDelayMs()).isEqualTo(2000L);
         assertThat(state.shouldSkip()).isTrue();
     }
 
@@ -123,7 +125,24 @@ class BackoffStateTest {
         // Then
         assertThat(state.getEmptyPollCount()).isEqualTo(0);
         assertThat(state.getCurrentSkipCounter()).isEqualTo(0);
+        assertThat(state.getNextDelayMs()).isEqualTo(1000L);
         assertThat(state.shouldSkip()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should expose adaptive next delay based on current backoff")
+    void shouldExposeAdaptiveNextDelay_BasedOnCurrentBackoff() {
+        // Given
+        BackoffState state = new BackoffState(3, 2, 1000L, 60);
+
+        // When
+        for (int i = 0; i < 6; i++) {
+            state.recordEmpty();
+        }
+
+        // Then - 6 polls means exponent = 3, skips = 7, delay = 8 intervals
+        assertThat(state.getCurrentSkipCounter()).isEqualTo(7);
+        assertThat(state.getNextDelayMs()).isEqualTo(8000L);
     }
 
     @Test

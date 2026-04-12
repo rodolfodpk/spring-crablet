@@ -1,8 +1,13 @@
 package com.crablet.eventpoller.config;
 
 import com.crablet.eventpoller.InstanceIdProvider;
+import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
+import com.crablet.eventpoller.wakeup.PostgresNotifyWakeupSourceFactory;
+import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.TaskScheduler;
@@ -24,6 +29,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
  * application context.
  */
 @AutoConfiguration
+@EnableConfigurationProperties(EventPollerNotificationProperties.class)
 public class EventPollerAutoConfiguration {
 
     @Bean
@@ -42,5 +48,25 @@ public class EventPollerAutoConfiguration {
         scheduler.setAwaitTerminationSeconds(60);
         scheduler.initialize();
         return scheduler;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ProcessorWakeupSourceFactory processorWakeupSourceFactory(
+            EventPollerNotificationProperties notificationProperties) {
+        if (!notificationProperties.isEnabled()) {
+            return new NoopProcessorWakeupSourceFactory();
+        }
+
+        if (notificationProperties.getJdbcUrl() == null || notificationProperties.getJdbcUrl().isBlank()) {
+            throw new IllegalStateException(
+                    "crablet.event-poller.notifications.enabled=true requires crablet.event-poller.notifications.jdbc-url");
+        }
+
+        return new PostgresNotifyWakeupSourceFactory(
+                notificationProperties.getJdbcUrl(),
+                notificationProperties.getUsername(),
+                notificationProperties.getPassword(),
+                notificationProperties.getChannel());
     }
 }
