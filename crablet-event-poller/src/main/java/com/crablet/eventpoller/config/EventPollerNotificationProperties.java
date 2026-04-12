@@ -8,19 +8,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "crablet.event-poller.notifications")
 public class EventPollerNotificationProperties {
 
-    private boolean enabled = false;
     private String channel = "crablet_events";
     private String jdbcUrl;
     private String username;
     private String password;
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
 
     public String getChannel() {
         return channel;

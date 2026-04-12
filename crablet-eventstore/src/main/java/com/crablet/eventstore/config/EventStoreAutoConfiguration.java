@@ -11,7 +11,6 @@ import com.crablet.eventstore.internal.EventRepositoryImpl;
 import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.eventstore.internal.ReadReplicaProperties;
 import com.crablet.eventstore.notify.EventAppendNotifier;
-import com.crablet.eventstore.notify.NoopEventAppendNotifier;
 import com.crablet.eventstore.notify.PostgresNotifyEventAppendNotifier;
 import com.crablet.eventstore.query.EventRepository;
 import com.zaxxer.hikari.HikariConfig;
@@ -152,10 +151,6 @@ public class EventStoreAutoConfiguration {
     public EventAppendNotifier eventAppendNotifier(
             WriteDataSource writeDataSource,
             EventStoreNotificationProperties notificationProperties) {
-        if (!notificationProperties.isEnabled()) {
-            return new NoopEventAppendNotifier();
-        }
-
         return new PostgresNotifyEventAppendNotifier(
                 writeDataSource.dataSource(),
                 notificationProperties.getChannel(),

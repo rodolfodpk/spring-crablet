@@ -54,13 +54,8 @@ public class EventPollerAutoConfiguration {
     @ConditionalOnMissingBean
     public ProcessorWakeupSourceFactory processorWakeupSourceFactory(
             EventPollerNotificationProperties notificationProperties) {
-        if (!notificationProperties.isEnabled()) {
-            return new NoopProcessorWakeupSourceFactory();
-        }
-
         if (notificationProperties.getJdbcUrl() == null || notificationProperties.getJdbcUrl().isBlank()) {
-            throw new IllegalStateException(
-                    "crablet.event-poller.notifications.enabled=true requires crablet.event-poller.notifications.jdbc-url");
+            return new NoopProcessorWakeupSourceFactory();
         }
 
         return new PostgresNotifyWakeupSourceFactory(

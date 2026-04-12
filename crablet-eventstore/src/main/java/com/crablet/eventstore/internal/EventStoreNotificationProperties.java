@@ -8,17 +8,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "crablet.eventstore.notifications")
 public class EventStoreNotificationProperties {
 
-    private boolean enabled = false;
     private String channel = "crablet_events";
     private String payload = "events-appended";
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
 
     public String getChannel() {
         return channel;
