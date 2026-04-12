@@ -17,6 +17,12 @@ Add `views`, `outbox`, and `automations` later, after the write path is working 
 
 This module is also the natural foundation for a future command-side starter. The goal of that starter should be narrow: command execution, handler discovery, and default wiring. It should not hide the deployment implications of poller-backed modules.
 
+## Start Here
+
+- If you are new to Crablet, read `Quick Start` first
+- Pair this README with [../crablet-eventstore/GETTING_STARTED.md](../crablet-eventstore/GETTING_STARTED.md)
+- Add views, automations, and outbox only after command execution is working cleanly
+
 ## Overview
 
 Crablet Command provides a lightweight framework for command handling on top of Crablet EventStore:
@@ -29,11 +35,10 @@ Crablet Command provides a lightweight framework for command handling on top of 
 
 For a commands-first adoption guide, see [../docs/COMMANDS_FIRST_ADOPTION.md](../docs/COMMANDS_FIRST_ADOPTION.md).
 
-**Light Framework Benefits:**
-- Required: Implement `CommandHandler<T>` (one per command type)
-- Use: Inject `CommandExecutor` and `EventStore` (provided by framework)
-- Small API surface: 1 interface to implement
-- Easy to customize and extend
+**Light framework shape:**
+- Implement one `CommandHandler<T>` per command type
+- Inject `CommandExecutor` and `EventStore`
+- Keep command orchestration explicit instead of hidden behind conventions
 
 ## Features
 

@@ -10,6 +10,12 @@ Light framework component for asynchronous view projections using materialized r
 
 Adopt it after the command side is working. For learning, it makes sense to run it together with commands in a single application instance. For production, default to one application instance per cluster when views are enabled.
 
+## Start Here
+
+- Add views after command execution is working and you need read models
+- Read `Quick Reference` first if you just need the right projector shape
+- Read `Quick Start`, `Configuration`, and `View Management` before the deeper reference sections
+
 ## Contents
 
 - [Quick Reference](#quick-reference)
@@ -82,7 +88,6 @@ Because the poller uses leader election, only one instance actively projects a g
 
 - crablet-eventstore (required)
 - crablet-event-poller (required)
-- Spring Boot Web (for REST API)
 - Spring Boot JDBC (for database access)
 - PostgreSQL JDBC Driver
 
@@ -376,9 +381,10 @@ Crablet Views uses the generic event processor infrastructure:
 - **Leader Election**: Uses PostgreSQL advisory locks for distributed leader election. See [Leader Election Guide](../docs/LEADER_ELECTION.md) for details.
 - **Backoff Strategy**: Exponential backoff for error recovery
 
-**Recommended deployment:** 
-- **1 instance**: Works fine in Kubernetes (auto-restart on crash, brief downtime)
-- **2+ instances**: Recommended for zero-downtime failover (follower takes over within 5-30 seconds)
+**Recommended deployment:**
+- Default to **1 application instance per cluster**
+- Additional replicas provide standby behavior and failover, not higher throughput for the same views
+- Add replicas only when you explicitly want that operational tradeoff
 
 ## Configuration
 

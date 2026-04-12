@@ -4,6 +4,12 @@
 
 Light event sourcing framework with Dynamic Consistency Boundary (DCB) support and Spring Boot integration.
 
+## Start Here
+
+- Start here if you want direct `EventStore` usage or need to understand Crablet's core concurrency model
+- If you want handler discovery and command orchestration, pair this with [../crablet-commands/README.md](../crablet-commands/README.md)
+- For a first integration walkthrough, read [GETTING_STARTED.md](GETTING_STARTED.md) before the deeper reference sections
+
 ## Overview
 
 Crablet EventStore is an event sourcing framework inspired by the [DCB (Dynamic Consistency Boundary)](docs/DCB_AND_CRABLET.md) pattern:

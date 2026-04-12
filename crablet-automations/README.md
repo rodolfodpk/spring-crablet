@@ -8,6 +8,12 @@ Light framework component for event-driven automations (policies) with Spring Bo
 
 It should come after the command side, not before it. For learning, one application instance running commands and automations together is the clearest setup. For production, default to one application instance per cluster when automations are enabled.
 
+## Start Here
+
+- Adopt `crablet-eventstore` and `crablet-commands` first
+- Add automations when you need follow-up commands or external side effects after events are stored
+- In this README, focus on `Recommended Pattern`, `Quick Start`, and `Configuration`
+
 ## Overview
 
 Crablet Automations implements the "when X happens, do Y" pattern from event storming — also known as policies or process managers. When a domain event is stored, an automation can listen for it and automatically execute one or more commands.
@@ -168,11 +174,11 @@ Each `AutomationHandler` bean must have a unique automation name. Invalid overla
 
 ### 6. Database Migration
 
-Add the `reaction_progress` table to your application's Flyway migrations:
+Add the automation progress table to your application's Flyway migrations:
 
 ```sql
-CREATE TABLE IF NOT EXISTS reaction_progress (
-    reaction_name VARCHAR(255) PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS automation_progress (
+    automation_name VARCHAR(255) PRIMARY KEY,
     instance_id   VARCHAR(255),
     status        VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
     last_position BIGINT NOT NULL DEFAULT 0,
@@ -276,7 +282,7 @@ AutomationHandler.react() / webhook POST
     ↓
 CommandExecutor / external gateway
     ↓
-reaction_progress     — progress tracked per automation name
+automation_progress   — schema table that stores per-automation progress
 ```
 
 - **Leader election**: PostgreSQL advisory locks ensure only one instance processes each automation at a time
@@ -307,9 +313,9 @@ Each `AutomationHandler` is also the per-automation poller config. A handler can
 
 ## Examples
 
-The `shared-examples-domain` module contains a complete working example:
+The repository contains a complete working example:
 
-- **`WalletOpenedReaction`** (in `wallet-example-app`) — in-process `AutomationHandler` for `WalletOpened`
+- **`WalletOpenedAutomation`** (in `wallet-example-app`) — in-process `AutomationHandler` for `WalletOpened`
 - **`SendWelcomeNotificationCommandHandler`** — records a `WelcomeNotificationSent` event with an idempotency check
 
 The recommended pattern is to keep the decision in a view model and use the automation to bridge from trigger to side effect or follow-up command.

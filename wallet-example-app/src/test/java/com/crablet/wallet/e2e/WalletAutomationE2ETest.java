@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * E2E test verifying the automation pipeline:
- * WalletOpened event → WalletOpenedReaction → SendWelcomeNotificationCommand → WelcomeNotificationSent event.
+ * WalletOpened event → WalletOpenedAutomation → SendWelcomeNotificationCommand → WelcomeNotificationSent event.
  * <p>
  * The example uses the lightweight automation-to-command bridge pattern; the
  * command handler only records the resulting fact. Also verifies idempotency:
@@ -55,7 +55,7 @@ class WalletAutomationE2ETest extends AbstractWalletE2ETest {
         // Clean state
         jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
         jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE reaction_progress CASCADE");
+        jdbcTemplate.execute("TRUNCATE TABLE automation_progress CASCADE");
 
         // Open wallet via HTTP
         webTestClient

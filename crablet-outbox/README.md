@@ -10,6 +10,12 @@ Light framework component for transactional outbox event publishing with DCB eve
 
 It should not be part of the first adoption promise. Start with the command side, then add outbox when the event model is stable and you need reliable external publication. For learning, one application instance is the recommended setup. For production, default to one application instance per cluster when outbox is enabled.
 
+## Start Here
+
+- Use `crablet-eventstore` and `crablet-commands` first
+- Add outbox only after your event model is stable and you need external publication
+- In this README, focus on `Quick Start`, `Configuration`, and `Management API`
+
 ## Overview
 
 Crablet Outbox provides a robust transactional outbox implementation, ensuring that events are reliably published from your application to external systems without compromising transactional integrity.
@@ -39,8 +45,9 @@ Crablet Outbox provides a robust transactional outbox implementation, ensuring t
 ## Dependencies
 
 - crablet-eventstore (required)
-- crablet-event-poller (required) - Generic event processing infrastructure
-- Spring Boot Web, JDBC
+- crablet-event-poller (required) - generic poller infrastructure
+- Spring Boot Web
+- Spring Boot JDBC
 - Resilience4j (for circuit breakers and retries)
 - Micrometer (for metrics)
 - PostgreSQL JDBC Driver
@@ -62,16 +69,21 @@ crablet.outbox.topics.default.publishers=LogPublisher,CountDownLatchPublisher
 @Component
 public class KafkaPublisher implements OutboxPublisher {
     @Override
-    public void publish(String topic, List<StoredEvent> events) throws PublishException {
-        // Publish events to Kafka
+    public void publishBatch(List<StoredEvent> events) throws PublishException {
+        // Publish events to Kafka in one batch
         for (StoredEvent event : events) {
-            kafkaTemplate.send(topic, event);
+            kafkaTemplate.send("default", event);
         }
     }
     
     @Override
     public String getName() {
         return "KafkaPublisher";
+    }
+
+    @Override
+    public boolean isHealthy() {
+        return kafkaTemplate.isHealthy();
     }
 }
 ```
@@ -178,18 +190,20 @@ The following metrics are published:
 
 ## Management API
 
-The outbox provides a management API for monitoring and control:
+In `wallet-example-app`, the outbox management API is exposed under `/api/outbox`:
 
 ```bash
-# Get outbox status
-curl http://localhost:8080/actuator/outbox/status
+# Get all publisher statuses
+curl http://localhost:8080/api/outbox/status
 
-# Get publisher statistics
-curl http://localhost:8080/actuator/outbox/publishers
+# Get one publisher status
+curl http://localhost:8080/api/outbox/default/publishers/LogPublisher/status
 
-# Reset publisher position
-curl -X POST http://localhost:8080/actuator/outbox/publishers/LogPublisher/reset
+# Reset one topic/publisher pair
+curl -X POST http://localhost:8080/api/outbox/default/publishers/LogPublisher/reset
 ```
+
+For the full endpoint set, see [../docs/MANAGEMENT_API.md](../docs/MANAGEMENT_API.md).
 
 ## Monitoring
 

@@ -166,12 +166,12 @@ public class KafkaPublisher implements OutboxPublisher {
 ### REST API
 ```bash
 # Pause/resume publishers
-curl -X POST http://localhost:8080/api/outbox/publishers/KafkaPublisher/pause
-curl -X POST http://localhost:8080/api/outbox/publishers/KafkaPublisher/resume
+curl -X POST http://localhost:8080/api/outbox/default/publishers/KafkaPublisher/pause
+curl -X POST http://localhost:8080/api/outbox/default/publishers/KafkaPublisher/resume
 
 # Check publisher status
-curl http://localhost:8080/api/outbox/publishers/KafkaPublisher
-curl http://localhost:8080/api/outbox/publishers/lag
+curl http://localhost:8080/api/outbox/default/publishers/KafkaPublisher/status
+curl http://localhost:8080/api/outbox/default/publishers/KafkaPublisher/lag
 ```
 
 ### SQL Management
@@ -404,7 +404,7 @@ curl http://localhost:8080/actuator/metrics/outbox.is.leader
 curl http://localhost:8080/actuator/env | grep outbox.enabled
 
 # Check publishers
-curl http://localhost:8080/actuator/outbox/publishers
+curl http://localhost:8080/api/outbox/status
 ```
 
 ## See Also

@@ -11,10 +11,20 @@ The recommended learning setup is:
 ## Prerequisites
 
 - Java 25
-- Docker
+- PostgreSQL 17+
 - Maven wrapper is included
 
 ## Start The Project
+
+The wallet example app uses the datasource in `wallet-example-app/src/main/resources/application.properties`, which defaults to:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/wallet_db
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+```
+
+Create that database first, or update the datasource settings before starting the app.
 
 From the repository root:
 
@@ -72,7 +82,9 @@ Expected response shape:
 ```json
 {
   "walletId": "wallet-123",
-  "balance": 125
+  "owner": "Jane Doe",
+  "balance": 125,
+  "lastUpdatedAt": "2026-04-12T18:00:00Z"
 }
 ```
 

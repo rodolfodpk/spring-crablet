@@ -16,6 +16,12 @@ It is not the first module most users should reach for directly. The recommended
 
 For learning, run one application instance. For production, the default documented topology for poller-backed modules is one application instance per cluster.
 
+## Start Here
+
+- Most users should not start with this module directly
+- Read this when you need to understand shared poller behavior across views, outbox, or automations
+- The highest-signal sections are `Deployment Recommendation`, `Wakeup Notifications`, and `Configuration Model`
+
 ## Overview
 
 Crablet Event Processor provides a generic, reusable infrastructure for building event-driven processors. It handles the common concerns of event processing:
@@ -185,7 +191,7 @@ The event processor is built around a few key interfaces:
 
 4. **Backoff**: After a threshold of empty polls, the scheduler skips cycles with exponential backoff
 
-5. **Progress Tracking**: Each processor tracks its own position independently in the `processor_progress` table
+5. **Progress Tracking**: Each processor tracks its own position independently in its module-specific progress table such as `view_progress`, `outbox_topic_progress`, or `reaction_progress`
 
 ## Configuration Model
 
@@ -326,14 +332,14 @@ Handler execution and progress update are **NOT** in the same transaction. This 
 The processor provides a REST API for monitoring and control:
 
 ```bash
-# Get processor status
-curl http://localhost:8080/actuator/processor/status
+# Get all processor statuses
+curl http://localhost:8080/api/processors
 
 # Pause a processor
-curl -X POST http://localhost:8080/actuator/processor/my-processor/pause
+curl -X POST http://localhost:8080/api/processors/my-processor/pause
 
 # Resume a processor
-curl -X POST http://localhost:8080/actuator/processor/my-processor/resume
+curl -X POST http://localhost:8080/api/processors/my-processor/resume
 ```
 
 ## Metrics

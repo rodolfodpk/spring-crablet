@@ -15,7 +15,9 @@ curl http://localhost:8080/api/views/status
 ```json
 {
   "wallet-balance-view": "ACTIVE",
-  "wallet-history-view": "ACTIVE"
+  "wallet-transaction-view": "ACTIVE",
+  "wallet-summary-view": "ACTIVE",
+  "wallet-statement-view": "ACTIVE"
 }
 ```
 
@@ -100,34 +102,34 @@ curl http://localhost:8080/api/automations/status
 ```
 ```json
 {
-  "wallet-notification": "ACTIVE"
+  "wallet-opened-welcome-notification": "ACTIVE"
 }
 ```
 
 ### Get status + lag for one automation
 ```bash
-curl http://localhost:8080/api/automations/wallet-notification/status
+curl http://localhost:8080/api/automations/wallet-opened-welcome-notification/status
 ```
 ```json
-{ "automationName": "wallet-notification", "status": "ACTIVE", "lag": 0 }
+{ "automationName": "wallet-opened-welcome-notification", "status": "ACTIVE", "lag": 0 }
 ```
 
 ### Get detailed progress
 ```bash
-curl http://localhost:8080/api/automations/wallet-notification/details
+curl http://localhost:8080/api/automations/wallet-opened-welcome-notification/details
 curl http://localhost:8080/api/automations/details    # all automations
 ```
 
 ### Get lag
 ```bash
-curl http://localhost:8080/api/automations/wallet-notification/lag
+curl http://localhost:8080/api/automations/wallet-opened-welcome-notification/lag
 ```
 
 ### Pause / Resume / Reset
 ```bash
-curl -X POST http://localhost:8080/api/automations/wallet-notification/pause
-curl -X POST http://localhost:8080/api/automations/wallet-notification/resume
-curl -X POST http://localhost:8080/api/automations/wallet-notification/reset
+curl -X POST http://localhost:8080/api/automations/wallet-opened-welcome-notification/pause
+curl -X POST http://localhost:8080/api/automations/wallet-opened-welcome-notification/resume
+curl -X POST http://localhost:8080/api/automations/wallet-opened-welcome-notification/reset
 ```
 
 ---

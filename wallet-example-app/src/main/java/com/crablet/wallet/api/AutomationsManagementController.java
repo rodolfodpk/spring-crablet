@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  * <ul>
  *   <li>Automation operations: pause, resume, reset</li>
  *   <li>Status monitoring: get status, lag, all statuses</li>
- *   <li>Detailed progress: get progress information from the reaction_progress table</li>
+ *   <li>Detailed progress: get progress information from the automation_progress table</li>
  * </ul>
  */
 @RestController

@@ -18,6 +18,8 @@ Crablet is a Java 25 event sourcing framework for Spring Boot. It is designed fo
 
 For learning, start with **one application instance** running the full stack together. That gives you the clearest write-to-read and write-to-side-effect flow.
 
+The example app expects a local PostgreSQL database named `wallet_db`. See [docs/QUICKSTART.md](docs/QUICKSTART.md) for the exact first-run setup.
+
 ```bash
 make install
 make start

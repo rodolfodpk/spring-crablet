@@ -50,7 +50,7 @@ public abstract class AbstractAutomationsTest {
         try {
             jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
             jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE reaction_progress CASCADE");
+            jdbcTemplate.execute("TRUNCATE TABLE automation_progress CASCADE");
         } catch (org.springframework.jdbc.BadSqlGrammarException e) {
             // Tables don't exist yet — Flyway will create them
         } catch (Exception e) {

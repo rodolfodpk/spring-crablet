@@ -17,7 +17,7 @@ import java.time.Instant;
  * Subclasses supply the table and column names via the constructor — no other code is required.
  * <p>
  * Suitable for trackers whose progress table has a single {@code VARCHAR} primary key
- * (e.g. {@code view_name}, {@code reaction_name}). Trackers with composite keys
+ * (e.g. {@code view_name}, {@code automation_name}). Trackers with composite keys
  * (e.g. outbox's {@code (topic, publisher)}) should implement {@link ProgressTracker} directly.
  */
 public abstract class AbstractSingleKeyProgressTracker implements ProgressTracker<String> {

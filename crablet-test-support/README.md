@@ -2,6 +2,12 @@
 
 Shared test infrastructure for all Crablet modules. Provides fast in-memory testing, Testcontainers base classes, and all framework database migrations in one place.
 
+## Start Here
+
+- Add this as a `test` dependency when you want shared migrations and reusable Crablet test helpers
+- Use `InMemoryEventStore` for fast unit tests
+- Use `AbstractCrabletTest` when you need a real PostgreSQL-backed integration test
+
 ## Overview
 
 `crablet-test-support` solves two problems:
@@ -105,7 +111,7 @@ All framework migrations live in `src/main/resources/db/migration/` — main res
 | `V1__eventstore_schema.sql` | `events`, `commands` tables + functions |
 | `V2__outbox_schema.sql` | `outbox_topic_progress` table |
 | `V3__view_progress_schema.sql` | `view_progress` table |
-| `V4__reaction_progress_schema.sql` | `reaction_progress` table |
+| `V4__automation_progress_schema.sql` | `automation_progress` table |
 
 Flyway picks these up automatically in every module that declares `crablet-test-support` as a test-scope dependency — no per-module migration copies needed.
 

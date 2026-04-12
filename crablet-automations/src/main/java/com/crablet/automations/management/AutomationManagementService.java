@@ -17,7 +17,7 @@ import java.util.Map;
 
 /**
  * Management service for automations, extending the generic {@link ProcessorManagementService}
- * with detailed progress monitoring from the {@code reaction_progress} table.
+ * with detailed progress monitoring from the {@code automation_progress} table.
  *
  * <p>Applications can inject this as either:
  * <ul>
@@ -33,16 +33,16 @@ public class AutomationManagementService implements ProcessorManagementService<S
     private final DataSource dataSource;
 
     private static final String SELECT_PROGRESS_SQL = """
-        SELECT reaction_name, instance_id, status, last_position, error_count,
+        SELECT automation_name, instance_id, status, last_position, error_count,
                last_error, last_error_at, last_updated_at, created_at
-        FROM reaction_progress
-        WHERE reaction_name = ?
+        FROM automation_progress
+        WHERE automation_name = ?
         """;
 
     private static final String SELECT_ALL_PROGRESS_SQL = """
-        SELECT reaction_name, instance_id, status, last_position, error_count,
+        SELECT automation_name, instance_id, status, last_position, error_count,
                last_error, last_error_at, last_updated_at, created_at
-        FROM reaction_progress
+        FROM automation_progress
         """;
 
     public AutomationManagementService(
@@ -126,7 +126,7 @@ public class AutomationManagementService implements ProcessorManagementService<S
     }
 
     private AutomationProgressDetails mapRow(ResultSet rs) throws SQLException {
-        String automationName = rs.getString("reaction_name");
+        String automationName = rs.getString("automation_name");
 
         String instanceId = rs.getString("instance_id");
         if (rs.wasNull()) instanceId = null;

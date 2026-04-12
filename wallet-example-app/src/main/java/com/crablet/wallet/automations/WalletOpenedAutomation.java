@@ -1,4 +1,4 @@
-package com.crablet.wallet.reactions;
+package com.crablet.wallet.automations;
 
 import com.crablet.automations.AutomationHandler;
 import com.crablet.command.CommandExecutor;
@@ -21,13 +21,13 @@ import java.util.Set;
  * No HTTP round-trip involved.
  */
 @Component
-public class WalletOpenedReaction implements AutomationHandler {
+public class WalletOpenedAutomation implements AutomationHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(WalletOpenedReaction.class);
+    private static final Logger log = LoggerFactory.getLogger(WalletOpenedAutomation.class);
 
     private final ObjectMapper objectMapper;
 
-    public WalletOpenedReaction(ObjectMapper objectMapper) {
+    public WalletOpenedAutomation(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
@@ -49,7 +49,7 @@ public class WalletOpenedReaction implements AutomationHandler {
             log.info("Sent welcome notification for wallet: {}", opened.walletId());
         } catch (Exception e) {
             log.error("Failed to process WalletOpened event position={}: {}", event.position(), e.getMessage(), e);
-            throw new RuntimeException("WalletOpenedReaction failed", e);
+            throw new RuntimeException("WalletOpenedAutomation failed", e);
         }
     }
 }

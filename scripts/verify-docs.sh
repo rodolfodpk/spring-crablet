@@ -171,6 +171,35 @@ check_outbox_api_snippet() {
   contains "isHealthy" "$file" || fail "$file must show isHealthy()"
 }
 
+check_runtime_doc_examples() {
+  contains "createdb wallet_db" "docs/BUILD.md" || fail "docs/BUILD.md must show database creation for wallet-example-app"
+  contains "createdb wallet_db" "wallet-example-app/README.md" || fail "wallet-example-app/README.md must show database creation"
+  contains "lastUpdatedAt" "docs/QUICKSTART.md" || fail "docs/QUICKSTART.md must show the current wallet response shape"
+
+  contains "wallet-transaction-view" "docs/MANAGEMENT_API.md" || fail "docs/MANAGEMENT_API.md must reference wallet-transaction-view"
+  contains "wallet-opened-welcome-notification" "docs/MANAGEMENT_API.md" || fail "docs/MANAGEMENT_API.md must reference the current automation name"
+
+  if print_matches "/actuator/outbox" "crablet-outbox/README.md" "crablet-outbox/docs/OUTBOX_PATTERN.md" >/dev/null; then
+    print_matches "/actuator/outbox" "crablet-outbox/README.md" "crablet-outbox/docs/OUTBOX_PATTERN.md"
+    fail "found outdated outbox management endpoints"
+  fi
+
+  if print_matches "publish\\(String topic, List<StoredEvent> events\\)" "crablet-outbox/README.md" >/dev/null; then
+    print_matches "publish\\(String topic, List<StoredEvent> events\\)" "crablet-outbox/README.md"
+    fail "found outdated OutboxPublisher API shape"
+  fi
+
+  if print_matches "processor_progress" "crablet-event-poller/README.md" >/dev/null; then
+    print_matches "processor_progress" "crablet-event-poller/README.md"
+    fail "found outdated generic progress table name"
+  fi
+
+  if print_matches "/actuator/processor" "crablet-event-poller/README.md" >/dev/null; then
+    print_matches "/actuator/processor" "crablet-event-poller/README.md"
+    fail "found outdated processor management endpoints"
+  fi
+}
+
 check_links
 check_forbidden_phrases
 check_required_phrase "(1|one) application instance per cluster" "1 application instance per cluster" \
@@ -184,5 +213,6 @@ check_required_phrase "(1|one) application instance per cluster" "1 application 
 check_tutorial_import_context
 check_canonical_fixture_links
 check_outbox_api_snippet
+check_runtime_doc_examples
 
 echo "docs-check: OK"

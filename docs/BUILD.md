@@ -4,12 +4,20 @@ Tests use Testcontainers (no external dependencies required, Docker must be runn
 
 ## Quick Start
 
+For the library build:
+
 ```bash
 make install   # build everything in the right order
-make start     # run wallet-example-app
 ```
 
-That's all you need. The Makefile handles the build order automatically.
+For the example application:
+
+```bash
+createdb wallet_db
+make start
+```
+
+`make start` only runs `wallet-example-app`; it does not provision PostgreSQL for you. The default datasource is `jdbc:postgresql://localhost:5432/wallet_db`.
 
 ## Module Structure
 
@@ -117,10 +125,13 @@ Run a single module after `make install`:
 
 ```bash
 # Option 1 — easiest
-make install && make start
+make install
+createdb wallet_db
+make start
 
 # Option 2 — manual
 make install
+createdb wallet_db
 cd wallet-example-app && ../mvnw spring-boot:run
 ```
 
@@ -151,11 +162,11 @@ crablet-test-support/src/main/resources/db/migration/
   V1__eventstore_schema.sql        events + commands tables
   V2__outbox_schema.sql            outbox_topic_progress table
   V3__view_progress_schema.sql     view_progress table
-  V4__reaction_progress_schema.sql reaction_progress table
+  V4__automation_progress_schema.sql automation_progress table
 ```
 
 Flyway picks these up automatically on the test classpath because every module
 has `crablet-test-support` as a test-scope dependency. No copies in individual modules.
 
 `wallet-example-app` manages its own migrations in `src/main/resources/db/migration/`
-(V1, V3, plus application-specific tables V4–V8).
+(V1, V3, plus application-specific tables V4–V11).

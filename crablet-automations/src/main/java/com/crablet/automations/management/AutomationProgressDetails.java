@@ -5,7 +5,7 @@ import com.crablet.eventpoller.progress.ProcessorStatus;
 import java.time.Instant;
 
 /**
- * Detailed progress information for an automation, read from the {@code reaction_progress} table.
+ * Detailed progress information for an automation, read from the {@code automation_progress} table.
  */
 public record AutomationProgressDetails(
         String automationName,

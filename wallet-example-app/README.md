@@ -23,7 +23,7 @@ This application demonstrates a wallet management system with:
   - `wallet_transaction_view` - Transaction history
   - `wallet_summary_view` - Aggregated statistics
   - `wallet_statement_view` - Period-based statement tracking
-- **Reactions**: Event-driven commands — when a wallet is opened, send a welcome notification
+- **Automations**: Event-driven follow-up work — when a wallet is opened, send a welcome notification
 - **View Management**: REST API for monitoring and controlling view projections
 
 ## Architecture
@@ -376,17 +376,17 @@ The application includes four view projections:
 
 ## Automations
 
-The `WalletOpenedReaction` listens for `WalletOpened` events and executes a `SendWelcomeNotificationCommand`, which logs a welcome message and records a `WelcomeNotificationSent` event.
+The example automation class, `WalletOpenedAutomation`, listens for `WalletOpened` events and executes a `SendWelcomeNotificationCommand`, which logs a welcome message and records a `WelcomeNotificationSent` event.
 
-This demonstrates the full reaction → command → event chain:
+This demonstrates the full automation → command → event chain:
 ```
 WalletOpened event
-    → WalletOpenedReaction
+    → WalletOpenedAutomation
     → SendWelcomeNotificationCommand
     → WelcomeNotificationSent (with idempotency check)
 ```
 
-In the current example, `WalletOpenedReaction` is an in-process `AutomationHandler`, so it does not override `getWebhookUrl()`.
+In the current example, `WalletOpenedAutomation` is an in-process `AutomationHandler`, so it does not override `getWebhookUrl()`.
 
 ## Configuration
 
@@ -442,8 +442,9 @@ View projections use PostgreSQL advisory locks for leader election:
 - See [Leader Election Guide](../docs/LEADER_ELECTION.md) for details
 
 **Recommended deployment:**
-- **1 instance**: Works fine in Kubernetes (auto-restart on crash, brief downtime)
-- **2+ instances**: Recommended for zero-downtime failover (follower takes over within 5-30 seconds)
+- Default to **1 application instance per cluster**
+- Additional replicas provide standby behavior and failover, not higher throughput for the same processors
+- Add replicas only when you explicitly want that operational tradeoff
 
 ## Example Usage
 
