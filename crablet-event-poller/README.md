@@ -37,6 +37,74 @@ Important:
 
 If you need more throughput, split processor responsibilities or reduce polling cost; do not assume many replicas will help.
 
+## Wakeup Notifications (PostgreSQL LISTEN/NOTIFY)
+
+By default the poller uses a fixed schedule. Optionally you can enable PostgreSQL
+LISTEN/NOTIFY so the poller wakes up immediately when events are appended, reducing
+end-to-end latency from the polling interval down to milliseconds.
+
+The feature has two independent sides:
+
+### NOTIFY — event store side
+
+After every successful append the event store calls `pg_notify(channel, payload)` on
+the write connection. This is always active — no configuration is required to turn it
+on or off. If nobody is LISTENing, Postgres silently discards the notification at
+negligible cost.
+
+Tune only when needed:
+
+```properties
+# defaults shown — only set these to override
+crablet.eventstore.notifications.channel=crablet_events
+crablet.eventstore.notifications.payload=events-appended
+```
+
+### LISTEN — poller side
+
+To enable wakeup, set a dedicated direct JDBC URL. The poller opens a single persistent
+connection on that URL and issues `LISTEN <channel>`. When a notification arrives it
+cancels the pending schedule and polls immediately.
+
+```properties
+crablet.event-poller.notifications.jdbc-url=jdbc:postgresql://db-host:5432/mydb
+crablet.event-poller.notifications.username=app_user
+crablet.event-poller.notifications.password=secret
+# optional — must match crablet.eventstore.notifications.channel
+# crablet.event-poller.notifications.channel=crablet_events
+```
+
+When `jdbc-url` is absent the poller falls back to pure scheduled polling — nothing
+else needs to change.
+
+### Connection pooler / proxy compatibility
+
+The NOTIFY call is a plain SQL statement and works through any pooler or proxy.
+The LISTEN connection must be **direct and persistent**:
+
+| Environment | LISTEN supported |
+|---|---|
+| PgBouncer **session mode** | ✅ |
+| PgBouncer **transaction mode** | ❌ session state required |
+| PgCat | ❌ same reason as PgBouncer transaction mode |
+| Aurora PostgreSQL (direct connection) | ✅ |
+| Aurora via **RDS Proxy** | ❌ RDS Proxy uses transaction-mode pooling |
+
+Always point `jdbc-url` directly at the database host, bypassing any pooler.
+
+### Tuning polling interval with wakeup enabled
+
+When wakeup is active, scheduled polling becomes a safety net rather than the primary
+latency mechanism. You can raise the interval significantly:
+
+```properties
+crablet.views.polling-interval-ms=30000
+crablet.automations.polling-interval-ms=30000
+```
+
+Without wakeup, keep the interval at a value that meets your latency requirements (the
+default 1 s is reasonable for most cases; backoff handles idle periods automatically).
+
 ## Features
 
 - **Generic Design**: Type-safe, generic processor interface that can be adapted to different use cases
