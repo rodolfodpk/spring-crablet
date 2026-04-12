@@ -295,6 +295,11 @@ These decisions reflect the current repository state and should be treated as th
   - prefer `1` application instance by default
   - use `2` instances at most for active/failover behavior
   - extra replicas do not increase throughput for the same processor set
+- LISTEN/NOTIFY wakeup:
+  - **NOTIFY** (`crablet-eventstore`) — always active; `pg_notify` fires on the write datasource after every append; no flag or extra config needed; Postgres discards silently when no one is listening.
+  - **LISTEN** (`crablet-event-poller`) — opt-in via `crablet.event-poller.notifications.jdbc-url`; when set, a dedicated persistent connection LISTENs and wakes the poller immediately on each NOTIFY; when absent, pure scheduled polling is used.
+  - The LISTEN `jdbc-url` **must be a direct connection** to Postgres — not a pooler URL. PgBouncer transaction mode, PgCat, and RDS Proxy do not support persistent LISTEN connections.
+  - When wakeup is active, raise the polling interval to 30 s or more; scheduled polling becomes a safety net only.
 - The root tutorial is now a tutorial series under `docs/tutorials/`, not one monolithic walkthrough.
 
 ### Build graph, examples, and `crablet-test-support`

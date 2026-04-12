@@ -167,36 +167,36 @@ Wakeup behavior:
 
 ### `crablet-event-poller`
 
-Suggested properties:
+LISTEN wakeup is activated by setting `jdbc-url`. When absent the poller falls back
+to pure scheduled polling — no flag needed.
 
 ```properties
-crablet.event-poller.min-poll-interval-ms=1000
-crablet.event-poller.max-poll-interval-ms=30000
-crablet.event-poller.backoff-multiplier=2.0
-crablet.event-poller.jitter-factor=0.2
-crablet.event-poller.notifications.enabled=false
+# wakeup off (default) — omit these entirely
+# wakeup on — set a direct connection URL (must bypass any pooler)
+crablet.event-poller.notifications.jdbc-url=jdbc:postgresql://db-host:5432/mydb
+crablet.event-poller.notifications.username=app_user
+crablet.event-poller.notifications.password=secret
+# optional — must match crablet.eventstore.notifications.channel
 crablet.event-poller.notifications.channel=crablet_events
-crablet.event-poller.notifications.jdbc-url=
-crablet.event-poller.notifications.username=
-crablet.event-poller.notifications.password=
-crablet.event-poller.replica-catchup-delay-ms=200
 ```
 
 ### `crablet-eventstore`
 
-Suggested properties:
+NOTIFY is always active — the event store calls `pg_notify` on the write datasource
+after every successful append. If no one is LISTENing, Postgres discards it silently.
+There is no flag to set.
 
 ```properties
-crablet.eventstore.notifications.enabled=false
+# optional — only set to override defaults
 crablet.eventstore.notifications.channel=crablet_events
-crablet.eventstore.notifications.jdbc-url=
-crablet.eventstore.notifications.username=
-crablet.eventstore.notifications.password=
+crablet.eventstore.notifications.payload=events-appended
 ```
 
-The notification listener connection should be:
+The LISTEN connection must be:
 - direct PostgreSQL, or
-- a session-pooled endpoint
+- a PgBouncer/pgcat **session-mode** endpoint
+
+Do **not** use a transaction-pooled or RDS Proxy endpoint for LISTEN.
 
 ## Rollout Order
 
