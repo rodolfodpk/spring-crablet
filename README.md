@@ -7,7 +7,7 @@
 
 Crablet is a Java 25 event sourcing framework for Spring Boot. It is designed for domains where consistency depends on queries across multiple event streams, tags, or lifecycle events, not just one aggregate stream.
 
-## Why People Use Crablet
+## Why Crablet May Be Useful
 
 - Cross-entity consistency without forcing everything into one aggregate stream
 - Small public API centered on `EventStore`, `CommandHandler`, and `CommandExecutor`
