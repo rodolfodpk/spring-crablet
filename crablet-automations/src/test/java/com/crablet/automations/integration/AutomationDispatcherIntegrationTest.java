@@ -10,7 +10,9 @@ import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
+import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.WriteDataSource;
 import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.examples.notification.commands.SendWelcomeNotificationCommand;
@@ -23,12 +25,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -78,8 +78,7 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
     private CommandExecutor commandExecutor;
 
     @Autowired
-    @Qualifier("readDataSource")
-    private DataSource readDataSource;
+    private ReadDataSource readDataSource;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -216,7 +215,7 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
             @Override public Set<String> getEventTypes() { return Set.of(type(WalletOpened.class)); }
             @Override public void react(StoredEvent event, CommandExecutor ce) {}
         };
-        AutomationEventFetcher localFetcher = new AutomationEventFetcher(readDataSource, Map.of(automationName, walletOpenedFilter));
+        AutomationEventFetcher localFetcher = new AutomationEventFetcher(readDataSource.dataSource(), Map.of(automationName, walletOpenedFilter));
         return localFetcher.fetchEvents(automationName, 0L, 10);
     }
 
@@ -306,12 +305,11 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
             return ds;
         }
 
-        @Bean @Primary
-        public DataSource primaryDataSource(DataSource dataSource) { return dataSource; }
+        @Bean
+        public WriteDataSource writeDataSource(DataSource dataSource) { return new WriteDataSource(dataSource); }
 
         @Bean
-        @Qualifier("readDataSource")
-        public DataSource readDataSource(DataSource dataSource) { return dataSource; }
+        public ReadDataSource readReplicaDataSource(DataSource dataSource) { return new ReadDataSource(dataSource); }
 
         @Bean
         public JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }

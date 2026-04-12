@@ -5,16 +5,16 @@ import com.crablet.automations.internal.AutomationEventFetcher;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.WriteDataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
@@ -176,12 +176,11 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
             return ds;
         }
 
-        @Bean @Primary
-        public DataSource primaryDataSource(DataSource dataSource) { return dataSource; }
+        @Bean
+        public WriteDataSource writeDataSource(DataSource dataSource) { return new WriteDataSource(dataSource); }
 
         @Bean
-        @Qualifier("readDataSource")
-        public DataSource readDataSource(DataSource dataSource) { return dataSource; }
+        public ReadDataSource readReplicaDataSource(DataSource dataSource) { return new ReadDataSource(dataSource); }
 
         @Bean
         public JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
@@ -233,9 +232,9 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
 
         @Bean
         public AutomationEventFetcher automationEventFetcher(
-                @Qualifier("readDataSource") DataSource readDataSource,
+                ReadDataSource readDataSource,
                 Map<String, AutomationHandler> automationHandlers) {
-            return new AutomationEventFetcher(readDataSource, automationHandlers);
+            return new AutomationEventFetcher(readDataSource.dataSource(), automationHandlers);
         }
     }
 
