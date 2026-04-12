@@ -24,6 +24,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -47,7 +48,7 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
     private ApplicationEventPublisher eventPublisher;
 
     private static final long TEST_LOCK_KEY = 9876543210L;
-    private final List<LeaderElectorImpl> createdElectors = new ArrayList<>();
+    private final List<LeaderElectorImpl> createdElectors = new CopyOnWriteArrayList<>();
     private final List<LeaderElectorWithPersistentConnection> persistentElectors = new ArrayList<>();
 
     @BeforeEach
