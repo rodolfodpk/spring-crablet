@@ -461,6 +461,60 @@ Always test:
 - Duplicate operations (idempotency)
 - Insufficient balance, invalid input
 
+### 5. Control Time via ClockProvider — Never Call `Instant.now()` Directly
+
+The framework never calls `Instant.now()` directly. All timestamps go through the injected `ClockProvider`. This is a strict convention: your handlers, projectors, and domain code must follow the same rule — inject `ClockProvider` and call `clockProvider.now()`.
+
+**Why it matters:** any code that calls `Instant.now()` directly becomes non-deterministic in tests. Time-sensitive assertions (period segmentation, expiry, event ordering by timestamp) will be flaky.
+
+#### Unit tests — implement a fixed `ClockProvider`
+
+For unit tests extending `AbstractHandlerUnitTest`, pass a fixed clock implementation to your handler:
+
+```java
+private static final Instant FIXED_TIME =
+    LocalDateTime.of(2025, 1, 15, 10, 0, 0).atZone(ZoneOffset.UTC).toInstant();
+
+private static final ClockProvider FIXED_CLOCK = new ClockProvider() {
+    @Override public Instant now()                      { return FIXED_TIME; }
+    @Override public void setClock(Clock clock)         { /* no-op */ }
+    @Override public void resetToSystemClock()          { /* no-op */ }
+};
+
+@BeforeEach
+@Override
+protected void setUp() {
+    super.setUp();
+    handler = new YourCommandHandler(FIXED_CLOCK /*, other deps */);
+}
+```
+
+#### Integration tests — mutate the shared bean, reset in `@AfterEach`
+
+In Spring integration tests the `ClockProvider` bean is `ClockProviderImpl`, which supports mutation:
+
+```java
+@Autowired
+private ClockProvider clockProvider;
+
+@AfterEach
+void resetClock() {
+    clockProvider.resetToSystemClock();
+}
+
+@Test
+void givenFixedTime_whenProcessing_thenTimestampIsCorrect() {
+    Instant fixedTime = Instant.parse("2025-06-01T12:00:00Z");
+    clockProvider.setClock(Clock.fixed(fixedTime, ZoneOffset.UTC));
+
+    // ... exercise the system ...
+
+    // assert timestamps equal fixedTime
+}
+```
+
+**Always call `resetToSystemClock()` in `@AfterEach`** — the bean is shared across tests in the same Spring context, so a frozen clock left behind will corrupt subsequent tests.
+
 ## Test Structure
 
 The test scope is organized into:

@@ -24,10 +24,6 @@ public record StreamPosition(long position, @Nullable Instant occurredAt, @Nulla
         return new StreamPosition(position, occurredAt, "0");
     }
 
-    public static StreamPosition of(long position) {
-        return new StreamPosition(position, Instant.now(), "0");
-    }
-
     public static StreamPosition zero() {
         return new StreamPosition(0L, Instant.EPOCH, "0");
     }

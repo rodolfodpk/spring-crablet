@@ -601,6 +601,7 @@ cd wallet-example-app && ./mvnw spring-boot:run
 ### Java Style
 
 - **Never use fully qualified class names in code.** Always add import statements at the top of the file. Fully qualified names (e.g., `com.crablet.eventstore.StoredEvent event` inline) are forbidden; use imports instead.
+- **Never call `Instant.now()` directly.** Always inject `ClockProvider` and call `clockProvider.now()`. This is mandatory for deterministic tests — any direct `Instant.now()` call makes time-sensitive logic untestable.
 
 ### Naming Conventions
 

@@ -338,8 +338,7 @@ public class WithdrawCommandHandler implements NonCommutativeCommandHandler<With
 StreamPosition streamPosition = StreamPosition.of(event.position(), event.occurredAt(), event.transactionId());
 
 // Or use convenience methods
-StreamPosition streamPosition = StreamPosition.of(42L);  // position only
-StreamPosition streamPosition = StreamPosition.of(42L, Instant.now());  // position + timestamp
+StreamPosition streamPosition = StreamPosition.of(42L, clock.instant(), "0");  // explicit position + clock-provided timestamp
 StreamPosition streamPosition = StreamPosition.zero();  // zero stream position for empty projections
 ```
 

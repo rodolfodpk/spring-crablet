@@ -48,23 +48,6 @@ class StreamPositionTest {
     }
 
     @Test
-    @DisplayName("Should create stream position with position only (default timestamp and transaction ID)")
-    void shouldCreateStreamPosition_WithPositionOnly() {
-        // Given
-        long position = 100L;
-        Instant before = Instant.now();
-
-        // When
-        StreamPosition streamPosition = StreamPosition.of(position);
-        Instant after = Instant.now();
-
-        // Then
-        assertThat(streamPosition.position()).isEqualTo(position);
-        assertThat(streamPosition.transactionId()).isEqualTo("0");
-        assertThat(streamPosition.occurredAt()).isBetween(before, after);
-    }
-
-    @Test
     @DisplayName("Should create zero stream position")
     void shouldCreateZeroStreamPosition() {
         // When
@@ -157,7 +140,7 @@ class StreamPositionTest {
     @Test
     @DisplayName("Should throw exception when position is negative")
     void shouldThrowException_WhenPositionIsNegative() {
-        assertThatThrownBy(() -> StreamPosition.of(-1L))
+        assertThatThrownBy(() -> StreamPosition.of(-1L, Instant.EPOCH, "0"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("cannot be negative");
     }
