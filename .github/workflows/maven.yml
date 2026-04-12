@@ -47,6 +47,15 @@ jobs:
       - name: Build with Maven (handles cyclic dependencies)
         run: make ci-verify
 
+      - name: Verify documentation guardrails
+        run: make docs-check
+
+      - name: Compile tutorial fixtures
+        run: make docs-compile-check
+
+      - name: Verify generated snippets
+        run: make docs-generate-check
+
       - name: Debug JaCoCo Report
         run: |
           echo "Checking for jacoco.exec files in modules..."

@@ -11,7 +11,7 @@
 # wallet-example-app is built separately after the reactor is installed.
 # See BUILD.md for full explanation.
 
-.PHONY: help install install-all-tests ci-verify build-all compile package test test-skip clean verify build-core build-shared build-reactor build-reactor-verify start wallet-dev
+.PHONY: help install install-all-tests ci-verify build-all compile package test test-skip clean verify build-core build-shared build-reactor build-reactor-verify start wallet-dev docs-check docs-compile-check docs-generate docs-generate-check
 
 # Default target
 help:
@@ -25,6 +25,10 @@ help:
 	@echo "  compile          - Compile all modules without packaging"
 	@echo "  package          - Build JARs for all modules"
 	@echo "  verify           - Full build with tests and verification"
+	@echo "  docs-check       - Validate markdown links and key documentation guardrails"
+	@echo "  docs-compile-check - Compile tutorial fixture sources in docs-samples"
+	@echo "  docs-generate    - Regenerate source-derived snippets under docs/generated"
+	@echo "  docs-generate-check - Fail if generated snippets are out of date"
 	@echo ""
 	@echo "Test Commands:"
 	@echo "  test        - Run all tests across all modules"
@@ -62,6 +66,23 @@ install-all-tests: build-core build-test-support build-command build-shared buil
 # 4. Verify reactor (no install needed for reactor modules)
 ci-verify: build-core build-test-support build-command build-shared build-reactor-verify
 	@echo "✓ CI build complete with all tests!"
+
+docs-check:
+	@chmod +x scripts/verify-docs.sh
+	@./scripts/verify-docs.sh
+
+docs-compile-check:
+	@./mvnw -pl docs-samples -am compile -DskipTests
+
+docs-generate:
+	@chmod +x scripts/generate-doc-snippets.sh
+	@./scripts/generate-doc-snippets.sh write
+
+docs-generate-check:
+	@chmod +x scripts/generate-doc-snippets.sh
+	@tmp_dir="$$(mktemp -d)"; \
+	./scripts/generate-doc-snippets.sh check "$$tmp_dir"; \
+	rm -rf "$$tmp_dir"
 
 # Alias for install
 build-all: install

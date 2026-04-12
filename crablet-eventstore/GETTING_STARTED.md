@@ -1,10 +1,22 @@
-# Getting Started with Crablet EventStore
+# Getting Started With Crablet
 
-This guide walks you through integrating Crablet EventStore into your application using the wallet domain as an example.
+This guide is the practical path for a first integration.
+
+Canonical compile fixture:
+[docs-samples/src/main/java/com/crablet/docs/samples/tutorial/GettingStartedWalletSample.java](../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/GettingStartedWalletSample.java)
+
+Recommended first adoption path:
+
+- start with `crablet-eventstore` and `crablet-commands`
+- keep the first milestone command-side only
+- use the wallet domain as a reference shape
+- add views, automations, or outbox only after the write flow is working
+
+If you want the fastest runnable path instead of a library integration walkthrough, start with [../docs/QUICKSTART.md](../docs/QUICKSTART.md) and the [../wallet-example-app/README.md](../wallet-example-app/README.md).
 
 ## Dependencies
 
-Add both dependencies:
+Add the core modules:
 
 ```xml
 <dependency>
@@ -17,33 +29,20 @@ Add both dependencies:
     <groupId>com.crablet</groupId>
     <artifactId>crablet-commands</artifactId>
     <version>1.0.0-SNAPSHOT</version>
+    <scope>runtime</scope>
 </dependency>
 ```
 
-## Step 1: Set Up Database
+Use `crablet-commands` when you want handler discovery and transactional command execution. If you want to start with direct `EventStore` usage, `crablet-eventstore` can stand alone.
 
-### Create Database Schema
+## Step 1: Set Up The Database
 
-See [SCHEMA.md](SCHEMA.md) for complete schema documentation.
+See [SCHEMA.md](SCHEMA.md) for the event store schema details.
 
-Quick setup using Flyway:
+For now, treat the SQL in the repository as the source migration content and publish those migrations through your own Flyway or Liquibase setup. The long-term goal should be a first-class published migration path, but the important point is: do not treat test resources as the integration contract.
 
-1. Add Flyway dependency:
-```xml
-<dependency>
-    <groupId>org.flywaydb</groupId>
-    <artifactId>flyway-core</artifactId>
-</dependency>
-```
+Minimal Spring datasource config:
 
-2. Copy schema migrations to `src/main/resources/db/migration/`:
-```bash
-# Copy both migration files
-cp crablet-eventstore/src/test/resources/db/migration/V1__eventstore_schema.sql src/main/resources/db/migration/
-cp crablet-eventstore/src/test/resources/db/migration/V2__outbox_schema.sql src/main/resources/db/migration/
-```
-
-3. Configure database:
 ```properties
 spring.datasource.url=jdbc:postgresql://localhost:5432/wallet_db
 spring.datasource.username=postgres
@@ -51,93 +50,141 @@ spring.datasource.password=postgres
 spring.flyway.enabled=true
 ```
 
-## Step 2: Define Domain Events
-
-Create domain event records:
+## Step 2: Define Events
 
 ```java
 package com.example.wallet.events;
 
-import java.math.BigDecimal;
-
 public sealed interface WalletEvent permits WalletOpened, DepositMade, WithdrawalMade {}
 
-public record WalletOpened(String ownerId, BigDecimal initialBalance) implements WalletEvent {}
-public record DepositMade(BigDecimal amount) implements WalletEvent {}
-public record WithdrawalMade(BigDecimal amount) implements WalletEvent {}
+public record WalletOpened(String walletId, String owner, int initialBalance) implements WalletEvent {}
+public record DepositMade(String depositId, String walletId, int amount, int newBalance) implements WalletEvent {}
+public record WithdrawalMade(String withdrawalId, String walletId, int amount, int newBalance)
+        implements WalletEvent {}
 ```
 
-## Step 3: Create State and Projector
-
-Define wallet balance state:
+Use `EventType.type(...)` when you want the framework event name derived from the class:
 
 ```java
-package com.example.wallet.domain;
+import static com.crablet.eventstore.EventType.type;
+```
 
-import java.math.BigDecimal;
+## Step 3: Define Minimal Decision State
 
-public record WalletBalance(BigDecimal amount) {
-    public WalletBalance {
-        if (amount == null) {
-            amount = BigDecimal.ZERO;
-        }
+Command handlers should project only the state they need for business decisions.
+
+```java
+package com.example.wallet.projections;
+
+public record WalletBalanceState(String walletId, int balance, boolean exists) {
+
+    public boolean isExisting() {
+        return exists;
     }
-    
-    public static WalletBalance zero() {
-        return new WalletBalance(BigDecimal.ZERO);
+
+    public boolean hasSufficientFunds(int amount) {
+        return exists && balance >= amount;
     }
 }
 ```
 
-Create projector to build state from events:
+## Step 4: Create A State Projector
 
 ```java
-package com.example.wallet.projectors;
+package com.example.wallet.projections;
 
+import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.StateProjector;
-import com.crablet.eventstore.StoredEvent;
-import com.example.wallet.domain.WalletBalance;
-import com.example.wallet.events.*;
+import com.example.wallet.events.DepositMade;
+import com.example.wallet.events.WalletEvent;
+import com.example.wallet.events.WalletOpened;
+import com.example.wallet.events.WithdrawalMade;
 
 import java.util.List;
 
-// Not a singleton - create instances as needed. This class is stateless and thread-safe.
-public class WalletBalanceStateProjector implements StateProjector<WalletBalance> {
+import static com.crablet.eventstore.EventType.type;
 
-    // getId() not needed — defaults to class simple name
+public class WalletBalanceStateProjector implements StateProjector<WalletBalanceState> {
 
     @Override
     public List<String> getEventTypes() {
-        return List.of("WalletOpened", "DepositMade", "WithdrawalMade");
+        return List.of(
+                type(WalletOpened.class),
+                type(DepositMade.class),
+                type(WithdrawalMade.class)
+        );
     }
-    
+
     @Override
-    public WalletBalance getInitialState() {
-        return new WalletBalance(0, false);
+    public WalletBalanceState getInitialState() {
+        return new WalletBalanceState("", 0, false);
     }
-    
+
     @Override
-    public WalletBalance transition(WalletBalance currentState, StoredEvent event, EventDeserializer context) {
-        // Deserialize event
-        WalletEvent walletEvent = context.deserialize(event, WalletEvent.class);
-        
+    public WalletBalanceState transition(
+            WalletBalanceState currentState,
+            StoredEvent event,
+            EventDeserializer deserializer) {
+        WalletEvent walletEvent = deserializer.deserialize(event, WalletEvent.class);
+
         return switch (walletEvent) {
-            case WalletOpened opened -> 
-                new WalletBalance(opened.initialBalance(), true);
-            case DepositMade deposit -> 
-                new WalletBalance(deposit.newBalance(), true);
-            case WithdrawalMade withdrawal -> 
-                new WalletBalance(withdrawal.newBalance(), true);
-            default -> currentState;
+            case WalletOpened opened -> new WalletBalanceState(
+                    opened.walletId(),
+                    opened.initialBalance(),
+                    true
+            );
+            case DepositMade deposit -> new WalletBalanceState(
+                    deposit.walletId(),
+                    deposit.newBalance(),
+                    true
+            );
+            case WithdrawalMade withdrawal -> new WalletBalanceState(
+                    withdrawal.walletId(),
+                    withdrawal.newBalance(),
+                    true
+            );
         };
     }
 }
 ```
 
-## Step 3.5: Create Command Interface with Jackson Annotations
+## Step 5: Define A Query Pattern
 
-Commands must be part of a `@JsonSubTypes` hierarchy for automatic type extraction:
+Keep DCB decision models in reusable query helpers instead of rebuilding queries inside every handler.
+
+```java
+package com.example.wallet;
+
+import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.query.QueryBuilder;
+import com.example.wallet.events.DepositMade;
+import com.example.wallet.events.WalletOpened;
+import com.example.wallet.events.WithdrawalMade;
+
+import static com.crablet.eventstore.EventType.type;
+
+public final class WalletQueryPatterns {
+
+    private WalletQueryPatterns() {
+    }
+
+    public static Query singleWalletDecisionModel(String walletId) {
+        return QueryBuilder.builder()
+                .events(
+                        type(WalletOpened.class),
+                        type(DepositMade.class),
+                        type(WithdrawalMade.class)
+                )
+                .tag("wallet_id", walletId)
+                .build();
+    }
+}
+```
+
+## Step 6: Create A Command Interface
+
+Current command registration uses a Jackson polymorphic hierarchy:
 
 ```java
 package com.example.wallet.commands;
@@ -160,84 +207,82 @@ public interface WalletCommand {
 }
 ```
 
-Each command record implements this interface:
+Each concrete command implements that interface:
 
 ```java
-public record OpenWalletCommand(String walletId, String owner, BigDecimal initialBalance) 
-        implements WalletCommand {}
+public record WithdrawCommand(String walletId, String withdrawalId, int amount) implements WalletCommand {
+}
 ```
 
-**Important:** The `name` in `@JsonSubTypes.Type` must match the command type used in your application. This is the single source of truth for command types.
+## Step 7: Implement A Command Handler
 
-## Step 4: Write Command Handler with DCB
+This is the typical non-commutative flow:
 
-Create command and handler:
+1. load the decision model
+2. project minimal state
+3. validate business rules
+4. create events
+5. return `CommandDecision.NonCommutative`
 
 ```java
 package com.example.wallet.commands;
 
-import java.math.BigDecimal;
-
-public record WithdrawCommand(
-    String walletId,
-    String withdrawalId,
-    BigDecimal amount
-) {}
-```
-
-```java
-package com.example.wallet.handlers;
-
+import com.crablet.command.CommandDecision;
 import com.crablet.command.NonCommutativeCommandHandler;
-import com.crablet.eventstore.query.*;
-import com.crablet.eventstore.*;
-import com.example.wallet.commands.WithdrawCommand;
-import com.example.wallet.domain.WalletBalance;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.query.ProjectionResult;
+import com.crablet.eventstore.query.Query;
+import com.example.wallet.WalletQueryPatterns;
 import com.example.wallet.events.WithdrawalMade;
-import com.example.wallet.projectors.WalletBalanceStateProjector;
+import com.example.wallet.projections.WalletBalanceState;
+import com.example.wallet.projections.WalletBalanceStateProjector;
 import org.springframework.stereotype.Component;
+
+import static com.crablet.eventstore.EventType.type;
 
 @Component
 public class WithdrawCommandHandler implements NonCommutativeCommandHandler<WithdrawCommand> {
-    
+
+    private final WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
+
     @Override
     public CommandDecision.NonCommutative decide(EventStore eventStore, WithdrawCommand command) {
-        // Define decision model: which events affect withdrawal decision?
-        // This filters events to only those for this wallet
-        Query decisionModel = QueryBuilder.builder()
-            .hasTag("wallet_id", command.walletId())  // Filter by wallet_id tag
-            .eventNames("WalletOpened", "DepositMade", "WithdrawalMade")
-            .build();
-        
-        // 1. Project current balance with stream position
-        // Create projector instance inline (not a singleton, thread-safe)
-        WalletBalanceStateProjector projector = new WalletBalanceStateProjector();
-        ProjectionResult<WalletBalance> result = eventStore.project(decisionModel, projector);
-        
-        WalletBalance balance = result.state();
-        
-        // 2. Business logic: check sufficient funds
-        if (balance.amount().compareTo(command.amount()) < 0) {
-            throw new InsufficientFundsException(command.walletId(), balance.amount(), command.amount());
+        Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
+        ProjectionResult<WalletBalanceState> projection = eventStore.project(decisionModel, projector);
+
+        if (!projection.state().isExisting()) {
+            throw new IllegalStateException("Wallet not found: " + command.walletId());
         }
-        
-        // 3. Create event
-        WithdrawalMade event = new WithdrawalMade(command.amount(), command.withdrawalId());
-        AppendEvent appendEvent = AppendEvent.builder("WithdrawalMade")
-            .tag("wallet_id", command.walletId())
-            .tag("withdrawal_id", command.withdrawalId())
-            .data(event)
-            .build();
-        
-        // 4. Return NonCommutative decision — CommandExecutor calls appendNonCommutative atomically
-        return CommandDecision.NonCommutative.of(appendEvent, decisionModel, result.streamPosition());
+        if (!projection.state().hasSufficientFunds(command.amount())) {
+            throw new IllegalStateException("Insufficient funds: " + command.walletId());
+        }
+
+        int newBalance = projection.state().balance() - command.amount();
+
+        WithdrawalMade withdrawal = new WithdrawalMade(
+                command.withdrawalId(),
+                command.walletId(),
+                command.amount(),
+                newBalance
+        );
+
+        AppendEvent event = AppendEvent.builder(type(WithdrawalMade.class))
+                .tag("wallet_id", command.walletId())
+                .tag("withdrawal_id", command.withdrawalId())
+                .data(withdrawal)
+                .build();
+
+        return CommandDecision.NonCommutative.of(
+                event,
+                decisionModel,
+                projection.streamPosition()
+        );
     }
 }
 ```
 
-## Step 5: Execute Commands
-
-Use `CommandExecutor` to execute commands with transaction management:
+## Step 8: Execute Commands
 
 ```java
 package com.example.wallet.service;
@@ -247,128 +292,34 @@ import com.crablet.command.ExecutionResult;
 import com.example.wallet.commands.WithdrawCommand;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-
 @Service
 public class WalletService {
-    
+
     private final CommandExecutor commandExecutor;
-    
+
     public WalletService(CommandExecutor commandExecutor) {
         this.commandExecutor = commandExecutor;
     }
-    
-    public ExecutionResult withdraw(String walletId, String withdrawalId, BigDecimal amount) {
-        WithdrawCommand command = new WithdrawCommand(walletId, withdrawalId, amount);
-        
-        // CommandExecutor handles:
-        // - Transaction management
-        // - Command persistence (if enabled)
-        // Note: On ConcurrencyException, application should implement retry logic
-        // (e.g., using Resilience4j @Retry annotation)
-        return commandExecutor.execute(command);
+
+    public ExecutionResult withdraw(String walletId, String withdrawalId, int amount) {
+        return commandExecutor.execute(new WithdrawCommand(walletId, withdrawalId, amount));
     }
 }
 ```
 
-The `CommandExecutor` coordinates command execution:
-1. Receives command
-2. Extracts command type from JSON (`commandType` property)
-3. Finds handler automatically (handlers are auto-discovered via Spring `@Component`)
-4. Command type is extracted from handler's generic type parameter (`CommandHandler<T>`)
-5. Executes handler within a transaction
-6. Throws `ConcurrencyException` if conflict detected (application should implement retry)
-7. Persists command and events atomically
+## What To Add Next
 
-**Automatic Handler Registration:**
-- Handlers implementing `CommandHandler<T>` are auto-discovered by Spring
-- Command type is automatically extracted from the handler's generic type parameter
-- Uses reflection to read `@JsonSubTypes` annotation on the command interface
+Once the command-side flow works:
 
-**Example handler registration:**
-```java
-@Component
-public class WithdrawCommandHandler implements CommandHandler<WithdrawCommand> {
-    // Command type "withdraw" is automatically extracted from:
-    // 1. Generic type parameter: CommandHandler<WithdrawCommand>
-    // 2. @JsonSubTypes annotation on WalletCommand interface
-    // 3. Entry matching WithdrawCommand.class with name="withdraw"
-}
-```
+- add views if you want materialized read models
+- add outbox if you need reliable publication to external systems
+- add automations for event-driven side effects
 
-## Step 6: Test with Testcontainers
+If you add any of those poller-backed modules, default to **one application instance per cluster**.
 
-See [TESTING.md](TESTING.md) for complete testing guide.
+## Next Reading
 
-Quick example:
-
-```java
-package com.example.wallet;
-
-import com.crablet.eventstore.EventStore;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-
-import java.math.BigDecimal;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-@SpringBootTest
-@Testcontainers
-class WalletIntegrationTest {
-    
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17")
-        .withDatabaseName("test")
-        .withUsername("test")
-        .withPassword("test");
-    
-    @Autowired
-    private EventStore eventStore;
-    
-    @Autowired
-    private WithdrawCommandHandler withdrawHandler;
-    
-    @Test
-    void testWithdrawal() {
-        // Test your handler
-        var command = new WithdrawCommand("wallet-123", "w-1", new BigDecimal("100"));
-        var result = withdrawHandler.handle(eventStore, command);
-        
-        assertTrue(result.success());
-    }
-}
-```
-
-## Key Concepts
-
-### Decision Model
-The `Query` passed to `AppendConditionBuilder` that defines which events affect your business decision.
-
-### DCB Conflict Check
-`AppendCondition` checks if any events matching the decision model appeared AFTER the stream position. If yes, throws `ConcurrencyException`.
-
-### Idempotency Check
-`AppendCondition.idempotent()` searches ALL events (ignores stream position) to prevent duplicate operations.
-
-## Example Domains
-
-Working examples are available in the test scope for reference:
-
-- **Wallet Domain** (`com.crablet.examples.wallet`): Complete wallet implementation with deposits, withdrawals, and transfers
-- **Course Subscriptions** (`com.crablet.examples.course`): Course management with student subscriptions demonstrating multi-entity DCB patterns
-
-These examples demonstrate real-world usage of DCB patterns and can serve as templates for your own implementations.
-
-## Next Steps
-
-- Read [DCB Explained](docs/DCB_AND_CRABLET.md) for detailed explanation
-- See [SCHEMA.md](SCHEMA.md) for database details
-- Check [TESTING.md](TESTING.md) for testing patterns
-- Review [README.md](README.md) for API reference
-- Explore example domains in test scope for complete working implementations
-
+- Command-side adoption path: [../docs/COMMANDS_FIRST_ADOPTION.md](../docs/COMMANDS_FIRST_ADOPTION.md)
+- Production topology: [../docs/DEPLOYMENT_TOPOLOGY.md](../docs/DEPLOYMENT_TOPOLOGY.md)
+- EventStore details: [README.md](README.md)
+- Wallet example app: [../wallet-example-app/README.md](../wallet-example-app/README.md)

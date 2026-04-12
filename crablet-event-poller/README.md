@@ -4,6 +4,18 @@
 
 Generic event processing infrastructure for polling, leader election, and backoff with Spring Boot integration.
 
+## Positioning
+
+`crablet-event-poller` is infrastructure for poller-backed modules such as views, outbox, and automations.
+
+It is not the first module most users should reach for directly. The recommended adoption path is:
+
+- start with `crablet-eventstore`
+- add `crablet-commands`
+- only then add poller-backed modules if you need them
+
+For learning, run one application instance. For production, the default documented topology for poller-backed modules is one application instance per cluster.
+
 ## Overview
 
 Crablet Event Processor provides a generic, reusable infrastructure for building event-driven processors. It handles the common concerns of event processing:
@@ -22,10 +34,9 @@ This module is used by:
 
 ## Deployment Recommendation
 
-For modules built on `crablet-event-poller`, the normal production recommendation is:
+For modules built on `crablet-event-poller`, the default production recommendation is:
 
-- run **1 application instance** when short downtime during restart is acceptable
-- run **2 instances at most** when you want active/failover behavior
+- run **1 application instance per cluster**
 
 This recommendation is the same whether you deploy with Docker Compose, Kubernetes, ECS, Nomad, or plain VMs.
 
@@ -33,7 +44,7 @@ Important:
 
 - the poller uses leader election, so only one instance is actively processing a given processor set
 - extra replicas do **not** increase throughput for the same processors
-- extra replicas mainly add standby capacity and operational complexity
+- extra replicas mainly add standby behavior and operational complexity
 
 If you need more throughput, split processor responsibilities or reduce polling cost; do not assume many replicas will help.
 

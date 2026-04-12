@@ -4,6 +4,12 @@
 
 Light framework component for transactional outbox event publishing with DCB event sourcing and Spring Boot integration.
 
+## Positioning
+
+`crablet-outbox` is a poller-backed add-on.
+
+It should not be part of the first adoption promise. Start with the command side, then add outbox when the event model is stable and you need reliable external publication. For learning, one application instance is the recommended setup. For production, default to one application instance per cluster when outbox is enabled.
+
 ## Overview
 
 Crablet Outbox provides a robust transactional outbox implementation, ensuring that events are reliably published from your application to external systems without compromising transactional integrity.
@@ -96,8 +102,7 @@ Crablet Outbox uses:
 - **At-least-once delivery**: Events may be published multiple times (idempotent consumers required)
 
 **Recommended deployment:**
-- **1 instance**: The normal default in Docker, Kubernetes, ECS, Nomad, or plain VMs
-- **2 instances at most**: Recommended when you want active/failover behavior (follower takes over within 5-30 seconds)
+- **1 application instance per cluster**: The default documented topology
 
 Additional replicas do not increase throughput for the same `(topic, publisher)` processors because leader election keeps only one active leader per processor set.
 

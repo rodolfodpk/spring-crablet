@@ -4,6 +4,12 @@
 
 Light framework component for asynchronous view projections using materialized read models with Spring Boot integration.
 
+## Positioning
+
+`crablet-views` is a poller-backed add-on, not the first integration step.
+
+Adopt it after the command side is working. For learning, it makes sense to run it together with commands in a single application instance. For production, default to one application instance per cluster when views are enabled.
+
 ## Contents
 
 - [Quick Reference](#quick-reference)
@@ -57,10 +63,10 @@ Crablet Views provides a complete solution for building materialized read models
 
 Recommended production shape:
 
-- run **1 application instance** in the normal case
-- run **2 instances at most** when you want active/failover behavior
+- run **1 application instance per cluster** in the normal case
+- keep the single-instance model as the default documented deployment
 
-This is true whether the app runs in Docker, Kubernetes, ECS, Nomad, or plain VMs. Because the poller uses leader election, only one instance actively projects a given view processor set at a time. More replicas do not improve throughput for the same views; they mostly provide standby capacity.
+Because the poller uses leader election, only one instance actively projects a given view processor set at a time. More replicas do not improve throughput for the same views; they mainly add standby behavior and operational complexity.
 
 ## Maven Coordinates
 

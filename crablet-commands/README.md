@@ -4,6 +4,19 @@
 
 Light command handling framework for event sourcing with automatic handler discovery and Spring Boot integration.
 
+## Recommended Adoption Path
+
+`crablet-commands` should be the default first adoption path for Crablet.
+
+Start with:
+
+- `crablet-eventstore`
+- `crablet-commands`
+
+Add `views`, `outbox`, and `automations` later, after the write path is working and the domain model is stable.
+
+This module is also the natural foundation for a future command-side starter. The goal of that starter should be narrow: command execution, handler discovery, and default wiring. It should not hide the deployment implications of poller-backed modules.
+
 ## Overview
 
 Crablet Command provides a lightweight framework for command handling on top of Crablet EventStore:
@@ -13,6 +26,8 @@ Crablet Command provides a lightweight framework for command handling on top of 
 - **Type Extraction**: Command types extracted from handler's generic type parameter
 - **Transaction Management**: Automatic transaction lifecycle management
 - **DCB Support**: Full support for Dynamic Consistency Boundary pattern
+
+For a commands-first adoption guide, see [../docs/COMMANDS_FIRST_ADOPTION.md](../docs/COMMANDS_FIRST_ADOPTION.md).
 
 **Light Framework Benefits:**
 - Required: Implement `CommandHandler<T>` (one per command type)

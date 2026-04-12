@@ -2,6 +2,12 @@
 
 This repository should not start with one giant tutorial. Crablet is easier to learn as a sequence of small guides, each introducing one concept and one module at a time.
 
+Recommended learning setup:
+
+- run **one application instance**
+- learn the write path first
+- add poller-backed modules in the same app only after the command flow makes sense
+
 **Recommended order**
 
 1. [Part 1: Event Store Basics](tutorials/01-event-store-basics.md)
@@ -13,13 +19,13 @@ This repository should not start with one giant tutorial. Crablet is easier to l
 
 **What you will build**
 
-The series uses the same conference talk submission domain throughout:
+The series now stays close to the wallet example used elsewhere in the repository:
 
-- speakers submit talks
-- organizers accept or reject them
-- conference capacity is enforced with DCB consistency checks
-- views project current state
-- automations react to domain changes
+- wallets are opened through commands
+- deposits and withdrawals update state through events
+- insufficient-funds checks use DCB consistency boundaries
+- views project current balance and history
+- automations react to wallet events
 - outbox publishes integration events
 
 **Prerequisites**
@@ -48,12 +54,11 @@ The series uses the same conference talk submission domain throughout:
 
 `crablet-views`, `crablet-automations`, and `crablet-outbox` all depend on `crablet-event-poller`.
 
-In production, the normal recommendation is:
+In production, the default recommendation is:
 
-- run **1 application instance** when short downtime during restart is acceptable
-- run **2 instances at most** when you want active/failover behavior
+- run **1 application instance per cluster**
 
-This guidance is the same whether you deploy with Docker Compose, Kubernetes, ECS, Nomad, or plain VMs. The poller uses leader election so only one instance is actively processing at a time. Extra replicas do not increase throughput for the same processor set; they mostly add standby capacity and operational complexity.
+The poller uses leader election so only one instance is actively processing at a time. Extra replicas do not increase throughput for the same processor set; they mainly add standby behavior and operational complexity.
 
 ## Configuration Note For Poller-Based Modules
 

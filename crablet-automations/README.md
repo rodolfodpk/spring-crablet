@@ -2,6 +2,12 @@
 
 Light framework component for event-driven automations (policies) with Spring Boot integration.
 
+## Positioning
+
+`crablet-automations` is a poller-backed add-on.
+
+It should come after the command side, not before it. For learning, one application instance running commands and automations together is the clearest setup. For production, default to one application instance per cluster when automations are enabled.
+
 ## Overview
 
 Crablet Automations implements the "when X happens, do Y" pattern from event storming — also known as policies or process managers. When a domain event is stored, an automation can listen for it and automatically execute one or more commands.
@@ -12,10 +18,9 @@ Crablet Automations implements the "when X happens, do Y" pattern from event sto
 
 Recommended production shape:
 
-- run **1 application instance** in the normal case
-- run **2 instances at most** when you want active/failover behavior
+- run **1 application instance per cluster** in the normal case
 
-This guidance is the same whether you deploy with Docker Compose, Kubernetes, ECS, Nomad, or plain VMs. The poller elects one active leader for the automation processors, so additional replicas do not make the same automations process faster; they mainly act as standby instances.
+The poller elects one active leader for the automation processors, so additional replicas do not make the same automations process faster; they mainly add standby behavior and operational complexity.
 
 ## Recommended Pattern
 

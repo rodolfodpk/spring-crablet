@@ -2,33 +2,48 @@
 
 This tutorial introduces `crablet-eventstore` only.
 
+Canonical compile fixture:
+[docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial01EventStoreBasicsSample.java](../../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial01EventStoreBasicsSample.java)
+
+## Why This Part Exists
+
+Before commands, DCB, views, or automations, you need the basic loop:
+
+- append an event
+- query the event log
+- project current state from past events
+
+That is the foundation for everything else in Crablet.
+
+Skip this part if you already understand basic event-sourcing read/write flow and only want to see how Crablet models command execution and concurrency.
+
 You will learn:
 
 - how to append your first event
 - how to tag events
 - how to project state back from the event log
 
+Assume this import in the snippets below:
+
+```java
+import static com.crablet.eventstore.EventType.type;
+```
+
 ## Domain
 
 ```java
-public sealed interface TalkEvent permits TalkSubmitted, TalkAccepted, TalkRejected {}
+public sealed interface WalletEvent permits WalletOpened, DepositMade, WithdrawalMade {}
 
-public record TalkSubmitted(String talkId, String speakerId, String title) implements TalkEvent {}
-public record TalkAccepted(String talkId, String speakerId) implements TalkEvent {}
-public record TalkRejected(String talkId, String speakerId, String reason) implements TalkEvent {}
+public record WalletOpened(String walletId, String owner, int initialBalance) implements WalletEvent {}
+public record DepositMade(String depositId, String walletId, int amount, int newBalance) implements WalletEvent {}
+public record WithdrawalMade(String withdrawalId, String walletId, int amount, int newBalance)
+        implements WalletEvent {}
 ```
 
 ```java
-public enum TalkStatus { PENDING, ACCEPTED, REJECTED }
-
-public record TalkState(
-    String talkId,
-    String speakerId,
-    TalkStatus status,
-    boolean exists
-) {
-    public static TalkState empty() {
-        return new TalkState(null, null, null, false);
+public record WalletBalanceState(String walletId, int balance, boolean exists) {
+    public static WalletBalanceState empty() {
+        return new WalletBalanceState(null, 0, false);
     }
 }
 ```
@@ -36,12 +51,11 @@ public record TalkState(
 ## Append An Event
 
 ```java
-TalkSubmitted submitted = new TalkSubmitted("talk-1", "alice", "Event Sourcing in Practice");
+WalletOpened opened = new WalletOpened("wallet-1", "alice", 100);
 
-AppendEvent appendEvent = AppendEvent.builder(type(TalkSubmitted.class))
-    .tag("talk_id", submitted.talkId())
-    .tag("speaker_id", submitted.speakerId())
-    .data(submitted)
+AppendEvent appendEvent = AppendEvent.builder(type(WalletOpened.class))
+    .tag("wallet_id", opened.walletId())
+    .data(opened)
     .build();
 
 eventStore.appendCommutative(List.of(appendEvent));
@@ -50,9 +64,9 @@ eventStore.appendCommutative(List.of(appendEvent));
 ## Read It Back
 
 ```java
-var query = QueryBuilder.builder()
-    .events(type(TalkSubmitted.class))
-    .tag("talk_id", "talk-1")
+Query query = QueryBuilder.builder()
+    .events(type(WalletOpened.class))
+    .tag("wallet_id", "wallet-1")
     .build();
 
 boolean exists = eventStore.exists(query);
@@ -61,35 +75,38 @@ boolean exists = eventStore.exists(query);
 ## Project Full State
 
 ```java
-public class TalkStateProjector implements StateProjector<TalkState> {
+public class WalletBalanceStateProjector implements StateProjector<WalletBalanceState> {
 
     @Override
     public List<String> getEventTypes() {
         return List.of(
-            type(TalkSubmitted.class),
-            type(TalkAccepted.class),
-            type(TalkRejected.class)
+            type(WalletOpened.class),
+            type(DepositMade.class),
+            type(WithdrawalMade.class)
         );
     }
 
     @Override
-    public TalkState getInitialState() {
-        return TalkState.empty();
+    public WalletBalanceState getInitialState() {
+        return WalletBalanceState.empty();
     }
 
     @Override
-    public TalkState transition(TalkState state, StoredEvent event, EventDeserializer deserializer) {
-        TalkEvent talkEvent = deserializer.deserialize(event, TalkEvent.class);
-        return switch (talkEvent) {
-            case TalkSubmitted s -> new TalkState(s.talkId(), s.speakerId(), TalkStatus.PENDING, true);
-            case TalkAccepted a -> new TalkState(state.talkId(), state.speakerId(), TalkStatus.ACCEPTED, true);
-            case TalkRejected r -> new TalkState(state.talkId(), state.speakerId(), TalkStatus.REJECTED, true);
+    public WalletBalanceState transition(
+            WalletBalanceState state,
+            StoredEvent event,
+            EventDeserializer deserializer) {
+        WalletEvent walletEvent = deserializer.deserialize(event, WalletEvent.class);
+        return switch (walletEvent) {
+            case WalletOpened opened -> new WalletBalanceState(opened.walletId(), opened.initialBalance(), true);
+            case DepositMade deposit -> new WalletBalanceState(deposit.walletId(), deposit.newBalance(), true);
+            case WithdrawalMade withdrawal -> new WalletBalanceState(withdrawal.walletId(), withdrawal.newBalance(), true);
         };
     }
 }
 
-ProjectionResult<TalkState> result =
-    eventStore.project(query, new TalkStateProjector());
+ProjectionResult<WalletBalanceState> result =
+    eventStore.project(query, new WalletBalanceStateProjector());
 ```
 
 `ProjectionResult` gives you:
@@ -98,6 +115,20 @@ ProjectionResult<TalkState> result =
 - the `StreamPosition` of the last event you read
 
 That stream position becomes important in Part 3.
+
+## Checkpoint
+
+After this part, you should understand the basic event-sourcing loop in Crablet:
+
+- write facts as events
+- find the relevant events by query and tags
+- rebuild current state by projecting those events
+
+Expected result:
+
+- `exists` is `true`
+- `result.state().walletId()` is `wallet-1`
+- `result.state().balance()` is `100`
 
 ## Next
 

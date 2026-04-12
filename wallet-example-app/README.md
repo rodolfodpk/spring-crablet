@@ -1,10 +1,17 @@
 # Wallet Example App
 
-A complete example application demonstrating the full Crablet event sourcing stack:
+The wallet example app is the recommended learning entry point for Crablet.
+
+It demonstrates the full stack in the simplest teaching topology:
+
+- one application instance
+- command handling
+- view projections
+- automations
+- outbox-style background processing
 - REST API with OpenAPI documentation
-- Command handlers using DCB pattern
-- View projections using crablet-views
-- Full integration of all Crablet modules
+
+If you are new to Crablet, start here before reading the deeper DCB material.
 
 ## Overview
 
@@ -53,6 +60,8 @@ This application demonstrates a wallet management system with:
 ```
 
 ## Quick Start
+
+This application is intentionally a **single-instance learning setup**. That is the recommended default whenever poller-backed modules are enabled.
 
 ### Prerequisites
 
@@ -103,6 +112,44 @@ The application will:
 - Run Flyway migrations (creates Crablet tables + view tables)
 - Start the REST API on port 8080
 - Start view processors (asynchronous projections)
+
+### First 3 Requests To Try
+
+Open a wallet:
+
+```bash
+curl -X POST http://localhost:8080/api/wallets \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "walletId": "wallet-123",
+    "owner": "Jane Doe",
+    "initialBalance": 100
+  }'
+```
+
+Deposit money:
+
+```bash
+curl -X POST http://localhost:8080/api/wallets/wallet-123/deposits \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "depositId": "deposit-001",
+    "amount": 25,
+    "description": "Initial top-up"
+  }'
+```
+
+Read the projected balance:
+
+```bash
+curl http://localhost:8080/api/wallets/wallet-123
+```
+
+Expected outcome:
+
+- command-side writes succeed immediately
+- the read model catches up asynchronously
+- you see the basic Crablet write-to-read flow without extra deployment complexity
 
 ### Access API Documentation
 

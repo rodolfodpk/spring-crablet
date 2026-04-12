@@ -2,11 +2,32 @@
 
 This tutorial introduces `crablet-views`.
 
+Canonical compile fixture:
+[docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial04ViewsSample.java](../../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial04ViewsSample.java)
+
+## Why This Part Exists
+
+So far, the tutorials focused on the write side:
+
+- commands decide
+- events are stored
+- state is projected in memory for business decisions
+
+Views are different. They persist read models to database tables so queries can be fast and simple.
+
+Skip this part if you only care about the write side and do not plan to materialize read models yet.
+
 You will learn:
 
 - how to project asynchronous read models
 - how subscriptions define which events wake a view
 - how the event poller runs view processors
+
+Assume this import in the snippets below:
+
+```java
+import static com.crablet.eventstore.EventType.type;
+```
 
 ## Enable Views
 
@@ -29,8 +50,9 @@ public class WalletViewProjector extends AbstractTypedViewProjector<WalletEvent>
     public WalletViewProjector(
             ObjectMapper objectMapper,
             ClockProvider clockProvider,
-            PlatformTransactionManager transactionManager) {
-        super(objectMapper, clockProvider, transactionManager);
+            PlatformTransactionManager transactionManager,
+            WriteDataSource writeDataSource) {
+        super(objectMapper, clockProvider, transactionManager, writeDataSource);
     }
 
     @Override
@@ -91,16 +113,31 @@ public ViewSubscription walletViewSubscription(WalletViewProjector projector) {
 
 `ViewSubscription` is the per-poller-instance config for this view. It defines event selection and can override polling interval, batch size, and backoff settings for this one view.
 
+That means one view is one independently managed processor with its own progress and tuning.
+
 ## Deployment Guidance
 
 `crablet-views` uses `crablet-event-poller`.
 
 Recommended production shape:
 
-- run **1 instance** in the normal case
-- run **2 instances at most** when you want active/failover behavior
+- run **1 application instance per cluster**
 
 Do not scale views horizontally expecting higher throughput from the same processors. Leader election means only one instance is actively projecting a given processor set.
+
+## Checkpoint
+
+After this part, you should understand the role of views:
+
+- command-side projections are for business decisions
+- views are for persisted read models
+- subscriptions define which events wake a given view processor
+
+Expected result:
+
+- a `wallet_view` row exists after `WalletOpened`
+- deposits and withdrawals update that row asynchronously
+- API reads can use `wallet_view` instead of replaying the event log on every request
 
 ## Next
 
