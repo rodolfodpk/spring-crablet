@@ -48,6 +48,62 @@ For a commands-first adoption guide, see [../docs/COMMANDS_FIRST_ADOPTION.md](..
 - **Single Source of Truth**: `@JsonSubTypes` annotation defines command types
 - **Spring Integration**: Ready-to-use Spring Boot components and configuration
 
+## Optional Command API
+
+`crablet-commands` can expose a generic HTTP write adapter, but it is intentionally opt-in and command-only.
+
+- Endpoint: `POST /api/commands`
+- Disabled by default
+- Uses the existing `commandType` polymorphic JSON model
+- Executes through the existing `CommandExecutor`
+- Only commands explicitly exposed by the application are callable
+- There is no generic EventStore write endpoint
+
+Enable it:
+
+```properties
+crablet.commands.api.enabled=true
+crablet.commands.api.base-path=/api/commands
+```
+
+Expose commands explicitly with a bean:
+
+```java
+@Configuration
+public class CommandApiConfig {
+
+    @Bean
+    CommandApiExposedCommands commandApiExposedCommands() {
+        return CommandApiExposedCommands.of(
+                OpenWalletCommand.class,
+                SendWelcomeNotificationCommand.class
+        );
+    }
+}
+```
+
+Example request:
+
+```http
+POST /api/commands
+Content-Type: application/json
+
+{
+  "commandType": "open_wallet",
+  "walletId": "wallet-123",
+  "owner": "Alice",
+  "initialBalance": 100
+}
+```
+
+Responses:
+
+- `201 Created` with `{"status":"CREATED"}`
+- `200 OK` with `{"status":"IDEMPOTENT","reason":"..."}`
+- `400 Bad Request` for malformed JSON, unknown `commandType`, or invalid payload
+- `404 Not Found` for valid but non-exposed commands
+- `409 Conflict` for DCB conflicts
+
 ## Maven Coordinates
 
 ```xml

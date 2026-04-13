@@ -21,6 +21,16 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Spring MVC types for the optional generic command API -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+        </dependency>
+
         <!-- Spring Boot Web (for tests only) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

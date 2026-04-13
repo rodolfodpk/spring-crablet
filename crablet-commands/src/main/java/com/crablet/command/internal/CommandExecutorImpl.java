@@ -32,7 +32,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 /**
  * Default implementation of CommandExecutor.
@@ -117,29 +116,7 @@ public class CommandExecutorImpl implements CommandExecutor {
         this.objectMapper = objectMapper;
         this.eventPublisher = eventPublisher;
 
-        // Build handler map from Spring-injected list
-        // Extract command type from handler's generic type parameter using reflection
-        this.handlers = commandHandlers.stream()
-                .collect(Collectors.toMap(
-                        handler -> {
-                            try {
-                                return CommandTypeResolver.extractCommandTypeFromHandler(handler.getClass());
-                            } catch (InvalidCommandException e) {
-                                throw new IllegalStateException(
-                                    "Failed to extract command type from handler: " + handler.getClass().getName() +
-                                    ". " + e.getMessage(), e
-                                );
-                            }
-                        },
-                        h -> h,
-                        (h1, h2) -> {
-                            String type1 = CommandTypeResolver.extractCommandTypeFromHandler(h1.getClass());
-                            throw new InvalidCommandException(
-                                "Duplicate handler for command type: " + type1,
-                                type1
-                            );
-                        }
-                ));
+        this.handlers = DiscoveredCommandRegistry.fromHandlers(commandHandlers).handlersByType();
 
         // Log EventStore configuration at startup
         log.info("EventStore - Command persistence: {}", config.isPersistCommands() ? "ENABLED" : "DISABLED");

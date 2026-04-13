@@ -1,1 +1,2 @@
 com.crablet.command.config.CommandAutoConfiguration
+com.crablet.command.api.internal.CommandApiAutoConfiguration

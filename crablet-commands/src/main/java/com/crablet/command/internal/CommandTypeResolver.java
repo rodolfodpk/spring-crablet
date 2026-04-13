@@ -65,6 +65,13 @@ public class CommandTypeResolver {
     }
 
     /**
+     * Extract the command class T from CommandHandler&lt;T&gt;.
+     */
+    public static Class<?> extractCommandClassFromHandler(Class<?> handlerClass) {
+        return getCommandClassFromHandler(handlerClass);
+    }
+
+    /**
      * Extract the command class T from CommandHandler<T>.
      * Checks implemented interfaces first, then superclass (for abstract base handlers).
      */

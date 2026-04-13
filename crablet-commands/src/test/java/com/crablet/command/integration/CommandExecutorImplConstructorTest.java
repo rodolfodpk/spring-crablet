@@ -35,8 +35,8 @@ class CommandExecutorImplConstructorTest {
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
 
     @Test
-    @DisplayName("Constructor with handler that fails type extraction should throw IllegalStateException")
-    void constructor_WithHandlerFailingTypeExtraction_ShouldThrowIllegalStateException() {
+    @DisplayName("Constructor with handler that fails type extraction should throw InvalidCommandException")
+    void constructor_WithHandlerFailingTypeExtraction_ShouldThrowInvalidCommandException() {
         // Given: A handler that doesn't properly implement CommandHandler
         // This handler will fail type extraction because it doesn't have @JsonSubTypes
         class InvalidHandler implements CommandHandler<Object> {
@@ -49,12 +49,11 @@ class CommandExecutorImplConstructorTest {
         InvalidHandler invalidHandler = new InvalidHandler();
         List<CommandHandler<?>> handlers = List.of(invalidHandler);
 
-        // When & Then - Should throw IllegalStateException (lines 112-116)
+        // When & Then - The registry now propagates InvalidCommandException directly.
         assertThatThrownBy(() -> new CommandExecutorImpl(
                 eventStore, handlers, config, clock, objectMapper, eventPublisher))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Failed to extract command type from handler")
-                .hasCauseInstanceOf(InvalidCommandException.class);
+                .isInstanceOf(InvalidCommandException.class)
+                .hasMessageContaining("is not part of a @JsonSubTypes hierarchy");
     }
 
     @Test
@@ -162,4 +161,3 @@ class CommandExecutorImplConstructorTest {
                 .hasMessageContaining("eventPublisher must not be null");
     }
 }
-
