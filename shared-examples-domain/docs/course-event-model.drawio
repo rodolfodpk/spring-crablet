@@ -26,14 +26,14 @@
     </mxCell>
 
     <!-- Commands -->
-    <mxCell id="cmd_define" value="DefineCourse" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-      <mxGeometry x="120" y="35" width="150" height="50" as="geometry" />
+    <mxCell id="cmd_define" value="DefineCourseCommand" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="120" y="35" width="190" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="cmd_capacity" value="ChangeCourseCapacity" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-      <mxGeometry x="320" y="35" width="170" height="50" as="geometry" />
+    <mxCell id="cmd_capacity" value="ChangeCourseCapacityCommand" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="340" y="35" width="230" height="50" as="geometry" />
     </mxCell>
-    <mxCell id="cmd_subscribe" value="SubscribeStudentToCourse" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-      <mxGeometry x="620" y="35" width="180" height="50" as="geometry" />
+    <mxCell id="cmd_subscribe" value="SubscribeStudentToCourseCommand" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="620" y="35" width="250" height="50" as="geometry" />
     </mxCell>
 
     <!-- Events -->
