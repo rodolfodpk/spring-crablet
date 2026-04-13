@@ -309,7 +309,7 @@ curl http://localhost:8080/actuator/metrics/hikaricp.connections.active
 
 ## See Also
 
-- [Read Replica Guide](./READ_REPLICAS.md) - Crablet's read replica support
-- [PgCat Guide](./PGCAT.md) - PgCat compatibility and routing guidance
-- [Performance Optimizations](../../etc/PERFORMANCE_OPTIMIZATIONS.md) - General performance tips
-- [PgBouncer Documentation](https://www.pgbouncer.org/) - Official PgBouncer docs
+- [Read Replica Guide](./READ_REPLICAS.md) — Crablet's read replica support
+- [PgCat Guide](./PGCAT.md) — PgCat compatibility and routing guidance
+- [OJP Guide](./OJP.md) — Open J Proxy (Type 3 JDBC driver + gRPC proxy) compatibility
+- [PgBouncer Documentation](https://www.pgbouncer.org/) — Official PgBouncer docs

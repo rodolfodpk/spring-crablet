@@ -25,6 +25,8 @@ import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 
@@ -138,6 +140,12 @@ public class EventStoreAutoConfiguration {
     @ConditionalOnMissingBean
     public JdbcTemplate jdbcTemplate(WriteDataSource writeDataSource) {
         return new JdbcTemplate(writeDataSource.dataSource());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(PlatformTransactionManager.class)
+    public PlatformTransactionManager transactionManager(WriteDataSource writeDataSource) {
+        return new DataSourceTransactionManager(writeDataSource.dataSource());
     }
 
     @Bean

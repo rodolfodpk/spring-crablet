@@ -106,7 +106,8 @@ For Crablet, that means:
 
 ## See Also
 
-- [Read Replica Guide](./READ_REPLICAS.md) - Crablet datasource model
-- [PgBouncer Guide](./PGBOUNCER.md) - PgBouncer compatibility
-- [Leader Election](../../docs/LEADER_ELECTION.md) - Advisory lock behavior
-- [PgCat Project](https://github.com/postgresml/pgcat) - Official PgCat project and documentation
+- [Read Replica Guide](./READ_REPLICAS.md) — Crablet datasource model
+- [PgBouncer Guide](./PGBOUNCER.md) — PgBouncer compatibility
+- [OJP Guide](./OJP.md) — Open J Proxy (Type 3 JDBC driver + gRPC proxy) compatibility
+- [Leader Election](../../docs/LEADER_ELECTION.md) — Advisory lock behavior
+- [PgCat Project](https://github.com/postgresml/pgcat) — Official PgCat project and documentation

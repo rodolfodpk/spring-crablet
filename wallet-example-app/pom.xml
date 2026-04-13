@@ -57,6 +57,12 @@
             <artifactId>shared-examples-domain</artifactId>
         </dependency>
         
+        <!-- Thymeleaf for management dashboard -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+
         <!-- Spring Boot Starter Web (Jetty) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -88,10 +94,14 @@
         
         <!-- Flyway for database migrations -->
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-flyway</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
-        
+
         <!-- Flyway PostgreSQL support -->
         <dependency>
             <groupId>org.flywaydb</groupId>

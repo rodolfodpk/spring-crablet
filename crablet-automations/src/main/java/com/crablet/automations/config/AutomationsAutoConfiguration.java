@@ -114,7 +114,6 @@ public class AutomationsAutoConfiguration {
     }
 
     @Bean
-    @org.springframework.context.annotation.DependsOn("flyway")
     public EventProcessor<AutomationProcessorConfig, String> automationsEventProcessor(
             @Qualifier("automationProcessorConfigs") Map<String, AutomationProcessorConfig> automationProcessorConfigs,
             @Qualifier("automationProgressTracker") ProgressTracker<String> automationProgressTracker,
