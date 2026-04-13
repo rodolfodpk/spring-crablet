@@ -1,7 +1,5 @@
-package com.crablet.command.api;
+package com.crablet.command.web;
 
-import com.crablet.command.api.internal.CommandApiAutoConfiguration;
-import com.crablet.command.integration.TestApplication;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
@@ -11,12 +9,10 @@ import com.crablet.test.AbstractCrabletTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -32,12 +28,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(
         classes = {TestApplication.class, CommandApiE2ETest.CommandApiTestConfig.class},
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {
-                "spring.profiles.active=test,command-api-e2e",
-                "crablet.commands.api.enabled=true"
-        }
+        properties = "spring.profiles.active=test"
 )
-@ImportAutoConfiguration(CommandApiAutoConfiguration.class)
 @DisplayName("Command API E2E Tests")
 class CommandApiE2ETest extends AbstractCrabletTest {
 
@@ -125,7 +117,7 @@ class CommandApiE2ETest extends AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("Should reject non exposed command")
+    @DisplayName("Should reject non-exposed command")
     void shouldRejectNonExposedCommand() throws Exception {
         HttpResponse<String> response = postJson("""
                 {
@@ -174,7 +166,6 @@ class CommandApiE2ETest extends AbstractCrabletTest {
     }
 
     @TestConfiguration
-    @Profile("command-api-e2e")
     static class CommandApiTestConfig {
         @Bean
         CommandApiExposedCommands commandApiExposedCommands() {

@@ -2,76 +2,52 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    
+
     <parent>
         <groupId>com.crablet</groupId>
         <artifactId>crablet</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    
-    <artifactId>crablet-commands</artifactId>
-    <name>Crablet Command Framework</name>
-    <description>Command handling framework for event sourcing with automatic handler discovery</description>
-    
+
+    <artifactId>crablet-commands-web</artifactId>
+    <name>Crablet Commands Web</name>
+    <description>Generic HTTP command API adapter — exposes commands via REST using Spring Web MVC</description>
+
     <dependencies>
-        <!-- Crablet EventStore (core library) -->
+        <!-- Crablet Command Framework (required) -->
         <dependency>
             <groupId>com.crablet</groupId>
-            <artifactId>crablet-eventstore</artifactId>
-            <version>${project.version}</version>
+            <artifactId>crablet-commands</artifactId>
         </dependency>
 
-        <!-- Spring Boot Web (for tests only) -->
+        <!-- Spring Web MVC — first-class dependency, not optional -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-            <scope>test</scope>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
         </dependency>
-        
-        <!-- Jackson 3 (tools.jackson) -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+        </dependency>
+
+        <!-- Jackson for JSON deserialization in the controller -->
         <dependency>
             <groupId>tools.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
 
-        <!-- Spring Boot JDBC -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-jdbc</artifactId>
-        </dependency>
-        
-        <!-- PostgreSQL Driver -->
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        
-        <!-- Resilience4j -->
-        <dependency>
-            <groupId>io.github.resilience4j</groupId>
-            <artifactId>resilience4j-spring-boot3</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.resilience4j</groupId>
-            <artifactId>resilience4j-circuitbreaker</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.resilience4j</groupId>
-            <artifactId>resilience4j-retry</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.resilience4j</groupId>
-            <artifactId>resilience4j-timelimiter</artifactId>
-        </dependency>
-        
         <!-- SLF4J for logging -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-        
+
         <!-- Test Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -97,7 +73,6 @@
             <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- YAVI for command validation in wallet tests -->
         <dependency>
             <groupId>am.ik.yavi</groupId>
             <artifactId>yavi</artifactId>
@@ -113,14 +88,12 @@
             <artifactId>flyway-database-postgresql</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Crablet Test Support (for AbstractHandlerUnitTest, InMemoryEventStore, AbstractCrabletTest) -->
         <dependency>
             <groupId>com.crablet</groupId>
             <artifactId>crablet-test-support</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
-        <!-- Shared Examples Domain (for wallet/course domain examples in tests) -->
         <dependency>
             <groupId>com.crablet</groupId>
             <artifactId>shared-examples-domain</artifactId>
@@ -128,7 +101,7 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    
+
     <build>
         <plugins>
             <plugin>
@@ -144,28 +117,8 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>report</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

@@ -224,6 +224,12 @@ crablet-commands (Optional)
 ├── CommandExecutor - Automatic handler discovery and orchestration
 └── CommandDecision - Decision about which DCB pattern to apply
 
+crablet-commands-web (Optional)
+├── Generic HTTP command API — POST /api/commands
+├── Plain @RestController backed by CommandExecutor
+├── CommandApiExposedCommands — explicit allowlist of exposed command types
+└── Opt-in: include module + declare CommandApiExposedCommands bean
+
 crablet-event-poller (Generic Infrastructure)
 ├── EventProcessor - Reusable polling infrastructure
 ├── EventSelection - Shared event matching contract
@@ -265,6 +271,7 @@ wallet-example-app (Example application)
 **Module dependencies:**
 - `crablet-eventstore`: No dependencies on other modules
 - `crablet-commands`: Depends on `crablet-eventstore`
+- `crablet-commands-web`: Depends on `crablet-commands` + `spring-webmvc`
 - `crablet-event-poller`: Depends on `crablet-eventstore`
 - `crablet-views`: Depends on `crablet-eventstore` + `crablet-event-poller`
 - `crablet-outbox`: Depends on `crablet-eventstore` + `crablet-event-poller`

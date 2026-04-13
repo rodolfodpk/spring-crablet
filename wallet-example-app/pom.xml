@@ -26,6 +26,12 @@
             <groupId>com.crablet</groupId>
             <artifactId>crablet-commands</artifactId>
         </dependency>
+
+        <!-- Crablet Commands Web (generic HTTP command API) -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-commands-web</artifactId>
+        </dependency>
         
         <!-- Crablet Views -->
         <dependency>

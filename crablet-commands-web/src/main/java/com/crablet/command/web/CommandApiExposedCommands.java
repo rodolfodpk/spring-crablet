@@ -1,4 +1,4 @@
-package com.crablet.command.api;
+package com.crablet.command.web;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
@@ -11,6 +11,14 @@ import java.util.Set;
  * This registry is separate from handler discovery: all available commands still come from the
  * discovered {@code CommandHandler<?>} beans, while this type declares which subset is reachable
  * over HTTP.
+ * <p>
+ * Declare a bean of this type in your application configuration to enable HTTP access:
+ * <pre>{@code
+ * @Bean
+ * CommandApiExposedCommands commandApiExposedCommands() {
+ *     return CommandApiExposedCommands.of(OpenWalletCommand.class, DepositCommand.class);
+ * }
+ * }</pre>
  */
 public record CommandApiExposedCommands(Set<Class<?>> commandClasses) {
 

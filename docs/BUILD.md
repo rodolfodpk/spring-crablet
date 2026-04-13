@@ -25,6 +25,7 @@ make start
 ── reactor (built together) ──────────────────────────────
   crablet-eventstore           core, no framework deps
   crablet-commands              → eventstore
+  crablet-commands-web         → commands + spring-webmvc
   crablet-event-poller      → eventstore
   crablet-outbox               → eventstore + event-processor
   crablet-views                → eventstore + event-processor

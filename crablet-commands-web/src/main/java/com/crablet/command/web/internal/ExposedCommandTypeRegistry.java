@@ -1,7 +1,7 @@
-package com.crablet.command.api.internal;
+package com.crablet.command.web.internal;
 
-import com.crablet.command.api.CommandApiExposedCommands;
 import com.crablet.command.internal.DiscoveredCommandRegistry;
+import com.crablet.command.web.CommandApiExposedCommands;
 
 import java.util.Map;
 import java.util.Set;

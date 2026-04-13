@@ -1,4 +1,4 @@
-package com.crablet.command.api;
+package com.crablet.command.web;
 
 import org.jspecify.annotations.Nullable;
 

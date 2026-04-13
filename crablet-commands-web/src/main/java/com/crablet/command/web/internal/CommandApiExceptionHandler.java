@@ -1,4 +1,4 @@
-package com.crablet.command.api.internal;
+package com.crablet.command.web.internal;
 
 import com.crablet.command.InvalidCommandException;
 import com.crablet.eventstore.ConcurrencyException;
@@ -7,20 +7,26 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
  * Exception mapping for the generic REST command API.
+ * Scoped to {@link CommandApiRestController} so it does not interfere with the
+ * application's own exception handlers.
  */
+@RestControllerAdvice(assignableTypes = CommandApiRestController.class)
 class CommandApiExceptionHandler {
 
     @ExceptionHandler(CommandApiBadRequestException.class)
     ResponseEntity<ProblemDetail> handleBadRequest(CommandApiBadRequestException e) {
-        return ResponseEntity.badRequest().body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage()));
+        return ResponseEntity.badRequest()
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage()));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ProblemDetail> handleUnreadable(HttpMessageNotReadableException e) {
-        return ResponseEntity.badRequest().body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Malformed JSON request body"));
+        return ResponseEntity.badRequest()
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Malformed JSON request body"));
     }
 
     @ExceptionHandler(CommandNotExposedException.class)
@@ -31,7 +37,8 @@ class CommandApiExceptionHandler {
 
     @ExceptionHandler({InvalidCommandException.class, IllegalArgumentException.class})
     ResponseEntity<ProblemDetail> handleInvalidCommand(RuntimeException e) {
-        return ResponseEntity.badRequest().body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage()));
+        return ResponseEntity.badRequest()
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage()));
     }
 
     @ExceptionHandler(ConcurrencyException.class)

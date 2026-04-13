@@ -1,4 +1,4 @@
-package com.crablet.command.api.internal;
+package com.crablet.command.web.internal;
 
 /**
  * Internal exception for known-but-not-exposed commands.

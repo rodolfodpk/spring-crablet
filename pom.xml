@@ -14,6 +14,7 @@
     <modules>
         <module>crablet-eventstore</module>
         <module>crablet-commands</module>
+        <module>crablet-commands-web</module>
         <module>crablet-outbox</module>
         <module>crablet-event-poller</module>
         <module>crablet-views</module>
@@ -75,6 +76,13 @@
             <dependency>
                 <groupId>com.crablet</groupId>
                 <artifactId>crablet-commands</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Crablet Commands Web -->
+            <dependency>
+                <groupId>com.crablet</groupId>
+                <artifactId>crablet-commands-web</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
@@ -277,6 +285,12 @@
                                 </fileSet>
                                 <fileSet>
                                     <directory>${project.basedir}/crablet-commands/target</directory>
+                                    <includes>
+                                        <include>jacoco.exec</include>
+                                    </includes>
+                                </fileSet>
+                                <fileSet>
+                                    <directory>${project.basedir}/crablet-commands-web/target</directory>
                                     <includes>
                                         <include>jacoco.exec</include>
                                     </includes>

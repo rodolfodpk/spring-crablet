@@ -1,25 +1,36 @@
-package com.crablet.command.api.internal;
+package com.crablet.command.web.internal;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.ExecutionResult;
-import com.crablet.command.api.CommandApiResponse;
+import com.crablet.command.web.CommandApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Generic REST adapter for command execution.
+ * Generic REST adapter that routes JSON command payloads to the {@link CommandExecutor}.
+ * <p>
+ * The endpoint path is configurable via {@code crablet.commands.api.base-path}
+ * (default: {@code /api/commands}).
+ * <p>
+ * Every request must include a {@code commandType} field identifying the target command.
+ * Only commands listed in a {@link com.crablet.command.web.CommandApiExposedCommands} bean
+ * are reachable; all others return {@code 404 Not Found}.
  */
-class CommandApiController {
+@RestController
+class CommandApiRestController {
 
     private final CommandExecutor commandExecutor;
     private final ExposedCommandTypeRegistry exposedCommands;
     private final ObjectMapper objectMapper;
 
-    CommandApiController(
+    CommandApiRestController(
             CommandExecutor commandExecutor,
             ExposedCommandTypeRegistry exposedCommands,
             ObjectMapper objectMapper) {
@@ -28,7 +39,8 @@ class CommandApiController {
         this.objectMapper = objectMapper;
     }
 
-    ResponseEntity<CommandApiResponse> execute(JsonNode body) {
+    @PostMapping("${crablet.commands.api.base-path:/api/commands}")
+    ResponseEntity<CommandApiResponse> executeCommand(@RequestBody JsonNode body) {
         if (!(body instanceof ObjectNode objectNode)) {
             throw new CommandApiBadRequestException("Command payload must be a JSON object");
         }
