@@ -94,7 +94,7 @@
     </mxCell>
 
     <!-- Automations -->
-    <mxCell id="auto_reaction" value="WalletOpenedReaction" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+    <mxCell id="auto_reaction" value="WalletOpenedAutomation" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
       <mxGeometry x="120" y="420" width="160" height="50" as="geometry" />
     </mxCell>
 

@@ -110,7 +110,7 @@ Demonstrates the automation → command → event chain triggered by the wallet 
 
 ```
 WalletOpened event
-    → WalletOpenedReaction (in wallet-example-app)
+    → WalletOpenedAutomation (in wallet-example-app)
     → SendWelcomeNotificationCommand
     → SendWelcomeNotificationCommandHandler
     → WelcomeNotificationSent event (with idempotency check)
