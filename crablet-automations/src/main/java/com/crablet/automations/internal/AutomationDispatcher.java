@@ -5,6 +5,7 @@ import com.crablet.automations.metrics.AutomationExecutionErrorMetric;
 import com.crablet.automations.metrics.AutomationExecutionMetric;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventHandler;
+import com.crablet.eventstore.CorrelationContext;
 import com.crablet.eventstore.StoredEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,7 +71,16 @@ public class AutomationDispatcher implements EventHandler<String> {
 
         for (StoredEvent event : events) {
             try {
-                handler.react(event, commandExecutor);
+                // Propagate correlation and set causation for the downstream command execution.
+                // ScopedValue scope exits automatically — no finally/clear needed.
+                var scope = ScopedValue.where(CorrelationContext.CAUSATION_ID, event.position());
+                if (event.correlationId() != null) {
+                    scope = scope.where(CorrelationContext.CORRELATION_ID, event.correlationId());
+                }
+                scope.call(() -> {
+                    handler.react(event, commandExecutor);
+                    return null;
+                });
                 count++;
             } catch (Exception e) {
                 eventPublisher.publishEvent(new AutomationExecutionErrorMetric(automationName));

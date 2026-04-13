@@ -5,6 +5,7 @@ import com.crablet.eventstore.AppendConditionBuilder;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.CommandAuditStore;
+import com.crablet.eventstore.CorrelationContext;
 import com.crablet.eventstore.ConcurrencyException;
 import com.crablet.eventstore.DCBViolation;
 import com.crablet.eventstore.EventStore;
@@ -43,6 +44,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
@@ -98,13 +100,13 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
      * Extracted as constants for maintainability and readability.
      */
     private static final String APPEND_EVENTS_BATCH_SQL =
-        "SELECT append_events_batch(?, ?, ?::jsonb[], ?::TIMESTAMP WITH TIME ZONE)";
+        "SELECT append_events_batch(?, ?, ?::jsonb[], ?::TIMESTAMP WITH TIME ZONE, ?::uuid, ?)";
 
     private static final String APPEND_EVENTS_IF_SQL =
-        "SELECT append_events_if(?, ?, ?::jsonb[], ?, ?, ?, ?, ?, ?::TIMESTAMP WITH TIME ZONE)";
+        "SELECT append_events_if(?, ?, ?::jsonb[], ?, ?, ?, ?, ?, ?::TIMESTAMP WITH TIME ZONE, ?::uuid, ?)";
 
     private static final String APPEND_EVENTS_IF_CONNECTION_SQL =
-        "SELECT append_events_if(?::text[], ?::text[], ?::jsonb[], ?::text[], ?::text[], ?, ?::text[], ?::text[], ?::TIMESTAMP WITH TIME ZONE)";
+        "SELECT append_events_if(?::text[], ?::text[], ?::jsonb[], ?::text[], ?::text[], ?, ?::text[], ?::text[], ?::TIMESTAMP WITH TIME ZONE, ?::uuid, ?)";
 
     private static final String INSERT_COMMAND_SQL = """
         INSERT INTO commands (transaction_id, type, data, metadata, occurred_at)
@@ -133,7 +135,10 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         long position = rs.getLong("position");
         Instant occurredAt = rs.getTimestamp("occurred_at").toInstant();
 
-        return new StoredEvent(type, tags, data, transactionId, position, occurredAt);
+        UUID correlationId = rs.getObject("correlation_id", UUID.class);
+        Long causationId   = (Long) rs.getObject("causation_id");
+        return new StoredEvent(type, tags, data, transactionId, position, occurredAt,
+                               correlationId, causationId);
     };
 
     /**
@@ -249,6 +254,8 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 stmt.setArray(2, connection.createArrayOf("varchar", tagArrays));
                 stmt.setArray(3, connection.createArrayOf("jsonb", dataStrings));
                 stmt.setTimestamp(4, java.sql.Timestamp.from(clock.now()));
+                stmt.setObject(5, CorrelationContext.correlationId());
+                stmt.setObject(6, CorrelationContext.causationId());
 
                 stmt.execute();
             }
@@ -357,6 +364,8 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 stmt.setObject(7, idempotencyTypes != null && !idempotencyTypes.isEmpty() ? idempotencyTypes.toArray(new String[0]) : null);
                 stmt.setObject(8, idempotencyTags != null && !idempotencyTags.isEmpty() ? idempotencyTags.toArray(new String[0]) : null);
                 stmt.setTimestamp(9, java.sql.Timestamp.from(clock.now()));
+                stmt.setObject(10, CorrelationContext.correlationId());
+                stmt.setObject(11, CorrelationContext.causationId());
 
                 try (ResultSet rs = stmt.executeQuery()) {
                     // Fail fast: Check if we have a result
@@ -397,7 +406,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
 
         try {
             // Build SQL using existing helper
-            StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at FROM events");
+            StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id FROM events");
             List<Object> params = new ArrayList<>();
             String whereClause = sqlBuilder.buildWhereClause(query, after, params);
             if (!whereClause.isEmpty()) {
@@ -498,6 +507,8 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             stmt.setArray(2, connection.createArrayOf("text", tagArrays));
             stmt.setArray(3, connection.createArrayOf("jsonb", dataStrings));
             stmt.setTimestamp(4, java.sql.Timestamp.from(clock.now()));
+            stmt.setObject(5, CorrelationContext.correlationId());
+            stmt.setObject(6, CorrelationContext.causationId());
 
             stmt.execute();
         } catch (SQLException e) {
@@ -569,6 +580,8 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             stmt.setArray(7, idempotencyTypes != null && !idempotencyTypes.isEmpty() ? connection.createArrayOf("text", idempotencyTypes.toArray(new String[0])) : null);
             stmt.setArray(8, idempotencyTags != null && !idempotencyTags.isEmpty() ? connection.createArrayOf("text", idempotencyTags.toArray(new String[0])) : null);
             stmt.setTimestamp(9, java.sql.Timestamp.from(clock.now()));
+            stmt.setObject(10, CorrelationContext.correlationId());
+            stmt.setObject(11, CorrelationContext.causationId());
 
             try (ResultSet rs = stmt.executeQuery()) {
                 // Fail fast: Check if we have a result
@@ -652,7 +665,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         try {
             // Build SQL query directly instead of using the function
             StringBuilder sql = new StringBuilder();
-            sql.append("SELECT type, tags, data, transaction_id, position, occurred_at ");
+            sql.append("SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id ");
             sql.append("FROM events ");
 
             List<Object> params = new ArrayList<>();
@@ -727,7 +740,9 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                                 rs.getBytes("data"),
                                 rs.getString("transaction_id"),
                                 rs.getLong("position"),
-                                rs.getTimestamp("occurred_at").toInstant()
+                                rs.getTimestamp("occurred_at").toInstant(),
+                                rs.getObject("correlation_id", UUID.class),
+                                (Long) rs.getObject("causation_id")
                         );
                         events.add(event);
                     }
@@ -756,7 +771,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     private <T> ProjectionResult<T> projectWithConnection(Connection connection, Query query, StreamPosition after, Class<T> stateType, List<StateProjector<T>> projectors) {
         try {
             // Build SQL using existing helper
-            StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at FROM events");
+            StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id FROM events");
             List<Object> params = new ArrayList<>();
             String whereClause = sqlBuilder.buildWhereClause(query, after, params);
             if (!whereClause.isEmpty()) {

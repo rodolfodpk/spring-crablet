@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Abstract base class for JDBC-backed {@link EventFetcher} implementations.
@@ -41,7 +42,8 @@ public abstract class AbstractJdbcEventFetcher<I> implements EventFetcher<I> {
         }
 
         String sql = """
-            SELECT type, tags, data, transaction_id, position, occurred_at
+            SELECT type, tags, data, transaction_id, position, occurred_at,
+                   correlation_id, causation_id
             FROM events
             WHERE position > ?
               AND (%s)
@@ -67,7 +69,9 @@ public abstract class AbstractJdbcEventFetcher<I> implements EventFetcher<I> {
                             rs.getString("data").getBytes(),
                             rs.getString("transaction_id"),
                             rs.getLong("position"),
-                            rs.getTimestamp("occurred_at").toInstant()
+                            rs.getTimestamp("occurred_at").toInstant(),
+                            rs.getObject("correlation_id", UUID.class),
+                            (Long) rs.getObject("causation_id")
                         ));
                     }
                 }

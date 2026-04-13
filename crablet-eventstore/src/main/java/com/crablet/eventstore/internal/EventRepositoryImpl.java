@@ -18,6 +18,7 @@ import java.sql.ResultSet;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Implementation of EventRepository.
@@ -55,7 +56,10 @@ public class EventRepositoryImpl implements EventRepository {
         long position = rs.getLong("position");
         Instant occurredAt = rs.getTimestamp("occurred_at").toInstant();
 
-        return new StoredEvent(type, tags, data, transactionId, position, occurredAt);
+        UUID correlationId = rs.getObject("correlation_id", UUID.class);
+        Long causationId   = (Long) rs.getObject("causation_id");
+        return new StoredEvent(type, tags, data, transactionId, position, occurredAt,
+                               correlationId, causationId);
     };
 
     public EventRepositoryImpl(DataSource dataSource, EventStoreConfig config) {
@@ -68,7 +72,7 @@ public class EventRepositoryImpl implements EventRepository {
     public List<StoredEvent> query(Query query, @Nullable StreamPosition after) {
         try {
             // Build SQL query directly instead of using the function
-            StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at FROM events");
+            StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id FROM events");
             List<Object> params = new ArrayList<>();
 
             // Use shared WHERE clause builder

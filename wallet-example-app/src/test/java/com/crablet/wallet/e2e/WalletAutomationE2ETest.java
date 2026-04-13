@@ -14,6 +14,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.util.Map;
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -50,6 +53,58 @@ class WalletAutomationE2ETest extends AbstractWalletE2ETest {
 
     @Test
     @Order(1)
+    @DisplayName("Should persist correlation and causation metadata across automation chain")
+    void shouldPersistCorrelationAndCausationAcrossAutomationChain() {
+        jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
+        jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
+        jdbcTemplate.execute("TRUNCATE TABLE automation_progress CASCADE");
+
+        UUID correlationId = UUID.randomUUID();
+
+        webTestClient
+            .post().uri("/api/wallets")
+            .header("X-Correlation-ID", correlationId.toString())
+            .bodyValue(new OpenWalletRequest(WALLET_ID, "Alice", 100))
+            .exchange()
+            .expectStatus().isCreated()
+            .expectHeader().valueEquals("X-Correlation-ID", correlationId.toString());
+
+        automationsEventProcessor.process(AUTOMATION_NAME);
+
+        Map<String, Object> walletOpened = jdbcTemplate.queryForMap(
+            """
+            SELECT position, correlation_id, causation_id
+            FROM events
+            WHERE type = 'WalletOpened' AND tags @> ARRAY[?]::text[]
+            ORDER BY position
+            LIMIT 1
+            """,
+            "wallet_id=" + WALLET_ID
+        );
+
+        Map<String, Object> welcomeNotification = jdbcTemplate.queryForMap(
+            """
+            SELECT position, correlation_id, causation_id
+            FROM events
+            WHERE type = 'WelcomeNotificationSent' AND tags @> ARRAY[?]::text[]
+            ORDER BY position
+            LIMIT 1
+            """,
+            "wallet_id=" + WALLET_ID
+        );
+
+        Number walletOpenedPosition = (Number) walletOpened.get("position");
+        Number welcomeCausationId = (Number) welcomeNotification.get("causation_id");
+
+        assertThat(walletOpened.get("correlation_id")).isEqualTo(correlationId);
+        assertThat(walletOpened.get("causation_id")).isNull();
+        assertThat(welcomeNotification.get("correlation_id")).isEqualTo(correlationId);
+        assertThat(welcomeCausationId).isNotNull();
+        assertThat(welcomeCausationId.longValue()).isEqualTo(walletOpenedPosition.longValue());
+    }
+
+    @Test
+    @Order(2)
     @DisplayName("Should send welcome notification when wallet is opened")
     void shouldSendWelcomeNotificationWhenWalletIsOpened() {
         // Clean state
@@ -76,7 +131,7 @@ class WalletAutomationE2ETest extends AbstractWalletE2ETest {
     }
 
     @Test
-    @Order(2)
+    @Order(3)
     @DisplayName("Should not send duplicate welcome notification (idempotency)")
     void shouldNotSendDuplicateWelcomeNotification() {
         // Run automation again on the same events — already-processed position remembered
@@ -91,7 +146,7 @@ class WalletAutomationE2ETest extends AbstractWalletE2ETest {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     @DisplayName("Should send notifications for multiple wallets independently")
     void shouldSendNotificationForEachWallet() {
         // Open a second wallet
