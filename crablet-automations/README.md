@@ -163,7 +163,7 @@ public class WelcomeNotificationWebhookAutomation implements AutomationHandler {
 
     @Override
     public String getWebhookUrl() {
-        return "http://localhost:8080/api/automations/wallet-opened";
+        return "http://localhost:8080/webhooks/wallet-opened";
     }
 }
 ```
@@ -324,5 +324,5 @@ The recommended pattern is to keep the decision in a view model and use the auto
 
 - [EventStore README](../crablet-eventstore/README.md) — Core event sourcing library
 - [Command README](../crablet-commands/README.md) — Command framework
-- [Event Processor README](../crablet-event-poller/README.md) — Generic polling infrastructure
+- [Event Processor README](../crablet-event-poller/README.md) — Shared processing infrastructure behind automations
 - [Views README](../crablet-views/README.md) — Asynchronous view projections

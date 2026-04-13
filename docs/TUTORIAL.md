@@ -36,7 +36,7 @@ The series now stays close to the wallet example used elsewhere in the repositor
 
 **Reference implementation**
 
-- [wallet-example-app](../wallet-example-app/README.md) for a complete Spring Boot application
+- [wallet-example-app](../wallet-example-app/README.md) for a complete reference application
 - [crablet-eventstore/GETTING_STARTED.md](../crablet-eventstore/GETTING_STARTED.md) for integration setup
 
 ## Module Map
@@ -52,7 +52,7 @@ The series now stays close to the wallet example used elsewhere in the repositor
 
 ## Deployment Note For Poller-Based Modules
 
-`crablet-views`, `crablet-automations`, and `crablet-outbox` all depend on `crablet-event-poller`.
+`crablet-views`, `crablet-automations`, and `crablet-outbox` all use the same shared poller infrastructure internally.
 
 In production, the default recommendation is:
 
@@ -73,6 +73,6 @@ Examples:
 - automations: global `crablet.automations.*` plus one `AutomationHandler` per automation
 - outbox: global `crablet.outbox.*` plus one resolved processor per `(topic, publisher)` pair
 
-This is intentional. The event poller always runs per processor instance, even when many processors share the same module-level defaults.
+This is intentional. The shared processor runtime always runs per processor instance, even when many processors share the same module-level defaults.
 
-For deeper details, see [Leader Election](LEADER_ELECTION.md) and the module READMEs for `event-poller`, `views`, `automations`, and `outbox`.
+For deeper details, see [Leader Election](LEADER_ELECTION.md) and the module READMEs for `views`, `automations`, and `outbox`. If you need the shared infrastructure details directly, see [crablet-event-poller/README.md](../crablet-event-poller/README.md).

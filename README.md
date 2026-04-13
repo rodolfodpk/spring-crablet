@@ -106,16 +106,41 @@ See [docs/DEPLOYMENT_TOPOLOGY.md](docs/DEPLOYMENT_TOPOLOGY.md).
 
 ## Modules
 
-| Module | Scope | Adoption role | Notes |
-|--------|-------|---------------|-------|
-| **crablet-eventstore** | required | core | Core event sourcing library with DCB support |
-| **crablet-commands** | optional | core | Command handlers and transactional command execution |
-| **crablet-event-poller** | optional | infrastructure | Internal processing infrastructure for poller-backed modules |
-| **crablet-views** | optional | add-on | Poller-backed read models; default to 1 instance per cluster |
-| **crablet-outbox** | optional | add-on | Poller-backed external publishing; default to 1 instance per cluster |
-| **crablet-automations** | optional | add-on | Poller-backed policies and sagas; default to 1 instance per cluster |
-| **crablet-metrics-micrometer** | optional | add-on | Micrometer metrics collection |
-| **crablet-test-support** | test | support | In-memory and integration-test support |
+### Core Runtime
+
+| Module | Role | Notes |
+|--------|------|-------|
+| **crablet-eventstore** | core runtime | Core event sourcing library with DCB support |
+| **crablet-commands** | core runtime | Command handlers and transactional command execution |
+
+### Optional Add-Ons
+
+| Module | Role | Notes |
+|--------|------|-------|
+| **crablet-views** | add-on | Poller-backed read models; default to 1 instance per cluster |
+| **crablet-outbox** | add-on | Poller-backed external publishing; default to 1 instance per cluster |
+| **crablet-automations** | add-on | Poller-backed policies and side effects; default to 1 instance per cluster |
+| **crablet-metrics-micrometer** | integration | Micrometer metrics collection |
+
+### Test Support
+
+| Module | Role | Notes |
+|--------|------|-------|
+| **crablet-test-support** | public support | In-memory and PostgreSQL-backed test support for Crablet applications |
+
+### Internal Shared Infrastructure
+
+| Module | Role | Notes |
+|--------|------|-------|
+| **crablet-event-poller** | internal infrastructure | Shared processing infrastructure behind views, outbox, and automations |
+
+### Example And Reference Projects
+
+| Project | Role | Notes |
+|--------|------|-------|
+| **wallet-example-app** | reference application | Complete Spring Boot example app |
+| **shared-examples-domain** | example domain | Reusable example domain used in tests and docs |
+| **docs-samples** | docs support | Sample code compiled for documentation |
 
 ## Why Java 25
 
@@ -161,12 +186,15 @@ Crablet maps that model onto three append methods. These are **Crablet API terms
 
 - [crablet-eventstore/README.md](crablet-eventstore/README.md) — Core event sourcing API
 - [crablet-commands/README.md](crablet-commands/README.md) — Command handler framework
-- [crablet-event-poller/README.md](crablet-event-poller/README.md) — Generic event processing infrastructure
 - [crablet-views/README.md](crablet-views/README.md) — Asynchronous view projections
 - [crablet-outbox/README.md](crablet-outbox/README.md) — Transactional outbox pattern
 - [crablet-automations/README.md](crablet-automations/README.md) — Event-driven automations
 - [crablet-metrics-micrometer/README.md](crablet-metrics-micrometer/README.md) — Micrometer metrics
-- [crablet-test-support/README.md](crablet-test-support/README.md) — Test infrastructure
+- [crablet-test-support/README.md](crablet-test-support/README.md) — Test support for Crablet applications
+
+### Internal Infrastructure
+
+- [crablet-event-poller/README.md](crablet-event-poller/README.md) — Shared processing infrastructure behind views, outbox, and automations
 
 ### Deep Dives
 

@@ -14,7 +14,7 @@ It should not be part of the first adoption promise. Start with the command side
 
 - Use `crablet-eventstore` and `crablet-commands` first
 - Add outbox only after your event model is stable and you need external publication
-- In this README, focus on `Quick Start`, `Configuration`, and `Management API`
+- In this README, focus on `Quick Start`, `Configuration`, and `Operations`
 
 ## Overview
 
@@ -30,7 +30,7 @@ Crablet Outbox provides a robust transactional outbox implementation, ensuring t
 - **Metrics**: Comprehensive metrics for monitoring outbox health
 - **Resilience**: Circuit breakers and retries for reliable publishing
 - **Spring Integration**: Ready-to-use Spring Boot components and configuration
-- **Management API**: REST API for monitoring and controlling outbox operations
+- **Operations**: Built on the shared processor management infrastructure
 
 ## Maven Coordinates
 
@@ -188,9 +188,15 @@ The following metrics are published:
 - `ProcessingCycleMetric` - Processing cycle completion
 - `LeadershipMetric` - Leader election changes
 
-## Management API
+## Operations
 
-In `wallet-example-app`, the outbox management API is exposed under `/api/outbox`:
+Outbox publishers are managed through the shared processor infrastructure.
+
+The built-in framework management API is `/api/processors`.
+
+If your application wants outbox-specific operational endpoints, it can expose friendlier routes that delegate to the shared management service.
+
+For example, `wallet-example-app` exposes its outbox operations under `/api/outbox`:
 
 ```bash
 # Get all publisher statuses
@@ -203,7 +209,7 @@ curl http://localhost:8080/api/outbox/default/publishers/LogPublisher/status
 curl -X POST http://localhost:8080/api/outbox/default/publishers/LogPublisher/reset
 ```
 
-For the full endpoint set, see [../docs/MANAGEMENT_API.md](../docs/MANAGEMENT_API.md).
+For the built-in framework API, see [../docs/MANAGEMENT_API.md](../docs/MANAGEMENT_API.md).
 
 ## Monitoring
 

@@ -14,7 +14,7 @@ Adopt it after the command side is working. For learning, it makes sense to run 
 
 - Add views after command execution is working and you need read models
 - Read `Quick Reference` first if you just need the right projector shape
-- Read `Quick Start`, `Configuration`, and `View Management` before the deeper reference sections
+- Read `Quick Start`, `Configuration`, and `View Operations` before the deeper reference sections
 
 ## Contents
 
@@ -27,7 +27,7 @@ Adopt it after the command side is working. For learning, it makes sense to run 
 - [Architecture](#architecture)
 - [Configuration](#configuration)
 - [Tag Filtering](#tag-filtering)
-- [View Management](#view-management)
+- [View Operations](#view-operations)
 - [Progress Tracking](#progress-tracking)
 - [Error Handling](#error-handling)
 - [Best Practices](#best-practices)
@@ -452,7 +452,7 @@ ViewSubscription.builder("course-view")
     .build();
 ```
 
-## View Management
+## View Operations
 
 The views module provides `ViewManagementService` for managing and monitoring view projections.
 
@@ -466,7 +466,7 @@ The views module provides `ViewManagementService` for managing and monitoring vi
 
 ### Usage
 
-Inject the service in your application:
+Inject the service in your application when you want application-level endpoints or operational tooling around views:
 
 ```java
 @RestController
@@ -491,6 +491,10 @@ public class ViewController {
     }
 }
 ```
+
+This service is part of the framework API. The HTTP controller shape is your application's choice.
+
+Framework code does not currently ship a generic built-in `/api/views/...` controller. The example below shows how an application may expose one.
 
 ### Available Methods
 
@@ -547,14 +551,14 @@ Views use exponential backoff for error recovery:
 3. Polling interval increases exponentially (up to `max-backoff-seconds`)
 4. After successful processing, backoff resets
 
-Failed views can be reset via the management API or by clearing the error count in the database.
+Failed views can be reset through your application's operational API, through the generic `/api/processors` framework API, or by clearing the error count in the database.
 
 ## Best Practices
 
 1. **Idempotent Operations**: Always use idempotent database operations
 2. **Batch Processing**: Process events in batches for better performance
 3. **Read Replicas**: Use read replicas for event fetching (configured automatically)
-4. **Monitoring**: Monitor view lag and error counts via management API
+4. **Monitoring**: Monitor view lag and error counts via `ViewManagementService` or the generic processor API
 5. **Error Recovery**: Implement retry logic for transient failures
 6. **View Naming**: Use descriptive, unique view names
 
@@ -570,5 +574,5 @@ See the test files in `src/test/java` for complete examples:
 ## See Also
 
 - [EventStore README](../crablet-eventstore/README.md) - Event sourcing library
-- [Event Processor](../crablet-event-poller/README.md) - Generic event processor infrastructure
+- [Event Processor](../crablet-event-poller/README.md) - Shared processing infrastructure behind views
 - [Command README](../crablet-commands/README.md) - Command framework

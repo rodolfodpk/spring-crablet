@@ -6,7 +6,7 @@ The recommended learning setup is:
 
 - one application instance
 - commands, views, automations, and outbox running together
-- the wallet example app as the reference flow
+- the wallet example app as the reference application
 
 ## Prerequisites
 
@@ -33,7 +33,7 @@ make install
 make start
 ```
 
-This installs the library modules, builds the shared example domain, and starts the wallet example application.
+This installs the library modules, builds the shared example domain, and starts the wallet example application used as the learning/reference app.
 
 ## Create A Wallet
 
@@ -90,7 +90,7 @@ Expected response shape:
 
 ## Inspect The Example App
 
-Use the example application as the concrete reference for your first integration:
+Use the reference application as the concrete guide for your first integration:
 
 - App guide: [../wallet-example-app/README.md](../wallet-example-app/README.md)
 - Tutorial path: [TUTORIAL.md](TUTORIAL.md)

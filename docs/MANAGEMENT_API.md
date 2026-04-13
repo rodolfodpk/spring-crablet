@@ -1,136 +1,69 @@
 # Management API
 
-Spring Crablet exposes a REST management API for monitoring and controlling views, outbox publishers, and automations at runtime. All endpoints are available in `wallet-example-app` at `http://localhost:8080`.
+Spring Crablet currently ships one built-in REST management API for poller-backed processors: `/api/processors`.
+
+This API lives in the framework itself and manages the shared background workers behind views, outbox publishers, and automations.
+
+The module-specific endpoints shown in `wallet-example-app` such as `/api/views`, `/api/outbox`, and `/api/automations` are application-level APIs, not generic framework endpoints.
 
 Swagger UI: `http://localhost:8080/swagger-ui.html`
 
 ---
 
-## Views — `/api/views`
+## Built-In Framework API — `/api/processors`
 
-### Get all statuses
+### Get all processor statuses
 ```bash
-curl http://localhost:8080/api/views/status
+curl http://localhost:8080/api/processors
 ```
 ```json
 {
   "wallet-balance-view": "ACTIVE",
-  "wallet-transaction-view": "ACTIVE",
-  "wallet-summary-view": "ACTIVE",
-  "wallet-statement-view": "ACTIVE"
-}
-```
-
-### Get status + lag for one view
-```bash
-curl http://localhost:8080/api/views/wallet-balance-view/status
-```
-```json
-{ "viewName": "wallet-balance-view", "status": "ACTIVE", "lag": 0 }
-```
-
-### Get detailed progress (position, errors, timestamps)
-```bash
-curl http://localhost:8080/api/views/wallet-balance-view/details
-curl http://localhost:8080/api/views/details          # all views
-```
-
-### Get lag (events behind)
-```bash
-curl http://localhost:8080/api/views/wallet-balance-view/lag
-```
-```json
-{ "viewName": "wallet-balance-view", "lag": 42 }
-```
-
-### Pause / Resume / Reset
-```bash
-curl -X POST http://localhost:8080/api/views/wallet-balance-view/pause
-curl -X POST http://localhost:8080/api/views/wallet-balance-view/resume
-curl -X POST http://localhost:8080/api/views/wallet-balance-view/reset   # clears FAILED state
-```
-
----
-
-## Outbox — `/api/outbox`
-
-Publishers are identified by a `(topic, publisher)` pair.
-
-### Get all statuses
-```bash
-curl http://localhost:8080/api/outbox/status
-```
-```json
-{
-  "wallet-events:LogPublisher": "ACTIVE"
-}
-```
-
-### Get status + lag for one publisher
-```bash
-curl http://localhost:8080/api/outbox/wallet-events/publishers/LogPublisher/status
-```
-```json
-{ "topic": "wallet-events", "publisher": "LogPublisher", "status": "ACTIVE", "lag": 0 }
-```
-
-### Get detailed progress
-```bash
-curl http://localhost:8080/api/outbox/wallet-events/publishers/LogPublisher/details
-curl http://localhost:8080/api/outbox/details    # all publishers
-```
-
-### Get lag
-```bash
-curl http://localhost:8080/api/outbox/wallet-events/publishers/LogPublisher/lag
-```
-
-### Pause / Resume / Reset
-```bash
-curl -X POST http://localhost:8080/api/outbox/wallet-events/publishers/LogPublisher/pause
-curl -X POST http://localhost:8080/api/outbox/wallet-events/publishers/LogPublisher/resume
-curl -X POST http://localhost:8080/api/outbox/wallet-events/publishers/LogPublisher/reset
-```
-
----
-
-## Automations — `/api/automations`
-
-### Get all statuses
-```bash
-curl http://localhost:8080/api/automations/status
-```
-```json
-{
+  "wallet-events:LogPublisher": "ACTIVE",
   "wallet-opened-welcome-notification": "ACTIVE"
 }
 ```
 
-### Get status + lag for one automation
+### Get one processor status
 ```bash
-curl http://localhost:8080/api/automations/wallet-opened-welcome-notification/status
+curl http://localhost:8080/api/processors/wallet-balance-view
 ```
 ```json
-{ "automationName": "wallet-opened-welcome-notification", "status": "ACTIVE", "lag": 0 }
-```
-
-### Get detailed progress
-```bash
-curl http://localhost:8080/api/automations/wallet-opened-welcome-notification/details
-curl http://localhost:8080/api/automations/details    # all automations
-```
-
-### Get lag
-```bash
-curl http://localhost:8080/api/automations/wallet-opened-welcome-notification/lag
+{ "status": "ACTIVE" }
 ```
 
 ### Pause / Resume / Reset
 ```bash
-curl -X POST http://localhost:8080/api/automations/wallet-opened-welcome-notification/pause
-curl -X POST http://localhost:8080/api/automations/wallet-opened-welcome-notification/resume
-curl -X POST http://localhost:8080/api/automations/wallet-opened-welcome-notification/reset
+curl -X POST http://localhost:8080/api/processors/wallet-balance-view/pause
+curl -X POST http://localhost:8080/api/processors/wallet-balance-view/resume
+curl -X POST http://localhost:8080/api/processors/wallet-balance-view/reset
 ```
+
+### Get lag
+```bash
+curl http://localhost:8080/api/processors/wallet-balance-view/lag
+```
+```json
+42
+```
+
+### Get backoff info
+```bash
+curl http://localhost:8080/api/processors/wallet-balance-view/backoff
+curl http://localhost:8080/api/processors/backoff
+```
+
+---
+
+## What A “Processor” Means
+
+`/api/processors` manages the shared poller runtime abstraction. In practice, processor IDs usually correspond to:
+
+- views
+- outbox `(topic, publisher)` workers
+- automations
+
+Framework code does not currently ship generic module-specific aliases such as `/api/views`, `/api/outbox`, or `/api/automations`.
 
 ---
 
@@ -147,10 +80,20 @@ curl -X POST http://localhost:8080/api/automations/wallet-opened-welcome-notific
 ## Quick health check (all processors)
 
 ```bash
-curl -s http://localhost:8080/api/views/status && \
-curl -s http://localhost:8080/api/outbox/status && \
-curl -s http://localhost:8080/api/automations/status
+curl -s http://localhost:8080/api/processors
 ```
+
+---
+
+## Example-App APIs
+
+`wallet-example-app` may expose friendlier application-level management endpoints such as:
+
+- `/api/views/...`
+- `/api/outbox/...`
+- `/api/automations/...`
+
+Those endpoints are part of the example application, not part of Crablet's built-in framework API.
 
 ---
 

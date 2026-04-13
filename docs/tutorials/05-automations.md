@@ -115,7 +115,7 @@ public class WelcomeNotificationWebhookAutomation implements AutomationHandler {
 
     @Override
     public String getWebhookUrl() {
-        return "http://localhost:8080/api/automations/wallet-opened";
+        return "http://localhost:8080/webhooks/wallet-opened";
     }
 }
 ```
