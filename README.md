@@ -146,7 +146,6 @@ Crablet maps that model onto three append methods. These are **Crablet API terms
 - [docs/LEARNING_MODE.md](docs/LEARNING_MODE.md) — Recommended one-instance learning setup
 - [docs/COMMANDS_FIRST_ADOPTION.md](docs/COMMANDS_FIRST_ADOPTION.md) — Adopt the command side first
 - [docs/DEPLOYMENT_TOPOLOGY.md](docs/DEPLOYMENT_TOPOLOGY.md) — Production topology guidance
-- [docs/COMPARISONS.md](docs/COMPARISONS.md) — Crablet vs common alternatives
 
 ### Tutorials
 
@@ -174,10 +173,14 @@ Crablet maps that model onto three append methods. These are **Crablet API terms
 - [docs/LEADER_ELECTION.md](docs/LEADER_ELECTION.md)
 - [crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md](crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md)
 - [crablet-eventstore/docs/READ_REPLICAS.md](crablet-eventstore/docs/READ_REPLICAS.md)
-- [crablet-eventstore/docs/PGBOUNCER.md](crablet-eventstore/docs/PGBOUNCER.md)
-- [crablet-eventstore/docs/PGCAT.md](crablet-eventstore/docs/PGCAT.md)
 - [crablet-outbox/docs/OUTBOX_PATTERN.md](crablet-outbox/docs/OUTBOX_PATTERN.md)
 - [docs/BUILD.md](docs/BUILD.md)
+
+### Connection Poolers & Proxies
+
+- [crablet-eventstore/docs/PGBOUNCER.md](crablet-eventstore/docs/PGBOUNCER.md) — PgBouncer (session mode required on write path)
+- [crablet-eventstore/docs/PGCAT.md](crablet-eventstore/docs/PGCAT.md) — PgCat (session mode required on write path)
+- [crablet-eventstore/docs/OJP.md](crablet-eventstore/docs/OJP.md) — Open J Proxy — Type 3 JDBC driver + gRPC proxy (validate session affinity before use on write path)
 
 ## License
 

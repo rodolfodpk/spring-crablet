@@ -52,7 +52,6 @@ check_links() {
     "docs/LEARNING_MODE.md"
     "docs/COMMANDS_FIRST_ADOPTION.md"
     "docs/DEPLOYMENT_TOPOLOGY.md"
-    "docs/COMPARISONS.md"
     "docs/TUTORIAL.md"
     "docs/DOCS_VERIFICATION.md"
     "docs/tutorials/01-event-store-basics.md"
