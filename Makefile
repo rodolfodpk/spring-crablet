@@ -161,7 +161,7 @@ clean:
 
 # Application commands
 start:
-	cd wallet-example-app && ./mvnw spring-boot:run
+	cd wallet-example-app && ../mvnw spring-boot:run
 
 wallet-dev:
-	cd wallet-example-app && ./mvnw spring-boot:run
+	cd wallet-example-app && ../mvnw spring-boot:run
