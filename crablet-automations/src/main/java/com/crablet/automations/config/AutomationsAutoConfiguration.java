@@ -12,6 +12,7 @@ import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventProcessorFactory;
 import com.crablet.eventpoller.InstanceIdProvider;
+import com.crablet.eventpoller.config.EventPollerAutoConfiguration;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
@@ -21,11 +22,11 @@ import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.client.RestClient;
@@ -43,7 +44,7 @@ import java.util.function.Consumer;
  * Auto-configuration for automations using the generic event processor.
  * Enabled when {@code crablet.automations.enabled=true}.
  */
-@Configuration
+@AutoConfiguration(after = EventPollerAutoConfiguration.class)
 @ConditionalOnProperty(name = "crablet.automations.enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(AutomationsConfig.class)
 public class AutomationsAutoConfiguration {

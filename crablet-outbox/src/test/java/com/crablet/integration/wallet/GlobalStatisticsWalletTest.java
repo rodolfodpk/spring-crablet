@@ -5,7 +5,7 @@ import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
 import com.crablet.integration.AbstractCrabletTest;
 import com.crablet.outbox.internal.OutboxProcessorConfig;
-import com.crablet.outbox.internal.TopicPublisherPair;
+import com.crablet.outbox.TopicPublisherPair;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
 import com.crablet.testutils.EventProcessorTestHelper;

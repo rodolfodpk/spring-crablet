@@ -554,4 +554,41 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         assertTrue(result.wasIdempotent());
         assertEquals("ALREADY_PROCESSED", result.reason());
     }
+
+    @Test
+    void executeWithCorrelationId_NullCorrelationId_BehavesLikeExecuteWithoutIt() {
+        TestCommand command = new TestCommand("test_command", "entity-no-corr");
+        AppendEvent event = AppendEvent.builder("test_event")
+                .tag("entityId", "entity-no-corr")
+                .data("{}")
+                .build();
+        TestCommandHandler.setHandlerLogic(cmd -> CommandDecision.Commutative.of(event));
+
+        ExecutionResult result = commandExecutor.execute(command, (java.util.UUID) null);
+
+        assertTrue(result.wasCreated());
+        Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
+        List<StoredEvent> events = eventRepository.query(query, null);
+        assertThat(events).hasSize(1);
+        assertThat(events.get(0).correlationId()).isNull();
+    }
+
+    @Test
+    void executeWithCorrelationId_NonNullCorrelationId_IsStoredOnEvent() {
+        java.util.UUID correlationId = java.util.UUID.randomUUID();
+        TestCommand command = new TestCommand("test_command", "entity-with-corr");
+        AppendEvent event = AppendEvent.builder("test_event")
+                .tag("entityId", "entity-with-corr")
+                .data("{}")
+                .build();
+        TestCommandHandler.setHandlerLogic(cmd -> CommandDecision.Commutative.of(event));
+
+        ExecutionResult result = commandExecutor.execute(command, correlationId);
+
+        assertTrue(result.wasCreated());
+        Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
+        List<StoredEvent> events = eventRepository.query(query, null);
+        assertThat(events).hasSize(1);
+        assertThat(events.get(0).correlationId()).isEqualTo(correlationId);
+    }
 }

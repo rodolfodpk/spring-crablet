@@ -1,5 +1,6 @@
 package com.crablet.outbox.internal;
 
+import com.crablet.outbox.TopicPublisherPair;
 import com.crablet.eventpoller.AbstractJdbcEventFetcher;
 import com.crablet.eventpoller.EventSelectionSqlBuilder;
 import com.crablet.outbox.TopicConfig;

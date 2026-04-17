@@ -1,6 +1,6 @@
 package com.crablet.command.web.internal;
 
-import com.crablet.command.internal.DiscoveredCommandRegistry;
+import com.crablet.command.DiscoveredCommandRegistry;
 import com.crablet.command.web.CommandApiExposedCommands;
 
 import java.util.Map;

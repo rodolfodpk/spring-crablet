@@ -1,7 +1,7 @@
 package com.crablet.wallet.api;
 
 import com.crablet.eventpoller.progress.ProcessorStatus;
-import com.crablet.outbox.internal.TopicPublisherPair;
+import com.crablet.outbox.TopicPublisherPair;
 import com.crablet.outbox.management.OutboxManagementService;
 import com.crablet.outbox.management.OutboxProgressDetails;
 import com.crablet.wallet.api.dto.OutboxOperationResponse;

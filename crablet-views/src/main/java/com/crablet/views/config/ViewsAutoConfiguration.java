@@ -4,6 +4,7 @@ import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventProcessorFactory;
 import com.crablet.eventpoller.InstanceIdProvider;
+import com.crablet.eventpoller.config.EventPollerAutoConfiguration;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
@@ -18,11 +19,11 @@ import com.crablet.views.internal.ViewEventHandler;
 import com.crablet.views.internal.ViewProcessorConfig;
 import com.crablet.views.internal.ViewProgressTracker;
 import com.crablet.views.service.ViewManagementService;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
 
 import java.util.HashMap;
@@ -38,7 +39,7 @@ import java.util.Optional;
  *
  * <p>Enabled when {@code crablet.views.enabled=true}.
  */
-@Configuration
+@AutoConfiguration(after = EventPollerAutoConfiguration.class)
 @ConditionalOnProperty(name = "crablet.views.enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(ViewsConfig.class)
 public class ViewsAutoConfiguration {

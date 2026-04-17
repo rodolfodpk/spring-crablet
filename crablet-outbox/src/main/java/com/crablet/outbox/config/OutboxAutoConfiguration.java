@@ -4,6 +4,7 @@ import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventProcessorFactory;
 import com.crablet.eventpoller.InstanceIdProvider;
+import com.crablet.eventpoller.config.EventPollerAutoConfiguration;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
@@ -16,20 +17,19 @@ import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.TopicConfig;
+import com.crablet.outbox.TopicPublisherPair;
 import com.crablet.outbox.internal.OutboxEventFetcher;
 import com.crablet.outbox.internal.OutboxEventHandler;
 import com.crablet.outbox.internal.OutboxProcessorConfig;
 import com.crablet.outbox.internal.OutboxProgressTracker;
-import com.crablet.outbox.internal.TopicPublisherPair;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
 import com.crablet.outbox.publishing.OutboxPublishingService;
 import com.crablet.outbox.publishing.OutboxPublishingServiceImpl;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
 
 import java.util.List;
@@ -45,7 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 
  * <p>Enabled when {@code crablet.outbox.enabled=true}.
  */
-@Configuration
+@AutoConfiguration(after = EventPollerAutoConfiguration.class)
 @ConditionalOnProperty(name = "crablet.outbox.enabled", havingValue = "true", matchIfMissing = false)
 public class OutboxAutoConfiguration {
     

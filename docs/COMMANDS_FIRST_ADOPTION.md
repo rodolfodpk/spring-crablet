@@ -54,3 +54,9 @@ Those modules change the deployment model and should stay explicit.
 If you are only using the command side, application instances can scale horizontally in the normal Spring Boot way.
 
 Once you add poller-backed modules, revisit the topology guidance in [DEPLOYMENT_TOPOLOGY.md](DEPLOYMENT_TOPOLOGY.md).
+
+## Adding an HTTP Entry Point
+
+Once the command model is stable, `crablet-commands-web` provides a generic `POST /api/commands` endpoint backed by `CommandExecutor` — no custom controller per command type needed.
+
+Add the module to `pom.xml` and declare a `CommandApiExposedCommands` bean listing the command classes you want reachable over HTTP. Commands not in that list return `404`. See [crablet-commands-web/README.md](../crablet-commands-web/README.md) for setup details.

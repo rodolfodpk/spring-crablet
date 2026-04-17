@@ -5,6 +5,7 @@ import com.crablet.automations.config.AutomationsConfig;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.ExecutionResult;
+import org.jspecify.annotations.Nullable;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
 import org.junit.jupiter.api.DisplayName;
@@ -25,6 +26,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
@@ -157,6 +159,12 @@ class AutomationDefinitionConsistencyTest {
     private static CommandExecutor noOpExecutor() {
         return new CommandExecutor() {
             @Override public <T> ExecutionResult execute(T command) { return null; }
+
+            @Override
+            public <T> ExecutionResult execute(T command, @Nullable UUID correlationId) {
+                return execute(command);
+            }
+
             @Override public <T> ExecutionResult execute(T command, CommandHandler<T> handler) { return null; }
         };
     }

@@ -120,6 +120,7 @@ See [docs/DEPLOYMENT_TOPOLOGY.md](docs/DEPLOYMENT_TOPOLOGY.md).
 | **crablet-views** | add-on | Poller-backed read models; default to 1 instance per cluster |
 | **crablet-outbox** | add-on | Poller-backed external publishing; default to 1 instance per cluster |
 | **crablet-automations** | add-on | Poller-backed policies and side effects; default to 1 instance per cluster |
+| **crablet-commands-web** | add-on | Generic HTTP adapter — `POST /api/commands` backed by `CommandExecutor`; opt-in via `CommandApiExposedCommands` bean |
 | **crablet-metrics-micrometer** | integration | Micrometer metrics collection |
 
 ### Test Support
@@ -186,6 +187,7 @@ Crablet maps that model onto three append methods. These are **Crablet API terms
 
 - [crablet-eventstore/README.md](crablet-eventstore/README.md) — Core event sourcing API
 - [crablet-commands/README.md](crablet-commands/README.md) — Command handler framework
+- [crablet-commands-web/README.md](crablet-commands-web/README.md) — Generic HTTP command API
 - [crablet-views/README.md](crablet-views/README.md) — Asynchronous view projections
 - [crablet-outbox/README.md](crablet-outbox/README.md) — Transactional outbox pattern
 - [crablet-automations/README.md](crablet-automations/README.md) — Event-driven automations

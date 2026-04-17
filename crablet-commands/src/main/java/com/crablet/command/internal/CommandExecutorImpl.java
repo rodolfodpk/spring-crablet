@@ -2,6 +2,7 @@ package com.crablet.command.internal;
 
 import com.crablet.command.CommandDecision;
 import com.crablet.command.CommandExecutor;
+import com.crablet.command.DiscoveredCommandRegistry;
 import com.crablet.command.OnDuplicate;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.ExecutionResult;
@@ -13,6 +14,7 @@ import com.crablet.command.metrics.IdempotentOperationMetric;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.CommandAuditStore;
 import com.crablet.eventstore.ConcurrencyException;
+import com.crablet.eventstore.CorrelationContext;
 import com.crablet.eventstore.DCBViolation;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
@@ -31,6 +33,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -132,10 +135,23 @@ public class CommandExecutorImpl implements CommandExecutor {
 
     @Override
     public <T> ExecutionResult execute(T command) {
-        // Determine the appropriate handler based on command type
-        // Type inference: T is inferred from command parameter
         CommandHandler<T> handler = getHandlerForCommand(command);
         return execute(command, handler);
+    }
+
+    @Override
+    public <T> ExecutionResult execute(T command, @Nullable UUID correlationId) {
+        if (correlationId == null) {
+            return execute(command);
+        }
+        try {
+            return ScopedValue.where(CorrelationContext.CORRELATION_ID, correlationId)
+                              .call(() -> execute(command));
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Unexpected checked exception during command execution", e);
+        }
     }
 
     @Override

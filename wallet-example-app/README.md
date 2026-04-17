@@ -160,6 +160,27 @@ Expected outcome:
 
 ### Commands (Write Operations)
 
+#### Generic Command API
+
+All wallet commands are also accessible via the generic command endpoint provided by `crablet-commands-web`:
+
+```bash
+POST /api/commands
+Content-Type: application/json
+X-Correlation-ID: <optional UUID>   # auto-generated when absent
+
+{
+  "commandType": "open_wallet",
+  "walletId": "wallet-123",
+  "owner": "John Doe",
+  "initialBalance": 100
+}
+```
+
+The `commandType` field selects the handler. Only commands declared in the `CommandApiExposedCommands` bean are reachable; all others return `404`.
+
+The optional `X-Correlation-ID` request header ties all events produced by the same HTTP request together. If omitted, a random UUID is generated automatically. The correlation ID is stored on every appended event and is readable via `StoredEvent.correlationId()`.
+
 #### Open Wallet
 ```bash
 POST /api/wallets
@@ -225,6 +246,24 @@ GET /api/wallets/{walletId}/transactions?page=0&size=20
 #### Get Wallet Summary
 ```bash
 GET /api/wallets/{walletId}/summary
+```
+
+### Outbox Management
+
+```bash
+GET  /api/outbox/status
+GET  /api/outbox/{topic}/publishers/{publisher}/status
+GET  /api/outbox/{topic}/publishers/{publisher}/details
+GET  /api/outbox/{topic}/publishers/{publisher}/lag
+POST /api/outbox/{topic}/publishers/{publisher}/pause
+POST /api/outbox/{topic}/publishers/{publisher}/resume
+POST /api/outbox/{topic}/publishers/{publisher}/reset
+```
+
+Example:
+```bash
+curl http://localhost:8080/api/outbox/wallet-events/publishers/LogPublisher/status
+curl -X POST http://localhost:8080/api/outbox/wallet-events/publishers/LogPublisher/pause
 ```
 
 ### View Management
@@ -388,17 +427,28 @@ WalletOpened event
 
 In the current example, `WalletOpenedAutomation` is an in-process `AutomationHandler`, so it does not override `getWebhookUrl()`.
 
+## Outbox
+
+The outbox processor publishes every appended event to a registered `OutboxPublisher`.
+In this app, `LogPublisher` (from `crablet-outbox`) forwards each event to SLF4J —
+useful for observing what is forwarded and as a template for real integrations.
+
+```
+Event appended to event store
+    → Outbox processor polls event store
+    → LogPublisher.publishBatch([WalletOpened, ...])
+    → SLF4J log line per event
+```
+
+To use a real integration (Kafka, HTTP, etc.), implement `OutboxPublisher` and register
+it as a `@Bean` with the same name as the one referenced in
+`crablet.outbox.topics.topics.<topic>.publishers`.
+
 ## Configuration
 
 ### Application Properties
 
 ```properties
-# Crablet EventStore
-crablet.eventstore.enabled=true
-
-# Crablet Command
-crablet.command.enabled=true
-
 # Crablet Views
 crablet.views.enabled=true
 crablet.views.polling-interval-ms=1000
@@ -408,6 +458,11 @@ crablet.views.batch-size=100
 crablet.automations.enabled=true
 crablet.automations.polling-interval-ms=1000
 crablet.automations.batch-size=100
+
+# Crablet Outbox
+crablet.outbox.enabled=true
+crablet.outbox.polling-interval-ms=1000
+crablet.outbox.topics.topics.wallet-events.publishers=LogPublisher
 
 # Crablet Metrics (optional)
 crablet.metrics.enabled=false
@@ -426,6 +481,7 @@ View subscriptions are configured in `ViewConfiguration.java`:
 - `events` - Event store (from V1__eventstore_schema.sql)
 - `commands` - Command audit trail
 - `view_progress` - View processing progress (from V3__view_progress_schema.sql)
+- `outbox_topic_progress` - Outbox per-publisher progress tracking (from V13)
 
 ### Application View Tables
 - `wallet_balance_view` - Wallet balances (V4)
@@ -534,6 +590,7 @@ cd wallet-example-app
 - **[Crablet Command](../crablet-commands/README.md)** - Command handling with DCB pattern
 - **[Crablet Views](../crablet-views/README.md)** - View projections
 - **[Crablet Automations](../crablet-automations/README.md)** - Event-driven automations
+- **[Crablet Outbox](../crablet-outbox/README.md)** - Transactional outbox pattern
 - **[Shared Examples Domain](../shared-examples-domain/README.md)** - Example domains (wallet, course, notification)
 - **[Leader Election](../docs/LEADER_ELECTION.md)** - Leader election mechanism
 - **[Build Guide](../docs/BUILD.md)** - Build instructions

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Unit tests for TopicPublisherPair record.
@@ -109,16 +110,35 @@ class TopicPublisherPairTest {
     }
 
     @Test
-    @DisplayName("Should handle empty strings")
-    void shouldHandleEmptyStrings() {
-        // Given
-        TopicPublisherPair pair = new TopicPublisherPair("", "");
+    @DisplayName("Should reject empty topic")
+    void shouldRejectEmptyTopic() {
+        assertThatThrownBy(() -> new TopicPublisherPair("", "kafka-publisher"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Topic");
+    }
 
-        // When & Then
-        assertThat(pair.topic()).isEmpty();
-        assertThat(pair.publisher()).isEmpty();
-        assertThat(pair.toString()).isEqualTo(":");
-        assertThat(pair.getLockKey()).isNotNull(); // Should still generate a lock key
+    @Test
+    @DisplayName("Should reject empty publisher")
+    void shouldRejectEmptyPublisher() {
+        assertThatThrownBy(() -> new TopicPublisherPair("wallet-events", ""))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Publisher");
+    }
+
+    @Test
+    @DisplayName("Should reject null topic")
+    void shouldRejectNullTopic() {
+        assertThatThrownBy(() -> new TopicPublisherPair(null, "kafka-publisher"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Topic");
+    }
+
+    @Test
+    @DisplayName("Should reject null publisher")
+    void shouldRejectNullPublisher() {
+        assertThatThrownBy(() -> new TopicPublisherPair("wallet-events", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Publisher");
     }
 
     @Test
@@ -131,7 +151,7 @@ class TopicPublisherPairTest {
         assertThat(pair.topic()).isEqualTo("topic-with-dashes");
         assertThat(pair.publisher()).isEqualTo("publisher_with_underscores");
         assertThat(pair.toString()).isEqualTo("topic-with-dashes:publisher_with_underscores");
-        assertThat(pair.getLockKey()).isNotNull();
+        assertThat(pair.getLockKey()).isNotZero();
     }
 
     @Test
@@ -145,7 +165,7 @@ class TopicPublisherPairTest {
         // When & Then
         assertThat(pair.topic()).isEqualTo(longTopic);
         assertThat(pair.publisher()).isEqualTo(longPublisher);
-        assertThat(pair.getLockKey()).isNotNull();
+        assertThat(pair.getLockKey()).isNotZero();
     }
 
     @Test
@@ -161,36 +181,5 @@ class TopicPublisherPairTest {
         assertThat(lockKey).isNotZero();
     }
 
-    @Test
-    @DisplayName("Should handle null topic")
-    void shouldHandleNullTopic_ShouldAllow() {
-        // Given - Records allow null fields unless validated
-        String publisher = "kafka-publisher";
-
-        // When - Direct constructor allows null
-        TopicPublisherPair pair = new TopicPublisherPair(null, publisher);
-
-        // Then
-        assertThat(pair.topic()).isNull();
-        assertThat(pair.publisher()).isEqualTo(publisher);
-        // toString() will include "null" string
-        assertThat(pair.toString()).contains("null");
-    }
-
-    @Test
-    @DisplayName("Should handle null publisher")
-    void shouldHandleNullPublisher_ShouldAllow() {
-        // Given - Records allow null fields unless validated
-        String topic = "wallet-events";
-
-        // When - Direct constructor allows null
-        TopicPublisherPair pair = new TopicPublisherPair(topic, null);
-
-        // Then
-        assertThat(pair.topic()).isEqualTo(topic);
-        assertThat(pair.publisher()).isNull();
-        // toString() will include "null" string
-        assertThat(pair.toString()).contains("null");
-    }
 }
 

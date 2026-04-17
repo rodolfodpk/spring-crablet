@@ -2,6 +2,7 @@ package com.crablet.outbox.internal;
 
 import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.outbox.TopicConfig;
+import com.crablet.outbox.TopicPublisherPair;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.config.TopicConfigurationProperties;
 

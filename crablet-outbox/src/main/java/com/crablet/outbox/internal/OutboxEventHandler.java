@@ -1,5 +1,6 @@
 package com.crablet.outbox.internal;
 
+import com.crablet.outbox.TopicPublisherPair;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.outbox.publishing.OutboxPublishingService;

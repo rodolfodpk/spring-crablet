@@ -11,11 +11,17 @@ import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
 import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
+import com.crablet.outbox.config.GlobalStatisticsConfig;
+import com.crablet.outbox.config.OutboxConfig;
+import com.crablet.outbox.config.TopicConfigurationProperties;
+import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
+import com.crablet.outbox.publishers.LogPublisher;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import tools.jackson.databind.ObjectMapper;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -28,6 +34,7 @@ import org.springframework.context.annotation.Configuration;
  * that override framework defaults belong here.
  */
 @Configuration
+@EnableConfigurationProperties({OutboxConfig.class, GlobalStatisticsConfig.class, TopicConfigurationProperties.class})
 public class CrabletConfig {
 
     /**
@@ -38,6 +45,24 @@ public class CrabletConfig {
     @ConditionalOnMissingBean
     public MeterRegistry meterRegistry() {
         return new SimpleMeterRegistry();
+    }
+
+    // --- Outbox ---
+
+    /**
+     * Log-based outbox publisher for development and example purposes.
+     * Forwards every event to SLF4J.  Replace with a real publisher (Kafka, HTTP, etc.)
+     * in production.
+     */
+    @Bean
+    public GlobalStatisticsPublisher globalStatisticsPublisher(GlobalStatisticsConfig config) {
+        return new GlobalStatisticsPublisher(config);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "logPublisher")
+    public LogPublisher logPublisher() {
+        return new LogPublisher();
     }
 
     // --- Command API exposure ---

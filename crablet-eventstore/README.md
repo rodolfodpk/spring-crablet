@@ -25,6 +25,7 @@ Crablet EventStore is an event sourcing framework inspired by the [DCB (Dynamic 
 - **State Projection**: Built-in support for projecting current state from events
 - **Spring Integration**: Ready-to-use Spring Boot components and configuration
 - **Read Replicas**: Optional PostgreSQL read replica support for horizontal scaling
+- **Correlation/Causation IDs**: Optional `correlationId` and `causationId` on every stored event — see [docs/CORRELATION_CAUSATION.md](../docs/CORRELATION_CAUSATION.md)
 
 ### Crablet's Three Append Methods
 

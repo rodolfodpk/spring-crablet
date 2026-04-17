@@ -1,7 +1,7 @@
 package com.crablet.wallet.api;
 
 import com.crablet.automations.management.AutomationManagementService;
-import com.crablet.outbox.internal.TopicPublisherPair;
+import com.crablet.outbox.TopicPublisherPair;
 import com.crablet.outbox.management.OutboxManagementService;
 import com.crablet.views.service.ViewManagementService;
 import org.springframework.beans.factory.ObjectProvider;
