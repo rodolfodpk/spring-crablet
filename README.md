@@ -12,20 +12,18 @@ Crablet is a Java 25 event sourcing framework for Spring Boot. It is designed fo
 - Cross-entity consistency without forcing everything into one aggregate stream
 - Small public API centered on `EventStore`, `CommandHandler`, and `CommandExecutor`
 - Explicit concurrency semantics: commutative, non-commutative, and idempotent flows
-- Optional views, automations, outbox, and metrics when the command side is working
+- Optional views, automations, outbox, and metrics after the command side is working
 
 ## 5-Minute Quickstart
 
-For learning, start with **one application instance** running the full stack together. That gives you the clearest write-to-read and write-to-side-effect flow.
-
-The example app expects a local PostgreSQL database named `wallet_db`. See [docs/QUICKSTART.md](docs/QUICKSTART.md) for the exact first-run setup.
+For learning, start with **one application instance** running the full stack together. The example app expects a local PostgreSQL database named `wallet_db`; see [docs/QUICKSTART.md](docs/QUICKSTART.md) for the exact first-run setup.
 
 ```bash
 make install
 make start
 ```
 
-Then try the wallet example:
+Create a wallet in the example app:
 
 ```bash
 curl -X POST http://localhost:8080/api/wallets \
@@ -37,121 +35,45 @@ curl -X POST http://localhost:8080/api/wallets \
   }'
 ```
 
-```bash
-curl -X POST http://localhost:8080/api/wallets/wallet-123/deposits \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "depositId": "deposit-001",
-    "amount": 25,
-    "description": "Initial top-up"
-  }'
-```
+Then read it back:
 
 ```bash
 curl http://localhost:8080/api/wallets/wallet-123
 ```
 
-From there:
+Next steps:
 
-- Full quickstart walkthrough: [docs/QUICKSTART.md](docs/QUICKSTART.md)
+- Full walkthrough: [docs/QUICKSTART.md](docs/QUICKSTART.md)
+- Create a new app: [docs/CREATE_A_CRABLET_APP.md](docs/CREATE_A_CRABLET_APP.md)
 - Learning-mode guidance: [docs/LEARNING_MODE.md](docs/LEARNING_MODE.md)
-- Complete example application: [wallet-example-app/README.md](wallet-example-app/README.md)
+- Complete example app: [wallet-example-app/README.md](wallet-example-app/README.md)
 
-## What Problem Crablet Solves
+## When Crablet Fits
 
-Traditional aggregate-centric event sourcing works well when one command maps cleanly to one stream.
+Crablet is a good fit when command decisions depend on more than one entity stream, consistency is naturally query-based, and you want the code to make concurrency semantics explicit.
 
-Crablet is aimed at a different shape of problem:
+It is probably not the right tool if plain CRUD is enough, one aggregate per command already fits your domain, or your team is not ready to standardize on Java 25.
 
-- a command must check state across multiple entities
-- consistency depends on query results, not one aggregate instance
-- you want event sourcing without adopting a large, prescriptive framework
-- you want concurrency rules to be visible in code
+## Learning And Deployment
 
-## Use Crablet If
-
-- your command decisions depend on more than one entity stream
-- you want explicit consistency semantics in the public API
-- you prefer Spring Boot integration with a relatively small framework surface
-- you want to adopt command handling first and add projections or side effects later
-- you are intentionally targeting Java 25
-
-## Don’t Use Crablet If
-
-- plain CRUD is enough
-- one aggregate per command already fits your domain well
-- you need active-active scaling for poller-backed background processing
-- you want a framework that hides most event-sourcing choices behind conventions
-- your team is not willing to standardize on Java 25
-
-## Learning And Deployment Modes
-
-### Learning Mode
-
-Run **one application instance** with commands, views, automations, and outbox together. This is the recommended setup for learning Crablet because it makes the full flow visible with the least operational complexity.
-
-See [docs/LEARNING_MODE.md](docs/LEARNING_MODE.md).
-
-### Command-Only Production
-
-If you only use `crablet-eventstore` and `crablet-commands`, your application instances can scale horizontally in the normal Spring Boot way.
-
-See [docs/COMMANDS_FIRST_ADOPTION.md](docs/COMMANDS_FIRST_ADOPTION.md).
-
-### Production With Poller-Backed Modules
-
-If your application enables `crablet-views`, `crablet-outbox`, or `crablet-automations`, default to **one application instance per cluster**. These modules depend on the event poller and should be presented as a simpler, correctness-first deployment model rather than a horizontally scaled active-active path.
-
-See [docs/DEPLOYMENT_TOPOLOGY.md](docs/DEPLOYMENT_TOPOLOGY.md).
+- **Learning mode:** run one application instance with commands, views, automations, and outbox together. See [docs/LEARNING_MODE.md](docs/LEARNING_MODE.md).
+- **Command-only production:** applications using only `crablet-eventstore` and `crablet-commands` can scale horizontally in the normal Spring Boot way. See [docs/COMMANDS_FIRST_ADOPTION.md](docs/COMMANDS_FIRST_ADOPTION.md).
+- **Poller-backed production:** applications enabling views, outbox, or automations should default to **one application instance per cluster**. See [docs/DEPLOYMENT_TOPOLOGY.md](docs/DEPLOYMENT_TOPOLOGY.md).
 
 ## Modules
 
-### Core Runtime
-
-| Module | Role | Notes |
-|--------|------|-------|
-| **crablet-eventstore** | core runtime | Core event sourcing library with DCB support |
-| **crablet-commands** | core runtime | Command handlers and transactional command execution |
-
-### Optional Add-Ons
-
-| Module | Role | Notes |
-|--------|------|-------|
-| **crablet-views** | add-on | Poller-backed read models; default to 1 instance per cluster |
-| **crablet-outbox** | add-on | Poller-backed external publishing; default to 1 instance per cluster |
-| **crablet-automations** | add-on | Poller-backed policies and side effects; default to 1 instance per cluster |
-| **crablet-commands-web** | add-on | Generic HTTP adapter — `POST /api/commands` backed by `CommandExecutor`; opt-in via `CommandApiExposedCommands` bean |
-| **crablet-metrics-micrometer** | integration | Micrometer metrics collection |
-
-### Test Support
-
-| Module | Role | Notes |
-|--------|------|-------|
-| **crablet-test-support** | public support | In-memory and PostgreSQL-backed test support for Crablet applications |
-
-### Internal Shared Infrastructure
-
-| Module | Role | Notes |
-|--------|------|-------|
-| **crablet-event-poller** | internal infrastructure | Shared processing infrastructure behind views, outbox, and automations |
-
-### Example And Reference Projects
-
-| Project | Role | Notes |
-|--------|------|-------|
-| **wallet-example-app** | reference application | Complete Spring Boot example app |
-| **shared-examples-domain** | example domain | Reusable example domain used in tests and docs |
-| **docs-samples** | docs support | Sample code compiled for documentation |
+- **Core runtime:** [crablet-eventstore](crablet-eventstore/README.md) for DCB event storage and [crablet-commands](crablet-commands/README.md) for transactional command execution.
+- **Optional add-ons:** [views](crablet-views/README.md), [outbox](crablet-outbox/README.md), [automations](crablet-automations/README.md), [command web API](crablet-commands-web/README.md), and [Micrometer metrics](crablet-metrics-micrometer/README.md).
+- **Support and examples:** [test support](crablet-test-support/README.md), [wallet example app](wallet-example-app/README.md), shared example domain code, and compiled docs samples.
+- **Internal infrastructure:** [crablet-event-poller](crablet-event-poller/README.md) powers the poller-backed modules.
 
 ## Why Java 25
 
 Crablet intentionally targets Java 25. The framework leans on modern Java features such as records, sealed types, and pattern matching to keep the public API small and explicit.
 
-This is a deliberate product choice, not an accidental requirement.
-
 ## DCB At A Glance
 
-Traditional event sourcing ties consistency to a single aggregate stream. DCB lets you define consistency boundaries dynamically, so a single command can check consistency across multiple entity types using a query.
+Traditional event sourcing ties consistency to a single aggregate stream. DCB lets you define consistency boundaries dynamically, so a command can check consistency across multiple entity types using a query.
 
 Crablet maps that model onto three append methods. These are **Crablet API terms**, not DCB spec vocabulary:
 
@@ -161,57 +83,15 @@ Crablet maps that model onto three append methods. These are **Crablet API terms
 | `appendNonCommutative` | State-dependent operations | Stream-position-based conflict detection |
 | `appendCommutative` | Order-independent operations | None, optionally guarded by lifecycle checks |
 
-- DCB explanation: [crablet-eventstore/docs/DCB_AND_CRABLET.md](crablet-eventstore/docs/DCB_AND_CRABLET.md)
-- Command patterns: [crablet-eventstore/docs/COMMAND_PATTERNS.md](crablet-eventstore/docs/COMMAND_PATTERNS.md)
+Read more in [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) and [Command Patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md).
 
-## Documentation
+## Where To Go Next
 
-### Start Here
-
-- [docs/QUICKSTART.md](docs/QUICKSTART.md) — 5-minute wallet walkthrough
-- [docs/LEARNING_MODE.md](docs/LEARNING_MODE.md) — Recommended one-instance learning setup
-- [docs/COMMANDS_FIRST_ADOPTION.md](docs/COMMANDS_FIRST_ADOPTION.md) — Adopt the command side first
-- [docs/DEPLOYMENT_TOPOLOGY.md](docs/DEPLOYMENT_TOPOLOGY.md) — Production topology guidance
-
-### Tutorials
-
-- [docs/TUTORIAL.md](docs/TUTORIAL.md) — Structured onboarding path
-- [docs/tutorials/01-event-store-basics.md](docs/tutorials/01-event-store-basics.md)
-- [docs/tutorials/02-commands.md](docs/tutorials/02-commands.md)
-- [docs/tutorials/03-dcb-consistency-boundaries.md](docs/tutorials/03-dcb-consistency-boundaries.md)
-- [docs/tutorials/04-views.md](docs/tutorials/04-views.md)
-- [docs/tutorials/05-automations.md](docs/tutorials/05-automations.md)
-- [docs/tutorials/06-outbox.md](docs/tutorials/06-outbox.md)
-
-### Module Guides
-
-- [crablet-eventstore/README.md](crablet-eventstore/README.md) — Core event sourcing API
-- [crablet-commands/README.md](crablet-commands/README.md) — Command handler framework
-- [crablet-commands-web/README.md](crablet-commands-web/README.md) — Generic HTTP command API
-- [crablet-views/README.md](crablet-views/README.md) — Asynchronous view projections
-- [crablet-outbox/README.md](crablet-outbox/README.md) — Transactional outbox pattern
-- [crablet-automations/README.md](crablet-automations/README.md) — Event-driven automations
-- [crablet-metrics-micrometer/README.md](crablet-metrics-micrometer/README.md) — Micrometer metrics
-- [crablet-test-support/README.md](crablet-test-support/README.md) — Test support for Crablet applications
-
-### Internal Infrastructure
-
-- [crablet-event-poller/README.md](crablet-event-poller/README.md) — Shared processing infrastructure behind views, outbox, and automations
-
-### Deep Dives
-
-- [docs/LEADER_ELECTION.md](docs/LEADER_ELECTION.md)
-- [crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md](crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md)
-- [crablet-eventstore/docs/READ_REPLICAS.md](crablet-eventstore/docs/READ_REPLICAS.md)
-- [crablet-outbox/docs/OUTBOX_PATTERN.md](crablet-outbox/docs/OUTBOX_PATTERN.md)
-- [docs/BUILD.md](docs/BUILD.md)
-
-### Connection Poolers & Proxies
-
-- [crablet-eventstore/docs/PGBOUNCER.md](crablet-eventstore/docs/PGBOUNCER.md) — PgBouncer (session mode required on write path)
-- [crablet-eventstore/docs/PGCAT.md](crablet-eventstore/docs/PGCAT.md) — PgCat (session mode required on write path)
-- [crablet-eventstore/docs/OJP.md](crablet-eventstore/docs/OJP.md) — Open J Proxy — Type 3 JDBC driver + gRPC proxy (validate session affinity before use on write path)
+- **Start:** [Quickstart](docs/QUICKSTART.md), [Create A New App](docs/CREATE_A_CRABLET_APP.md), [Tutorial](docs/TUTORIAL.md), [Learning Mode](docs/LEARNING_MODE.md)
+- **Architecture:** [Deployment Topology](docs/DEPLOYMENT_TOPOLOGY.md), [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md), [Command Patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md)
+- **Operations:** [Management API](docs/MANAGEMENT_API.md), [Leader Election](docs/LEADER_ELECTION.md), [Build](docs/BUILD.md)
+- **Database and proxies:** [PgBouncer](crablet-eventstore/docs/PGBOUNCER.md), [PgCat](crablet-eventstore/docs/PGCAT.md), [Open J Proxy](crablet-eventstore/docs/OJP.md)
 
 ## License
 
-MIT License — see [LICENSE](LICENSE).
+MIT License - see [LICENSE](LICENSE).
