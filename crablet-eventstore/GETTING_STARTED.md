@@ -3,7 +3,7 @@
 This guide is the practical path for a first integration.
 
 Canonical compile fixture:
-[docs-samples/src/main/java/com/crablet/docs/samples/tutorial/GettingStartedWalletSample.java](../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/GettingStartedWalletSample.java)
+[Getting Started wallet sample](../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/GettingStartedWalletSample.java)
 
 Recommended first adoption path:
 
@@ -12,7 +12,7 @@ Recommended first adoption path:
 - use the wallet domain as a reference shape
 - add views, automations, or outbox only after the write flow is working
 
-If you want the fastest runnable path instead of a library integration walkthrough, start with [../docs/QUICKSTART.md](../docs/QUICKSTART.md) and the [../wallet-example-app/README.md](../wallet-example-app/README.md).
+If you want the fastest runnable path instead of a library integration walkthrough, start with the [Quickstart](../docs/QUICKSTART.md) and the [Wallet Example App](../wallet-example-app/README.md).
 
 ## Dependencies
 
@@ -37,7 +37,7 @@ Use `crablet-commands` when you want handler discovery and transactional command
 
 ## Step 1: Set Up The Database
 
-See [SCHEMA.md](SCHEMA.md) for the event store schema details.
+See [Database Schema](SCHEMA.md) for the event store schema details.
 
 For now, treat the SQL in the repository as the source migration content and publish those migrations through your own Flyway or Liquibase setup. The long-term goal should be a first-class published migration path, but the important point is: do not treat test resources as the integration contract.
 
@@ -319,7 +319,7 @@ If you add any of those poller-backed modules, default to **one application inst
 
 ## Next Reading
 
-- Command-side adoption path: [../docs/COMMANDS_FIRST_ADOPTION.md](../docs/COMMANDS_FIRST_ADOPTION.md)
-- Production topology: [../docs/DEPLOYMENT_TOPOLOGY.md](../docs/DEPLOYMENT_TOPOLOGY.md)
-- EventStore details: [README.md](README.md)
-- Wallet example app: [../wallet-example-app/README.md](../wallet-example-app/README.md)
+- Command-side adoption path: [Commands-First Adoption](../docs/COMMANDS_FIRST_ADOPTION.md)
+- Production topology: [Deployment Topology](../docs/DEPLOYMENT_TOPOLOGY.md)
+- EventStore details: [EventStore README](README.md)
+- Wallet example app: [Wallet Example App](../wallet-example-app/README.md)

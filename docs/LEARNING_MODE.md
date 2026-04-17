@@ -43,4 +43,4 @@ Learning mode is the recommended default when any poller-backed module is enable
 
 If your application includes `crablet-views`, `crablet-outbox`, or `crablet-automations`, keep the deployment model simple first and default to one instance per cluster.
 
-For production guidance, see [DEPLOYMENT_TOPOLOGY.md](DEPLOYMENT_TOPOLOGY.md).
+For production guidance, see [Deployment Topology](DEPLOYMENT_TOPOLOGY.md).

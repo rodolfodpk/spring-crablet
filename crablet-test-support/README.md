@@ -139,9 +139,9 @@ Flyway picks these up automatically in every module that declares `crablet-test-
 4. Reactor modules (full build with tests)
 ```
 
-See [BUILD.md](../docs/BUILD.md) for details.
+See [Build](../docs/BUILD.md) for details.
 
 ## See Also
 
-- [EventStore TESTING.md](../crablet-eventstore/TESTING.md) — Complete testing strategy guide
+- [EventStore Testing](../crablet-eventstore/TESTING.md) — Complete testing strategy guide
 - [Command README](../crablet-commands/README.md) — Command framework and test examples

@@ -7,8 +7,8 @@ Light event sourcing framework with Dynamic Consistency Boundary (DCB) support a
 ## Start Here
 
 - Start here if you want direct `EventStore` usage or need to understand Crablet's core concurrency model
-- If you want handler discovery and command orchestration, pair this with [../crablet-commands/README.md](../crablet-commands/README.md)
-- For a first integration walkthrough, read [GETTING_STARTED.md](GETTING_STARTED.md) before the deeper reference sections
+- If you want handler discovery and command orchestration, pair this with the [Commands guide](../crablet-commands/README.md)
+- For a first integration walkthrough, read [Getting Started](GETTING_STARTED.md) before the deeper reference sections
 
 ## Overview
 
@@ -25,7 +25,7 @@ Crablet EventStore is an event sourcing framework inspired by the [DCB (Dynamic 
 - **State Projection**: Built-in support for projecting current state from events
 - **Spring Integration**: Ready-to-use Spring Boot components and configuration
 - **Read Replicas**: Optional PostgreSQL read replica support for horizontal scaling
-- **Correlation/Causation IDs**: Optional `correlationId` and `causationId` on every stored event — see [docs/CORRELATION_CAUSATION.md](../docs/CORRELATION_CAUSATION.md)
+- **Correlation/Causation IDs**: Optional `correlationId` and `causationId` on every stored event — see [Correlation And Causation](../docs/CORRELATION_CAUSATION.md)
 
 ### Crablet's Three Append Methods
 
@@ -37,7 +37,7 @@ Crablet maps DCB's consistency model onto three append methods, each with differ
 | `appendCommutative` | Order-independent operations (Deposit, Credit) | None (optional lifecycle guard) |
 | `appendIdempotent` | Entity creation (OpenWallet) | Advisory lock uniqueness check |
 
-These method names are Crablet's API — not DCB spec vocabulary. See [DCB_AND_CRABLET.md](docs/DCB_AND_CRABLET.md) for the full explanation.
+These method names are Crablet's API — not DCB spec vocabulary. See [DCB And Crablet](docs/DCB_AND_CRABLET.md) for the full explanation.
 
 For most applications, these three append methods are the supported primary API.
 Lower-level condition types such as `AppendCondition` and `AppendConditionBuilder`
@@ -291,7 +291,7 @@ Test infrastructure has moved to a dedicated `crablet-test-support` module:
 - **AbstractCrabletTest** (`com.crablet.test.AbstractCrabletTest`) - Base class for integration tests with Testcontainers
 - **DCBTestHelpers** (`com.crablet.eventstore.integration.DCBTestHelpers`) - Helper utilities for test event deserialization
 
-See [TESTING.md](TESTING.md) for complete testing guide and examples.
+See [Testing](TESTING.md) for complete testing guide and examples.
 
 ## License
 

@@ -141,7 +141,7 @@ crablet-eventstore     → shared-examples-domain (test scope)   ← cycle
 
 The Makefile resolves this by building `shared-examples-domain` after the framework modules (skip tests), then running the full reactor with all tests.
 
-See [BUILD.md](../docs/BUILD.md) for details.
+See [Build](../docs/BUILD.md) for details.
 
 ## Event Model Diagrams
 
@@ -161,6 +161,6 @@ Visual event models for both domains are available as draw.io diagrams:
 ## See Also
 
 - [Command README](../crablet-commands/README.md) — Command framework
-- [EventStore TESTING.md](../crablet-eventstore/TESTING.md) — Testing strategy
+- [EventStore Testing](../crablet-eventstore/TESTING.md) — Testing strategy
 - [DCB Explained](../crablet-eventstore/docs/DCB_AND_CRABLET.md) — DCB pattern details
 - [Command Patterns](../crablet-eventstore/docs/COMMAND_PATTERNS.md) — All three DCB append condition types

@@ -92,14 +92,14 @@ Expected response shape:
 
 Use the reference application as the concrete guide for your first integration:
 
-- App guide: [../wallet-example-app/README.md](../wallet-example-app/README.md)
-- Tutorial path: [TUTORIAL.md](TUTORIAL.md)
-- Command-side-first adoption: [COMMANDS_FIRST_ADOPTION.md](COMMANDS_FIRST_ADOPTION.md)
+- App guide: [Wallet Example App](../wallet-example-app/README.md)
+- Tutorial path: [Tutorial](TUTORIAL.md)
+- Command-side-first adoption: [Commands-First Adoption](COMMANDS_FIRST_ADOPTION.md)
 
 ## Next Step
 
 Once the single-instance flow makes sense, decide which adoption path you want:
 
-- learn the full stack locally: [LEARNING_MODE.md](LEARNING_MODE.md)
-- adopt the command side first: [COMMANDS_FIRST_ADOPTION.md](COMMANDS_FIRST_ADOPTION.md)
-- review production topology constraints: [DEPLOYMENT_TOPOLOGY.md](DEPLOYMENT_TOPOLOGY.md)
+- learn the full stack locally: [Learning Mode](LEARNING_MODE.md)
+- adopt the command side first: [Commands-First Adoption](COMMANDS_FIRST_ADOPTION.md)
+- review production topology constraints: [Deployment Topology](DEPLOYMENT_TOPOLOGY.md)

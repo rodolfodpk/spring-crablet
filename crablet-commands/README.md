@@ -20,7 +20,7 @@ This module is also the natural foundation for a future command-side starter. Th
 ## Start Here
 
 - If you are new to Crablet, read `Quick Start` first
-- Pair this README with [../crablet-eventstore/GETTING_STARTED.md](../crablet-eventstore/GETTING_STARTED.md)
+- Pair this README with [Getting Started With Crablet](../crablet-eventstore/GETTING_STARTED.md)
 - Add views, automations, and outbox only after command execution is working cleanly
 
 ## Overview
@@ -33,7 +33,7 @@ Crablet Command provides a lightweight framework for command handling on top of 
 - **Transaction Management**: Automatic transaction lifecycle management
 - **DCB Support**: Full support for Dynamic Consistency Boundary pattern
 
-For a commands-first adoption guide, see [../docs/COMMANDS_FIRST_ADOPTION.md](../docs/COMMANDS_FIRST_ADOPTION.md).
+For a commands-first adoption guide, see [Commands-First Adoption](../docs/COMMANDS_FIRST_ADOPTION.md).
 
 **Light framework shape:**
 - Implement one `CommandHandler<T>` per command type
@@ -102,7 +102,7 @@ This provides:
 - **AbstractCrabletTest** - Base class for integration tests with Testcontainers
 - **AbstractHandlerUnitTest** - BDD-style base class for command handler unit tests
 
-See [EventStore TESTING.md](../crablet-eventstore/TESTING.md) for complete testing guide.
+See [EventStore Testing](../crablet-eventstore/TESTING.md) for complete testing guide.
 
 ## Quick Start
 

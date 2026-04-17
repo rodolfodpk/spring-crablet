@@ -3,7 +3,7 @@
 This tutorial introduces `crablet-outbox`.
 
 Canonical compile fixture:
-[docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial06OutboxSample.java](../../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial06OutboxSample.java)
+[Part 6 compile fixture](../../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial06OutboxSample.java)
 
 ## Why This Part Exists
 

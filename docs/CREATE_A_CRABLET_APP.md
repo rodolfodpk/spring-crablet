@@ -58,7 +58,7 @@ cd my-crablet-app
 ```
 
 Spring dependency identifiers can change across Spring Boot versions. If a
-command fails, run `spring init --list` or inspect `https://start.spring.io` for
+command fails, run `spring init --list` or inspect [Spring Initializr](https://start.spring.io) for
 the current identifiers.
 
 ## Add Crablet Dependencies
@@ -114,7 +114,7 @@ provide runtime wiring through Spring Boot auto-configuration when the
 dependencies are on the classpath, but the PostgreSQL schema is still owned by
 your application migrations.
 
-For the event store schema, use [crablet-eventstore/SCHEMA.md](../crablet-eventstore/SCHEMA.md)
+For the event store schema, use [Database Schema](../crablet-eventstore/SCHEMA.md)
 as the reference and copy the current SQL shape into your app's first migration.
 The wallet example's
 [`V1__eventstore_schema.sql`](../wallet-example-app/src/main/resources/db/migration/V1__eventstore_schema.sql)

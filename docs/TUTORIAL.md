@@ -37,7 +37,7 @@ The series now stays close to the wallet example used elsewhere in the repositor
 **Reference implementation**
 
 - [wallet-example-app](../wallet-example-app/README.md) for a complete reference application
-- [crablet-eventstore/GETTING_STARTED.md](../crablet-eventstore/GETTING_STARTED.md) for integration setup
+- [Getting Started With Crablet](../crablet-eventstore/GETTING_STARTED.md) for integration setup
 
 ## Module Map
 
@@ -75,4 +75,4 @@ Examples:
 
 This is intentional. The shared processor runtime always runs per processor instance, even when many processors share the same module-level defaults.
 
-For deeper details, see [Leader Election](LEADER_ELECTION.md) and the module READMEs for `views`, `automations`, and `outbox`. If you need the shared infrastructure details directly, see [crablet-event-poller/README.md](../crablet-event-poller/README.md).
+For deeper details, see [Leader Election](LEADER_ELECTION.md) and the module READMEs for `views`, `automations`, and `outbox`. If you need the shared infrastructure details directly, see [Event Poller](../crablet-event-poller/README.md).

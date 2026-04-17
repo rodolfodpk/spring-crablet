@@ -3,7 +3,7 @@
 This tutorial introduces `crablet-views`.
 
 Canonical compile fixture:
-[docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial04ViewsSample.java](../../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial04ViewsSample.java)
+[Part 4 compile fixture](../../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial04ViewsSample.java)
 
 ## Why This Part Exists
 

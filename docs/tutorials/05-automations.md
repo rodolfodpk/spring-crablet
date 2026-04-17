@@ -3,7 +3,7 @@
 This tutorial introduces `crablet-automations`.
 
 Canonical compile fixture:
-[docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial05AutomationsSample.java](../../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial05AutomationsSample.java)
+[Part 5 compile fixture](../../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial05AutomationsSample.java)
 
 ## Why This Part Exists
 

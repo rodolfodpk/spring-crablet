@@ -3,7 +3,7 @@
 This tutorial stays in `crablet-eventstore` and introduces the core DCB idea.
 
 Canonical compile fixture:
-[docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial03DcbSample.java](../../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial03DcbSample.java)
+[Part 3 compile fixture](../../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial03DcbSample.java)
 
 ## Why This Part Exists
 

@@ -209,7 +209,7 @@ curl http://localhost:8080/api/outbox/default/publishers/LogPublisher/status
 curl -X POST http://localhost:8080/api/outbox/default/publishers/LogPublisher/reset
 ```
 
-For the built-in framework API, see [../docs/MANAGEMENT_API.md](../docs/MANAGEMENT_API.md).
+For the built-in framework API, see [Management API](../docs/MANAGEMENT_API.md).
 
 ## Monitoring
 

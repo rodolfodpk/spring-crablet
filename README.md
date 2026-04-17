@@ -16,7 +16,7 @@ Crablet is a Java 25 event sourcing framework for Spring Boot. It is designed fo
 
 ## 5-Minute Quickstart
 
-For learning, start with **one application instance** running the full stack together. The example app expects a local PostgreSQL database named `wallet_db`; see [docs/QUICKSTART.md](docs/QUICKSTART.md) for the exact first-run setup.
+For learning, start with **one application instance** running the full stack together. The example app expects a local PostgreSQL database named `wallet_db`; see the [Quickstart](docs/QUICKSTART.md) for the exact first-run setup.
 
 ```bash
 make install
@@ -43,10 +43,12 @@ curl http://localhost:8080/api/wallets/wallet-123
 
 Next steps:
 
-- Full walkthrough: [docs/QUICKSTART.md](docs/QUICKSTART.md)
-- Create a new app: [docs/CREATE_A_CRABLET_APP.md](docs/CREATE_A_CRABLET_APP.md)
-- Learning-mode guidance: [docs/LEARNING_MODE.md](docs/LEARNING_MODE.md)
-- Complete example app: [wallet-example-app/README.md](wallet-example-app/README.md)
+| Goal | Read |
+|------|------|
+| Run the wallet app | [Quickstart](docs/QUICKSTART.md) |
+| Start a fresh repository | [Create A New Crablet App](docs/CREATE_A_CRABLET_APP.md) |
+| Understand the one-instance learning setup | [Learning Mode](docs/LEARNING_MODE.md) |
+| Inspect the complete example | [Wallet Example App](wallet-example-app/README.md) |
 
 ## When Crablet Fits
 
@@ -56,16 +58,18 @@ It is probably not the right tool if plain CRUD is enough, one aggregate per com
 
 ## Learning And Deployment
 
-- **Learning mode:** run one application instance with commands, views, automations, and outbox together. See [docs/LEARNING_MODE.md](docs/LEARNING_MODE.md).
-- **Command-only production:** applications using only `crablet-eventstore` and `crablet-commands` can scale horizontally in the normal Spring Boot way. See [docs/COMMANDS_FIRST_ADOPTION.md](docs/COMMANDS_FIRST_ADOPTION.md).
-- **Poller-backed production:** applications enabling views, outbox, or automations should default to **one application instance per cluster**. See [docs/DEPLOYMENT_TOPOLOGY.md](docs/DEPLOYMENT_TOPOLOGY.md).
+- **Learning mode:** run one application instance with commands, views, automations, and outbox together. See [Learning Mode](docs/LEARNING_MODE.md).
+- **Command-only production:** applications using only `crablet-eventstore` and `crablet-commands` can scale horizontally in the normal Spring Boot way. See [Commands-First Adoption](docs/COMMANDS_FIRST_ADOPTION.md).
+- **Poller-backed production:** applications enabling views, outbox, or automations should default to **one application instance per cluster**. See [Deployment Topology](docs/DEPLOYMENT_TOPOLOGY.md).
 
 ## Modules
 
-- **Core runtime:** [crablet-eventstore](crablet-eventstore/README.md) for DCB event storage and [crablet-commands](crablet-commands/README.md) for transactional command execution.
-- **Optional add-ons:** [views](crablet-views/README.md), [outbox](crablet-outbox/README.md), [automations](crablet-automations/README.md), [command web API](crablet-commands-web/README.md), and [Micrometer metrics](crablet-metrics-micrometer/README.md).
-- **Support and examples:** [test support](crablet-test-support/README.md), [wallet example app](wallet-example-app/README.md), shared example domain code, and compiled docs samples.
-- **Internal infrastructure:** [crablet-event-poller](crablet-event-poller/README.md) powers the poller-backed modules.
+| Area | Modules |
+|------|---------|
+| Core runtime | [Event Store](crablet-eventstore/README.md), [Commands](crablet-commands/README.md) |
+| Optional add-ons | [Views](crablet-views/README.md), [Outbox](crablet-outbox/README.md), [Automations](crablet-automations/README.md), [Command Web API](crablet-commands-web/README.md), [Micrometer metrics](crablet-metrics-micrometer/README.md) |
+| Support and examples | [Test support](crablet-test-support/README.md), [Wallet example app](wallet-example-app/README.md), shared example domain code, compiled docs samples |
+| Internal infrastructure | [Event Poller](crablet-event-poller/README.md) powers the poller-backed modules |
 
 ## Why Java 25
 
@@ -87,10 +91,12 @@ Read more in [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) and [
 
 ## Where To Go Next
 
-- **Start:** [Quickstart](docs/QUICKSTART.md), [Create A New App](docs/CREATE_A_CRABLET_APP.md), [Tutorial](docs/TUTORIAL.md), [Learning Mode](docs/LEARNING_MODE.md)
-- **Architecture:** [Deployment Topology](docs/DEPLOYMENT_TOPOLOGY.md), [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md), [Command Patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md)
-- **Operations:** [Management API](docs/MANAGEMENT_API.md), [Leader Election](docs/LEADER_ELECTION.md), [Build](docs/BUILD.md)
-- **Database and proxies:** [PgBouncer](crablet-eventstore/docs/PGBOUNCER.md), [PgCat](crablet-eventstore/docs/PGCAT.md), [Open J Proxy](crablet-eventstore/docs/OJP.md)
+| Topic | Links |
+|-------|-------|
+| Start | [Quickstart](docs/QUICKSTART.md), [Create A New App](docs/CREATE_A_CRABLET_APP.md), [Tutorial](docs/TUTORIAL.md), [Learning Mode](docs/LEARNING_MODE.md) |
+| Architecture | [Deployment Topology](docs/DEPLOYMENT_TOPOLOGY.md), [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md), [Command Patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md) |
+| Operations | [Management API](docs/MANAGEMENT_API.md), [Leader Election](docs/LEADER_ELECTION.md), [Build](docs/BUILD.md) |
+| Database and proxies | [PgBouncer](crablet-eventstore/docs/PGBOUNCER.md), [PgCat](crablet-eventstore/docs/PGCAT.md), [Open J Proxy](crablet-eventstore/docs/OJP.md) |
 
 ## License
 
