@@ -384,7 +384,6 @@ INFO - Falling back to primary database
 
 ## See Also
 
-- [PgBouncer Guide](./PGBOUNCER.md) - PgBouncer compatibility and deployment patterns
-- [PgCat Guide](./PGCAT.md) - PgCat compatibility and read/write routing guidance
+- [Connection Poolers Guide](./CONNECTION_POOLERS.md) — PgBouncer, PgCat, and OJP compatibility
 - [Outbox Implementation](../../crablet-outbox/docs/OUTBOX_PATTERN.md) - Understanding outbox implementation
 - [Performance Optimizations](../../etc/PERFORMANCE_OPTIMIZATIONS.md) - General performance tips

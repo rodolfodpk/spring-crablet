@@ -823,7 +823,7 @@ Consider PgBouncer for connection pooling in production:
 - Handles connection limits gracefully
 - Transaction-level pooling recommended
 
-**Documentation:** `crablet-eventstore/docs/PGBOUNCER.md`
+**Documentation:** `crablet-eventstore/docs/CONNECTION_POOLERS.md`
 
 ### Closing the Books Pattern
 
