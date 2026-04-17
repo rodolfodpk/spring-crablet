@@ -38,8 +38,7 @@
  * }
  * }</pre>
  *
- * @see com.crablet.outbox.OutboxProcessor
+ * @see com.crablet.outbox.publishing.OutboxPublishingService
  */
 @org.jspecify.annotations.NullMarked
 package com.crablet.outbox.config;
-

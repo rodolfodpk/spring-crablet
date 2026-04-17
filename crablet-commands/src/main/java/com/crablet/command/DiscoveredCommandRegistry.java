@@ -9,7 +9,12 @@ import java.util.stream.Collectors;
 
 /**
  * Registry of command handlers discovered from the Spring application context.
- * Provides mappings between command types (string keys), command classes, and their handlers.
+ * <p>
+ * Built once at startup from all {@link CommandHandler} beans and provides fast lookups between
+ * command type strings, command classes, and their handlers. Immutable after construction.
+ * <p>
+ * Consumed internally by {@link CommandExecutor} for auto-discovery routing, and exposed publicly
+ * so application code (e.g. HTTP adapters) can enumerate registered command types at runtime.
  */
 public final class DiscoveredCommandRegistry {
 
@@ -26,6 +31,15 @@ public final class DiscoveredCommandRegistry {
         this.commandTypesByClass = Map.copyOf(commandTypesByClass);
     }
 
+    /**
+     * Build a registry from a list of command handlers.
+     * <p>
+     * Each handler's command type is derived via reflection from its generic type parameter.
+     * Throws {@link InvalidCommandException} if two handlers map to the same command type.
+     *
+     * @param commandHandlers the handlers to register; must not contain duplicates for the same type
+     * @return a new, immutable registry
+     */
     public static DiscoveredCommandRegistry fromHandlers(List<CommandHandler<?>> commandHandlers) {
         Map<String, CommandHandler<?>> handlersByType = commandHandlers.stream()
                 .collect(Collectors.toMap(
@@ -50,14 +64,31 @@ public final class DiscoveredCommandRegistry {
         return new DiscoveredCommandRegistry(handlersByType, commandClassesByType, commandTypesByClass);
     }
 
+    /**
+     * Returns all registered handlers keyed by their command type string.
+     *
+     * @return unmodifiable map from command type to handler
+     */
     public Map<String, CommandHandler<?>> handlersByType() {
         return handlersByType;
     }
 
+    /**
+     * Returns all registered command type strings.
+     *
+     * @return unmodifiable set of command type names
+     */
     public Set<String> commandTypes() {
         return commandClassesByType.keySet();
     }
 
+    /**
+     * Returns the command type string for the given command class.
+     *
+     * @param commandClass the command class to look up
+     * @return the registered command type string
+     * @throws IllegalStateException if no handler is registered for the class
+     */
     public String commandTypeForClass(Class<?> commandClass) {
         String commandType = commandTypesByClass.get(commandClass);
         if (commandType == null) {
@@ -66,6 +97,12 @@ public final class DiscoveredCommandRegistry {
         return commandType;
     }
 
+    /**
+     * Returns the command class registered under the given type string, or {@code null} if unknown.
+     *
+     * @param commandType the command type string
+     * @return the corresponding command class, or {@code null} if not registered
+     */
     public Class<?> commandClassForType(String commandType) {
         return commandClassesByType.get(commandType);
     }

@@ -15,7 +15,7 @@
  * {@link com.crablet.eventstore.EventStore} exposes three semantic append modes:
  * commutative, non-commutative, and idempotent. Most applications should build on
  * those methods directly, or use {@code crablet-commands} and return
- * {@link com.crablet.command.CommandDecision} variants from handlers.
+ * {@code CommandDecision} variants from handlers.
  * <p>
  * <strong>DCB Pattern:</strong>
  * Dynamic Consistency Boundary redefines consistency granularity in event-sourced systems,
@@ -42,8 +42,8 @@
  *   <li>{@link com.crablet.eventstore.internal} - Internal implementation classes (not public API)</li>
  * </ul>
  *
- * @see com.crablet.command
- * @see com.crablet.outbox
+ * @see com.crablet.eventstore.EventStore
+ * @see com.crablet.eventstore.query.Query
  */
 @org.jspecify.annotations.NullMarked
 package com.crablet.eventstore;

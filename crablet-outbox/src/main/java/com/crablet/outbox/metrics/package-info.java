@@ -22,9 +22,8 @@
  * No additional code is required - simply include a metrics collector in your
  * classpath to enable metrics collection.
  *
- * @see com.crablet.outbox.OutboxProcessor
- * @see com.crablet.metrics.micrometer
+ * @see com.crablet.outbox.OutboxPublisher
+ * @see com.crablet.eventstore.metrics.MetricEvent
  */
 @org.jspecify.annotations.NullMarked
 package com.crablet.outbox.metrics;
-

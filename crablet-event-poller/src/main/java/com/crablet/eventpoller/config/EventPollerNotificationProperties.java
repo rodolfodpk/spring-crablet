@@ -13,7 +13,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * <p>When {@code jdbc-url} is absent the poller falls back to pure scheduled polling —
  * no configuration change is needed to opt out.
  *
- * <h3>Connection pooler / proxy compatibility</h3>
+ * <h2>Connection pooler / proxy compatibility</h2>
  * <p>The NOTIFY side (event store) is a plain SQL call and works through any pooler.
  * The LISTEN side requires a <strong>direct, persistent connection</strong>:
  *

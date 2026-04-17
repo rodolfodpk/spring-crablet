@@ -7,7 +7,7 @@
  * <p>
  * <strong>Key Components:</strong>
  * <ul>
- *   <li>{@link com.crablet.outbox.OutboxProcessor} - Processes pending outbox entries</li>
+ *   <li>{@link com.crablet.outbox.publishing.OutboxPublishingService} - Publishes pending outbox events</li>
  *   <li>{@link com.crablet.outbox.OutboxPublisher} - Interface for publishing events to external systems</li>
  *   <li>{@link com.crablet.outbox.config.OutboxConfig} - Configuration for outbox behavior</li>
  * </ul>
@@ -47,9 +47,8 @@
  * or when implementing event-driven microservices architecture. For internal-only event
  * sourcing, DCB alone is sufficient.
  *
- * @see com.crablet.command
+ * @see com.crablet.outbox.OutboxPublisher
  * @see com.crablet.eventstore.EventStore
  */
 @org.jspecify.annotations.NullMarked
 package com.crablet.outbox;
-

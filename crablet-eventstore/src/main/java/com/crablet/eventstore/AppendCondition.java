@@ -9,7 +9,7 @@ import org.jspecify.annotations.Nullable;
  * Most applications should prefer the semantic append methods on
  * {@link EventStore} ({@code appendCommutative}, {@code appendNonCommutative},
  * {@code appendIdempotent}) or, in the command framework, return
- * {@link com.crablet.command.CommandDecision} variants from handlers.
+ * {@code CommandDecision} variants from handlers.
  * <p>
  * This type remains public for advanced direct-{@code EventStore} scenarios
  * that need to compose concurrency and idempotency checks explicitly.

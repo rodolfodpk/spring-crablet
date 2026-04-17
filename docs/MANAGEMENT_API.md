@@ -19,6 +19,7 @@ curl http://localhost:8080/api/processors
 ```json
 {
   "wallet-balance-view": "ACTIVE",
+  "wallet-transaction-view": "ACTIVE",
   "wallet-events:LogPublisher": "ACTIVE",
   "wallet-opened-welcome-notification": "ACTIVE"
 }

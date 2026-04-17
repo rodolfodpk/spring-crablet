@@ -8,7 +8,7 @@ package com.crablet.eventstore;
  * <p>
  * {@link com.crablet.eventstore.internal.EventStoreImpl} implements both
  * {@code EventStore} and {@code CommandAuditStore}. Within the command framework,
- * {@link com.crablet.command.internal.CommandExecutorImpl} casts the transaction-scoped
+ * The command executor casts the transaction-scoped
  * store to {@code CommandAuditStore} to call this method inside the same transaction
  * that appended the events.
  */

@@ -9,12 +9,11 @@
  * <ul>
  *   <li>{@link com.crablet.command} - Command handling and execution framework</li>
  *   <li>{@link com.crablet.eventstore} - Core event store functionality</li>
- *   <li>{@link com.crablet.outbox} - Transactional outbox pattern implementation</li>
- *   <li>{@link com.crablet.metrics} - Metrics abstraction layer</li>
+ *   <li>{@code com.crablet.outbox} - Transactional outbox pattern implementation</li>
+ *   <li>{@code com.crablet.metrics} - Metrics abstraction layer</li>
  * </ul>
  *
  * @see <a href="https://github.com/rodolfodpk/spring-crablet">Crablet GitHub Repository</a>
  */
 @org.jspecify.annotations.NullMarked
 package com.crablet;
-

@@ -14,7 +14,7 @@ import java.lang.reflect.Type;
  * Reads @JsonSubTypes annotation to get the type name, ensuring consistency.
  *
  * Flow:
- * 1. Extract T from CommandHandler<T>
+ * 1. Extract {@code T} from {@code CommandHandler<T>}
  * 2. Find @JsonSubTypes on T or its parent interfaces (e.g., WalletCommand, CourseCommand)
  * 3. Find entry where value = T
  * 4. Return name from that entry
@@ -26,7 +26,7 @@ public class CommandTypeResolver {
     /**
      * Extract command type string from handler's generic type parameter.
      *
-     * @param handlerClass the handler class implementing CommandHandler<T>
+     * @param handlerClass the handler class implementing {@code CommandHandler<T>}
      * @return the command type name from @JsonSubTypes
      * @throws InvalidCommandException if type cannot be extracted
      */
@@ -72,7 +72,7 @@ public class CommandTypeResolver {
     }
 
     /**
-     * Extract the command class T from CommandHandler<T>.
+     * Extract the command class {@code T} from {@code CommandHandler<T>}.
      * Checks implemented interfaces first, then superclass (for abstract base handlers).
      */
     private static Class<?> getCommandClassFromHandler(Class<?> handlerClass) {

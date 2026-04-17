@@ -23,8 +23,7 @@
  * classpath to enable metrics collection.
  *
  * @see com.crablet.eventstore.EventStore
- * @see com.crablet.metrics.micrometer
+ * @see com.crablet.eventstore.metrics.MetricEvent
  */
 @org.jspecify.annotations.NullMarked
 package com.crablet.eventstore.metrics;
-

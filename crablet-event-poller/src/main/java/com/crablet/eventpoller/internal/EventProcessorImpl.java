@@ -104,7 +104,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     private volatile boolean schedulersInitialized = false;
 
     /**
-     * @PostConstruct method - logs when bean is created but doesn't start schedulers yet.
+     * {@code @PostConstruct} method - logs when bean is created but doesn't start schedulers yet.
      * Schedulers are initialized via ContextRefreshedEvent to ensure all beans (including Flyway) are ready.
      */
     @PostConstruct

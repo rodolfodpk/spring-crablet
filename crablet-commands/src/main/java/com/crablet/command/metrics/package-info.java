@@ -23,8 +23,7 @@
  * in your classpath to enable metrics collection.
  *
  * @see com.crablet.command.CommandExecutor
- * @see com.crablet.metrics.micrometer
+ * @see com.crablet.eventstore.metrics.MetricEvent
  */
 @org.jspecify.annotations.NullMarked
 package com.crablet.command.metrics;
-

@@ -16,8 +16,6 @@ import java.sql.SQLException;
  * Generic implementation of LeaderElector using PostgreSQL advisory locks.
  *
  * <p>Uses plain JDBC for consistency with eventstore module and full control.
- *
- * @param lockKey Advisory lock key (unique per processor type)
  */
 public class LeaderElectorImpl implements LeaderElector {
 
@@ -35,6 +33,15 @@ public class LeaderElectorImpl implements LeaderElector {
     private Connection leaderConnection;
     private volatile boolean isGlobalLeader = false;
 
+    /**
+     * Creates a leader elector backed by a PostgreSQL advisory lock.
+     *
+     * @param dataSource the data source used to acquire and hold the lock
+     * @param processorId the processor identifier used in logs and metrics
+     * @param instanceId the current application instance identifier
+     * @param lockKey advisory lock key, unique per processor type
+     * @param eventPublisher event publisher for leadership metrics
+     */
     public LeaderElectorImpl(
             DataSource dataSource,
             String processorId,

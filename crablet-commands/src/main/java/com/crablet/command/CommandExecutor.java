@@ -53,9 +53,8 @@ public interface CommandExecutor {
      *
      * @param <T> the command type (inferred from parameter)
      * @param command the command to execute
-     * @param handler the handler to use for this command (must be CommandHandler<T>)
+     * @param handler the handler to use for this command (must be {@code CommandHandler<T>})
      * @return ExecutionResult indicating whether the operation was new or idempotent
      */
     <T> ExecutionResult execute(T command, CommandHandler<T> handler);
 }
-

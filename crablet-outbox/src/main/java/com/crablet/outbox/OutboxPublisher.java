@@ -32,7 +32,15 @@ public interface OutboxPublisher {
     }
     
     enum PublishMode {
+        /**
+         * Deliver all events in the polling batch in a single
+         * {@link OutboxPublisher#publishBatch} call.
+         */
         BATCH,
+        /**
+         * Deliver each event as a separate {@link OutboxPublisher#publishBatch} call with a
+         * single-element list.
+         */
         INDIVIDUAL
     }
 }

@@ -31,7 +31,7 @@ public sealed interface CommandDecision
 
     /**
      * Marker type for the two commutative variants.
-     * {@link CommutativeCommandHandler#decide()} returns this type, so the compiler
+     * {@link CommutativeCommandHandler} returns this type, so the compiler
      * prevents accidentally returning a {@link NonCommutative} or {@link Idempotent} decision.
      */
     sealed interface CommutativeDecision extends CommandDecision
