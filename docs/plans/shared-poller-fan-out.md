@@ -1,6 +1,6 @@
-# Plan: Within-Module Batch Fetch + In-Memory Fan-Out (v6 — approved)
+# Plan: Within-Module Batch Fetch + In-Memory Fan-Out (v9 — approved)
 
-v6 tightens cross-references (scheduler modes, NOTIFY, shared vs legacy path) and records revision history at the end.
+v9 adds six code-backed fixes (handler failure semantics, startup CATCHING_UP detection, per-module cap scope, backoff facade gap, getLag deprecation, legacy removal framing) and four editorial refinements (property naming, NOTIFY skip rule, cap scope for catch-up, pollingInterval side effect). v8 content retained.
 
 ## Context
 
@@ -15,6 +15,8 @@ crablet-views        → own EventProcessor (own leader lock, own scheduler)
 crablet-automations  → own EventProcessor (own leader lock, own scheduler)
 crablet-outbox       → own EventProcessor (own leader lock, own scheduler)
 ```
+
+**Outbox remains its own EventProcessor.** A slow or backlogged views shared loop does not delay outbox — they run on completely independent schedulers and leader locks. If outbox latency needs tuning, the levers are polling intervals, batch sizes, read-replica capacity, or isolating outbox to its own deployment — not the module split itself.
 
 Scheduler mode depends on the feature flag:
 - **shared-fetch disabled (default):** one scheduled task per processor — existing behaviour unchanged
@@ -73,6 +75,8 @@ Handler exceptions are isolated per processor. A failed processor does not abort
 
 Letting one handler exception propagate out and abort the whole module run would recreate head-of-line blocking — exactly the problem the design is solving.
 
+**On handler exception: `handledPosition` and `scannedPosition` are both left unchanged.** `EventHandler.handle()` throws on failure with no partial-progress signal (it returns `int` for matched count, not a partial-success cursor). The shared loop cannot determine the last safely handled event within a batch. Partial intra-batch advance is not supported in v1; if needed later, it requires a richer handler contract.
+
 ### Cursor update durability order
 
 For a processor with matched events, the persistence order is:
@@ -128,15 +132,17 @@ CATCHING_UP      → excluded from shared fan-out; runs own bounded catch-up loo
 
 A processor transitions to `CATCHING_UP` when its `scannedPosition < moduleScanCursor` (on resume or after a handler failure that doesn't yet hit `maxErrors`).
 
+**Startup detection:** when the shared module scheduler initializes, before the first shared cycle runs, check every ACTIVE processor's persisted `scannedPosition` against the persisted `moduleScanCursor`. Any processor where `scannedPosition < moduleScanCursor` is immediately placed in `CATCHING_UP`. Without this check, a restarted application would let an ACTIVE processor with a stale `scannedPosition` participate in shared fan-out and silently skip historical matching events between its position and the module cursor.
+
 ## Module scheduler semantics
 
-**Polling interval:** `min(pollingIntervalMs across all enabled processor configs)` — preserves the fastest processor's latency expectation. Since shared mode is opt-in, this is acceptable.
+**Polling interval:** `min(pollingIntervalMs across all enabled processor configs)` — preserves the fastest processor's latency expectation. Since shared mode is opt-in, this is acceptable. Side effect: adding a processor with a faster interval to an existing module silently speeds up the poll rate for all other processors in that module — it increases DB read frequency for the whole module, which has a read-cost impact operators should be aware of.
 
 **Backoff:** module-level only. Empty = zero DB rows fetched. Fetched rows with zero dispatches = not empty (do not increment backoff, do not reset it either).
 
 **NOTIFY wakeup:** with shared-fetch enabled, one wakeup schedules **one** immediate module run (not N processor runs). With shared-fetch disabled, behaviour is unchanged: `requestImmediatePoll` still schedules each enabled processor at delay 0.
 
-**Concurrency guard:** one shared cycle or catch-up orchestration at a time per module. Use a module-level run slot (similar to today's `runningProcessors` map) so catch-up and shared dispatch cannot run concurrently for the same module.
+**Concurrency guard:** one shared cycle or catch-up orchestration at a time per module. Use a module-level run slot (similar to today's `runningProcessors` map) so catch-up and shared dispatch cannot run concurrently for the same module. When a NOTIFY wakeup fires while a module run is already in progress, **skip** the wakeup — the running cycle will advance `moduleScanCursor` anyway. Do not queue pending runs; a single missed wakeup is recovered by the next scheduled poll.
 
 ## Resume and catch-up path
 
@@ -158,6 +164,8 @@ On `resume(processorId)`:
 
 Catch-up loop is guarded by the module-level run slot. Does not disturb `moduleScanCursor`.
 
+**Future simplification (post-v1):** if `catching_up_count` metrics show CATCHING_UP is frequent in practice, consider folding the catch-up loop into the main module cycle as a "priority lane" rather than running it separately. Do not do this in v1 — the separate bounded loop exists to prove ordering and bounds correctness first.
+
 ## In-memory event matching: `EventSelectionMatcher`
 
 New class in `crablet-event-poller`:
@@ -173,6 +181,8 @@ Mirrors `EventSelectionSqlBuilder` exactly:
 - exact tag key=value pairs: must match exactly
 
 Unit-tested for parity with SQL builder across all filter combinations. Tag key/value inputs are domain-controlled (same trust boundary as `EventSelectionSqlBuilder`).
+
+**Extensibility:** The pipeline is **fetch → match → dispatch to `EventHandler`** — it is not tied to JDBC view writers. Any module that today uses `EventHandler` (including **webhook-style** or HTTP-heavy automations) can reuse the same fan-out layer later without changing the fetch SQL; only the handler implementation differs.
 
 ## Schema
 
@@ -210,9 +220,15 @@ CREATE TABLE crablet_processor_scan_progress (
 crablet.views.fetch-batch-size=1000
 crablet.automations.fetch-batch-size=1000
 crablet.outbox.fetch-batch-size=1000
+
+# Optional global guardrail — caps events fetched per individual module cycle (applied
+# independently to each module's scheduler). This is a global default/maximum, not a
+# true cross-module total — views, automations, and outbox schedulers are independent
+# and have no shared coordinator. A real cross-module cap is out of scope for v1.
+crablet.shared-fetch.max-events-per-cycle=5000   # default: unset (no global cap)
 ```
 
-Default: 1000. Per-processor `batchSize` still caps matched-event dispatch per processor per call.
+Default: 1000. Per-processor `batchSize` still caps matched-event dispatch per processor per call. The optional global cap protects the JVM from large shared-fetch windows without requiring per-module tuning. The global cap applies to the **shared module fetch only** (`LIMIT` on the position-only query) — it does **not** apply to `fetchEventsUntil` in the bounded catch-up loop. Catch-up uses `processor.batchSize` per iteration and is already bounded by `upToPosition=moduleScanCursor`; applying the global cap there would risk a processor that never fully closes its lag if the cap is smaller than the gap.
 
 ## Feature flag
 
@@ -220,17 +236,33 @@ Default: 1000. Per-processor `batchSize` still caps matched-event dispatch per p
 crablet.views.shared-fetch.enabled=true   # default: false
 ```
 
+**Property naming:** Keep `crablet.views.shared-fetch.enabled` (and equivalents for automations/outbox) for v1 — consistent with the existing `crablet.views.*` namespace and already used throughout this doc. Rename in a future property-stabilization pass once the feature is proven in production; do not rename during initial rollout.
+
 Old per-processor scheduler behavior is fully preserved when disabled. Backoff granularity change (per-processor → per-module) only affects apps that opt in.
 
 **Enabling the flag requires the scan progress migrations to be applied first.** Enabling it before the migrations exist will cause startup or first-poll failure when the code attempts to read `crablet_module_scan_progress` / `crablet_processor_scan_progress`. Apply the Flyway migrations, verify, then set the flag.
 
 **When disabled, no shared-fetch beans are constructed or validated.** The disabled path must behave exactly like today's `EventProcessorImpl` — no eager initialization of scan-progress repositories, no table access, no new scheduled tasks. Spring `@ConditionalOnProperty` on all shared-fetch-specific beans is the safe wiring approach.
 
+### Implementation structure (dual path, single facade)
+
+Do **not** scatter `if (sharedFetch)` through call sites. Prefer:
+
+- One **`EventProcessor`** (or module runner) **facade** wired by Spring.
+- Two **strategies**: **legacy** = current `EventProcessorImpl` per-processor scheduling; **shared** = module scan + fan-out + new progress tables.
+- **`@ConditionalOnProperty`** (or equivalent) selects **one** strategy at startup — no giant inline branching.
+
+Ship with **both** strategies behind the flag for safe rollout. Removing the legacy strategy is a future **major or minor version cleanup decision** — it depends on downstream consumers and OSS compatibility guarantees. Do not assume removal as part of this implementation; track it separately when stabilizing the public API.
+
+**Backoff reporting:** `ProcessorManagementServiceImpl` currently uses `instanceof EventProcessorImpl` to read `BackoffState` (in `getBackoffInfo` / `getAllBackoffInfo`). The shared strategy must expose backoff state through a small internal capability interface (e.g., `BackoffInfoProvider`) that both legacy `EventProcessorImpl` and the new shared implementation implement. The management service should target the interface, not the concrete class — otherwise the shared path silently returns no backoff info.
+
 ## Management metrics (correct definitions)
 
 - `scanLag = moduleScanCursor - scannedPosition` — real catch-up lag; 0 for healthy sparse processors
 - `lastHandledPosition = handledPosition` — last matching event successfully processed
 - **Do not expose `moduleScanCursor - handledPosition`** — misleading for sparse processors
+
+**Existing `getLag()` in shared mode:** `ProcessorManagementServiceImpl.getLag()` currently queries `MAX(events.position) - handledPosition`. In shared mode this is misleading for sparse processors — it reports large lag even when `scanLag = 0` and the processor is healthy. In shared mode, `getLag()` must be replaced by or clearly superseded by `scanLag` in the management response. Do not expose both without distinguishing them; the old formula is the exact metric the plan calls out as wrong.
 
 New management status fields (additive, backward compatible):
 - `scannedPosition`
@@ -254,7 +286,11 @@ Position-only v1 can read many irrelevant events in high-volume streams. The `fe
 2. **Cursor state machine** as internal classes, unit-tested independently from scheduling
 3. **Schema** — migrations in `wallet-example-app` + `crablet-test-support`; document in poller README
 4. **Shared fetch loop for views only** behind `crablet.views.shared-fetch.enabled=true`
-5. **Integration tests:**
+5. **Integration tests** (priority-ordered — first three are highest bug-risk):
+   - **Handler failure mid-batch:** processor A throws on a matched batch; verify `handledPosition` and `scannedPosition` are **not advanced at all** (no partial-progress signal from `EventHandler`), A enters `CATCHING_UP` or `FAILED`, processor B in the same cycle succeeds, `moduleScanCursor` still advances to window end.
+   - **App restart with stale scannedPosition:** restart with `moduleScanCursor` ahead of a processor's persisted `scannedPosition`; verify the processor enters `CATCHING_UP` before the first shared cycle runs and correctly processes all missed matching events.
+   - **Resume after long pause with sparse events:** pause a processor, let `moduleScanCursor` advance far ahead with events the processor does not match, resume; verify `scannedPosition` jumps to `moduleScanCursor` (sparse zero-row path), `catchingUp=false`, no retry loop, no phantom lag.
+   - **High volume with ~80% irrelevant events:** populate the event log so most rows do not match any active processor; verify `fetched` is high, `matched` is low, `dispatched` is correct, and the cycle completes without JVM memory pressure or timeout.
    - position-only fetch: module cursor always advances
    - sparse filter (zero matches): `scanLag = 0`, no fake lag
    - PAUSED processor: module cursor advances, processor stays put
@@ -263,9 +299,17 @@ Position-only v1 can read many irrelevant events in high-volume streams. The `fe
    - Handler failure → CATCHING_UP → resume
    - Disjoint filters (no overlap between processors)
    - Per-processor `batchSize` respected during dispatch
-   - **Handler isolation:** processor A throws during dispatch; processor B in same cycle succeeds; `moduleScanCursor` still advances to window end; A is in `CATCHING_UP` or `FAILED` as appropriate
 6. Port automations
 7. Port outbox
+
+## Known risks and mitigations
+
+| Risk | Mitigation |
+|---|---|
+| **Complexity creep** — new cursors, tables, matcher, internal `CATCHING_UP` | Feature flag + facade; delete legacy path once stable; keep poller core readable |
+| **Catch-up / sparse bugs** — highest implementation risk | Priority integration tests (handler mid-batch, long pause + sparse, bounded catch-up invariants) |
+| **Position-only read cost** — high volume + many irrelevant rows | `fetched`/`matched`/`dispatched` metrics; optional global cap; v2 union-filter when proven necessary |
+| **v2 sooner than expected** | Treat union-filter as productized follow-on, not theoretical |
 
 ## What NOT to change
 
@@ -280,3 +324,6 @@ Position-only v1 can read many irrelevant events in high-volume streams. The `fe
 
 - **v5:** Position-only fetch, three-cursor model, internal `CATCHING_UP`, bounded catch-up, schema in app + test-support, operational metrics, handler isolation rules, migration-before-enable and conditional beans, handler-isolation integration test in rollout.
 - **v6:** Version bump; "New flow" explicitly scoped to shared-fetch with pointer to legacy path when disabled; NOTIFY behaviour spelled out for shared-fetch on vs off; this revision log.
+- **v7:** Explicit outbox isolation clarification (outbox is always its own EventProcessor — slow views loop cannot delay outbox); optional global `max-events-per-cycle` guardrail; integration tests expanded with priority-ordered top three (handler mid-batch failure, long pause + sparse events, 80% irrelevant volume); post-v1 CATCHING_UP simplification note added to catch-up section.
+- **v8:** Implementation structure (facade + dual strategies + remove legacy later); property naming alternatives; extensibility note (any `EventHandler`, webhooks); "Known risks and mitigations" table; dedupe duplicate handler-isolation test bullet (covered by first priority test).
+- **v9:** Six code-backed fixes: handler failure leaves `handledPosition`/`scannedPosition` fully unchanged (no partial-progress signal from current `EventHandler` contract); startup CATCHING_UP detection for processors where `scannedPosition < moduleScanCursor` on init; `max-events-per-cycle` is per-module not cross-module; facade needs `BackoffInfoProvider` interface so management backoff reporting survives the strategy switch; existing `getLag()` must be replaced/superseded by `scanLag` in shared mode; legacy strategy removal framed as future OSS major/minor version decision. Four editorial fixes: property naming resolved (keep `shared-fetch` for v1); NOTIFY + concurrency guard = skip-if-busy; global cap scope = shared fetch only, not catch-up; `min(pollingIntervalMs)` side effect documented.
