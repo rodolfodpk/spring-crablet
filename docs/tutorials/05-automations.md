@@ -39,6 +39,19 @@ crablet.automations.batch-size=100
 
 `crablet.automations.*` is the global module config. These values are defaults for all automation processors.
 
+## Shared-Fetch Mode
+
+By default each automation runs its own DB query per polling cycle. If you have many automations and want to reduce DB load on LISTEN/NOTIFY wakeups, enable the shared-fetch path:
+
+```properties
+crablet.automations.shared-fetch.enabled=true
+crablet.automations.fetch-batch-size=1000
+```
+
+Shared-fetch uses one position-only DB fetch per module cycle, then routes matching events to each automation in memory. `fetch-batch-size` controls the shared DB read size. `batch-size` still controls how many matched events each automation handles per cycle.
+
+Shared-fetch requires the scan-progress tables from the V14-style migration used by the example app. Leave the flag unset or `false` if your application has not added those tables.
+
 ## In-Process Automation
 
 ```java
@@ -73,6 +86,16 @@ public class WelcomeNotificationAutomation implements AutomationHandler {
     }
 
     @Override
+    public Long getPollingIntervalMs() {
+        return 500L;
+    }
+
+    @Override
+    public Integer getBatchSize() {
+        return 25;
+    }
+
+    @Override
     public void react(StoredEvent event, CommandExecutor commandExecutor) {
         String walletId = event.tags().stream()
             .filter(tag -> tag.key().equals("wallet_id"))
@@ -88,7 +111,7 @@ public class WelcomeNotificationAutomation implements AutomationHandler {
 }
 ```
 
-Each `AutomationHandler` is also the per-poller-instance config for that automation. It defines matching rules and can override polling and backoff settings for that one automation.
+Each `AutomationHandler` is also the per-poller-instance config for that automation. It defines matching rules and can override polling interval, batch size, and backoff settings for that one automation.
 
 Treat the event as a wake-up signal. The automation should still read current modeled state before deciding what to do.
 

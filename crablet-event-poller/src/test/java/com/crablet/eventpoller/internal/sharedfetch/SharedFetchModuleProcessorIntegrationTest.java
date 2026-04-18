@@ -65,6 +65,9 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
     JdbcTemplate jdbcTemplate;
 
     @Autowired
+    DataSource dataSource;
+
+    @Autowired
     TestProgressTracker progressTracker;
 
     @Autowired
@@ -236,6 +239,49 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
         assertThat(processorScanRepo.getScannedPosition(MODULE, PROC_B)).isEqualTo(windowEnd);
     }
 
+    @Test
+    @DisplayName("Per-processor batch size override limits shared-fetch dispatch and catch-up")
+    void perProcessorBatchSizeOverride_limitsSharedFetchDispatchAndCatchUp() {
+        SharedFetchModuleProcessor<TestProcessorConfig, String> localProcessor = new SharedFetchModuleProcessor<>(
+                Map.of(PROC_A, new TestProcessorConfig(PROC_A, 250L, 2)),
+                Map.of(PROC_A, new TypeFilterSelection("TypeA")),
+                MODULE,
+                "test-instance",
+                new AlwaysLeaderElector(),
+                progressTracker,
+                moduleScanRepo,
+                processorScanRepo,
+                (processorId, events) -> handlerA.handle(processorId, events),
+                dataSource,
+                1000,
+                new NoopTaskScheduler(),
+                new org.springframework.context.support.GenericApplicationContext(),
+                Function.identity());
+        localProcessor.reloadCursorState();
+
+        appendEvents("TypeA", 5);
+
+        localProcessor.runSharedCycle();
+
+        long handledPosition = progressTracker.getLastPosition(PROC_A);
+        long scannedPosition = processorScanRepo.getScannedPosition(MODULE, PROC_A);
+        long windowEnd = maxPosition(jdbcTemplate);
+
+        assertThat(handlerA.getHandledCount())
+                .as("ProcessorA handles one main dispatch plus one catch-up iteration, each capped at 2")
+                .isEqualTo(4);
+        assertThat(handlerA.getHandled())
+                .extracting(StoredEvent::position)
+                .containsExactly(1L, 2L, 3L, 4L);
+        assertThat(handledPosition).isEqualTo(4L);
+        assertThat(scannedPosition)
+                .as("Partial dispatch scans only through the last safely dispatched event")
+                .isEqualTo(4L);
+        assertThat(moduleScanRepo.getScanPosition(MODULE))
+                .as("The shared module cursor still advances through the full fetched window")
+                .isEqualTo(windowEnd);
+    }
+
     // ── Case 5: PAUSED processor ──────────────────────────────────────────────
 
     @Test
@@ -300,12 +346,22 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
 
     static class TestProcessorConfig implements ProcessorConfig<String> {
         private final String id;
+        private final long pollingIntervalMs;
+        private final int batchSize;
 
-        TestProcessorConfig(String id) { this.id = id; }
+        TestProcessorConfig(String id) {
+            this(id, 1000L, 100);
+        }
+
+        TestProcessorConfig(String id, long pollingIntervalMs, int batchSize) {
+            this.id = id;
+            this.pollingIntervalMs = pollingIntervalMs;
+            this.batchSize = batchSize;
+        }
 
         @Override public String getProcessorId() { return id; }
-        @Override public long getPollingIntervalMs() { return 1000L; }
-        @Override public int getBatchSize() { return 100; }
+        @Override public long getPollingIntervalMs() { return pollingIntervalMs; }
+        @Override public int getBatchSize() { return batchSize; }
         @Override public boolean isBackoffEnabled() { return false; }
         @Override public int getBackoffThreshold() { return 0; }
         @Override public int getBackoffMultiplier() { return 0; }
