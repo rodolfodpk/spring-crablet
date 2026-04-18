@@ -142,8 +142,8 @@ compile: build-core build-command build-shared
 package: build-core build-command build-shared
 	@./mvnw package
 
-# Run tests (requires build-core and build-shared first)
-test: build-core build-command build-shared
+# Run tests (requires core, test-support, commands and shared examples first)
+test: build-core build-test-support build-command build-shared
 	@./mvnw test
 
 # Build without tests

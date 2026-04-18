@@ -1,6 +1,7 @@
 package com.crablet.views.internal;
 
 import com.crablet.eventpoller.EventHandler;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.views.ViewProjector;
 import com.crablet.views.metrics.ViewProjectionErrorMetric;
@@ -28,11 +29,20 @@ public class ViewEventHandler implements EventHandler<String> {
 
     private final Map<String, ViewProjector> projectors;
     private final ApplicationEventPublisher eventPublisher;
+    private final ClockProvider clockProvider;
 
     public ViewEventHandler(
             List<ViewProjector> projectors,
             ApplicationEventPublisher eventPublisher) {
+        this(projectors, eventPublisher, ClockProvider.systemDefault());
+    }
+
+    public ViewEventHandler(
+            List<ViewProjector> projectors,
+            ApplicationEventPublisher eventPublisher,
+            ClockProvider clockProvider) {
         this.eventPublisher = eventPublisher;
+        this.clockProvider = clockProvider;
         this.projectors = new HashMap<>();
         for (ViewProjector projector : projectors) {
             String viewName = projector.getViewName();
@@ -50,10 +60,10 @@ public class ViewEventHandler implements EventHandler<String> {
             return 0;
         }
 
-        Instant start = Instant.now();
+        Instant start = clockProvider.now();
         try {
             int handled = projector.handle(viewName, events);
-            eventPublisher.publishEvent(new ViewProjectionMetric(viewName, handled, Duration.between(start, Instant.now())));
+            eventPublisher.publishEvent(new ViewProjectionMetric(viewName, handled, Duration.between(start, clockProvider.now())));
             log.debug("Projector {} handled {} events for view {}",
                 projector.getClass().getSimpleName(), handled, viewName);
             return handled;

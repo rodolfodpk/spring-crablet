@@ -58,6 +58,9 @@ public class AutomationProcessorConfig implements ProcessorConfig<String> {
     }
 
     @Override
+    public int getMaxErrors() { return automationsConfig.getMaxErrors(); }
+
+    @Override
     public long getLeaderElectionRetryIntervalMs() { return automationsConfig.getLeaderElectionRetryIntervalMs(); }
 
     @Override

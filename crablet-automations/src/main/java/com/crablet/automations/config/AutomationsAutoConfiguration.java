@@ -11,13 +11,20 @@ import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventProcessorFactory;
+import com.crablet.eventpoller.EventSelection;
 import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.config.EventPollerAutoConfiguration;
+import com.crablet.eventpoller.config.EventPollerConfig;
+import com.crablet.eventpoller.internal.sharedfetch.ModuleScanProgressRepository;
+import com.crablet.eventpoller.internal.sharedfetch.ProcessorScanProgressRepository;
+import com.crablet.eventpoller.internal.sharedfetch.SharedFetchModuleProcessor;
+import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import org.springframework.beans.factory.ObjectProvider;
@@ -39,6 +46,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Auto-configuration for automations using the generic event processor.
@@ -92,7 +100,8 @@ public class AutomationsAutoConfiguration {
             AutomationWebhookClient automationWebhookClient,
             ObjectProvider<CommandExecutor> commandExecutorProvider,
             ApplicationEventPublisher eventPublisher,
-            Environment environment) {
+            Environment environment,
+            ClockProvider clockProvider) {
 
         CommandExecutor commandExecutor = commandExecutorProvider.getIfAvailable();
         boolean hasInProcessHandler = handlers.values().stream()
@@ -104,7 +113,7 @@ public class AutomationsAutoConfiguration {
                     "Ensure crablet-commands is on the classpath and a CommandExecutor bean is defined.");
         }
 
-        return new AutomationDispatcher(handlers, automationWebhookClient, commandExecutor, eventPublisher, environment);
+        return new AutomationDispatcher(handlers, automationWebhookClient, commandExecutor, eventPublisher, environment, clockProvider);
     }
 
     @Bean
@@ -114,7 +123,8 @@ public class AutomationsAutoConfiguration {
         return AutomationProcessorConfig.createConfigMap(automationsConfig, handlers);
     }
 
-    @Bean
+    @Bean("automationsEventProcessor")
+    @ConditionalOnProperty(name = "crablet.automations.shared-fetch.enabled", havingValue = "false", matchIfMissing = true)
     public EventProcessor<AutomationProcessorConfig, String> automationsEventProcessor(
             @Qualifier("automationProcessorConfigs") Map<String, AutomationProcessorConfig> automationProcessorConfigs,
             @Qualifier("automationProgressTracker") ProgressTracker<String> automationProgressTracker,
@@ -124,7 +134,8 @@ public class AutomationsAutoConfiguration {
             WriteDataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher,
-            Optional<ProcessorWakeupSourceFactory> wakeupSourceFactory) {
+            Optional<ProcessorWakeupSourceFactory> wakeupSourceFactory,
+            Optional<EventPollerConfig> eventPollerConfig) {
 
         return EventProcessorFactory.createProcessor(
             automationProcessorConfigs,
@@ -137,8 +148,44 @@ public class AutomationsAutoConfiguration {
             writeDataSource,
             taskScheduler,
             eventPublisher,
-            wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new)
-        );
+            wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new),
+            eventPollerConfig.orElseGet(EventPollerConfig::new));
+    }
+
+    @Bean("automationsEventProcessor")
+    @ConditionalOnProperty(name = "crablet.automations.shared-fetch.enabled", havingValue = "true")
+    public EventProcessor<AutomationProcessorConfig, String> automationsEventProcessorSharedFetch(
+            @Qualifier("automationProcessorConfigs") Map<String, AutomationProcessorConfig> automationProcessorConfigs,
+            @Qualifier("automationHandlers") Map<String, AutomationHandler> automationHandlers,
+            @Qualifier("automationProgressTracker") ProgressTracker<String> automationProgressTracker,
+            @Qualifier("automationEventHandler") EventHandler<String> automationEventHandler,
+            InstanceIdProvider instanceIdProvider,
+            AutomationsConfig automationsConfig,
+            WriteDataSource writeDataSource,
+            ReadDataSource readDataSource,
+            TaskScheduler taskScheduler,
+            ApplicationEventPublisher eventPublisher) {
+
+        LeaderElector leaderElector = EventProcessorFactory.createLeaderElector(
+                writeDataSource, "automations", instanceIdProvider.getInstanceId(), AUTOMATIONS_LOCK_KEY, eventPublisher);
+
+        Map<String, EventSelection> selections = new HashMap<>(automationHandlers);
+
+        return new SharedFetchModuleProcessor<>(
+                automationProcessorConfigs,
+                selections,
+                "automations",
+                instanceIdProvider.getInstanceId(),
+                leaderElector,
+                automationProgressTracker,
+                new ModuleScanProgressRepository(writeDataSource.dataSource()),
+                new ProcessorScanProgressRepository(writeDataSource.dataSource()),
+                automationEventHandler,
+                readDataSource.dataSource(),
+                automationsConfig.getFetchBatchSize(),
+                taskScheduler,
+                eventPublisher,
+                Function.identity());
     }
 
     @Bean

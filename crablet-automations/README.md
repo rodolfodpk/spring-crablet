@@ -123,6 +123,16 @@ public class WelcomeNotificationAutomation implements AutomationHandler {
     }
 
     @Override
+    public Long getPollingIntervalMs() {
+        return 500L;
+    }
+
+    @Override
+    public Integer getBatchSize() {
+        return 25;
+    }
+
+    @Override
     public void react(StoredEvent event, CommandExecutor commandExecutor) {
         String walletId = event.tags().stream()
                 .filter(tag -> tag.key().equals("wallet_id"))
@@ -214,6 +224,8 @@ public interface AutomationHandler extends AutomationDefinition {
     String getAutomationName();
     Set<String> getEventTypes();
     String getWebhookUrl(); // optional
+    Long getPollingIntervalMs(); // optional
+    Integer getBatchSize(); // optional
     void react(StoredEvent event, CommandExecutor commandExecutor);
 }
 ```
@@ -301,6 +313,12 @@ crablet.automations.polling-interval-ms=1000
 # Batch size for event processing
 crablet.automations.batch-size=100
 
+# Shared-fetch mode: one DB query per cycle serves all automations (default: false)
+crablet.automations.shared-fetch.enabled=false
+
+# Maximum events fetched per module cycle in shared-fetch mode (default: 1000)
+crablet.automations.fetch-batch-size=1000
+
 # Backoff configuration
 crablet.automations.backoff-threshold=10
 crablet.automations.backoff-multiplier=2
@@ -310,6 +328,29 @@ crablet.automations.max-backoff-seconds=60
 `crablet.automations.*` is the global config for the automations module. It supplies defaults for every automation processor.
 
 Each `AutomationHandler` is also the per-automation poller config. A handler can override polling interval, batch size, and backoff settings for that one automation while the rest keep the global defaults.
+
+### Shared-Fetch Mode
+
+When `crablet.automations.shared-fetch.enabled=true`, all automations in the module share a single position-only DB fetch per cycle. Events are routed in-memory to each automation using its `AutomationDefinition` matching rules. This reduces DB load on LISTEN/NOTIFY wakeups from N queries (one per automation) to one query per module cycle.
+
+Requires two additional tables in your schema migration:
+
+```sql
+CREATE TABLE crablet_module_scan_progress (
+    module_name   TEXT   PRIMARY KEY,
+    scan_position BIGINT NOT NULL DEFAULT 0
+);
+CREATE TABLE crablet_processor_scan_progress (
+    module_name      TEXT   NOT NULL,
+    processor_id     TEXT   NOT NULL,
+    scanned_position BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (module_name, processor_id)
+);
+```
+
+The legacy per-automation path (default) remains unchanged when the flag is absent or false.
+
+Use `crablet.automations.fetch-batch-size` to tune how many events the shared module fetch reads per DB query. `crablet.automations.batch-size` still caps how many matched events each automation handles in one cycle. If individual handlers override `getBatchSize()`, that override is still respected.
 
 ## Examples
 

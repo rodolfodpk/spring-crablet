@@ -36,6 +36,8 @@ class OutboxConfigTest {
         assertThat(config.getBackoffMultiplier()).isEqualTo(2);
         assertThat(config.getBackoffMaxSeconds()).isEqualTo(120);
         assertThat(config.getLeaderElectionRetryIntervalMs()).isEqualTo(30000L);
+        assertThat(config.getFetchBatchSize()).isEqualTo(1000);
+        assertThat(config.getSharedFetch().isEnabled()).isFalse();
     }
 
     @Test
@@ -229,6 +231,23 @@ class OutboxConfigTest {
     }
 
     @Test
+    @DisplayName("Should expose shared-fetch configuration properties")
+    void shouldExposeSharedFetchConfigurationProperties() {
+        OutboxConfig config = new OutboxConfig();
+        OutboxConfig.SharedFetch sharedFetch = new OutboxConfig.SharedFetch();
+        sharedFetch.setEnabled(true);
+
+        config.setFetchBatchSize(444);
+        config.setLeaderElectionRetryIntervalMs(22000L);
+        config.setSharedFetch(sharedFetch);
+
+        assertThat(config.getFetchBatchSize()).isEqualTo(444);
+        assertThat(config.getLeaderElectionRetryIntervalMs()).isEqualTo(22000L);
+        assertThat(config.getSharedFetch()).isSameAs(sharedFetch);
+        assertThat(config.getSharedFetch().isEnabled()).isTrue();
+    }
+
+    @Test
     @DisplayName("Should set and get leaderElectionRetryIntervalMs")
     void shouldSetAndGetLeaderElectionRetryIntervalMs() {
         // Given
@@ -392,4 +411,3 @@ class OutboxConfigTest {
         assertThat(config.getLeaderElectionRetryIntervalMs()).isEqualTo(45000L);
     }
 }
-

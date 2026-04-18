@@ -2,6 +2,7 @@ package com.crablet.eventpoller;
 
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
+import com.crablet.eventpoller.config.EventPollerConfig;
 import com.crablet.eventpoller.internal.EventProcessorImpl;
 import com.crablet.eventpoller.internal.LeaderElectorImpl;
 import com.crablet.eventpoller.internal.ProcessorManagementServiceImpl;
@@ -110,10 +111,26 @@ public final class EventProcessorFactory {
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher,
             ProcessorWakeupSourceFactory wakeupSourceFactory) {
+        return createProcessor(configs, leaderElector, progressTracker, eventFetcher, eventHandler,
+                writeDataSource, taskScheduler, eventPublisher, wakeupSourceFactory, new EventPollerConfig());
+    }
+
+    public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
+            Map<I, C> configs,
+            LeaderElector leaderElector,
+            ProgressTracker<I> progressTracker,
+            EventFetcher<I> eventFetcher,
+            EventHandler<I> eventHandler,
+            WriteDataSource writeDataSource,
+            TaskScheduler taskScheduler,
+            ApplicationEventPublisher eventPublisher,
+            ProcessorWakeupSourceFactory wakeupSourceFactory,
+            EventPollerConfig eventPollerConfig) {
 
         return new EventProcessorImpl<>(
                 configs, leaderElector, progressTracker, eventFetcher, eventHandler,
-                writeDataSource.dataSource(), taskScheduler, eventPublisher, wakeupSourceFactory.create());
+                writeDataSource.dataSource(), taskScheduler, eventPublisher, wakeupSourceFactory.create(),
+                eventPollerConfig.getLeaderRetryCooldownMs(), eventPollerConfig.getStartupDelayMs());
     }
 
     public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
@@ -153,13 +170,31 @@ public final class EventProcessorFactory {
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher,
             ProcessorWakeupSourceFactory wakeupSourceFactory) {
+        return createProcessor(configs, processorName, lockKey, instanceId, progressTracker, eventFetcher,
+                eventHandler, writeDataSource, taskScheduler, eventPublisher, wakeupSourceFactory, new EventPollerConfig());
+    }
+
+    public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
+            Map<I, C> configs,
+            String processorName,
+            long lockKey,
+            String instanceId,
+            ProgressTracker<I> progressTracker,
+            EventFetcher<I> eventFetcher,
+            EventHandler<I> eventHandler,
+            WriteDataSource writeDataSource,
+            TaskScheduler taskScheduler,
+            ApplicationEventPublisher eventPublisher,
+            ProcessorWakeupSourceFactory wakeupSourceFactory,
+            EventPollerConfig eventPollerConfig) {
 
         var leaderElector = new LeaderElectorImpl(
                 writeDataSource.dataSource(), processorName, instanceId, lockKey, eventPublisher);
 
         return new EventProcessorImpl<>(
                 configs, leaderElector, progressTracker, eventFetcher, eventHandler,
-                writeDataSource.dataSource(), taskScheduler, eventPublisher, wakeupSourceFactory.create());
+                writeDataSource.dataSource(), taskScheduler, eventPublisher, wakeupSourceFactory.create(),
+                eventPollerConfig.getLeaderRetryCooldownMs(), eventPollerConfig.getStartupDelayMs());
     }
 
     /**

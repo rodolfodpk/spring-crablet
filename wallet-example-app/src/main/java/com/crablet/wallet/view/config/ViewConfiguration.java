@@ -60,6 +60,10 @@ public class ViewConfiguration {
                     type(MoneyTransferred.class)
                 )
                 .anyOfTags(WALLET_ANY_OF_TAGS)
+                // Per-view runtime overrides. These match application.properties defaults here;
+                // set different values when one view needs separate latency or batch tuning.
+                .pollingIntervalMs(1000)
+                .batchSize(100)
                 .build();
     }
 }

@@ -1,5 +1,6 @@
 package com.crablet.eventstore;
 
+import com.crablet.eventstore.internal.ClockProviderImpl;
 import java.time.Clock;
 import java.time.Instant;
 
@@ -29,4 +30,9 @@ public interface ClockProvider {
      * This method is primarily intended for test cleanup.
      */
     void resetToSystemClock();
+
+    /** Returns a {@link ClockProvider} backed by the system UTC clock. */
+    static ClockProvider systemDefault() {
+        return new ClockProviderImpl();
+    }
 }

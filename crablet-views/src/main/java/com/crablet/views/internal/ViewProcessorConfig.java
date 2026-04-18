@@ -63,6 +63,11 @@ public class ViewProcessorConfig implements ProcessorConfig<String> {
     }
 
     @Override
+    public int getMaxErrors() {
+        return viewsConfig.getMaxErrors();
+    }
+
+    @Override
     public long getLeaderElectionRetryIntervalMs() {
         return viewsConfig.getLeaderElectionRetryIntervalMs();
     }

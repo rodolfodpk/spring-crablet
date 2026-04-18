@@ -139,6 +139,12 @@ crablet.outbox.polling-interval-ms=1000
 # Default: 100
 crablet.outbox.batch-size=100
 
+# Shared-fetch mode: one DB query per cycle serves all outbox processors (default: false)
+crablet.outbox.shared-fetch.enabled=false
+
+# Maximum events fetched per module cycle in shared-fetch mode (default: 1000)
+crablet.outbox.fetch-batch-size=1000
+
 # Max retries for failed publish attempts
 # Default: 3
 crablet.outbox.max-retries=3
@@ -167,6 +173,29 @@ crablet.outbox.topics.default.publisher-configs[1].polling-interval-ms=2000
 `crablet.outbox.*` is the global config for the outbox module. It supplies defaults for all outbox processors.
 
 Outbox processors still run per `(topic, publisher)` pair. That means the global outbox config defines module-wide defaults, while topic and publisher config define the per-poller-instance behavior.
+
+### Shared-Fetch Mode
+
+When `crablet.outbox.shared-fetch.enabled=true`, all outbox processors in the module share a single position-only DB fetch per cycle. Events are routed in-memory to each `(topic, publisher)` processor. This reduces DB load on LISTEN/NOTIFY wakeups from N queries (one per processor) to one query per module cycle.
+
+Requires two additional tables in your schema migration:
+
+```sql
+CREATE TABLE crablet_module_scan_progress (
+    module_name   TEXT   PRIMARY KEY,
+    scan_position BIGINT NOT NULL DEFAULT 0
+);
+CREATE TABLE crablet_processor_scan_progress (
+    module_name      TEXT   NOT NULL,
+    processor_id     TEXT   NOT NULL,
+    scanned_position BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (module_name, processor_id)
+);
+```
+
+The legacy per-processor path (default) remains unchanged when the flag is absent or false.
+
+Use `crablet.outbox.fetch-batch-size` to tune how many events the shared module fetch reads per DB query. `crablet.outbox.batch-size` still caps how many matched events each outbox processor publishes in one cycle.
 
 ## Metrics
 

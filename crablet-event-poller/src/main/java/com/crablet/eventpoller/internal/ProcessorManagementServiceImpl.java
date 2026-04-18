@@ -1,5 +1,6 @@
 package com.crablet.eventpoller.internal;
 
+import com.crablet.eventpoller.internal.sharedfetch.BackoffInfoProvider;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.processor.ProcessorConfig;
@@ -136,43 +137,27 @@ public class ProcessorManagementServiceImpl<T extends ProcessorConfig<I>, I>
 
     @Override
     public BackoffInfo getBackoffInfo(I processorId) {
-        // Get backoff state from EventProcessor
-        if (eventProcessor instanceof EventProcessorImpl) {
+        if (eventProcessor instanceof BackoffInfoProvider<?> provider) {
             @SuppressWarnings("unchecked")
-            EventProcessorImpl<T, I> impl = (EventProcessorImpl<T, I>) eventProcessor;
-
-            BackoffState backoffState = impl.getBackoffState(processorId);
-            if (backoffState == null) {
-                return null;
-            }
-
-            return new BackoffInfo(
-                backoffState.getEmptyPollCount(),
-                backoffState.getCurrentSkipCounter()
-            );
+            BackoffInfoProvider<I> typed = (BackoffInfoProvider<I>) provider;
+            BackoffState state = typed.getBackoffStateForProcessor(processorId);
+            if (state == null) return null;
+            return new BackoffInfo(state.getEmptyPollCount(), state.getCurrentSkipCounter());
         }
-
         return null;
     }
 
     @Override
     public Map<I, BackoffInfo> getAllBackoffInfo() {
         Map<I, BackoffInfo> result = new HashMap<>();
-
-        if (eventProcessor instanceof EventProcessorImpl) {
+        if (eventProcessor instanceof BackoffInfoProvider<?> provider) {
             @SuppressWarnings("unchecked")
-            EventProcessorImpl<T, I> impl = (EventProcessorImpl<T, I>) eventProcessor;
-
-            Map<I, BackoffState> backoffStates = impl.getAllBackoffStates();
-            for (var entry : backoffStates.entrySet()) {
+            BackoffInfoProvider<I> typed = (BackoffInfoProvider<I>) provider;
+            for (var entry : typed.getAllBackoffStates().entrySet()) {
                 BackoffState state = entry.getValue();
-                result.put(entry.getKey(), new BackoffInfo(
-                    state.getEmptyPollCount(),
-                    state.getCurrentSkipCounter()
-                ));
+                result.put(entry.getKey(), new BackoffInfo(state.getEmptyPollCount(), state.getCurrentSkipCounter()));
             }
         }
-
         return result;
     }
 }

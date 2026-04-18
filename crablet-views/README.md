@@ -397,7 +397,7 @@ crablet.views.enabled=true
 # Polling interval in milliseconds
 crablet.views.polling-interval-ms=1000
 
-# Batch size for event processing
+# Batch size for event processing (per-view limit in legacy mode)
 crablet.views.batch-size=100
 
 # Backoff configuration
@@ -407,9 +407,36 @@ crablet.views.max-backoff-seconds=60
 
 # Leader election retry interval
 crablet.views.leader-election-retry-interval-ms=30000
+
+# Shared-fetch mode: one DB query per cycle serves all views (default: false)
+crablet.views.shared-fetch.enabled=false
+
+# Maximum events fetched per module cycle in shared-fetch mode (default: 1000)
+crablet.views.fetch-batch-size=1000
 ```
 
 `crablet.views.*` is the global config for the views module. It supplies defaults for every view processor.
+
+### Shared-Fetch Mode
+
+When `crablet.views.shared-fetch.enabled=true`, all views in the module share a single position-only DB fetch per cycle. Events are routed in-memory to each view using `EventSelectionMatcher`. This reduces DB load on LISTEN/NOTIFY wakeups from N queries (one per view) to one query per module cycle.
+
+Requires two additional tables in your schema migration:
+
+```sql
+CREATE TABLE crablet_module_scan_progress (
+    module_name   TEXT   PRIMARY KEY,
+    scan_position BIGINT NOT NULL DEFAULT 0
+);
+CREATE TABLE crablet_processor_scan_progress (
+    module_name      TEXT   NOT NULL,
+    processor_id     TEXT   NOT NULL,
+    scanned_position BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (module_name, processor_id)
+);
+```
+
+The legacy per-view path (default) remains unchanged when the flag is absent or false.
 
 ### Subscription Configuration
 

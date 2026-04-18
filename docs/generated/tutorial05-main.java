@@ -37,6 +37,16 @@
         }
 
         @Override
+        public Long getPollingIntervalMs() {
+            return 500L;
+        }
+
+        @Override
+        public Integer getBatchSize() {
+            return 25;
+        }
+
+        @Override
         public void react(StoredEvent event, CommandExecutor commandExecutor) {
             String walletId = event.tags().stream()
                     .filter(tag -> tag.key().equals("wallet_id"))

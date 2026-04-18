@@ -96,7 +96,7 @@ Read more in [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) and [
 | Start | [Quickstart](docs/QUICKSTART.md), [Create A New App](docs/CREATE_A_CRABLET_APP.md), [Tutorial](docs/TUTORIAL.md), [Learning Mode](docs/LEARNING_MODE.md) |
 | Architecture | [Deployment Topology](docs/DEPLOYMENT_TOPOLOGY.md), [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md), [Command Patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md) |
 | Operations | [Management API](docs/MANAGEMENT_API.md), [Leader Election](docs/LEADER_ELECTION.md), [Build](docs/BUILD.md) |
-| Database and proxies | [PgBouncer](crablet-eventstore/docs/PGBOUNCER.md), [PgCat](crablet-eventstore/docs/PGCAT.md), [Open J Proxy](crablet-eventstore/docs/OJP.md) |
+| Database and proxies | [Connection Poolers](crablet-eventstore/docs/CONNECTION_POOLERS.md) (PgBouncer, PgCat, OJP) |
 
 ## License
 

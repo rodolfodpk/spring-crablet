@@ -27,10 +27,24 @@ You will learn:
 ```properties
 crablet.outbox.enabled=true
 crablet.outbox.polling-interval-ms=1000
+crablet.outbox.batch-size=100
 crablet.outbox.topics.default.publishers=KafkaPublisher,LogPublisher
 ```
 
 `crablet.outbox.*` is the global module config. These values are defaults for the outbox module as a whole.
+
+## Shared-Fetch Mode
+
+By default each outbox `(topic, publisher)` processor runs its own DB query per polling cycle. If you have many processors and want to reduce DB load on LISTEN/NOTIFY wakeups, enable the shared-fetch path:
+
+```properties
+crablet.outbox.shared-fetch.enabled=true
+crablet.outbox.fetch-batch-size=1000
+```
+
+Shared-fetch uses one position-only DB fetch per module cycle, then routes events to each outbox processor in memory. `fetch-batch-size` controls the shared DB read size. `batch-size` still controls how many matched events each `(topic, publisher)` processor publishes per cycle.
+
+Shared-fetch requires the scan-progress tables from the V14-style migration used by the example app. Leave the flag unset or `false` if your application has not added those tables.
 
 ## Define A Publisher
 

@@ -5,6 +5,7 @@ import com.crablet.automations.metrics.AutomationExecutionErrorMetric;
 import com.crablet.automations.metrics.AutomationExecutionMetric;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventHandler;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.CorrelationContext;
 import com.crablet.eventstore.StoredEvent;
 import org.slf4j.Logger;
@@ -36,6 +37,7 @@ public class AutomationDispatcher implements EventHandler<String> {
     private final CommandExecutor commandExecutor;
     private final ApplicationEventPublisher eventPublisher;
     private final Environment environment;
+    private final ClockProvider clockProvider;
 
     public AutomationDispatcher(
             Map<String, AutomationHandler> handlers,
@@ -43,11 +45,22 @@ public class AutomationDispatcher implements EventHandler<String> {
             @Nullable CommandExecutor commandExecutor,
             ApplicationEventPublisher eventPublisher,
             Environment environment) {
+        this(handlers, webhookClient, commandExecutor, eventPublisher, environment, ClockProvider.systemDefault());
+    }
+
+    public AutomationDispatcher(
+            Map<String, AutomationHandler> handlers,
+            AutomationWebhookClient webhookClient,
+            @Nullable CommandExecutor commandExecutor,
+            ApplicationEventPublisher eventPublisher,
+            Environment environment,
+            ClockProvider clockProvider) {
         this.handlers = handlers;
         this.webhookClient = webhookClient;
         this.commandExecutor = commandExecutor;
         this.eventPublisher = eventPublisher;
         this.environment = environment;
+        this.clockProvider = clockProvider;
     }
 
     @Override
@@ -66,7 +79,7 @@ public class AutomationDispatcher implements EventHandler<String> {
 
     private int handleInProcess(AutomationHandler handler, List<StoredEvent> events) throws Exception {
         String automationName = handler.getAutomationName();
-        Instant start = Instant.now();
+        Instant start = clockProvider.now();
         int count = 0;
 
         for (StoredEvent event : events) {
@@ -91,7 +104,7 @@ public class AutomationDispatcher implements EventHandler<String> {
         }
 
         eventPublisher.publishEvent(new AutomationExecutionMetric(
-                automationName, count, Duration.between(start, Instant.now())));
+                automationName, count, Duration.between(start, clockProvider.now())));
         log.debug("Automation {} (in-process) processed {} events", automationName, count);
         return count;
     }
@@ -99,7 +112,7 @@ public class AutomationDispatcher implements EventHandler<String> {
     private int handleWebhook(AutomationHandler handler, List<StoredEvent> events) throws Exception {
         String automationName = handler.getAutomationName();
         String webhookUrl = resolveWebhookUrl(handler.getWebhookUrl());
-        Instant start = Instant.now();
+        Instant start = clockProvider.now();
         int count = 0;
 
         for (StoredEvent event : events) {
@@ -115,10 +128,11 @@ public class AutomationDispatcher implements EventHandler<String> {
         }
 
         eventPublisher.publishEvent(new AutomationExecutionMetric(
-                automationName, count, Duration.between(start, Instant.now())));
+                automationName, count, Duration.between(start, clockProvider.now())));
         log.debug("Automation {} dispatched {} events to {}", automationName, count, webhookUrl);
         return count;
     }
+
     private String resolveWebhookUrl(String webhookUrl) {
         if (webhookUrl.startsWith("http://") || webhookUrl.startsWith("https://")) {
             return webhookUrl;

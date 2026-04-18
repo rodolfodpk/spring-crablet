@@ -44,7 +44,18 @@ public class OutboxConfig {
     
     // Leader election retry interval in milliseconds (for followers to detect leader crashes)
     private long leaderElectionRetryIntervalMs = 30000; // Default: 30 seconds
-    
+
+    private int fetchBatchSize = 1000;
+
+    private SharedFetch sharedFetch = new SharedFetch();
+
+    public static class SharedFetch {
+        private boolean enabled = false;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    }
+
     @Autowired
     private TopicConfigurationProperties topicConfigurationProperties;
     
@@ -112,7 +123,13 @@ public class OutboxConfig {
     public void setLeaderElectionRetryIntervalMs(long leaderElectionRetryIntervalMs) {
         this.leaderElectionRetryIntervalMs = leaderElectionRetryIntervalMs;
     }
-    
+
+    public int getFetchBatchSize() { return fetchBatchSize; }
+    public void setFetchBatchSize(int fetchBatchSize) { this.fetchBatchSize = fetchBatchSize; }
+
+    public SharedFetch getSharedFetch() { return sharedFetch; }
+    public void setSharedFetch(SharedFetch sharedFetch) { this.sharedFetch = sharedFetch; }
+
     public Map<String, TopicConfig> getTopics() { 
         Map<String, TopicConfig> topics = topicConfigurationProperties.toTopicConfigs();
         

@@ -115,6 +115,34 @@ public ViewSubscription walletViewSubscription(WalletViewProjector projector) {
 
 That means one view is one independently managed processor with its own progress and tuning.
 
+## Shared-Fetch Mode (Optional)
+
+By default each view runs its own DB query per polling cycle. If you have many views (10+) and want to reduce DB load on LISTEN/NOTIFY wakeups, enable the shared-fetch path:
+
+```properties
+crablet.views.shared-fetch.enabled=true
+
+# Maximum events fetched per module cycle (default: 1000)
+crablet.views.fetch-batch-size=1000
+```
+
+In this mode a single position-only query fetches events for the entire views module and routes them in-memory to each view using `EventSelectionMatcher`. The legacy path (one query per view) remains the default.
+
+The required schema tables are added by a Flyway migration you add to your application:
+
+```sql
+CREATE TABLE crablet_module_scan_progress (
+    module_name   TEXT   PRIMARY KEY,
+    scan_position BIGINT NOT NULL DEFAULT 0
+);
+CREATE TABLE crablet_processor_scan_progress (
+    module_name      TEXT   NOT NULL,
+    processor_id     TEXT   NOT NULL,
+    scanned_position BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (module_name, processor_id)
+);
+```
+
 ## Deployment Guidance
 
 `crablet-views` uses `crablet-event-poller`.

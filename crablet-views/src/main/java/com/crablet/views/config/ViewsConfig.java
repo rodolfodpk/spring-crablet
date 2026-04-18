@@ -19,11 +19,23 @@ public class ViewsConfig {
     private int backoffMultiplier = 2;
     private int maxBackoffSeconds = 120;
     private long leaderElectionRetryIntervalMs = 30000L;
-    
+
+    private int fetchBatchSize = 1000;
+    private int maxErrors = 10;
+
+    private SharedFetch sharedFetch = new SharedFetch();
+
     /**
      * Map of view name to subscription configuration.
      */
     private Map<String, ViewSubscription> subscriptions = new HashMap<>();
+
+    public static class SharedFetch {
+        private boolean enabled = false;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    }
     
     public boolean isEnabled() {
         return enabled;
@@ -81,10 +93,19 @@ public class ViewsConfig {
         this.leaderElectionRetryIntervalMs = leaderElectionRetryIntervalMs;
     }
     
+    public int getFetchBatchSize() { return fetchBatchSize; }
+    public void setFetchBatchSize(int fetchBatchSize) { this.fetchBatchSize = fetchBatchSize; }
+
+    public int getMaxErrors() { return maxErrors; }
+    public void setMaxErrors(int maxErrors) { this.maxErrors = maxErrors; }
+
+    public SharedFetch getSharedFetch() { return sharedFetch; }
+    public void setSharedFetch(SharedFetch sharedFetch) { this.sharedFetch = sharedFetch; }
+
     public Map<String, ViewSubscription> getSubscriptions() {
         return subscriptions;
     }
-    
+
     public void setSubscriptions(Map<String, ViewSubscription> subscriptions) {
         this.subscriptions = subscriptions != null ? subscriptions : new HashMap<>();
     }

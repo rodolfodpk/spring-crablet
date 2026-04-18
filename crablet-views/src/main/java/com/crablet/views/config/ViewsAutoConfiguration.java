@@ -3,13 +3,20 @@ package com.crablet.views.config;
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventProcessorFactory;
+import com.crablet.eventpoller.EventSelection;
 import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.config.EventPollerAutoConfiguration;
+import com.crablet.eventpoller.config.EventPollerConfig;
+import com.crablet.eventpoller.internal.sharedfetch.ModuleScanProgressRepository;
+import com.crablet.eventpoller.internal.sharedfetch.ProcessorScanProgressRepository;
+import com.crablet.eventpoller.internal.sharedfetch.SharedFetchModuleProcessor;
+import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.views.ViewProjector;
@@ -30,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * Auto-configuration for views using the generic event processor.
@@ -63,8 +71,9 @@ public class ViewsAutoConfiguration {
     @Bean
     public EventHandler<String> viewEventHandler(
             List<ViewProjector> projectors,
-            ApplicationEventPublisher eventPublisher) {
-        return new ViewEventHandler(projectors, eventPublisher);
+            ApplicationEventPublisher eventPublisher,
+            ClockProvider clockProvider) {
+        return new ViewEventHandler(projectors, eventPublisher, clockProvider);
     }
 
     @Bean
@@ -95,6 +104,7 @@ public class ViewsAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "crablet.views.shared-fetch.enabled", havingValue = "false", matchIfMissing = true)
     public EventProcessor<ViewProcessorConfig, String> viewsEventProcessor(
             Map<String, ViewProcessorConfig> processorConfigs,
             @org.springframework.beans.factory.annotation.Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
@@ -104,7 +114,8 @@ public class ViewsAutoConfiguration {
             WriteDataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher,
-            Optional<ProcessorWakeupSourceFactory> wakeupSourceFactory) {
+            Optional<ProcessorWakeupSourceFactory> wakeupSourceFactory,
+            Optional<EventPollerConfig> eventPollerConfig) {
 
         return EventProcessorFactory.createProcessor(
             processorConfigs,
@@ -117,6 +128,43 @@ public class ViewsAutoConfiguration {
             writeDataSource,
             taskScheduler,
             eventPublisher,
-            wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new));
+            wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new),
+            eventPollerConfig.orElseGet(EventPollerConfig::new));
+    }
+
+    @Bean("viewsEventProcessor")
+    @ConditionalOnProperty(name = "crablet.views.shared-fetch.enabled", havingValue = "true")
+    public EventProcessor<ViewProcessorConfig, String> viewsEventProcessorSharedFetch(
+            Map<String, ViewProcessorConfig> processorConfigs,
+            @org.springframework.beans.factory.annotation.Qualifier("viewSubscriptions") Map<String, ViewSubscription> viewSubscriptions,
+            @org.springframework.beans.factory.annotation.Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
+            @org.springframework.beans.factory.annotation.Qualifier("viewEventHandler") EventHandler<String> eventHandler,
+            InstanceIdProvider instanceIdProvider,
+            ViewsConfig viewsConfig,
+            WriteDataSource writeDataSource,
+            ReadDataSource readDataSource,
+            TaskScheduler taskScheduler,
+            ApplicationEventPublisher eventPublisher) {
+
+        LeaderElector leaderElector = EventProcessorFactory.createLeaderElector(
+                writeDataSource, "views", instanceIdProvider.getInstanceId(), VIEWS_LOCK_KEY, eventPublisher);
+
+        Map<String, EventSelection> selections = new HashMap<>(viewSubscriptions);
+
+        return new SharedFetchModuleProcessor<>(
+                processorConfigs,
+                selections,
+                "views",
+                instanceIdProvider.getInstanceId(),
+                leaderElector,
+                progressTracker,
+                new ModuleScanProgressRepository(writeDataSource.dataSource()),
+                new ProcessorScanProgressRepository(writeDataSource.dataSource()),
+                eventHandler,
+                readDataSource.dataSource(),
+                viewsConfig.getFetchBatchSize(),
+                taskScheduler,
+                eventPublisher,
+                Function.identity());
     }
 }

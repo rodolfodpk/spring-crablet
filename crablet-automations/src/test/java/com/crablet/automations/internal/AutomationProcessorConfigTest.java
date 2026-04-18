@@ -138,6 +138,25 @@ class AutomationProcessorConfigTest {
         assertThat(configs.get("automation-b").getBatchSize()).isEqualTo(75);
     }
 
+    @Test
+    @DisplayName("Should expose shared-fetch configuration properties")
+    void shouldExposeSharedFetchConfigurationProperties() {
+        AutomationsConfig config = createDefaultConfig();
+        AutomationsConfig.SharedFetch sharedFetch = new AutomationsConfig.SharedFetch();
+        sharedFetch.setEnabled(true);
+
+        config.setFetchBatchSize(250);
+        config.setMaxErrors(4);
+        config.setLeaderElectionRetryIntervalMs(15000L);
+        config.setSharedFetch(sharedFetch);
+
+        assertThat(config.getFetchBatchSize()).isEqualTo(250);
+        assertThat(config.getMaxErrors()).isEqualTo(4);
+        assertThat(config.getLeaderElectionRetryIntervalMs()).isEqualTo(15000L);
+        assertThat(config.getSharedFetch()).isSameAs(sharedFetch);
+        assertThat(config.getSharedFetch().isEnabled()).isTrue();
+    }
+
     private AutomationsConfig createDefaultConfig() {
         AutomationsConfig config = new AutomationsConfig();
         config.setEnabled(true);
