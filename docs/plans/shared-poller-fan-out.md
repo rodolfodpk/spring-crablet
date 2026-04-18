@@ -1,6 +1,6 @@
-# Plan: Within-Module Batch Fetch + In-Memory Fan-Out (v10 — approved)
+# Plan: Within-Module Batch Fetch + In-Memory Fan-Out (v11 — approved)
 
-v10 fixes CATCHING_UP detection to cover leader failover (not just startup) and defines the neutral backoff outcome for fetched-but-no-dispatch cycles. v9 content retained.
+v11 clarifies that leadership acquisition must reload persisted cursor state before the stale-position check. v10 content retained.
 
 ## Context
 
@@ -135,7 +135,7 @@ A processor transitions to `CATCHING_UP` when its `scannedPosition < moduleScanC
 **Stale-position detection — three trigger points:** any ACTIVE processor with `scannedPosition < moduleScanCursor` must be placed in `CATCHING_UP` before it participates in shared fan-out. This check must run at:
 
 1. **Scheduler init** — covers normal startup.
-2. **Leadership acquisition** — covers leader failover: a standby instance may have loaded processor state when `moduleScanCursor` was behind; the cursor may have advanced on the previous leader before it crashed. Run the check immediately after `pg_try_advisory_lock` succeeds and before the first cycle fires.
+2. **Leadership acquisition** — covers leader failover: a standby instance may have loaded processor state when `moduleScanCursor` was behind; the cursor may have advanced on the previous leader before it crashed. **On leadership acquisition, reload `moduleScanCursor` and all processor `scannedPosition` values from persistence before applying the stale-position check** — do not trust in-memory state carried over from standby. Run the check immediately after `pg_try_advisory_lock` succeeds and before the first cycle fires.
 3. **Start of each shared module cycle** — covers long-running instances and any edge case where a processor's `scannedPosition` falls behind the in-memory `moduleScanCursor` between cycles (e.g., a cursor update failure that was logged but not fatal). The check is cheap (an in-memory comparison of loaded cursor values) and makes the invariant explicit: **no ACTIVE processor with `scannedPosition < moduleScanCursor` ever participates in shared fan-out.**
 
 ## Module scheduler semantics
@@ -340,3 +340,4 @@ Position-only v1 can read many irrelevant events in high-volume streams. The `fe
 - **v8:** Implementation structure (facade + dual strategies + remove legacy later); property naming alternatives; extensibility note (any `EventHandler`, webhooks); "Known risks and mitigations" table; dedupe duplicate handler-isolation test bullet (covered by first priority test).
 - **v9:** Six code-backed fixes: handler failure leaves `handledPosition`/`scannedPosition` fully unchanged (no partial-progress signal from current `EventHandler` contract); startup CATCHING_UP detection for processors where `scannedPosition < moduleScanCursor` on init; `max-events-per-cycle` is per-module not cross-module; facade needs `BackoffInfoProvider` interface so management backoff reporting survives the strategy switch; existing `getLag()` must be replaced/superseded by `scanLag` in shared mode; legacy strategy removal framed as future OSS major/minor version decision. Four editorial fixes: property naming resolved (keep `shared-fetch` for v1); NOTIFY + concurrency guard = skip-if-busy; global cap scope = shared fetch only, not catch-up; `min(pollingIntervalMs)` side effect documented.
 - **v10:** CATCHING_UP stale-position check extended to three trigger points (startup, leadership acquisition, start of each cycle) to cover leader failover and long-running standby instances; backoff formalized as three distinct outcomes (empty / neutral / success) to prevent spurious backoff in high-volume low-match workloads.
+- **v11:** Leadership acquisition trigger now explicitly requires reloading `moduleScanCursor` and processor `scannedPosition` from persistence before the stale-position check — in-memory standby state must not be trusted.
