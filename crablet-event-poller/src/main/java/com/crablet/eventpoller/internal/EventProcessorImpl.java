@@ -2,6 +2,7 @@ package com.crablet.eventpoller.internal;
 
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
+import com.crablet.eventpoller.internal.sharedfetch.BackoffInfoProvider;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.metrics.BackoffStateMetric;
 import com.crablet.eventpoller.metrics.ProcessingCycleMetric;
@@ -34,7 +35,7 @@ import java.util.concurrent.ScheduledFuture;
  * Generic implementation of EventProcessor.
  * Handles scheduling, leader election, backoff, and event processing.
  */
-public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements EventProcessor<T, I> {
+public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements EventProcessor<T, I>, BackoffInfoProvider<I> {
 
     private static final Logger log = LoggerFactory.getLogger(EventProcessorImpl.class);
 
@@ -528,16 +529,12 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
         return statuses;
     }
 
-    /**
-     * Get backoff state for a specific processor (for management/monitoring).
-     */
-    public BackoffState getBackoffState(I processorId) {
+    @Override
+    public BackoffState getBackoffStateForProcessor(I processorId) {
         return backoffStates.get(processorId);
     }
 
-    /**
-     * Get all backoff states (for management/monitoring).
-     */
+    @Override
     public Map<I, BackoffState> getAllBackoffStates() {
         return new ConcurrentHashMap<>(backoffStates);
     }
