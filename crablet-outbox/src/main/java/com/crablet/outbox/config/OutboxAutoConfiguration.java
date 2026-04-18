@@ -6,6 +6,7 @@ import com.crablet.eventpoller.EventProcessorFactory;
 import com.crablet.eventpoller.EventSelection;
 import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.config.EventPollerAutoConfiguration;
+import com.crablet.eventpoller.config.EventPollerConfig;
 import com.crablet.eventpoller.internal.sharedfetch.ModuleScanProgressRepository;
 import com.crablet.eventpoller.internal.sharedfetch.ProcessorScanProgressRepository;
 import com.crablet.eventpoller.internal.sharedfetch.SharedFetchModuleProcessor;
@@ -152,7 +153,8 @@ public class OutboxAutoConfiguration {
             WriteDataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher,
-            Optional<ProcessorWakeupSourceFactory> wakeupSourceFactory) {
+            Optional<ProcessorWakeupSourceFactory> wakeupSourceFactory,
+            Optional<EventPollerConfig> eventPollerConfig) {
         return EventProcessorFactory.createProcessor(
             configs,
             outboxLeaderElector,
@@ -162,7 +164,8 @@ public class OutboxAutoConfiguration {
             writeDataSource,
             taskScheduler,
             eventPublisher,
-            wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new));
+            wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new),
+            eventPollerConfig.orElseGet(EventPollerConfig::new));
     }
 
     /**

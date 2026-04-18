@@ -14,6 +14,7 @@ import com.crablet.eventpoller.EventProcessorFactory;
 import com.crablet.eventpoller.EventSelection;
 import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.config.EventPollerAutoConfiguration;
+import com.crablet.eventpoller.config.EventPollerConfig;
 import com.crablet.eventpoller.internal.sharedfetch.ModuleScanProgressRepository;
 import com.crablet.eventpoller.internal.sharedfetch.ProcessorScanProgressRepository;
 import com.crablet.eventpoller.internal.sharedfetch.SharedFetchModuleProcessor;
@@ -23,6 +24,7 @@ import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import org.springframework.beans.factory.ObjectProvider;
@@ -98,7 +100,8 @@ public class AutomationsAutoConfiguration {
             AutomationWebhookClient automationWebhookClient,
             ObjectProvider<CommandExecutor> commandExecutorProvider,
             ApplicationEventPublisher eventPublisher,
-            Environment environment) {
+            Environment environment,
+            ClockProvider clockProvider) {
 
         CommandExecutor commandExecutor = commandExecutorProvider.getIfAvailable();
         boolean hasInProcessHandler = handlers.values().stream()
@@ -110,7 +113,7 @@ public class AutomationsAutoConfiguration {
                     "Ensure crablet-commands is on the classpath and a CommandExecutor bean is defined.");
         }
 
-        return new AutomationDispatcher(handlers, automationWebhookClient, commandExecutor, eventPublisher, environment);
+        return new AutomationDispatcher(handlers, automationWebhookClient, commandExecutor, eventPublisher, environment, clockProvider);
     }
 
     @Bean
@@ -131,7 +134,8 @@ public class AutomationsAutoConfiguration {
             WriteDataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher,
-            Optional<ProcessorWakeupSourceFactory> wakeupSourceFactory) {
+            Optional<ProcessorWakeupSourceFactory> wakeupSourceFactory,
+            Optional<EventPollerConfig> eventPollerConfig) {
 
         return EventProcessorFactory.createProcessor(
             automationProcessorConfigs,
@@ -144,8 +148,8 @@ public class AutomationsAutoConfiguration {
             writeDataSource,
             taskScheduler,
             eventPublisher,
-            wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new)
-        );
+            wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new),
+            eventPollerConfig.orElseGet(EventPollerConfig::new));
     }
 
     @Bean("automationsEventProcessor")

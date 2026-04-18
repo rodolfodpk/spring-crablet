@@ -21,14 +21,15 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
  *   <li>{@link InstanceIdProvider} — resolved from {@code HOSTNAME},
  *       {@code crablet.instance.id}, or the host name</li>
  *   <li>{@link TaskScheduler} — thread-pool scheduler named {@code taskScheduler}</li>
+ *   <li>{@link EventPollerConfig} — tunable infrastructure defaults</li>
  * </ul>
  * <p>
- * Both beans use {@code @ConditionalOnMissingBean}, so you can override either one
+ * All beans use {@code @ConditionalOnMissingBean}, so you can override any of them
  * by declaring your own bean of the same type (or name, for the scheduler) in your
  * application context.
  */
 @AutoConfiguration
-@EnableConfigurationProperties(EventPollerNotificationProperties.class)
+@EnableConfigurationProperties({EventPollerNotificationProperties.class, EventPollerConfig.class})
 public class EventPollerAutoConfiguration {
 
     @Bean
@@ -37,14 +38,20 @@ public class EventPollerAutoConfiguration {
         return new InstanceIdProvider(environment);
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public EventPollerConfig eventPollerConfig() {
+        return new EventPollerConfig();
+    }
+
     @Bean(name = "taskScheduler")
     @ConditionalOnMissingBean(name = "taskScheduler")
-    public TaskScheduler taskScheduler() {
+    public TaskScheduler taskScheduler(EventPollerConfig eventPollerConfig) {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-        scheduler.setPoolSize(5);
+        scheduler.setPoolSize(eventPollerConfig.getScheduler().getPoolSize());
         scheduler.setThreadNamePrefix("crablet-scheduler-");
         scheduler.setWaitForTasksToCompleteOnShutdown(true);
-        scheduler.setAwaitTerminationSeconds(60);
+        scheduler.setAwaitTerminationSeconds(eventPollerConfig.getScheduler().getAwaitTerminationSeconds());
         scheduler.initialize();
         return scheduler;
     }

@@ -21,6 +21,7 @@ public class ViewsConfig {
     private long leaderElectionRetryIntervalMs = 30000L;
 
     private int fetchBatchSize = 1000;
+    private int maxErrors = 10;
 
     private SharedFetch sharedFetch = new SharedFetch();
 
@@ -94,6 +95,9 @@ public class ViewsConfig {
     
     public int getFetchBatchSize() { return fetchBatchSize; }
     public void setFetchBatchSize(int fetchBatchSize) { this.fetchBatchSize = fetchBatchSize; }
+
+    public int getMaxErrors() { return maxErrors; }
+    public void setMaxErrors(int maxErrors) { this.maxErrors = maxErrors; }
 
     public SharedFetch getSharedFetch() { return sharedFetch; }
     public void setSharedFetch(SharedFetch sharedFetch) { this.sharedFetch = sharedFetch; }

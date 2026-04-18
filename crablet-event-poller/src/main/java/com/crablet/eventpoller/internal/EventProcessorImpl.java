@@ -61,9 +61,12 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     // Leader retry scheduler
     private ScheduledFuture<?> leaderRetryScheduler;
 
-    // Cooldown for leader retry
-    private static final long LEADER_RETRY_COOLDOWN_MS = 5000;
+    // Cooldown for leader retry — configurable via crablet.event-poller.leader-retry-cooldown-ms
+    private final long leaderRetryCooldownMs;
     private volatile long lastLeaderRetryTimestamp = 0;
+
+    // Initial delay before first poll cycle — configurable via crablet.event-poller.startup-delay-ms
+    private final long startupDelayMs;
 
     // Shutdown flag to prevent processing during shutdown
     private volatile boolean shuttingDown = false;
@@ -77,7 +80,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             DataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher) {
-        this(configs, leaderElector, progressTracker, eventFetcher, eventHandler, writeDataSource, taskScheduler, eventPublisher, new NoopProcessorWakeupSource());
+        this(configs, leaderElector, progressTracker, eventFetcher, eventHandler, writeDataSource, taskScheduler, eventPublisher, new NoopProcessorWakeupSource(), 5000L, 500L);
     }
 
     public EventProcessorImpl(
@@ -90,6 +93,21 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher,
             ProcessorWakeupSource wakeupSource) {
+        this(configs, leaderElector, progressTracker, eventFetcher, eventHandler, writeDataSource, taskScheduler, eventPublisher, wakeupSource, 5000L, 500L);
+    }
+
+    public EventProcessorImpl(
+            Map<I, T> configs,
+            LeaderElector leaderElector,
+            ProgressTracker<I> progressTracker,
+            EventFetcher<I> eventFetcher,
+            EventHandler<I> eventHandler,
+            DataSource writeDataSource,
+            TaskScheduler taskScheduler,
+            ApplicationEventPublisher eventPublisher,
+            ProcessorWakeupSource wakeupSource,
+            long leaderRetryCooldownMs,
+            long startupDelayMs) {
         this.configs = configs;
         this.leaderElector = leaderElector;
         this.progressTracker = progressTracker;
@@ -99,6 +117,8 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
         this.taskScheduler = taskScheduler;
         this.eventPublisher = eventPublisher;
         this.wakeupSource = wakeupSource;
+        this.leaderRetryCooldownMs = leaderRetryCooldownMs;
+        this.startupDelayMs = startupDelayMs;
     }
 
     // Track if schedulers have been initialized
@@ -207,7 +227,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
                 log.debug("[EventProcessorImpl] Created backoff state for processor {}", processorId);
             }
 
-            long initialDelayMs = 500; // 500ms initial delay - Flyway should be done by now via ContextRefreshedEvent
+            long initialDelayMs = startupDelayMs;
             scheduleProcessorRun(processorId, initialDelayMs);
             log.debug("[EventProcessorImpl] Registered scheduler for processor {} with initial delay {}ms",
                     processorId, initialDelayMs);
@@ -328,7 +348,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             // If not leader, retry lock acquisition with cooldown
             if (!leaderElector.isGlobalLeader()) {
                 long now = System.currentTimeMillis();
-                if (now - lastLeaderRetryTimestamp >= LEADER_RETRY_COOLDOWN_MS) {
+                if (now - lastLeaderRetryTimestamp >= leaderRetryCooldownMs) {
                     lastLeaderRetryTimestamp = now;
                     boolean acquired = leaderElector.tryAcquireGlobalLeader();
                     if (acquired) {
