@@ -233,9 +233,11 @@ crablet-commands-web (Optional)
 crablet-event-poller (Generic Infrastructure)
 ├── EventProcessor - Reusable polling infrastructure
 ├── EventSelection - Shared event matching contract
+├── EventSelectionMatcher - In-memory counterpart to EventSelectionSqlBuilder (used by shared-fetch fan-out)
 ├── ProcessorRuntimeOverrides - Shared per-instance override contract
 ├── Leader election - PostgreSQL advisory locks
 ├── Progress tracking - Per-processor position tracking
+├── Shared-fetch mode - Opt-in single-query-per-module architecture (requires schema V14)
 └── Used by crablet-views, crablet-outbox, and crablet-automations
 
 crablet-views (Optional)
@@ -287,6 +289,7 @@ These decisions reflect the current repository state and should be treated as th
 - `crablet-event-poller` now owns the shared matching and per-instance override abstractions:
   - `EventSelection`
   - `EventSelectionSqlBuilder`
+  - `EventSelectionMatcher` — in-memory mirror of the SQL filter; used by shared-fetch to route events to each processor without extra DB queries
   - `ProcessorRuntimeOverrides`
   - `ProcessorRuntimeOverrideResolver`
 - Generic `EventHandler<I>` no longer accepts a raw `DataSource`.
@@ -307,6 +310,7 @@ These decisions reflect the current repository state and should be treated as th
   - **LISTEN** (`crablet-event-poller`) — opt-in via `crablet.event-poller.notifications.jdbc-url`; when set, a dedicated persistent connection LISTENs and wakes the poller immediately on each NOTIFY; when absent, pure scheduled polling is used.
   - The LISTEN `jdbc-url` **must be a direct connection** to Postgres — not a pooler URL. PgBouncer transaction mode, PgCat, and RDS Proxy do not support persistent LISTEN connections.
   - When wakeup is active, raise the polling interval to 30 s or more; scheduled polling becomes a safety net only.
+- Shared-fetch mode (`*.shared-fetch.enabled=true`) is opt-in per module (views, automations, outbox). When enabled, one DB query per cycle fetches all events; `EventSelectionMatcher` routes them in-memory to each processor. Requires schema migration V14 (`module_scan_progress` + `processor_scan_progress` tables). Best combined with LISTEN wakeup and many processors on the same event stream.
 - The root tutorial is now a tutorial series under `docs/tutorials/`, not one monolithic walkthrough.
 
 ### Build graph, examples, and `crablet-test-support`
@@ -442,7 +446,8 @@ public interface WalletCommand {
 Asynchronous materialized read models from events.
 
 **Architecture:**
-- Polling (1s interval) → Filter by tags → View projector → Database view
+- Default: Polling (1s interval) → Filter by tags → View projector → Database view; one DB query per view per cycle
+- Shared-fetch mode (`crablet.views.shared-fetch.enabled=true`): one DB query per cycle fans out to all views via `EventSelectionMatcher`; requires schema migration V14
 - Leader election: Only 1 instance processes per view
 - Idempotent: Events processed at-least-once
 - Progress tracked per view
@@ -837,6 +842,7 @@ For entities with long event histories (millions of events):
 ## Documentation Quick Links
 
 - Build instructions: `docs/BUILD.md`
+- Configuration reference: `docs/CONFIGURATION.md`
 - EventStore README: `crablet-eventstore/README.md`
 - Command framework: `crablet-commands/README.md`
 - Event processor: `crablet-event-poller/README.md`
