@@ -1,6 +1,6 @@
-# Plan: Within-Module Batch Fetch + In-Memory Fan-Out (v9 — approved)
+# Plan: Within-Module Batch Fetch + In-Memory Fan-Out (v10 — approved)
 
-v9 adds six code-backed fixes (handler failure semantics, startup CATCHING_UP detection, per-module cap scope, backoff facade gap, getLag deprecation, legacy removal framing) and four editorial refinements (property naming, NOTIFY skip rule, cap scope for catch-up, pollingInterval side effect). v8 content retained.
+v10 fixes CATCHING_UP detection to cover leader failover (not just startup) and defines the neutral backoff outcome for fetched-but-no-dispatch cycles. v9 content retained.
 
 ## Context
 
@@ -132,13 +132,25 @@ CATCHING_UP      → excluded from shared fan-out; runs own bounded catch-up loo
 
 A processor transitions to `CATCHING_UP` when its `scannedPosition < moduleScanCursor` (on resume or after a handler failure that doesn't yet hit `maxErrors`).
 
-**Startup detection:** when the shared module scheduler initializes, before the first shared cycle runs, check every ACTIVE processor's persisted `scannedPosition` against the persisted `moduleScanCursor`. Any processor where `scannedPosition < moduleScanCursor` is immediately placed in `CATCHING_UP`. Without this check, a restarted application would let an ACTIVE processor with a stale `scannedPosition` participate in shared fan-out and silently skip historical matching events between its position and the module cursor.
+**Stale-position detection — three trigger points:** any ACTIVE processor with `scannedPosition < moduleScanCursor` must be placed in `CATCHING_UP` before it participates in shared fan-out. This check must run at:
+
+1. **Scheduler init** — covers normal startup.
+2. **Leadership acquisition** — covers leader failover: a standby instance may have loaded processor state when `moduleScanCursor` was behind; the cursor may have advanced on the previous leader before it crashed. Run the check immediately after `pg_try_advisory_lock` succeeds and before the first cycle fires.
+3. **Start of each shared module cycle** — covers long-running instances and any edge case where a processor's `scannedPosition` falls behind the in-memory `moduleScanCursor` between cycles (e.g., a cursor update failure that was logged but not fatal). The check is cheap (an in-memory comparison of loaded cursor values) and makes the invariant explicit: **no ACTIVE processor with `scannedPosition < moduleScanCursor` ever participates in shared fan-out.**
 
 ## Module scheduler semantics
 
 **Polling interval:** `min(pollingIntervalMs across all enabled processor configs)` — preserves the fastest processor's latency expectation. Since shared mode is opt-in, this is acceptable. Side effect: adding a processor with a faster interval to an existing module silently speeds up the poll rate for all other processors in that module — it increases DB read frequency for the whole module, which has a read-cost impact operators should be aware of.
 
-**Backoff:** module-level only. Empty = zero DB rows fetched. Fetched rows with zero dispatches = not empty (do not increment backoff, do not reset it either).
+**Backoff:** module-level only. Three distinct outcomes:
+
+| Outcome | Definition | Backoff effect |
+|---|---|---|
+| **Empty** | Zero rows fetched from DB | Increment empty-poll counter; backoff eligible |
+| **Neutral** | Rows fetched, zero matched/dispatched to any processor | Do not increment counter; do not reset — scan cursor advanced, work was done |
+| **Success** | At least one processor dispatched ≥ 1 event | Reset empty-poll counter |
+
+"Neutral" is a distinct state, not empty. It prevents spurious backoff when the module is actively scanning irrelevant events (common in position-only v1 with sparse processors). Mixing neutral with empty would cause incorrect backoff in high-volume, low-match workloads.
 
 **NOTIFY wakeup:** with shared-fetch enabled, one wakeup schedules **one** immediate module run (not N processor runs). With shared-fetch disabled, behaviour is unchanged: `requestImmediatePoll` still schedules each enabled processor at delay 0.
 
@@ -327,3 +339,4 @@ Position-only v1 can read many irrelevant events in high-volume streams. The `fe
 - **v7:** Explicit outbox isolation clarification (outbox is always its own EventProcessor — slow views loop cannot delay outbox); optional global `max-events-per-cycle` guardrail; integration tests expanded with priority-ordered top three (handler mid-batch failure, long pause + sparse events, 80% irrelevant volume); post-v1 CATCHING_UP simplification note added to catch-up section.
 - **v8:** Implementation structure (facade + dual strategies + remove legacy later); property naming alternatives; extensibility note (any `EventHandler`, webhooks); "Known risks and mitigations" table; dedupe duplicate handler-isolation test bullet (covered by first priority test).
 - **v9:** Six code-backed fixes: handler failure leaves `handledPosition`/`scannedPosition` fully unchanged (no partial-progress signal from current `EventHandler` contract); startup CATCHING_UP detection for processors where `scannedPosition < moduleScanCursor` on init; `max-events-per-cycle` is per-module not cross-module; facade needs `BackoffInfoProvider` interface so management backoff reporting survives the strategy switch; existing `getLag()` must be replaced/superseded by `scanLag` in shared mode; legacy strategy removal framed as future OSS major/minor version decision. Four editorial fixes: property naming resolved (keep `shared-fetch` for v1); NOTIFY + concurrency guard = skip-if-busy; global cap scope = shared fetch only, not catch-up; `min(pollingIntervalMs)` side effect documented.
+- **v10:** CATCHING_UP stale-position check extended to three trigger points (startup, leadership acquisition, start of each cycle) to cover leader failover and long-running standby instances; backoff formalized as three distinct outcomes (empty / neutral / success) to prevent spurious backoff in high-volume low-match workloads.
