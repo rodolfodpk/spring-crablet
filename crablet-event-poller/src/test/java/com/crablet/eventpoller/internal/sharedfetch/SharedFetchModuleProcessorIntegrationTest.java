@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -317,6 +318,151 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
         assertThat(handlerB.getHandledCount()).isEqualTo(2);
     }
 
+    @Test
+    @DisplayName("No selection routes all fetched events to processor")
+    void noSelection_routesAllFetchedEventsToProcessor() {
+        SharedFetchModuleProcessor<TestProcessorConfig, String> localProcessor = newProcessor(
+                Map.of(PROC_A, new TestProcessorConfig(PROC_A)),
+                Map.of(),
+                new AlwaysLeaderElector(),
+                new CapturingTaskScheduler(),
+                new CapturingWakeupSource());
+        localProcessor.reloadCursorState();
+
+        appendEvents("TypeA", 2);
+        appendEvents("TypeB", 3);
+
+        localProcessor.runSharedCycle();
+
+        assertThat(handlerA.getHandledCount()).isEqualTo(5);
+        assertThat(processorScanRepo.getScannedPosition(MODULE, PROC_A)).isEqualTo(maxPosition(jdbcTemplate));
+    }
+
+    @Test
+    @DisplayName("All processors disabled skip shared-fetch startup")
+    void allProcessorsDisabled_skipSharedFetchStartup() {
+        CapturingTaskScheduler scheduler = new CapturingTaskScheduler();
+        CapturingWakeupSource wakeupSource = new CapturingWakeupSource();
+        TestProcessorConfig disabled = new TestProcessorConfig(PROC_A, 1000L, 100, false);
+        SharedFetchModuleProcessor<TestProcessorConfig, String> localProcessor = newProcessor(
+                Map.of(PROC_A, disabled),
+                Map.of(PROC_A, new TypeFilterSelection("TypeA")),
+                new AlwaysLeaderElector(),
+                scheduler,
+                wakeupSource);
+
+        localProcessor.start();
+
+        assertThat(scheduler.fixedRateTasks).isEmpty();
+        assertThat(wakeupSource.started).isFalse();
+        assertThat(progressTracker.getLastPosition(PROC_A)).isEqualTo(0L);
+    }
+
+    @Test
+    @DisplayName("Follower schedules retry and starts shared cycle after leadership is acquired")
+    void followerSchedulesRetryAndStartsSharedCycleAfterLeadershipIsAcquired() {
+        CapturingTaskScheduler scheduler = new CapturingTaskScheduler();
+        EventuallyLeaderElector leaderElector = new EventuallyLeaderElector(false, true);
+        SharedFetchModuleProcessor<TestProcessorConfig, String> localProcessor = newProcessor(
+                Map.of(PROC_A, new TestProcessorConfig(PROC_A)),
+                Map.of(PROC_A, new TypeFilterSelection("TypeA")),
+                leaderElector,
+                scheduler,
+                new CapturingWakeupSource());
+
+        localProcessor.start();
+        assertThat(scheduler.fixedRateTasks).hasSize(1);
+
+        scheduler.fixedRateTasks.get(0).run();
+
+        assertThat(leaderElector.tryAcquireCalls).isEqualTo(2);
+        assertThat(scheduler.fixedRateTasks).hasSize(2);
+        assertThat(scheduler.futures.get(0).isCancelled()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Stop cancels schedules, closes wakeup source, and releases leadership")
+    void stopCancelsSchedulesClosesWakeupSourceAndReleasesLeadership() {
+        CapturingTaskScheduler scheduler = new CapturingTaskScheduler();
+        RecordingLeaderElector leaderElector = new RecordingLeaderElector();
+        CapturingWakeupSource wakeupSource = new CapturingWakeupSource();
+        SharedFetchModuleProcessor<TestProcessorConfig, String> localProcessor = newProcessor(
+                Map.of(PROC_A, new TestProcessorConfig(PROC_A)),
+                Map.of(PROC_A, new TypeFilterSelection("TypeA")),
+                leaderElector,
+                scheduler,
+                wakeupSource);
+
+        localProcessor.start();
+        assertThat(scheduler.futures).isNotEmpty();
+
+        localProcessor.stop();
+
+        assertThat(scheduler.futures).allMatch(ScheduledFuture::isCancelled);
+        assertThat(wakeupSource.closed).isTrue();
+        assertThat(leaderElector.released).isTrue();
+    }
+
+    @Test
+    @DisplayName("Wakeup source schedules immediate poll while idle")
+    void wakeupSourceSchedulesImmediatePollWhileIdle() {
+        CapturingTaskScheduler scheduler = new CapturingTaskScheduler();
+        CapturingWakeupSource wakeupSource = new CapturingWakeupSource();
+        SharedFetchModuleProcessor<TestProcessorConfig, String> localProcessor = newProcessor(
+                Map.of(PROC_A, new TestProcessorConfig(PROC_A)),
+                Map.of(PROC_A, new TypeFilterSelection("TypeA")),
+                new AlwaysLeaderElector(),
+                scheduler,
+                wakeupSource);
+        localProcessor.start();
+
+        wakeupSource.trigger();
+
+        assertThat(scheduler.immediateTasks).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("Paused catch-up processor is removed without dispatch")
+    void pausedCatchUpProcessorIsRemovedWithoutDispatch() {
+        appendEvents("TypeA", 3);
+        long advancedCursor = maxPosition(jdbcTemplate);
+        moduleScanRepo.upsertScanPosition(MODULE, advancedCursor);
+
+        SharedFetchModuleProcessor<TestProcessorConfig, String> localProcessor = newProcessor(
+                Map.of(PROC_A, new TestProcessorConfig(PROC_A)),
+                Map.of(PROC_A, new TypeFilterSelection("TypeA")),
+                new AlwaysLeaderElector(),
+                new CapturingTaskScheduler(),
+                new CapturingWakeupSource());
+        localProcessor.reloadCursorState();
+        localProcessor.pause(PROC_A);
+
+        appendEvents("TypeA", 1);
+        localProcessor.runSharedCycle();
+
+        assertThat(handlerA.getHandledCount()).isEqualTo(0);
+        assertThat(processorScanRepo.getScannedPosition(MODULE, PROC_A)).isEqualTo(0L);
+    }
+
+    @Test
+    @DisplayName("Repositories default, insert, update, and list scan positions")
+    void repositoriesDefaultInsertUpdateAndListScanPositions() {
+        assertThat(moduleScanRepo.getScanPosition("unknown-module")).isEqualTo(0L);
+        assertThat(processorScanRepo.getScannedPosition(MODULE, "unknown-processor")).isEqualTo(0L);
+
+        moduleScanRepo.upsertScanPosition(MODULE, 10L);
+        moduleScanRepo.upsertScanPosition(MODULE, 20L);
+        processorScanRepo.upsertScannedPosition(MODULE, PROC_A, 11L);
+        processorScanRepo.upsertScannedPosition(MODULE, PROC_A, 21L);
+        processorScanRepo.upsertScannedPosition(MODULE, PROC_B, 22L);
+
+        assertThat(moduleScanRepo.getScanPosition(MODULE)).isEqualTo(20L);
+        assertThat(processorScanRepo.getScannedPosition(MODULE, PROC_A)).isEqualTo(21L);
+        assertThat(processorScanRepo.getAllScannedPositions(MODULE))
+                .containsEntry(PROC_A, 21L)
+                .containsEntry(PROC_B, 22L);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void appendEvents(String type, int count) {
@@ -327,6 +473,34 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
                     .build());
         }
         eventStore.appendCommutative(events);
+    }
+
+    private SharedFetchModuleProcessor<TestProcessorConfig, String> newProcessor(
+            Map<String, TestProcessorConfig> configs,
+            Map<String, EventSelection> selections,
+            LeaderElector leaderElector,
+            TaskScheduler taskScheduler,
+            CapturingWakeupSource wakeupSource) {
+        return new SharedFetchModuleProcessor<>(
+                configs,
+                selections,
+                MODULE,
+                "test-instance",
+                leaderElector,
+                progressTracker,
+                moduleScanRepo,
+                processorScanRepo,
+                (processorId, events) -> switch (processorId) {
+                    case PROC_A -> handlerA.handle(processorId, events);
+                    case PROC_B -> handlerB.handle(processorId, events);
+                    default -> 0;
+                },
+                dataSource,
+                1000,
+                taskScheduler,
+                new org.springframework.context.support.GenericApplicationContext(),
+                Function.identity(),
+                wakeupSource);
     }
 
     private long maxPosition(JdbcTemplate jdbc) {
@@ -354,9 +528,14 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
         }
 
         TestProcessorConfig(String id, long pollingIntervalMs, int batchSize) {
+            this(id, pollingIntervalMs, batchSize, true);
+        }
+
+        TestProcessorConfig(String id, long pollingIntervalMs, int batchSize, boolean enabled) {
             this.id = id;
             this.pollingIntervalMs = pollingIntervalMs;
             this.batchSize = batchSize;
+            this.enabled = enabled;
         }
 
         @Override public String getProcessorId() { return id; }
@@ -366,7 +545,8 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
         @Override public int getBackoffThreshold() { return 0; }
         @Override public int getBackoffMultiplier() { return 0; }
         @Override public int getBackoffMaxSeconds() { return 0; }
-        @Override public boolean isEnabled() { return true; }
+        private final boolean enabled;
+        @Override public boolean isEnabled() { return enabled; }
     }
 
     static class TypeFilterSelection implements EventSelection {
@@ -412,30 +592,45 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
     }
 
     /** TaskScheduler that records submissions without running them. */
-    static class NoopTaskScheduler implements TaskScheduler {
+    static class CapturingTaskScheduler implements TaskScheduler {
+        private final List<Runnable> fixedRateTasks = new ArrayList<>();
+        private final List<Runnable> immediateTasks = new ArrayList<>();
+        private final List<FakeScheduledFuture> futures = new ArrayList<>();
+
         @Override
         public ScheduledFuture<?> schedule(Runnable task, org.springframework.scheduling.Trigger trigger) {
-            return new FakeScheduledFuture();
+            return remember(task, false);
         }
         @Override
         public ScheduledFuture<?> schedule(Runnable task, Instant startTime) {
-            return new FakeScheduledFuture();
+            return remember(task, true);
         }
         @Override
         public ScheduledFuture<?> scheduleAtFixedRate(Runnable task, Instant startTime, Duration period) {
-            return new FakeScheduledFuture();
+            return remember(task, false);
         }
         @Override
         public ScheduledFuture<?> scheduleAtFixedRate(Runnable task, Duration period) {
-            return new FakeScheduledFuture();
+            return remember(task, false);
         }
         @Override
         public ScheduledFuture<?> scheduleWithFixedDelay(Runnable task, Instant startTime, Duration delay) {
-            return new FakeScheduledFuture();
+            return remember(task, false);
         }
         @Override
         public ScheduledFuture<?> scheduleWithFixedDelay(Runnable task, Duration delay) {
-            return new FakeScheduledFuture();
+            return remember(task, false);
+        }
+
+        private ScheduledFuture<?> remember(Runnable task, boolean immediate) {
+            FakeScheduledFuture future = new FakeScheduledFuture();
+            futures.add(future);
+            if (immediate) {
+                immediateTasks.add(task);
+            } else {
+                fixedRateTasks.add(task);
+            }
+            return future;
         }
 
         static class FakeScheduledFuture implements ScheduledFuture<Void> {
@@ -445,9 +640,12 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
             @Override public boolean isDone() { return cancelled; }
             @Override public Void get() { return null; }
             @Override public Void get(long timeout, java.util.concurrent.TimeUnit unit) { return null; }
-            @Override public long getDelay(java.util.concurrent.TimeUnit unit) { return 0; }
+            @Override public long getDelay(TimeUnit unit) { return 0; }
             @Override public int compareTo(java.util.concurrent.Delayed o) { return 0; }
         }
+    }
+
+    static class NoopTaskScheduler extends CapturingTaskScheduler {
     }
 
     /** LeaderElector that always considers itself the global leader. */
@@ -456,6 +654,57 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
         @Override public void releaseGlobalLeader() {}
         @Override public boolean isGlobalLeader() { return true; }
         @Override public String getInstanceId() { return "test-instance"; }
+    }
+
+    static class RecordingLeaderElector extends AlwaysLeaderElector {
+        boolean released;
+
+        @Override
+        public void releaseGlobalLeader() {
+            released = true;
+        }
+    }
+
+    static class EventuallyLeaderElector implements LeaderElector {
+        private final boolean firstResult;
+        private final boolean laterResult;
+        int tryAcquireCalls;
+
+        EventuallyLeaderElector(boolean firstResult, boolean laterResult) {
+            this.firstResult = firstResult;
+            this.laterResult = laterResult;
+        }
+
+        @Override
+        public boolean tryAcquireGlobalLeader() {
+            tryAcquireCalls++;
+            return tryAcquireCalls == 1 ? firstResult : laterResult;
+        }
+
+        @Override public void releaseGlobalLeader() {}
+        @Override public boolean isGlobalLeader() { return tryAcquireCalls > 1 && laterResult; }
+        @Override public String getInstanceId() { return "test-instance"; }
+    }
+
+    static class CapturingWakeupSource implements com.crablet.eventpoller.wakeup.ProcessorWakeupSource {
+        private Runnable onWakeup;
+        private boolean started;
+        private boolean closed;
+
+        @Override
+        public void start(Runnable onWakeup) {
+            this.onWakeup = onWakeup;
+            this.started = true;
+        }
+
+        @Override
+        public void close() {
+            this.closed = true;
+        }
+
+        void trigger() {
+            onWakeup.run();
+        }
     }
 
     @Configuration

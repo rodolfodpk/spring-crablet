@@ -2,18 +2,37 @@ package com.crablet.automations.config;
 
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.internal.AutomationProcessorConfig;
+import com.crablet.automations.internal.AutomationWebhookClient;
 import com.crablet.command.CommandExecutor;
+import com.crablet.eventpoller.EventHandler;
+import com.crablet.eventpoller.EventSelection;
+import com.crablet.eventpoller.InstanceIdProvider;
+import com.crablet.eventpoller.config.EventPollerConfig;
+import com.crablet.eventpoller.internal.sharedfetch.SharedFetchModuleProcessor;
+import com.crablet.eventpoller.processor.EventProcessor;
+import com.crablet.eventpoller.progress.ProgressTracker;
+import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
+import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.ReadDataSource;
+import com.crablet.eventstore.WriteDataSource;
 import com.crablet.eventstore.StoredEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.env.Environment;
+import org.springframework.scheduling.TaskScheduler;
 
+import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @DisplayName("AutomationsAutoConfiguration Unit Tests")
 class AutomationsAutoConfigurationTest {
@@ -44,6 +63,86 @@ class AutomationsAutoConfigurationTest {
         assertThat(configs).containsKeys("webhook-automation", "in-process-automation");
     }
 
+    @Test
+    @DisplayName("Should reject in-process handler when CommandExecutor is absent")
+    void shouldRejectInProcessHandlerWhenCommandExecutorIsAbsent() {
+        Map<String, AutomationHandler> handlers = Map.of("in-process", handler("in-process"));
+
+        assertThatThrownBy(() -> autoConfiguration.automationEventHandler(
+                handlers,
+                mock(AutomationWebhookClient.class),
+                emptyProvider(),
+                mock(ApplicationEventPublisher.class),
+                mock(Environment.class),
+                mock(ClockProvider.class)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("In-process AutomationHandlers require a CommandExecutor bean")
+                .hasMessageContaining("in-process");
+    }
+
+    @Test
+    @DisplayName("Should allow webhook-only handlers without CommandExecutor")
+    void shouldAllowWebhookOnlyHandlersWithoutCommandExecutor() {
+        Map<String, AutomationHandler> handlers = Map.of("webhook", webhookHandler("webhook"));
+
+        EventHandler<String> eventHandler = autoConfiguration.automationEventHandler(
+                handlers,
+                mock(AutomationWebhookClient.class),
+                emptyProvider(),
+                mock(ApplicationEventPublisher.class),
+                mock(Environment.class),
+                mock(ClockProvider.class));
+
+        assertThat(eventHandler).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Should create legacy automation event processor with fallback options")
+    void shouldCreateLegacyAutomationEventProcessorWithFallbackOptions() {
+        InstanceIdProvider instanceIdProvider = mock(InstanceIdProvider.class);
+        when(instanceIdProvider.getInstanceId()).thenReturn("instance-1");
+
+        EventProcessor<AutomationProcessorConfig, String> processor = autoConfiguration.automationsEventProcessor(
+                Map.of("webhook", new AutomationProcessorConfig("webhook", new AutomationsConfig(), webhookHandler("webhook"))),
+                mock(ProgressTracker.class),
+                (processorId, lastPosition, batchSize) -> List.of(),
+                (processorId, events) -> 0,
+                instanceIdProvider,
+                new WriteDataSource(mock(DataSource.class)),
+                mock(TaskScheduler.class),
+                mock(ApplicationEventPublisher.class),
+                Optional.empty(),
+                Optional.empty());
+
+        assertThat(processor).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Should create shared-fetch automation event processor")
+    void shouldCreateSharedFetchAutomationEventProcessor() {
+        AutomationsConfig config = new AutomationsConfig();
+        config.setFetchBatchSize(25);
+        Map<String, AutomationHandler> handlers = Map.of("webhook", webhookHandler("webhook"));
+        Map<String, AutomationProcessorConfig> processorConfigs = Map.of(
+                "webhook", new AutomationProcessorConfig("webhook", config, handlers.get("webhook")));
+        InstanceIdProvider instanceIdProvider = mock(InstanceIdProvider.class);
+        when(instanceIdProvider.getInstanceId()).thenReturn("instance-1");
+
+        EventProcessor<AutomationProcessorConfig, String> processor = autoConfiguration.automationsEventProcessorSharedFetch(
+                processorConfigs,
+                handlers,
+                mock(ProgressTracker.class),
+                (processorId, events) -> 0,
+                instanceIdProvider,
+                config,
+                new WriteDataSource(mock(DataSource.class)),
+                new ReadDataSource(mock(DataSource.class)),
+                mock(TaskScheduler.class),
+                mock(ApplicationEventPublisher.class));
+
+        assertThat(processor).isInstanceOf(SharedFetchModuleProcessor.class);
+    }
+
     private static AutomationHandler handler(String name) {
         return new AutomationHandler() {
             @Override public String getAutomationName() { return name; }
@@ -67,6 +166,15 @@ class AutomationsAutoConfigurationTest {
             @Override public List<T> getIfAvailable() { return value; }
             @Override public List<T> getIfUnique() { return value; }
             @Override public List<T> getObject() { return value; }
+        };
+    }
+
+    private static <T> ObjectProvider<T> emptyProvider() {
+        return new ObjectProvider<>() {
+            @Override public T getObject(Object... args) { return null; }
+            @Override public T getIfAvailable() { return null; }
+            @Override public T getIfUnique() { return null; }
+            @Override public T getObject() { return null; }
         };
     }
 }

@@ -259,6 +259,32 @@ class ViewProcessorConfigTest {
         assertThat(config.isEnabled()).isFalse();
     }
 
+    @Test
+    @DisplayName("Should expose shared-fetch configuration properties")
+    void shouldExposeSharedFetchConfigurationProperties() {
+        ViewsConfig config = createDefaultViewsConfig();
+        ViewsConfig.SharedFetch sharedFetch = new ViewsConfig.SharedFetch();
+        Map<String, ViewSubscription> subscriptions = Map.of(
+                "wallet-view", ViewSubscription.builder("wallet-view").build());
+        sharedFetch.setEnabled(true);
+
+        config.setFetchBatchSize(333);
+        config.setMaxErrors(6);
+        config.setLeaderElectionRetryIntervalMs(17000L);
+        config.setSharedFetch(sharedFetch);
+        config.setSubscriptions(subscriptions);
+
+        assertThat(config.getFetchBatchSize()).isEqualTo(333);
+        assertThat(config.getMaxErrors()).isEqualTo(6);
+        assertThat(config.getLeaderElectionRetryIntervalMs()).isEqualTo(17000L);
+        assertThat(config.getSharedFetch()).isSameAs(sharedFetch);
+        assertThat(config.getSharedFetch().isEnabled()).isTrue();
+        assertThat(config.getSubscriptions()).isEqualTo(subscriptions);
+
+        config.setSubscriptions(null);
+        assertThat(config.getSubscriptions()).isEmpty();
+    }
+
     private ViewsConfig createDefaultViewsConfig() {
         ViewsConfig config = new ViewsConfig();
         config.setEnabled(true);
@@ -270,4 +296,3 @@ class ViewProcessorConfigTest {
         return config;
     }
 }
-
