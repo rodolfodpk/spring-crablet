@@ -1,4 +1,4 @@
-# Plan: Within-Module Batch Fetch + In-Memory Fan-Out (v11 — approved)
+# Plan: Within-Module Batch Fetch + In-Memory Fan-Out (v11 — implemented)
 
 v11 clarifies that leadership acquisition must reload persisted cursor state before the stale-position check. v10 content retained.
 
