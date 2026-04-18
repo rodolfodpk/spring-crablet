@@ -3,8 +3,12 @@ package com.crablet.outbox.config;
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventProcessorFactory;
+import com.crablet.eventpoller.EventSelection;
 import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.config.EventPollerAutoConfiguration;
+import com.crablet.eventpoller.internal.sharedfetch.ModuleScanProgressRepository;
+import com.crablet.eventpoller.internal.sharedfetch.ProcessorScanProgressRepository;
+import com.crablet.eventpoller.internal.sharedfetch.SharedFetchModuleProcessor;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
@@ -32,6 +36,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.TaskScheduler;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -134,9 +139,10 @@ public class OutboxAutoConfiguration {
     }
     
     /**
-     * Create EventProcessor bean using EventProcessorFactory.
+     * Create EventProcessor bean using EventProcessorFactory (legacy per-processor path).
      */
-    @Bean
+    @Bean("outboxEventProcessor")
+    @ConditionalOnProperty(name = "crablet.outbox.shared-fetch.enabled", havingValue = "false", matchIfMissing = true)
     public EventProcessor<OutboxProcessorConfig, TopicPublisherPair> outboxEventProcessor(
             Map<TopicPublisherPair, OutboxProcessorConfig> configs,
             LeaderElector outboxLeaderElector,
@@ -157,6 +163,48 @@ public class OutboxAutoConfiguration {
             taskScheduler,
             eventPublisher,
             wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new));
+    }
+
+    /**
+     * Shared-fetch variant: one position-only DB fetch per cycle fans out to all (topic, publisher) processors.
+     */
+    @Bean("outboxEventProcessor")
+    @ConditionalOnProperty(name = "crablet.outbox.shared-fetch.enabled", havingValue = "true")
+    public EventProcessor<OutboxProcessorConfig, TopicPublisherPair> outboxEventProcessorSharedFetch(
+            Map<TopicPublisherPair, OutboxProcessorConfig> configs,
+            Map<String, TopicConfig> topicConfigs,
+            LeaderElector outboxLeaderElector,
+            ProgressTracker<TopicPublisherPair> progressTracker,
+            EventHandler<TopicPublisherPair> eventHandler,
+            OutboxConfig outboxConfig,
+            WriteDataSource writeDataSource,
+            ReadDataSource readDataSource,
+            TaskScheduler taskScheduler,
+            ApplicationEventPublisher eventPublisher) {
+
+        Map<TopicPublisherPair, EventSelection> selections = new HashMap<>();
+        for (TopicPublisherPair pair : configs.keySet()) {
+            TopicConfig tc = topicConfigs.get(pair.topic());
+            if (tc != null) {
+                selections.put(pair, tc);
+            }
+        }
+
+        return new SharedFetchModuleProcessor<>(
+                configs,
+                selections,
+                "outbox",
+                outboxLeaderElector.getInstanceId(),
+                outboxLeaderElector,
+                progressTracker,
+                new ModuleScanProgressRepository(writeDataSource.dataSource()),
+                new ProcessorScanProgressRepository(writeDataSource.dataSource()),
+                eventHandler,
+                readDataSource.dataSource(),
+                outboxConfig.getFetchBatchSize(),
+                taskScheduler,
+                eventPublisher,
+                TopicPublisherPair::toKey);
     }
     
     /**

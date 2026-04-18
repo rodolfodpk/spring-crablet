@@ -35,6 +35,11 @@ public record TopicPublisherPair(String topic, String publisher) {
         return topic + ":" + publisher;
     }
 
+    /** Stable string key for scan-progress persistence. Use this instead of {@link #toString()} to prevent drift. */
+    public String toKey() {
+        return topic + ":" + publisher;
+    }
+
     /**
      * Returns a stable hash used as the PostgreSQL advisory-lock key for leader election.
      * Unique per {@code (topic, publisher)} combination within a deployment.

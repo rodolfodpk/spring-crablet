@@ -16,6 +16,17 @@ public class AutomationsConfig {
     private int maxBackoffSeconds = 120;
     private long leaderElectionRetryIntervalMs = 30000L;
 
+    private int fetchBatchSize = 1000;
+
+    private SharedFetch sharedFetch = new SharedFetch();
+
+    public static class SharedFetch {
+        private boolean enabled = false;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    }
+
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
 
@@ -36,4 +47,10 @@ public class AutomationsConfig {
 
     public long getLeaderElectionRetryIntervalMs() { return leaderElectionRetryIntervalMs; }
     public void setLeaderElectionRetryIntervalMs(long ms) { this.leaderElectionRetryIntervalMs = ms; }
+
+    public int getFetchBatchSize() { return fetchBatchSize; }
+    public void setFetchBatchSize(int fetchBatchSize) { this.fetchBatchSize = fetchBatchSize; }
+
+    public SharedFetch getSharedFetch() { return sharedFetch; }
+    public void setSharedFetch(SharedFetch sharedFetch) { this.sharedFetch = sharedFetch; }
 }
