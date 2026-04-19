@@ -126,6 +126,7 @@ class EventStoreImplTest {
     }
 
     @Test
+    @SuppressWarnings("NullAway") // intentionally passing null to verify constructor validation
     void shouldRejectInvalidConstructorArguments() {
         EventStoreConfig config = new EventStoreConfig();
         ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
