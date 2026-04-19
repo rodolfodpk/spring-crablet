@@ -199,8 +199,9 @@ public class AutomationsAutoConfiguration {
     @Bean
     public AutomationManagementService automationManagementService(
             @Qualifier("automationProcessorManagementService") ProcessorManagementService<String> delegate,
-            WriteDataSource writeDataSource) {
-        return new AutomationManagementService(delegate, writeDataSource.dataSource());
+            WriteDataSource writeDataSource,
+            ClockProvider clockProvider) {
+        return new AutomationManagementService(delegate, writeDataSource.dataSource(), clockProvider);
     }
 
     private static void validateUniqueHandlerNames(List<AutomationHandler> handlers) {

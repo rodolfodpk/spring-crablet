@@ -1,9 +1,20 @@
 package com.crablet.outbox.publishers;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.outbox.config.GlobalStatisticsConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -17,6 +28,8 @@ class GlobalStatisticsPublisherTest {
 
     private GlobalStatisticsPublisher publisher;
     private GlobalStatisticsConfig config;
+    private MutableClockProvider clockProvider;
+    private ListAppender<ILoggingEvent> logAppender;
 
     @BeforeEach
     void setUp() {
@@ -24,9 +37,16 @@ class GlobalStatisticsPublisherTest {
         config.setEnabled(true);
         config.setLogIntervalSeconds(1L); // Short interval for testing
         config.setLogLevel("INFO");
-        
-        publisher = new GlobalStatisticsPublisher(config);
+
+        clockProvider = new MutableClockProvider(Instant.parse("2026-01-01T00:00:00Z"));
+        publisher = new GlobalStatisticsPublisher(config, clockProvider);
         publisher.reset(); // Start fresh
+
+        Logger logger = (Logger) LoggerFactory.getLogger(GlobalStatisticsPublisher.class);
+        logAppender = new ListAppender<>();
+        logAppender.start();
+        logger.addAppender(logAppender);
+        logger.setLevel(Level.INFO);
     }
 
     @Test
@@ -280,5 +300,93 @@ class GlobalStatisticsPublisherTest {
         // Then
         assertThat(publisher.getTotalEventsProcessed()).isEqualTo(threadCount * eventsPerThread);
     }
-}
 
+    @Test
+    @DisplayName("Should log global statistics after configured interval")
+    void shouldLogGlobalStatistics_AfterConfiguredInterval() {
+        // Given
+        publisher.recordEvent("wallet", "kafka", "WalletOpened");
+        publisher.recordEvent("wallet", "webhook", "DepositMade");
+        publisher.recordEvent("ledger", "kafka", "WalletOpened");
+        logAppender.list.clear();
+
+        // When
+        clockProvider.advance(Duration.ofSeconds(1));
+        publisher.recordEvent("wallet", "kafka", "DepositMade");
+
+        // Then
+        assertThat(formattedLogMessages())
+                .anyMatch(message -> message.contains("===== Global Outbox Statistics ====="))
+                .anyMatch(message -> message.contains("Total events processed: 4"))
+                .anyMatch(message -> message.contains("Events by topic:"))
+                .anyMatch(message -> message.contains("wallet: 3"))
+                .anyMatch(message -> message.contains("Events by publisher:"))
+                .anyMatch(message -> message.contains("kafka: 3"))
+                .anyMatch(message -> message.contains("Top topic-publisher pairs:"))
+                .anyMatch(message -> message.contains("wallet:kafka: 2"))
+                .anyMatch(message -> message.contains("Events by type:"))
+                .anyMatch(message -> message.contains("WalletOpened: 2"))
+                .anyMatch(message -> message.contains("DepositMade: 2"));
+    }
+
+    @Test
+    @DisplayName("Should not log global statistics before configured interval")
+    void shouldNotLogGlobalStatistics_BeforeConfiguredInterval() {
+        // When
+        publisher.recordEvent("wallet", "kafka", "WalletOpened");
+
+        // Then
+        assertThat(formattedLogMessages())
+                .noneMatch(message -> message.contains("===== Global Outbox Statistics ====="));
+    }
+
+    @Test
+    @DisplayName("Should reset log interval using clock provider")
+    void shouldResetLogInterval_UsingClockProvider() {
+        // Given
+        publisher.recordEvent("wallet", "kafka", "WalletOpened");
+        clockProvider.advance(Duration.ofSeconds(1));
+        publisher.reset();
+        logAppender.list.clear();
+
+        // When
+        publisher.recordEvent("wallet", "kafka", "WalletOpened");
+
+        // Then
+        assertThat(formattedLogMessages())
+                .noneMatch(message -> message.contains("===== Global Outbox Statistics ====="));
+    }
+
+    private java.util.List<String> formattedLogMessages() {
+        return logAppender.list.stream()
+                .map(ILoggingEvent::getFormattedMessage)
+                .toList();
+    }
+
+    private static final class MutableClockProvider implements ClockProvider {
+        private Clock clock;
+
+        private MutableClockProvider(Instant instant) {
+            this.clock = Clock.fixed(instant, ZoneOffset.UTC);
+        }
+
+        @Override
+        public Instant now() {
+            return clock.instant();
+        }
+
+        @Override
+        public void setClock(Clock clock) {
+            this.clock = clock;
+        }
+
+        @Override
+        public void resetToSystemClock() {
+            this.clock = Clock.systemUTC();
+        }
+
+        private void advance(Duration duration) {
+            this.clock = Clock.fixed(clock.instant().plus(duration), ZoneOffset.UTC);
+        }
+    }
+}

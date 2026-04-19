@@ -231,9 +231,10 @@ public class OutboxAutoConfiguration {
             EventProcessor<OutboxProcessorConfig, TopicPublisherPair> eventProcessor,
             ProgressTracker<TopicPublisherPair> progressTracker,
             ReadDataSource readDataSource,
-            WriteDataSource writeDataSource) {
+            WriteDataSource writeDataSource,
+            ClockProvider clockProvider) {
         ProcessorManagementService<TopicPublisherPair> delegate =
                 EventProcessorFactory.createManagementService(eventProcessor, progressTracker, readDataSource);
-        return new OutboxManagementService(delegate, writeDataSource.dataSource());
+        return new OutboxManagementService(delegate, writeDataSource.dataSource(), clockProvider);
     }
 }

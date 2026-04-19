@@ -8,7 +8,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.Instant;
 
 /**
  * Abstract base class for JDBC-backed {@link ProgressTracker} implementations with a single-column primary key.
@@ -173,7 +172,7 @@ public abstract class AbstractSingleKeyProgressTracker implements ProgressTracke
                 log.info("Table {} not ready yet for {}. Flyway will create it.", tableName, processorId);
                 throw new RuntimeException("Failed to auto-register " + processorId + " - table not ready yet", e);
             }
-            log.error("Failed to auto-register {} in {} at {}", processorId, tableName, Instant.now(), e);
+            log.error("Failed to auto-register {} in {}", processorId, tableName, e);
             throw new RuntimeException("Failed to auto-register " + processorId, e);
         }
     }

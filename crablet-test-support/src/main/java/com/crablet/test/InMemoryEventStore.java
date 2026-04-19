@@ -1,9 +1,9 @@
 package com.crablet.test;
 
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.ProjectionResult;
-import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.AppendEvent;
@@ -70,7 +70,19 @@ public class InMemoryEventStore implements EventStore, CommandAuditStore {
     ) {}
     
     private final List<EventRecord> events = new ArrayList<>();
+    private final ClockProvider clockProvider;
     private long nextPosition = 1;
+
+    public InMemoryEventStore() {
+        this(ClockProvider.systemDefault());
+    }
+
+    public InMemoryEventStore(ClockProvider clockProvider) {
+        if (clockProvider == null) {
+            throw new IllegalArgumentException("clockProvider must not be null");
+        }
+        this.clockProvider = clockProvider;
+    }
     
     /**
      * Custom EventDeserializer that returns original objects directly.
@@ -118,7 +130,7 @@ public class InMemoryEventStore implements EventStore, CommandAuditStore {
         // For unit tests, we accept all appends (no DCB concurrency checks)
         // If condition is not empty, we still accept it (concurrency tested in integration tests)
         String transactionId = "tx-" + nextPosition;
-        Instant now = Instant.now();
+        Instant now = clockProvider.now();
         
         for (AppendEvent event : appendEvents) {
             EventRecord record = new EventRecord(
@@ -234,4 +246,3 @@ public class InMemoryEventStore implements EventStore, CommandAuditStore {
         return false;
     }
 }
-

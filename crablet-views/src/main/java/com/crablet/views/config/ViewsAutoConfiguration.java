@@ -97,10 +97,11 @@ public class ViewsAutoConfiguration {
             @org.springframework.beans.factory.annotation.Qualifier("viewsEventProcessor") EventProcessor<ViewProcessorConfig, String> eventProcessor,
             @org.springframework.beans.factory.annotation.Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
             ReadDataSource readDataSource,
-            WriteDataSource writeDataSource) {
+            WriteDataSource writeDataSource,
+            ClockProvider clockProvider) {
         ProcessorManagementService<String> delegate = EventProcessorFactory.createManagementService(
             eventProcessor, progressTracker, readDataSource);
-        return new ViewManagementService(delegate, writeDataSource.dataSource());
+        return new ViewManagementService(delegate, writeDataSource.dataSource(), clockProvider);
     }
 
     @Bean
