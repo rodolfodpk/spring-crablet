@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 /**
  * Maps the explicitly exposed command classes to command type identifiers.
+ * Built once at startup; immutable thereafter.
  */
 final class ExposedCommandTypeRegistry {
 
@@ -23,11 +24,9 @@ final class ExposedCommandTypeRegistry {
     static ExposedCommandTypeRegistry from(
             DiscoveredCommandRegistry discoveredCommands,
             CommandApiExposedCommands exposedCommands) {
-        Map<String, Class<?>> exposedByType = exposedCommands.commandClasses().stream()
-                .collect(Collectors.toMap(
-                        discoveredCommands::commandTypeForClass,
-                        commandClass -> commandClass,
-                        (left, right) -> left));
+        Map<String, Class<?>> exposedByType = discoveredCommands.commandTypes().stream()
+                .filter(type -> exposedCommands.test(discoveredCommands.commandClassForType(type)))
+                .collect(Collectors.toMap(type -> type, discoveredCommands::commandClassForType));
         return new ExposedCommandTypeRegistry(exposedByType, discoveredCommands.commandTypes());
     }
 
@@ -37,5 +36,9 @@ final class ExposedCommandTypeRegistry {
 
     boolean isKnown(String commandType) {
         return knownCommandTypes.contains(commandType);
+    }
+
+    Map<String, Class<?>> exposedCommandsByType() {
+        return exposedCommandsByType;
     }
 }

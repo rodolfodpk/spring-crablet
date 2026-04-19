@@ -3,10 +3,6 @@ package com.crablet.wallet.config;
 import com.crablet.command.web.CommandApiExposedCommands;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.query.EventRepository;
-import com.crablet.examples.wallet.commands.DepositCommand;
-import com.crablet.examples.wallet.commands.OpenWalletCommand;
-import com.crablet.examples.wallet.commands.TransferMoneyCommand;
-import com.crablet.examples.wallet.commands.WithdrawCommand;
 import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
@@ -68,17 +64,12 @@ public class CrabletConfig {
     // --- Command API exposure ---
 
     /**
-     * Expose wallet commands via the generic HTTP command API (POST /api/commands).
-     * Only these command types are reachable over HTTP; all others return 404.
+     * Expose all wallet commands via the generic HTTP command API (POST /api/commands).
+     * Any command class under com.crablet.examples.wallet is reachable; all others return 404.
      */
     @Bean
     public CommandApiExposedCommands commandApiExposedCommands() {
-        return CommandApiExposedCommands.of(
-                OpenWalletCommand.class,
-                DepositCommand.class,
-                WithdrawCommand.class,
-                TransferMoneyCommand.class
-        );
+        return CommandApiExposedCommands.fromPackages("com.crablet.examples.wallet");
     }
 
     // --- Wallet domain beans ---
