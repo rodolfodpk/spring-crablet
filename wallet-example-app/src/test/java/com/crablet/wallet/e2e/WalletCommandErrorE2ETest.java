@@ -1,13 +1,11 @@
 package com.crablet.wallet.e2e;
 
 import com.crablet.wallet.TestApplication;
-import com.crablet.wallet.api.dto.DepositRequest;
-import com.crablet.wallet.api.dto.OpenWalletRequest;
-import com.crablet.wallet.api.dto.WithdrawRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 
 import java.util.Map;
 
@@ -56,15 +54,21 @@ class WalletCommandErrorE2ETest extends AbstractWalletE2ETest {
 
         // Open with balance=50
         webTestClient
-            .post().uri("/api/wallets")
-            .bodyValue(new OpenWalletRequest(walletId, "Alice", 50))
+            .post().uri("/api/commands")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""
+                {"commandType":"open_wallet","walletId":"%s","owner":"Alice","initialBalance":50}
+                """.formatted(walletId))
             .exchange()
             .expectStatus().isCreated();
 
         // Try to withdraw 200 — exceeds balance
         webTestClient
-            .post().uri("/api/wallets/{id}/withdrawals", walletId)
-            .bodyValue(new WithdrawRequest("w-err-1", 200, "Too much"))
+            .post().uri("/api/commands")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""
+                {"commandType":"withdraw","withdrawalId":"w-err-1","walletId":"%s","amount":200,"description":"Too much"}
+                """.formatted(walletId))
             .exchange()
             .expectStatus().isBadRequest()
             .expectBody(Map.class)
@@ -80,8 +84,11 @@ class WalletCommandErrorE2ETest extends AbstractWalletE2ETest {
     @DisplayName("Should return 400 when depositing to a non-existent wallet")
     void shouldReturn400WhenDepositingToNonExistentWallet() {
         webTestClient
-            .post().uri("/api/wallets/ghost-wallet/deposits")
-            .bodyValue(new DepositRequest("dep-ghost-1", 100, "Test"))
+            .post().uri("/api/commands")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""
+                {"commandType":"deposit","depositId":"dep-ghost-1","walletId":"ghost-wallet","amount":100,"description":"Test"}
+                """)
             .exchange()
             .expectStatus().is4xxClientError();
     }
@@ -90,8 +97,11 @@ class WalletCommandErrorE2ETest extends AbstractWalletE2ETest {
     @DisplayName("Should return 400 when withdrawing from a non-existent wallet")
     void shouldReturn400WhenWithdrawingFromNonExistentWallet() {
         webTestClient
-            .post().uri("/api/wallets/ghost-wallet/withdrawals")
-            .bodyValue(new WithdrawRequest("w-ghost-1", 100, "Test"))
+            .post().uri("/api/commands")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""
+                {"commandType":"withdraw","withdrawalId":"w-ghost-1","walletId":"ghost-wallet","amount":100,"description":"Test"}
+                """)
             .exchange()
             .expectStatus().is4xxClientError();
     }
@@ -100,8 +110,11 @@ class WalletCommandErrorE2ETest extends AbstractWalletE2ETest {
     @DisplayName("Should create wallet successfully with zero initial balance")
     void shouldCreateWalletWithZeroBalance() {
         webTestClient
-            .post().uri("/api/wallets")
-            .bodyValue(new OpenWalletRequest("wallet-zero-1", "Bob", 0))
+            .post().uri("/api/commands")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""
+                {"commandType":"open_wallet","walletId":"wallet-zero-1","owner":"Bob","initialBalance":0}
+                """)
             .exchange()
             .expectStatus().isCreated();
     }

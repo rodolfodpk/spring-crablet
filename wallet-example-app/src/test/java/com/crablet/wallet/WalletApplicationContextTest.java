@@ -2,7 +2,6 @@ package com.crablet.wallet;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.EventStore;
-import com.crablet.wallet.api.WalletController;
 import com.crablet.wallet.api.WalletQueryController;
 import com.crablet.wallet.view.config.ViewConfiguration;
 import org.junit.jupiter.api.DisplayName;
@@ -35,9 +34,6 @@ class WalletApplicationContextTest extends AbstractWalletTest {
     private CommandExecutor commandExecutor;
 
     @Autowired
-    private WalletController walletController;
-
-    @Autowired
     private WalletQueryController walletQueryController;
 
     @Autowired
@@ -59,12 +55,6 @@ class WalletApplicationContextTest extends AbstractWalletTest {
     @DisplayName("CommandExecutor bean should be present")
     void commandExecutorShouldBePresent() {
         assertThat(commandExecutor).isNotNull();
-    }
-
-    @Test
-    @DisplayName("WalletController bean should be present")
-    void walletControllerShouldBePresent() {
-        assertThat(walletController).isNotNull();
     }
 
     @Test

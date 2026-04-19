@@ -4,12 +4,8 @@ import com.crablet.examples.wallet.exceptions.InsufficientFundsException;
 import com.crablet.examples.wallet.exceptions.WalletNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Global exception handler for wallet API.
@@ -33,16 +29,6 @@ public class GlobalExceptionHandler {
         problem.setProperty("walletId", ex.walletId);
         problem.setProperty("currentBalance", ex.currentBalance);
         problem.setProperty("requestedAmount", ex.requestedAmount);
-        return problem;
-    }
-
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ProblemDetail handleValidationErrors(MethodArgumentNotValidException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Validation failed");
-        problem.setTitle("Validation Failed");
-        Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()
-                .collect(Collectors.toMap(e -> e.getField(), e -> e.getDefaultMessage(), (a, b) -> a));
-        problem.setProperty("errors", errors);
         return problem;
     }
 

@@ -1,13 +1,11 @@
 package com.crablet.wallet.e2e;
 
+import com.crablet.command.web.CommandApiResponse;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.views.internal.ViewProcessorConfig;
 import com.crablet.views.ViewSubscription;
 import com.crablet.wallet.TestApplication;
-import com.crablet.wallet.api.dto.DepositRequest;
-import com.crablet.wallet.api.dto.OpenWalletRequest;
 import com.crablet.wallet.api.dto.WalletResponse;
-import com.crablet.wallet.api.dto.WithdrawRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -17,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
@@ -99,26 +98,18 @@ class WalletLifecycleE2ETest extends AbstractWalletE2ETest {
         jdbcTemplate.execute("TRUNCATE TABLE wallet_transaction_view CASCADE");
         jdbcTemplate.execute("TRUNCATE TABLE wallet_summary_view CASCADE");
         
-        // Given
-        OpenWalletRequest request = new OpenWalletRequest(
-            WALLET_ID,
-            OWNER,
-            100
-        );
-        
         // When & Then
         webTestClient
             .post()
-            .uri("/api/wallets")
-            .bodyValue(request)
+            .uri("/api/commands")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""
+                {"commandType":"open_wallet","walletId":"%s","owner":"%s","initialBalance":100}
+                """.formatted(WALLET_ID, OWNER))
             .exchange()
             .expectStatus().isCreated()
-            .expectBody(WalletResponse.class)
-            .value(response -> {
-                assertThat(response.walletId()).isEqualTo(WALLET_ID);
-                assertThat(response.owner()).isEqualTo(OWNER);
-                assertThat(response.balance()).isEqualTo(100);
-            });
+            .expectBody(CommandApiResponse.class)
+            .value(r -> assertThat(r.status()).isEqualTo("CREATED"));
         
         // Process views to ensure they're updated
         processAllViews();
@@ -151,24 +142,19 @@ class WalletLifecycleE2ETest extends AbstractWalletE2ETest {
     @DisplayName("Should deposit money into wallet")
     void shouldDepositMoney() {
         // Given - Wallet exists with balance=100
-        
-        DepositRequest request = new DepositRequest(
-            "deposit-lifecycle-1",
-            50,
-            "Initial deposit"
-        );
-        
+
         // When & Then
         webTestClient
             .post()
-            .uri("/api/wallets/{walletId}/deposits", WALLET_ID)
-            .bodyValue(request)
+            .uri("/api/commands")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""
+                {"commandType":"deposit","depositId":"deposit-lifecycle-1","walletId":"%s","amount":50,"description":"Initial deposit"}
+                """.formatted(WALLET_ID))
             .exchange()
-            .expectStatus().isOk()
-            .expectBody(WalletResponse.class)
-            .value(response -> {
-                assertThat(response.walletId()).isEqualTo(WALLET_ID);
-            });
+            .expectStatus().isCreated()
+            .expectBody(CommandApiResponse.class)
+            .value(r -> assertThat(r.status()).isEqualTo("CREATED"));
         
         // Process views to ensure they're updated
         processAllViews();
@@ -200,24 +186,19 @@ class WalletLifecycleE2ETest extends AbstractWalletE2ETest {
     @DisplayName("Should withdraw money from wallet")
     void shouldWithdrawMoney() {
         // Given - Wallet has balance=150
-        
-        WithdrawRequest request = new WithdrawRequest(
-            "withdrawal-lifecycle-1",
-            30,
-            "Purchase"
-        );
-        
+
         // When & Then
         webTestClient
             .post()
-            .uri("/api/wallets/{walletId}/withdrawals", WALLET_ID)
-            .bodyValue(request)
+            .uri("/api/commands")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""
+                {"commandType":"withdraw","withdrawalId":"withdrawal-lifecycle-1","walletId":"%s","amount":30,"description":"Purchase"}
+                """.formatted(WALLET_ID))
             .exchange()
-            .expectStatus().isOk()
-            .expectBody(WalletResponse.class)
-            .value(response -> {
-                assertThat(response.walletId()).isEqualTo(WALLET_ID);
-            });
+            .expectStatus().isCreated()
+            .expectBody(CommandApiResponse.class)
+            .value(r -> assertThat(r.status()).isEqualTo("CREATED"));
         
         // Process views to ensure they're updated
         processAllViews();
