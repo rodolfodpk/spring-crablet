@@ -8,7 +8,7 @@ Light framework component for transactional outbox event publishing with DCB eve
 
 `crablet-outbox` is a poller-backed add-on.
 
-It should not be part of the first adoption promise. Start with the command side, then add outbox when the event model is stable and you need reliable external publication. For learning, one application instance is the recommended setup. For production, default to one application instance per cluster when outbox is enabled.
+It should not be part of the first adoption promise. Start with the command side, then add outbox when the event model is stable and you need reliable external publication. For learning, one application instance is the recommended setup. For production, default to one application instance per cluster for the simplest topology, or run outbox as its own singleton worker service.
 
 ## Start Here
 
@@ -114,7 +114,8 @@ Crablet Outbox uses:
 - **At-least-once delivery**: Events may be published multiple times (idempotent consumers required)
 
 **Recommended deployment:**
-- **1 application instance per cluster**: The default documented topology
+- **1 application instance per cluster**: The simplest documented topology
+- **One singleton outbox worker service** if outbox needs operational isolation
 
 Additional replicas do not increase throughput for the same `(topic, publisher)` processors because leader election keeps only one active leader per processor set.
 

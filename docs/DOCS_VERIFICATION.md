@@ -16,7 +16,7 @@ make docs-generate-check
 It currently validates:
 
 - relative markdown links resolve to real files
-- key deployment docs keep the agreed wording `1 application instance per cluster`
+- key deployment docs keep the agreed topology wording: `1 application instance per cluster` plus per-module poller clarification
 - outdated wording such as `2 instances at most` does not reappear in the main onboarding docs
 - early tutorials include explicit `EventType.type(...)` import context
 - the outbox tutorial matches the current `OutboxPublisher` API shape

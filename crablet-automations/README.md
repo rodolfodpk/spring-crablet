@@ -6,7 +6,7 @@ Light framework component for event-driven automations (policies) with Spring Bo
 
 `crablet-automations` is a poller-backed add-on.
 
-It should come after the command side, not before it. For learning, one application instance running commands and automations together is the clearest setup. For production, default to one application instance per cluster when automations are enabled.
+It should come after the command side, not before it. For learning, one application instance running commands and automations together is the clearest setup. For production, default to one application instance per cluster for the simplest topology, or run automations as their own singleton worker service.
 
 ## Start Here
 
@@ -24,7 +24,8 @@ Crablet Automations implements the "when X happens, do Y" pattern from event sto
 
 Recommended production shape:
 
-- run **1 application instance per cluster** in the normal case
+- run **1 application instance per cluster** in the simplest case
+- if automations need isolation, run one singleton automations worker service with one elected active automations poller
 
 The poller elects one active leader for the automation processors, so additional replicas do not make the same automations process faster; they mainly add standby behavior and operational complexity.
 

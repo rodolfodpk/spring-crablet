@@ -52,13 +52,14 @@ The series now stays close to the wallet example used elsewhere in the repositor
 
 ## Deployment Note For Poller-Based Modules
 
-`crablet-views`, `crablet-automations`, and `crablet-outbox` all use the same shared poller infrastructure internally.
+`crablet-views`, `crablet-automations`, and `crablet-outbox` all use the same event poller infrastructure internally, but each module wires its own module-level poller.
 
 In production, the default recommendation is:
 
-- run **1 application instance per cluster**
+- run **1 application instance per cluster** for the simplest topology
+- if you want isolation, run one singleton worker service per poller-backed module
 
-The poller uses leader election so only one instance is actively processing at a time. Extra replicas do not increase throughput for the same processor set; they mainly add standby behavior and operational complexity.
+Each module poller uses leader election, so only one instance is actively processing that module's processor set at a time. Extra replicas of the same singleton worker service do not increase throughput for the same processor set; they mainly add standby behavior and operational complexity.
 
 ## Configuration Note For Poller-Based Modules
 
@@ -73,6 +74,6 @@ Examples:
 - automations: global `crablet.automations.*` plus one `AutomationHandler` per automation
 - outbox: global `crablet.outbox.*` plus one resolved processor per `(topic, publisher)` pair
 
-This is intentional. The shared processor runtime always runs per processor instance, even when many processors share the same module-level defaults.
+This is intentional. The processor runtime always runs per processor instance in the default path, even when many processors share the same module-level defaults. When shared-fetch is enabled, that sharing is still module-scoped.
 
 For deeper details, see [Leader Election](LEADER_ELECTION.md) and the module READMEs for `views`, `automations`, and `outbox`. If you need the shared infrastructure details directly, see [Event Poller](../crablet-event-poller/README.md).

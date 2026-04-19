@@ -7,8 +7,9 @@ Crablet uses **PostgreSQL advisory locks** for distributed leader election, ensu
 Leader election is used by:
 - **crablet-outbox**: Ensures only one instance publishes events to external systems
 - **crablet-views**: Ensures only one instance projects events into materialized views
+- **crablet-automations**: Ensures only one instance runs automation processors
 
-Both modules use the generic event processor infrastructure (`crablet-event-poller`) which provides the leader election mechanism.
+These modules use the generic event processor infrastructure (`crablet-event-poller`) which provides the leader election mechanism.
 
 Because PostgreSQL advisory locks are session-scoped, the datasource behind leader election must preserve session semantics. If you use connection poolers such as PgBouncer or PgCat, the write path must use a session-compatible endpoint.
 
@@ -28,7 +29,7 @@ SELECT pg_try_advisory_lock(4856221667890123456);
 - **Non-blocking**: `pg_try_advisory_lock()` returns immediately (doesn't wait)
 - **Session-scoped**: Lock is held for the duration of the database connection
 - **Automatic release**: Lock is automatically released when the connection closes
-- **Unique per key**: Different modules use different lock keys (outbox vs views)
+- **Unique per key**: Different modules use different lock keys
 
 ### Leader Acquisition Process
 
@@ -40,6 +41,7 @@ SELECT pg_try_advisory_lock(4856221667890123456);
 2. **Lock Attempt**: Uses `pg_try_advisory_lock()` with a module-specific key:
    - **Outbox**: Lock key `4856221667890123456`
    - **Views**: Lock key `4856221667890123457`
+   - **Automations**: Lock key `4856221667890123458`
 
 3. **Result**:
    - If lock acquired → Instance becomes leader, starts processing
@@ -47,7 +49,7 @@ SELECT pg_try_advisory_lock(4856221667890123456);
 
 4. **Leader Processing**: Only the leader instance:
    - Polls events from the event store
-   - Processes events (publishes to external systems or projects to views)
+   - Processes events for that module
    - Updates progress tracking
 
 ## Crash Detection and Failover
@@ -132,8 +134,9 @@ Each module uses a unique advisory lock key to prevent conflicts:
 |--------|----------|---------|
 | **Outbox** | `4856221667890123456` | Global lock for all outbox publishers |
 | **Views** | `4856221667890123457` | Global lock for all view projections |
+| **Automations** | `4856221667890123458` | Global lock for all automation processors |
 
-**Note**: Different lock keys allow the same instance to be leader for both outbox and views simultaneously, or different instances can be leaders for different modules.
+**Note**: Different lock keys allow the same instance to be leader for outbox, views, and automations simultaneously, or different instances can be leaders for different modules.
 
 ## Configuration
 
@@ -159,7 +162,7 @@ These values provide a good balance between failover speed and database load. Lo
 
 **Run 2+ instances** (1 leader + 1+ backups) for zero-downtime failover:
 
-- **1 leader instance**: Processes all events (outbox publishing or view projections)
+- **1 leader instance per module**: Processes that module's events
 - **1+ follower instances**: Ready to take over if leader crashes
 - **Zero-downtime failover**: If leader crashes, a follower takes over within 5-30 seconds
 - **All instances**: Can handle command API requests (writes) - leader election only affects background processing
@@ -170,7 +173,7 @@ These values provide a good balance between failover speed and database load. Lo
 You can run **more than 2 instances**:
 
 - **3+ instances**: Provides additional redundancy
-- **Only 1 leader**: Still only one instance processes events
+- **Only 1 leader per module**: Still only one instance processes a module's events
 - **Multiple followers**: All ready for failover
 - **Command API**: All instances can handle writes (not affected by leader election)
 
