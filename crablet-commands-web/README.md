@@ -9,6 +9,46 @@ Add this module when your application wants to accept commands over HTTP without
 custom controller per command type. It is a pure delivery adapter — all consistency and
 business logic remain in the command handlers.
 
+## vs. custom REST controllers
+
+Both approaches are valid — choose based on what your HTTP API needs to express.
+
+**Use `crablet-commands-web`** when the generic `commandType`-dispatch pattern is enough:
+- Internal tooling, admin panels, or service-to-service calls
+- Rapid prototyping where endpoint shape doesn't matter yet
+- Callers that already understand the `commandType` convention
+
+**Write a custom `@RestController`** with request/response DTOs when you need:
+- Domain-specific URLs (`POST /api/wallets/{id}/deposits` vs `POST /api/commands`)
+- Custom response bodies beyond `{"status":"CREATED"}`
+- Per-field validation with `@Valid` / `@NotBlank` on DTO fields
+- Fine-grained Swagger/OpenAPI annotations per endpoint
+- Public-facing APIs consumed by clients not aware of the `commandType` convention
+
+Custom controllers inject `CommandExecutor` directly — no extra framework plumbing:
+
+```java
+@RestController
+@RequestMapping("/api/wallets")
+class WalletController {
+
+    private final CommandExecutor commandExecutor;
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    WalletResponse openWallet(@RequestBody @Valid OpenWalletRequest req) {
+        commandExecutor.execute(
+            new OpenWalletCommand(req.walletId(), req.owner(), req.initialBalance()));
+        return WalletResponse.of(req.walletId(), req.owner(), req.initialBalance());
+    }
+}
+```
+
+**Both can coexist.** A common pattern: use `crablet-commands-web` for writes and add a
+custom `@RestController` for reads — query results need domain-shaped response DTOs anyway.
+The wallet-example-app follows this pattern: writes go through `POST /api/commands`, reads
+go through `WalletQueryController` with its `WalletResponse` DTO.
+
 ## Maven Coordinates
 
 ```xml

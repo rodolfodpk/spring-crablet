@@ -158,11 +158,9 @@ Expected outcome:
 
 ## API Endpoints
 
-### Commands (Write Operations)
+### Write API
 
-#### Generic Command API
-
-All wallet commands are also accessible via the generic command endpoint provided by `crablet-commands-web`:
+All write operations go through the generic command endpoint provided by `crablet-commands-web`:
 
 ```bash
 POST /api/commands
@@ -180,56 +178,6 @@ X-Correlation-ID: <optional UUID>   # auto-generated when absent
 The `commandType` field selects the handler. Only commands declared in the `CommandApiExposedCommands` bean are reachable; all others return `404`.
 
 The optional `X-Correlation-ID` request header ties all events produced by the same HTTP request together. If omitted, a random UUID is generated automatically. The correlation ID is stored on every appended event and is readable via `StoredEvent.correlationId()`.
-
-#### Open Wallet
-```bash
-POST /api/wallets
-Content-Type: application/json
-
-{
-  "walletId": "wallet-123",
-  "owner": "John Doe",
-  "initialBalance": 100
-}
-```
-
-#### Deposit Money
-```bash
-POST /api/wallets/{walletId}/deposits
-Content-Type: application/json
-
-{
-  "depositId": "deposit-456",
-  "amount": 50,
-  "description": "Salary payment"
-}
-```
-
-#### Withdraw Money
-```bash
-POST /api/wallets/{walletId}/withdrawals
-Content-Type: application/json
-
-{
-  "withdrawalId": "withdrawal-789",
-  "amount": 25,
-  "description": "Purchase at store"
-}
-```
-
-#### Transfer Money
-```bash
-POST /api/wallets/transfers
-Content-Type: application/json
-
-{
-  "transferId": "transfer-101",
-  "fromWalletId": "wallet-123",
-  "toWalletId": "wallet-456",
-  "amount": 30,
-  "description": "Payment for services"
-}
-```
 
 ### Queries (Read Operations)
 
