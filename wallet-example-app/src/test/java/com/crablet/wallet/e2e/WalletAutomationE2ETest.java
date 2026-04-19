@@ -3,7 +3,6 @@ package com.crablet.wallet.e2e;
 import com.crablet.automations.internal.AutomationProcessorConfig;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.wallet.TestApplication;
-import com.crablet.wallet.api.dto.OpenWalletRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -12,6 +11,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.Map;
@@ -62,9 +62,12 @@ class WalletAutomationE2ETest extends AbstractWalletE2ETest {
         UUID correlationId = UUID.randomUUID();
 
         webTestClient
-            .post().uri("/api/wallets")
+            .post().uri("/api/commands")
             .header("X-Correlation-ID", correlationId.toString())
-            .bodyValue(new OpenWalletRequest(WALLET_ID, "Alice", 100))
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""
+                {"commandType":"open_wallet","walletId":"%s","owner":"Alice","initialBalance":100}
+                """.formatted(WALLET_ID))
             .exchange()
             .expectStatus().isCreated()
             .expectHeader().valueEquals("X-Correlation-ID", correlationId.toString());
@@ -114,8 +117,11 @@ class WalletAutomationE2ETest extends AbstractWalletE2ETest {
 
         // Open wallet via HTTP
         webTestClient
-            .post().uri("/api/wallets")
-            .bodyValue(new OpenWalletRequest(WALLET_ID, "Alice", 100))
+            .post().uri("/api/commands")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""
+                {"commandType":"open_wallet","walletId":"%s","owner":"Alice","initialBalance":100}
+                """.formatted(WALLET_ID))
             .exchange()
             .expectStatus().isCreated();
 
@@ -151,8 +157,11 @@ class WalletAutomationE2ETest extends AbstractWalletE2ETest {
     void shouldSendNotificationForEachWallet() {
         // Open a second wallet
         webTestClient
-            .post().uri("/api/wallets")
-            .bodyValue(new OpenWalletRequest("wallet-automation-e2e-2", "Bob", 200))
+            .post().uri("/api/commands")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""
+                {"commandType":"open_wallet","walletId":"wallet-automation-e2e-2","owner":"Bob","initialBalance":200}
+                """)
             .exchange()
             .expectStatus().isCreated();
 

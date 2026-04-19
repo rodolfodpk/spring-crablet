@@ -11,14 +11,12 @@ import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;
 import com.crablet.wallet.TestApplication;
-import com.crablet.wallet.api.dto.DepositRequest;
-import com.crablet.wallet.api.dto.OpenWalletRequest;
-import com.crablet.wallet.api.dto.WithdrawRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
@@ -79,9 +77,12 @@ class WalletCorrelationCausationE2ETest extends AbstractWalletE2ETest {
         UUID corr3 = UUID.randomUUID(); // withdraw request
 
         // --- Command 1: open wallet ---
-        webTestClient.post().uri("/api/wallets")
+        webTestClient.post().uri("/api/commands")
             .header("X-Correlation-ID", corr1.toString())
-            .bodyValue(new OpenWalletRequest(WALLET_ID, "Alice", 100))
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""
+                {"commandType":"open_wallet","walletId":"%s","owner":"Alice","initialBalance":100}
+                """.formatted(WALLET_ID))
             .exchange()
             .expectStatus().isCreated()
             .expectHeader().valueEquals("X-Correlation-ID", corr1.toString());
@@ -90,19 +91,25 @@ class WalletCorrelationCausationE2ETest extends AbstractWalletE2ETest {
         automationsEventProcessor.process(AUTOMATION_NAME);
 
         // --- Command 2: deposit ---
-        webTestClient.post().uri("/api/wallets/{id}/deposits", WALLET_ID)
+        webTestClient.post().uri("/api/commands")
             .header("X-Correlation-ID", corr2.toString())
-            .bodyValue(new DepositRequest("deposit-corr-1", 50, "Salary"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""
+                {"commandType":"deposit","depositId":"deposit-corr-1","walletId":"%s","amount":50,"description":"Salary"}
+                """.formatted(WALLET_ID))
             .exchange()
-            .expectStatus().isOk()
+            .expectStatus().isCreated()
             .expectHeader().valueEquals("X-Correlation-ID", corr2.toString());
 
         // --- Command 3: withdraw ---
-        webTestClient.post().uri("/api/wallets/{id}/withdrawals", WALLET_ID)
+        webTestClient.post().uri("/api/commands")
             .header("X-Correlation-ID", corr3.toString())
-            .bodyValue(new WithdrawRequest("withdrawal-corr-1", 30, "Purchase"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""
+                {"commandType":"withdraw","withdrawalId":"withdrawal-corr-1","walletId":"%s","amount":30,"description":"Purchase"}
+                """.formatted(WALLET_ID))
             .exchange()
-            .expectStatus().isOk()
+            .expectStatus().isCreated()
             .expectHeader().valueEquals("X-Correlation-ID", corr3.toString());
 
         // --- Query events via EventRepository (not raw SQL) ---

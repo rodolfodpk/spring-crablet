@@ -16,32 +16,39 @@ Crablet is a Java 25 event sourcing framework for Spring Boot. It is designed fo
 
 ## 5-Minute Quickstart
 
-For learning, start with **one application instance** running the full stack together. The example app expects a local PostgreSQL database named `wallet_db`; see the [Quickstart](docs/QUICKSTART.md) for the exact first-run setup.
+The core of Crablet is a command handler and an executor.
 
-```bash
-make install
-make start
+**Define an event and a handler:**
+
+```java
+public record WalletOpened(String walletId, String owner) implements WalletEvent {}
+
+@Component
+public class OpenWalletCommandHandler
+        implements IdempotentCommandHandler<OpenWalletCommand> {
+
+    @Override
+    public CommandDecision.Idempotent decide(EventStore eventStore,
+                                             OpenWalletCommand command) {
+        AppendEvent event = AppendEvent.builder(type(WalletOpened.class))
+                .tag(WALLET_ID, command.walletId())
+                .data(new WalletOpened(command.walletId(), command.owner()))
+                .build();
+        return CommandDecision.Idempotent.of(
+                event, type(WalletOpened.class), WALLET_ID, command.walletId());
+    }
+}
 ```
 
-Create a wallet in the example app:
+**Execute — Spring Boot auto-discovers all `@Component` handlers:**
 
-```bash
-curl -X POST http://localhost:8080/api/wallets \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "walletId": "wallet-123",
-    "owner": "Jane Doe",
-    "initialBalance": 100
-  }'
+```java
+commandExecutor.execute(new OpenWalletCommand("wallet-123", "Jane Doe", 100));
 ```
 
-Then read it back:
+That is the entire write side. `CommandExecutor` wraps the handler in a transaction, runs the DCB check, and appends the event atomically. Views, outbox, automations, and an optional HTTP command adapter are layered on top independently.
 
-```bash
-curl http://localhost:8080/api/wallets/wallet-123
-```
-
-Next steps:
+To run the complete wallet example app locally, see [Quickstart](docs/QUICKSTART.md).
 
 | Goal | Read |
 |------|------|

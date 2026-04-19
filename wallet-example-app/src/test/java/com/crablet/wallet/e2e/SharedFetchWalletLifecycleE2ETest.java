@@ -1,12 +1,10 @@
 package com.crablet.wallet.e2e;
 
+import com.crablet.command.web.CommandApiResponse;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.views.internal.ViewProcessorConfig;
 import com.crablet.wallet.TestApplication;
-import com.crablet.wallet.api.dto.DepositRequest;
-import com.crablet.wallet.api.dto.OpenWalletRequest;
 import com.crablet.wallet.api.dto.WalletResponse;
-import com.crablet.wallet.api.dto.WithdrawRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -16,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
@@ -86,12 +85,15 @@ class SharedFetchWalletLifecycleE2ETest extends AbstractWalletE2ETest {
         } catch (Exception ignored) {}
 
         webTestClient.post()
-                .uri("/api/wallets")
-                .bodyValue(new OpenWalletRequest(WALLET_ID, OWNER, 100))
+                .uri("/api/commands")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("""
+                    {"commandType":"open_wallet","walletId":"%s","owner":"%s","initialBalance":100}
+                    """.formatted(WALLET_ID, OWNER))
                 .exchange()
                 .expectStatus().isCreated()
-                .expectBody(WalletResponse.class)
-                .value(response -> assertThat(response.walletId()).isEqualTo(WALLET_ID));
+                .expectBody(CommandApiResponse.class)
+                .value(r -> assertThat(r.status()).isEqualTo("CREATED"));
 
         processAllViews();
     }
@@ -119,10 +121,13 @@ class SharedFetchWalletLifecycleE2ETest extends AbstractWalletE2ETest {
     @DisplayName("Deposit is reflected in balance view")
     void shouldDepositAndSeeUpdatedBalance() {
         webTestClient.post()
-                .uri("/api/wallets/{walletId}/deposits", WALLET_ID)
-                .bodyValue(new DepositRequest("dep-sf-1", 50, "top-up"))
+                .uri("/api/commands")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("""
+                    {"commandType":"deposit","depositId":"dep-sf-1","walletId":"%s","amount":50,"description":"top-up"}
+                    """.formatted(WALLET_ID))
                 .exchange()
-                .expectStatus().isOk();
+                .expectStatus().isCreated();
 
         processAllViews();
 
@@ -140,10 +145,13 @@ class SharedFetchWalletLifecycleE2ETest extends AbstractWalletE2ETest {
     @DisplayName("Withdrawal is reflected in balance view")
     void shouldWithdrawAndSeeUpdatedBalance() {
         webTestClient.post()
-                .uri("/api/wallets/{walletId}/withdrawals", WALLET_ID)
-                .bodyValue(new WithdrawRequest("wdr-sf-1", 30, "purchase"))
+                .uri("/api/commands")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("""
+                    {"commandType":"withdraw","withdrawalId":"wdr-sf-1","walletId":"%s","amount":30,"description":"purchase"}
+                    """.formatted(WALLET_ID))
                 .exchange()
-                .expectStatus().isOk();
+                .expectStatus().isCreated();
 
         processAllViews();
 

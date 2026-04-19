@@ -6,7 +6,6 @@ import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.TopicPublisherPair;
 import com.crablet.outbox.internal.OutboxProcessorConfig;
 import com.crablet.wallet.TestApplication;
-import com.crablet.wallet.api.dto.OpenWalletRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +13,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.MediaType;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -66,8 +66,11 @@ class WalletOutboxE2ETest extends AbstractWalletE2ETest {
         jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
         capturingPublisher.clear();
 
-        webTestClient.post().uri("/api/wallets")
-            .bodyValue(new OpenWalletRequest(WALLET_ID, "Alice", 100))
+        webTestClient.post().uri("/api/commands")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""
+                {"commandType":"open_wallet","walletId":"%s","owner":"Alice","initialBalance":100}
+                """.formatted(WALLET_ID))
             .exchange()
             .expectStatus().isCreated();
 
