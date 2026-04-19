@@ -149,7 +149,8 @@ public class WelcomeNotificationWebhookAutomation implements AutomationHandler {
 
 Recommended production shape:
 
-- run **1 application instance per cluster**
+- run **1 application instance per cluster** for the simplest topology
+- if automations need isolation, run one singleton automations worker service
 
 More replicas do not make the same automation processors run faster. They mainly add standby behavior while one elected leader does the work.
 

@@ -209,6 +209,11 @@ check_required_phrase "(1|one) application instance per cluster" "1 application 
   "crablet-views/README.md" \
   "crablet-outbox/README.md" \
   "crablet-automations/README.md"
+check_required_phrase "singleton worker service per poller-backed module|one active poller per (poller-backed )?module" "singleton worker service per poller-backed module or one active poller per module" \
+  "README.md" \
+  "docs/DEPLOYMENT_TOPOLOGY.md" \
+  "docs/TUTORIAL.md" \
+  "crablet-event-poller/README.md"
 check_tutorial_import_context
 check_canonical_fixture_links
 check_outbox_api_snippet

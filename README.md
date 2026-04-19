@@ -60,7 +60,7 @@ It is probably not the right tool if plain CRUD is enough, one aggregate per com
 
 - **Learning mode:** run one application instance with commands, views, automations, and outbox together. See [Learning Mode](docs/LEARNING_MODE.md).
 - **Command-only production:** applications using only `crablet-eventstore` and `crablet-commands` can scale horizontally in the normal Spring Boot way. See [Commands-First Adoption](docs/COMMANDS_FIRST_ADOPTION.md).
-- **Poller-backed production:** applications enabling views, outbox, or automations should default to **one application instance per cluster**. See [Deployment Topology](docs/DEPLOYMENT_TOPOLOGY.md).
+- **Poller-backed production:** applications enabling views, outbox, or automations should default to **one application instance per cluster** for the simplest topology, or use one singleton worker service per poller-backed module for isolation. See [Deployment Topology](docs/DEPLOYMENT_TOPOLOGY.md).
 
 ## Modules
 

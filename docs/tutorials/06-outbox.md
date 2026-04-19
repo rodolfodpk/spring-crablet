@@ -87,7 +87,8 @@ Outbox is also built on `crablet-event-poller`.
 
 Recommended production shape:
 
-- run **1 application instance per cluster**
+- run **1 application instance per cluster** for the simplest topology
+- if outbox needs isolation, run one singleton outbox worker service
 
 Adding many replicas does not increase throughput for a given `(topic, publisher)` processor set. One leader remains active, the others wait in standby.
 

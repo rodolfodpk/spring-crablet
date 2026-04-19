@@ -14,12 +14,12 @@ It is not the first module most users should reach for directly. The recommended
 - add `crablet-commands`
 - only then add poller-backed modules if you need them
 
-For learning, run one application instance. For production, the default documented topology for poller-backed modules is one application instance per cluster.
+For learning, run one application instance. For production, reason about poller-backed modules separately: views, outbox, and automations each create their own event poller with its own scheduler, leader election, and progress table. A distributed deployment can therefore have one active poller per module, not just one active poller for the whole application.
 
 ## Start Here
 
 - Most users should not start with this module directly
-- Read this when you need to understand shared poller behavior across views, outbox, or automations
+- Read this when you need to understand poller behavior across views, outbox, or automations
 - The highest-signal sections are `Deployment Recommendation`, `Wakeup Notifications`, and `Configuration Model`
 
 ## Overview
@@ -42,17 +42,57 @@ This module is used by:
 
 For modules built on `crablet-event-poller`, the default production recommendation is:
 
-- run **1 application instance per cluster**
+- default to **1 application instance per cluster** running views, outbox, and automations together when you want the simplest correctness-first topology
+- if you want operational isolation, run each poller-backed module as its own singleton worker service: one views worker, one outbox worker, and one automations worker
 
 This recommendation is the same whether you deploy with Docker Compose, Kubernetes, ECS, Nomad, or plain VMs.
 
 Important:
 
-- the poller uses leader election, so only one instance is actively processing a given processor set
-- extra replicas do **not** increase throughput for the same processors
-- extra replicas mainly add standby behavior and operational complexity
+- each module has its own poller: `crablet-views`, `crablet-outbox`, and `crablet-automations` do not share one global event poller
+- each module poller uses its own leader election key, so different modules can be active on different application instances
+- extra replicas of a singleton worker running the same module do **not** increase throughput for that module's same processors
+- extra replicas mainly add standby behavior and operational complexity for that module's poller
 
-If you need more throughput, split processor responsibilities or reduce polling cost; do not assume many replicas will help.
+If you need more throughput, split processor responsibilities, isolate modules into singleton worker services, tune batch sizes, or reduce polling cost; do not assume many replicas of the same module worker will help.
+
+### Module-level pollers
+
+The built-in poller-backed modules wire the infrastructure independently:
+
+| Module | Poller scope | Leader election |
+|---|---|---|
+| `crablet-views` | view processors | views module lock |
+| `crablet-outbox` | `(topic, publisher)` processors | outbox module lock |
+| `crablet-automations` | automation processors | automations module lock |
+
+This gives you two normal deployment shapes.
+
+Default combined service:
+
+- one application service instance runs commands/API plus views, outbox, and automations
+- each module still has its own module-level poller inside that one process
+
+Isolated singleton workers:
+
+- one command/API deployment, scaled horizontally
+- one singleton views worker service, with one elected active views poller
+- one singleton outbox worker service, with one elected active outbox poller
+- one singleton automations worker service, with one elected active automations poller
+
+The leader election boundary is per module. A views backlog does not require the outbox or automations poller to be idle, and a different pod or VM may hold each module's leadership lock.
+
+### Shared-fetch mode
+
+Shared-fetch is also module-scoped. When enabled for a module, that module uses one shared fetch loop for all processors inside the module:
+
+```properties
+crablet.views.shared-fetch.enabled=true
+crablet.outbox.shared-fetch.enabled=true
+crablet.automations.shared-fetch.enabled=true
+```
+
+For example, `crablet.views.shared-fetch.enabled=true` changes the views module from one DB query per view processor to one DB query per views module cycle. It does not combine views, outbox, and automations into one global poller. Each module still keeps its own scheduler, leader election, and progress tracking.
 
 ## Wakeup Notifications (PostgreSQL LISTEN/NOTIFY)
 
@@ -181,13 +221,15 @@ The event processor is built around a few key interfaces:
 
 1. **Configuration**: Each processor instance has a `ProcessorConfig` with polling interval, batch size, and backoff settings
 
-2. **Scheduling**: `EventProcessorImpl` creates a scheduled task per processor that:
+2. **Scheduling**: By default, `EventProcessorImpl` creates a scheduled task per processor that:
    - Checks if this instance is the leader (via `LeaderElector`)
    - Fetches events from the event store (via `EventFetcher`)
    - Handles events (via `EventHandler`)
    - Updates progress (via `ProgressTracker`)
 
-3. **Leader Election**: Uses PostgreSQL advisory locks to ensure only one instance processes each processor at a time. See [Leader Election Guide](../docs/LEADER_ELECTION.md) for detailed explanation of how leader election, crash detection, and failover work.
+   With shared-fetch enabled, the module uses one scheduled fetch loop for the module and routes fetched events to the processors inside that module.
+
+3. **Leader Election**: Uses PostgreSQL advisory locks to ensure only one instance processes a module's processor set at a time. Each built-in module has its own lock key. See [Leader Election Guide](../docs/LEADER_ELECTION.md) for detailed explanation of how leader election, crash detection, and failover work.
 
 4. **Backoff**: After a threshold of empty polls, the scheduler skips cycles with exponential backoff
 
@@ -210,7 +252,7 @@ This is important because the engine always runs per processor instance. Even wh
 
 ## Usage
 
-This module is primarily used as infrastructure by other Crablet modules (`crablet-outbox` and `crablet-views`). However, you can use it directly to build custom event processors.
+This module is primarily used as infrastructure by other Crablet modules (`crablet-views`, `crablet-outbox`, and `crablet-automations`). However, you can use it directly to build custom event processors.
 
 ### Example: Custom Event Processor
 
@@ -356,6 +398,7 @@ See [crablet-metrics-micrometer](../crablet-metrics-micrometer/README.md) for au
 
 - **[Crablet Outbox](../crablet-outbox/README.md)** - Uses event processor for outbox pattern
 - **[Crablet Views](../crablet-views/README.md)** - Uses event processor for view projections
+- **[Crablet Automations](../crablet-automations/README.md)** - Uses event processor for policies and side effects
 - **[Crablet EventStore](../crablet-eventstore/README.md)** - Core event sourcing library
 
 ## License

@@ -8,7 +8,7 @@ Light framework component for asynchronous view projections using materialized r
 
 `crablet-views` is a poller-backed add-on, not the first integration step.
 
-Adopt it after the command side is working. For learning, it makes sense to run it together with commands in a single application instance. For production, default to one application instance per cluster when views are enabled.
+Adopt it after the command side is working. For learning, it makes sense to run it together with commands in a single application instance. For production, default to one application instance per cluster for the simplest topology, or run views as its own singleton worker service.
 
 ## Start Here
 
@@ -69,8 +69,8 @@ Crablet Views provides a complete solution for building materialized read models
 
 Recommended production shape:
 
-- run **1 application instance per cluster** in the normal case
-- keep the single-instance model as the default documented deployment
+- run **1 application instance per cluster** in the simplest case
+- if views need isolation, run one singleton views worker service with one elected active views poller
 
 Because the poller uses leader election, only one instance actively projects a given view processor set at a time. More replicas do not improve throughput for the same views; they mainly add standby behavior and operational complexity.
 
@@ -382,7 +382,8 @@ Crablet Views uses the generic event processor infrastructure:
 - **Backoff Strategy**: Exponential backoff for error recovery
 
 **Recommended deployment:**
-- Default to **1 application instance per cluster**
+- Default to **1 application instance per cluster** for the simplest topology
+- If views run separately, use a singleton views worker service with one active views poller
 - Additional replicas provide standby behavior and failover, not higher throughput for the same views
 - Add replicas only when you explicitly want that operational tradeoff
 

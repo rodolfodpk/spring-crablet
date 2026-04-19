@@ -149,7 +149,8 @@ CREATE TABLE crablet_processor_scan_progress (
 
 Recommended production shape:
 
-- run **1 application instance per cluster**
+- run **1 application instance per cluster** for the simplest topology
+- if views need isolation, run one singleton views worker service
 
 Do not scale views horizontally expecting higher throughput from the same processors. Leader election means only one instance is actively projecting a given processor set.
 

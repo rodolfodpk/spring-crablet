@@ -41,6 +41,6 @@ This is not just a demo trick. It is the simplest way to understand the framewor
 
 Learning mode is the recommended default when any poller-backed module is enabled.
 
-If your application includes `crablet-views`, `crablet-outbox`, or `crablet-automations`, keep the deployment model simple first and default to one instance per cluster.
+If your application includes `crablet-views`, `crablet-outbox`, or `crablet-automations`, keep the deployment model simple first and default to one instance per cluster. For production isolation, each poller-backed module can run as its own singleton worker service with its own active poller and leader election boundary.
 
 For production guidance, see [Deployment Topology](DEPLOYMENT_TOPOLOGY.md).

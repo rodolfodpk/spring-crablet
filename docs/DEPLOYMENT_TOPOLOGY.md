@@ -21,9 +21,17 @@ If your application enables any of:
 - `crablet-outbox`
 - `crablet-automations`
 
-then default to **one application instance per cluster**.
+then default to **one application instance per cluster** for the simplest correctness-first topology. In that default shape, one service instance runs commands/API plus the enabled poller-backed modules.
 
-These modules depend on the event poller. The simplest and clearest deployment model is correctness-first, single-instance execution.
+These modules depend on the event poller, but they do not share one global poller. Views, outbox, and automations each wire their own module-level poller with its own scheduler, leader election key, and progress tracking.
+
+If you want operational isolation, use singleton worker services per module:
+
+- one singleton views worker service with one active views poller
+- one singleton outbox worker service with one active outbox poller
+- one singleton automations worker service with one active automations poller
+
+Different pods or VMs may hold leadership for different modules at the same time. Extra replicas of the same singleton worker service mainly provide standby failover; they do not make that module's same processors run faster.
 
 ## Recommended Positioning
 
@@ -40,6 +48,8 @@ Instead:
 Use this wording consistently:
 
 > Command-only applications can scale horizontally. If `crablet-views`, `crablet-outbox`, or `crablet-automations` are enabled, default to one application instance per cluster.
+>
+> When modules are deployed separately, use singleton worker services: one active poller per poller-backed module, with optional standby replicas for failover.
 
 ## Where This Rule Should Appear
 

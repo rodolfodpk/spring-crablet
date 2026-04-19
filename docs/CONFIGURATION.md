@@ -242,4 +242,4 @@ When `crablet.eventstore.read-replicas.enabled=false` (default), both roles use 
 
 **leader-election-retry-interval-ms** — followers poll at this interval to detect that the leader has crashed. Lower values mean faster failover; the default of 30 s is appropriate for most deployments. Do not set below 5 s.
 
-**Deployment instances** — prefer 1 application instance. Use 2 for active/failover. Extra replicas do not increase throughput for the same processor set; only the leader processes events.
+**Deployment instances** — prefer 1 application instance for the simplest topology. If you want isolation, run one singleton worker service per poller-backed module. Use extra replicas for standby failover. Extra replicas of the same module worker do not increase throughput for that module's same processor set; only the elected leader processes events.
