@@ -2,9 +2,11 @@ package com.crablet.command.web.internal;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.ExecutionResult;
+import com.crablet.command.web.CommandApiExposedCommandsResponse;
 import com.crablet.command.web.CommandApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -12,6 +14,9 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * Generic REST adapter that routes JSON command payloads to the {@link CommandExecutor}.
@@ -37,6 +42,16 @@ class CommandApiRestController {
         this.commandExecutor = commandExecutor;
         this.exposedCommands = exposedCommands;
         this.objectMapper = objectMapper;
+    }
+
+    @GetMapping("${crablet.commands.api.base-path:/api/commands}")
+    ResponseEntity<CommandApiExposedCommandsResponse> listExposedCommands() {
+        List<CommandApiExposedCommandsResponse.Entry> entries = exposedCommands.exposedCommandsByType()
+                .entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> new CommandApiExposedCommandsResponse.Entry(e.getKey(), e.getValue().getName()))
+                .toList();
+        return ResponseEntity.ok(new CommandApiExposedCommandsResponse(entries));
     }
 
     @PostMapping("${crablet.commands.api.base-path:/api/commands}")

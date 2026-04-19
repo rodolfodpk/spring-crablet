@@ -21,6 +21,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -155,6 +156,21 @@ class CommandApiE2ETest extends AbstractCrabletTest {
         HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
 
         assertThat(response.statusCode()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    }
+
+    @Test
+    @DisplayName("GET /api/commands should list exactly the exposed commands")
+    void shouldListExposedCommands() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/commands"))
+                .GET()
+                .build();
+        HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value());
+        JsonNode body = objectMapper.readTree(response.body());
+        List<String> types = new ArrayList<>();
+        body.get("exposedCommands").forEach(node -> types.add(node.get("commandType").asText()));
+        assertThat(types).containsExactlyInAnyOrder("open_wallet", "send_welcome_notification");
     }
 
     private HttpResponse<String> postJson(String json) throws Exception {

@@ -226,8 +226,12 @@ crablet-commands (Optional)
 
 crablet-commands-web (Optional)
 ├── Generic HTTP command API — POST /api/commands
+├── GET /api/commands — management endpoint listing exposed commands
 ├── Plain @RestController backed by CommandExecutor
-├── CommandApiExposedCommands — explicit allowlist of exposed command types
+├── CommandApiExposedCommands — allowlist of exposed command types
+│   ├── fromPackages("com.myapp.wallet") — expose an entire vertical slice (recommended)
+│   └── of(OpenWalletCommand.class, ...) — explicit class list
+├── Optional springdoc integration — auto-generates oneOf Swagger schema when springdoc is present
 └── Opt-in: include module + declare CommandApiExposedCommands bean
 
 crablet-event-poller (Generic Infrastructure)
