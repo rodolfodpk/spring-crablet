@@ -111,9 +111,17 @@ Useful for debugging `fromPackages` resolution — quickly confirms which comman
 
 ## Swagger / OpenAPI
 
-When `springdoc-openapi-starter-webmvc-ui` is on the classpath, the module automatically
-enriches the `POST /api/commands` OpenAPI operation with a `oneOf` schema built from the
-exposed command classes:
+Add the optional springdoc dependency to activate the integration:
+
+```xml
+<dependency>
+    <groupId>org.springdoc</groupId>
+    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+</dependency>
+```
+
+When present, the module automatically enriches the `POST /api/commands` OpenAPI operation
+with a `oneOf` schema built from the exposed command classes:
 
 ```yaml
 POST /api/commands
