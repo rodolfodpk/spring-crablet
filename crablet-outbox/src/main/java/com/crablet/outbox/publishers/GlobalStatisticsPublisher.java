@@ -1,5 +1,6 @@
 package com.crablet.outbox.publishers;
 
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.outbox.config.GlobalStatisticsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -28,11 +30,12 @@ public class GlobalStatisticsPublisher {
     private static final Logger log = LoggerFactory.getLogger(GlobalStatisticsPublisher.class);
     
     private final GlobalStatisticsConfig config;
+    private final ClockProvider clockProvider;
     
     // Global statistics
     private final AtomicLong totalEventsProcessed = new AtomicLong(0);
     private volatile Instant firstEventTime = null;
-    private volatile Instant lastLogTime = Instant.now();
+    private volatile Instant lastLogTime;
     
     // Per-topic statistics
     private final Map<String, AtomicLong> eventsPerTopic = new ConcurrentHashMap<>();
@@ -48,7 +51,13 @@ public class GlobalStatisticsPublisher {
     
     @Autowired
     public GlobalStatisticsPublisher(GlobalStatisticsConfig config) {
+        this(config, ClockProvider.systemDefault());
+    }
+
+    public GlobalStatisticsPublisher(GlobalStatisticsConfig config, ClockProvider clockProvider) {
         this.config = config;
+        this.clockProvider = clockProvider;
+        this.lastLogTime = clockProvider.now();
         log.info("GlobalStatisticsPublisher initialized with log interval: {} seconds", 
                 config.getLogIntervalSeconds());
     }
@@ -62,7 +71,7 @@ public class GlobalStatisticsPublisher {
      */
     public void recordEvent(String topic, String publisher, String eventType) {
         if (firstEventTime == null) {
-            firstEventTime = Instant.now();
+            firstEventTime = clockProvider.now();
         }
         
         // Increment global counter
@@ -82,7 +91,7 @@ public class GlobalStatisticsPublisher {
         eventsPerType.computeIfAbsent(eventType, _k -> new AtomicLong(0)).incrementAndGet();
         
         // Check if it's time to log statistics
-        Instant now = Instant.now();
+        Instant now = clockProvider.now();
         Duration sinceLastLog = Duration.between(lastLogTime, now);
         
         if (sinceLastLog.getSeconds() >= config.getLogIntervalSeconds()) {
@@ -106,7 +115,7 @@ public class GlobalStatisticsPublisher {
         
         log.info("===== Global Outbox Statistics =====");
         log.info("Total events processed: {}", total);
-        log.info("Throughput: {:.2f} events/sec", eventsPerSecond);
+        log.info("Throughput: {} events/sec", String.format(Locale.ROOT, "%.2f", eventsPerSecond));
         log.info("Uptime: {} seconds", totalDuration.getSeconds());
         
         // Log per-topic statistics
@@ -117,7 +126,8 @@ public class GlobalStatisticsPublisher {
                 .forEach(entry -> {
                     long count = entry.getValue().get();
                     double percentage = (count * 100.0) / total;
-                    log.info("  - {}: {} ({:.1f}%)", entry.getKey(), count, percentage);
+                    log.info("  - {}: {} ({}%)", entry.getKey(), count,
+                            String.format(Locale.ROOT, "%.1f", percentage));
                 });
         }
         
@@ -129,7 +139,8 @@ public class GlobalStatisticsPublisher {
                 .forEach(entry -> {
                     long count = entry.getValue().get();
                     double percentage = (count * 100.0) / total;
-                    log.info("  - {}: {} ({:.1f}%)", entry.getKey(), count, percentage);
+                    log.info("  - {}: {} ({}%)", entry.getKey(), count,
+                            String.format(Locale.ROOT, "%.1f", percentage));
                 });
         }
         
@@ -142,7 +153,8 @@ public class GlobalStatisticsPublisher {
                 .forEach(entry -> {
                     long count = entry.getValue().get();
                     double percentage = (count * 100.0) / total;
-                    log.info("  - {}: {} ({:.1f}%)", entry.getKey(), count, percentage);
+                    log.info("  - {}: {} ({}%)", entry.getKey(), count,
+                            String.format(Locale.ROOT, "%.1f", percentage));
                 });
         }
         
@@ -154,7 +166,8 @@ public class GlobalStatisticsPublisher {
                 .forEach(entry -> {
                     long count = entry.getValue().get();
                     double percentage = (count * 100.0) / total;
-                    log.info("  - {}: {} ({:.1f}%)", entry.getKey(), count, percentage);
+                    log.info("  - {}: {} ({}%)", entry.getKey(), count,
+                            String.format(Locale.ROOT, "%.1f", percentage));
                 });
         }
         
@@ -203,7 +216,7 @@ public class GlobalStatisticsPublisher {
     public void reset() {
         totalEventsProcessed.set(0);
         firstEventTime = null;
-        lastLogTime = Instant.now();
+        lastLogTime = clockProvider.now();
         eventsPerTopic.clear();
         eventsPerPublisher.clear();
         eventsPerTopicPublisher.clear();

@@ -4,6 +4,7 @@ import org.springframework.core.env.Environment;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.UUID;
 
 /**
  * Provides instance ID for event processors.
@@ -44,7 +45,7 @@ public class InstanceIdProvider {
         try {
             return InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
-            return "unknown-" + System.currentTimeMillis();
+            return "unknown-" + UUID.randomUUID();
         }
     }
 

@@ -6,8 +6,11 @@ coverage:
   round: down
   range: "70...100"
   
-  # Only report coverage for library code
-  ignore: []
+  # Only report coverage for library/framework code.
+  ignore:
+    - "shared-examples-domain/**"
+    - "wallet-example-app/**"
+    - "docs-samples/**"
   
   status:
     project:
@@ -106,4 +109,3 @@ component_management:
           target: auto
         - type: patch
           target: auto
-

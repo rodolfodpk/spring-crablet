@@ -4,6 +4,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.PublishException;
@@ -16,7 +17,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,14 +40,16 @@ class StatisticsPublisherTest {
     private Environment environment;
 
     private StatisticsPublisher publisher;
+    private MutableClockProvider clockProvider;
     private ListAppender<ILoggingEvent> logAppender;
 
     @BeforeEach
     void setUp() {
         when(environment.getProperty("crablet.outbox.publishers.statistics.log-interval-seconds", "10"))
                 .thenReturn("10");
-        
-        publisher = new StatisticsPublisher(environment);
+
+        clockProvider = new MutableClockProvider(Instant.parse("2026-01-01T00:00:00Z"));
+        publisher = new StatisticsPublisher(environment, clockProvider);
         
         // Set up log capture
         Logger logger = (Logger) LoggerFactory.getLogger(StatisticsPublisher.class);
@@ -134,7 +140,7 @@ class StatisticsPublisherTest {
                     "data".getBytes(),
                     "tx-" + i,
                     100L + i,
-                    Instant.now()
+                    clockProvider.now()
             ));
         }
 
@@ -151,9 +157,9 @@ class StatisticsPublisherTest {
     void shouldCountEvents_ByType() throws PublishException {
         // Given
         List<StoredEvent> events = List.of(
-                new StoredEvent("WalletOpened", List.of(), "data1".getBytes(), "tx-1", 100L, Instant.now()),
-                new StoredEvent("DepositMade", List.of(), "data2".getBytes(), "tx-2", 101L, Instant.now()),
-                new StoredEvent("WalletOpened", List.of(), "data3".getBytes(), "tx-3", 102L, Instant.now())
+                event("WalletOpened", 100L),
+                event("DepositMade", 101L),
+                event("WalletOpened", 102L)
         );
 
         // When
@@ -169,21 +175,26 @@ class StatisticsPublisherTest {
         // Given - Short interval for testing
         when(environment.getProperty("crablet.outbox.publishers.statistics.log-interval-seconds", "10"))
                 .thenReturn("1"); // 1 second interval
-        
-        StatisticsPublisher pub = new StatisticsPublisher(environment);
+
+        StatisticsPublisher pub = new StatisticsPublisher(environment, clockProvider);
         
         List<StoredEvent> events = List.of(
-                new StoredEvent("WalletOpened", List.of(), "data".getBytes(), "tx-1", 100L, Instant.now())
+                event("WalletOpened", 100L),
+                event("DepositMade", 101L)
         );
 
-        // When - Publish and wait for interval
+        // When
         pub.publishBatch(events);
-        Thread.sleep(1100); // Wait just over 1 second
+        clockProvider.advance(Duration.ofSeconds(1));
         pub.publishBatch(events); // Second call should trigger log
 
-        // Then - Verify logs (may take some time)
-        // Note: This is a timing-dependent test, may be flaky
-        assertThat(pub.isHealthy()).isTrue();
+        // Then
+        assertThat(formattedLogMessages())
+                .anyMatch(message -> message.contains("===== Outbox Statistics ====="))
+                .anyMatch(message -> message.contains("Total events processed: 4"))
+                .anyMatch(message -> message.contains("Events by type:"))
+                .anyMatch(message -> message.contains("WalletOpened: 2"))
+                .anyMatch(message -> message.contains("DepositMade: 2"));
     }
 
     @Test
@@ -191,14 +202,15 @@ class StatisticsPublisherTest {
     void shouldNotLogStatistics_BeforeInterval() throws PublishException {
         // Given
         List<StoredEvent> events = List.of(
-                new StoredEvent("WalletOpened", List.of(), "data".getBytes(), "tx-1", 100L, Instant.now())
+                event("WalletOpened", 100L)
         );
 
         // When - First call
         publisher.publishBatch(events);
 
-        // Then - Statistics logged only if interval passed (unlikely immediately)
-        assertThat(publisher.isHealthy()).isTrue();
+        // Then
+        assertThat(formattedLogMessages())
+                .noneMatch(message -> message.contains("===== Outbox Statistics ====="));
     }
 
     @Test
@@ -206,10 +218,10 @@ class StatisticsPublisherTest {
     void shouldHandleMultipleBatches() throws PublishException {
         // Given
         List<StoredEvent> batch1 = List.of(
-                new StoredEvent("WalletOpened", List.of(), "data1".getBytes(), "tx-1", 100L, Instant.now())
+                event("WalletOpened", 100L)
         );
         List<StoredEvent> batch2 = List.of(
-                new StoredEvent("DepositMade", List.of(), "data2".getBytes(), "tx-2", 101L, Instant.now())
+                event("DepositMade", 101L)
         );
 
         // When
@@ -232,7 +244,7 @@ class StatisticsPublisherTest {
                     ("data-" + i).getBytes(),
                     "tx-" + i,
                     100L + i,
-                    Instant.now()
+                    clockProvider.now()
             ));
         }
 
@@ -242,5 +254,48 @@ class StatisticsPublisherTest {
         // Then
         assertThat(publisher.isHealthy()).isTrue();
     }
-}
 
+    private StoredEvent event(String type, long position) {
+        return new StoredEvent(
+                type,
+                List.of(),
+                ("data-" + position).getBytes(),
+                "tx-" + position,
+                position,
+                clockProvider.now()
+        );
+    }
+
+    private List<String> formattedLogMessages() {
+        return logAppender.list.stream()
+                .map(ILoggingEvent::getFormattedMessage)
+                .toList();
+    }
+
+    private static final class MutableClockProvider implements ClockProvider {
+        private Clock clock;
+
+        private MutableClockProvider(Instant instant) {
+            this.clock = Clock.fixed(instant, ZoneOffset.UTC);
+        }
+
+        @Override
+        public Instant now() {
+            return clock.instant();
+        }
+
+        @Override
+        public void setClock(Clock clock) {
+            this.clock = clock;
+        }
+
+        @Override
+        public void resetToSystemClock() {
+            this.clock = Clock.systemUTC();
+        }
+
+        private void advance(Duration duration) {
+            this.clock = Clock.fixed(clock.instant().plus(duration), ZoneOffset.UTC);
+        }
+    }
+}

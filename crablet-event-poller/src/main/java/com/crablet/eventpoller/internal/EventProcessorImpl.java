@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Generic implementation of EventProcessor.
@@ -63,7 +64,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
 
     // Cooldown for leader retry — configurable via crablet.event-poller.leader-retry-cooldown-ms
     private final long leaderRetryCooldownMs;
-    private volatile long lastLeaderRetryTimestamp = 0;
+    private volatile long lastLeaderRetryNanos = 0;
 
     // Initial delay before first poll cycle — configurable via crablet.event-poller.startup-delay-ms
     private final long startupDelayMs;
@@ -130,7 +131,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
      */
     @PostConstruct
     public void initializeSchedulers() {
-        log.debug("[EventProcessorImpl] Bean created at {}. Waiting for Spring lifecycle event before starting schedulers.", Instant.now());
+        log.debug("[EventProcessorImpl] Bean created. Waiting for Spring lifecycle event before starting schedulers.");
     }
 
     /**
@@ -140,7 +141,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
      */
     @EventListener(ContextRefreshedEvent.class)
     public void initializeSchedulersOnContextRefresh(ContextRefreshedEvent event) {
-        log.debug("[EventProcessorImpl] ContextRefreshedEvent received at {}.", Instant.now());
+        log.debug("[EventProcessorImpl] ContextRefreshedEvent received.");
         initializeSchedulersIfNeeded("ContextRefreshedEvent");
     }
 
@@ -150,7 +151,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
      */
     @EventListener(ApplicationReadyEvent.class)
     public void initializeSchedulersOnReady(ApplicationReadyEvent event) {
-        log.debug("[EventProcessorImpl] ApplicationReadyEvent received at {}.", Instant.now());
+        log.debug("[EventProcessorImpl] ApplicationReadyEvent received.");
         initializeSchedulersIfNeeded("ApplicationReadyEvent");
     }
 
@@ -266,7 +267,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
 
             // Allow a future manual start() to recreate the schedulers.
             schedulersInitialized = false;
-            lastLeaderRetryTimestamp = 0;
+            lastLeaderRetryNanos = 0;
 
             // Release global leader lock
             leaderElector.releaseGlobalLeader();
@@ -327,7 +328,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     }
 
     private void scheduledTask(I processorId) {
-        log.trace("[EventProcessorImpl] scheduledTask() called for processor: {} at {}", processorId, Instant.now());
+        log.trace("[EventProcessorImpl] scheduledTask() called for processor: {}", processorId);
         long nextDelayMs = 0L;
         String instanceId = leaderElector.getInstanceId();
         boolean acquiredRunSlot = false;
@@ -347,9 +348,9 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
 
             // If not leader, retry lock acquisition with cooldown
             if (!leaderElector.isGlobalLeader()) {
-                long now = System.currentTimeMillis();
-                if (now - lastLeaderRetryTimestamp >= leaderRetryCooldownMs) {
-                    lastLeaderRetryTimestamp = now;
+                long now = System.nanoTime();
+                if (now - lastLeaderRetryNanos >= TimeUnit.MILLISECONDS.toNanos(leaderRetryCooldownMs)) {
+                    lastLeaderRetryNanos = now;
                     boolean acquired = leaderElector.tryAcquireGlobalLeader();
                     if (acquired) {
                         log.info("Became leader after retry in scheduledTask - starting to process");
@@ -367,10 +368,10 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
                 log.trace("Processor {} is already running, skipping duplicate scheduled task", processorId);
                 return;
             }
-            log.trace("[EventProcessorImpl] Calling process() for processor: {} at {}", processorId, Instant.now());
+            log.trace("[EventProcessorImpl] Calling process() for processor: {}", processorId);
             int processed = process(processorId);
-            log.trace("[EventProcessorImpl] process() completed for processor: {}, processed: {} events at {}",
-                     processorId, processed, Instant.now());
+            log.trace("[EventProcessorImpl] process() completed for processor: {}, processed: {} events",
+                     processorId, processed);
             eventPublisher.publishEvent(new ProcessingCycleMetric(processorId.toString(), instanceId, processed, processed == 0));
 
             // Update backoff state
@@ -473,10 +474,10 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
         }
 
         // Auto-register if needed
-        log.trace("[EventProcessorImpl] About to call autoRegister() for processor: {} at {}", processorId, Instant.now());
+        log.trace("[EventProcessorImpl] About to call autoRegister() for processor: {}", processorId);
         try {
             progressTracker.autoRegister(processorId, leaderElector.getInstanceId());
-            log.trace("[EventProcessorImpl] autoRegister() completed for processor: {} at {}", processorId, Instant.now());
+            log.trace("[EventProcessorImpl] autoRegister() completed for processor: {}", processorId);
         } catch (RuntimeException e) {
             // If auto-register fails due to missing tables (Flyway not ready), log and continue
             // The table will be created by Flyway, and auto-register will succeed on next call

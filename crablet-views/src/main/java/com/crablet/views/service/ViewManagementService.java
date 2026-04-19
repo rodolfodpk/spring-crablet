@@ -1,5 +1,6 @@
 package com.crablet.views.service;
 
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import org.slf4j.Logger;
@@ -38,6 +39,7 @@ public class ViewManagementService implements ProcessorManagementService<String>
     
     private final ProcessorManagementService<String> delegate;
     private final DataSource dataSource;
+    private final ClockProvider clockProvider;
     
     private static final String SELECT_PROGRESS_SQL = """
         SELECT view_name, instance_id, status, last_position, error_count,
@@ -55,14 +57,25 @@ public class ViewManagementService implements ProcessorManagementService<String>
     public ViewManagementService(
             ProcessorManagementService<String> delegate,
             DataSource dataSource) {
+        this(delegate, dataSource, ClockProvider.systemDefault());
+    }
+
+    public ViewManagementService(
+            ProcessorManagementService<String> delegate,
+            DataSource dataSource,
+            ClockProvider clockProvider) {
         if (delegate == null) {
             throw new IllegalArgumentException("delegate must not be null");
         }
         if (dataSource == null) {
             throw new IllegalArgumentException("dataSource must not be null");
         }
+        if (clockProvider == null) {
+            throw new IllegalArgumentException("clockProvider must not be null");
+        }
         this.delegate = delegate;
         this.dataSource = dataSource;
+        this.clockProvider = clockProvider;
     }
     
     // ========== Delegated Methods (ProcessorManagementService interface) ==========
@@ -188,12 +201,12 @@ public class ViewManagementService implements ProcessorManagementService<String>
         Timestamp lastUpdatedAtTimestamp = rs.getTimestamp("last_updated_at");
         Instant lastUpdatedAt = lastUpdatedAtTimestamp != null 
             ? lastUpdatedAtTimestamp.toInstant() 
-            : Instant.now(); // Fallback, though this should never be null
+            : clockProvider.now(); // Fallback, though this should never be null
         
         Timestamp createdAtTimestamp = rs.getTimestamp("created_at");
         Instant createdAt = createdAtTimestamp != null 
             ? createdAtTimestamp.toInstant() 
-            : Instant.now(); // Fallback, though this should never be null
+            : clockProvider.now(); // Fallback, though this should never be null
         
         return new ViewProgressDetails(
             viewName,

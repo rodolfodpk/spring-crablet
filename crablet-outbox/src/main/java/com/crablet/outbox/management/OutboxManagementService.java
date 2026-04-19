@@ -1,5 +1,6 @@
 package com.crablet.outbox.management;
 
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.outbox.TopicPublisherPair;
@@ -33,6 +34,7 @@ public class OutboxManagementService implements ProcessorManagementService<Topic
 
     private final ProcessorManagementService<TopicPublisherPair> delegate;
     private final DataSource dataSource;
+    private final ClockProvider clockProvider;
 
     private static final String SELECT_PROGRESS_SQL = """
         SELECT topic, publisher, status, last_position, last_published_at,
@@ -51,10 +53,19 @@ public class OutboxManagementService implements ProcessorManagementService<Topic
     public OutboxManagementService(
             ProcessorManagementService<TopicPublisherPair> delegate,
             DataSource dataSource) {
+        this(delegate, dataSource, ClockProvider.systemDefault());
+    }
+
+    public OutboxManagementService(
+            ProcessorManagementService<TopicPublisherPair> delegate,
+            DataSource dataSource,
+            ClockProvider clockProvider) {
         if (delegate == null) throw new IllegalArgumentException("delegate must not be null");
         if (dataSource == null) throw new IllegalArgumentException("dataSource must not be null");
+        if (clockProvider == null) throw new IllegalArgumentException("clockProvider must not be null");
         this.delegate = delegate;
         this.dataSource = dataSource;
+        this.clockProvider = clockProvider;
     }
 
     // ========== Delegated Methods ==========
@@ -145,7 +156,7 @@ public class OutboxManagementService implements ProcessorManagementService<Topic
         Instant lastPublishedAt = lastPublishedAtTs != null ? lastPublishedAtTs.toInstant() : null;
 
         Timestamp updatedAtTs = rs.getTimestamp("updated_at");
-        Instant updatedAt = updatedAtTs != null ? updatedAtTs.toInstant() : Instant.now();
+        Instant updatedAt = updatedAtTs != null ? updatedAtTs.toInstant() : clockProvider.now();
 
         String leaderInstance = rs.getString("leader_instance");
         if (rs.wasNull()) leaderInstance = null;

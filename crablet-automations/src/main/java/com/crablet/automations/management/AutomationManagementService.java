@@ -1,5 +1,6 @@
 package com.crablet.automations.management;
 
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import org.slf4j.Logger;
@@ -31,6 +32,7 @@ public class AutomationManagementService implements ProcessorManagementService<S
 
     private final ProcessorManagementService<String> delegate;
     private final DataSource dataSource;
+    private final ClockProvider clockProvider;
 
     private static final String SELECT_PROGRESS_SQL = """
         SELECT automation_name, instance_id, status, last_position, error_count,
@@ -48,10 +50,19 @@ public class AutomationManagementService implements ProcessorManagementService<S
     public AutomationManagementService(
             ProcessorManagementService<String> delegate,
             DataSource dataSource) {
+        this(delegate, dataSource, ClockProvider.systemDefault());
+    }
+
+    public AutomationManagementService(
+            ProcessorManagementService<String> delegate,
+            DataSource dataSource,
+            ClockProvider clockProvider) {
         if (delegate == null) throw new IllegalArgumentException("delegate must not be null");
         if (dataSource == null) throw new IllegalArgumentException("dataSource must not be null");
+        if (clockProvider == null) throw new IllegalArgumentException("clockProvider must not be null");
         this.delegate = delegate;
         this.dataSource = dataSource;
+        this.clockProvider = clockProvider;
     }
 
     // ========== Delegated Methods ==========
@@ -144,10 +155,10 @@ public class AutomationManagementService implements ProcessorManagementService<S
         Instant lastErrorAt = lastErrorAtTs != null ? lastErrorAtTs.toInstant() : null;
 
         Timestamp lastUpdatedAtTs = rs.getTimestamp("last_updated_at");
-        Instant lastUpdatedAt = lastUpdatedAtTs != null ? lastUpdatedAtTs.toInstant() : Instant.now();
+        Instant lastUpdatedAt = lastUpdatedAtTs != null ? lastUpdatedAtTs.toInstant() : clockProvider.now();
 
         Timestamp createdAtTs = rs.getTimestamp("created_at");
-        Instant createdAt = createdAtTs != null ? createdAtTs.toInstant() : Instant.now();
+        Instant createdAt = createdAtTs != null ? createdAtTs.toInstant() : clockProvider.now();
 
         return new AutomationProgressDetails(
                 automationName, instanceId, status, lastPosition,
