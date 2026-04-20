@@ -16,7 +16,7 @@ Crablet is a Java 25 event sourcing framework for Spring Boot. It is designed fo
 
 ## 5-Minute Quickstart
 
-The core of Crablet is a command handler and an executor.
+On top of the `EventStore`, the typical write side is a command handler and an executor.
 
 **Define an event and a handler:**
 
