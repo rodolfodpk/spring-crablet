@@ -204,6 +204,8 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
     }
 
     private boolean handleMoneyTransferred(MoneyTransferred transfer, StoredEvent storedEvent, JdbcTemplate jdbc) {
+        boolean handled = false;
+
         // Process for FROM wallet
         String fromStatementId = extractStatementIdForTransfer(storedEvent, transfer.fromWalletId(), true);
         if (fromStatementId != null && recordProcessedEvent(jdbc, fromStatementId, storedEvent.position())) {
@@ -213,6 +215,7 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
             );
             if (updated > 0) {
                 log.debug("Updated transfer-out totals for statement {}: +{}", fromStatementId, transfer.amount());
+                handled = true;
             }
         }
 
@@ -225,10 +228,11 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
             );
             if (updated > 0) {
                 log.debug("Updated transfer-in totals for statement {}: +{}", toStatementId, transfer.amount());
+                handled = true;
             }
         }
 
-        return true;
+        return handled;
     }
 
     private boolean recordProcessedEvent(JdbcTemplate jdbc, String statementId, long eventPosition) {

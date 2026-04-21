@@ -588,6 +588,53 @@ class WalletStatementViewProjectorTest extends AbstractWalletTest {
     }
 
     @Test
+    @DisplayName("Should not double count transfer when same stored event is dispatched twice")
+    void shouldNotDoubleCountTransfer_WhenSameStoredEventDispatchedTwice() throws Exception {
+        // Given
+        String fromStatementId = "wallet:" + WALLET_ID_1 + ":2024-01";
+        String toStatementId = "wallet:" + WALLET_ID_2 + ":2024-01";
+        appendStatementOpened(WALLET_ID_1, fromStatementId, 2024, 1, null, null, 100);
+        appendStatementOpened(WALLET_ID_2, toStatementId, 2024, 1, null, null, 50);
+        processStatementView();
+        appendTransfer(WALLET_ID_1, WALLET_ID_2, "transfer-duplicate", 25, 75, 75,
+            2024, 1, null, null, 2024, 1, null, null);
+
+        StoredEvent transferEvent = eventRepository.query(Query.forEvent("MoneyTransferred"), null).stream()
+            .filter(event -> event.tags().stream()
+                .anyMatch(tag -> TRANSFER_ID.equals(tag.key()) && "transfer-duplicate".equals(tag.value())))
+            .findFirst()
+            .orElseThrow();
+
+        // When
+        int handledFirst = statementViewProjector.handle("wallet-statement-view", List.of(transferEvent));
+        int handledSecond = statementViewProjector.handle("wallet-statement-view", List.of(transferEvent));
+
+        // Then
+        assertThat(handledFirst).isEqualTo(1);
+        assertThat(handledSecond).isEqualTo(0);
+
+        Map<String, Object> fromRow = jdbcTemplate.queryForList(
+            "SELECT * FROM wallet_statement_view WHERE statement_id = ?", fromStatementId
+        ).get(0);
+        assertThat(((BigDecimal) fromRow.get("total_transfers_out")).intValue()).isEqualTo(25);
+        assertThat(((Integer) fromRow.get("transaction_count"))).isEqualTo(1);
+
+        Map<String, Object> toRow = jdbcTemplate.queryForList(
+            "SELECT * FROM wallet_statement_view WHERE statement_id = ?", toStatementId
+        ).get(0);
+        assertThat(((BigDecimal) toRow.get("total_transfers_in")).intValue()).isEqualTo(25);
+        assertThat(((Integer) toRow.get("transaction_count"))).isEqualTo(1);
+
+        Long junctionCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM statement_transactions WHERE statement_id IN (?, ?)",
+            Long.class,
+            fromStatementId,
+            toStatementId
+        );
+        assertThat(junctionCount).isEqualTo(2);
+    }
+
+    @Test
     @DisplayName("Should create junction table record on first processing")
     void shouldCreateJunctionTableRecord_OnFirstProcessing() throws Exception {
         // Given
