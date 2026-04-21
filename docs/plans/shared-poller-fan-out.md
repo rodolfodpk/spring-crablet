@@ -194,7 +194,7 @@ Mirrors `EventSelectionSqlBuilder` exactly:
 
 Unit-tested for parity with SQL builder across all filter combinations. Tag key/value inputs are domain-controlled (same trust boundary as `EventSelectionSqlBuilder`).
 
-**Extensibility:** The pipeline is **fetch → match → dispatch to `EventHandler`** — it is not tied to JDBC view writers. Any module that today uses `EventHandler` (including **webhook-style** or HTTP-heavy automations) can reuse the same fan-out layer later without changing the fetch SQL; only the handler implementation differs.
+**Extensibility:** The pipeline is **fetch → match → dispatch to `EventHandler`** — it is not tied to JDBC view writers. Any module that today uses `EventHandler` (including command-oriented automations) can reuse the same fan-out layer later without changing the fetch SQL; only the handler implementation differs.
 
 ## Schema
 
