@@ -1,6 +1,6 @@
-package com.crablet.examples.notification;
+package com.crablet.examples.wallet.notification;
 
-import com.crablet.examples.notification.commands.SendWelcomeNotificationCommand;
+import com.crablet.examples.wallet.notification.commands.SendWelcomeNotificationCommand;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 

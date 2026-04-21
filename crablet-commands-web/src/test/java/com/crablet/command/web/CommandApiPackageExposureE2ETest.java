@@ -65,7 +65,7 @@ class CommandApiPackageExposureE2ETest extends AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("GET /api/commands should list only wallet commands")
+    @DisplayName("GET /api/commands should list only wallet core commands")
     void shouldListOnlyExposedPackageCommands() throws Exception {
         HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/commands"))
                 .GET()
@@ -94,7 +94,7 @@ class CommandApiPackageExposureE2ETest extends AbstractCrabletTest {
     static class PackageExposureConfig {
         @Bean
         CommandApiExposedCommands commandApiExposedCommands() {
-            return CommandApiExposedCommands.fromPackages("com.crablet.examples.wallet");
+            return CommandApiExposedCommands.fromPackages("com.crablet.examples.wallet.commands");
         }
     }
 }

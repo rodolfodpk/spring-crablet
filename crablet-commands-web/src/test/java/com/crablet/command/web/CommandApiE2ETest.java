@@ -3,7 +3,7 @@ package com.crablet.command.web;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
-import com.crablet.examples.notification.commands.SendWelcomeNotificationCommand;
+import com.crablet.examples.wallet.notification.commands.SendWelcomeNotificationCommand;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.test.AbstractCrabletTest;
 import org.junit.jupiter.api.DisplayName;

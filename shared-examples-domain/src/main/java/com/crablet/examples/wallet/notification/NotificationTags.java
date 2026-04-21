@@ -1,4 +1,4 @@
-package com.crablet.examples.notification;
+package com.crablet.examples.wallet.notification;
 
 /**
  * Tag name constants for the notification domain.
