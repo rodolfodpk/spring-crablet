@@ -259,6 +259,7 @@ automation_progress   — schema table that stores per-automation progress
 - **Leader election**: PostgreSQL advisory locks ensure only one instance processes each automation at a time
 - **Progress tracking**: Each automation independently tracks its last processed event position
 - **Backoff**: Exponential backoff on consecutive errors, up to `max-backoff-seconds`
+- **Circuit breaker**: Each automation has its own Resilience4j circuit breaker (named `"automation-<automationName>"`). When the circuit opens, the automation is skipped with a WARN log and the poller's backoff continues. Configure thresholds in `application.yml` under `resilience4j.circuitbreaker.instances.automation-<name>`.
 
 ## Configuration
 
