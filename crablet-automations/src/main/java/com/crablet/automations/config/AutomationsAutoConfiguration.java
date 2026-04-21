@@ -26,6 +26,7 @@ import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -85,7 +86,8 @@ public class AutomationsAutoConfiguration {
             @Qualifier("automationHandlers") Map<String, AutomationHandler> handlers,
             ObjectProvider<CommandExecutor> commandExecutorProvider,
             ApplicationEventPublisher eventPublisher,
-            ClockProvider clockProvider) {
+            ClockProvider clockProvider,
+            CircuitBreakerRegistry circuitBreakerRegistry) {
 
         CommandExecutor commandExecutor = commandExecutorProvider.getIfAvailable();
         if (!handlers.isEmpty() && commandExecutor == null) {
@@ -95,7 +97,7 @@ public class AutomationsAutoConfiguration {
                     "Ensure crablet-commands is on the classpath and a CommandExecutor bean is defined.");
         }
 
-        return new AutomationDispatcher(handlers, commandExecutor, eventPublisher, clockProvider);
+        return new AutomationDispatcher(handlers, commandExecutor, eventPublisher, clockProvider, circuitBreakerRegistry);
     }
 
     @Bean

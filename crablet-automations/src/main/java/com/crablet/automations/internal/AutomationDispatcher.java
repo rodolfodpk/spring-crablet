@@ -8,6 +8,9 @@ import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.CorrelationContext;
 import com.crablet.eventstore.StoredEvent;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -17,6 +20,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 /**
  * Dispatches events to in-process automations.
@@ -29,12 +33,13 @@ public class AutomationDispatcher implements EventHandler<String> {
     private final CommandExecutor commandExecutor;
     private final ApplicationEventPublisher eventPublisher;
     private final ClockProvider clockProvider;
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
 
     public AutomationDispatcher(
             Map<String, AutomationHandler> handlers,
             @Nullable CommandExecutor commandExecutor,
             ApplicationEventPublisher eventPublisher) {
-        this(handlers, commandExecutor, eventPublisher, ClockProvider.systemDefault());
+        this(handlers, commandExecutor, eventPublisher, ClockProvider.systemDefault(), CircuitBreakerRegistry.ofDefaults());
     }
 
     public AutomationDispatcher(
@@ -42,10 +47,20 @@ public class AutomationDispatcher implements EventHandler<String> {
             @Nullable CommandExecutor commandExecutor,
             ApplicationEventPublisher eventPublisher,
             ClockProvider clockProvider) {
+        this(handlers, commandExecutor, eventPublisher, clockProvider, CircuitBreakerRegistry.ofDefaults());
+    }
+
+    public AutomationDispatcher(
+            Map<String, AutomationHandler> handlers,
+            @Nullable CommandExecutor commandExecutor,
+            ApplicationEventPublisher eventPublisher,
+            ClockProvider clockProvider,
+            CircuitBreakerRegistry circuitBreakerRegistry) {
         this.handlers = handlers;
         this.commandExecutor = commandExecutor;
         this.eventPublisher = eventPublisher;
         this.clockProvider = clockProvider;
+        this.circuitBreakerRegistry = circuitBreakerRegistry;
     }
 
     @Override
@@ -56,7 +71,14 @@ public class AutomationDispatcher implements EventHandler<String> {
             return 0;
         }
 
-        return handleInProcess(handler, events);
+        CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("automation-" + automationName);
+        try {
+            Callable<Integer> call = CircuitBreaker.decorateCallable(cb, () -> handleInProcess(handler, events));
+            return call.call();
+        } catch (CallNotPermittedException e) {
+            log.warn("Circuit breaker OPEN for automation {}", automationName);
+            throw e;
+        }
     }
 
     private int handleInProcess(AutomationHandler handler, List<StoredEvent> events) throws Exception {

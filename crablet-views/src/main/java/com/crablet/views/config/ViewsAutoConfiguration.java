@@ -20,6 +20,7 @@ import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.views.ViewProjector;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import com.crablet.views.ViewSubscription;
 import com.crablet.views.internal.ViewEventFetcher;
 import com.crablet.views.internal.ViewEventHandler;
@@ -72,8 +73,9 @@ public class ViewsAutoConfiguration {
     public EventHandler<String> viewEventHandler(
             List<ViewProjector> projectors,
             ApplicationEventPublisher eventPublisher,
-            ClockProvider clockProvider) {
-        return new ViewEventHandler(projectors, eventPublisher, clockProvider);
+            ClockProvider clockProvider,
+            CircuitBreakerRegistry circuitBreakerRegistry) {
+        return new ViewEventHandler(projectors, eventPublisher, clockProvider, circuitBreakerRegistry);
     }
 
     @Bean

@@ -48,6 +48,12 @@
             <scope>test</scope>
         </dependency>
         
+        <!-- Resilience4j Circuit Breaker -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-circuitbreaker</artifactId>
+        </dependency>
+
         <!-- Spring Boot JDBC -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
