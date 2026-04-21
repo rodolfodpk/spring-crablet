@@ -68,7 +68,10 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
     // SQL for idempotent event tracking
     private static final String INSERT_PROCESSED_EVENT = """
         INSERT INTO statement_transactions (statement_id, event_position)
-        VALUES (?, ?)
+        SELECT ?, ?
+        WHERE EXISTS (
+            SELECT 1 FROM wallet_statement_view WHERE statement_id = ?
+        )
         ON CONFLICT (statement_id, event_position) DO NOTHING
         """;
 
@@ -229,7 +232,7 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
     }
 
     private boolean recordProcessedEvent(JdbcTemplate jdbc, String statementId, long eventPosition) {
-        return jdbc.update(INSERT_PROCESSED_EVENT, statementId, eventPosition) > 0;
+        return jdbc.update(INSERT_PROCESSED_EVENT, statementId, eventPosition, statementId) > 0;
     }
 
     /**
