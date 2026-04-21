@@ -15,6 +15,7 @@ import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.eventstore.StoredEvent;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
@@ -70,7 +71,8 @@ class AutomationsAutoConfigurationTest {
                 handlers,
                 emptyProvider(),
                 mock(ApplicationEventPublisher.class),
-                mock(ClockProvider.class)))
+                mock(ClockProvider.class),
+                CircuitBreakerRegistry.ofDefaults()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("AutomationHandlers require a CommandExecutor bean")
                 .hasMessageContaining("automation");
@@ -85,7 +87,8 @@ class AutomationsAutoConfigurationTest {
                 handlers,
                 providerOfValue(mock(CommandExecutor.class)),
                 mock(ApplicationEventPublisher.class),
-                mock(ClockProvider.class));
+                mock(ClockProvider.class),
+                CircuitBreakerRegistry.ofDefaults());
 
         assertThat(eventHandler).isNotNull();
     }
