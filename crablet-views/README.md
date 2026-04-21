@@ -579,6 +579,17 @@ Views use exponential backoff for error recovery:
 3. Polling interval increases exponentially (up to `max-backoff-seconds`)
 4. After successful processing, backoff resets
 
+**Circuit breaker** — each view also has its own Resilience4j circuit breaker (named `"view-<viewName>"`). After enough consecutive failures the circuit opens, the view is skipped with a WARN log (`Circuit breaker OPEN for view <name>`), and the poller's backoff continues. The circuit closes automatically once the downstream recovers. Configure thresholds per view in `application.yml`:
+
+```yaml
+resilience4j:
+  circuitbreaker:
+    instances:
+      view-wallet_statements:
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+```
+
 Failed views can be reset through your application's operational API, through the generic `/api/processors` framework API, or by clearing the error count in the database.
 
 ## Best Practices

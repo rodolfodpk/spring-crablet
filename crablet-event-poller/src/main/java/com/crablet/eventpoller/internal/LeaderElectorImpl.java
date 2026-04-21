@@ -112,13 +112,25 @@ public class LeaderElectorImpl implements LeaderElector {
             return;
         }
 
+        if (isDataSourceClosed()) {
+            log.debug("DataSource already closed while releasing lock (key: {})", lockKey);
+            closeLeaderConnectionQuietly();
+            isGlobalLeader = false;
+            eventPublisher.publishEvent(new LeadershipMetric(processorId, instanceId, false));
+            return;
+        }
+
         try (PreparedStatement stmt = leaderConnection.prepareStatement(RELEASE_LOCK_SQL)) {
             stmt.setLong(1, lockKey);
             stmt.execute();
 
             log.info("Released lock (key: {})", lockKey);
         } catch (SQLException e) {
-            log.error("Failed to release lock (key: {}): {}", lockKey, e.getMessage(), e);
+            if (isConnectionClosed(e)) {
+                log.debug("Leader connection already closed while releasing lock (key: {}): {}", lockKey, e.getMessage());
+            } else {
+                log.error("Failed to release lock (key: {}): {}", lockKey, e.getMessage(), e);
+            }
         } finally {
             closeLeaderConnectionQuietly();
             isGlobalLeader = false;
@@ -143,13 +155,36 @@ public class LeaderElectorImpl implements LeaderElector {
         try {
             return !leaderConnection.isClosed();
         } catch (SQLException e) {
-            log.warn("Leader connection check failed for lock {}: {}", lockKey, e.getMessage());
+            if (isConnectionClosed(e)) {
+                log.debug("Leader connection already closed for lock {}: {}", lockKey, e.getMessage());
+            } else {
+                log.warn("Leader connection check failed for lock {}: {}", lockKey, e.getMessage());
+            }
             return false;
         }
     }
 
+    private boolean isConnectionClosed(SQLException e) {
+        String sqlState = e.getSQLState();
+        if ("08003".equals(sqlState) || "08006".equals(sqlState)) {
+            return true;
+        }
+        String message = e.getMessage();
+        if (message == null) {
+            return false;
+        }
+        String lowerMessage = message.toLowerCase();
+        return lowerMessage.contains("connection has been closed")
+                || lowerMessage.contains("this connection has been closed")
+                || lowerMessage.contains("connection is closed");
+    }
+
     private void closeLeaderConnectionQuietly() {
         if (leaderConnection == null) {
+            return;
+        }
+        if (isDataSourceClosed()) {
+            leaderConnection = null;
             return;
         }
         try {
@@ -157,9 +192,22 @@ public class LeaderElectorImpl implements LeaderElector {
                 leaderConnection.close();
             }
         } catch (SQLException e) {
-            log.warn("Failed to close leader connection for lock {}: {}", lockKey, e.getMessage());
+            if (isConnectionClosed(e)) {
+                log.debug("Leader connection already closed for lock {}: {}", lockKey, e.getMessage());
+            } else {
+                log.warn("Failed to close leader connection for lock {}: {}", lockKey, e.getMessage());
+            }
         } finally {
             leaderConnection = null;
+        }
+    }
+
+    private boolean isDataSourceClosed() {
+        try {
+            Object closed = dataSource.getClass().getMethod("isClosed").invoke(dataSource);
+            return Boolean.TRUE.equals(closed);
+        } catch (ReflectiveOperationException | SecurityException e) {
+            return false;
         }
     }
 

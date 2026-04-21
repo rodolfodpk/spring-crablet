@@ -112,7 +112,21 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
             throws PublishException {
         
         CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("outbox-" + publisher.getName());
-        
+
+        if (publisher.getPreferredMode() == OutboxPublisher.PublishMode.INDIVIDUAL) {
+            for (StoredEvent event : events) {
+                publishWithCircuitBreaker(cb, publisher, List.of(event));
+            }
+            return;
+        }
+
+        publishWithCircuitBreaker(cb, publisher, events);
+    }
+
+    private void publishWithCircuitBreaker(
+            CircuitBreaker cb,
+            OutboxPublisher publisher,
+            List<StoredEvent> events) throws PublishException {
         try {
             Callable<Void> call = CircuitBreaker.decorateCallable(cb, () -> {
                 publisher.publishBatch(events);

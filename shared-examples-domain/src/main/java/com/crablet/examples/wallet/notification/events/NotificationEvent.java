@@ -1,4 +1,4 @@
-package com.crablet.examples.notification.events;
+package com.crablet.examples.wallet.notification.events;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;

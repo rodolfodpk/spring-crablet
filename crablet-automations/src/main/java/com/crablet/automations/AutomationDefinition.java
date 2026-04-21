@@ -5,8 +5,8 @@ import com.crablet.eventpoller.EventSelection;
 /**
  * Shared matching contract for automations.
  *
- * <p>{@link AutomationHandler} declares matching filters independently of its delivery
- * mode (in-process or webhook).
+ * <p>{@link AutomationHandler} declares matching filters independently of runtime
+ * tuning and reaction logic.
  */
 public interface AutomationDefinition extends EventSelection {
 

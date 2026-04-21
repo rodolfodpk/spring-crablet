@@ -1,16 +1,16 @@
-package com.crablet.examples.notification.commands;
+package com.crablet.examples.wallet.notification.commands;
 
 import com.crablet.command.CommandDecision;
 import com.crablet.command.IdempotentCommandHandler;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
-import com.crablet.examples.notification.events.WelcomeNotificationSent;
+import com.crablet.examples.wallet.notification.events.WelcomeNotificationSent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import static com.crablet.eventstore.EventType.type;
-import static com.crablet.examples.notification.NotificationTags.WALLET_ID;
+import static com.crablet.examples.wallet.notification.NotificationTags.WALLET_ID;
 
 /**
  * Handles {@link SendWelcomeNotificationCommand}.

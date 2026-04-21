@@ -79,6 +79,9 @@ class SharedFetchWalletLifecycleE2ETest extends AbstractWalletE2ETest {
         jdbcTemplate.execute("TRUNCATE TABLE wallet_balance_view CASCADE");
         jdbcTemplate.execute("TRUNCATE TABLE wallet_transaction_view CASCADE");
         jdbcTemplate.execute("TRUNCATE TABLE wallet_summary_view CASCADE");
+        jdbcTemplate.execute("TRUNCATE TABLE statement_transactions CASCADE");
+        jdbcTemplate.execute("TRUNCATE TABLE wallet_statement_view CASCADE");
+        reseedViewProgress();
         try {
             jdbcTemplate.execute("TRUNCATE TABLE crablet_module_scan_progress");
             jdbcTemplate.execute("TRUNCATE TABLE crablet_processor_scan_progress");

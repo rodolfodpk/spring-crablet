@@ -74,27 +74,5 @@ final class Tutorial05AutomationsSample {
             }
         }
     }
-
-    static final class WelcomeNotificationWebhookAutomation implements AutomationHandler {
-        @Override
-        public String getAutomationName() {
-            return "welcome-notification-webhook";
-        }
-
-        @Override
-        public Set<String> getEventTypes() {
-            return Set.of(type(WalletOpened.class));
-        }
-
-        @Override
-        public Set<String> getRequiredTags() {
-            return Set.of("wallet_id");
-        }
-
-        @Override
-        public String getWebhookUrl() {
-            return "http://localhost:8080/api/automations/wallet-opened";
-        }
-    }
     // docs:end tutorial05-main
 }

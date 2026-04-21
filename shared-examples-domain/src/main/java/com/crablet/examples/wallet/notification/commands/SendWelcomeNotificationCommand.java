@@ -1,6 +1,6 @@
-package com.crablet.examples.notification.commands;
+package com.crablet.examples.wallet.notification.commands;
 
-import com.crablet.examples.notification.NotificationCommand;
+import com.crablet.examples.wallet.notification.NotificationCommand;
 
 /**
  * Command to send a welcome notification to a newly opened wallet owner.

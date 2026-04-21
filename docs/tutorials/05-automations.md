@@ -13,7 +13,7 @@ Automations handle the next class of work:
 
 - reacting to domain events
 - running follow-up commands
-- triggering external side effects outside the original transaction
+- coordinating internal application behavior outside the original transaction
 
 Skip this part if your current goal is only event storage plus read models.
 
@@ -21,7 +21,11 @@ You will learn:
 
 - how to react to stored events
 - why events should be treated as triggers, not full decision state
-- how to execute in-process work or webhook delivery from the same automation definition
+- how to execute follow-up application work from an automation
+
+Use `crablet-outbox` instead when stored events need to be exported to external systems such as HTTP webhooks, Kafka, analytics, or CRM integrations.
+
+Automation webhook mode has been removed. If you previously used an automation webhook to call local application code, move that behavior into `react()`. If you used it to call an external HTTP endpoint, implement an `OutboxPublisher` instead.
 
 Assume this import in the snippets below:
 
@@ -115,34 +119,6 @@ Each `AutomationHandler` is also the per-poller-instance config for that automat
 
 Treat the event as a wake-up signal. The automation should still read current modeled state before deciding what to do.
 
-## Webhook Delivery
-
-```java
-@Component
-public class WelcomeNotificationWebhookAutomation implements AutomationHandler {
-
-    @Override
-    public String getAutomationName() {
-        return "welcome-notification-webhook";
-    }
-
-    @Override
-    public Set<String> getEventTypes() {
-        return Set.of(type(WalletOpened.class));
-    }
-
-    @Override
-    public Set<String> getRequiredTags() {
-        return Set.of("wallet_id");
-    }
-
-    @Override
-    public String getWebhookUrl() {
-        return "http://localhost:8080/webhooks/wallet-opened";
-    }
-}
-```
-
 ## Deployment Guidance
 
 `crablet-automations` also uses `crablet-event-poller`.
@@ -162,7 +138,9 @@ Expected result:
 
 - a stored `WalletOpened` event can wake an automation
 - the automation can read a view model to decide whether work is needed
-- the automation can either dispatch a follow-up command or deliver the event to a webhook
+- the automation can dispatch a follow-up command through `CommandExecutor`
+
+Use `crablet-outbox` when stored events need to be published to external systems such as HTTP webhooks, Kafka, analytics, or CRM integrations.
 
 ## Next
 

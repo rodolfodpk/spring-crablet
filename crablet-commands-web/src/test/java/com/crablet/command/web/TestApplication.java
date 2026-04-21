@@ -10,7 +10,7 @@ import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.internal.EventRepositoryImpl;
 import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.eventstore.query.EventRepository;
-import com.crablet.examples.notification.commands.SendWelcomeNotificationCommandHandler;
+import com.crablet.examples.wallet.notification.commands.SendWelcomeNotificationCommandHandler;
 import com.crablet.examples.wallet.commands.DepositCommandHandler;
 import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.commands.TransferMoneyCommandHandler;

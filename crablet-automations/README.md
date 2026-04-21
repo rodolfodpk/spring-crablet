@@ -11,7 +11,7 @@ It should come after the command side, not before it. For learning, one applicat
 ## Start Here
 
 - Adopt `crablet-eventstore` and `crablet-commands` first
-- Add automations when you need follow-up commands or external side effects after events are stored
+- Add automations when you need follow-up application behavior after events are stored
 - In this README, focus on `Recommended Pattern`, `Quick Start`, and `Configuration`
 
 ## Overview
@@ -35,21 +35,22 @@ Crablet automations should follow an Event Modeling-style automation pattern:
 
 - **Command handlers persist facts**. They should not perform external side effects such as HTTP calls, email delivery, or message publication.
 - **Views model decision state**. The automation decision should be based on the current view model, not on raw event occurrence alone.
-- **Automations perform side effects**. An automation may be triggered by events, but it should evaluate modeled state, call external services through injected gateways/clients, and then record the outcome through the normal command/event flow.
+- **Automations perform application reactions**. An automation may be triggered by events, but it should evaluate modeled state, call injected application services/gateways when needed, and then usually record the outcome by executing a command.
+- **Outbox publishes externally**. Use `crablet-outbox` when stored events need to leave the application boundary, including external HTTP webhooks, Kafka, analytics, or CRM integrations.
 
 Short version:
 
 - command handlers write facts
 - views model decision state
 - automations read modeled state
-- automations perform side effects
+- automations perform follow-up application behavior
+- outbox exports events to external systems
 
 This separation keeps transactional consistency concerns in command handling and moves non-transactional work to automations, where retries and idempotency are expected.
 
 **Key Features:**
 - Shared matching contract via `AutomationDefinition`
 - Unified automations via `AutomationHandler`
-- Optional webhook delivery on the same handler contract
 - Tag-based and event-type-based matching
 - At-least-once semantics with idempotency via DCB checks
 - Independent progress tracking per automation
@@ -84,23 +85,35 @@ crablet.automations.polling-interval-ms=1000
 crablet.automations.batch-size=100
 ```
 
-### 2. Choose an Automation Style
+### 2. Choose the Right Module
 
-Crablet automations use a single public definition type:
+Use automations when an event should trigger application behavior. Use outbox when stored events should be exported to other systems.
 
-- `AutomationHandler` for in-process work in the same JVM
-- Override `getWebhookUrl()` on the same handler when delivery should happen over HTTP
+| Scenario | Use |
+| --- | --- |
+| Send welcome notification command after `WalletOpened` | Automation |
+| Close monthly statement when `StatementPeriodEnded` | Automation |
+| Check balance and issue `FlagLargeDepositCommand` | Automation |
+| Publish `WalletOpened` to customer.io | Outbox |
+| Send all payment events to Kafka | Outbox |
+| Send `DepositMade` to analytics API | Outbox |
 
-Both styles share the same matching contract through `AutomationDefinition`:
+Crablet automations use a single public definition type, `AutomationHandler`, which shares matching rules through `AutomationDefinition`:
 
 - `getAutomationName()`
 - `getEventTypes()`
 - `getRequiredTags()`
 - `getAnyOfTags()`
 
-Use `AutomationHandler` when the automation should execute commands or call injected collaborators directly. Add `getWebhookUrl()` when the same automation definition should deliver events to an HTTP endpoint instead.
+Use `AutomationHandler` when the automation should execute commands or call injected collaborators directly. For external HTTP webhooks or event publication, implement an `OutboxPublisher`.
 
-This is intentional: delivery is treated as an execution detail of one automation contract, not as a separate public concept. The matching rules, processor tuning, and automation name stay the same whether the work runs in-process or over HTTP.
+### Migration Note: Webhook Mode Removed
+
+`AutomationHandler` no longer supports webhook delivery methods such as `getWebhookUrl()`, `getWebhookHeaders()`, or `getWebhookTimeoutMs()`. Automations now have one execution path: implement `react(StoredEvent, CommandExecutor)`.
+
+If an old automation webhook called back into the same application, replace it with a normal `react()` implementation and call the same application service or execute the equivalent command directly.
+
+If an old automation webhook published an event to an external HTTP endpoint, replace it with an `OutboxPublisher`. Use `PublishMode.INDIVIDUAL` when the external endpoint expects one event per request.
 
 ### 3. Implement AutomationHandler
 
@@ -149,41 +162,11 @@ public class WelcomeNotificationAutomation implements AutomationHandler {
 }
 ```
 
-### 4. Or Configure Webhook Delivery
-
-Use the same `AutomationHandler` contract when matching events should be delivered over HTTP instead of handled in-process:
-
-```java
-@Component
-public class WelcomeNotificationWebhookAutomation implements AutomationHandler {
-
-    @Override
-    public String getAutomationName() {
-        return "welcome-notification-webhook";
-    }
-
-    @Override
-    public Set<String> getEventTypes() {
-        return Set.of(EventType.type(WalletOpened.class));
-    }
-
-    @Override
-    public Set<String> getRequiredTags() {
-        return Set.of("wallet_id");
-    }
-
-    @Override
-    public String getWebhookUrl() {
-        return "http://localhost:8080/webhooks/wallet-opened";
-    }
-}
-```
-
-### 5. Registration Rules
+### 4. Registration Rules
 
 Each `AutomationHandler` bean must have a unique automation name. Invalid overlap fails fast at startup.
 
-### 6. Database Migration
+### 5. Database Migration
 
 Add the automation progress table to your application's Flyway migrations:
 
@@ -216,7 +199,7 @@ public interface AutomationDefinition {
 }
 ```
 
-`AutomationHandler` implements this contract for both in-process and webhook delivery.
+`AutomationHandler` implements this contract and handles matching events through `react()`.
 
 ### AutomationHandler
 
@@ -224,7 +207,6 @@ public interface AutomationDefinition {
 public interface AutomationHandler extends AutomationDefinition {
     String getAutomationName();
     Set<String> getEventTypes();
-    String getWebhookUrl(); // optional
     Long getPollingIntervalMs(); // optional
     Integer getBatchSize(); // optional
     void react(StoredEvent event, CommandExecutor commandExecutor);
@@ -233,31 +215,7 @@ public interface AutomationHandler extends AutomationDefinition {
 
 The event tells the automation that something changed. The automation should then read the relevant view model and decide from that modeled state whether it should act.
 
-### Webhook Delivery
-
-Webhook delivery is configured on `AutomationHandler` itself by overriding `getWebhookUrl()`. The same handler can also override headers, timeout, and per-automation polling settings.
-
-If you need shared outbound HTTP behavior such as interceptors, auth defaults, or observation hooks, register a `Consumer<RestClient.Builder>` bean and the automations module will apply it to webhook clients before building the request.
-
-Examples:
-
-```java
-// Deliver all WalletOpened events to a webhook
-AutomationHandler handler = new AutomationHandler() {
-    @Override public String getAutomationName() { return "my-automation"; }
-    @Override public Set<String> getEventTypes() { return Set.of("WalletOpened"); }
-    @Override public String getWebhookUrl() { return "http://localhost:8080/webhook"; }
-};
-
-// Deliver only events with specific tag filters
-AutomationHandler filtered = new AutomationHandler() {
-    @Override public String getAutomationName() { return "my-automation"; }
-    @Override public Set<String> getEventTypes() { return Set.of("DepositMade"); }
-    @Override public Set<String> getRequiredTags() { return Set.of("wallet_id"); }
-    @Override public Set<String> getAnyOfTags() { return Set.of("region-us", "region-eu"); }
-    @Override public String getWebhookUrl() { return "http://localhost:8080/webhook"; }
-};
-```
+For external HTTP delivery, Kafka, analytics, CRM, or other event publication, use `crablet-outbox`.
 
 ### View-Model-Driven Decisions
 
@@ -289,11 +247,11 @@ Events table (PostgreSQL)
     ↓  polling (configurable interval)
 AutomationEventFetcher  — filters by automation definition (eventTypes, tags)
     ↓
-AutomationDispatcher  — routes each event to the matching handler or webhook
+AutomationDispatcher  — routes each event to the matching handler
     ↓
-AutomationHandler.react() / webhook POST
+AutomationHandler.react()
     ↓
-CommandExecutor / external gateway
+CommandExecutor / injected application gateway
     ↓
 automation_progress   — schema table that stores per-automation progress
 ```
@@ -301,6 +259,7 @@ automation_progress   — schema table that stores per-automation progress
 - **Leader election**: PostgreSQL advisory locks ensure only one instance processes each automation at a time
 - **Progress tracking**: Each automation independently tracks its last processed event position
 - **Backoff**: Exponential backoff on consecutive errors, up to `max-backoff-seconds`
+- **Circuit breaker**: Each automation has its own Resilience4j circuit breaker (named `"automation-<automationName>"`). When the circuit opens, the automation is skipped with a WARN log and the poller's backoff continues. Configure thresholds in `application.yml` under `resilience4j.circuitbreaker.instances.automation-<name>`.
 
 ## Configuration
 

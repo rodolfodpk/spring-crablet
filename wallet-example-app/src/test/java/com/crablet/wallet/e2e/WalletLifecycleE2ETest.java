@@ -97,6 +97,9 @@ class WalletLifecycleE2ETest extends AbstractWalletE2ETest {
         jdbcTemplate.execute("TRUNCATE TABLE wallet_balance_view CASCADE");
         jdbcTemplate.execute("TRUNCATE TABLE wallet_transaction_view CASCADE");
         jdbcTemplate.execute("TRUNCATE TABLE wallet_summary_view CASCADE");
+        jdbcTemplate.execute("TRUNCATE TABLE statement_transactions CASCADE");
+        jdbcTemplate.execute("TRUNCATE TABLE wallet_statement_view CASCADE");
+        reseedViewProgress();
         
         // When & Then
         webTestClient
@@ -281,4 +284,3 @@ class WalletLifecycleE2ETest extends AbstractWalletE2ETest {
         });
     }
 }
-

@@ -4,20 +4,16 @@ import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.processor.ProcessorRuntimeOverrides;
 import com.crablet.eventstore.StoredEvent;
 
-import java.util.Map;
 import java.util.Set;
 
 /**
  * Automation handler. Implement and register as a Spring {@code @Component}.
  *
- * <p>Handlers execute in-process by default. They may also opt into webhook delivery by
- * returning a non-blank value from {@link #getWebhookUrl()}. This keeps matching,
- * delivery, and per-automation runtime tuning on a single contract.
- *
  * <p>Use this interface when the handler lives in the same JVM as the event poller
  * (e.g., dispatching a follow-up command via {@link CommandExecutor}, triggering a
- * notification via an injected client). Returning a webhook URL switches delivery to HTTP
- * for the same handler definition.
+ * notification via an injected client). Automations are for application reaction and
+ * orchestration. Use {@code OutboxPublisher} when stored events need to be published to
+ * external systems such as HTTP webhooks, Kafka, analytics, or CRM integrations.
  *
  * <pre>{@code
  * @Component
@@ -45,8 +41,9 @@ import java.util.Set;
  * }
  * }</pre>
  *
- * <p>In-process execution is preferred for internal command dispatch within the same
- * deployment unit. Webhook delivery remains available for external integrations.
+ * <p>Each matching event is delivered to {@link #react(StoredEvent, CommandExecutor)}.
+ * The automation should make application decisions and record outcomes through commands
+ * and events where appropriate.
  */
 public interface AutomationHandler extends AutomationDefinition, ProcessorRuntimeOverrides {
 
@@ -65,15 +62,6 @@ public interface AutomationHandler extends AutomationDefinition, ProcessorRuntim
     /** At least ONE of these tag keys must be present on the event to trigger this handler. */
     @Override
     default Set<String> getAnyOfTags() { return Set.of(); }
-
-    /** Optional webhook target. Non-blank value switches delivery from in-process to HTTP POST. */
-    default String getWebhookUrl() { return null; }
-
-    /** Static HTTP headers to include in webhook requests. */
-    default Map<String, String> getWebhookHeaders() { return Map.of(); }
-
-    /** Per-request timeout in milliseconds for webhook delivery. */
-    default int getWebhookTimeoutMs() { return 5000; }
 
     /** Override polling interval for this automation only (ms). Null = use global default. */
     default Long getPollingIntervalMs() { return null; }
@@ -99,8 +87,5 @@ public interface AutomationHandler extends AutomationDefinition, ProcessorRuntim
      * @param event           the matching stored event
      * @param commandExecutor executor for dispatching follow-up commands
      */
-    default void react(StoredEvent event, CommandExecutor commandExecutor) {
-        throw new UnsupportedOperationException(
-                "Automation " + getAutomationName() + " is configured for webhook delivery only");
-    }
+    void react(StoredEvent event, CommandExecutor commandExecutor);
 }

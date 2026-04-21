@@ -8,59 +8,59 @@ import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.CorrelationContext;
 import com.crablet.eventstore.StoredEvent;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.core.env.Environment;
 import org.springframework.lang.Nullable;
-import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 /**
- * Dispatches events to automations — either via HTTP POST or directly in-process.
- *
- * <p>Routing is determined by the handler itself: if
- * {@link AutomationHandler#getWebhookUrl()} is non-blank, the matching event is POSTed
- * to that URL; otherwise {@link AutomationHandler#react(StoredEvent, CommandExecutor)}
- * is invoked directly.
+ * Dispatches events to in-process automations.
  */
 public class AutomationDispatcher implements EventHandler<String> {
 
     private static final Logger log = LoggerFactory.getLogger(AutomationDispatcher.class);
 
     private final Map<String, AutomationHandler> handlers;
-    private final AutomationWebhookClient webhookClient;
     private final CommandExecutor commandExecutor;
     private final ApplicationEventPublisher eventPublisher;
-    private final Environment environment;
     private final ClockProvider clockProvider;
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
 
     public AutomationDispatcher(
             Map<String, AutomationHandler> handlers,
-            AutomationWebhookClient webhookClient,
             @Nullable CommandExecutor commandExecutor,
-            ApplicationEventPublisher eventPublisher,
-            Environment environment) {
-        this(handlers, webhookClient, commandExecutor, eventPublisher, environment, ClockProvider.systemDefault());
+            ApplicationEventPublisher eventPublisher) {
+        this(handlers, commandExecutor, eventPublisher, ClockProvider.systemDefault(), CircuitBreakerRegistry.ofDefaults());
     }
 
     public AutomationDispatcher(
             Map<String, AutomationHandler> handlers,
-            AutomationWebhookClient webhookClient,
             @Nullable CommandExecutor commandExecutor,
             ApplicationEventPublisher eventPublisher,
-            Environment environment,
             ClockProvider clockProvider) {
+        this(handlers, commandExecutor, eventPublisher, clockProvider, CircuitBreakerRegistry.ofDefaults());
+    }
+
+    public AutomationDispatcher(
+            Map<String, AutomationHandler> handlers,
+            @Nullable CommandExecutor commandExecutor,
+            ApplicationEventPublisher eventPublisher,
+            ClockProvider clockProvider,
+            CircuitBreakerRegistry circuitBreakerRegistry) {
         this.handlers = handlers;
-        this.webhookClient = webhookClient;
         this.commandExecutor = commandExecutor;
         this.eventPublisher = eventPublisher;
-        this.environment = environment;
         this.clockProvider = clockProvider;
+        this.circuitBreakerRegistry = circuitBreakerRegistry;
     }
 
     @Override
@@ -71,10 +71,14 @@ public class AutomationDispatcher implements EventHandler<String> {
             return 0;
         }
 
-        if (StringUtils.hasText(handler.getWebhookUrl())) {
-            return handleWebhook(handler, events);
+        CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("automation-" + automationName);
+        try {
+            Callable<Integer> call = CircuitBreaker.decorateCallable(cb, () -> handleInProcess(handler, events));
+            return call.call();
+        } catch (CallNotPermittedException e) {
+            log.warn("Circuit breaker OPEN for automation {}", automationName);
+            throw e;
         }
-        return handleInProcess(handler, events);
     }
 
     private int handleInProcess(AutomationHandler handler, List<StoredEvent> events) throws Exception {
@@ -107,50 +111,5 @@ public class AutomationDispatcher implements EventHandler<String> {
                 automationName, count, Duration.between(start, clockProvider.now())));
         log.debug("Automation {} (in-process) processed {} events", automationName, count);
         return count;
-    }
-
-    private int handleWebhook(AutomationHandler handler, List<StoredEvent> events) throws Exception {
-        String automationName = handler.getAutomationName();
-        String webhookUrl = resolveWebhookUrl(handler.getWebhookUrl());
-        Instant start = clockProvider.now();
-        int count = 0;
-
-        for (StoredEvent event : events) {
-            try {
-                webhookClient.postEvent(webhookUrl, handler, event);
-                count++;
-            } catch (Exception e) {
-                eventPublisher.publishEvent(new AutomationExecutionErrorMetric(automationName));
-                log.error("Automation {} failed to POST event type={} position={} to {}: {}",
-                        automationName, event.type(), event.position(), webhookUrl, e.getMessage(), e);
-                throw e;
-            }
-        }
-
-        eventPublisher.publishEvent(new AutomationExecutionMetric(
-                automationName, count, Duration.between(start, clockProvider.now())));
-        log.debug("Automation {} dispatched {} events to {}", automationName, count, webhookUrl);
-        return count;
-    }
-
-    private String resolveWebhookUrl(String webhookUrl) {
-        if (webhookUrl.startsWith("http://") || webhookUrl.startsWith("https://")) {
-            return webhookUrl;
-        }
-        if (!webhookUrl.startsWith("/")) {
-            throw new IllegalArgumentException("webhookUrl must be absolute or start with '/': " + webhookUrl);
-        }
-
-        Integer port = environment.getProperty("local.server.port", Integer.class);
-        if (port == null || port <= 0) {
-            port = environment.getProperty("server.port", Integer.class);
-        }
-        if (port == null || port <= 0) {
-            throw new IllegalStateException(
-                    "Relative automation webhookUrl requires local.server.port or server.port: " + webhookUrl
-            );
-        }
-
-        return "http://localhost:" + port + webhookUrl;
     }
 }

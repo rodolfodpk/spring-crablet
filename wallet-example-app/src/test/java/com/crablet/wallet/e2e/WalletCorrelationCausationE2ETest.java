@@ -6,7 +6,7 @@ import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
-import com.crablet.examples.notification.events.WelcomeNotificationSent;
+import com.crablet.examples.wallet.notification.events.WelcomeNotificationSent;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;

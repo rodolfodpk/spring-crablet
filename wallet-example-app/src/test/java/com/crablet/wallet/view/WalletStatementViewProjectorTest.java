@@ -2,6 +2,9 @@ package com.crablet.wallet.view;
 
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.query.EventRepository;
+import com.crablet.eventstore.query.Query;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.events.WalletStatementClosed;
@@ -9,6 +12,7 @@ import com.crablet.examples.wallet.events.WalletStatementOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;
 import com.crablet.views.internal.ViewProcessorConfig;
 import com.crablet.wallet.AbstractWalletTest;
+import com.crablet.wallet.view.projectors.WalletStatementViewProjector;
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,6 +60,12 @@ class WalletStatementViewProjectorTest extends AbstractWalletTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private EventRepository eventRepository;
+
+    @Autowired
+    private WalletStatementViewProjector statementViewProjector;
 
     private static final String WALLET_ID_1 = "wallet-stmt-test-1";
     private static final String WALLET_ID_2 = "wallet-stmt-test-2";
@@ -484,6 +494,27 @@ class WalletStatementViewProjectorTest extends AbstractWalletTest {
         assertThat(count).isEqualTo(0);
     }
 
+    @Test
+    @DisplayName("Should skip transaction when matching statement is missing")
+    void shouldSkipTransaction_WhenMatchingStatementIsMissing() throws Exception {
+        // When - Deposit has period tags but the statement row does not exist
+        appendDeposit(WALLET_ID_1, "deposit-without-statement", 50, 150, 2024, 1, null, null);
+        int processed = processStatementView();
+
+        // Then
+        assertThat(processed).isEqualTo(0);
+
+        Long statementCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM wallet_statement_view WHERE wallet_id = ?", Long.class, WALLET_ID_1
+        );
+        assertThat(statementCount).isEqualTo(0);
+
+        Long junctionCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM statement_transactions", Long.class
+        );
+        assertThat(junctionCount).isEqualTo(0);
+    }
+
     // ========== Category 4: Idempotency ==========
 
     @Test
@@ -519,6 +550,88 @@ class WalletStatementViewProjectorTest extends AbstractWalletTest {
             "SELECT COUNT(*) FROM statement_transactions WHERE statement_id = ?", Long.class, statementId
         );
         assertThat(junctionCount).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Should not double count when same stored event is dispatched twice")
+    void shouldNotDoubleCount_WhenSameStoredEventDispatchedTwice() throws Exception {
+        // Given
+        String statementId = "wallet:" + WALLET_ID_1 + ":2024-01";
+        appendStatementOpened(WALLET_ID_1, statementId, 2024, 1, null, null, 100);
+        processStatementView();
+        appendDeposit(WALLET_ID_1, "deposit-1", 50, 150, 2024, 1, null, null);
+
+        StoredEvent depositEvent = eventRepository.query(Query.forEvent("DepositMade"), null).stream()
+            .filter(event -> event.tags().stream()
+                .anyMatch(tag -> DEPOSIT_ID.equals(tag.key()) && "deposit-1".equals(tag.value())))
+            .findFirst()
+            .orElseThrow();
+
+        // When
+        int handledFirst = statementViewProjector.handle("wallet-statement-view", List.of(depositEvent));
+        int handledSecond = statementViewProjector.handle("wallet-statement-view", List.of(depositEvent));
+
+        // Then
+        assertThat(handledFirst).isEqualTo(1);
+        assertThat(handledSecond).isEqualTo(0);
+
+        Map<String, Object> row = jdbcTemplate.queryForList(
+            "SELECT * FROM wallet_statement_view WHERE statement_id = ?", statementId
+        ).get(0);
+        assertThat(((BigDecimal) row.get("total_deposits")).intValue()).isEqualTo(50);
+        assertThat(((Integer) row.get("transaction_count"))).isEqualTo(1);
+
+        Long junctionCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM statement_transactions WHERE statement_id = ?", Long.class, statementId
+        );
+        assertThat(junctionCount).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Should not double count transfer when same stored event is dispatched twice")
+    void shouldNotDoubleCountTransfer_WhenSameStoredEventDispatchedTwice() throws Exception {
+        // Given
+        String fromStatementId = "wallet:" + WALLET_ID_1 + ":2024-01";
+        String toStatementId = "wallet:" + WALLET_ID_2 + ":2024-01";
+        appendStatementOpened(WALLET_ID_1, fromStatementId, 2024, 1, null, null, 100);
+        appendStatementOpened(WALLET_ID_2, toStatementId, 2024, 1, null, null, 50);
+        processStatementView();
+        appendTransfer(WALLET_ID_1, WALLET_ID_2, "transfer-duplicate", 25, 75, 75,
+            2024, 1, null, null, 2024, 1, null, null);
+
+        StoredEvent transferEvent = eventRepository.query(Query.forEvent("MoneyTransferred"), null).stream()
+            .filter(event -> event.tags().stream()
+                .anyMatch(tag -> TRANSFER_ID.equals(tag.key()) && "transfer-duplicate".equals(tag.value())))
+            .findFirst()
+            .orElseThrow();
+
+        // When
+        int handledFirst = statementViewProjector.handle("wallet-statement-view", List.of(transferEvent));
+        int handledSecond = statementViewProjector.handle("wallet-statement-view", List.of(transferEvent));
+
+        // Then
+        assertThat(handledFirst).isEqualTo(1);
+        assertThat(handledSecond).isEqualTo(0);
+
+        Map<String, Object> fromRow = jdbcTemplate.queryForList(
+            "SELECT * FROM wallet_statement_view WHERE statement_id = ?", fromStatementId
+        ).get(0);
+        assertThat(((BigDecimal) fromRow.get("total_transfers_out")).intValue()).isEqualTo(25);
+        assertThat(((Integer) fromRow.get("transaction_count"))).isEqualTo(1);
+
+        Map<String, Object> toRow = jdbcTemplate.queryForList(
+            "SELECT * FROM wallet_statement_view WHERE statement_id = ?", toStatementId
+        ).get(0);
+        assertThat(((BigDecimal) toRow.get("total_transfers_in")).intValue()).isEqualTo(25);
+        assertThat(((Integer) toRow.get("transaction_count"))).isEqualTo(1);
+
+        Long junctionCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM statement_transactions WHERE statement_id IN (?, ?)",
+            Long.class,
+            fromStatementId,
+            toStatementId
+        );
+        assertThat(junctionCount).isEqualTo(2);
     }
 
     @Test
@@ -598,4 +711,3 @@ class WalletStatementViewProjectorTest extends AbstractWalletTest {
         assertThat(netChange.intValue()).isEqualTo(30); // 50 - 20
     }
 }
-

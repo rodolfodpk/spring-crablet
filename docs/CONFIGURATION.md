@@ -100,6 +100,20 @@ Controls the LISTEN side — opt-in wakeup that cancels the current scheduled de
 | `max-backoff-seconds` | int | `120` | Maximum backoff delay (seconds) |
 | `shared-fetch.enabled` | boolean | `false` | One DB query per cycle serves all views. Requires schema migration V14. Reduces DB load when many views share the same event stream |
 
+### Circuit Breaker (views)
+
+Each view has a Resilience4j circuit breaker named `"view-<viewName>"`. When the circuit opens, the view is skipped for the current cycle and a WARN is logged. Resilience4j defaults apply unless overridden:
+
+```yaml
+resilience4j:
+  circuitbreaker:
+    instances:
+      view-wallet_statements:
+        failure-rate-threshold: 50        # open after 50% failures
+        wait-duration-in-open-state: 30s  # stay open 30s before half-open probe
+        permitted-number-of-calls-in-half-open-state: 3
+```
+
 ---
 
 ## crablet-outbox
@@ -159,6 +173,10 @@ Controls the LISTEN side — opt-in wakeup that cancels the current scheduled de
 | `backoff-multiplier` | int | `2` | Exponential backoff multiplier |
 | `max-backoff-seconds` | int | `120` | Maximum backoff delay (seconds) |
 | `shared-fetch.enabled` | boolean | `false` | One DB query per cycle serves all automations |
+
+### Circuit Breaker (automations)
+
+Each automation has a Resilience4j circuit breaker named `"automation-<automationName>"`. Same semantics as the views circuit breaker — when the circuit opens the automation is skipped for the current cycle and a WARN is logged. Configure under `resilience4j.circuitbreaker.instances.automation-<name>`.
 
 ---
 

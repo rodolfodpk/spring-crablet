@@ -161,6 +161,50 @@ public class KafkaPublisher implements OutboxPublisher {
 }
 ```
 
+### External HTTP Webhook Publisher
+
+Use `PublishMode.INDIVIDUAL` when the downstream HTTP API expects one event per request:
+
+```java
+@Component
+public class CustomerWebhookPublisher implements OutboxPublisher {
+    private final RestClient restClient;
+
+    public CustomerWebhookPublisher(RestClient.Builder restClientBuilder) {
+        this.restClient = restClientBuilder
+            .baseUrl("https://customer.example")
+            .build();
+    }
+
+    @Override
+    public String getName() {
+        return "CustomerWebhookPublisher";
+    }
+
+    @Override
+    public PublishMode getPreferredMode() {
+        return PublishMode.INDIVIDUAL;
+    }
+
+    @Override
+    public void publishBatch(List<StoredEvent> events) throws PublishException {
+        StoredEvent event = events.get(0);
+        restClient.post()
+            .uri("/webhooks/events")
+            .body(event)
+            .retrieve()
+            .toBodilessEntity();
+    }
+
+    @Override
+    public boolean isHealthy() {
+        return true;
+    }
+}
+```
+
+`INDIVIDUAL` mode calls `publishBatch(List.of(event))` once per event while keeping the outbox progress, retry, and circuit-breaker boundary on the publisher.
+
 ## Management
 
 ### REST API
