@@ -28,6 +28,7 @@ import com.crablet.views.internal.ViewProcessorConfig;
 import com.crablet.views.internal.ViewProgressTracker;
 import com.crablet.views.service.ViewManagementService;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
@@ -55,6 +56,12 @@ public class ViewsAutoConfiguration {
 
     // Advisory lock key for views (different from outbox)
     private static final long VIEWS_LOCK_KEY = 4856221667890123457L;
+
+    @Bean
+    @ConditionalOnMissingBean(CircuitBreakerRegistry.class)
+    public CircuitBreakerRegistry circuitBreakerRegistry() {
+        return CircuitBreakerRegistry.ofDefaults();
+    }
 
     @Bean
     public ProgressTracker<String> viewProgressTracker(
