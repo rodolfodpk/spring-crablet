@@ -78,10 +78,6 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
         SET total_deposits = total_deposits + ?,
             transaction_count = transaction_count + 1
         WHERE statement_id = ?
-          AND EXISTS (
-              SELECT 1 FROM statement_transactions 
-              WHERE statement_id = ? AND event_position = ?
-          )
         """;
 
     private static final String UPDATE_WITHDRAWAL_TOTALS = """
@@ -89,10 +85,6 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
         SET total_withdrawals = total_withdrawals + ?,
             transaction_count = transaction_count + 1
         WHERE statement_id = ?
-          AND EXISTS (
-              SELECT 1 FROM statement_transactions 
-              WHERE statement_id = ? AND event_position = ?
-          )
         """;
 
     private static final String UPDATE_TRANSFER_OUT_TOTALS = """
@@ -100,10 +92,6 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
         SET total_transfers_out = total_transfers_out + ?,
             transaction_count = transaction_count + 1
         WHERE statement_id = ?
-          AND EXISTS (
-              SELECT 1 FROM statement_transactions 
-              WHERE statement_id = ? AND event_position = ?
-          )
         """;
 
     private static final String UPDATE_TRANSFER_IN_TOTALS = """
@@ -111,10 +99,6 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
         SET total_transfers_in = total_transfers_in + ?,
             transaction_count = transaction_count + 1
         WHERE statement_id = ?
-          AND EXISTS (
-              SELECT 1 FROM statement_transactions 
-              WHERE statement_id = ? AND event_position = ?
-          )
         """;
 
     public WalletStatementViewProjector(
@@ -179,15 +163,13 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
             return false;
         }
 
-        // Insert into junction table (idempotent)
-        jdbc.update(INSERT_PROCESSED_EVENT, statementId, storedEvent.position());
+        if (!recordProcessedEvent(jdbc, statementId, storedEvent.position())) {
+            return false;
+        }
 
-        // Update totals (only if event was newly inserted)
         int updated = jdbc.update(UPDATE_DEPOSIT_TOTALS,
             BigDecimal.valueOf(deposit.amount()),
-            statementId,
-            statementId,
-            storedEvent.position()
+            statementId
         );
 
         if (updated > 0) {
@@ -203,15 +185,13 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
             return false;
         }
 
-        // Insert into junction table (idempotent)
-        jdbc.update(INSERT_PROCESSED_EVENT, statementId, storedEvent.position());
+        if (!recordProcessedEvent(jdbc, statementId, storedEvent.position())) {
+            return false;
+        }
 
-        // Update totals (only if event was newly inserted)
         int updated = jdbc.update(UPDATE_WITHDRAWAL_TOTALS,
             BigDecimal.valueOf(withdrawal.amount()),
-            statementId,
-            statementId,
-            storedEvent.position()
+            statementId
         );
 
         if (updated > 0) {
@@ -223,13 +203,10 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
     private boolean handleMoneyTransferred(MoneyTransferred transfer, StoredEvent storedEvent, JdbcTemplate jdbc) {
         // Process for FROM wallet
         String fromStatementId = extractStatementIdForTransfer(storedEvent, transfer.fromWalletId(), true);
-        if (fromStatementId != null) {
-            jdbc.update(INSERT_PROCESSED_EVENT, fromStatementId, storedEvent.position());
+        if (fromStatementId != null && recordProcessedEvent(jdbc, fromStatementId, storedEvent.position())) {
             int updated = jdbc.update(UPDATE_TRANSFER_OUT_TOTALS,
                 BigDecimal.valueOf(transfer.amount()),
-                fromStatementId,
-                fromStatementId,
-                storedEvent.position()
+                fromStatementId
             );
             if (updated > 0) {
                 log.debug("Updated transfer-out totals for statement {}: +{}", fromStatementId, transfer.amount());
@@ -238,14 +215,10 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
 
         // Process for TO wallet
         String toStatementId = extractStatementIdForTransfer(storedEvent, transfer.toWalletId(), false);
-        if (toStatementId != null) {
-            // Use same event_position for both wallets (same event)
-            jdbc.update(INSERT_PROCESSED_EVENT, toStatementId, storedEvent.position());
+        if (toStatementId != null && recordProcessedEvent(jdbc, toStatementId, storedEvent.position())) {
             int updated = jdbc.update(UPDATE_TRANSFER_IN_TOTALS,
                 BigDecimal.valueOf(transfer.amount()),
-                toStatementId,
-                toStatementId,
-                storedEvent.position()
+                toStatementId
             );
             if (updated > 0) {
                 log.debug("Updated transfer-in totals for statement {}: +{}", toStatementId, transfer.amount());
@@ -253,6 +226,10 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
         }
 
         return true;
+    }
+
+    private boolean recordProcessedEvent(JdbcTemplate jdbc, String statementId, long eventPosition) {
+        return jdbc.update(INSERT_PROCESSED_EVENT, statementId, eventPosition) > 0;
     }
 
     /**
