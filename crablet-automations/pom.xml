@@ -32,12 +32,6 @@
             <artifactId>crablet-commands</artifactId>
         </dependency>
 
-        <!-- Spring Boot Rest Client (RestClient for webhook HTTP dispatch) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-restclient</artifactId>
-        </dependency>
-
         <!-- Spring Boot JDBC -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -87,12 +81,6 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.wiremock</groupId>
-            <artifactId>wiremock-standalone</artifactId>
-            <version>3.13.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

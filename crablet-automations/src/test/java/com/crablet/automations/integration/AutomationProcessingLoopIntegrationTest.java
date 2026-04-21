@@ -6,7 +6,6 @@ import com.crablet.automations.internal.AutomationDispatcher;
 import com.crablet.automations.internal.AutomationEventFetcher;
 import com.crablet.automations.internal.AutomationProcessorConfig;
 import com.crablet.automations.internal.AutomationProgressTracker;
-import com.crablet.automations.internal.AutomationWebhookClient;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandExecutors;
 import com.crablet.eventpoller.EventFetcher;
@@ -20,19 +19,17 @@ import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.internal.EventStoreImpl;
-import com.crablet.examples.notification.commands.SendWelcomeNotificationCommand;
-import com.crablet.examples.notification.commands.SendWelcomeNotificationCommandHandler;
+import com.crablet.examples.wallet.notification.commands.SendWelcomeNotificationCommand;
+import com.crablet.examples.wallet.notification.commands.SendWelcomeNotificationCommandHandler;
 import com.crablet.examples.wallet.events.WalletOpened;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.cfg.DateTimeFeature;
@@ -46,8 +43,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import static com.crablet.eventstore.EventType.type;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Integration tests for the full automation processing loop.
@@ -190,10 +185,6 @@ class AutomationProcessingLoopIntegrationTest extends AbstractAutomationsTest {
     @DisplayName("Should execute command and persist event in end-to-end flow")
     void shouldExecuteCommandAndPersistEvent_EndToEnd() {
         // Given - dedicated handler that executes a command (separate from recording handler)
-        Environment noPortEnv = mock(Environment.class);
-        when(noPortEnv.getProperty("local.server.port", Integer.class)).thenReturn(null);
-        when(noPortEnv.getProperty("server.port", Integer.class)).thenReturn(null);
-
         AutomationHandler executingHandler = new AutomationHandler() {
             @Override public String getAutomationName() { return "executing-handler-loop"; }
             @Override public Set<String> getEventTypes() { return Set.of(type(WalletOpened.class)); }
@@ -206,8 +197,7 @@ class AutomationProcessingLoopIntegrationTest extends AbstractAutomationsTest {
         Map<String, AutomationHandler> handlers = Map.of("executing-handler-loop", executingHandler);
         SynchronousAutomationProcessor cmdProcessor = new SynchronousAutomationProcessor(
                 new AutomationEventFetcher(dataSource, handlers),
-                new AutomationDispatcher(handlers, webhookClient(),
-                        commandExecutor, e -> {}, noPortEnv),
+                new AutomationDispatcher(handlers, commandExecutor, e -> {}),
                 new AutomationProgressTracker(dataSource),
                 AutomationProcessorConfig.createConfigMap(new AutomationsConfig(), handlers));
 
@@ -377,14 +367,9 @@ class AutomationProcessingLoopIntegrationTest extends AbstractAutomationsTest {
             Map<String, AutomationHandler> handlers =
                     Map.of(recordingHandler.getAutomationName(), recordingHandler);
 
-            Environment noPortEnv = mock(Environment.class);
-            when(noPortEnv.getProperty("local.server.port", Integer.class)).thenReturn(null);
-            when(noPortEnv.getProperty("server.port", Integer.class)).thenReturn(null);
-
             EventFetcher<String> fetcher = new AutomationEventFetcher(dataSource, handlers);
             EventHandler<String> dispatcher = new AutomationDispatcher(
-                    handlers, webhookClient(),
-                    commandExecutor, eventPublisher, noPortEnv);
+                    handlers, commandExecutor, eventPublisher);
             AutomationProgressTracker progressTracker = new AutomationProgressTracker(dataSource);
             Map<String, AutomationProcessorConfig> configs =
                     AutomationProcessorConfig.createConfigMap(new AutomationsConfig(), handlers);
@@ -393,20 +378,4 @@ class AutomationProcessingLoopIntegrationTest extends AbstractAutomationsTest {
         }
     }
 
-    private static AutomationWebhookClient webhookClient() {
-        ObjectProvider<org.springframework.web.client.RestClient.Builder> builderProvider = providerOf(org.springframework.web.client.RestClient.builder());
-        return new AutomationWebhookClient(
-                builderProvider,
-                JsonMapper.builder().disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build(),
-                List.of());
-    }
-
-    private static <T> ObjectProvider<T> providerOf(T value) {
-        return new ObjectProvider<>() {
-            @Override public T getObject(Object... args) { return value; }
-            @Override public T getIfAvailable() { return value; }
-            @Override public T getIfUnique() { return value; }
-            @Override public T getObject() { return value; }
-        };
-    }
 }

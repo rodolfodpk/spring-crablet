@@ -258,8 +258,8 @@ crablet-outbox (Optional)
 
 crablet-automations (Optional)
 ├── AutomationHandler - Single public automation contract
-├── Webhook delivery is a mode on AutomationHandler
 ├── Listen to events, execute commands automatically
+├── Application reaction/orchestration after events
 └── Leader election per automation processor
 
 crablet-metrics-micrometer (Optional)
@@ -288,7 +288,8 @@ wallet-example-app (Example application)
 These decisions reflect the current repository state and should be treated as the preferred direction:
 
 - `AutomationHandler` is the single public automation contract.
-- Webhook delivery is a mode on `AutomationHandler`, not a separate public type.
+- Automations react through `AutomationHandler.react()`.
+- External event publication, including HTTP webhooks, belongs in `crablet-outbox`.
 - `AutomationSubscription` has been removed.
 - `crablet-event-poller` now owns the shared matching and per-instance override abstractions:
   - `EventSelection`
@@ -797,9 +798,10 @@ Recommended separation of concerns:
 
 - command handlers record facts
 - views model current decision state
-- automations react asynchronously and own external side effects
+- automations react asynchronously and own follow-up application behavior
+- outbox publishes stored events to external systems
 
-If an automation needs to call an email provider, webhook, or other external HTTP API, keep that call in the automation layer and use commands/events to record the outcome.
+If stored events need to be sent to an external HTTP API, Kafka, analytics, or CRM system, use an `OutboxPublisher`. If an event should trigger application behavior, implement that behavior in `AutomationHandler.react()` and use commands/events to record the outcome.
 
 **Documentation:** `crablet-eventstore/docs/READ_REPLICAS.md`
 

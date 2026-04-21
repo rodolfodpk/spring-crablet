@@ -44,7 +44,9 @@ class AutomationProcessorConfigTest {
     @DisplayName("Should use handler pollingIntervalMs override when present")
     void shouldUseHandlerPollingIntervalOverrideWhenPresent() {
         AutomationsConfig config = createDefaultConfig();
-        AutomationHandler handler = webhookHandler("automation", "http://localhost/webhook", 5000L, null);
+        AutomationHandler handler = new BaseHandler("automation") {
+            @Override public Long getPollingIntervalMs() { return 5000L; }
+        };
 
         AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, handler);
 
@@ -66,7 +68,9 @@ class AutomationProcessorConfigTest {
     @DisplayName("Should use handler batchSize override when present")
     void shouldUseHandlerBatchSizeOverrideWhenPresent() {
         AutomationsConfig config = createDefaultConfig();
-        AutomationHandler handler = webhookHandler("automation", "http://localhost/webhook", null, 7);
+        AutomationHandler handler = new BaseHandler("automation") {
+            @Override public Integer getBatchSize() { return 7; }
+        };
 
         AutomationProcessorConfig processorConfig = new AutomationProcessorConfig("automation", config, handler);
 
@@ -170,14 +174,6 @@ class AutomationProcessorConfigTest {
 
     private AutomationHandler noOverrides(String name) {
         return new BaseHandler(name);
-    }
-
-    private AutomationHandler webhookHandler(String name, String webhookUrl, Long pollingIntervalMs, Integer batchSize) {
-        return new BaseHandler(name) {
-            @Override public String getWebhookUrl() { return webhookUrl; }
-            @Override public Long getPollingIntervalMs() { return pollingIntervalMs; }
-            @Override public Integer getBatchSize() { return batchSize; }
-        };
     }
 
     private static class BaseHandler implements AutomationHandler {

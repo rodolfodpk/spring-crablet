@@ -373,7 +373,7 @@ WalletOpened event
     → WelcomeNotificationSent (with idempotency check)
 ```
 
-In the current example, `WalletOpenedAutomation` is an in-process `AutomationHandler`, so it does not override `getWebhookUrl()`.
+In the current example, `WalletOpenedAutomation` is an `AutomationHandler` that reacts by executing a follow-up command.
 
 ## Outbox
 

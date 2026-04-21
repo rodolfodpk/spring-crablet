@@ -2,7 +2,6 @@ package com.crablet.automations.config;
 
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.internal.AutomationProcessorConfig;
-import com.crablet.automations.internal.AutomationWebhookClient;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventSelection;
@@ -20,7 +19,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.core.env.Environment;
 import org.springframework.scheduling.TaskScheduler;
 
 import javax.sql.DataSource;
@@ -54,43 +52,39 @@ class AutomationsAutoConfigurationTest {
     @DisplayName("Should build processor configs when handler names are distinct")
     void shouldBuildProcessorConfigsWhenHandlerNamesAreDistinct() {
         Map<String, AutomationHandler> handlers = Map.of(
-                "webhook-automation", webhookHandler("webhook-automation"),
-                "in-process-automation", handler("in-process-automation"));
+                "automation-a", handler("automation-a"),
+                "automation-b", handler("automation-b"));
 
         Map<String, AutomationProcessorConfig> configs = autoConfiguration.automationProcessorConfigs(
                 new AutomationsConfig(), handlers);
 
-        assertThat(configs).containsKeys("webhook-automation", "in-process-automation");
+        assertThat(configs).containsKeys("automation-a", "automation-b");
     }
 
     @Test
-    @DisplayName("Should reject in-process handler when CommandExecutor is absent")
-    void shouldRejectInProcessHandlerWhenCommandExecutorIsAbsent() {
-        Map<String, AutomationHandler> handlers = Map.of("in-process", handler("in-process"));
+    @DisplayName("Should reject automation handler when CommandExecutor is absent")
+    void shouldRejectAutomationHandlerWhenCommandExecutorIsAbsent() {
+        Map<String, AutomationHandler> handlers = Map.of("automation", handler("automation"));
 
         assertThatThrownBy(() -> autoConfiguration.automationEventHandler(
                 handlers,
-                mock(AutomationWebhookClient.class),
                 emptyProvider(),
                 mock(ApplicationEventPublisher.class),
-                mock(Environment.class),
                 mock(ClockProvider.class)))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("In-process AutomationHandlers require a CommandExecutor bean")
-                .hasMessageContaining("in-process");
+                .hasMessageContaining("AutomationHandlers require a CommandExecutor bean")
+                .hasMessageContaining("automation");
     }
 
     @Test
-    @DisplayName("Should allow webhook-only handlers without CommandExecutor")
-    void shouldAllowWebhookOnlyHandlersWithoutCommandExecutor() {
-        Map<String, AutomationHandler> handlers = Map.of("webhook", webhookHandler("webhook"));
+    @DisplayName("Should create automation event handler when CommandExecutor is present")
+    void shouldCreateAutomationEventHandlerWhenCommandExecutorIsPresent() {
+        Map<String, AutomationHandler> handlers = Map.of("automation", handler("automation"));
 
         EventHandler<String> eventHandler = autoConfiguration.automationEventHandler(
                 handlers,
-                mock(AutomationWebhookClient.class),
-                emptyProvider(),
+                providerOfValue(mock(CommandExecutor.class)),
                 mock(ApplicationEventPublisher.class),
-                mock(Environment.class),
                 mock(ClockProvider.class));
 
         assertThat(eventHandler).isNotNull();
@@ -103,7 +97,7 @@ class AutomationsAutoConfigurationTest {
         when(instanceIdProvider.getInstanceId()).thenReturn("instance-1");
 
         EventProcessor<AutomationProcessorConfig, String> processor = autoConfiguration.automationsEventProcessor(
-                Map.of("webhook", new AutomationProcessorConfig("webhook", new AutomationsConfig(), webhookHandler("webhook"))),
+                Map.of("automation", new AutomationProcessorConfig("automation", new AutomationsConfig(), handler("automation"))),
                 mock(ProgressTracker.class),
                 (processorId, lastPosition, batchSize) -> List.of(),
                 (processorId, events) -> 0,
@@ -122,9 +116,9 @@ class AutomationsAutoConfigurationTest {
     void shouldCreateSharedFetchAutomationEventProcessor() {
         AutomationsConfig config = new AutomationsConfig();
         config.setFetchBatchSize(25);
-        Map<String, AutomationHandler> handlers = Map.of("webhook", webhookHandler("webhook"));
+        Map<String, AutomationHandler> handlers = Map.of("automation", handler("automation"));
         Map<String, AutomationProcessorConfig> processorConfigs = Map.of(
-                "webhook", new AutomationProcessorConfig("webhook", config, handlers.get("webhook")));
+                "automation", new AutomationProcessorConfig("automation", config, handlers.get("automation")));
         InstanceIdProvider instanceIdProvider = mock(InstanceIdProvider.class);
         when(instanceIdProvider.getInstanceId()).thenReturn("instance-1");
 
@@ -152,20 +146,21 @@ class AutomationsAutoConfigurationTest {
         };
     }
 
-    private static AutomationHandler webhookHandler(String name) {
-        return new AutomationHandler() {
-            @Override public String getAutomationName() { return name; }
-            @Override public Set<String> getEventTypes() { return Set.of("WalletOpened"); }
-            @Override public String getWebhookUrl() { return "http://localhost/webhook"; }
-        };
-    }
-
     private static <T> ObjectProvider<List<T>> providerOf(List<T> value) {
         return new ObjectProvider<>() {
             @Override public List<T> getObject(Object... args) { return value; }
             @Override public List<T> getIfAvailable() { return value; }
             @Override public List<T> getIfUnique() { return value; }
             @Override public List<T> getObject() { return value; }
+        };
+    }
+
+    private static <T> ObjectProvider<T> providerOfValue(T value) {
+        return new ObjectProvider<>() {
+            @Override public T getObject(Object... args) { return value; }
+            @Override public T getIfAvailable() { return value; }
+            @Override public T getIfUnique() { return value; }
+            @Override public T getObject() { return value; }
         };
     }
 

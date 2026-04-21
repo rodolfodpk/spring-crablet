@@ -3,7 +3,6 @@ package com.crablet.automations.integration;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.internal.AutomationDispatcher;
 import com.crablet.automations.internal.AutomationEventFetcher;
-import com.crablet.automations.internal.AutomationWebhookClient;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandExecutors;
 import com.crablet.eventstore.AppendEvent;
@@ -15,24 +14,18 @@ import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.internal.EventStoreImpl;
-import com.crablet.examples.notification.commands.SendWelcomeNotificationCommand;
-import com.crablet.examples.notification.commands.SendWelcomeNotificationCommandHandler;
+import com.crablet.examples.wallet.notification.commands.SendWelcomeNotificationCommand;
+import com.crablet.examples.wallet.notification.commands.SendWelcomeNotificationCommandHandler;
 import com.crablet.examples.wallet.events.WalletOpened;
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.cfg.DateTimeFeature;
 import tools.jackson.databind.json.JsonMapper;
@@ -44,32 +37,13 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static com.crablet.eventstore.EventType.type;
-import static com.github.tomakehurst.wiremock.client.WireMock.ok;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.verify;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = AutomationDispatcherIntegrationTest.TestConfig.class,
         webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DisplayName("AutomationDispatcher Integration Tests")
 class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
-
-    @RegisterExtension
-    static WireMockExtension wireMock = WireMockExtension.newInstance()
-            .options(wireMockConfig().dynamicPort())
-            .build();
-
-    @DynamicPropertySource
-    static void wireMockProperties(DynamicPropertyRegistry registry) {
-        registry.add("test.wiremock.port", wireMock::getPort);
-    }
 
     @Autowired
     private EventStore eventStore;
@@ -90,7 +64,6 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
     void setUp() {
         cleanDatabase(jdbcTemplate);
         recordingHandler.clear();
-        wireMock.resetAll();
     }
 
     @Test
@@ -131,8 +104,8 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
 
         AutomationDispatcher dispatcher = new AutomationDispatcher(
                 Map.of("executing-handler", executingHandler),
-                webhookClient(), commandExecutor,
-                e -> {}, noPortEnv());
+                commandExecutor,
+                e -> {});
 
         List<StoredEvent> events = storedWalletOpenedEvents("wallet-3", "executing-handler");
 
@@ -155,8 +128,8 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
 
         AutomationDispatcher dispatcher = new AutomationDispatcher(
                 Map.of("failing", failingHandler),
-                webhookClient(), commandExecutor,
-                e -> {}, noPortEnv());
+                commandExecutor,
+                e -> {});
 
         List<StoredEvent> events = storedWalletOpenedEvents("wallet-4", "failing");
 
@@ -166,37 +139,11 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
     }
 
     @Test
-    @DisplayName("Should POST to webhook URL for webhook-configured handler")
-    void shouldPostToWebhookUrlForWebhookConfiguredHandler() throws Exception {
-        wireMock.stubFor(post("/webhook").willReturn(ok()));
-        AutomationDispatcher dispatcher = webhookDispatcher("/webhook");
-        List<StoredEvent> events = storedWalletOpenedEvents("wallet-5", "webhook-automation");
-
-        int count = dispatcher.handle("webhook-automation", events);
-
-        assertThat(count).isEqualTo(1);
-        wireMock.verify(1, postRequestedFor(urlEqualTo("/webhook")));
-    }
-
-    @Test
-    @DisplayName("Should include event payload in webhook POST body")
-    void shouldIncludeEventPayloadInWebhookPostBody() throws Exception {
-        wireMock.stubFor(post("/webhook").willReturn(ok()));
-        AutomationDispatcher dispatcher = webhookDispatcher("/webhook");
-        List<StoredEvent> events = storedWalletOpenedEvents("wallet-6", "webhook-automation");
-
-        dispatcher.handle("webhook-automation", events);
-
-        wireMock.verify(1, postRequestedFor(urlEqualTo("/webhook"))
-                .withRequestBody(com.github.tomakehurst.wiremock.client.WireMock.containing(type(WalletOpened.class))));
-    }
-
-    @Test
     @DisplayName("Should return 0 for automation with no handler")
     void shouldReturnZeroForAutomationWithNoHandler() throws Exception {
         AutomationDispatcher dispatcher = new AutomationDispatcher(
-                Map.of(), webhookClient(), null,
-                e -> {}, noPortEnv());
+                Map.of(), null,
+                e -> {});
 
         int result = dispatcher.handle("unknown-automation", storedWalletOpenedEvents("wallet-7", "wallet-notification"));
 
@@ -231,49 +178,8 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
     private AutomationDispatcher inProcessDispatcher() {
         return new AutomationDispatcher(
                 Map.of("wallet-notification", recordingHandler),
-                webhookClient(),
                 commandExecutor,
-                e -> {},
-                noPortEnv());
-    }
-
-    private AutomationDispatcher webhookDispatcher(String path) {
-        String url = "http://localhost:" + wireMock.getPort() + path;
-        AutomationHandler handler = new AutomationHandler() {
-            @Override public String getAutomationName() { return "webhook-automation"; }
-            @Override public Set<String> getEventTypes() { return Set.of(type(WalletOpened.class)); }
-            @Override public String getWebhookUrl() { return url; }
-        };
-        return new AutomationDispatcher(
-                Map.of("webhook-automation", handler),
-                webhookClient(),
-                null,
-                e -> {},
-                noPortEnv());
-    }
-
-    private Environment noPortEnv() {
-        Environment env = mock(Environment.class);
-        when(env.getProperty("local.server.port", Integer.class)).thenReturn(null);
-        when(env.getProperty("server.port", Integer.class)).thenReturn(null);
-        return env;
-    }
-
-    private AutomationWebhookClient webhookClient() {
-        ObjectProvider<org.springframework.web.client.RestClient.Builder> builderProvider = providerOf(org.springframework.web.client.RestClient.builder());
-        return new AutomationWebhookClient(
-                builderProvider,
-                JsonMapper.builder().disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build(),
-                List.of());
-    }
-
-    private <T> ObjectProvider<T> providerOf(T value) {
-        return new ObjectProvider<>() {
-            @Override public T getObject(Object... args) { return value; }
-            @Override public T getIfAvailable() { return value; }
-            @Override public T getIfUnique() { return value; }
-            @Override public T getObject() { return value; }
-        };
+                e -> {});
     }
 
     static class RecordingAutomationHandler implements AutomationHandler {

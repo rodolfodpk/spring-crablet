@@ -5,7 +5,6 @@ import com.crablet.automations.internal.AutomationDispatcher;
 import com.crablet.automations.internal.AutomationEventFetcher;
 import com.crablet.automations.internal.AutomationProcessorConfig;
 import com.crablet.automations.internal.AutomationProgressTracker;
-import com.crablet.automations.internal.AutomationWebhookClient;
 import com.crablet.automations.management.AutomationManagementService;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventFetcher;
@@ -34,10 +33,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.env.Environment;
 import org.springframework.scheduling.TaskScheduler;
-import org.springframework.web.client.RestClient;
-import tools.jackson.databind.ObjectMapper;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -86,34 +81,21 @@ public class AutomationsAutoConfiguration {
     }
 
     @Bean
-    public AutomationWebhookClient automationWebhookClient(
-            ObjectProvider<RestClient.Builder> restClientBuilderProvider,
-            ObjectMapper objectMapper,
-            ObjectProvider<List<Consumer<RestClient.Builder>>> restClientBuilderCustomizersProvider) {
-        List<Consumer<RestClient.Builder>> customizers = restClientBuilderCustomizersProvider.getIfAvailable(List::of);
-        return new AutomationWebhookClient(restClientBuilderProvider, objectMapper, customizers);
-    }
-
-    @Bean
     public EventHandler<String> automationEventHandler(
             @Qualifier("automationHandlers") Map<String, AutomationHandler> handlers,
-            AutomationWebhookClient automationWebhookClient,
             ObjectProvider<CommandExecutor> commandExecutorProvider,
             ApplicationEventPublisher eventPublisher,
-            Environment environment,
             ClockProvider clockProvider) {
 
         CommandExecutor commandExecutor = commandExecutorProvider.getIfAvailable();
-        boolean hasInProcessHandler = handlers.values().stream()
-                .anyMatch(handler -> handler.getWebhookUrl() == null || handler.getWebhookUrl().isBlank());
-        if (hasInProcessHandler && commandExecutor == null) {
+        if (!handlers.isEmpty() && commandExecutor == null) {
             throw new IllegalStateException(
-                    "In-process AutomationHandlers require a CommandExecutor bean. " +
+                    "AutomationHandlers require a CommandExecutor bean. " +
                     "Found handlers: " + handlers.keySet() + ". " +
                     "Ensure crablet-commands is on the classpath and a CommandExecutor bean is defined.");
         }
 
-        return new AutomationDispatcher(handlers, automationWebhookClient, commandExecutor, eventPublisher, environment, clockProvider);
+        return new AutomationDispatcher(handlers, commandExecutor, eventPublisher, clockProvider);
     }
 
     @Bean
@@ -218,4 +200,5 @@ public class AutomationsAutoConfiguration {
                     ". Each automation name must be unique.");
         }
     }
+
 }
