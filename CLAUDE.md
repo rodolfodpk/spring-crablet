@@ -317,6 +317,10 @@ These decisions reflect the current repository state and should be treated as th
   - The LISTEN `jdbc-url` **must be a direct connection** to Postgres — not a pooler URL. PgBouncer transaction mode, PgCat, and RDS Proxy do not support persistent LISTEN connections.
   - When wakeup is active, raise the polling interval to 30 s or more; scheduled polling becomes a safety net only.
 - Shared-fetch mode (`*.shared-fetch.enabled=true`) is opt-in per module (views, automations, outbox). When enabled, one DB query per cycle fetches all events; `EventSelectionMatcher` routes them in-memory to each processor. Requires schema migration V14 (`module_scan_progress` + `processor_scan_progress` tables). Best combined with LISTEN wakeup and many processors on the same event stream.
+- Web runtime coverage:
+  - Both `crablet-commands-web` and `wallet-example-app` E2E use the default embedded Tomcat from `spring-boot-starter-web`; no explicit server override.
+  - `crablet-commands-web` is server-agnostic at runtime — it depends only on `jakarta.servlet-api`.
+  - Virtual-thread request dispatch is verified in both modules via a focused test-only endpoint, not by duplicating full API behavior tests.
 - The root tutorial is now a tutorial series under `docs/tutorials/`, not one monolithic walkthrough.
 
 ### Build graph, examples, and `crablet-test-support`
