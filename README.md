@@ -1,24 +1,51 @@
-# Crablet: Event Sourcing For Spring Applications That Need Flexible Consistency
+# Crablet: AI-Assisted Event-Sourced Spring Applications From Event Models
 
 [![Java CI](https://github.com/rodolfodpk/spring-crablet/actions/workflows/maven.yml/badge.svg)](https://github.com/rodolfodpk/spring-crablet/actions/workflows/maven.yml)
 [![codecov](https://codecov.io/gh/rodolfodpk/spring-crablet/branch/main/graph/badge.svg)](https://codecov.io/gh/rodolfodpk/spring-crablet)
 [![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Crablet is a Java 25 event sourcing framework for Spring Boot. It is designed for domains where consistency depends on queries across multiple event streams, tags, or lifecycle events, not just one aggregate stream.
+Crablet helps Spring teams turn an event-modeled domain into a working event-sourced application. It uses AI-assisted generation to produce the structural code around commands, events, views, automations, outbox publishers, and tests, then runs that code on a small Java 25 Spring Boot runtime.
 
 ## Why Crablet May Be Useful
 
+- Event-model-first workflow for DCB-style domains
+- AI-assisted generation for commands, events, handlers, views, automations, outbox publishers, and tests
 - Cross-entity consistency without forcing everything into one aggregate stream
-- Small public API centered on `EventStore`, `CommandHandler`, and `CommandExecutor`
-- Explicit concurrency semantics: commutative, non-commutative, and idempotent flows
-- Optional views, automations, outbox, and metrics after the command side is working
+- Small Java runtime for consistency, persistence, polling, and operational behavior
+- Manual APIs available when generated code needs customization
 
-## 5-Minute Quickstart
+## AI-First Workflow
 
-On top of the `EventStore`, the typical write side is a command handler and an executor.
+The product direction is model-first:
 
-**Define an event and a handler:**
+1. Model the domain and produce a structured `event-model.yaml`.
+2. Generate the Spring application structure from that model.
+3. Compile and repair generated code until the application builds.
+4. Run the generated code on Crablet's Java runtime.
+5. Customize the code or the model only where the business behavior was not expressed.
+
+The AI-assisted generator is still a preview direction. The stable runtime APIs remain documented and usable directly while the generator matures.
+
+| Goal | Read |
+|------|------|
+| Understand the AI-first product direction | [AI-First Workflow](docs/AI_FIRST_WORKFLOW.md) |
+| Add one generated vertical slice | [Feature Slice Workflow](docs/FEATURE_SLICE_WORKFLOW.md) |
+| Write the generator input | [Event Model Format](docs/EVENT_MODEL_FORMAT.md) |
+| Run the wallet app | [Quickstart](docs/QUICKSTART.md) |
+| Build manually against the runtime APIs | [Create A New Crablet App Manually](docs/CREATE_A_CRABLET_APP.md) |
+| Understand the one-instance learning setup | [Learning Mode](docs/LEARNING_MODE.md) |
+| Inspect the complete example | [Wallet Example App](wallet-example-app/README.md) |
+
+## When Crablet Fits
+
+Crablet is a good fit when command decisions depend on more than one entity stream, consistency is naturally query-based, and you want the code to make concurrency semantics explicit.
+
+It is probably not the right tool if plain CRUD is enough, one aggregate per command already fits your domain, or your team is not ready to standardize on Java 25.
+
+## Manual Runtime Path
+
+Crablet can still be used directly as a Java framework. On top of the `EventStore`, the typical write side is a command handler and an executor.
 
 ```java
 public record WalletOpened(String walletId, String owner) implements WalletEvent {}
@@ -40,28 +67,7 @@ public class OpenWalletCommandHandler
 }
 ```
 
-**Execute — Spring Boot auto-discovers all `@Component` handlers:**
-
-```java
-commandExecutor.execute(new OpenWalletCommand("wallet-123", "Jane Doe", 100));
-```
-
-That is the entire write side. `CommandExecutor` wraps the handler in a transaction, runs the DCB check, and appends the event atomically. Views, outbox, automations, and an optional HTTP command adapter are layered on top independently.
-
-To run the complete wallet example app locally, see [Quickstart](docs/QUICKSTART.md).
-
-| Goal | Read |
-|------|------|
-| Run the wallet app | [Quickstart](docs/QUICKSTART.md) |
-| Start a fresh repository | [Create A New Crablet App](docs/CREATE_A_CRABLET_APP.md) |
-| Understand the one-instance learning setup | [Learning Mode](docs/LEARNING_MODE.md) |
-| Inspect the complete example | [Wallet Example App](wallet-example-app/README.md) |
-
-## When Crablet Fits
-
-Crablet is a good fit when command decisions depend on more than one entity stream, consistency is naturally query-based, and you want the code to make concurrency semantics explicit.
-
-It is probably not the right tool if plain CRUD is enough, one aggregate per command already fits your domain, or your team is not ready to standardize on Java 25.
+`CommandExecutor` wraps the handler in a transaction, runs the DCB check, and appends the event atomically. Views, outbox, automations, and an optional HTTP command adapter are layered on top independently.
 
 ## Learning And Deployment
 
@@ -106,9 +112,9 @@ Read more in [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) and [
 
 | Topic | Links |
 |-------|-------|
-| Start | [Quickstart](docs/QUICKSTART.md), [Create A New App](docs/CREATE_A_CRABLET_APP.md), [Tutorial](docs/TUTORIAL.md), [Learning Mode](docs/LEARNING_MODE.md) |
+| Start | [AI-First Workflow](docs/AI_FIRST_WORKFLOW.md), [Feature Slice Workflow](docs/FEATURE_SLICE_WORKFLOW.md), [Event Model Format](docs/EVENT_MODEL_FORMAT.md), [Quickstart](docs/QUICKSTART.md), [Create A New Crablet App Manually](docs/CREATE_A_CRABLET_APP.md), [Tutorial](docs/TUTORIAL.md), [Learning Mode](docs/LEARNING_MODE.md) |
 | Architecture | [Deployment Topology](docs/DEPLOYMENT_TOPOLOGY.md), [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md), [Command Patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md) |
-| Operations | [Management API](docs/MANAGEMENT_API.md), [Leader Election](docs/LEADER_ELECTION.md), [Build](docs/BUILD.md) |
+| Operations | [Management API](docs/MANAGEMENT_API.md), [Leader Election](docs/LEADER_ELECTION.md), [Build](docs/BUILD.md), [Performance](docs/PERFORMANCE.md), [Troubleshooting](docs/TROUBLESHOOTING.md) |
 | Database and proxies | [Connection Poolers](crablet-eventstore/docs/CONNECTION_POOLERS.md) (PgBouncer, PgCat, OJP) |
 
 ## License

@@ -2,7 +2,17 @@
 
 This is the fastest path to seeing Crablet work end to end.
 
-The recommended learning setup is:
+For a new domain, start with the AI-first path: model the domain in
+`event-model.yaml`, generate the structural application code, then customize only
+the business logic that the model cannot express. See
+[AI-First Workflow](AI_FIRST_WORKFLOW.md), [Feature Slice Workflow](FEATURE_SLICE_WORKFLOW.md),
+and [Event Model Format](EVENT_MODEL_FORMAT.md).
+
+The runnable local reference is still the wallet example app. Use it when you want
+to see the runtime modules working together before generating or building your own
+application.
+
+The wallet learning setup is:
 
 - one application instance
 - commands, views, automations, and outbox running together
@@ -100,6 +110,10 @@ Use the reference application as the concrete guide for your first integration:
 
 Once the single-instance flow makes sense, decide which adoption path you want:
 
+- generate from an event model: [AI-First Workflow](AI_FIRST_WORKFLOW.md)
+- add one generated vertical slice: [Feature Slice Workflow](FEATURE_SLICE_WORKFLOW.md)
+- write the model contract: [Event Model Format](EVENT_MODEL_FORMAT.md)
 - learn the full stack locally: [Learning Mode](LEARNING_MODE.md)
 - adopt the command side first: [Commands-First Adoption](COMMANDS_FIRST_ADOPTION.md)
+- build manually against the runtime APIs: [Create A New Crablet App Manually](CREATE_A_CRABLET_APP.md)
 - review production topology constraints: [Deployment Topology](DEPLOYMENT_TOPOLOGY.md)

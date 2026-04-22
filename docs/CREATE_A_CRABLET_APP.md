@@ -1,11 +1,11 @@
-# Create A New Crablet App
+# Create A New Crablet App Manually
 
-This guide shows how to create a fresh Spring Boot application and add the
-minimum Crablet pieces for a command-side-first app.
+This guide shows how to create a Crablet application directly against the runtime
+APIs. Use it for brownfield additions, explicit module layout control, or learning
+the APIs that generated applications target.
 
-Use the official Spring project generators for the application skeleton. Add a
-dedicated Crablet CLI only after the Crablet-specific scaffold has enough stable
-shape to justify its own tool.
+For the recommended event-model-to-app path, start with
+[AI-First Workflow](AI_FIRST_WORKFLOW.md) and [Event Model Format](EVENT_MODEL_FORMAT.md).
 
 ## Prerequisites
 
@@ -24,7 +24,7 @@ sample app:
 
 Run that command from the Crablet repository.
 
-## Generate The Spring Boot App
+## Generate The Spring Boot App Manually
 
 With the Spring Boot CLI:
 
@@ -120,7 +120,7 @@ The wallet example's
 [`V1__eventstore_schema.sql`](../wallet-example-app/src/main/resources/db/migration/V1__eventstore_schema.sql)
 is the runnable reference in this repository.
 
-## Build The First Vertical Slice
+## Build The First Manual Vertical Slice
 
 For the first feature, keep the surface small:
 
@@ -149,27 +149,28 @@ plus the command-specific payload. See
 [crablet-commands-web](../crablet-commands-web/README.md) for the full request
 contract.
 
-## Why There Is No Crablet CLI Yet
+## Generator Reference
 
-A Crablet CLI could eventually provide:
+`embabel-codegen` is a fat JAR CLI that generates all structural Crablet artifacts
+from `event-model.yaml`. It is built as part of this repository and exposed as an
+MCP tool via `.claude/settings.json`.
 
-- `crablet new`
-- Crablet dependency setup
-- example command, event, and handler files
-- Flyway setup
-- command-web exposure
-- smoke tests
+Supported artifacts:
 
-For now, that would mostly wrap Spring Initializr. The better first step is to
-document the official Spring generator flow and let Crablet focus on the
-framework-specific code that comes after project creation.
+- sealed event interface + records
+- command records with YAVI validation
+- state projectors and command handlers (DCB pattern)
+- `AbstractTypedViewProjector` + Flyway SQL migration per view
+- `AutomationHandler` per automation
+- `OutboxPublisher` per outbox spec
 
-A future CLI should use local `spring init` when available and fall back to the
-Spring Initializr HTTP API when it is not. It should exist only when it generates
-Crablet-specific scaffold that users would otherwise repeat by hand.
+After generation, only business rules not captured in the model require manual editing.
+Prefer improving `event-model.yaml` over editing generated structural code by hand.
 
 ## Next Reading
 
+- [AI-First Workflow](AI_FIRST_WORKFLOW.md)
+- [Event Model Format](EVENT_MODEL_FORMAT.md)
 - [Commands-First Adoption](COMMANDS_FIRST_ADOPTION.md)
 - [Tutorial](TUTORIAL.md)
 - [Quickstart](QUICKSTART.md)
