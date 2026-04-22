@@ -48,6 +48,7 @@ check_links() {
     "crablet-outbox/README.md"
     "crablet-automations/README.md"
     "wallet-example-app/README.md"
+    "templates/crablet-app/README.md"
     "docs/AI_FIRST_WORKFLOW.md"
     "docs/FEATURE_SLICE_WORKFLOW.md"
     "docs/EVENT_MODEL_FORMAT.md"

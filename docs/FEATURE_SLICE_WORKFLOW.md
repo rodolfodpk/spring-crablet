@@ -3,6 +3,10 @@
 This guide describes the intended developer dialogue for adding one vertical slice with
 `embabel-codegen`.
 
+In normal app development, start from the
+[Crablet app template](../templates/crablet-app/README.md) and use this workflow from inside the
+cloned app.
+
 A slice should be one observable user outcome, not a whole subsystem. For example:
 
 - open a wallet

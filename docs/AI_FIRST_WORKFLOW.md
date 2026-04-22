@@ -6,6 +6,10 @@ substrate for generated applications and the manual path for teams that want dir
 
 This workflow is currently a preview direction while the generator matures.
 
+For application teams, the intended first-user path is to clone the
+[Crablet app template](../templates/crablet-app/README.md), open Claude Code, and add one
+vertical slice at a time.
+
 ## Workflow
 
 1. Build the Crablet runtime and `embabel-codegen` tool.

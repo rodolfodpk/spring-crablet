@@ -1,0 +1,56 @@
+domain: LoanApplication
+basePackage: com.example.crabletapp
+
+events:
+  - name: LoanApplicationSubmitted
+    tags: [application_id, customer_id]
+    fields:
+      - name: applicationId
+        type: String
+      - name: customerId
+        type: String
+      - name: requestedAmount
+        type: int
+      - name: purpose
+        type: String
+      - name: submittedAt
+        type: Instant
+
+commands:
+  - name: SubmitLoanApplication
+    pattern: idempotent
+    produces: [LoanApplicationSubmitted]
+    fields:
+      - name: applicationId
+        type: String
+        validation: [notNull, notBlank]
+      - name: customerId
+        type: String
+        validation: [notNull, notBlank]
+      - name: requestedAmount
+        type: int
+        validation: greaterThan(0)
+      - name: purpose
+        type: String
+        validation: [notNull, notBlank]
+
+views:
+  - name: PendingLoanApplications
+    reads: [LoanApplicationSubmitted]
+    tag: application_id
+    fields:
+      - name: applicationId
+        type: String
+      - name: customerId
+        type: String
+      - name: requestedAmount
+        type: int
+      - name: purpose
+        type: String
+      - name: status
+        type: String
+      - name: submittedAt
+        type: Instant
+
+automations: []
+outbox: []
