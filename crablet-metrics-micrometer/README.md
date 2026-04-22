@@ -10,99 +10,152 @@ This module provides automatic metrics collection for Crablet using Micrometer. 
 
 **Framework-agnostic design**: The core Crablet modules (`crablet-eventstore`, `crablet-commands`, `crablet-outbox`) publish framework-agnostic metric events. This module collects those events and records them to Micrometer.
 
-## Features
+## Getting Started
 
-- **Automatic discovery**: Auto-configures when on the classpath
-- **Framework-agnostic**: Core modules don't depend on Micrometer
-- **Comprehensive metrics**: Collects metrics from EventStore, Command, and Outbox modules
-- **Optional**: If this module is not on the classpath, metrics are simply not recorded (no errors)
-
-## Maven Coordinates
+Add three dependencies to your application:
 
 ```xml
+<!-- Crablet metrics collector (auto-configures itself) -->
 <dependency>
     <groupId>com.crablet</groupId>
     <artifactId>crablet-metrics-micrometer</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 </dependency>
+
+<!-- Spring Boot Actuator (provides MeterRegistry) -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+
+<!-- Prometheus registry (exposes /actuator/prometheus) -->
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-registry-prometheus</artifactId>
+</dependency>
 ```
 
-## Usage
+Then expose the Prometheus endpoint in `application.properties`:
 
-### Basic Setup
-
-1. Add the dependency to your `pom.xml` (see Maven Coordinates above)
-2. Ensure `MeterRegistry` is available (Spring Boot provides this automatically)
-3. The collector auto-configures via Spring component scanning
-
-### Metrics Collected
-
-#### EventStore Metrics
-
-- `eventstore.events.appended` - Total number of events appended
-- `eventstore.events.by_type` - Events appended by type (tagged with `event_type`)
-- `eventstore.concurrency.violations` - Total number of DCB concurrency violations
-
-#### Command Metrics
-
-- `eventstore.commands.duration` - Command execution time (tagged with `command_type`)
-- `eventstore.commands.total` - Total commands processed (tagged with `command_type`)
-- `eventstore.commands.failed` - Failed commands (tagged with `command_type` and `error_type`)
-- `eventstore.commands.idempotent` - Idempotent operations (tagged with `command_type`)
-
-#### Outbox Metrics
-
-- `outbox.events.published` - Total number of events published (tagged with `publisher`)
-- `outbox.processing.cycles` - Total number of processing cycles
-- `outbox.errors` - Total number of publishing errors (tagged with `publisher`)
-- `outbox.is_leader` - Whether this instance is the outbox leader (1=leader, 0=follower, tagged with `instance`)
-
-## Example
-
-```java
-@SpringBootApplication
-public class MyApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(MyApplication.class, args);
-    }
-    
-    // MeterRegistry is provided by Spring Boot Actuator
-    // MicrometerMetricsCollector auto-configures
-}
+```properties
+management.endpoints.web.exposure.include=health,info,prometheus
 ```
+
+That is all. The `MicrometerMetricsCollector` is auto-configured when a `MeterRegistry` bean is present — no component scanning of `com.crablet.metrics.micrometer` is required.
+
+**Note:** This library does not create a `MeterRegistry` bean. Your application must provide one (Spring Boot Actuator does this automatically). If no `MeterRegistry` is present in the context, the collector is simply not registered.
+
+### Enable Histogram Metrics (for P95 panels)
+
+Timers emit histograms when this configuration is added:
+
+```properties
+management.metrics.distribution.percentiles-histogram.eventstore.commands.duration=true
+management.metrics.distribution.percentiles-histogram.views.projection.duration=true
+management.metrics.distribution.percentiles-histogram.outbox.publishing.duration=true
+management.metrics.distribution.percentiles-histogram.automations.execution.duration=true
+```
+
+This is required for `histogram_quantile()` PromQL queries in Grafana.
+
+### Disable Metrics
+
+To opt out of metric collection:
+
+```properties
+crablet.metrics.enabled=false
+```
+
+## Metrics Reference
+
+Micrometer names (dot-separated) are shown. Prometheus adds underscores and suffixes (e.g. `_total`, `_seconds_count`).
+
+### EventStore
+
+| Micrometer name | Tags | Description |
+|---|---|---|
+| `eventstore.events.appended` | — | Events appended to store |
+| `eventstore.events.by_type` | `event_type` | Events appended per type |
+| `eventstore.concurrency.violations` | — | DCB optimistic lock conflicts |
+
+### Commands
+
+| Micrometer name | Tags | Description |
+|---|---|---|
+| `commands.inflight` | `command_type` | Commands currently executing (gauge) |
+| `eventstore.commands.duration` | `command_type`, `operation_type` | Command execution time (timer) |
+| `eventstore.commands.total` | `command_type`, `operation_type` | Commands completed |
+| `eventstore.commands.failed` | `command_type`, `error_type` | Commands failed |
+| `eventstore.commands.idempotent` | `command_type` | Duplicate/idempotent commands |
+
+### Outbox
+
+| Micrometer name | Tags | Description |
+|---|---|---|
+| `outbox.events.published` | `publisher` | Events published externally |
+| `outbox.publishing.duration` | `publisher` | Publishing latency (timer) |
+| `outbox.processing.cycles` | — | Outbox polling cycles |
+| `outbox.errors` | `publisher` | Publishing errors |
+
+### Poller / Processor
+
+| Micrometer name | Tags | Description |
+|---|---|---|
+| `processor.is_leader` | `processor`, `instance_id` | Leader gauge (1=leader, 0=follower) |
+| `poller.processing.cycles` | `processor`, `instance_id` | Poll cycles |
+| `poller.events.fetched` | `processor`, `instance_id` | Events fetched per cycle |
+| `poller.empty.polls` | `processor`, `instance_id` | Empty poll cycles |
+| `poller.backoff.active` | `processor`, `instance_id` | Backoff state gauge |
+| `poller.backoff.empty_poll_count` | `processor`, `instance_id` | Consecutive empty polls gauge |
+
+### Views
+
+| Micrometer name | Tags | Description |
+|---|---|---|
+| `views.projection.duration` | `view` | Projection batch duration (timer) |
+| `views.events.projected` | `view` | Events projected |
+| `views.projection.errors` | `view` | Projection errors |
+
+### Automations
+
+| Micrometer name | Tags | Description |
+|---|---|---|
+| `automations.execution.duration` | `automation` | Automation batch duration (timer) |
+| `automations.events.processed` | `automation` | Events processed |
+| `automations.execution.errors` | `automation` | Automation errors |
+
+## Grafana Dashboard
+
+A pre-built dashboard covering all six metric groups is available at:
+
+```
+observability/grafana/dashboards/crablet-dashboard.json
+```
+
+See `observability/README.md` for how to run the full Prometheus + Grafana stack with `docker compose`.
 
 ## How It Works
 
 1. **Event Publishing**: Core modules publish metric events via Spring `ApplicationEventPublisher`
-2. **Event Collection**: `MicrometerMetricsCollector` subscribes to these events using `@EventListener`
-3. **Metrics Recording**: Events are converted to Micrometer metrics (counters, timers, gauges)
+2. **Auto-configuration**: `MicrometerMetricsAutoConfiguration` registers `MicrometerMetricsCollector` when `MeterRegistry` is present
+3. **Event Collection**: `MicrometerMetricsCollector` subscribes to metric events using `@EventListener`
+4. **Metrics Recording**: Events are converted to Micrometer counters, timers, and gauges
 
 ## Customization
 
-The collector is a Spring `@Component`, so you can:
+- **Override**: Declare your own `MicrometerMetricsCollector` bean — `@ConditionalOnMissingBean` ensures yours takes precedence
+- **Disable**: Set `crablet.metrics.enabled=false`
+- **Extend**: Create additional `@EventListener` beans that subscribe to the same metric event types
 
-- **Override**: Define your own `MicrometerMetricsCollector` bean to customize behavior
-- **Disable**: Exclude the package from component scanning to disable auto-configuration
-- **Extend**: Create additional collectors that subscribe to the same metric events
+## Breaking Changes
 
-## Framework Alternatives
+### 1.0.0-SNAPSHOT
 
-This module provides Micrometer support. You can implement similar collectors for other frameworks:
-
-- **OpenTelemetry**: Create `crablet-metrics-opentelemetry` module
-- **Custom**: Implement your own collector that subscribes to metric events
-
-## Dependencies
-
-- `crablet-eventstore` - For EventStore metric events
-- `crablet-commands` - For Command metric events
-- `crablet-outbox` - For Outbox metric events
-- `micrometer-core` - For metrics recording
-- `spring-boot-starter` - For Spring Events and component scanning
+- **Label rename**: The leadership gauge previously used tag `instance`; it now uses `instance_id` for consistency with poller metrics. Update any existing Prometheus alerts or Grafana panels that reference `processor_is_leader{instance=...}` to use `processor_is_leader{instance_id=...}`.
+- **Metric rename**: `outbox.is_leader` has been replaced by `processor.is_leader` (shared across views, outbox, and automations). Update any references to `outbox_is_leader` in dashboards or alert rules.
 
 ## See Also
 
-- [EventStore Metrics](../crablet-eventstore/docs/METRICS.md) — EventStore metric details, Prometheus queries, alerting, and troubleshooting
-- [Outbox Metrics](../crablet-outbox/docs/OUTBOX_METRICS.md) — Outbox metric details, Grafana dashboard, and troubleshooting
-- [Command Metrics](../crablet-commands/README.md#metrics) — Command execution metrics
-
+- [Observability stack](../observability/README.md) — Docker Compose quickstart with Prometheus and Grafana
+- [EventStore Metrics](../crablet-eventstore/docs/METRICS.md) — EventStore metric details and PromQL examples
+- [Outbox Metrics](../crablet-outbox/docs/OUTBOX_METRICS.md) — Outbox metric details

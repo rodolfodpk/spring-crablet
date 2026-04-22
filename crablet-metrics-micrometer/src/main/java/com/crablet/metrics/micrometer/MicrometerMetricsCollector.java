@@ -24,36 +24,52 @@ import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.crablet.metrics.micrometer.CrabletMetricNames.AUTOMATIONS_EVENTS_PROCESSED;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.AUTOMATIONS_EXECUTION_DURATION;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.AUTOMATIONS_EXECUTION_ERRORS;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.COMMANDS_DURATION;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.COMMANDS_FAILED;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.COMMANDS_IDEMPOTENT;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.COMMANDS_INFLIGHT;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.COMMANDS_TOTAL;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.EVENTSTORE_CONCURRENCY_VIOLATIONS;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.EVENTSTORE_EVENTS_APPENDED;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.EVENTSTORE_EVENTS_BY_TYPE;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.OUTBOX_ERRORS;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.OUTBOX_EVENTS_PUBLISHED;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.OUTBOX_PROCESSING_CYCLES;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.OUTBOX_PUBLISHING_DURATION;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.POLLER_BACKOFF_ACTIVE;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.POLLER_BACKOFF_EMPTY_POLL_COUNT;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.POLLER_EMPTY_POLLS;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.POLLER_EVENTS_FETCHED;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.POLLER_PROCESSING_CYCLES;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.PROCESSOR_IS_LEADER;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.VIEWS_EVENTS_PROJECTED;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.VIEWS_PROJECTION_DURATION;
+import static com.crablet.metrics.micrometer.CrabletMetricNames.VIEWS_PROJECTION_ERRORS;
+
 /**
  * Micrometer metrics collector for Crablet metric events.
  * <p>
- * Automatically subscribes to metric events published via Spring Events and records them to Micrometer.
- * <p>
- * This collector is auto-discovered by Spring when {@code crablet-metrics-micrometer} is on the classpath.
+ * Auto-configured by {@link MicrometerMetricsAutoConfiguration} when a {@link MeterRegistry}
+ * bean is present. Subscribes to metric events published via Spring Events and records them
+ * to Micrometer.
  */
-@Component
 public class MicrometerMetricsCollector {
 
     private static final Logger log = LoggerFactory.getLogger(MicrometerMetricsCollector.class);
 
     private final MeterRegistry registry;
 
-    // Track leadership state per instance (instanceId -> isLeader gauge)
     private final Map<String, AtomicInteger> leadershipState = new ConcurrentHashMap<>();
-
-    // Track backoff state per processor (processorId -> backoffActive gauge)
     private final Map<String, AtomicInteger> backoffActiveState = new ConcurrentHashMap<>();
-
-    // Track backoff empty poll count per processor (processorId -> emptyPollCount gauge)
     private final Map<String, AtomicInteger> backoffEmptyPollState = new ConcurrentHashMap<>();
-
-    // Track in-flight commands per command type (commandType -> inFlight gauge)
     private final Map<String, AtomicInteger> inFlightCommands = new ConcurrentHashMap<>();
 
     public MicrometerMetricsCollector(MeterRegistry registry) {
@@ -65,7 +81,7 @@ public class MicrometerMetricsCollector {
 
     @EventListener
     public void handleEventsAppended(EventsAppendedMetric event) {
-        Counter.builder("eventstore.events.appended")
+        Counter.builder(EVENTSTORE_EVENTS_APPENDED)
             .description("Total number of events appended to store")
             .register(registry)
             .increment(event.count());
@@ -73,7 +89,7 @@ public class MicrometerMetricsCollector {
 
     @EventListener
     public void handleEventType(EventTypeMetric event) {
-        Counter.builder("eventstore.events.by_type")
+        Counter.builder(EVENTSTORE_EVENTS_BY_TYPE)
             .description("Events appended by type")
             .tag("event_type", event.eventType())
             .register(registry)
@@ -82,7 +98,7 @@ public class MicrometerMetricsCollector {
 
     @EventListener
     public void handleConcurrencyViolation(ConcurrencyViolationMetric event) {
-        Counter.builder("eventstore.concurrency.violations")
+        Counter.builder(EVENTSTORE_CONCURRENCY_VIOLATIONS)
             .description("Total number of DCB concurrency violations")
             .register(registry)
             .increment();
@@ -94,7 +110,7 @@ public class MicrometerMetricsCollector {
     public void handleCommandStarted(CommandStartedMetric event) {
         inFlightCommands.computeIfAbsent(event.commandType(), k -> {
             AtomicInteger gauge = new AtomicInteger(0);
-            Gauge.builder("commands.inflight", gauge, AtomicInteger::get)
+            Gauge.builder(COMMANDS_INFLIGHT, gauge, AtomicInteger::get)
                 .description("Commands currently executing")
                 .tag("command_type", k)
                 .register(registry);
@@ -106,14 +122,14 @@ public class MicrometerMetricsCollector {
     public void handleCommandSuccess(CommandSuccessMetric event) {
         inFlightCommands.getOrDefault(event.commandType(), new AtomicInteger()).decrementAndGet();
 
-        Timer.builder("eventstore.commands.duration")
+        Timer.builder(COMMANDS_DURATION)
             .description("Command execution time")
             .tag("command_type", event.commandType())
             .tag("operation_type", event.operationType())
             .register(registry)
             .record(event.duration());
 
-        Counter.builder("eventstore.commands.total")
+        Counter.builder(COMMANDS_TOTAL)
             .description("Total commands processed")
             .tag("command_type", event.commandType())
             .tag("operation_type", event.operationType())
@@ -125,7 +141,7 @@ public class MicrometerMetricsCollector {
     public void handleCommandFailure(CommandFailureMetric event) {
         inFlightCommands.getOrDefault(event.commandType(), new AtomicInteger()).decrementAndGet();
 
-        Counter.builder("eventstore.commands.failed")
+        Counter.builder(COMMANDS_FAILED)
             .description("Failed commands")
             .tag("command_type", event.commandType())
             .tag("error_type", event.errorType())
@@ -135,7 +151,7 @@ public class MicrometerMetricsCollector {
 
     @EventListener
     public void handleIdempotentOperation(IdempotentOperationMetric event) {
-        Counter.builder("eventstore.commands.idempotent")
+        Counter.builder(COMMANDS_IDEMPOTENT)
             .description("Idempotent operations (duplicate requests)")
             .tag("command_type", event.commandType())
             .register(registry)
@@ -146,7 +162,7 @@ public class MicrometerMetricsCollector {
 
     @EventListener
     public void handleEventsPublished(EventsPublishedMetric event) {
-        Counter.builder("outbox.events.published")
+        Counter.builder(OUTBOX_EVENTS_PUBLISHED)
             .description("Total number of events published")
             .tag("publisher", event.publisherName())
             .register(registry)
@@ -155,7 +171,7 @@ public class MicrometerMetricsCollector {
 
     @EventListener
     public void handlePublishingDuration(PublishingDurationMetric event) {
-        Timer.builder("outbox.publishing.duration")
+        Timer.builder(OUTBOX_PUBLISHING_DURATION)
             .description("Outbox publishing duration per publisher")
             .tag("publisher", event.publisherName())
             .register(registry)
@@ -164,7 +180,7 @@ public class MicrometerMetricsCollector {
 
     @EventListener
     public void handleOutboxProcessingCycle(com.crablet.outbox.metrics.ProcessingCycleMetric event) {
-        Counter.builder("outbox.processing.cycles")
+        Counter.builder(OUTBOX_PROCESSING_CYCLES)
             .description("Total number of outbox processing cycles")
             .register(registry)
             .increment();
@@ -172,12 +188,14 @@ public class MicrometerMetricsCollector {
 
     @EventListener
     public void handleOutboxError(OutboxErrorMetric event) {
-        Counter.builder("outbox.errors")
+        Counter.builder(OUTBOX_ERRORS)
             .description("Total number of publishing errors")
             .tag("publisher", event.publisherName())
             .register(registry)
             .increment();
     }
+
+    // --- Poller / processor ---
 
     @EventListener
     public void handleLeadership(LeadershipMetric event) {
@@ -186,10 +204,10 @@ public class MicrometerMetricsCollector {
             key,
             k -> {
                 AtomicInteger value = new AtomicInteger(0);
-                Gauge.builder("processor.is_leader", value, AtomicInteger::get)
+                Gauge.builder(PROCESSOR_IS_LEADER, value, AtomicInteger::get)
                     .description("Whether this instance is the leader for the given processor (1=leader, 0=follower)")
                     .tag("processor", event.processorId())
-                    .tag("instance", event.instanceId())
+                    .tag("instance_id", event.instanceId())
                     .register(registry);
                 return value;
             }
@@ -197,18 +215,16 @@ public class MicrometerMetricsCollector {
         leaderValue.set(event.isLeader() ? 1 : 0);
     }
 
-    // --- Event Poller ---
-
     @EventListener
     public void handlePollerProcessingCycle(ProcessingCycleMetric event) {
-        Counter.builder("poller.processing.cycles")
+        Counter.builder(POLLER_PROCESSING_CYCLES)
             .description("Total number of poller processing cycles")
             .tag("processor", event.processorId())
             .tag("instance_id", event.instanceId())
             .register(registry)
             .increment();
 
-        Counter.builder("poller.events.fetched")
+        Counter.builder(POLLER_EVENTS_FETCHED)
             .description("Total number of events fetched by poller")
             .tag("processor", event.processorId())
             .tag("instance_id", event.instanceId())
@@ -216,7 +232,7 @@ public class MicrometerMetricsCollector {
             .increment(event.eventsProcessed());
 
         if (event.empty()) {
-            Counter.builder("poller.empty.polls")
+            Counter.builder(POLLER_EMPTY_POLLS)
                 .description("Total number of empty poll cycles")
                 .tag("processor", event.processorId())
                 .tag("instance_id", event.instanceId())
@@ -231,7 +247,7 @@ public class MicrometerMetricsCollector {
 
         backoffActiveState.computeIfAbsent(key, k -> {
             AtomicInteger gauge = new AtomicInteger(0);
-            Gauge.builder("poller.backoff.active", gauge, AtomicInteger::get)
+            Gauge.builder(POLLER_BACKOFF_ACTIVE, gauge, AtomicInteger::get)
                 .description("Whether the poller is in backoff mode (1=active, 0=normal)")
                 .tag("processor", event.processorId())
                 .tag("instance_id", event.instanceId())
@@ -241,7 +257,7 @@ public class MicrometerMetricsCollector {
 
         backoffEmptyPollState.computeIfAbsent(key, k -> {
             AtomicInteger gauge = new AtomicInteger(0);
-            Gauge.builder("poller.backoff.empty_poll_count", gauge, AtomicInteger::get)
+            Gauge.builder(POLLER_BACKOFF_EMPTY_POLL_COUNT, gauge, AtomicInteger::get)
                 .description("Consecutive empty poll count for the poller")
                 .tag("processor", event.processorId())
                 .tag("instance_id", event.instanceId())
@@ -254,13 +270,13 @@ public class MicrometerMetricsCollector {
 
     @EventListener
     public void handleViewProjection(ViewProjectionMetric event) {
-        Timer.builder("views.projection.duration")
+        Timer.builder(VIEWS_PROJECTION_DURATION)
             .description("View projection duration per batch")
             .tag("view", event.viewName())
             .register(registry)
             .record(event.duration());
 
-        Counter.builder("views.events.projected")
+        Counter.builder(VIEWS_EVENTS_PROJECTED)
             .description("Total number of events projected per view")
             .tag("view", event.viewName())
             .register(registry)
@@ -269,7 +285,7 @@ public class MicrometerMetricsCollector {
 
     @EventListener
     public void handleViewProjectionError(ViewProjectionErrorMetric event) {
-        Counter.builder("views.projection.errors")
+        Counter.builder(VIEWS_PROJECTION_ERRORS)
             .description("Total number of view projection errors")
             .tag("view", event.viewName())
             .register(registry)
@@ -280,13 +296,13 @@ public class MicrometerMetricsCollector {
 
     @EventListener
     public void handleAutomationExecution(AutomationExecutionMetric event) {
-        Timer.builder("automations.execution.duration")
+        Timer.builder(AUTOMATIONS_EXECUTION_DURATION)
             .description("Automation execution duration per batch")
             .tag("automation", event.automationName())
             .register(registry)
             .record(event.duration());
 
-        Counter.builder("automations.events.processed")
+        Counter.builder(AUTOMATIONS_EVENTS_PROCESSED)
             .description("Total number of events processed per automation")
             .tag("automation", event.automationName())
             .register(registry)
@@ -295,7 +311,7 @@ public class MicrometerMetricsCollector {
 
     @EventListener
     public void handleAutomationExecutionError(AutomationExecutionErrorMetric event) {
-        Counter.builder("automations.execution.errors")
+        Counter.builder(AUTOMATIONS_EXECUTION_ERRORS)
             .description("Total number of automation execution errors")
             .tag("automation", event.automationName())
             .register(registry)

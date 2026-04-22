@@ -31,7 +31,7 @@
  *   <li>{@code outbox.events.published} - Total events published</li>
  *   <li>{@code outbox.processing.cycles} - Processing cycles</li>
  *   <li>{@code outbox.errors} - Publishing errors</li>
- *   <li>{@code outbox.is_leader} - Leadership state per instance</li>
+ *   <li>{@code processor.is_leader} - Leadership state per processor and instance (tag: {@code instance_id})</li>
  * </ul>
  * <p>
  * <strong>Usage:</strong>
