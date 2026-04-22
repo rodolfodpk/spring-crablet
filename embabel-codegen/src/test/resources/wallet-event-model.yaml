@@ -1,0 +1,152 @@
+domain: Wallet
+basePackage: com.example.wallet
+
+schemas:
+  - name: MoneyAmount
+    fields:
+      - name: amount
+        type: int
+        validation: greaterThan(0)
+      - name: description
+        type: String
+        validation: [notNull, notBlank]
+
+events:
+  - name: WalletOpened
+    tags: [wallet_id]
+    fields:
+      - name: walletId
+        type: String
+      - name: owner
+        type: String
+      - name: initialBalance
+        type: int
+      - name: openedAt
+        type: Instant
+
+  - name: DepositMade
+    tags: [wallet_id, deposit_id]
+    fields:
+      - name: depositId
+        type: String
+      - name: walletId
+        type: String
+      - name: amount
+        type: int
+      - name: newBalance
+        type: int
+      - name: depositedAt
+        type: Instant
+      - name: description
+        type: String
+
+  - name: WithdrawalMade
+    tags: [wallet_id, withdrawal_id]
+    fields:
+      - name: withdrawalId
+        type: String
+      - name: walletId
+        type: String
+      - name: amount
+        type: int
+      - name: newBalance
+        type: int
+      - name: withdrawnAt
+        type: Instant
+      - name: description
+        type: String
+
+  - name: MoneyTransferred
+    tags: [from_wallet_id, to_wallet_id, transfer_id]
+    fields:
+      - name: transferId
+        type: String
+      - name: fromWalletId
+        type: String
+      - name: toWalletId
+        type: String
+      - name: amount
+        type: int
+      - name: fromBalance
+        type: int
+      - name: toBalance
+        type: int
+      - name: transferredAt
+        type: Instant
+      - name: description
+        type: String
+
+commands:
+  - name: OpenWallet
+    pattern: idempotent
+    produces: [WalletOpened]
+    fields:
+      - name: walletId
+        type: String
+        validation: [notNull, notBlank]
+      - name: owner
+        type: String
+        validation: [notNull, notBlank]
+      - name: initialBalance
+        type: int
+        validation: greaterThanOrEqual(0)
+
+  - name: Deposit
+    pattern: commutative
+    produces: [DepositMade]
+    guardEvents: [WalletOpened]
+    schema: MoneyAmount
+    fields:
+      - name: depositId
+        type: String
+        validation: [notNull, notBlank]
+      - name: walletId
+        type: String
+        validation: [notNull, notBlank]
+
+  - name: Withdraw
+    pattern: non-commutative
+    produces: [WithdrawalMade]
+    schema: MoneyAmount
+    fields:
+      - name: withdrawalId
+        type: String
+        validation: [notNull, notBlank]
+      - name: walletId
+        type: String
+        validation: [notNull, notBlank]
+
+  - name: TransferMoney
+    pattern: non-commutative
+    produces: [MoneyTransferred]
+    schema: MoneyAmount
+    fields:
+      - name: transferId
+        type: String
+        validation: [notNull, notBlank]
+      - name: fromWalletId
+        type: String
+        validation: [notNull, notBlank]
+      - name: toWalletId
+        type: String
+        validation: [notNull, notBlank]
+
+views:
+  - name: WalletBalance
+    reads: [WalletOpened, DepositMade, WithdrawalMade, MoneyTransferred]
+    tag: wallet_id
+    fields:
+      - name: walletId
+        type: String
+      - name: owner
+        type: String
+      - name: balance
+        type: int
+      - name: lastUpdatedAt
+        type: Instant
+
+automations:
+  - name: welcome-notification
+    triggeredBy: WalletOpened
+    emitsCommand: SendWelcomeNotification
+    condition: always

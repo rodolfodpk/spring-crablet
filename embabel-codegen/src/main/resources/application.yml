@@ -1,0 +1,15 @@
+spring:
+  main:
+    banner-mode: off
+    web-application-type: none
+
+logging:
+  level:
+    root: warn
+
+codegen:
+  anthropic:
+    api-key: ${ANTHROPIC_API_KEY:}
+    model: claude-sonnet-4-6
+    max-tokens: 8096
+  claude-md-path: ../CLAUDE.md
