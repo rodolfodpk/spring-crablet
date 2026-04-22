@@ -178,7 +178,7 @@ class MicrometerMetricsCollectorTest {
         // Then
         Gauge gauge = registry.find("processor.is_leader")
             .tag("processor", "outbox")
-            .tag("instance", "instance-1")
+            .tag("instance_id", "instance-1")
             .gauge();
         assertThat(gauge).isNotNull();
         assertThat(gauge.value()).isEqualTo(1.0);

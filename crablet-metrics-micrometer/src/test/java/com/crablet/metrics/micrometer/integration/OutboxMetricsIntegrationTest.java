@@ -91,8 +91,8 @@ class OutboxMetricsIntegrationTest extends AbstractMetricsIntegrationTest {
         // When: leadership status changes (OutboxLeaderElector publishes LeadershipMetric via Spring Events)
         
         // Then: leadership gauge should be recorded
-        Gauge gauge = meterRegistry.find("outbox.is_leader")
-            .tag("instance", "test-instance")
+        Gauge gauge = meterRegistry.find("processor.is_leader")
+            .tag("instance_id", "test-instance")
             .gauge();
         // Note: gauge may be null if leadership hasn't been set yet
         // This is a placeholder - actual test would require proper outbox leader setup

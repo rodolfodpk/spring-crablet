@@ -78,6 +78,12 @@ It is probably not the right tool if plain CRUD is enough, one aggregate per com
 | Support and examples | [Test support](crablet-test-support/README.md), [Wallet example app](wallet-example-app/README.md), shared example domain code, compiled docs samples |
 | Internal infrastructure | [Event Poller](crablet-event-poller/README.md) powers the poller-backed modules |
 
+### Module Boundaries
+
+The modules application teams are expected to depend on at runtime are `crablet-eventstore`, `crablet-commands`, `crablet-commands-web`, `crablet-event-poller`, `crablet-views`, `crablet-automations`, `crablet-outbox`, and `crablet-metrics-micrometer`.
+
+Those modules do not contain or depend at runtime on the example wallet/course application code. Example-only code lives in `shared-examples-domain`, `wallet-example-app`, and `docs-samples`. Some Crablet modules use `shared-examples-domain` as a test-scoped dependency only; it is not part of the runtime dependency graph for users.
+
 ## Why Java 25
 
 Crablet intentionally targets Java 25. The framework leans on modern Java features such as records, sealed types, and pattern matching to keep the public API small and explicit.

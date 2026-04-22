@@ -405,7 +405,7 @@ WHERE publisher = 'KafkaPublisher';
 
 ### Frequent Leader Changes
 
-**Symptoms:** `outbox_is_leader` metric changing frequently
+**Symptoms:** `processor_is_leader{processor="outbox"}` metric changing frequently
 
 **Causes:**
 - Network instability between instances and database

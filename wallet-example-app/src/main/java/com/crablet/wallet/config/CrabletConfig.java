@@ -12,8 +12,6 @@ import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.config.TopicConfigurationProperties;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
 import com.crablet.outbox.publishers.LogPublisher;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import tools.jackson.databind.ObjectMapper;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -32,16 +30,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableConfigurationProperties({OutboxConfig.class, GlobalStatisticsConfig.class, TopicConfigurationProperties.class})
 public class CrabletConfig {
-
-    /**
-     * SimpleMeterRegistry for local development.
-     * In production, Spring Boot Actuator provides a real registry automatically.
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    public MeterRegistry meterRegistry() {
-        return new SimpleMeterRegistry();
-    }
 
     // --- Outbox ---
 

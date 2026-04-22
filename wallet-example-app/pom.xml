@@ -51,12 +51,24 @@
             <artifactId>crablet-automations</artifactId>
         </dependency>
 
-        <!-- Crablet Metrics (optional) -->
+        <!-- Crablet Metrics (auto-configures when MeterRegistry is present) -->
         <dependency>
             <groupId>com.crablet</groupId>
             <artifactId>crablet-metrics-micrometer</artifactId>
         </dependency>
-        
+
+        <!-- Actuator (provides MeterRegistry + /actuator/health) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Prometheus registry (exposes /actuator/prometheus) -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
         <!-- Shared Examples Domain (wallet commands/events) -->
         <dependency>
             <groupId>com.crablet</groupId>
