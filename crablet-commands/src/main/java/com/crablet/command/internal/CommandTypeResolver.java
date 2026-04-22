@@ -3,6 +3,7 @@ package com.crablet.command.internal;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.InvalidCommandException;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,7 +124,7 @@ public class CommandTypeResolver {
      * 1. Command class itself (e.g., DepositCommand)
      * 2. Parent interfaces (e.g., WalletCommand, CourseCommand)
      */
-    private static JsonSubTypes findJsonSubTypesAnnotation(Class<?> commandClass) {
+    private static @Nullable JsonSubTypes findJsonSubTypesAnnotation(Class<?> commandClass) {
         // Check command class itself
         JsonSubTypes annotation = commandClass.getAnnotation(JsonSubTypes.class);
         if (annotation != null) {

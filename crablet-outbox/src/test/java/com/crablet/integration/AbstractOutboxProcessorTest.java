@@ -6,6 +6,7 @@ import com.crablet.eventstore.EventStore;
 import com.crablet.outbox.internal.OutboxProcessorConfig;
 import com.crablet.outbox.TopicPublisherPair;
 import com.crablet.outbox.config.OutboxConfig;
+import com.crablet.test.cleanup.IntegrationTestDbCleanup;
 import com.crablet.testutils.CountDownLatchPublisher;
 import com.crablet.testutils.EventProcessorTestHelper;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,8 +50,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         // Parent's cleanDatabase() runs first and cleans events table, but ensure it's clean
         // This is idempotent - safe to run multiple times
         try {
-            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+            IntegrationTestDbCleanup.truncateEventsAndOutboxProgressOnly(jdbcTemplate);
         } catch (Exception e) {
             // Ignore if table doesn't exist yet (Flyway will create it)
         }
@@ -272,8 +272,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
     void shouldHandlePublisherFailureAndRetry() throws InterruptedException {
         // Ensure clean state before starting
         try {
-            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+            IntegrationTestDbCleanup.truncateEventsAndOutboxProgressOnly(jdbcTemplate);
         } catch (Exception e) {
             // Ignore if table doesn't exist yet
         }
@@ -324,8 +323,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
     void shouldMaintainEventOrderingAcrossPublishers() throws InterruptedException {
         // Ensure clean state before starting - do this explicitly to avoid race conditions
         try {
-            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+            IntegrationTestDbCleanup.truncateEventsAndOutboxProgressOnly(jdbcTemplate);
         } catch (Exception e) {
             // Ignore if table doesn't exist yet
         }
@@ -488,7 +486,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
     @Test
     void shouldHandleEmptyEventBatches() {
         // Given - Ensure clean state (explicit cleanup for this test)
-        jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+        IntegrationTestDbCleanup.truncateOutboxTopicProgress(jdbcTemplate);
         
         // When - Process with no events
         int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);

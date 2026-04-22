@@ -16,15 +16,21 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import com.crablet.test.config.CrabletFlywayConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import javax.sql.DataSource;
 
 @SpringBootApplication
+@Import(CrabletFlywayConfiguration.class)
 @ComponentScan(basePackages = {"com.crablet", "com.crablet.outbox", "com.crablet.eventstore", "com.crablet.eventpoller"},
                excludeFilters = {
                    @ComponentScan.Filter(type = FilterType.ANNOTATION,
@@ -61,12 +67,13 @@ public class TestApplication {
     
     @Bean
     @Primary
+    @DependsOn("flyway")
     public EventStore eventStore(
             DataSource dataSource,
             ObjectMapper objectMapper,
             EventStoreConfig config,
             ClockProvider clock,
-            org.springframework.context.ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher) {
         // Use same datasource for both read and write in tests
         return new EventStoreImpl(dataSource, dataSource, objectMapper, config, clock, eventPublisher);
     }
@@ -90,7 +97,7 @@ public class TestApplication {
     }
     
     @Bean
-    public InstanceIdProvider instanceIdProvider(org.springframework.core.env.Environment environment) {
+    public InstanceIdProvider instanceIdProvider(Environment environment) {
         return new InstanceIdProvider(environment);
     }
     
@@ -108,25 +115,4 @@ public class TestApplication {
         return new GlobalStatisticsPublisher(config);
     }
     
-    /**
-     * Flyway bean to ensure migrations run before tests.
-     * Migrations run immediately when bean is created.
-     * Uses migrations from src/test/resources/db/migration.
-     */
-    @Bean
-    public org.flywaydb.core.Flyway flyway(DataSource dataSource) {
-        org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TestApplication.class);
-        log.info("[TestApplication] Flyway bean creation started at {}", java.time.Instant.now());
-        
-        org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-                .dataSource(dataSource)
-                .locations("classpath:db/migration")
-                .load();
-        
-        log.info("[TestApplication] Starting Flyway migration at {}", java.time.Instant.now());
-        flyway.migrate();
-        log.info("[TestApplication] Flyway migration completed at {}", java.time.Instant.now());
-        
-        return flyway;
-    }
 }

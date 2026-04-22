@@ -55,7 +55,7 @@ before the real JARs are built.
 
 `crablet-test-support` sits outside the reactor because it depends on
 `crablet-eventstore` (main scope) and provides test utilities to all other modules.
-It carries all database migrations (V1–V4) so every module gets them automatically
+It carries all database migrations (V1–V6) so every module gets them automatically
 through a single test-scope dependency — no per-module copies needed.
 
 ## Build Order
@@ -164,10 +164,12 @@ crablet-test-support/src/main/resources/db/migration/
   V2__outbox_schema.sql            outbox_topic_progress table
   V3__view_progress_schema.sql     view_progress table
   V4__automation_progress_schema.sql automation_progress table
+  V5__correlation_causation.sql    correlation_id / causation_id on events
+  V6__shared_fetch_scan_progress.sql  module + processor scan progress (shared-fetch)
 ```
 
 Flyway picks these up automatically on the test classpath because every module
 has `crablet-test-support` as a test-scope dependency. No copies in individual modules.
 
 `wallet-example-app` manages its own migrations in `src/main/resources/db/migration/`
-(V1, V3, plus application-specific tables V4–V11).
+(V1 eventstore, V3+ view progress and app views, outbox, automations, correlation, shared-fetch, etc.).

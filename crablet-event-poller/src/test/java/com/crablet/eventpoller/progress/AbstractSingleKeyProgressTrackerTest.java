@@ -55,6 +55,7 @@ class AbstractSingleKeyProgressTrackerTest {
 
     @Test
     @DisplayName("Constructor rejects null datasource")
+    @SuppressWarnings("NullAway")
     void constructorRejectsNullDatasource() {
         assertThatThrownBy(() -> new TestProgressTracker(null))
                 .isInstanceOf(IllegalArgumentException.class)

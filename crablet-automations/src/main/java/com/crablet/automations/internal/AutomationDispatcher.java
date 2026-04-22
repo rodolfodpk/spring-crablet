@@ -1,5 +1,6 @@
 package com.crablet.automations.internal;
 
+import com.crablet.automations.AutomationDecision;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.metrics.AutomationExecutionErrorMetric;
 import com.crablet.automations.metrics.AutomationExecutionMetric;
@@ -20,6 +21,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 
 /**
@@ -30,7 +32,7 @@ public class AutomationDispatcher implements EventHandler<String> {
     private static final Logger log = LoggerFactory.getLogger(AutomationDispatcher.class);
 
     private final Map<String, AutomationHandler> handlers;
-    private final CommandExecutor commandExecutor;
+    private final @Nullable CommandExecutor commandExecutor;
     private final ApplicationEventPublisher eventPublisher;
     private final ClockProvider clockProvider;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
@@ -95,7 +97,12 @@ public class AutomationDispatcher implements EventHandler<String> {
                     scope = scope.where(CorrelationContext.CORRELATION_ID, event.correlationId());
                 }
                 scope.call(() -> {
-                    handler.react(event, commandExecutor);
+                    List<AutomationDecision> decisions = Objects.requireNonNull(
+                            handler.decide(event),
+                            "AutomationHandler.decide() must not return null");
+                    for (AutomationDecision decision : decisions) {
+                        executeDecision(automationName, event, decision);
+                    }
                     return null;
                 });
                 count++;
@@ -111,5 +118,21 @@ public class AutomationDispatcher implements EventHandler<String> {
                 automationName, count, Duration.between(start, clockProvider.now())));
         log.debug("Automation {} (in-process) processed {} events", automationName, count);
         return count;
+    }
+
+    private void executeDecision(String automationName, StoredEvent event, AutomationDecision decision) {
+        switch (decision) {
+            case AutomationDecision.ExecuteCommand c -> {
+                if (commandExecutor == null) {
+                    throw new IllegalStateException(
+                            "Automation " + automationName +
+                                    " produced ExecuteCommand, but no CommandExecutor is available");
+                }
+                commandExecutor.execute(c.command());
+            }
+            case AutomationDecision.NoOp n ->
+                    log.debug("Automation {} no-op for event position={}: {}",
+                            automationName, event.position(), n.reason());
+        }
     }
 }

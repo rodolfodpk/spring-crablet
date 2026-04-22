@@ -30,9 +30,13 @@ class EventSelectionMatcherTest {
     private static EventSelection selection(
             Set<String> types, Set<String> required, Set<String> anyOf, Map<String, String> exact) {
         return new EventSelection() {
+            @Override
             public Set<String> getEventTypes()   { return types; }
+            @Override
             public Set<String> getRequiredTags() { return required; }
+            @Override
             public Set<String> getAnyOfTags()    { return anyOf; }
+            @Override
             public Map<String, String> getExactTags() { return exact; }
         };
     }

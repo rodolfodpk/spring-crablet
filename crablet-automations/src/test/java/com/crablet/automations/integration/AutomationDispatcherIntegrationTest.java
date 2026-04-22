@@ -1,5 +1,6 @@
 package com.crablet.automations.integration;
 
+import com.crablet.automations.AutomationDecision;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.internal.AutomationDispatcher;
 import com.crablet.automations.internal.AutomationEventFetcher;
@@ -17,6 +18,7 @@ import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.examples.wallet.notification.commands.SendWelcomeNotificationCommand;
 import com.crablet.examples.wallet.notification.commands.SendWelcomeNotificationCommandHandler;
 import com.crablet.examples.wallet.events.WalletOpened;
+import com.crablet.test.config.CrabletFlywayConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +27,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.cfg.DateTimeFeature;
 import tools.jackson.databind.json.JsonMapper;
@@ -80,25 +85,26 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
     }
 
     @Test
-    @DisplayName("Should pass real CommandExecutor to in-process handler")
-    void shouldPassRealCommandExecutorToInProcessHandler() throws Exception {
+    @DisplayName("Should treat empty decisions as processed")
+    void shouldTreatEmptyDecisionsAsProcessed() throws Exception {
         List<StoredEvent> events = storedWalletOpenedEvents("wallet-2", "wallet-notification");
         AutomationDispatcher dispatcher = inProcessDispatcher();
 
-        dispatcher.handle("wallet-notification", events);
+        int count = dispatcher.handle("wallet-notification", events);
 
-        assertThat(recordingHandler.getReceivedExecutors()).hasSize(1);
-        assertThat(recordingHandler.getReceivedExecutors().get(0)).isSameAs(commandExecutor);
+        assertThat(count).isEqualTo(1);
+        assertThat(recordingHandler.getReceivedEvents()).hasSize(1);
     }
 
     @Test
-    @DisplayName("Should execute command via CommandExecutor in react and persist resulting event")
-    void shouldExecuteCommandViaCommandExecutorInReactAndPersistResultingEvent() throws Exception {
+    @DisplayName("Should execute command decision and persist resulting event")
+    void shouldExecuteCommandDecisionAndPersistResultingEvent() throws Exception {
         AutomationHandler executingHandler = new AutomationHandler() {
             @Override public String getAutomationName() { return "executing-handler"; }
             @Override public Set<String> getEventTypes() { return Set.of(type(WalletOpened.class)); }
-            @Override public void react(StoredEvent event, CommandExecutor ce) {
-                ce.execute(SendWelcomeNotificationCommand.of("wallet-3", "Alice"));
+            @Override public List<AutomationDecision> decide(StoredEvent event) {
+                return List.of(new AutomationDecision.ExecuteCommand(
+                        SendWelcomeNotificationCommand.of("wallet-3", "Alice")));
             }
         };
 
@@ -121,7 +127,7 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
         AutomationHandler failingHandler = new AutomationHandler() {
             @Override public String getAutomationName() { return "failing"; }
             @Override public Set<String> getEventTypes() { return Set.of(type(WalletOpened.class)); }
-            @Override public void react(StoredEvent event, CommandExecutor ce) {
+            @Override public List<AutomationDecision> decide(StoredEvent event) {
                 throw new RuntimeException("handler blew up");
             }
         };
@@ -160,7 +166,7 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
         AutomationHandler walletOpenedFilter = new AutomationHandler() {
             @Override public String getAutomationName() { return automationName; }
             @Override public Set<String> getEventTypes() { return Set.of(type(WalletOpened.class)); }
-            @Override public void react(StoredEvent event, CommandExecutor ce) {}
+            @Override public List<AutomationDecision> decide(StoredEvent event) { return List.of(); }
         };
         AutomationEventFetcher localFetcher = new AutomationEventFetcher(readDataSource.dataSource(), Map.of(automationName, walletOpenedFilter));
         return localFetcher.fetchEvents(automationName, 0L, 10);
@@ -184,26 +190,25 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
 
     static class RecordingAutomationHandler implements AutomationHandler {
         private final List<StoredEvent> receivedEvents = new CopyOnWriteArrayList<>();
-        private final List<CommandExecutor> receivedExecutors = new CopyOnWriteArrayList<>();
 
         @Override public String getAutomationName() { return "wallet-notification"; }
         @Override public Set<String> getEventTypes() { return Set.of(type(WalletOpened.class)); }
-        @Override public void react(StoredEvent event, CommandExecutor ce) {
+        @Override public List<AutomationDecision> decide(StoredEvent event) {
             receivedEvents.add(event);
-            receivedExecutors.add(ce);
+            return List.of();
         }
 
         public List<StoredEvent> getReceivedEvents() { return receivedEvents; }
-        public List<CommandExecutor> getReceivedExecutors() { return receivedExecutors; }
-        public void clear() { receivedEvents.clear(); receivedExecutors.clear(); }
+        public void clear() { receivedEvents.clear(); }
     }
 
     @Configuration
+    @Import(CrabletFlywayConfiguration.class)
     static class TestConfig {
         @Bean
         public DataSource dataSource() {
-            org.springframework.jdbc.datasource.SimpleDriverDataSource ds =
-                    new org.springframework.jdbc.datasource.SimpleDriverDataSource();
+            SimpleDriverDataSource ds =
+                    new SimpleDriverDataSource();
             ds.setDriverClass(org.postgresql.Driver.class);
             ds.setUrl(AbstractAutomationsTest.postgres.getJdbcUrl());
             ds.setUsername(AbstractAutomationsTest.postgres.getUsername());
@@ -221,15 +226,7 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
         public JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
 
         @Bean
-        public org.flywaydb.core.Flyway flyway(DataSource dataSource) {
-            org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-                    .dataSource(dataSource).locations("classpath:db/migration").load();
-            flyway.migrate();
-            return flyway;
-        }
-
-        @Bean
-        @org.springframework.context.annotation.DependsOn("flyway")
+        @DependsOn("flyway")
         public EventStore eventStore(DataSource dataSource, ObjectMapper objectMapper,
                                      EventStoreConfig config, ClockProvider clock,
                                      ApplicationEventPublisher publisher) {

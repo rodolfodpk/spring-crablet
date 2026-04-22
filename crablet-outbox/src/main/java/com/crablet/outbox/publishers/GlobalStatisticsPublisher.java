@@ -2,6 +2,7 @@ package com.crablet.outbox.publishers;
 
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.outbox.config.GlobalStatisticsConfig;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +35,7 @@ public class GlobalStatisticsPublisher {
     
     // Global statistics
     private final AtomicLong totalEventsProcessed = new AtomicLong(0);
-    private volatile Instant firstEventTime = null;
+    private volatile @Nullable Instant firstEventTime = null;
     private volatile Instant lastLogTime;
     
     // Per-topic statistics

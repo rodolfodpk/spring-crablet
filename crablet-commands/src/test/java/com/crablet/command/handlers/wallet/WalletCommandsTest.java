@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Integration tests for wallet commands: DepositCommand, WithdrawCommand.
  */
 @DisplayName("Wallet Commands Integration Tests")
-@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class WalletCommandsTest extends com.crablet.test.AbstractCrabletTest {
 
     private com.crablet.examples.wallet.commands.DepositCommandHandler depositHandler;

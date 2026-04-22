@@ -22,6 +22,7 @@ class PostgresNotifyWakeupSourceTest {
 
     @Test
     @DisplayName("Should reject invalid PostgreSQL notification channel names")
+    @SuppressWarnings("NullAway")
     void shouldRejectInvalidChannelNames() {
         assertThatThrownBy(() -> new PostgresNotifyWakeupSource(
                 "jdbc:postgresql://localhost/test", "user", "password", null))

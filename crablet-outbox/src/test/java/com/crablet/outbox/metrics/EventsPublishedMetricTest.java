@@ -44,6 +44,7 @@ class EventsPublishedMetricTest {
     }
 
     @Test
+    @SuppressWarnings("NullAway")
     @DisplayName("Given null publisher name, when creating metric, then IllegalArgumentException thrown")
     void givenNullPublisherName_whenCreatingMetric_thenIllegalArgumentExceptionThrown() {
         // Given

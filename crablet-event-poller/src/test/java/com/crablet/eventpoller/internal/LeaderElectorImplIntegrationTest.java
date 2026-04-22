@@ -12,8 +12,12 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -72,13 +76,13 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
     void shouldReturnFalse_WhenLockAlreadyHeldByAnotherInstance() throws Exception {
         // Given - First instance acquires lock and holds connection open
         // Note: PostgreSQL advisory locks are session-scoped, so we need to hold a connection
-        LeaderElectorImpl elector1 = createElector("instance-1", TEST_LOCK_KEY, eventPublisher);
+        createElector("instance-1", TEST_LOCK_KEY, eventPublisher);
 
         // Hold lock by keeping connection open
-        try (java.sql.Connection conn1 = dataSource.getConnection();
-             java.sql.PreparedStatement stmt = conn1.prepareStatement("SELECT pg_try_advisory_lock(?)")) {
+        try (Connection conn1 = dataSource.getConnection();
+             PreparedStatement stmt = conn1.prepareStatement("SELECT pg_try_advisory_lock(?)")) {
             stmt.setLong(1, TEST_LOCK_KEY);
-            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+            try (ResultSet rs = stmt.executeQuery()) {
                 rs.next();
                 assertThat(rs.getBoolean(1)).isTrue(); // Lock acquired
             }
@@ -113,14 +117,14 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
     @DisplayName("Should allow lock acquisition after release")
     void shouldAllowLockAcquisition_AfterRelease() throws Exception {
         // Given - First instance acquires and holds lock
-        LeaderElectorImpl elector1 = createElector("instance-1", TEST_LOCK_KEY, eventPublisher);
+        createElector("instance-1", TEST_LOCK_KEY, eventPublisher);
         LeaderElectorImpl elector2 = createElector("instance-2", TEST_LOCK_KEY, eventPublisher);
 
         // Hold lock by keeping connection open
-        try (java.sql.Connection conn1 = dataSource.getConnection();
-             java.sql.PreparedStatement stmt = conn1.prepareStatement("SELECT pg_try_advisory_lock(?)")) {
+        try (Connection conn1 = dataSource.getConnection();
+             PreparedStatement stmt = conn1.prepareStatement("SELECT pg_try_advisory_lock(?)")) {
             stmt.setLong(1, TEST_LOCK_KEY);
-            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+            try (ResultSet rs = stmt.executeQuery()) {
                 rs.next();
                 assertThat(rs.getBoolean(1)).isTrue();
             }
@@ -142,10 +146,10 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
     @DisplayName("Should handle concurrent lock attempts")
     void shouldHandleConcurrentLockAttempts() throws Exception {
         // Given - Hold lock with a persistent connection
-        try (java.sql.Connection lockHolder = dataSource.getConnection();
-             java.sql.PreparedStatement stmt = lockHolder.prepareStatement("SELECT pg_try_advisory_lock(?)")) {
+        try (Connection lockHolder = dataSource.getConnection();
+             PreparedStatement stmt = lockHolder.prepareStatement("SELECT pg_try_advisory_lock(?)")) {
             stmt.setLong(1, TEST_LOCK_KEY);
-            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+            try (ResultSet rs = stmt.executeQuery()) {
                 rs.next();
                 assertThat(rs.getBoolean(1)).isTrue(); // Lock held
             }
@@ -278,10 +282,10 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
         LeaderElectorImpl elector2 = createElector("instance-2", TEST_LOCK_KEY, testPublisher);
 
         // Hold lock by keeping connection open
-        try (java.sql.Connection conn1 = dataSource.getConnection();
-             java.sql.PreparedStatement stmt = conn1.prepareStatement("SELECT pg_try_advisory_lock(?)")) {
+        try (Connection conn1 = dataSource.getConnection();
+             PreparedStatement stmt = conn1.prepareStatement("SELECT pg_try_advisory_lock(?)")) {
             stmt.setLong(1, TEST_LOCK_KEY);
-            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+            try (ResultSet rs = stmt.executeQuery()) {
                 rs.next();
                 assertThat(rs.getBoolean(1)).isTrue();
             }
@@ -300,6 +304,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
 
     @Test
     @DisplayName("Should validate constructor parameters")
+    @SuppressWarnings("NullAway")
     void shouldValidateConstructorParameters() {
         // Then - Null dataSource
         assertThatThrownBy(() -> new LeaderElectorImpl(null, "test", "instance-1", TEST_LOCK_KEY, eventPublisher))
@@ -343,8 +348,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
     static class TestConfig {
         @Bean
         public javax.sql.DataSource dataSource() {
-            org.springframework.jdbc.datasource.SimpleDriverDataSource dataSource =
-                    new org.springframework.jdbc.datasource.SimpleDriverDataSource();
+            SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
             dataSource.setDriverClass(org.postgresql.Driver.class);
             dataSource.setUrl(postgres.getJdbcUrl());
             dataSource.setUsername(postgres.getUsername());

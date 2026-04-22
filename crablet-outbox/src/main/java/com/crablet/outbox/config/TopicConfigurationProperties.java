@@ -114,41 +114,41 @@ public class TopicConfigurationProperties {
     }
     
     public static class TopicProperties {
-        private String requiredTags;
-        private String anyOfTags;
-        private Map<String, String> exactTags;
-        private String publishers;
+        private @org.jspecify.annotations.Nullable String requiredTags;
+        private @org.jspecify.annotations.Nullable String anyOfTags;
+        private @org.jspecify.annotations.Nullable Map<String, String> exactTags;
+        private @org.jspecify.annotations.Nullable String publishers;
         private List<PublisherProperties> publisherConfigs = new ArrayList<>();
         
-        public String getRequiredTags() {
+        public @org.jspecify.annotations.Nullable String getRequiredTags() {
             return requiredTags;
         }
         
-        public void setRequiredTags(String requiredTags) {
+        public void setRequiredTags(@org.jspecify.annotations.Nullable String requiredTags) {
             this.requiredTags = requiredTags;
         }
         
-        public String getAnyOfTags() {
+        public @org.jspecify.annotations.Nullable String getAnyOfTags() {
             return anyOfTags;
         }
         
-        public void setAnyOfTags(String anyOfTags) {
+        public void setAnyOfTags(@org.jspecify.annotations.Nullable String anyOfTags) {
             this.anyOfTags = anyOfTags;
         }
         
-        public Map<String, String> getExactTags() {
+        public @org.jspecify.annotations.Nullable Map<String, String> getExactTags() {
             return exactTags;
         }
         
-        public void setExactTags(Map<String, String> exactTags) {
+        public void setExactTags(@org.jspecify.annotations.Nullable Map<String, String> exactTags) {
             this.exactTags = exactTags;
         }
         
-        public String getPublishers() {
+        public @org.jspecify.annotations.Nullable String getPublishers() {
             return publishers;
         }
 
-        public void setPublishers(String publishers) {
+        public void setPublishers(@org.jspecify.annotations.Nullable String publishers) {
             this.publishers = publishers;
         }
         
@@ -162,22 +162,22 @@ public class TopicConfigurationProperties {
     }
     
     public static class PublisherProperties {
-        private String name;
-        private Long pollingIntervalMs; // Optional, falls back to global
+        private @org.jspecify.annotations.Nullable String name;
+        private @org.jspecify.annotations.Nullable Long pollingIntervalMs; // Optional, falls back to global
         
-        public String getName() {
+        public @org.jspecify.annotations.Nullable String getName() {
             return name;
         }
         
-        public void setName(String name) {
+        public void setName(@org.jspecify.annotations.Nullable String name) {
             this.name = name;
         }
         
-        public Long getPollingIntervalMs() {
+        public @org.jspecify.annotations.Nullable Long getPollingIntervalMs() {
             return pollingIntervalMs;
         }
         
-        public void setPollingIntervalMs(Long pollingIntervalMs) {
+        public void setPollingIntervalMs(@org.jspecify.annotations.Nullable Long pollingIntervalMs) {
             this.pollingIntervalMs = pollingIntervalMs;
         }
     }

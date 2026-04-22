@@ -1,8 +1,8 @@
 package com.crablet.automations.integration;
 
+import com.crablet.automations.AutomationDecision;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.internal.AutomationEventFetcher;
-import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.ReadDataSource;
@@ -13,9 +13,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import com.crablet.test.config.CrabletFlywayConfiguration;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 
 import javax.sql.DataSource;
 import java.util.ArrayList;
@@ -164,11 +169,12 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
     }
 
     @Configuration
+    @Import(CrabletFlywayConfiguration.class)
     static class TestConfig {
         @Bean
         public DataSource dataSource() {
-            org.springframework.jdbc.datasource.SimpleDriverDataSource ds =
-                    new org.springframework.jdbc.datasource.SimpleDriverDataSource();
+            SimpleDriverDataSource ds =
+                    new SimpleDriverDataSource();
             ds.setDriverClass(org.postgresql.Driver.class);
             ds.setUrl(AbstractAutomationsTest.postgres.getJdbcUrl());
             ds.setUsername(AbstractAutomationsTest.postgres.getUsername());
@@ -186,23 +192,13 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
         public JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
 
         @Bean
-        public org.flywaydb.core.Flyway flyway(DataSource dataSource) {
-            org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-                    .dataSource(dataSource)
-                    .locations("classpath:db/migration")
-                    .load();
-            flyway.migrate();
-            return flyway;
-        }
-
-        @Bean
-        @org.springframework.context.annotation.DependsOn("flyway")
+        @DependsOn("flyway")
         public EventStore eventStore(
                 DataSource dataSource,
                 tools.jackson.databind.ObjectMapper objectMapper,
                 com.crablet.eventstore.EventStoreConfig config,
                 com.crablet.eventstore.ClockProvider clock,
-                org.springframework.context.ApplicationEventPublisher eventPublisher) {
+                ApplicationEventPublisher eventPublisher) {
             return new com.crablet.eventstore.internal.EventStoreImpl(
                 dataSource, dataSource, objectMapper, config, clock, eventPublisher);
         }
@@ -255,7 +251,8 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
         @Override public Set<String> getEventTypes() { return eventTypes; }
         @Override public Set<String> getRequiredTags() { return requiredTags; }
         @Override public Set<String> getAnyOfTags() { return anyOfTags; }
-        @Override public void react(StoredEvent event, CommandExecutor commandExecutor) {
+        @Override public List<AutomationDecision> decide(StoredEvent event) {
+            return List.of();
         }
     }
 }

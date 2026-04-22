@@ -1,6 +1,7 @@
 package com.crablet.command;
 
 import com.crablet.command.internal.CommandTypeResolver;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -103,7 +104,7 @@ public final class DiscoveredCommandRegistry {
      * @param commandType the command type string
      * @return the corresponding command class, or {@code null} if not registered
      */
-    public Class<?> commandClassForType(String commandType) {
+    public @Nullable Class<?> commandClassForType(String commandType) {
         return commandClassesByType.get(commandType);
     }
 }

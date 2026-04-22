@@ -2,8 +2,6 @@ package com.crablet.eventstore;
 
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
-import com.crablet.eventstore.StreamPosition;
-import com.crablet.eventstore.Tag;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -290,4 +288,3 @@ class AppendConditionBuilderTest {
         assertThat(condition.idempotencyQuery()).isEqualTo(Query.empty());
     }
 }
-

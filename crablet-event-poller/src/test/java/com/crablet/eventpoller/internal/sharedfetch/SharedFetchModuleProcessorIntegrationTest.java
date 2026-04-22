@@ -3,31 +3,43 @@ package com.crablet.eventpoller.internal.sharedfetch;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventSelection;
 import com.crablet.eventpoller.integration.AbstractEventProcessorTest;
-import com.crablet.eventpoller.internal.LeaderElectorImpl;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
+import com.crablet.eventpoller.wakeup.ProcessorWakeupSource;
 import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.StoredEvent;
-import com.crablet.eventstore.Tag;
+import com.crablet.eventstore.internal.ClockProviderImpl;
+import com.crablet.eventstore.internal.EventStoreImpl;
+import com.crablet.test.config.CrabletFlywayConfiguration;
+import com.crablet.test.cleanup.IntegrationTestDbCleanup;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.scheduling.Trigger;
 
 import javax.sql.DataSource;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -256,7 +268,7 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
                 dataSource,
                 1000,
                 new NoopTaskScheduler(),
-                new org.springframework.context.support.GenericApplicationContext(),
+                new GenericApplicationContext(),
                 Function.identity());
         localProcessor.reloadCursorState();
 
@@ -469,7 +481,7 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
         List<AppendEvent> events = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             events.add(AppendEvent.builder(type)
-                    .data(("{\"i\":" + i + "}").getBytes())
+                    .data(("{\"i\":" + i + "}").getBytes(StandardCharsets.UTF_8))
                     .build());
         }
         eventStore.appendCommutative(events);
@@ -498,7 +510,7 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
                 dataSource,
                 1000,
                 taskScheduler,
-                new org.springframework.context.support.GenericApplicationContext(),
+                new GenericApplicationContext(),
                 Function.identity(),
                 wakeupSource);
     }
@@ -510,9 +522,9 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
 
     private void cleanScanProgress(JdbcTemplate jdbc) {
         try {
-            jdbc.execute("TRUNCATE TABLE crablet_module_scan_progress");
-            jdbc.execute("TRUNCATE TABLE crablet_processor_scan_progress");
+            IntegrationTestDbCleanup.truncateSharedFetchScanProgress(jdbc);
         } catch (Exception ignored) {
+            // Some schema variants used by focused tests do not include these tables.
         }
     }
 
@@ -562,7 +574,7 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
 
         @Override public long getLastPosition(String id) { return positions.getOrDefault(id, 0L); }
         @Override public void updateProgress(String id, long pos) { positions.put(id, pos); }
-        @Override public void recordError(String id, String err, int max) {
+        @Override public void recordError(String id, @Nullable String err, int max) {
             int count = errorCounts.merge(id, 1, Integer::sum);
             if (count >= max) statuses.put(id, ProcessorStatus.FAILED);
         }
@@ -598,7 +610,7 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
         private final List<FakeScheduledFuture> futures = new ArrayList<>();
 
         @Override
-        public ScheduledFuture<?> schedule(Runnable task, org.springframework.scheduling.Trigger trigger) {
+        public ScheduledFuture<?> schedule(Runnable task, Trigger trigger) {
             return remember(task, false);
         }
         @Override
@@ -686,8 +698,8 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
         @Override public String getInstanceId() { return "test-instance"; }
     }
 
-    static class CapturingWakeupSource implements com.crablet.eventpoller.wakeup.ProcessorWakeupSource {
-        private Runnable onWakeup;
+    static class CapturingWakeupSource implements ProcessorWakeupSource {
+        private Runnable onWakeup = () -> {};
         private boolean started;
         private boolean closed;
 
@@ -708,11 +720,12 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
     }
 
     @Configuration
+    @Import(CrabletFlywayConfiguration.class)
     static class TestConfig {
 
         @Bean
         public DataSource dataSource() {
-            var ds = new org.springframework.jdbc.datasource.SimpleDriverDataSource();
+            var ds = new SimpleDriverDataSource();
             ds.setDriverClass(org.postgresql.Driver.class);
             ds.setUrl(AbstractEventProcessorTest.postgres.getJdbcUrl());
             ds.setUsername(AbstractEventProcessorTest.postgres.getUsername());
@@ -726,35 +739,25 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
         }
 
         @Bean
-        public org.flywaydb.core.Flyway flyway(DataSource dataSource) {
-            var flyway = org.flywaydb.core.Flyway.configure()
-                    .dataSource(dataSource)
-                    .locations("classpath:db/migration")
-                    .load();
-            flyway.migrate();
-            return flyway;
-        }
-
-        @Bean
-        @org.springframework.context.annotation.DependsOn("flyway")
+        @DependsOn("flyway")
         public EventStore eventStore(
                 DataSource dataSource,
                 tools.jackson.databind.ObjectMapper objectMapper,
-                com.crablet.eventstore.EventStoreConfig config,
-                com.crablet.eventstore.ClockProvider clock,
-                org.springframework.context.ApplicationEventPublisher eventPublisher) {
-            return new com.crablet.eventstore.internal.EventStoreImpl(
+                EventStoreConfig config,
+                ClockProvider clock,
+                ApplicationEventPublisher eventPublisher) {
+            return new EventStoreImpl(
                     dataSource, dataSource, objectMapper, config, clock, eventPublisher);
         }
 
         @Bean
-        public com.crablet.eventstore.EventStoreConfig eventStoreConfig() {
-            return new com.crablet.eventstore.EventStoreConfig();
+        public EventStoreConfig eventStoreConfig() {
+            return new EventStoreConfig();
         }
 
         @Bean
-        public com.crablet.eventstore.ClockProvider clockProvider() {
-            return new com.crablet.eventstore.internal.ClockProviderImpl();
+        public ClockProvider clockProvider() {
+            return new ClockProviderImpl();
         }
 
         @Bean
@@ -770,12 +773,12 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
         }
 
         @Bean
-        public org.springframework.context.ApplicationEventPublisher applicationEventPublisher() {
-            return new org.springframework.context.support.GenericApplicationContext();
+        public ApplicationEventPublisher applicationEventPublisher() {
+            return new GenericApplicationContext();
         }
 
         @Bean
-        @org.springframework.context.annotation.DependsOn("flyway")
+        @DependsOn("flyway")
         public ModuleScanProgressRepository moduleScanProgressRepository(DataSource dataSource) {
             return new ModuleScanProgressRepository(dataSource);
         }
@@ -802,8 +805,8 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
 
         @Bean
         public EventHandler<String> combinedEventHandler(
-                @org.springframework.beans.factory.annotation.Qualifier("handlerA") TestEventHandler hA,
-                @org.springframework.beans.factory.annotation.Qualifier("handlerB") TestEventHandler hB) {
+                @Qualifier("handlerA") TestEventHandler hA,
+                @Qualifier("handlerB") TestEventHandler hB) {
             return (processorId, events) -> switch (processorId) {
                 case PROC_A -> hA.handle(processorId, events);
                 case PROC_B -> hB.handle(processorId, events);
@@ -812,7 +815,7 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
         }
 
         @Bean
-        @org.springframework.context.annotation.DependsOn("flyway")
+        @DependsOn("flyway")
         public SharedFetchModuleProcessor<TestProcessorConfig, String> sharedFetchModuleProcessor(
                 DataSource dataSource,
                 TestProgressTracker progressTracker,
@@ -820,7 +823,7 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
                 ModuleScanProgressRepository moduleScanRepo,
                 ProcessorScanProgressRepository processorScanRepo,
                 TaskScheduler taskScheduler,
-                org.springframework.context.ApplicationEventPublisher eventPublisher) {
+                ApplicationEventPublisher eventPublisher) {
 
             Map<String, TestProcessorConfig> configs = Map.of(
                     PROC_A, new TestProcessorConfig(PROC_A),

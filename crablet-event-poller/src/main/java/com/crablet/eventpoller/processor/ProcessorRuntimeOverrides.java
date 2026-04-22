@@ -1,5 +1,7 @@
 package com.crablet.eventpoller.processor;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Optional per-processor runtime overrides.
  *
@@ -8,27 +10,27 @@ package com.crablet.eventpoller.processor;
  */
 public interface ProcessorRuntimeOverrides {
 
-    default Long getPollingIntervalMs() {
+    default @Nullable Long getPollingIntervalMs() {
         return null;
     }
 
-    default Integer getBatchSize() {
+    default @Nullable Integer getBatchSize() {
         return null;
     }
 
-    default Boolean getBackoffEnabled() {
+    default @Nullable Boolean getBackoffEnabled() {
         return null;
     }
 
-    default Integer getBackoffThreshold() {
+    default @Nullable Integer getBackoffThreshold() {
         return null;
     }
 
-    default Integer getBackoffMultiplier() {
+    default @Nullable Integer getBackoffMultiplier() {
         return null;
     }
 
-    default Integer getBackoffMaxSeconds() {
+    default @Nullable Integer getBackoffMaxSeconds() {
         return null;
     }
 }

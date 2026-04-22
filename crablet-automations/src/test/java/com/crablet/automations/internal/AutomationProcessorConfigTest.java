@@ -1,13 +1,14 @@
 package com.crablet.automations.internal;
 
+import com.crablet.automations.AutomationDecision;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.config.AutomationsConfig;
-import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.StoredEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -16,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Unit tests for {@link AutomationProcessorConfig}.
  */
+@SuppressWarnings("NullAway")
 @DisplayName("AutomationProcessorConfig Unit Tests")
 class AutomationProcessorConfigTest {
 
@@ -185,7 +187,8 @@ class AutomationProcessorConfigTest {
 
         @Override public String getAutomationName() { return name; }
         @Override public Set<String> getEventTypes() { return Set.of("WalletOpened"); }
-        @Override public void react(StoredEvent event, CommandExecutor commandExecutor) {
+        @Override public List<AutomationDecision> decide(StoredEvent event) {
+            return List.of();
         }
     }
 }

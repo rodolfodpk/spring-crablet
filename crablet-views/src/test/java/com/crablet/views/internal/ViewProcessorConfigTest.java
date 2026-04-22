@@ -1,7 +1,6 @@
 package com.crablet.views.internal;
 
 import com.crablet.views.ViewSubscription;
-import com.crablet.views.ViewSubscription;
 import com.crablet.views.config.ViewsConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,6 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for ViewProcessorConfig.
  * Tests configuration mapping, property delegation, and config map creation.
  */
+@SuppressWarnings("NullAway")
 @DisplayName("ViewProcessorConfig Unit Tests")
 class ViewProcessorConfigTest {
 

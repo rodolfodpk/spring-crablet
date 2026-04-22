@@ -288,7 +288,7 @@ wallet-example-app (Example application)
 These decisions reflect the current repository state and should be treated as the preferred direction:
 
 - `AutomationHandler` is the single public automation contract.
-- Automations react through `AutomationHandler.react()`.
+- Automations return `AutomationDecision` values through `AutomationHandler.decide()`.
 - External event publication, including HTTP webhooks, belongs in `crablet-outbox`.
 - `AutomationSubscription` has been removed.
 - `crablet-event-poller` now owns the shared matching and per-instance override abstractions:
@@ -801,7 +801,7 @@ Recommended separation of concerns:
 - automations react asynchronously and own follow-up application behavior
 - outbox publishes stored events to external systems
 
-If stored events need to be sent to an external HTTP API, Kafka, analytics, or CRM system, use an `OutboxPublisher`. If an event should trigger application behavior, implement that behavior in `AutomationHandler.react()` and use commands/events to record the outcome.
+If stored events need to be sent to an external HTTP API, Kafka, analytics, or CRM system, use an `OutboxPublisher`. If an event should trigger application behavior, implement that behavior by returning `AutomationDecision.ExecuteCommand` from `AutomationHandler.decide()` and use commands/events to record the outcome.
 
 **Documentation:** `crablet-eventstore/docs/READ_REPLICAS.md`
 

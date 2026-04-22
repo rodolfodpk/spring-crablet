@@ -14,6 +14,7 @@ import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSource;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSource;
 import com.crablet.eventstore.StoredEvent;
 import jakarta.annotation.PostConstruct;
+import org.jspecify.annotations.Nullable;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,9 +25,11 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.TaskScheduler;
 import javax.sql.DataSource;
 import java.io.EOFException;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
@@ -45,7 +48,6 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     private final ProgressTracker<I> progressTracker;
     private final EventFetcher<I> eventFetcher;
     private final EventHandler<I> eventHandler;
-    private final DataSource writeDataSource;
     private final TaskScheduler taskScheduler;
     private final ApplicationEventPublisher eventPublisher;
     private final ProcessorWakeupSource wakeupSource;
@@ -60,7 +62,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     private final Map<I, Boolean> immediateRunRequested = new ConcurrentHashMap<>();
 
     // Leader retry scheduler
-    private ScheduledFuture<?> leaderRetryScheduler;
+    private @Nullable ScheduledFuture<?> leaderRetryScheduler;
 
     // Cooldown for leader retry — configurable via crablet.event-poller.leader-retry-cooldown-ms
     private final long leaderRetryCooldownMs;
@@ -114,7 +116,6 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
         this.progressTracker = progressTracker;
         this.eventFetcher = eventFetcher;
         this.eventHandler = eventHandler;
-        this.writeDataSource = writeDataSource;
         this.taskScheduler = taskScheduler;
         this.eventPublisher = eventPublisher;
         this.wakeupSource = wakeupSource;
@@ -291,7 +292,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
         // Check for PostgreSQL-specific shutdown errors
         String message = e.getMessage();
         if (message != null) {
-            String lowerMessage = message.toLowerCase();
+            String lowerMessage = message.toLowerCase(Locale.ROOT);
             return lowerMessage.contains("i/o error") ||
                    lowerMessage.contains("connection has been closed") ||
                    lowerMessage.contains("terminating connection") ||
@@ -300,8 +301,8 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
         }
 
         // Check for SQLState codes that indicate connection shutdown
-        if (e instanceof java.sql.SQLException) {
-            String sqlState = ((java.sql.SQLException) e).getSQLState();
+        if (e instanceof SQLException sqlException) {
+            String sqlState = sqlException.getSQLState();
             // 57P01 = terminating connection due to administrator command
             // 08006 = connection failure
             if ("57P01".equals(sqlState) || "08006".equals(sqlState)) {
@@ -551,7 +552,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     }
 
     @Override
-    public BackoffState getBackoffStateForProcessor(I processorId) {
+    public @Nullable BackoffState getBackoffStateForProcessor(I processorId) {
         return backoffStates.get(processorId);
     }
 

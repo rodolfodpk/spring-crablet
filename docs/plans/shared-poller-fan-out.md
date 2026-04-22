@@ -242,6 +242,18 @@ crablet.shared-fetch.max-events-per-cycle=5000   # default: unset (no global cap
 
 Default: 1000. Per-processor `batchSize` still caps matched-event dispatch per processor per call. The optional global cap protects the JVM from large shared-fetch windows without requiring per-module tuning. The global cap applies to the **shared module fetch only** (`LIMIT` on the position-only query) — it does **not** apply to `fetchEventsUntil` in the bounded catch-up loop. Catch-up uses `processor.batchSize` per iteration and is already bounded by `upToPosition=moduleScanCursor`; applying the global cap there would risk a processor that never fully closes its lag if the cap is smaller than the gap.
 
+### Dispatch windowing policy
+
+Shared-fetch v1 dispatches **at most one `batchSize` window per processor per cycle**. If a processor has more matches than its `batchSize`, dispatch the first batch, advance handled/scanned cursors only to the last dispatched match, and move the processor into `CATCHING_UP`.
+
+Do **not** use Java Stream Gatherers such as `Gatherers.windowFixed(batchSize)` to drain multiple matched windows in one shared cycle under the current `EventHandler` contract. `Gatherers.windowFixed` is useful for tests and pure in-memory event analysis, but multi-window processor dispatch changes failure and retry semantics:
+
+- **Views:** projections require ordered application and idempotent writes with clear progress boundaries. Multi-window dispatch would need explicit per-window progress commits or a richer partial-progress signal.
+- **Automations:** handlers may trigger commands, notifications, or other side effects. The framework cannot assume every downstream effect is safely repeatable after a mid-cycle failure.
+- **Outbox:** publishing is at-least-once, but larger multi-window cycles increase duplicate/retry blast radius and make partial publish failures harder to reason about.
+
+Only revisit multi-window dispatch as an explicit feature with a new contract, for example a bounded `max-dispatch-windows-per-cycle` setting plus progress updates after each successful window.
+
 ## Feature flag
 
 ```properties

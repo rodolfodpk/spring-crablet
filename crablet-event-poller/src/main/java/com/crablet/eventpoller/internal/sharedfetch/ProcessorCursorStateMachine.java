@@ -9,6 +9,8 @@ public final class ProcessorCursorStateMachine {
     private ProcessorCursorStateMachine() {}
 
     /**
+     * Returns the cursor values to persist and whether CATCHING_UP should be set.
+     *
      * @param currentHandledPosition  persisted handledPosition before this cycle
      * @param currentScannedPosition  persisted scannedPosition before this cycle
      * @param windowEnd               last position fetched by the module in this cycle

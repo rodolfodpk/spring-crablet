@@ -20,7 +20,7 @@ import java.util.UUID;
  * // Automation dispatcher — propagate + set causation for each event:
  * ScopedValue.where(CorrelationContext.CORRELATION_ID, event.correlationId())
  *            .where(CorrelationContext.CAUSATION_ID,   event.position())
- *            .run(() -> handler.react(event, commandExecutor));
+ *            .run(() -> dispatcher.execute(handler.decide(event)));
  *
  * // EventStore append layer — read (null when unbound):
  * UUID cid  = CorrelationContext.correlationId();

@@ -117,7 +117,7 @@ public class OutboxProgressTracker implements ProgressTracker<TopicPublisherPair
     }
     
     @Override
-    public void recordError(TopicPublisherPair processorId, String error, int maxErrors) {
+    public void recordError(TopicPublisherPair processorId, @org.jspecify.annotations.Nullable String error, int maxErrors) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(INCREMENT_ERROR_COUNT_SQL)) {
             

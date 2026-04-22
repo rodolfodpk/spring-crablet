@@ -5,6 +5,8 @@ import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.views.internal.ViewProcessorConfig;
 import com.crablet.views.ViewSubscription;
 import com.crablet.wallet.TestApplication;
+import com.crablet.wallet.cleanup.WalletIntegrationTestDbCleanup;
+import com.crablet.wallet.cleanup.WalletViewProgressFixtures;
 import com.crablet.wallet.api.dto.WalletResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -90,16 +92,8 @@ class WalletLifecycleE2ETest extends AbstractWalletE2ETest {
     @Order(1)
     @DisplayName("Should open a new wallet successfully")
     void shouldOpenWallet() {
-        // Clean database before first test
-        jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE view_progress CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE wallet_balance_view CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE wallet_transaction_view CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE wallet_summary_view CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE statement_transactions CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE wallet_statement_view CASCADE");
-        reseedViewProgress();
+        WalletIntegrationTestDbCleanup.truncateForWalletViewLifecycleE2e(jdbcTemplate);
+        WalletViewProgressFixtures.reseedDefaultWalletViews(jdbcTemplate);
         
         // When & Then
         webTestClient

@@ -4,6 +4,8 @@ import com.crablet.command.web.CommandApiResponse;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.views.internal.ViewProcessorConfig;
 import com.crablet.wallet.TestApplication;
+import com.crablet.wallet.cleanup.WalletIntegrationTestDbCleanup;
+import com.crablet.wallet.cleanup.WalletViewProgressFixtures;
 import com.crablet.wallet.api.dto.WalletResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -73,19 +75,9 @@ class SharedFetchWalletLifecycleE2ETest extends AbstractWalletE2ETest {
     @Order(1)
     @DisplayName("Setup: clean database and open wallet")
     void shouldOpenWallet() {
-        jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE view_progress CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE wallet_balance_view CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE wallet_transaction_view CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE wallet_summary_view CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE statement_transactions CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE wallet_statement_view CASCADE");
-        reseedViewProgress();
-        try {
-            jdbcTemplate.execute("TRUNCATE TABLE crablet_module_scan_progress");
-            jdbcTemplate.execute("TRUNCATE TABLE crablet_processor_scan_progress");
-        } catch (Exception ignored) {}
+        WalletIntegrationTestDbCleanup.truncateForWalletViewLifecycleE2e(jdbcTemplate);
+        WalletViewProgressFixtures.reseedDefaultWalletViews(jdbcTemplate);
+        WalletIntegrationTestDbCleanup.truncateSharedFetchScanProgressBestEffort(jdbcTemplate);
 
         webTestClient.post()
                 .uri("/api/commands")

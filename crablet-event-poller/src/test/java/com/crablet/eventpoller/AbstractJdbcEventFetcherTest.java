@@ -4,12 +4,14 @@ import com.crablet.eventstore.StoredEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.jspecify.annotations.Nullable;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.sql.DataSource;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.List;
@@ -77,7 +79,7 @@ class AbstractJdbcEventFetcherTest {
         assertThat(events).hasSize(2);
         assertThat(events).extracting(StoredEvent::type).containsExactly("DepositMade", "WalletOpened");
         assertThat(events.get(0).tags()).extracting("key").containsExactly("wallet_id", "deposit_id");
-        assertThat(new String(events.get(0).data())).contains("second");
+        assertThat(new String(events.get(0).data(), StandardCharsets.UTF_8)).contains("second");
         assertThat(events.get(0).position()).isEqualTo(2);
     }
 
@@ -100,8 +102,8 @@ class AbstractJdbcEventFetcherTest {
             String type,
             String[] tags,
             String data,
-            UUID correlationId,
-            Long causationId) throws Exception {
+            @Nullable UUID correlationId,
+            @Nullable Long causationId) throws Exception {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement("""
                  INSERT INTO events (type, tags, data, transaction_id, occurred_at, correlation_id, causation_id)
@@ -117,15 +119,15 @@ class AbstractJdbcEventFetcherTest {
     }
 
     private static class TestFetcher extends AbstractJdbcEventFetcher<String> {
-        private final String filter;
+        private final @Nullable String filter;
 
-        private TestFetcher(DataSource readDataSource, String filter) {
+        private TestFetcher(DataSource readDataSource, @Nullable String filter) {
             super(readDataSource);
             this.filter = filter;
         }
 
         @Override
-        protected String buildSqlFilter(String processorId) {
+        protected @Nullable String buildSqlFilter(String processorId) {
             return filter;
         }
     }

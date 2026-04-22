@@ -74,7 +74,7 @@ Copy this filter into your application and annotate it with `@Component` — Spr
 // Internally, for each event the automation handles:
 ScopedValue.where(CorrelationContext.CORRELATION_ID, event.correlationId())
            .where(CorrelationContext.CAUSATION_ID,   event.position())
-           .run(() -> handler.react(event, commandExecutor));
+           .run(() -> dispatcher.execute(handler.decide(event)));
 ```
 
 This means:

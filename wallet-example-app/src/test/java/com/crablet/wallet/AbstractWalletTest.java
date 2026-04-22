@@ -2,6 +2,9 @@ package com.crablet.wallet;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.EventStore;
+import com.crablet.test.cleanup.IntegrationTestDbCleanup;
+import com.crablet.wallet.cleanup.WalletIntegrationTestDbCleanup;
+import com.crablet.wallet.cleanup.WalletViewProgressFixtures;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
@@ -99,16 +102,8 @@ public abstract class AbstractWalletTest {
      * Truncates all tables while preserving schema.
      */
     protected void cleanDatabase() {
-        // Clean all tables in the correct order to respect foreign key constraints
         try {
-            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE wallet_balance_view CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE wallet_transaction_view CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE wallet_summary_view CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE statement_transactions CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE wallet_statement_view CASCADE");
-            reseedViewProgress();
+            WalletIntegrationTestDbCleanup.cleanDefaultWalletIntegrationTest(jdbcTemplate);
         } catch (BadSqlGrammarException e) {
             // Tables don't exist yet - Flyway will create them
             // This is expected on first run
@@ -118,29 +113,14 @@ public abstract class AbstractWalletTest {
     }
 
     protected void reseedViewProgress() {
-        jdbcTemplate.update("""
-                INSERT INTO view_progress (view_name, status, last_position, last_updated_at, created_at)
-                VALUES
-                    ('wallet-balance-view',     'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-                    ('wallet-transaction-view', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-                    ('wallet-summary-view',     'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-                    ('wallet-statement-view',   'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                ON CONFLICT (view_name) DO UPDATE SET
-                    status = 'ACTIVE',
-                    last_position = 0,
-                    error_count = 0,
-                    last_error = NULL,
-                    last_error_at = NULL,
-                    last_updated_at = CURRENT_TIMESTAMP
-                """);
+        WalletViewProgressFixtures.reseedDefaultWalletViews(jdbcTemplate);
     }
 
     protected void cleanProcessorState() {
         try {
-            jdbcTemplate.execute("TRUNCATE TABLE automation_progress CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE crablet_module_scan_progress CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE crablet_processor_scan_progress CASCADE");
+            IntegrationTestDbCleanup.truncateAutomationProgress(jdbcTemplate);
+            IntegrationTestDbCleanup.truncateOutboxTopicProgress(jdbcTemplate);
+            IntegrationTestDbCleanup.truncateSharedFetchScanProgress(jdbcTemplate);
         } catch (BadSqlGrammarException e) {
             // Tables don't exist yet - Flyway will create them
         } catch (Exception e) {

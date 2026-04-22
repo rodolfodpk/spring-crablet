@@ -11,22 +11,37 @@ import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.Tag;
+import com.crablet.eventstore.internal.ClockProviderImpl;
+import com.crablet.eventstore.internal.EventStoreImpl;
+import com.crablet.test.config.CrabletFlywayConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import javax.sql.DataSource;
+import java.nio.charset.StandardCharsets;
+import java.sql.Array;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -199,7 +214,7 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
         // Append events
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent")
-                .data("{\"id\":1}".getBytes())
+                .data("{\"id\":1}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
         eventStore.appendCommutative(events);
@@ -323,13 +338,11 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
     }
 
     static class TestProgressTracker implements ProgressTracker<String> {
-        private final DataSource dataSource;
         final Map<String, Long> positions = new HashMap<>();
         final Map<String, ProcessorStatus> statuses = new HashMap<>();
         final Map<String, Integer> errorCounts = new HashMap<>();
 
         TestProgressTracker(DataSource dataSource) {
-            this.dataSource = dataSource;
         }
 
         @Override
@@ -345,7 +358,7 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
         }
 
         @Override
-        public void recordError(String processorId, String error, int maxErrors) {
+        public void recordError(String processorId, @Nullable String error, int maxErrors) {
             errorCounts.put(processorId, errorCounts.getOrDefault(processorId, 0) + 1);
             if (errorCounts.get(processorId) >= maxErrors) {
                 statuses.put(processorId, ProcessorStatus.FAILED);
@@ -419,18 +432,18 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
             }
         }
 
-        private List<com.crablet.eventstore.Tag> parseTags(java.sql.Array array) throws java.sql.SQLException {
+        private List<Tag> parseTags(Array array) throws SQLException {
             if (array == null) {
                 return List.of();
             }
             String[] tagStrings = (String[]) array.getArray();
-            List<com.crablet.eventstore.Tag> tags = new ArrayList<>();
+            List<Tag> tags = new ArrayList<>();
             for (String tagStr : tagStrings) {
                 int equalsIndex = tagStr.indexOf('=');
                 if (equalsIndex > 0) {
                     String key = tagStr.substring(0, equalsIndex);
                     String value = tagStr.substring(equalsIndex + 1);
-                    tags.add(new com.crablet.eventstore.Tag(key, value));
+                    tags.add(new Tag(key, value));
                 }
             }
             return tags;
@@ -438,11 +451,11 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
     }
 
     @Configuration
+    @Import(CrabletFlywayConfiguration.class)
     static class TestConfig {
         @Bean
         public DataSource dataSource() {
-            org.springframework.jdbc.datasource.SimpleDriverDataSource dataSource =
-                    new org.springframework.jdbc.datasource.SimpleDriverDataSource();
+            SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
             dataSource.setDriverClass(org.postgresql.Driver.class);
             dataSource.setUrl(AbstractEventProcessorTest.postgres.getJdbcUrl());
             dataSource.setUsername(AbstractEventProcessorTest.postgres.getUsername());
@@ -457,40 +470,30 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
         }
 
         @Bean
-        public org.springframework.jdbc.core.JdbcTemplate jdbcTemplate(DataSource dataSource) {
-            return new org.springframework.jdbc.core.JdbcTemplate(dataSource);
+        public JdbcTemplate jdbcTemplate(DataSource dataSource) {
+            return new JdbcTemplate(dataSource);
         }
 
         @Bean
-        public org.flywaydb.core.Flyway flyway(DataSource dataSource) {
-            org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-                    .dataSource(dataSource)
-                    .locations("classpath:db/migration")
-                    .load();
-            flyway.migrate();
-            return flyway;
-        }
-
-        @Bean
-        @org.springframework.context.annotation.DependsOn("flyway")
+        @DependsOn("flyway")
         public EventStore eventStore(
                 DataSource dataSource,
                 tools.jackson.databind.ObjectMapper objectMapper,
-                com.crablet.eventstore.EventStoreConfig config,
-                com.crablet.eventstore.ClockProvider clock,
-                org.springframework.context.ApplicationEventPublisher eventPublisher) {
-            return new com.crablet.eventstore.internal.EventStoreImpl(
+                EventStoreConfig config,
+                ClockProvider clock,
+                ApplicationEventPublisher eventPublisher) {
+            return new EventStoreImpl(
                 dataSource, dataSource, objectMapper, config, clock, eventPublisher);
         }
 
         @Bean
-        public com.crablet.eventstore.EventStoreConfig eventStoreConfig() {
-            return new com.crablet.eventstore.EventStoreConfig();
+        public EventStoreConfig eventStoreConfig() {
+            return new EventStoreConfig();
         }
 
         @Bean
-        public com.crablet.eventstore.ClockProvider clockProvider() {
-            return new com.crablet.eventstore.internal.ClockProviderImpl();
+        public ClockProvider clockProvider() {
+            return new ClockProviderImpl();
         }
 
         @Bean
@@ -509,15 +512,15 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
         }
 
         @Bean
-        public org.springframework.context.ApplicationEventPublisher applicationEventPublisher() {
-            return new org.springframework.context.support.GenericApplicationContext();
+        public ApplicationEventPublisher applicationEventPublisher() {
+            return new GenericApplicationContext();
         }
 
         @Bean
         public LeaderElector leaderElector(
                 DataSource dataSource,
                 InstanceIdProvider instanceIdProvider,
-                org.springframework.context.ApplicationEventPublisher eventPublisher) {
+                ApplicationEventPublisher eventPublisher) {
             return new LeaderElectorImpl(
                 dataSource,
                 "test",
@@ -560,7 +563,7 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
                 EventHandler<String> eventHandler,
                 DataSource dataSource,
                 TaskScheduler taskScheduler,
-                org.springframework.context.ApplicationEventPublisher eventPublisher) {
+                ApplicationEventPublisher eventPublisher) {
             return new EventProcessorImpl<>(
                 processorConfigs,
                 leaderElector,

@@ -30,8 +30,13 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.ApplicationEventPublisher;
+import com.crablet.test.config.CrabletFlywayConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import javax.sql.DataSource;
@@ -45,6 +50,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @SpringBootApplication
 @EnableScheduling
+@Import(CrabletFlywayConfiguration.class)
 public class TestApplication {
     
     public static void main(String[] args) {
@@ -75,12 +81,13 @@ public class TestApplication {
     
     @Bean
     @Primary
+    @DependsOn("flyway")
     public EventStore eventStore(
             DataSource dataSource,
             tools.jackson.databind.ObjectMapper objectMapper,
             EventStoreConfig config,
             ClockProvider clock,
-            org.springframework.context.ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher) {
         // Use same datasource for both read and write in tests
         return new EventStoreImpl(dataSource, dataSource, objectMapper, config, clock, eventPublisher);
     }
@@ -174,14 +181,14 @@ public class TestApplication {
             List<com.crablet.command.CommandHandler<?>> handlers,
             ClockProvider clock,
             tools.jackson.databind.ObjectMapper objectMapper,
-            org.springframework.context.ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher) {
         com.crablet.eventstore.EventStoreConfig config = new com.crablet.eventstore.EventStoreConfig();
         config.setPersistCommands(true);
         return new CommandExecutorImpl(eventStore, handlers, config, clock, objectMapper, eventPublisher);
     }
     
     @Bean
-    public InstanceIdProvider instanceIdProvider(org.springframework.core.env.Environment environment) {
+    public InstanceIdProvider instanceIdProvider(Environment environment) {
         return new InstanceIdProvider(environment);
     }
     
@@ -194,7 +201,7 @@ public class TestApplication {
             ClockProvider clock,
             io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitBreakerRegistry,
             GlobalStatisticsPublisher globalStatistics,
-            org.springframework.context.ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher) {
         
         // Build publisher lookup map
         Map<String, com.crablet.outbox.OutboxPublisher> publisherByName = new ConcurrentHashMap<>();
@@ -216,25 +223,4 @@ public class TestApplication {
         return new GlobalStatisticsPublisher(config);
     }
     
-    /**
-     * Flyway bean to ensure migrations run before tests.
-     * Migrations run immediately when bean is created.
-     * Uses migrations from src/test/resources/db/migration.
-     */
-    @Bean
-    public org.flywaydb.core.Flyway flyway(DataSource dataSource) {
-        org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TestApplication.class);
-        log.info("[TestApplication] Flyway bean creation started at {}", java.time.Instant.now());
-        
-        org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-                .dataSource(dataSource)
-                .locations("classpath:db/migration")
-                .load();
-        
-        log.info("[TestApplication] Starting Flyway migration at {}", java.time.Instant.now());
-        flyway.migrate();
-        log.info("[TestApplication] Flyway migration completed at {}", java.time.Instant.now());
-        
-        return flyway;
-    }
 }

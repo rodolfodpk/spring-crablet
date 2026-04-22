@@ -9,21 +9,36 @@ import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.Tag;
+import com.crablet.eventstore.internal.ClockProviderImpl;
+import com.crablet.eventstore.internal.EventStoreImpl;
+import com.crablet.test.config.CrabletFlywayConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import javax.sql.DataSource;
+import java.nio.charset.StandardCharsets;
+import java.sql.Array;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,9 +58,6 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
 
     @Autowired
     private EventProcessor<TestProcessorConfig, String> eventProcessor;
-
-    @Autowired
-    private Map<String, TestProcessorConfig> processorConfigs;
 
     @Autowired
     private EventStore eventStore;
@@ -86,10 +98,10 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         // Given - Events in store
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent1")
-                .data("{\"id\":1}".getBytes())
+                .data("{\"id\":1}".getBytes(StandardCharsets.UTF_8))
                 .build(),
             AppendEvent.builder("TestEvent2")
-                .data("{\"id\":2}".getBytes())
+                .data("{\"id\":2}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
         eventStore.appendCommutative(events);
@@ -99,7 +111,10 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         assertThat(eventCount).as("Should have exactly 2 events").isEqualTo(2L);
 
         // Verify event positions are 1 and 2
-        List<Long> positions = jdbcTemplate.queryForList("SELECT position FROM events ORDER BY position", Long.class);
+        List<Long> positions = jdbcTemplate.queryForList("SELECT position FROM events ORDER BY position", Long.class)
+                .stream()
+                .map(Long::longValue)
+                .toList();
         assertThat(positions).as("Events should have positions 1 and 2").containsExactly(1L, 2L);
 
         // When - Process
@@ -135,7 +150,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
 
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent")
-                .data("{\"id\":1}".getBytes())
+                .data("{\"id\":1}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
         eventStore.appendCommutative(events);
@@ -156,7 +171,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
 
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent")
-                .data("{\"id\":1}".getBytes())
+                .data("{\"id\":1}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
         eventStore.appendCommutative(events);
@@ -188,10 +203,10 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         // Given - Process some events first
         List<AppendEvent> firstBatch = List.of(
             AppendEvent.builder("Event1")
-                .data("{\"id\":1}".getBytes())
+                .data("{\"id\":1}".getBytes(StandardCharsets.UTF_8))
                 .build(),
             AppendEvent.builder("Event2")
-                .data("{\"id\":2}".getBytes())
+                .data("{\"id\":2}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
         eventStore.appendCommutative(firstBatch);
@@ -203,7 +218,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         // When - Add more events and process again
         List<AppendEvent> secondBatch = List.of(
             AppendEvent.builder("Event3")
-                .data("{\"id\":3}".getBytes())
+                .data("{\"id\":3}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
         eventStore.appendCommutative(secondBatch);
@@ -223,7 +238,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
 
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent")
-                .data("{\"id\":1}".getBytes())
+                .data("{\"id\":1}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
         eventStore.appendCommutative(events);
@@ -248,7 +263,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
 
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent")
-                .data("{\"id\":1}".getBytes())
+                .data("{\"id\":1}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
         eventStore.appendCommutative(events);
@@ -268,7 +283,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         List<AppendEvent> events = new ArrayList<>();
         for (int i = 1; i <= 10; i++) {
             events.add(AppendEvent.builder("Event" + i)
-                .data(("{\"id\":" + i + "}").getBytes())
+                .data(("{\"id\":" + i + "}").getBytes(StandardCharsets.UTF_8))
                 .build());
         }
         eventStore.appendCommutative(events);
@@ -337,7 +352,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         // Given
         List<AppendEvent> events = List.of(
             AppendEvent.builder("RestartEvent")
-                .data("{\"id\":1}".getBytes())
+                .data("{\"id\":1}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
         eventStore.appendCommutative(events);
@@ -413,13 +428,11 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
     }
 
     static class TestProgressTracker implements ProgressTracker<String> {
-        private final DataSource dataSource;
         private final Map<String, Long> positions = new HashMap<>();
         private final Map<String, ProcessorStatus> statuses = new HashMap<>();
         private final Map<String, Integer> errorCounts = new HashMap<>();
 
         TestProgressTracker(DataSource dataSource) {
-            this.dataSource = dataSource;
         }
 
         @Override
@@ -435,7 +448,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         }
 
         @Override
-        public void recordError(String processorId, String error, int maxErrors) {
+        public void recordError(String processorId, @Nullable String error, int maxErrors) {
             errorCounts.put(processorId, errorCounts.getOrDefault(processorId, 0) + 1);
             if (errorCounts.get(processorId) >= maxErrors) {
                 statuses.put(processorId, ProcessorStatus.FAILED);
@@ -535,18 +548,18 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
             }
         }
 
-        private List<com.crablet.eventstore.Tag> parseTags(java.sql.Array array) throws java.sql.SQLException {
+        private List<Tag> parseTags(Array array) throws SQLException {
             if (array == null) {
                 return List.of();
             }
             String[] tagStrings = (String[]) array.getArray();
-            List<com.crablet.eventstore.Tag> tags = new ArrayList<>();
+            List<Tag> tags = new ArrayList<>();
             for (String tagStr : tagStrings) {
                 int equalsIndex = tagStr.indexOf('=');
                 if (equalsIndex > 0) {
                     String key = tagStr.substring(0, equalsIndex);
                     String value = tagStr.substring(equalsIndex + 1);
-                    tags.add(new com.crablet.eventstore.Tag(key, value));
+                    tags.add(new Tag(key, value));
                 }
             }
             return tags;
@@ -554,12 +567,12 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
     }
 
     @Configuration
+    @Import(CrabletFlywayConfiguration.class)
     static class TestConfig {
 
         @Bean
         public DataSource dataSource() {
-            org.springframework.jdbc.datasource.SimpleDriverDataSource dataSource =
-                    new org.springframework.jdbc.datasource.SimpleDriverDataSource();
+            SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
             dataSource.setDriverClass(org.postgresql.Driver.class);
             dataSource.setUrl(AbstractEventProcessorTest.postgres.getJdbcUrl());
             dataSource.setUsername(AbstractEventProcessorTest.postgres.getUsername());
@@ -579,35 +592,25 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         }
 
         @Bean
-        public org.flywaydb.core.Flyway flyway(DataSource dataSource) {
-            org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-                    .dataSource(dataSource)
-                    .locations("classpath:db/migration")
-                    .load();
-            flyway.migrate();
-            return flyway;
-        }
-
-        @Bean
-        @org.springframework.context.annotation.DependsOn("flyway")
+        @DependsOn("flyway")
         public EventStore eventStore(
                 DataSource dataSource,
                 tools.jackson.databind.ObjectMapper objectMapper,
-                com.crablet.eventstore.EventStoreConfig config,
-                com.crablet.eventstore.ClockProvider clock,
-                org.springframework.context.ApplicationEventPublisher eventPublisher) {
-            return new com.crablet.eventstore.internal.EventStoreImpl(
+                EventStoreConfig config,
+                ClockProvider clock,
+                ApplicationEventPublisher eventPublisher) {
+            return new EventStoreImpl(
                 dataSource, dataSource, objectMapper, config, clock, eventPublisher);
         }
 
         @Bean
-        public com.crablet.eventstore.EventStoreConfig eventStoreConfig() {
-            return new com.crablet.eventstore.EventStoreConfig();
+        public EventStoreConfig eventStoreConfig() {
+            return new EventStoreConfig();
         }
 
         @Bean
-        public com.crablet.eventstore.ClockProvider clockProvider() {
-            return new com.crablet.eventstore.internal.ClockProviderImpl();
+        public ClockProvider clockProvider() {
+            return new ClockProviderImpl();
         }
 
         @Bean
@@ -626,8 +629,8 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         }
 
         @Bean
-        public org.springframework.context.ApplicationEventPublisher applicationEventPublisher() {
-            return new org.springframework.context.support.GenericApplicationContext();
+        public ApplicationEventPublisher applicationEventPublisher() {
+            return new GenericApplicationContext();
         }
 
         @Bean
@@ -659,7 +662,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         public LeaderElector leaderElector(
                 DataSource dataSource,
                 TestInstanceIdProvider instanceIdProvider,
-                org.springframework.context.ApplicationEventPublisher eventPublisher) {
+                ApplicationEventPublisher eventPublisher) {
             return new LeaderElectorImpl(dataSource, "test", instanceIdProvider.getInstanceId(), 999999L, eventPublisher);
         }
 
@@ -680,7 +683,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
                 EventHandler<String> eventHandler,
                 DataSource writeDataSource,
                 TaskScheduler taskScheduler,
-                org.springframework.context.ApplicationEventPublisher eventPublisher) {
+                ApplicationEventPublisher eventPublisher) {
             return new EventProcessorImpl<>(
                 processorConfigs,
                 leaderElector,

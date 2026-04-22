@@ -1,6 +1,7 @@
 package com.crablet.eventpoller.management;
 
 import com.crablet.eventpoller.progress.ProcessorStatus;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
 
@@ -57,7 +58,7 @@ public interface ProcessorManagementService<I> {
      * @param processorId Processor identifier
      * @return Lag (current max position - last processed position), or null if not found
      */
-    Long getLag(I processorId);
+    @Nullable Long getLag(I processorId);
     
     /**
      * Get backoff information for a processor.
@@ -65,7 +66,7 @@ public interface ProcessorManagementService<I> {
      * @param processorId Processor identifier
      * @return Backoff information or null if not found or backoff not enabled
      */
-    BackoffInfo getBackoffInfo(I processorId);
+    @Nullable BackoffInfo getBackoffInfo(I processorId);
     
     /**
      * Get backoff information for all processors.

@@ -1,21 +1,21 @@
 package com.crablet.automations.config;
 
+import com.crablet.automations.AutomationDecision;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.internal.AutomationProcessorConfig;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventHandler;
-import com.crablet.eventpoller.EventSelection;
 import com.crablet.eventpoller.InstanceIdProvider;
-import com.crablet.eventpoller.config.EventPollerConfig;
 import com.crablet.eventpoller.internal.sharedfetch.SharedFetchModuleProcessor;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
-import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.eventstore.StoredEvent;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
@@ -119,9 +119,10 @@ class AutomationsAutoConfigurationTest {
     void shouldCreateSharedFetchAutomationEventProcessor() {
         AutomationsConfig config = new AutomationsConfig();
         config.setFetchBatchSize(25);
-        Map<String, AutomationHandler> handlers = Map.of("automation", handler("automation"));
+        AutomationHandler handler = handler("automation");
+        Map<String, AutomationHandler> handlers = Map.of("automation", handler);
         Map<String, AutomationProcessorConfig> processorConfigs = Map.of(
-                "automation", new AutomationProcessorConfig("automation", config, handlers.get("automation")));
+                "automation", new AutomationProcessorConfig("automation", config, handler));
         InstanceIdProvider instanceIdProvider = mock(InstanceIdProvider.class);
         when(instanceIdProvider.getInstanceId()).thenReturn("instance-1");
 
@@ -144,14 +145,15 @@ class AutomationsAutoConfigurationTest {
         return new AutomationHandler() {
             @Override public String getAutomationName() { return name; }
             @Override public Set<String> getEventTypes() { return Set.of("WalletOpened"); }
-            @Override public void react(StoredEvent event, CommandExecutor commandExecutor) {
+            @Override public List<AutomationDecision> decide(StoredEvent event) {
+                return List.of();
             }
         };
     }
 
     private static <T> ObjectProvider<List<T>> providerOf(List<T> value) {
         return new ObjectProvider<>() {
-            @Override public List<T> getObject(Object... args) { return value; }
+            @Override public List<T> getObject(@Nullable Object... args) { return value; }
             @Override public List<T> getIfAvailable() { return value; }
             @Override public List<T> getIfUnique() { return value; }
             @Override public List<T> getObject() { return value; }
@@ -160,7 +162,7 @@ class AutomationsAutoConfigurationTest {
 
     private static <T> ObjectProvider<T> providerOfValue(T value) {
         return new ObjectProvider<>() {
-            @Override public T getObject(Object... args) { return value; }
+            @Override public T getObject(@Nullable Object... args) { return value; }
             @Override public T getIfAvailable() { return value; }
             @Override public T getIfUnique() { return value; }
             @Override public T getObject() { return value; }
@@ -169,10 +171,14 @@ class AutomationsAutoConfigurationTest {
 
     private static <T> ObjectProvider<T> emptyProvider() {
         return new ObjectProvider<>() {
-            @Override public T getObject(Object... args) { return null; }
-            @Override public T getIfAvailable() { return null; }
-            @Override public T getIfUnique() { return null; }
-            @Override public T getObject() { return null; }
+            @Override public T getObject(@Nullable Object... args) {
+                throw new NoSuchBeanDefinitionException(Object.class);
+            }
+            @Override public @Nullable T getIfAvailable() { return null; }
+            @Override public @Nullable T getIfUnique() { return null; }
+            @Override public T getObject() {
+                throw new NoSuchBeanDefinitionException(Object.class);
+            }
         };
     }
 }

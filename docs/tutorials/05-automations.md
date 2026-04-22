@@ -25,7 +25,7 @@ You will learn:
 
 Use `crablet-outbox` instead when stored events need to be exported to external systems such as HTTP webhooks, Kafka, analytics, or CRM integrations.
 
-Automation webhook mode has been removed. If you previously used an automation webhook to call local application code, move that behavior into `react()`. If you used it to call an external HTTP endpoint, implement an `OutboxPublisher` instead.
+Automation webhook mode has been removed. If you previously used an automation webhook to call local application code, move that behavior into `decide()` and return an `AutomationDecision.ExecuteCommand`. If you used it to call an external HTTP endpoint, implement an `OutboxPublisher` instead.
 
 Assume this import in the snippets below:
 
@@ -100,7 +100,7 @@ public class WelcomeNotificationAutomation implements AutomationHandler {
     }
 
     @Override
-    public void react(StoredEvent event, CommandExecutor commandExecutor) {
+    public List<AutomationDecision> decide(StoredEvent event) {
         String walletId = event.tags().stream()
             .filter(tag -> tag.key().equals("wallet_id"))
             .map(Tag::value)
@@ -109,8 +109,10 @@ public class WelcomeNotificationAutomation implements AutomationHandler {
 
         WelcomeNotificationView view = viewRepository.get(walletId);
         if (view.shouldSendWelcomeNotification()) {
-            commandExecutor.execute(SendWelcomeNotificationCommand.of(walletId));
+            return List.of(new AutomationDecision.ExecuteCommand(
+                    SendWelcomeNotificationCommand.of(walletId)));
         }
+        return List.of(new AutomationDecision.NoOp("welcome notification not needed"));
     }
 }
 ```
@@ -138,7 +140,7 @@ Expected result:
 
 - a stored `WalletOpened` event can wake an automation
 - the automation can read a view model to decide whether work is needed
-- the automation can dispatch a follow-up command through `CommandExecutor`
+- the automation can return a follow-up command decision for the dispatcher to execute through `CommandExecutor`
 
 Use `crablet-outbox` when stored events need to be published to external systems such as HTTP webhooks, Kafka, analytics, or CRM integrations.
 

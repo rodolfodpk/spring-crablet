@@ -14,9 +14,9 @@ import com.crablet.views.config.ViewsAutoConfiguration;
 import com.crablet.views.config.ViewsConfig;
 import com.crablet.views.ViewSubscription;
 import com.crablet.views.integration.AbstractViewsTest;
+import com.crablet.test.config.CrabletFlywayConfiguration;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,7 +28,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -169,7 +168,7 @@ class ViewManagementServiceWalletIntegrationTest extends AbstractViewsTest {
     }
 
     @Configuration
-    @Import(ViewsAutoConfiguration.class)
+    @Import({CrabletFlywayConfiguration.class, ViewsAutoConfiguration.class})
     static class TestConfig {
         @Bean
         public DataSource dataSource() {
@@ -194,16 +193,6 @@ class ViewManagementServiceWalletIntegrationTest extends AbstractViewsTest {
         @Bean
         public JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);
-        }
-
-        @Bean
-        public Flyway flyway(DataSource dataSource) {
-            Flyway flyway = Flyway.configure()
-                    .dataSource(dataSource)
-                    .locations("classpath:db/migration")
-                    .load();
-            flyway.migrate();
-            return flyway;
         }
 
         @Bean

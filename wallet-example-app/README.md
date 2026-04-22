@@ -373,7 +373,7 @@ WalletOpened event
     → WelcomeNotificationSent (with idempotency check)
 ```
 
-In the current example, `WalletOpenedAutomation` is an `AutomationHandler` that reacts by executing a follow-up command.
+In the current example, `WalletOpenedAutomation` is an `AutomationHandler` that returns an `AutomationDecision.ExecuteCommand` for the follow-up command.
 
 ## Outbox
 
@@ -521,6 +521,15 @@ Run tests:
 cd wallet-example-app
 ../mvnw test
 ```
+
+Integration tests use **Testcontainers** (PostgreSQL in Docker). Ensure Docker is running.
+
+Test wiring in this module:
+
+- **`TestApplication`** (test scope) imports **`CrabletFlywayConfiguration`** from `crablet-test-support`, so the same **V1–V6** framework migrations as other modules apply on the test classpath, alongside this app’s own scripts under `src/main/resources/db/migration/`.
+- **`AbstractWalletTest`** resets data between tests and seeds default view-processor rows via **`WalletIntegrationTestDbCleanup`** and **`WalletViewProgressFixtures`** (`src/test/java/com/crablet/wallet/cleanup/`). E2E tests call the same helpers for consistent `TRUNCATE` sets (events, commands, views, outbox, automations, shared-fetch tables as needed).
+
+For the general testing story and `IntegrationTestDbCleanup`, see **[EventStore testing guide](../crablet-eventstore/TESTING.md)** and **[Build guide](../docs/BUILD.md)**.
 
 ### Running
 

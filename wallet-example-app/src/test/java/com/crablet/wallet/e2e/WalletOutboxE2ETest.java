@@ -6,6 +6,7 @@ import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.TopicPublisherPair;
 import com.crablet.outbox.internal.OutboxProcessorConfig;
 import com.crablet.wallet.TestApplication;
+import com.crablet.wallet.cleanup.WalletIntegrationTestDbCleanup;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,9 +62,7 @@ class WalletOutboxE2ETest extends AbstractWalletE2ETest {
     @Test
     @DisplayName("Events appended by a command are forwarded to the outbox publisher")
     void walletEventsAreForwardedToOutboxPublisher() {
-        jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+        WalletIntegrationTestDbCleanup.truncateForWalletOutboxE2e(jdbcTemplate);
         capturingPublisher.clear();
 
         webTestClient.post().uri("/api/commands")

@@ -105,19 +105,19 @@ Crablet automations use a single public definition type, `AutomationHandler`, wh
 - `getRequiredTags()`
 - `getAnyOfTags()`
 
-Use `AutomationHandler` when the automation should execute commands or call injected collaborators directly. For external HTTP webhooks or event publication, implement an `OutboxPublisher`.
+Use `AutomationHandler` when the automation should describe follow-up commands to run in-process. For external HTTP webhooks or event publication, implement an `OutboxPublisher`.
 
 ### Migration Note: Webhook Mode Removed
 
-`AutomationHandler` no longer supports webhook delivery methods such as `getWebhookUrl()`, `getWebhookHeaders()`, or `getWebhookTimeoutMs()`. Automations now have one execution path: implement `react(StoredEvent, CommandExecutor)`.
+`AutomationHandler` no longer supports webhook delivery methods such as `getWebhookUrl()`, `getWebhookHeaders()`, or `getWebhookTimeoutMs()`. Automations now have one execution path: implement `decide(StoredEvent)` and return `AutomationDecision` values.
 
-If an old automation webhook called back into the same application, replace it with a normal `react()` implementation and call the same application service or execute the equivalent command directly.
+If an old automation webhook called back into the same application, replace it with a normal `decide()` implementation and return an `AutomationDecision.ExecuteCommand` for the equivalent command.
 
 If an old automation webhook published an event to an external HTTP endpoint, replace it with an `OutboxPublisher`. Use `PublishMode.INDIVIDUAL` when the external endpoint expects one event per request.
 
 ### 3. Implement AutomationHandler
 
-Treat the incoming event as a trigger, not as the decision source. The automation should load the current view-model state, decide from that state whether work is needed, and then execute the next command.
+Treat the incoming event as a trigger, not as the decision source. The automation should load the current view-model state, decide from that state whether work is needed, and then return the next command as a decision.
 
 ```java
 @Component
@@ -147,7 +147,7 @@ public class WelcomeNotificationAutomation implements AutomationHandler {
     }
 
     @Override
-    public void react(StoredEvent event, CommandExecutor commandExecutor) {
+    public List<AutomationDecision> decide(StoredEvent event) {
         String walletId = event.tags().stream()
                 .filter(tag -> tag.key().equals("wallet_id"))
                 .map(Tag::value)
@@ -156,8 +156,10 @@ public class WelcomeNotificationAutomation implements AutomationHandler {
 
         WelcomeNotificationView view = viewRepository.get(walletId);
         if (view.shouldSendWelcomeNotification()) {
-            commandExecutor.execute(SendWelcomeNotificationCommand.of(walletId));
+            return List.of(new AutomationDecision.ExecuteCommand(
+                    SendWelcomeNotificationCommand.of(walletId)));
         }
+        return List.of(new AutomationDecision.NoOp("welcome notification not needed"));
     }
 }
 ```
@@ -199,7 +201,7 @@ public interface AutomationDefinition {
 }
 ```
 
-`AutomationHandler` implements this contract and handles matching events through `react()`.
+`AutomationHandler` implements this contract and handles matching events through `decide()`.
 
 ### AutomationHandler
 
@@ -209,11 +211,16 @@ public interface AutomationHandler extends AutomationDefinition {
     Set<String> getEventTypes();
     Long getPollingIntervalMs(); // optional
     Integer getBatchSize(); // optional
-    void react(StoredEvent event, CommandExecutor commandExecutor);
+    List<AutomationDecision> decide(StoredEvent event);
 }
 ```
 
 The event tells the automation that something changed. The automation should then read the relevant view model and decide from that modeled state whether it should act.
+
+`AutomationDecision` currently supports:
+
+- `ExecuteCommand(Object command)` — dispatch a follow-up command through `CommandExecutor`
+- `NoOp(String reason)` — explicitly record that no action is needed
 
 For external HTTP delivery, Kafka, analytics, CRM, or other event publication, use `crablet-outbox`.
 
@@ -224,14 +231,14 @@ Recommended automation flow:
 1. A matching event wakes up the automation
 2. The automation loads the relevant view model
 3. The automation decides from the current modeled state whether action is needed
-4. The automation executes the next command or calls an external gateway
+4. The automation returns `ExecuteCommand` or `NoOp`
 5. The outcome is recorded through the normal command/event flow
 
 This keeps automations aligned with Event Modeling: events are triggers, while the decision is based on current state.
 
 ### Idempotency
 
-Automations run with at-least-once semantics — the same event may trigger `react()` more than once (e.g., after a crash). Protect against duplicate work by making the downstream command or side-effect path idempotent:
+Automations run with at-least-once semantics — the same event may trigger `decide()` more than once (e.g., after a crash). Decisions are executed sequentially; if a later decision fails, earlier decisions may already have completed and the event may be retried. Protect against duplicate work by making downstream commands idempotent:
 
 ```java
 // In the downstream command handler:
@@ -249,9 +256,11 @@ AutomationEventFetcher  — filters by automation definition (eventTypes, tags)
     ↓
 AutomationDispatcher  — routes each event to the matching handler
     ↓
-AutomationHandler.react()
+AutomationHandler.decide()
     ↓
-CommandExecutor / injected application gateway
+AutomationDecision.ExecuteCommand / NoOp
+    ↓
+CommandExecutor
     ↓
 automation_progress   — schema table that stores per-automation progress
 ```

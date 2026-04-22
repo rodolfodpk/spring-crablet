@@ -1,5 +1,6 @@
 package com.crablet.automations.internal;
 
+import com.crablet.automations.AutomationDecision;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.StoredEvent;
@@ -17,7 +18,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
+@SuppressWarnings("NullAway")
 @DisplayName("AutomationDispatcher Unit Tests")
 class AutomationDispatcherTest {
 
@@ -35,15 +38,18 @@ class AutomationDispatcherTest {
     }
 
     @Test
-    @DisplayName("Should call handler directly for each event")
-    void shouldCallHandlerDirectlyForEachEvent() throws Exception {
+    @DisplayName("Should call decide for each event")
+    void shouldCallDecideForEachEvent() throws Exception {
         CommandExecutor executor = mock(CommandExecutor.class);
         AtomicReference<StoredEvent> received = new AtomicReference<>();
 
         AutomationHandler handler = new AutomationHandler() {
             @Override public String getAutomationName() { return "automation"; }
             @Override public Set<String> getEventTypes() { return Set.of("WalletOpened"); }
-            @Override public void react(StoredEvent event, CommandExecutor ce) { received.set(event); }
+            @Override public List<AutomationDecision> decide(StoredEvent event) {
+                received.set(event);
+                return List.of();
+            }
         };
 
         AutomationDispatcher dispatcher = new AutomationDispatcher(
@@ -59,15 +65,17 @@ class AutomationDispatcherTest {
     }
 
     @Test
-    @DisplayName("Should pass CommandExecutor to handler")
-    void shouldPassCommandExecutorToHandler() throws Exception {
+    @DisplayName("Should execute command decisions")
+    void shouldExecuteCommandDecisions() throws Exception {
         CommandExecutor executor = mock(CommandExecutor.class);
-        AtomicReference<CommandExecutor> receivedExecutor = new AtomicReference<>();
+        Object command = new Object();
 
         AutomationHandler handler = new AutomationHandler() {
             @Override public String getAutomationName() { return "automation"; }
             @Override public Set<String> getEventTypes() { return Set.of("WalletOpened"); }
-            @Override public void react(StoredEvent event, CommandExecutor ce) { receivedExecutor.set(ce); }
+            @Override public List<AutomationDecision> decide(StoredEvent event) {
+                return List.of(new AutomationDecision.ExecuteCommand(command));
+            }
         };
 
         AutomationDispatcher dispatcher = new AutomationDispatcher(
@@ -77,7 +85,60 @@ class AutomationDispatcherTest {
 
         dispatcher.handle("automation", List.of(createTestEvents().get(0)));
 
-        assertThat(receivedExecutor.get()).isSameAs(executor);
+        verify(executor).execute(command);
+    }
+
+    @Test
+    @DisplayName("Should execute multiple decisions in order")
+    void shouldExecuteMultipleDecisionsInOrder() throws Exception {
+        CommandExecutor executor = mock(CommandExecutor.class);
+        Object firstCommand = "first";
+        Object secondCommand = "second";
+
+        AutomationHandler handler = new AutomationHandler() {
+            @Override public String getAutomationName() { return "automation"; }
+            @Override public Set<String> getEventTypes() { return Set.of("WalletOpened"); }
+            @Override public List<AutomationDecision> decide(StoredEvent event) {
+                return List.of(
+                        new AutomationDecision.ExecuteCommand(firstCommand),
+                        new AutomationDecision.NoOp("already logged"),
+                        new AutomationDecision.ExecuteCommand(secondCommand));
+            }
+        };
+
+        AutomationDispatcher dispatcher = new AutomationDispatcher(
+                Map.of("automation", handler),
+                executor,
+                NO_OP_PUBLISHER);
+
+        dispatcher.handle("automation", List.of(createTestEvents().get(0)));
+
+        var inOrder = org.mockito.Mockito.inOrder(executor);
+        inOrder.verify(executor).execute(firstCommand);
+        inOrder.verify(executor).execute(secondCommand);
+    }
+
+    @Test
+    @DisplayName("Should treat NoOp as successful")
+    void shouldTreatNoOpAsSuccessful() throws Exception {
+        CommandExecutor executor = mock(CommandExecutor.class);
+
+        AutomationHandler handler = new AutomationHandler() {
+            @Override public String getAutomationName() { return "automation"; }
+            @Override public Set<String> getEventTypes() { return Set.of("WalletOpened"); }
+            @Override public List<AutomationDecision> decide(StoredEvent event) {
+                return List.of(new AutomationDecision.NoOp("already handled"));
+            }
+        };
+
+        AutomationDispatcher dispatcher = new AutomationDispatcher(
+                Map.of("automation", handler),
+                executor,
+                NO_OP_PUBLISHER);
+
+        int count = dispatcher.handle("automation", List.of(createTestEvents().get(0)));
+
+        assertThat(count).isEqualTo(1);
     }
 
     @Test
@@ -88,7 +149,7 @@ class AutomationDispatcherTest {
         AutomationHandler handler = new AutomationHandler() {
             @Override public String getAutomationName() { return "automation"; }
             @Override public Set<String> getEventTypes() { return Set.of("WalletOpened"); }
-            @Override public void react(StoredEvent event, CommandExecutor ce) {
+            @Override public List<AutomationDecision> decide(StoredEvent event) {
                 throw new RuntimeException("handler error");
             }
         };

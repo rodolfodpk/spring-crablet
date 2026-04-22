@@ -16,7 +16,7 @@ Optional test support for applications built on Crablet. Provides fast in-memory
 It solves two problems:
 
 1. **Test utilities** — `InMemoryEventStore`, `AbstractCrabletTest`, `AbstractHandlerUnitTest`, and `DCBTestHelpers` are available from a single dependency instead of being reimplemented per application
-2. **Database migrations** — All framework migrations (V1–V4) live here so every module gets them automatically through a single test-scope dependency
+2. **Database migrations** — All framework migrations (V1–V6) live here so every module gets them automatically through a single test-scope dependency
 
 ## Maven Coordinates
 
@@ -125,8 +125,14 @@ All framework migrations live in `src/main/resources/db/migration/` — main res
 | `V2__outbox_schema.sql` | `outbox_topic_progress` table |
 | `V3__view_progress_schema.sql` | `view_progress` table |
 | `V4__automation_progress_schema.sql` | `automation_progress` table |
+| `V5__correlation_causation.sql` | Correlation / causation columns on `events` |
+| `V6__shared_fetch_scan_progress.sql` | `crablet_module_scan_progress`, `crablet_processor_scan_progress` |
 
 Flyway picks these up automatically in every module that declares `crablet-test-support` as a test-scope dependency — no per-module migration copies needed.
+
+### Integration test database hygiene
+
+Framework integration tests use Flyway (classpath `db/migration` from this module) and truncate the relevant tables from `@BeforeEach` in each module’s `Abstract*Test` base class, or via `com.crablet.test.cleanup.IntegrationTestDbCleanup` for shared SQL. Example applications keep their own Flyway scripts and test-specific cleanup (for example `wallet-example-app` and `WalletIntegrationTestDbCleanup`).
 
 ## Build Notes
 

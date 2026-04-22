@@ -2,8 +2,10 @@ package com.crablet.command.web.internal;
 
 import com.crablet.command.DiscoveredCommandRegistry;
 import com.crablet.command.web.CommandApiExposedCommands;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -25,12 +27,17 @@ final class ExposedCommandTypeRegistry {
             DiscoveredCommandRegistry discoveredCommands,
             CommandApiExposedCommands exposedCommands) {
         Map<String, Class<?>> exposedByType = discoveredCommands.commandTypes().stream()
-                .filter(type -> exposedCommands.test(discoveredCommands.commandClassForType(type)))
-                .collect(Collectors.toMap(type -> type, discoveredCommands::commandClassForType));
+                .filter(type -> {
+                    Class<?> cls = discoveredCommands.commandClassForType(type);
+                    return cls != null && exposedCommands.test(cls);
+                })
+                .collect(Collectors.toMap(
+                        type -> type,
+                        type -> Objects.requireNonNull(discoveredCommands.commandClassForType(type))));
         return new ExposedCommandTypeRegistry(exposedByType, discoveredCommands.commandTypes());
     }
 
-    Class<?> resolve(String commandType) {
+    @Nullable Class<?> resolve(String commandType) {
         return exposedCommandsByType.get(commandType);
     }
 

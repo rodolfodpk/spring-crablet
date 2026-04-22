@@ -14,6 +14,7 @@ import com.crablet.eventpoller.wakeup.ProcessorWakeupSource;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
 import jakarta.annotation.PostConstruct;
+import org.jspecify.annotations.Nullable;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.TaskScheduler;
 
 import javax.sql.DataSource;
+import java.nio.charset.StandardCharsets;
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -72,7 +75,6 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
     private final DataSource readDataSource;
     private final int fetchBatchSize;
     private final TaskScheduler taskScheduler;
-    private final ApplicationEventPublisher eventPublisher;
     private final Function<I, String> idSerializer;
     private final ProcessorWakeupSource wakeupSource;
     private final long pollingIntervalMs;
@@ -86,8 +88,8 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
     private volatile boolean schedulersInitialized = false;
     private volatile boolean shuttingDown = false;
     private final Object lifecycleMonitor = new Object();
-    private volatile ScheduledFuture<?> sharedSchedule;
-    private volatile ScheduledFuture<?> leaderRetrySchedule;
+    private volatile @Nullable ScheduledFuture<?> sharedSchedule;
+    private volatile @Nullable ScheduledFuture<?> leaderRetrySchedule;
 
     public SharedFetchModuleProcessor(
             Map<I, C> configs,
@@ -137,7 +139,6 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
         this.readDataSource = readDataSource;
         this.fetchBatchSize = fetchBatchSize;
         this.taskScheduler = taskScheduler;
-        this.eventPublisher = eventPublisher;
         this.idSerializer = idSerializer;
         this.wakeupSource = wakeupSource;
 
@@ -367,6 +368,11 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
             return new DispatchOutcome.NoMatches();
         }
 
+        /*
+         * Dispatch a single processor batch per cycle. Draining multiple fixed
+         * windows here would change failure, retry, and progress semantics for
+         * views, automations, and outbox publishers.
+         */
         List<StoredEvent> toDispatch = matched.size() <= batchSize
                 ? matched
                 : matched.subList(0, batchSize);
@@ -497,7 +503,7 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
                 events.add(new StoredEvent(
                         rs.getString("type"),
                         parseTagsFromArray(rs.getArray("tags")),
-                        rs.getString("data").getBytes(),
+                        rs.getString("data").getBytes(StandardCharsets.UTF_8),
                         rs.getString("transaction_id"),
                         rs.getLong("position"),
                         rs.getTimestamp("occurred_at").toInstant(),
@@ -509,7 +515,7 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
         return events;
     }
 
-    private List<Tag> parseTagsFromArray(java.sql.Array array) throws SQLException {
+    private List<Tag> parseTagsFromArray(Array array) throws SQLException {
         if (array == null) return List.of();
         String[] tagStrings = (String[]) array.getArray();
         List<Tag> tags = new ArrayList<>();
@@ -525,7 +531,7 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
     private void requestImmediatePoll() {
         if (shuttingDown) return;
         if (!cycleRunning.get()) {
-            taskScheduler.schedule(this::runSharedCycle, Instant.now());
+            var unused = taskScheduler.schedule(this::runSharedCycle, Instant.now());
         }
     }
 

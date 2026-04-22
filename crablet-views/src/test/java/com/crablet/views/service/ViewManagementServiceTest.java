@@ -14,9 +14,10 @@ import com.crablet.views.config.ViewsAutoConfiguration;
 import com.crablet.views.config.ViewsConfig;
 import com.crablet.views.ViewSubscription;
 import com.crablet.views.integration.AbstractViewsTest;
+import com.crablet.views.testsupport.ViewProgressFixtures;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
-import org.flywaydb.core.Flyway;
+import com.crablet.test.config.CrabletFlywayConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Integration tests for ViewManagementService.
  * Tests both delegated methods (from ProcessorManagementService) and new detailed progress methods.
  */
+@SuppressWarnings("NullAway")
 @SpringBootTest(
     classes = ViewManagementServiceTest.TestConfig.class,
     webEnvironment = SpringBootTest.WebEnvironment.NONE
@@ -150,13 +152,17 @@ class ViewManagementServiceTest extends AbstractViewsTest {
         String lastError = null;
         Timestamp now = Timestamp.from(Instant.now());
         
-        jdbcTemplate.update("""
-            INSERT INTO view_progress (view_name, instance_id, status, last_position, error_count, 
-                                      last_error, last_error_at, last_updated_at, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            viewName, instanceId, "ACTIVE", lastPosition, errorCount,
-            lastError, null, now, now);
+        ViewProgressFixtures.insertWithErrorColumns(
+                jdbcTemplate,
+                viewName,
+                instanceId,
+                "ACTIVE",
+                lastPosition,
+                errorCount,
+                lastError,
+                null,
+                now,
+                now);
 
         // When
         ViewProgressDetails details = viewManagementService.getProgressDetails(viewName);
@@ -180,12 +186,8 @@ class ViewManagementServiceTest extends AbstractViewsTest {
         // Given - View with no errors
         String viewName = "test-view-no-errors";
         Timestamp now = Timestamp.from(Instant.now());
-        jdbcTemplate.update("""
-            INSERT INTO view_progress (view_name, instance_id, status, last_position, error_count, 
-                                      last_updated_at, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            viewName, "instance-1", "ACTIVE", 50L, 0, now, now);
+        ViewProgressFixtures.insertWithoutErrorColumns(
+                jdbcTemplate, viewName, "instance-1", "ACTIVE", 50L, 0, now, now);
 
         // When
         ViewProgressDetails details = viewManagementService.getProgressDetails(viewName);
@@ -206,13 +208,17 @@ class ViewManagementServiceTest extends AbstractViewsTest {
         Timestamp errorAt = Timestamp.from(Instant.now());
         Timestamp now = Timestamp.from(Instant.now());
         
-        jdbcTemplate.update("""
-            INSERT INTO view_progress (view_name, instance_id, status, last_position, error_count,
-                                      last_error, last_error_at, last_updated_at, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            viewName, "instance-1", "FAILED", 75L, 3,
-            lastError, errorAt, now, now);
+        ViewProgressFixtures.insertWithErrorColumns(
+                jdbcTemplate,
+                viewName,
+                "instance-1",
+                "FAILED",
+                75L,
+                3,
+                lastError,
+                errorAt,
+                now,
+                now);
 
         // When
         ViewProgressDetails details = viewManagementService.getProgressDetails(viewName);
@@ -243,17 +249,10 @@ class ViewManagementServiceTest extends AbstractViewsTest {
     void givenMultipleViews_whenGettingAllDetails_thenReturnsAllViews() {
         // Given - Insert multiple views
         Timestamp now = Timestamp.from(Instant.now());
-        jdbcTemplate.update("""
-            INSERT INTO view_progress (view_name, instance_id, status, last_position, error_count,
-                                      last_updated_at, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, "view-1", "instance-1", "ACTIVE", 100L, 0, now, now);
-        
-        jdbcTemplate.update("""
-            INSERT INTO view_progress (view_name, instance_id, status, last_position, error_count,
-                                      last_updated_at, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, "view-2", "instance-2", "PAUSED", 200L, 0, now, now);
+        ViewProgressFixtures.insertWithoutErrorColumns(
+                jdbcTemplate, "view-1", "instance-1", "ACTIVE", 100L, 0, now, now);
+        ViewProgressFixtures.insertWithoutErrorColumns(
+                jdbcTemplate, "view-2", "instance-2", "PAUSED", 200L, 0, now, now);
 
         // When
         Map<String, ViewProgressDetails> allDetails = viewManagementService.getAllProgressDetails();
@@ -272,11 +271,8 @@ class ViewManagementServiceTest extends AbstractViewsTest {
         // Given - View with PAUSED status
         String viewName = "paused-view";
         Timestamp now = Timestamp.from(Instant.now());
-        jdbcTemplate.update("""
-            INSERT INTO view_progress (view_name, instance_id, status, last_position, error_count,
-                                      last_updated_at, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, viewName, "instance-1", "PAUSED", 150L, 0, now, now);
+        ViewProgressFixtures.insertWithoutErrorColumns(
+                jdbcTemplate, viewName, "instance-1", "PAUSED", 150L, 0, now, now);
 
         // When
         ViewProgressDetails details = viewManagementService.getProgressDetails(viewName);
@@ -293,11 +289,8 @@ class ViewManagementServiceTest extends AbstractViewsTest {
         String viewName = "view-with-instance";
         String instanceId = "leader-instance-456";
         Timestamp now = Timestamp.from(Instant.now());
-        jdbcTemplate.update("""
-            INSERT INTO view_progress (view_name, instance_id, status, last_position, error_count,
-                                      last_updated_at, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, viewName, instanceId, "ACTIVE", 300L, 0, now, now);
+        ViewProgressFixtures.insertWithoutErrorColumns(
+                jdbcTemplate, viewName, instanceId, "ACTIVE", 300L, 0, now, now);
 
         // When
         ViewProgressDetails details = viewManagementService.getProgressDetails(viewName);
@@ -360,7 +353,7 @@ class ViewManagementServiceTest extends AbstractViewsTest {
     }
 
     @Configuration
-    @Import(ViewsAutoConfiguration.class)
+    @Import({CrabletFlywayConfiguration.class, ViewsAutoConfiguration.class})
     static class TestConfig {
         @Bean
         public DataSource dataSource() {
@@ -385,16 +378,6 @@ class ViewManagementServiceTest extends AbstractViewsTest {
         @Bean
         public JdbcTemplate jdbcTemplate(DataSource dataSource) {
             return new JdbcTemplate(dataSource);
-        }
-
-        @Bean
-        public Flyway flyway(DataSource dataSource) {
-            Flyway flyway = Flyway.configure()
-                    .dataSource(dataSource)
-                    .locations("classpath:db/migration")
-                    .load();
-            flyway.migrate();
-            return flyway;
         }
 
         @Bean

@@ -1,6 +1,7 @@
 package com.crablet.outbox.management;
 
 import com.crablet.eventpoller.progress.ProcessorStatus;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -13,9 +14,9 @@ public record OutboxProgressDetails(
     String publisher,
     ProcessorStatus status,
     long lastPosition,
-    Instant lastPublishedAt,
+    @Nullable Instant lastPublishedAt,
     int errorCount,
-    String lastError,
+    @Nullable String lastError,
     Instant updatedAt,
-    String leaderInstance
+    @Nullable String leaderInstance
 ) {}

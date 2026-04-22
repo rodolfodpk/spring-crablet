@@ -11,6 +11,7 @@ import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;
 import com.crablet.wallet.TestApplication;
+import com.crablet.wallet.cleanup.WalletIntegrationTestDbCleanup;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,9 +69,7 @@ class WalletCorrelationCausationE2ETest extends AbstractWalletE2ETest {
     @Test
     @DisplayName("Each HTTP command carries its own correlation ID; automation chain propagates correlation and sets causation")
     void correlationAndCausationAcrossMultipleCommandsAndAutomationChain() {
-        jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE automation_progress CASCADE");
+        WalletIntegrationTestDbCleanup.truncateForWalletAutomationOrCorrelationE2e(jdbcTemplate);
 
         UUID corr1 = UUID.randomUUID(); // open wallet request
         UUID corr2 = UUID.randomUUID(); // deposit request

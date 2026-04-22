@@ -2,6 +2,7 @@ package com.crablet.eventpoller.internal;
 
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.metrics.LeadershipMetric;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -11,6 +12,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Locale;
 
 /**
  * Generic implementation of LeaderElector using PostgreSQL advisory locks.
@@ -30,7 +32,7 @@ public class LeaderElectorImpl implements LeaderElector {
     private static final String TRY_ACQUIRE_LOCK_SQL = "SELECT pg_try_advisory_lock(?)";
     private static final String RELEASE_LOCK_SQL = "SELECT pg_advisory_unlock(?)";
 
-    private Connection leaderConnection;
+    private @Nullable Connection leaderConnection;
     private volatile boolean isGlobalLeader = false;
 
     /**
@@ -120,7 +122,12 @@ public class LeaderElectorImpl implements LeaderElector {
             return;
         }
 
-        try (PreparedStatement stmt = leaderConnection.prepareStatement(RELEASE_LOCK_SQL)) {
+        Connection connection = leaderConnection;
+        if (connection == null) {
+            return;
+        }
+
+        try (PreparedStatement stmt = connection.prepareStatement(RELEASE_LOCK_SQL)) {
             stmt.setLong(1, lockKey);
             stmt.execute();
 
@@ -173,7 +180,7 @@ public class LeaderElectorImpl implements LeaderElector {
         if (message == null) {
             return false;
         }
-        String lowerMessage = message.toLowerCase();
+        String lowerMessage = message.toLowerCase(Locale.ROOT);
         return lowerMessage.contains("connection has been closed")
                 || lowerMessage.contains("this connection has been closed")
                 || lowerMessage.contains("connection is closed");

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
+import org.jspecify.annotations.Nullable;
 import org.postgresql.Driver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -239,10 +240,8 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
         leader.acquireWithPersistentConnection();
         
         // Create followers (should not hold connections)
-        List<LeaderElectorImpl> followers = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             LeaderElectorImpl follower = createElector("follower-" + i, TEST_LOCK_KEY);
-            followers.add(follower);
             // Try to acquire (will fail, but connection closes immediately)
             follower.tryAcquireGlobalLeader();
         }
@@ -264,7 +263,7 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
         private final String instanceId;
         private final long lockKey;
         private final ApplicationEventPublisher eventPublisher;
-        private Connection persistentConnection;
+        private @Nullable Connection persistentConnection;
         private volatile boolean isGlobalLeader = false;
         
         public LeaderElectorWithPersistentConnection(
@@ -328,8 +327,12 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
         }
         
         private boolean isConnectionClosed() {
+            Connection connection = persistentConnection;
+            if (connection == null) {
+                return true;
+            }
             try {
-                return persistentConnection.isClosed();
+                return connection.isClosed();
             } catch (SQLException e) {
                 return true;
             }

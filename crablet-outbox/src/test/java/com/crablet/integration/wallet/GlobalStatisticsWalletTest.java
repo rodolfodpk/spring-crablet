@@ -12,7 +12,6 @@ import com.crablet.testutils.EventProcessorTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
@@ -32,9 +31,6 @@ class GlobalStatisticsWalletTest extends AbstractCrabletTest {
     private EventStore eventStore;
     
     @Autowired
-    private JdbcTemplate jdbcTemplate;
-    
-    @Autowired
     private EventProcessor<OutboxProcessorConfig, TopicPublisherPair> eventProcessor;
     
     @Autowired
@@ -48,21 +44,8 @@ class GlobalStatisticsWalletTest extends AbstractCrabletTest {
     
     @BeforeEach
     void setUp() {
-        // Parent's cleanDatabase() runs first and cleans events table, but ensure it's clean
-        // This is idempotent - safe to run multiple times
-        try {
-            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-        } catch (Exception e) {
-            // Ignore if table doesn't exist yet (Flyway will create it)
-        }
-        
-        // Reset global statistics
+        // Parent AbstractCrabletTest.cleanDatabase() already truncates events, commands, and outbox.
         globalStatistics.reset();
-        
-        // Reset outbox database state to ensure test isolation
-        jdbcTemplate.update("DELETE FROM outbox_topic_progress WHERE topic = 'default'");
-        
-        // Enable outbox processing
         outboxConfig.setEnabled(true);
     }
     

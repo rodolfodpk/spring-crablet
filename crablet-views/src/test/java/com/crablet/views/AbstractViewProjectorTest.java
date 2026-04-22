@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings("NullAway")
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AbstractViewProjector Unit Tests")
 class AbstractViewProjectorTest {

@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 4. Retry logic verification
  * 5. Verify 409 CONFLICT HTTP response
  */
-@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class OptimisticLockingTest extends AbstractCrabletTest {
 
     @Autowired
@@ -157,7 +157,7 @@ class OptimisticLockingTest extends AbstractCrabletTest {
         // Verify at least some operations succeeded
         Query allQuery = Query.of(QueryItem.of(List.of("DepositMade", "WithdrawalMade"), List.of(new Tag("wallet_id", walletId))));
         List<com.crablet.eventstore.StoredEvent> allEvents = testHelper.query(allQuery, null);
-        assertThat(allEvents.size()).isGreaterThanOrEqualTo(1).as("At least one operation should have succeeded");
+        assertThat(allEvents.size()).as("At least one operation should have succeeded").isGreaterThanOrEqualTo(1);
     }
 
     @Test
@@ -192,7 +192,7 @@ class OptimisticLockingTest extends AbstractCrabletTest {
         // Verify at least one transfer succeeded
         Query transferQuery = Query.of(QueryItem.of(List.of("MoneyTransferred"), List.of(new Tag("from_wallet_id", wallet1Id))));
         List<com.crablet.eventstore.StoredEvent> transferEvents = testHelper.query(transferQuery, null);
-        assertThat(transferEvents.size()).isGreaterThanOrEqualTo(1).as("At least one transfer should have succeeded");
+        assertThat(transferEvents.size()).as("At least one transfer should have succeeded").isGreaterThanOrEqualTo(1);
     }
 
     @Test
@@ -234,12 +234,12 @@ class OptimisticLockingTest extends AbstractCrabletTest {
         }
 
         // Verify data consistency - at least one operation should succeed
-        assertThat(successfulOperations).isGreaterThanOrEqualTo(1).as("At least one operation should succeed");
+        assertThat(successfulOperations).as("At least one operation should succeed").isGreaterThanOrEqualTo(1);
 
         // Verify events are consistent
         Query allQuery = Query.of(QueryItem.of(List.of("DepositMade", "WithdrawalMade"), List.of(new Tag("wallet_id", walletId))));
         List<com.crablet.eventstore.StoredEvent> allEvents = testHelper.query(allQuery, null);
-        assertThat(allEvents.size()).isEqualTo(successfulOperations).as("Number of events should match successful operations");
+        assertThat(allEvents.size()).as("Number of events should match successful operations").isEqualTo(successfulOperations);
     }
 
     @Test

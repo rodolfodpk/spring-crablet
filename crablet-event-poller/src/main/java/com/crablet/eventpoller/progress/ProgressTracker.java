@@ -1,5 +1,7 @@
 package com.crablet.eventpoller.progress;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Tracks processing progress for a processor.
  * 
@@ -24,7 +26,7 @@ public interface ProgressTracker<I> {
      * @param error Error message
      * @param maxErrors Maximum errors before marking as FAILED
      */
-    void recordError(I processorId, String error, int maxErrors);
+    void recordError(I processorId, @Nullable String error, int maxErrors);
     
     /**
      * Reset error count.

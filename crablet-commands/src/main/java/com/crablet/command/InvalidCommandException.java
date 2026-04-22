@@ -9,7 +9,7 @@ package com.crablet.command;
 public class InvalidCommandException extends RuntimeException {
 
     /** The command object that failed validation, for diagnostics. May be {@code null} when only an error string is available. */
-    public final Object command;
+    public final @org.jspecify.annotations.Nullable Object command;
 
     /** Human-readable description of the validation failure. */
     public final String validationError;

@@ -4,6 +4,7 @@ import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.PublishException;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -29,7 +30,7 @@ public class StatisticsPublisher implements OutboxPublisher {
     private final AtomicLong totalEventsProcessed = new AtomicLong(0);
     private final Map<String, AtomicLong> eventTypeCounters = new ConcurrentHashMap<>();
     private volatile Instant lastLogTime;
-    private volatile Instant firstEventTime = null;
+    private volatile @Nullable Instant firstEventTime = null;
     
     public StatisticsPublisher(Environment environment) {
         this(environment, ClockProvider.systemDefault());

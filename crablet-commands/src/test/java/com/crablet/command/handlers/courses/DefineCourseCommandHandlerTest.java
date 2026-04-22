@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * DCB Principle: Tests verify idempotency check pattern.
  */
 @DisplayName("DefineCourseCommandHandler Integration Tests")
-@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class DefineCourseCommandHandlerTest extends AbstractCrabletTest {
 
     private DefineCourseCommandHandler handler;
@@ -109,4 +109,3 @@ class DefineCourseCommandHandlerTest extends AbstractCrabletTest {
                 .hasMessageContaining("capacity");
     }
 }
-

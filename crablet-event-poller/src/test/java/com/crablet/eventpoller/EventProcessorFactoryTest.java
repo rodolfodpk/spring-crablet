@@ -13,6 +13,7 @@ import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.TaskScheduler;
 
@@ -159,7 +160,7 @@ class EventProcessorFactoryTest {
     static class TestProgressTracker implements ProgressTracker<String> {
         @Override public long getLastPosition(String processorId) { return 0; }
         @Override public void updateProgress(String processorId, long position) {}
-        @Override public void recordError(String processorId, String error, int maxErrors) {}
+        @Override public void recordError(String processorId, @Nullable String error, int maxErrors) {}
         @Override public void resetErrorCount(String processorId) {}
         @Override public ProcessorStatus getStatus(String processorId) { return ProcessorStatus.ACTIVE; }
         @Override public void setStatus(String processorId, ProcessorStatus status) {}

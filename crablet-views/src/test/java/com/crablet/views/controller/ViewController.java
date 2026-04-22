@@ -35,7 +35,8 @@ public class ViewController {
     @GetMapping("/{viewName}/status")
     public ResponseEntity<Map<String, Object>> getStatus(@PathVariable String viewName) {
         ProcessorStatus status = managementService.getStatus(viewName);
-        long lag = managementService.getLag(viewName);
+        Long lagValue = managementService.getLag(viewName);
+        long lag = lagValue != null ? lagValue : 0L;
         
         Map<String, Object> response = Map.of(
             "viewName", viewName,
@@ -118,7 +119,8 @@ public class ViewController {
      */
     @GetMapping("/{viewName}/lag")
     public ResponseEntity<Map<String, Object>> getLag(@PathVariable String viewName) {
-        long lag = managementService.getLag(viewName);
+        Long lagValue = managementService.getLag(viewName);
+        long lag = lagValue != null ? lagValue : 0L;
         
         return ResponseEntity.ok(Map.of(
             "viewName", viewName,

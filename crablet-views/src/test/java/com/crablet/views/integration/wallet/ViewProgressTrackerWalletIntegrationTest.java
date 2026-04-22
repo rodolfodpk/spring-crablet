@@ -11,6 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 
 import javax.sql.DataSource;
 
@@ -239,8 +240,8 @@ class ViewProgressTrackerWalletIntegrationTest extends AbstractViewsTest {
     static class TestConfig {
         @Bean
         public javax.sql.DataSource dataSource() {
-            org.springframework.jdbc.datasource.SimpleDriverDataSource dataSource =
-                    new org.springframework.jdbc.datasource.SimpleDriverDataSource();
+            SimpleDriverDataSource dataSource =
+                    new SimpleDriverDataSource();
             dataSource.setDriverClass(org.postgresql.Driver.class);
             dataSource.setUrl(AbstractViewsTest.postgres.getJdbcUrl());
             dataSource.setUsername(AbstractViewsTest.postgres.getUsername());
@@ -254,4 +255,3 @@ class ViewProgressTrackerWalletIntegrationTest extends AbstractViewsTest {
         }
     }
 }
-

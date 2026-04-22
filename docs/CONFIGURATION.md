@@ -256,6 +256,8 @@ When `crablet.eventstore.read-replicas.enabled=false` (default), both roles use 
 
 **fetch-batch-size vs batch-size** — `fetch-batch-size` controls how many events are loaded from the DB per query; `batch-size` controls how many are handed to each processor per cycle. In shared-fetch mode, `fetch-batch-size` is the dominant knob.
 
+**Dispatch windowing** — keep processor dispatch to one `batch-size` window per processor cycle. Do not split a matched shared-fetch window into multiple handler calls in one cycle unless the handler/progress contract is explicitly changed. Views need ordered, idempotent projection with clear progress boundaries; automations can trigger side effects that may not be safely repeatable; outbox publishers are at-least-once and should keep duplicate/retry blast radius bounded. Java Stream Gatherers such as `Gatherers.windowFixed` are appropriate for tests and pure in-memory analysis, not for changing dispatch semantics.
+
 **backoff** — when a processor encounters repeated errors it backs off exponentially: delay doubles every error (up to `max-backoff-seconds`) after `backoff-threshold` consecutive failures. This protects the database during downstream outages.
 
 **leader-election-retry-interval-ms** — followers poll at this interval to detect that the leader has crashed. Lower values mean faster failover; the default of 30 s is appropriate for most deployments. Do not set below 5 s.

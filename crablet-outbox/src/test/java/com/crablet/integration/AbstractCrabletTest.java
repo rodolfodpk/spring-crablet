@@ -2,11 +2,13 @@ package com.crablet.integration;
 
 import com.crablet.TestApplication;
 import com.crablet.eventstore.EventStore;
+import com.crablet.test.cleanup.IntegrationTestDbCleanup;
 import com.crablet.testutils.TestConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -80,11 +82,8 @@ public abstract class AbstractCrabletTest {
     void cleanDatabase() {
         // Clean all tables in the correct order to respect foreign key constraints
         try {
-            // TRUNCATE with RESTART IDENTITY automatically resets sequences
-            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
-        } catch (org.springframework.jdbc.BadSqlGrammarException e) {
+            IntegrationTestDbCleanup.truncateEventsCommandsAndOutboxProgress(jdbcTemplate);
+        } catch (BadSqlGrammarException e) {
             // Tables don't exist yet - Flyway will create them
             // This is expected on first run
         } catch (Exception e) {

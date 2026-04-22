@@ -126,6 +126,7 @@ class TopicPublisherPairTest {
     }
 
     @Test
+    @SuppressWarnings("NullAway")
     @DisplayName("Should reject null topic")
     void shouldRejectNullTopic() {
         assertThatThrownBy(() -> new TopicPublisherPair(null, "kafka-publisher"))
@@ -134,6 +135,7 @@ class TopicPublisherPairTest {
     }
 
     @Test
+    @SuppressWarnings("NullAway")
     @DisplayName("Should reject null publisher")
     void shouldRejectNullPublisher() {
         assertThatThrownBy(() -> new TopicPublisherPair("wallet-events", null))

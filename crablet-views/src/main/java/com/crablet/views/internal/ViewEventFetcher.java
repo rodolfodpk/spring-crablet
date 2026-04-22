@@ -4,6 +4,8 @@ import com.crablet.eventpoller.AbstractJdbcEventFetcher;
 import com.crablet.eventpoller.EventSelectionSqlBuilder;
 import com.crablet.views.ViewSubscription;
 
+import org.jspecify.annotations.Nullable;
+
 import javax.sql.DataSource;
 import java.util.Map;
 
@@ -23,7 +25,7 @@ public class ViewEventFetcher extends AbstractJdbcEventFetcher<String> {
     }
 
     @Override
-    protected String buildSqlFilter(String viewName) {
+    protected @Nullable String buildSqlFilter(String viewName) {
         ViewSubscription subscription = subscriptions.get(viewName);
         if (subscription == null) {
             log.warn("Subscription not found for view: {} (available: {})", viewName, subscriptions.keySet());

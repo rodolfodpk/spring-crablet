@@ -1,10 +1,10 @@
 package com.crablet.automations;
 
-import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.StoredEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,7 +37,8 @@ class AutomationHandlerConfigurationTest {
             @Override public Integer getBackoffThreshold() { return 3; }
             @Override public Integer getBackoffMultiplier() { return 4; }
             @Override public Integer getBackoffMaxSeconds() { return 90; }
-            @Override public void react(StoredEvent event, CommandExecutor commandExecutor) {
+            @Override public List<AutomationDecision> decide(StoredEvent event) {
+                return List.of();
             }
         };
 
@@ -53,7 +54,8 @@ class AutomationHandlerConfigurationTest {
         return new AutomationHandler() {
             @Override public String getAutomationName() { return "test"; }
             @Override public Set<String> getEventTypes() { return Set.of("SomeEvent"); }
-            @Override public void react(StoredEvent event, CommandExecutor commandExecutor) {
+            @Override public List<AutomationDecision> decide(StoredEvent event) {
+                return List.of();
             }
         };
     }

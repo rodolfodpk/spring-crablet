@@ -28,30 +28,30 @@ public class GlobalStatisticsConfig {
      * Log level for statistics output.
      * Default: INFO
      */
-    private String logLevel = "INFO";
-    
+    private @org.jspecify.annotations.Nullable String logLevel = "INFO";
+
     // Getters and setters
     public boolean isEnabled() {
         return enabled;
     }
-    
+
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
-    
+
     public long getLogIntervalSeconds() {
         return logIntervalSeconds;
     }
-    
+
     public void setLogIntervalSeconds(long logIntervalSeconds) {
         this.logIntervalSeconds = logIntervalSeconds;
     }
-    
-    public String getLogLevel() {
+
+    public @org.jspecify.annotations.Nullable String getLogLevel() {
         return logLevel;
     }
-    
-    public void setLogLevel(String logLevel) {
+
+    public void setLogLevel(@org.jspecify.annotations.Nullable String logLevel) {
         this.logLevel = logLevel;
     }
 }

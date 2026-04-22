@@ -169,7 +169,7 @@ class ViewEventHandlerTest {
     static class TestProjector implements ViewProjector {
         private final String viewName;
         int handledCount = 0;
-        List<StoredEvent> lastEventsReceived;
+        List<StoredEvent> lastEventsReceived = new ArrayList<>();
 
         TestProjector(String viewName) {
             this.viewName = viewName;

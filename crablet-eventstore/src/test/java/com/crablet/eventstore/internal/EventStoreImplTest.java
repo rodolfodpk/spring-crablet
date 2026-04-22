@@ -1,7 +1,6 @@
 package com.crablet.eventstore.internal;
 
 import com.crablet.eventstore.AppendEvent;
-import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.CommandAuditStore;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
@@ -16,7 +15,7 @@ import com.crablet.eventstore.query.StateProjector;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
-import org.flywaydb.core.Flyway;
+import com.crablet.test.config.CrabletFlywayMigration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,12 +70,7 @@ class EventStoreImplTest {
         ds.setPassword(postgres.getPassword());
         dataSource = ds;
 
-        // Run Flyway migrations
-        Flyway flyway = Flyway.configure()
-                .dataSource(dataSource)
-                .locations("classpath:db/migration")
-                .load();
-        flyway.migrate();
+        CrabletFlywayMigration.migrate(dataSource);
     }
 
     @AfterAll

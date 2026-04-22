@@ -18,6 +18,7 @@ import com.crablet.examples.wallet.projections.WalletBalanceState;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 
@@ -28,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests querying with stream positions, filtering, pagination, and edge cases.
  */
 @DisplayName("EventStore Query Tests")
-@org.springframework.boot.test.context.SpringBootTest(classes = com.crablet.eventstore.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+@SpringBootTest(classes = TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class EventStoreQueryTest extends com.crablet.test.AbstractCrabletTest {
 
     @Autowired

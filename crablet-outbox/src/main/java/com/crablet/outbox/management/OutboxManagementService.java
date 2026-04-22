@@ -4,6 +4,7 @@ import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.outbox.TopicPublisherPair;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,10 +87,10 @@ public class OutboxManagementService implements ProcessorManagementService<Topic
     public Map<TopicPublisherPair, ProcessorStatus> getAllStatuses() { return delegate.getAllStatuses(); }
 
     @Override
-    public Long getLag(TopicPublisherPair id) { return delegate.getLag(id); }
+    public @Nullable Long getLag(TopicPublisherPair id) { return delegate.getLag(id); }
 
     @Override
-    public BackoffInfo getBackoffInfo(TopicPublisherPair id) { return delegate.getBackoffInfo(id); }
+    public @Nullable BackoffInfo getBackoffInfo(TopicPublisherPair id) { return delegate.getBackoffInfo(id); }
 
     @Override
     public Map<TopicPublisherPair, BackoffInfo> getAllBackoffInfo() { return delegate.getAllBackoffInfo(); }
@@ -101,7 +102,7 @@ public class OutboxManagementService implements ProcessorManagementService<Topic
      *
      * @return details, or {@code null} if not found
      */
-    public OutboxProgressDetails getProgressDetails(String topic, String publisher) {
+    public @Nullable OutboxProgressDetails getProgressDetails(String topic, String publisher) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(SELECT_PROGRESS_SQL)) {
 

@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for MicrometerMetricsCollector.
  * Tests that metric events are properly converted to Micrometer metrics.
  */
+@SuppressWarnings("NullAway")
 @DisplayName("Micrometer Metrics Collector Tests")
 class MicrometerMetricsCollectorTest {
     

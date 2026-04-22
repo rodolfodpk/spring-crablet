@@ -416,7 +416,7 @@ public class CommandExecutorImpl implements CommandExecutor {
     /**
      * Handle idempotent result with fail-fast principles.
      */
-    private ExecutionResult handleIdempotentResult(String reason, String commandType) {
+    private ExecutionResult handleIdempotentResult(@org.jspecify.annotations.Nullable String reason, String commandType) {
         String r = reason != null ? reason : "DUPLICATE_OPERATION";
         log.debug("Transaction committed successfully for command: {} (idempotent)", commandType);
         return ExecutionResult.idempotent(r);

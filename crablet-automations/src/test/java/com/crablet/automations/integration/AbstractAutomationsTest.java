@@ -1,5 +1,7 @@
 package com.crablet.automations.integration;
 
+import com.crablet.test.cleanup.IntegrationTestDbCleanup;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -48,10 +50,8 @@ public abstract class AbstractAutomationsTest {
 
     protected void cleanDatabase(JdbcTemplate jdbcTemplate) {
         try {
-            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE automation_progress CASCADE");
-        } catch (org.springframework.jdbc.BadSqlGrammarException e) {
+            IntegrationTestDbCleanup.truncateAutomationsIntegrationTables(jdbcTemplate);
+        } catch (BadSqlGrammarException e) {
             // Tables don't exist yet — Flyway will create them
         } catch (Exception e) {
             // Ignore other cleanup exceptions

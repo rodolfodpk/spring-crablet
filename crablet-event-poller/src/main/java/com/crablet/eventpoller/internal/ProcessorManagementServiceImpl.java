@@ -6,6 +6,7 @@ import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,7 +111,7 @@ public class ProcessorManagementServiceImpl<T extends ProcessorConfig<I>, I>
     }
 
     @Override
-    public Long getLag(I processorId) {
+    public @Nullable Long getLag(I processorId) {
         // Get max position from events table
         try (Connection connection = readDataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(SELECT_MAX_POSITION_SQL);
@@ -136,7 +137,7 @@ public class ProcessorManagementServiceImpl<T extends ProcessorConfig<I>, I>
     }
 
     @Override
-    public BackoffInfo getBackoffInfo(I processorId) {
+    public @Nullable BackoffInfo getBackoffInfo(I processorId) {
         if (eventProcessor instanceof BackoffInfoProvider<?> provider) {
             @SuppressWarnings("unchecked")
             BackoffInfoProvider<I> typed = (BackoffInfoProvider<I>) provider;

@@ -2,6 +2,7 @@ package com.crablet.examples.wallet;
 
 import com.crablet.eventstore.period.PeriodTags;
 import com.crablet.test.AbstractCrabletTest;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
@@ -20,6 +21,7 @@ import com.crablet.examples.wallet.projections.WalletBalanceState;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 
@@ -40,8 +42,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * - Events are processed sequentially (WalletStatementOpened first, then others)
  */
 @DisplayName("Closing the Books Pattern Test")
-@org.springframework.boot.test.context.SpringBootTest(classes = com.crablet.eventstore.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
-class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
+@SpringBootTest(classes = com.crablet.eventstore.integration.TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+class ClosingBooksPatternTest extends AbstractCrabletTest {
 
     @Autowired
     private EventStore eventStore;
@@ -50,7 +52,7 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
     private EventRepository eventRepository;
     
     @Autowired
-    private com.crablet.eventstore.ClockProvider clockProvider;
+    private ClockProvider clockProvider;
     
     /**
      * Query for wallet events in a specific period.
@@ -429,4 +431,3 @@ class ClosingBooksPatternTest extends com.crablet.test.AbstractCrabletTest {
         assertThat(wallet2Result.state().balance()).isEqualTo(700);
     }
 }
-

@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 
  * Note: Tests for @PostConstruct logConfiguration() are better covered in integration tests.
  */
+@SuppressWarnings("NullAway")
 @DisplayName("TopicConfigurationProperties Unit Tests")
 class TopicConfigurationPropertiesTest {
 

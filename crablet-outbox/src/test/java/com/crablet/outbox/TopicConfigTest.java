@@ -221,6 +221,7 @@ class TopicConfigTest {
     }
 
     @Test
+    @SuppressWarnings("NullAway")
     @DisplayName("Should handle null event tags")
     void shouldHandleNullEventTags() {
         // Given

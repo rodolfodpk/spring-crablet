@@ -47,7 +47,7 @@
         }
 
         @Override
-        public void react(StoredEvent event, CommandExecutor commandExecutor) {
+        public List<AutomationDecision> decide(StoredEvent event) {
             String walletId = event.tags().stream()
                     .filter(tag -> tag.key().equals("wallet_id"))
                     .map(Tag::value)
@@ -56,7 +56,9 @@
 
             WelcomeNotificationView view = viewRepository.get(walletId);
             if (view.shouldSendWelcomeNotification()) {
-                commandExecutor.execute(SendWelcomeNotificationCommand.of(walletId));
+                return List.of(new AutomationDecision.ExecuteCommand(
+                        SendWelcomeNotificationCommand.of(walletId)));
             }
+            return List.of(new AutomationDecision.NoOp("welcome notification not needed"));
         }
     }

@@ -1,6 +1,7 @@
 package com.crablet.automations.management;
 
 import com.crablet.eventpoller.progress.ProcessorStatus;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -9,12 +10,12 @@ import java.time.Instant;
  */
 public record AutomationProgressDetails(
         String automationName,
-        String instanceId,
+        @Nullable String instanceId,
         ProcessorStatus status,
         long lastPosition,
         int errorCount,
-        String lastError,
-        Instant lastErrorAt,
+        @Nullable String lastError,
+        @Nullable Instant lastErrorAt,
         Instant lastUpdatedAt,
         Instant createdAt
 ) {}

@@ -1,5 +1,6 @@
 package com.crablet.eventpoller.progress;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +76,7 @@ public abstract class AbstractSingleKeyProgressTracker implements ProgressTracke
     }
 
     @Override
-    public void recordError(String processorId, String error, int maxErrors) {
+    public void recordError(String processorId, @Nullable String error, int maxErrors) {
         String sql = """
             UPDATE %s
             SET error_count = error_count + 1,

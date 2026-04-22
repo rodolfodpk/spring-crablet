@@ -1,5 +1,7 @@
 package com.crablet.eventpoller.integration;
 
+import com.crablet.test.cleanup.IntegrationTestDbCleanup;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -69,10 +71,8 @@ public abstract class AbstractEventProcessorTest {
     protected void cleanDatabase(JdbcTemplate jdbcTemplate) {
         // Clean all tables in the correct order to respect foreign key constraints
         try {
-            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
-        } catch (org.springframework.jdbc.BadSqlGrammarException e) {
+            IntegrationTestDbCleanup.truncateEventsCommandsAndOutboxProgress(jdbcTemplate);
+        } catch (BadSqlGrammarException e) {
             // Tables don't exist yet - Flyway will create them
             // This is expected on first run
         } catch (Exception e) {
@@ -97,4 +97,3 @@ public abstract class AbstractEventProcessorTest {
     public record DatabaseProperties(String url, String username, String password) {
     }
 }
-

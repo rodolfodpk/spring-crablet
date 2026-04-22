@@ -1,10 +1,11 @@
 package com.crablet.docs.samples.tutorial;
 
+import com.crablet.automations.AutomationDecision;
 import com.crablet.automations.AutomationHandler;
-import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
 
+import java.util.List;
 import java.util.Set;
 
 import static com.crablet.eventstore.EventType.type;
@@ -61,7 +62,7 @@ final class Tutorial05AutomationsSample {
         }
 
         @Override
-        public void react(StoredEvent event, CommandExecutor commandExecutor) {
+        public List<AutomationDecision> decide(StoredEvent event) {
             String walletId = event.tags().stream()
                     .filter(tag -> tag.key().equals("wallet_id"))
                     .map(Tag::value)
@@ -70,8 +71,10 @@ final class Tutorial05AutomationsSample {
 
             WelcomeNotificationView view = viewRepository.get(walletId);
             if (view.shouldSendWelcomeNotification()) {
-                commandExecutor.execute(SendWelcomeNotificationCommand.of(walletId));
+                return List.of(new AutomationDecision.ExecuteCommand(
+                        SendWelcomeNotificationCommand.of(walletId)));
             }
+            return List.of(new AutomationDecision.NoOp("welcome notification not needed"));
         }
     }
     // docs:end tutorial05-main

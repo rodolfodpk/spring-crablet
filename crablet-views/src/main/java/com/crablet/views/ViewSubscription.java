@@ -2,6 +2,7 @@ package com.crablet.views;
 
 import com.crablet.eventpoller.EventSelection;
 import com.crablet.eventpoller.processor.ProcessorRuntimeOverrides;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Set;
 
@@ -20,12 +21,12 @@ public class ViewSubscription implements EventSelection, ProcessorRuntimeOverrid
     private final Set<String> anyOfTags;
 
     // Per-view polling overrides — null means "use global default from ViewsConfig"
-    private Long pollingIntervalMs;
-    private Integer batchSize;
-    private Boolean backoffEnabled;
-    private Integer backoffThreshold;
-    private Integer backoffMultiplier;
-    private Integer backoffMaxSeconds;
+    private @Nullable Long pollingIntervalMs;
+    private @Nullable Integer batchSize;
+    private @Nullable Boolean backoffEnabled;
+    private @Nullable Integer backoffThreshold;
+    private @Nullable Integer backoffMultiplier;
+    private @Nullable Integer backoffMaxSeconds;
 
     protected ViewSubscription(
             String viewName,
@@ -58,28 +59,28 @@ public class ViewSubscription implements EventSelection, ProcessorRuntimeOverrid
     }
 
     @Override
-    public Long getPollingIntervalMs() { return pollingIntervalMs; }
-    public void setPollingIntervalMs(Long pollingIntervalMs) { this.pollingIntervalMs = pollingIntervalMs; }
+    public @Nullable Long getPollingIntervalMs() { return pollingIntervalMs; }
+    public void setPollingIntervalMs(@Nullable Long pollingIntervalMs) { this.pollingIntervalMs = pollingIntervalMs; }
 
     @Override
-    public Integer getBatchSize() { return batchSize; }
-    public void setBatchSize(Integer batchSize) { this.batchSize = batchSize; }
+    public @Nullable Integer getBatchSize() { return batchSize; }
+    public void setBatchSize(@Nullable Integer batchSize) { this.batchSize = batchSize; }
 
     @Override
-    public Boolean getBackoffEnabled() { return backoffEnabled; }
-    public void setBackoffEnabled(Boolean backoffEnabled) { this.backoffEnabled = backoffEnabled; }
+    public @Nullable Boolean getBackoffEnabled() { return backoffEnabled; }
+    public void setBackoffEnabled(@Nullable Boolean backoffEnabled) { this.backoffEnabled = backoffEnabled; }
 
     @Override
-    public Integer getBackoffThreshold() { return backoffThreshold; }
-    public void setBackoffThreshold(Integer backoffThreshold) { this.backoffThreshold = backoffThreshold; }
+    public @Nullable Integer getBackoffThreshold() { return backoffThreshold; }
+    public void setBackoffThreshold(@Nullable Integer backoffThreshold) { this.backoffThreshold = backoffThreshold; }
 
     @Override
-    public Integer getBackoffMultiplier() { return backoffMultiplier; }
-    public void setBackoffMultiplier(Integer backoffMultiplier) { this.backoffMultiplier = backoffMultiplier; }
+    public @Nullable Integer getBackoffMultiplier() { return backoffMultiplier; }
+    public void setBackoffMultiplier(@Nullable Integer backoffMultiplier) { this.backoffMultiplier = backoffMultiplier; }
 
     @Override
-    public Integer getBackoffMaxSeconds() { return backoffMaxSeconds; }
-    public void setBackoffMaxSeconds(Integer backoffMaxSeconds) { this.backoffMaxSeconds = backoffMaxSeconds; }
+    public @Nullable Integer getBackoffMaxSeconds() { return backoffMaxSeconds; }
+    public void setBackoffMaxSeconds(@Nullable Integer backoffMaxSeconds) { this.backoffMaxSeconds = backoffMaxSeconds; }
 
     /** Entry point for building a subscription. Use {@code projector.subscription(eventTypes)} for the common case. */
     public static Builder builder(String viewName) {
@@ -91,12 +92,12 @@ public class ViewSubscription implements EventSelection, ProcessorRuntimeOverrid
         private Set<String> eventTypes = Set.of();
         private Set<String> requiredTags = Set.of();
         private Set<String> anyOfTags = Set.of();
-        private Long pollingIntervalMs;
-        private Integer batchSize;
-        private Boolean backoffEnabled;
-        private Integer backoffThreshold;
-        private Integer backoffMultiplier;
-        private Integer backoffMaxSeconds;
+        private @Nullable Long pollingIntervalMs;
+        private @Nullable Integer batchSize;
+        private @Nullable Boolean backoffEnabled;
+        private @Nullable Integer backoffThreshold;
+        private @Nullable Integer backoffMultiplier;
+        private @Nullable Integer backoffMaxSeconds;
 
         public Builder(String viewName) {
             this.viewName = viewName;

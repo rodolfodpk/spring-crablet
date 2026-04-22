@@ -8,18 +8,24 @@ import com.crablet.views.ViewSubscription;
 import com.crablet.views.internal.ViewProcessorConfig;
 import com.crablet.views.config.ViewsAutoConfiguration;
 import com.crablet.views.integration.AbstractViewsTest;
+import com.crablet.test.config.CrabletFlywayConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -202,14 +208,14 @@ class ViewControllerE2ETest extends AbstractViewsTest {
             .jsonPath("$.error").isEqualTo("Failed to reset view projection");
     }
 
-    @org.springframework.boot.autoconfigure.SpringBootApplication
+    @SpringBootApplication
     @Configuration
-    @Import(ViewsAutoConfiguration.class)
+    @Import({CrabletFlywayConfiguration.class, ViewsAutoConfiguration.class})
     static class TestConfig {
         @Bean
         public DataSource dataSource() {
-            org.springframework.jdbc.datasource.SimpleDriverDataSource dataSource =
-                    new org.springframework.jdbc.datasource.SimpleDriverDataSource();
+            SimpleDriverDataSource dataSource =
+                    new SimpleDriverDataSource();
             dataSource.setDriverClass(org.postgresql.Driver.class);
             dataSource.setUrl(AbstractViewsTest.postgres.getJdbcUrl());
             dataSource.setUsername(AbstractViewsTest.postgres.getUsername());
@@ -233,23 +239,13 @@ class ViewControllerE2ETest extends AbstractViewsTest {
         }
 
         @Bean
-        public org.flywaydb.core.Flyway flyway(DataSource dataSource) {
-            org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-                    .dataSource(dataSource)
-                    .locations("classpath:db/migration")
-                    .load();
-            flyway.migrate();
-            return flyway;
-        }
-
-        @Bean
-        @org.springframework.context.annotation.DependsOn("flyway")
+        @DependsOn("flyway")
         public EventStore eventStore(
                 DataSource dataSource,
                 tools.jackson.databind.ObjectMapper objectMapper,
                 com.crablet.eventstore.EventStoreConfig config,
                 com.crablet.eventstore.ClockProvider clock,
-                org.springframework.context.ApplicationEventPublisher eventPublisher) {
+                ApplicationEventPublisher eventPublisher) {
             return new com.crablet.eventstore.internal.EventStoreImpl(
                 dataSource, dataSource, objectMapper, config, clock, eventPublisher);
         }
@@ -281,8 +277,8 @@ class ViewControllerE2ETest extends AbstractViewsTest {
         }
 
         @Bean
-        public org.springframework.context.ApplicationEventPublisher applicationEventPublisher() {
-            return new org.springframework.context.support.GenericApplicationContext();
+        public ApplicationEventPublisher applicationEventPublisher() {
+            return new GenericApplicationContext();
         }
 
         @Bean

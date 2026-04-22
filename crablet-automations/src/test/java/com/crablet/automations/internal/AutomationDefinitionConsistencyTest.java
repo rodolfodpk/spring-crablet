@@ -1,5 +1,6 @@
 package com.crablet.automations.internal;
 
+import com.crablet.automations.AutomationDecision;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.config.AutomationsConfig;
 import com.crablet.command.CommandExecutor;
@@ -22,11 +23,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@SuppressWarnings("NullAway")
 @DisplayName("Automation Definition Consistency Tests")
 class AutomationDefinitionConsistencyTest {
 
@@ -59,8 +60,7 @@ class AutomationDefinitionConsistencyTest {
         assertThat(configs.get(handler.getAutomationName()).getPollingIntervalMs()).isEqualTo(1500L);
         assertThat(configs.get(handler.getAutomationName()).getBatchSize()).isEqualTo(25);
         assertThat(count).isEqualTo(1);
-        assertThat(handler.lastEvent.get()).isNotNull();
-        assertThat(handler.lastExecutor.get()).isSameAs(executor);
+        assertThat(handler.lastEvent()).isNotNull();
     }
 
     @Test
@@ -121,8 +121,7 @@ class AutomationDefinitionConsistencyTest {
         private final Set<String> eventTypes;
         private final Set<String> requiredTags;
         private final Set<String> anyOfTags;
-        private final AtomicReference<StoredEvent> lastEvent = new AtomicReference<>();
-        private final AtomicReference<CommandExecutor> lastExecutor = new AtomicReference<>();
+        private StoredEvent lastEvent;
 
         private TestAutomationHandler(String automationName, Set<String> eventTypes,
                                       Set<String> requiredTags, Set<String> anyOfTags) {
@@ -136,9 +135,13 @@ class AutomationDefinitionConsistencyTest {
         @Override public Set<String> getEventTypes() { return eventTypes; }
         @Override public Set<String> getRequiredTags() { return requiredTags; }
         @Override public Set<String> getAnyOfTags() { return anyOfTags; }
-        @Override public void react(StoredEvent event, CommandExecutor commandExecutor) {
-            lastEvent.set(event);
-            lastExecutor.set(commandExecutor);
+        @Override public List<AutomationDecision> decide(StoredEvent event) {
+            lastEvent = event;
+            return List.of();
+        }
+
+        private StoredEvent lastEvent() {
+            return lastEvent;
         }
     }
 

@@ -2,10 +2,13 @@ package com.crablet.eventpoller;
 
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
+import java.nio.charset.StandardCharsets;
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -66,7 +69,7 @@ public abstract class AbstractJdbcEventFetcher<I> implements EventFetcher<I> {
                         events.add(new StoredEvent(
                             rs.getString("type"),
                             parseTagsFromArray(rs.getArray("tags")),
-                            rs.getString("data").getBytes(),
+                            rs.getString("data").getBytes(StandardCharsets.UTF_8),
                             rs.getString("transaction_id"),
                             rs.getLong("position"),
                             rs.getTimestamp("occurred_at").toInstant(),
@@ -98,9 +101,9 @@ public abstract class AbstractJdbcEventFetcher<I> implements EventFetcher<I> {
      * @param processorId the processor identifier (e.g. view name, automation name)
      * @return SQL condition string, or {@code null} to skip
      */
-    protected abstract String buildSqlFilter(I processorId);
+    protected abstract @Nullable String buildSqlFilter(I processorId);
 
-    private List<Tag> parseTagsFromArray(java.sql.Array array) throws SQLException {
+    private List<Tag> parseTagsFromArray(Array array) throws SQLException {
         if (array == null) {
             return List.of();
         }

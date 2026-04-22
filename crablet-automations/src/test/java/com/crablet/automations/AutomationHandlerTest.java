@@ -1,10 +1,10 @@
 package com.crablet.automations;
 
-import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.StoredEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,7 +18,7 @@ class AutomationHandlerTest {
     private final AutomationHandler handler = new AutomationHandler() {
         @Override public String getAutomationName() { return "test"; }
         @Override public Set<String> getEventTypes() { return Set.of("SomeEvent"); }
-        @Override public void react(StoredEvent event, CommandExecutor commandExecutor) {}
+        @Override public List<AutomationDecision> decide(StoredEvent event) { return List.of(); }
     };
 
     @Test

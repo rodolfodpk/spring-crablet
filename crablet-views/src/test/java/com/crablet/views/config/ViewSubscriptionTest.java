@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Unit tests for ViewSubscription.
  * Tests builder pattern, immutability, and configuration validation.
  */
+@SuppressWarnings("NullAway")
 @DisplayName("ViewSubscription Unit Tests")
 class ViewSubscriptionTest {
 

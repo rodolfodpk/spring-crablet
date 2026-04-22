@@ -3,6 +3,7 @@ package com.crablet.automations.management;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.progress.ProcessorStatus;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,10 +84,10 @@ public class AutomationManagementService implements ProcessorManagementService<S
     public Map<String, ProcessorStatus> getAllStatuses() { return delegate.getAllStatuses(); }
 
     @Override
-    public Long getLag(String automationName) { return delegate.getLag(automationName); }
+    public @Nullable Long getLag(String automationName) { return delegate.getLag(automationName); }
 
     @Override
-    public BackoffInfo getBackoffInfo(String automationName) { return delegate.getBackoffInfo(automationName); }
+    public @Nullable BackoffInfo getBackoffInfo(String automationName) { return delegate.getBackoffInfo(automationName); }
 
     @Override
     public Map<String, BackoffInfo> getAllBackoffInfo() { return delegate.getAllBackoffInfo(); }
@@ -98,7 +99,7 @@ public class AutomationManagementService implements ProcessorManagementService<S
      *
      * @return details, or {@code null} if not found
      */
-    public AutomationProgressDetails getProgressDetails(String automationName) {
+    public @Nullable AutomationProgressDetails getProgressDetails(String automationName) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(SELECT_PROGRESS_SQL)) {
 

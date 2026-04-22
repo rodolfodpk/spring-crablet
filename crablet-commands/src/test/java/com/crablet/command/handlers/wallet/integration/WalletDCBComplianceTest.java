@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Integration tests for DCB compliance with wallet domain operations.
  * Verifies that DCB guarantees are maintained for real wallet business logic.
  */
-@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class WalletDCBComplianceTest extends AbstractCrabletTest {
 
     @Autowired
@@ -90,4 +90,3 @@ class WalletDCBComplianceTest extends AbstractCrabletTest {
     // and doesn't directly test DCB compliance. DCB guarantees are tested by the
     // framework-level tests (atomicity, ordering, integrity).
 }
-

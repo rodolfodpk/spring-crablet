@@ -33,6 +33,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.TaskScheduler;
 
 import java.util.HashMap;
@@ -72,7 +73,7 @@ public class ViewsAutoConfiguration {
     @Bean
     public EventFetcher<String> viewEventFetcher(
             ReadDataSource readDataSource,
-            @org.springframework.beans.factory.annotation.Qualifier("viewSubscriptions") Map<String, ViewSubscription> subscriptions) {
+            @Qualifier("viewSubscriptions") Map<String, ViewSubscription> subscriptions) {
         return new ViewEventFetcher(readDataSource.dataSource(), subscriptions);
     }
 
@@ -97,14 +98,14 @@ public class ViewsAutoConfiguration {
     @Bean
     public Map<String, ViewProcessorConfig> viewProcessorConfigs(
             ViewsConfig viewsConfig,
-            @org.springframework.beans.factory.annotation.Qualifier("viewSubscriptions") Map<String, ViewSubscription> subscriptions) {
+            @Qualifier("viewSubscriptions") Map<String, ViewSubscription> subscriptions) {
         return ViewProcessorConfig.createConfigMap(viewsConfig, subscriptions);
     }
 
     @Bean
     public ViewManagementService viewManagementService(
-            @org.springframework.beans.factory.annotation.Qualifier("viewsEventProcessor") EventProcessor<ViewProcessorConfig, String> eventProcessor,
-            @org.springframework.beans.factory.annotation.Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
+            @Qualifier("viewsEventProcessor") EventProcessor<ViewProcessorConfig, String> eventProcessor,
+            @Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
             ReadDataSource readDataSource,
             WriteDataSource writeDataSource,
             ClockProvider clockProvider) {
@@ -117,9 +118,9 @@ public class ViewsAutoConfiguration {
     @ConditionalOnProperty(name = "crablet.views.shared-fetch.enabled", havingValue = "false", matchIfMissing = true)
     public EventProcessor<ViewProcessorConfig, String> viewsEventProcessor(
             Map<String, ViewProcessorConfig> processorConfigs,
-            @org.springframework.beans.factory.annotation.Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
-            @org.springframework.beans.factory.annotation.Qualifier("viewEventFetcher") EventFetcher<String> eventFetcher,
-            @org.springframework.beans.factory.annotation.Qualifier("viewEventHandler") EventHandler<String> eventHandler,
+            @Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
+            @Qualifier("viewEventFetcher") EventFetcher<String> eventFetcher,
+            @Qualifier("viewEventHandler") EventHandler<String> eventHandler,
             InstanceIdProvider instanceIdProvider,
             WriteDataSource writeDataSource,
             TaskScheduler taskScheduler,
@@ -146,9 +147,9 @@ public class ViewsAutoConfiguration {
     @ConditionalOnProperty(name = "crablet.views.shared-fetch.enabled", havingValue = "true")
     public EventProcessor<ViewProcessorConfig, String> viewsEventProcessorSharedFetch(
             Map<String, ViewProcessorConfig> processorConfigs,
-            @org.springframework.beans.factory.annotation.Qualifier("viewSubscriptions") Map<String, ViewSubscription> viewSubscriptions,
-            @org.springframework.beans.factory.annotation.Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
-            @org.springframework.beans.factory.annotation.Qualifier("viewEventHandler") EventHandler<String> eventHandler,
+            @Qualifier("viewSubscriptions") Map<String, ViewSubscription> viewSubscriptions,
+            @Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
+            @Qualifier("viewEventHandler") EventHandler<String> eventHandler,
             InstanceIdProvider instanceIdProvider,
             ViewsConfig viewsConfig,
             WriteDataSource writeDataSource,

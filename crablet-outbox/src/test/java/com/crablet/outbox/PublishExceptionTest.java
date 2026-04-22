@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Unit tests for PublishException.
  * Tests constructors, exception chaining, and edge cases.
  */
+@SuppressWarnings("NullAway")
 @DisplayName("PublishException Unit Tests")
 class PublishExceptionTest {
 

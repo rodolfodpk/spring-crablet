@@ -15,14 +15,19 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.ApplicationEventPublisher;
+import com.crablet.test.config.CrabletFlywayConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
 
 @SpringBootApplication
+@Import(CrabletFlywayConfiguration.class)
 @ComponentScan(
     basePackages = {"com.crablet.eventstore", "com.crablet.examples"},
     excludeFilters = {
@@ -90,12 +95,13 @@ public class TestApplication {
     
     @Bean
     @Primary
+    @DependsOn("flyway")
     public EventStore eventStore(
             DataSource dataSource,
             tools.jackson.databind.ObjectMapper objectMapper,
             EventStoreConfig config,
             ClockProvider clock,
-            org.springframework.context.ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher) {
         // Use same datasource for both read and write in tests
         return new EventStoreImpl(dataSource, dataSource, objectMapper, config, clock, eventPublisher);
     }
@@ -103,20 +109,6 @@ public class TestApplication {
     @Bean
     public EventRepository eventRepository(DataSource dataSource, EventStoreConfig config) {
         return new EventRepositoryImpl(dataSource, config);
-    }
-    
-    /**
-     * Flyway bean to ensure migrations run before tests.
-     * Migrations run immediately when bean is created.
-     */
-    @Bean
-    public org.flywaydb.core.Flyway flyway(javax.sql.DataSource dataSource) {
-        org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-                .dataSource(dataSource)
-                .locations("classpath:db/migration")
-                .load();
-        flyway.migrate();
-        return flyway;
     }
     
 }

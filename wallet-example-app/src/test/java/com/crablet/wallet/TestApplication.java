@@ -1,19 +1,17 @@
 package com.crablet.wallet;
 
+import com.crablet.test.config.CrabletFlywayConfiguration;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
-import org.flywaydb.core.Flyway;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 
 import javax.sql.DataSource;
-import java.time.Instant;
 
 /**
  * Test application context for wallet-example-app integration tests.
@@ -25,6 +23,7 @@ import java.time.Instant;
  * adds the framework's read/write datasource beans around it.
  */
 @SpringBootApplication
+@Import(CrabletFlywayConfiguration.class)
 @ComponentScan(
     basePackages = {"com.crablet.wallet", "com.crablet"},
     excludeFilters = {
@@ -44,28 +43,6 @@ public class TestApplication {
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = JsonMapper.builder().build();
         return mapper;
-    }
-    
-    /**
-     * Flyway bean to ensure migrations run before tests.
-     * Migrations run immediately when bean is created.
-     * Uses migrations from src/main/resources/db/migration.
-     */
-    @Bean
-    public Flyway flyway(DataSource dataSource) {
-        Logger log = LoggerFactory.getLogger(TestApplication.class);
-        log.info("[TestApplication] Flyway bean creation started at {}", Instant.now());
-        
-        Flyway flyway = Flyway.configure()
-                .dataSource(dataSource)
-                .locations("classpath:db/migration")
-                .load();
-        
-        log.info("[TestApplication] Starting Flyway migration at {}", Instant.now());
-        flyway.migrate();
-        log.info("[TestApplication] Flyway migration completed at {}", Instant.now());
-        
-        return flyway;
     }
     
     public static void main(String[] args) {

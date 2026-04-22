@@ -1,10 +1,13 @@
 package com.crablet.metrics.micrometer.integration;
 
 import com.crablet.eventstore.EventStore;
+import com.crablet.test.cleanup.IntegrationTestDbCleanup;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -15,7 +18,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * Base class for metrics integration tests.
  * Sets up EventStore with MicrometerMetricsCollector and verifies metrics are collected.
  */
-@SpringBootTest(classes = TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+@SpringBootTest(classes = TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 @Testcontainers
 public abstract class AbstractMetricsIntegrationTest {
     private static final PostgreSQLContainer<?> SHARED_POSTGRES = new PostgreSQLContainer<>("postgres:17")
@@ -50,7 +53,7 @@ public abstract class AbstractMetricsIntegrationTest {
     protected JdbcTemplate jdbcTemplate;
     
     @Autowired
-    protected org.springframework.context.ApplicationContext applicationContext;
+    protected ApplicationContext applicationContext;
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
@@ -67,14 +70,10 @@ public abstract class AbstractMetricsIntegrationTest {
     void cleanDatabase() {
         // Only clean if tables exist (Flyway may not have run yet)
         try {
-            jdbcTemplate.execute("TRUNCATE TABLE events CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
-            jdbcTemplate.execute("ALTER SEQUENCE events_position_seq RESTART WITH 1");
-        } catch (org.springframework.jdbc.BadSqlGrammarException e) {
+            IntegrationTestDbCleanup.truncateEventStoreTablesAndRestartPositionSequence(jdbcTemplate);
+        } catch (BadSqlGrammarException e) {
             // Tables don't exist yet - Flyway will create them
             // This is expected on first run
         }
     }
 }
-

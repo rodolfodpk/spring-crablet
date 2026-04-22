@@ -46,6 +46,7 @@ class PublishingDurationMetricTest {
     }
 
     @Test
+    @SuppressWarnings("NullAway")
     @DisplayName("Given null publisher name, when creating metric, then IllegalArgumentException thrown")
     void givenNullPublisherName_whenCreatingMetric_thenIllegalArgumentExceptionThrown() {
         // Given
@@ -72,6 +73,7 @@ class PublishingDurationMetricTest {
     }
 
     @Test
+    @SuppressWarnings("NullAway")
     @DisplayName("Given null duration, when creating metric, then IllegalArgumentException thrown")
     void givenNullDuration_whenCreatingMetric_thenIllegalArgumentExceptionThrown() {
         // Given

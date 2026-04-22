@@ -1,12 +1,13 @@
 package com.crablet.views.service;
 
 import com.crablet.eventpoller.progress.ProcessorStatus;
+import org.jspecify.annotations.Nullable;
 import java.time.Instant;
 
 /**
  * Detailed progress information for a view projection.
  * Contains all fields from the view_progress table.
- * 
+ *
  * <p>This record provides comprehensive monitoring information including:
  * <ul>
  *   <li>Processing status and position</li>
@@ -17,12 +18,12 @@ import java.time.Instant;
  */
 public record ViewProgressDetails(
     String viewName,
-    String instanceId,
+    @Nullable String instanceId,
     ProcessorStatus status,
     long lastPosition,
     int errorCount,
-    String lastError,
-    Instant lastErrorAt,
+    @Nullable String lastError,
+    @Nullable Instant lastErrorAt,
     Instant lastUpdatedAt,
     Instant createdAt
 ) {}

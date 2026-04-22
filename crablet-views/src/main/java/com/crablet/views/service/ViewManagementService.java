@@ -3,6 +3,7 @@ package com.crablet.views.service;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.progress.ProcessorStatus;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,12 +107,12 @@ public class ViewManagementService implements ProcessorManagementService<String>
     }
     
     @Override
-    public Long getLag(String viewName) {
+    public @Nullable Long getLag(String viewName) {
         return delegate.getLag(viewName);
     }
-    
+
     @Override
-    public BackoffInfo getBackoffInfo(String viewName) {
+    public @Nullable BackoffInfo getBackoffInfo(String viewName) {
         return delegate.getBackoffInfo(viewName);
     }
     
@@ -128,7 +129,7 @@ public class ViewManagementService implements ProcessorManagementService<String>
      * @param viewName View name
      * @return ViewProgressDetails or null if view not found
      */
-    public ViewProgressDetails getProgressDetails(String viewName) {
+    public @Nullable ViewProgressDetails getProgressDetails(String viewName) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(SELECT_PROGRESS_SQL)) {
 

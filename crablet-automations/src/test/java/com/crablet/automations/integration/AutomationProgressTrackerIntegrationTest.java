@@ -1,6 +1,7 @@
 package com.crablet.automations.integration;
 
 import com.crablet.automations.internal.AutomationProgressTracker;
+import com.crablet.test.config.CrabletFlywayConfiguration;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -9,7 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -225,11 +228,12 @@ class AutomationProgressTrackerIntegrationTest extends AbstractAutomationsTest {
     }
 
     @Configuration
+    @Import(CrabletFlywayConfiguration.class)
     static class TestConfig {
         @Bean
         public javax.sql.DataSource dataSource() {
-            org.springframework.jdbc.datasource.SimpleDriverDataSource dataSource =
-                    new org.springframework.jdbc.datasource.SimpleDriverDataSource();
+            SimpleDriverDataSource dataSource =
+                    new SimpleDriverDataSource();
             dataSource.setDriverClass(org.postgresql.Driver.class);
             dataSource.setUrl(AbstractAutomationsTest.postgres.getJdbcUrl());
             dataSource.setUsername(AbstractAutomationsTest.postgres.getUsername());
@@ -242,14 +246,5 @@ class AutomationProgressTrackerIntegrationTest extends AbstractAutomationsTest {
             return new JdbcTemplate(dataSource);
         }
 
-        @Bean
-        public org.flywaydb.core.Flyway flyway(DataSource dataSource) {
-            org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-                    .dataSource(dataSource)
-                    .locations("classpath:db/migration")
-                    .load();
-            flyway.migrate();
-            return flyway;
-        }
     }
 }

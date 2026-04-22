@@ -1,5 +1,6 @@
 package com.crablet.automations.integration;
 
+import com.crablet.automations.AutomationDecision;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.config.AutomationsConfig;
 import com.crablet.automations.internal.AutomationDispatcher;
@@ -22,6 +23,7 @@ import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.examples.wallet.notification.commands.SendWelcomeNotificationCommand;
 import com.crablet.examples.wallet.notification.commands.SendWelcomeNotificationCommandHandler;
 import com.crablet.examples.wallet.events.WalletOpened;
+import com.crablet.test.config.CrabletFlywayConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,7 +32,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.cfg.DateTimeFeature;
 import tools.jackson.databind.json.JsonMapper;
@@ -150,17 +155,16 @@ class AutomationProcessingLoopIntegrationTest extends AbstractAutomationsTest {
     }
 
     @Test
-    @DisplayName("Should pass non-null CommandExecutor to in-process handler")
-    void shouldPassNonNullCommandExecutor_ToInProcessHandler() {
+    @DisplayName("Should treat empty decisions as processed")
+    void shouldTreatEmptyDecisionsAsProcessed() {
         // Given
         appendWalletOpenedEvent("wallet-loop-5");
 
         // When
         processor.process(AUTOMATION_NAME);
 
-        // Then - handler received the event with a non-null executor
-        assertThat(recordingHandler.getReceivedExecutors()).hasSize(1);
-        assertThat(recordingHandler.getReceivedExecutors().get(0)).isNotNull();
+        // Then - handler received the event and returned empty decisions successfully
+        assertThat(recordingHandler.getReceivedEvents()).hasSize(1);
     }
 
     @Test
@@ -189,8 +193,9 @@ class AutomationProcessingLoopIntegrationTest extends AbstractAutomationsTest {
             @Override public String getAutomationName() { return "executing-handler-loop"; }
             @Override public Set<String> getEventTypes() { return Set.of(type(WalletOpened.class)); }
             @Override
-            public void react(StoredEvent event, CommandExecutor ce) {
-                ce.execute(SendWelcomeNotificationCommand.of("wallet-loop-cmd", "Alice"));
+            public List<AutomationDecision> decide(StoredEvent event) {
+                return List.of(new AutomationDecision.ExecuteCommand(
+                        SendWelcomeNotificationCommand.of("wallet-loop-cmd", "Alice")));
             }
         };
 
@@ -238,19 +243,17 @@ class AutomationProcessingLoopIntegrationTest extends AbstractAutomationsTest {
 
     static class RecordingAutomationHandler implements AutomationHandler {
         private final List<StoredEvent> receivedEvents = new CopyOnWriteArrayList<>();
-        private final List<CommandExecutor> receivedExecutors = new CopyOnWriteArrayList<>();
 
         @Override public String getAutomationName() { return AUTOMATION_NAME; }
         @Override public Set<String> getEventTypes() { return Set.of(type(WalletOpened.class)); }
         @Override
-        public void react(StoredEvent event, CommandExecutor ce) {
+        public List<AutomationDecision> decide(StoredEvent event) {
             receivedEvents.add(event);
-            receivedExecutors.add(ce);
+            return List.of();
         }
 
         public List<StoredEvent> getReceivedEvents() { return receivedEvents; }
-        public List<CommandExecutor> getReceivedExecutors() { return receivedExecutors; }
-        public void clear() { receivedEvents.clear(); receivedExecutors.clear(); }
+        public void clear() { receivedEvents.clear(); }
     }
 
     /**
@@ -293,12 +296,13 @@ class AutomationProcessingLoopIntegrationTest extends AbstractAutomationsTest {
     // --- test configuration ---
 
     @Configuration
+    @Import(CrabletFlywayConfiguration.class)
     static class TestConfig {
 
         @Bean
         public DataSource dataSource() {
-            org.springframework.jdbc.datasource.SimpleDriverDataSource ds =
-                    new org.springframework.jdbc.datasource.SimpleDriverDataSource();
+            SimpleDriverDataSource ds =
+                    new SimpleDriverDataSource();
             ds.setDriverClass(org.postgresql.Driver.class);
             ds.setUrl(AbstractAutomationsTest.postgres.getJdbcUrl());
             ds.setUsername(AbstractAutomationsTest.postgres.getUsername());
@@ -316,15 +320,7 @@ class AutomationProcessingLoopIntegrationTest extends AbstractAutomationsTest {
         public JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
 
         @Bean
-        public org.flywaydb.core.Flyway flyway(DataSource dataSource) {
-            org.flywaydb.core.Flyway flyway = org.flywaydb.core.Flyway.configure()
-                    .dataSource(dataSource).locations("classpath:db/migration").load();
-            flyway.migrate();
-            return flyway;
-        }
-
-        @Bean
-        @org.springframework.context.annotation.DependsOn("flyway")
+        @DependsOn("flyway")
         public EventStore eventStore(DataSource dataSource, ObjectMapper objectMapper,
                                      EventStoreConfig config, ClockProvider clock,
                                      ApplicationEventPublisher publisher) {
@@ -357,7 +353,7 @@ class AutomationProcessingLoopIntegrationTest extends AbstractAutomationsTest {
         }
 
         @Bean
-        @org.springframework.context.annotation.DependsOn("flyway")
+        @DependsOn("flyway")
         public SynchronousAutomationProcessor automationProcessor(
                 DataSource dataSource,
                 RecordingAutomationHandler recordingHandler,

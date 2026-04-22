@@ -41,6 +41,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -253,7 +254,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 stmt.setArray(1, connection.createArrayOf("varchar", types));
                 stmt.setArray(2, connection.createArrayOf("varchar", tagArrays));
                 stmt.setArray(3, connection.createArrayOf("jsonb", dataStrings));
-                stmt.setTimestamp(4, java.sql.Timestamp.from(clock.now()));
+                stmt.setTimestamp(4, Timestamp.from(clock.now()));
                 stmt.setObject(5, CorrelationContext.correlationId());
                 stmt.setObject(6, CorrelationContext.causationId());
 
@@ -363,7 +364,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 stmt.setObject(6, afterPosition);
                 stmt.setObject(7, idempotencyTypes != null && !idempotencyTypes.isEmpty() ? idempotencyTypes.toArray(new String[0]) : null);
                 stmt.setObject(8, idempotencyTags != null && !idempotencyTags.isEmpty() ? idempotencyTags.toArray(new String[0]) : null);
-                stmt.setTimestamp(9, java.sql.Timestamp.from(clock.now()));
+                stmt.setTimestamp(9, Timestamp.from(clock.now()));
                 stmt.setObject(10, CorrelationContext.correlationId());
                 stmt.setObject(11, CorrelationContext.causationId());
 
@@ -506,7 +507,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             stmt.setArray(1, connection.createArrayOf("text", types));
             stmt.setArray(2, connection.createArrayOf("text", tagArrays));
             stmt.setArray(3, connection.createArrayOf("jsonb", dataStrings));
-            stmt.setTimestamp(4, java.sql.Timestamp.from(clock.now()));
+            stmt.setTimestamp(4, Timestamp.from(clock.now()));
             stmt.setObject(5, CorrelationContext.correlationId());
             stmt.setObject(6, CorrelationContext.causationId());
 
@@ -579,7 +580,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             stmt.setObject(6, position);
             stmt.setArray(7, idempotencyTypes != null && !idempotencyTypes.isEmpty() ? connection.createArrayOf("text", idempotencyTypes.toArray(new String[0])) : null);
             stmt.setArray(8, idempotencyTags != null && !idempotencyTags.isEmpty() ? connection.createArrayOf("text", idempotencyTags.toArray(new String[0])) : null);
-            stmt.setTimestamp(9, java.sql.Timestamp.from(clock.now()));
+            stmt.setTimestamp(9, Timestamp.from(clock.now()));
             stmt.setObject(10, CorrelationContext.correlationId());
             stmt.setObject(11, CorrelationContext.causationId());
 
@@ -1106,7 +1107,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 // Create metadata JSON with command type
                 String metadataJson = createCommandMetadata(commandType);
                 stmt.setString(4, metadataJson);
-                stmt.setTimestamp(5, java.sql.Timestamp.from(clock.now()));
+                stmt.setTimestamp(5, Timestamp.from(clock.now()));
 
                 stmt.executeUpdate();
             }

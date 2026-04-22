@@ -3,6 +3,7 @@ package com.crablet.command;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.StreamPosition;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -147,7 +148,7 @@ public sealed interface CommandDecision
      * No-op decision for handlers that detect the operation has already been applied.
      * {@link com.crablet.command.internal.CommandExecutorImpl} skips the append when this is returned.
      */
-    record NoOp(String reason) implements CommandDecision {
+    record NoOp(@Nullable String reason) implements CommandDecision {
         /** Convenience factory when no reason is needed. */
         public static NoOp empty() {
             return new NoOp(null);

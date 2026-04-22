@@ -1,5 +1,6 @@
 package com.crablet.eventpoller.config;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -42,9 +43,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class EventPollerNotificationProperties {
 
     private String channel = "crablet_events";
-    private String jdbcUrl;
-    private String username;
-    private String password;
+    private @org.jspecify.annotations.Nullable String jdbcUrl;
+    private @org.jspecify.annotations.Nullable String username;
+    private @org.jspecify.annotations.Nullable String password;
 
     public String getChannel() {
         return channel;
@@ -54,7 +55,7 @@ public class EventPollerNotificationProperties {
         this.channel = channel;
     }
 
-    public String getJdbcUrl() {
+    public @Nullable String getJdbcUrl() {
         return jdbcUrl;
     }
 
@@ -62,7 +63,7 @@ public class EventPollerNotificationProperties {
         this.jdbcUrl = jdbcUrl;
     }
 
-    public String getUsername() {
+    public @Nullable String getUsername() {
         return username;
     }
 
@@ -70,7 +71,7 @@ public class EventPollerNotificationProperties {
         this.username = username;
     }
 
-    public String getPassword() {
+    public @Nullable String getPassword() {
         return password;
     }
 

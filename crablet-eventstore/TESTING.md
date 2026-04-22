@@ -19,6 +19,10 @@
 
 📖 **Details:** See [sections below](#testing-strategy).
 
+### Integration test database hygiene
+
+PostgreSQL integration tests rely on **Flyway** migrations from `crablet-test-support` (`classpath:db/migration`) plus each module’s `TestApplication` importing `CrabletFlywayConfiguration`. Bases such as `AbstractCrabletTest` (in this module or in `crablet-test-support`) clear data between tests with `TRUNCATE` (and related helpers in `IntegrationTestDbCleanup`) so runs stay isolated without re-running migrations each time.
+
 ## Testing Strategy
 
 Crablet follows a **testing pyramid** approach: start with fast unit tests to validate domain logic, then move to integration tests for DCB concurrency and database behavior.

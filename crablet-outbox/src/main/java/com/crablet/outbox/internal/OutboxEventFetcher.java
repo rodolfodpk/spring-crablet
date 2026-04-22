@@ -6,6 +6,8 @@ import com.crablet.eventpoller.EventSelectionSqlBuilder;
 import com.crablet.outbox.TopicConfig;
 import com.crablet.outbox.config.OutboxConfig;
 
+import org.jspecify.annotations.Nullable;
+
 import javax.sql.DataSource;
 import java.util.Map;
 
@@ -26,7 +28,7 @@ public class OutboxEventFetcher extends AbstractJdbcEventFetcher<TopicPublisherP
     }
 
     @Override
-    protected String buildSqlFilter(TopicPublisherPair processorId) {
+    protected @Nullable String buildSqlFilter(TopicPublisherPair processorId) {
         String topicName = processorId.topic();
         TopicConfig topicConfig = topicConfigs.get(topicName);
 

@@ -1,5 +1,7 @@
 package com.crablet.views.integration;
 
+import com.crablet.test.cleanup.IntegrationTestDbCleanup;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -69,11 +71,8 @@ public abstract class AbstractViewsTest {
     protected void cleanDatabase(JdbcTemplate jdbcTemplate) {
         // Clean all tables in the correct order to respect foreign key constraints
         try {
-            jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
-            jdbcTemplate.execute("TRUNCATE TABLE view_progress CASCADE");
-        } catch (org.springframework.jdbc.BadSqlGrammarException e) {
+            IntegrationTestDbCleanup.truncateViewsIntegrationTables(jdbcTemplate);
+        } catch (BadSqlGrammarException e) {
             // Tables don't exist yet - Flyway will create them
             // This is expected on first run
         } catch (Exception e) {
@@ -98,4 +97,3 @@ public abstract class AbstractViewsTest {
     public record DatabaseProperties(String url, String username, String password) {
     }
 }
-

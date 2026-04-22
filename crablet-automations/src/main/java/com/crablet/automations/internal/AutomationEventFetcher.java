@@ -5,6 +5,8 @@ import com.crablet.automations.AutomationHandler;
 import com.crablet.eventpoller.AbstractJdbcEventFetcher;
 import com.crablet.eventpoller.EventSelectionSqlBuilder;
 
+import org.jspecify.annotations.Nullable;
+
 import javax.sql.DataSource;
 import java.util.HashSet;
 import java.util.Map;
@@ -23,7 +25,7 @@ public class AutomationEventFetcher extends AbstractJdbcEventFetcher<String> {
     }
 
     @Override
-    protected String buildSqlFilter(String automationName) {
+    protected @Nullable String buildSqlFilter(String automationName) {
         AutomationDefinition definition = resolveDefinition(automationName);
         if (definition == null) {
             return null;
@@ -31,7 +33,7 @@ public class AutomationEventFetcher extends AbstractJdbcEventFetcher<String> {
         return EventSelectionSqlBuilder.buildWhereClause(definition);
     }
 
-    private AutomationDefinition resolveDefinition(String automationName) {
+    private @Nullable AutomationDefinition resolveDefinition(String automationName) {
         AutomationHandler handler = handlers.get(automationName);
         if (handler != null) {
             return handler;

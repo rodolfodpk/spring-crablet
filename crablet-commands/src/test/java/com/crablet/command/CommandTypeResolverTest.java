@@ -9,9 +9,9 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.junit.jupiter.api.Test;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CommandTypeResolverTest {
 
@@ -50,7 +50,7 @@ class CommandTypeResolverTest {
             () -> CommandTypeResolver.extractCommandTypeFromHandler(String.class)
         );
 
-        assertTrue(exception.getMessage().contains("does not implement CommandHandler"));
+        assertThat(exception).hasMessageContaining("does not implement CommandHandler");
     }
 
     @Test
@@ -61,6 +61,7 @@ class CommandTypeResolverTest {
         
         class TestHandler implements CommandHandler<TestCommand> {
             @Override
+            @SuppressWarnings("NullAway")
             public CommandDecision handle(com.crablet.eventstore.EventStore eventStore, TestCommand command) {
                 return null;
             }
@@ -72,7 +73,7 @@ class CommandTypeResolverTest {
             () -> CommandTypeResolver.extractCommandTypeFromHandler(TestHandler.class)
         );
 
-        assertTrue(exception.getMessage().contains("@JsonSubTypes hierarchy"));
+        assertThat(exception).hasMessageContaining("@JsonSubTypes hierarchy");
     }
 
     @Test
@@ -92,19 +93,20 @@ class CommandTypeResolverTest {
         
         class HandlerWithoutSubType implements CommandHandler<CommandNotInSubTypes> {
             @Override
+            @SuppressWarnings("NullAway")
             public CommandDecision handle(com.crablet.eventstore.EventStore eventStore, CommandNotInSubTypes command) {
                 return null;
             }
         }
-        
+
         // When & Then
         InvalidCommandException exception = assertThrows(
             InvalidCommandException.class,
             () -> CommandTypeResolver.extractCommandTypeFromHandler(HandlerWithoutSubType.class)
         );
-        
-        assertTrue(exception.getMessage().contains("@JsonSubTypes") || 
-                   exception.getMessage().contains("not found in @JsonSubTypes"));
+
+        assertThat(exception.getMessage()).isNotNull().satisfies(msg ->
+            assertThat(msg.contains("@JsonSubTypes") || msg.contains("not found in @JsonSubTypes")).isTrue());
     }
 
     @Test
@@ -117,6 +119,7 @@ class CommandTypeResolverTest {
         // Concrete handler extending the abstract base class
         class ConcreteHandler extends AbstractBaseHandler<OpenWalletCommand> {
             @Override
+            @SuppressWarnings("NullAway")
             public CommandDecision handle(com.crablet.eventstore.EventStore eventStore, OpenWalletCommand command) {
                 return null;
             }
@@ -141,9 +144,9 @@ class CommandTypeResolverTest {
             InvalidCommandException.class,
             () -> CommandTypeResolver.extractCommandTypeFromHandler(NotAHandler.class)
         );
-        
-        assertTrue(exception.getMessage().contains("CommandHandler<T> not found") ||
-                   exception.getMessage().contains("does not implement CommandHandler"));
+
+        assertThat(exception.getMessage()).isNotNull().satisfies(msg ->
+            assertThat(msg.contains("CommandHandler<T> not found") || msg.contains("does not implement CommandHandler")).isTrue());
     }
     
     @Test
@@ -170,8 +173,8 @@ class CommandTypeResolverTest {
             () -> CommandTypeResolver.extractCommandTypeFromHandler(HandlerWithoutTypeInfo.class)
         );
         
-        assertTrue(exception.getMessage().contains("does not implement CommandHandler"));
-        
+        assertThat(exception).hasMessageContaining("does not implement CommandHandler");
+
         // Note: To actually test lines 95-99, we would need a class that implements CommandHandler
         // but getCommandClassFromHandler can't extract the type. This is very difficult to create
         // because Java's type system prevents such scenarios at compile time.
@@ -184,6 +187,7 @@ class CommandTypeResolverTest {
         
         class MultiInterfaceHandler implements CommandHandler<OpenWalletCommand>, OtherInterface {
             @Override
+            @SuppressWarnings("NullAway")
             public CommandDecision handle(com.crablet.eventstore.EventStore eventStore, OpenWalletCommand command) {
                 return null;
             }
@@ -211,6 +215,7 @@ class CommandTypeResolverTest {
         
         class TestHandler implements CommandHandler<TestCommandClass> {
             @Override
+            @SuppressWarnings("NullAway")
             public CommandDecision handle(com.crablet.eventstore.EventStore eventStore, TestCommandClass command) {
                 return null;
             }
@@ -244,8 +249,8 @@ class CommandTypeResolverTest {
             () -> CommandTypeResolver.extractCommandTypeFromHandler(Integer.class)
         );
         
-        assertTrue(exception.getMessage().contains("does not implement CommandHandler") ||
-                   exception.getMessage().contains("Integer"));
+        assertThat(exception.getMessage()).isNotNull().satisfies(msg ->
+            assertThat(msg.contains("does not implement CommandHandler") || msg.contains("Integer")).isTrue());
     }
 }
 

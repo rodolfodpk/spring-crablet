@@ -1,5 +1,7 @@
 package com.crablet.command;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Result of command execution indicating whether operation was idempotent.
  * <p>
@@ -13,7 +15,7 @@ package com.crablet.command;
  * The reason field provides context for internal components (logging, monitoring, debugging).
  * REST clients only need to check wasCreated() to determine HTTP status code.
  */
-public record ExecutionResult(boolean wasIdempotent, String reason) {
+public record ExecutionResult(boolean wasIdempotent, @Nullable String reason) {
 
     public static ExecutionResult created() {
         return new ExecutionResult(false, null);

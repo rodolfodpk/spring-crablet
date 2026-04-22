@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Integration tests for ChangeCourseCapacityCommandHandler.
  */
 @DisplayName("ChangeCourseCapacityCommandHandler Integration Tests")
-@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
+@SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class ChangeCourseCapacityCommandHandlerTest extends AbstractCrabletTest {
 
     private ChangeCourseCapacityCommandHandler handler;
@@ -100,4 +100,3 @@ class ChangeCourseCapacityCommandHandlerTest extends AbstractCrabletTest {
                 .hasMessageContaining("same as the current capacity");
     }
 }
-

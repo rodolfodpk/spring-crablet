@@ -12,6 +12,7 @@ import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
 import org.junit.jupiter.api.AfterEach;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +40,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     @Autowired
     private javax.sql.DataSource dataSource;
 
-    private JdbcTemplate jdbcTemplate;
+    private @Nullable JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void setUp() {
@@ -74,6 +75,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     }
 
     @Test
+    @SuppressWarnings("NullAway")
     void executeCommand_WithNullCommand_ShouldThrowInvalidCommandException() {
         assertThatThrownBy(() -> commandExecutor.execute(null))
                 .isInstanceOf(InvalidCommandException.class);
@@ -140,6 +142,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     }
 
     @Test
+    @SuppressWarnings("NullAway")
     void executeCommand_WithNullEvents_ShouldThrowInvalidCommandException() {
         // Arrange
         TestCommand command = new TestCommand("test_command", "entity-123");
@@ -321,6 +324,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         assertNotNull(result);
 
         // Verify command stored in database
+        assertNotNull(jdbcTemplate, "jdbcTemplate must be initialized");
         Integer count = jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM commands WHERE type = ?",
             Integer.class,
@@ -360,6 +364,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     }
 
     @Test
+    @SuppressWarnings("NullAway")
     void executeCommand_WithEventHavingNullType_ShouldThrowInvalidCommandException() {
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent eventWithNullType = new AppendEvent(null, Collections.emptyList(), "{}");
@@ -373,6 +378,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     }
 
     @Test
+    @SuppressWarnings("NullAway")
     void executeCommand_WithEventHavingNullTags_ShouldNotThrow() {
         TestCommand command = new TestCommand("test_command", "entity-123");
         AppendEvent eventWithNullTags = new AppendEvent("test_event", null, "{}");

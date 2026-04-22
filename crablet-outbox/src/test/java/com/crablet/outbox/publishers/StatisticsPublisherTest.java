@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
  * Unit tests for StatisticsPublisher.
  * Tests statistics tracking, logging, and edge cases.
  */
+@SuppressWarnings("NullAway")
 @ExtendWith(MockitoExtension.class)
 @DisplayName("StatisticsPublisher Unit Tests")
 class StatisticsPublisherTest {

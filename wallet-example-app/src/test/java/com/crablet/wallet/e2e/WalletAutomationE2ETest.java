@@ -3,6 +3,7 @@ package com.crablet.wallet.e2e;
 import com.crablet.automations.internal.AutomationProcessorConfig;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.wallet.TestApplication;
+import com.crablet.wallet.cleanup.WalletIntegrationTestDbCleanup;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -55,9 +56,7 @@ class WalletAutomationE2ETest extends AbstractWalletE2ETest {
     @Order(1)
     @DisplayName("Should persist correlation and causation metadata across automation chain")
     void shouldPersistCorrelationAndCausationAcrossAutomationChain() {
-        jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE automation_progress CASCADE");
+        WalletIntegrationTestDbCleanup.truncateForWalletAutomationOrCorrelationE2e(jdbcTemplate);
 
         UUID correlationId = UUID.randomUUID();
 
@@ -110,10 +109,7 @@ class WalletAutomationE2ETest extends AbstractWalletE2ETest {
     @Order(2)
     @DisplayName("Should send welcome notification when wallet is opened")
     void shouldSendWelcomeNotificationWhenWalletIsOpened() {
-        // Clean state
-        jdbcTemplate.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE commands CASCADE");
-        jdbcTemplate.execute("TRUNCATE TABLE automation_progress CASCADE");
+        WalletIntegrationTestDbCleanup.truncateForWalletAutomationOrCorrelationE2e(jdbcTemplate);
 
         // Open wallet via HTTP
         webTestClient
