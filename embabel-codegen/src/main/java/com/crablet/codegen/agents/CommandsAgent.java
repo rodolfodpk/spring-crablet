@@ -90,8 +90,8 @@ public class CommandsAgent {
 
     private String describeFields(CommandSpec c) {
         return c.fields().stream()
-                .map(f -> f.name() + ":" + f.type()
-                        + (f.validation().isEmpty() ? "" : "[" + String.join(",", f.validation()) + "]"))
+                .map(f -> f.name() + ":" + f.displayType()
+                        + (f.hasConstraints() ? f.yaviConstraints() : ""))
                 .collect(Collectors.joining(", "));
     }
 }

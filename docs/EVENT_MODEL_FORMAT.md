@@ -37,43 +37,43 @@ events:
     tags: [application_id, customer_id]
     fields:
       - name: applicationId
-        type: String
+        type: string
       - name: customerId
-        type: String
+        type: string
       - name: amount
-        type: int
+        type: integer
       - name: purpose
-        type: String
+        type: string
 
   - name: CreditScoreChecked
     tags: [application_id]
     fields:
       - name: applicationId
-        type: String
+        type: string
       - name: score
-        type: int
+        type: integer
       - name: provider
-        type: String
+        type: string
 
   - name: LoanApplicationApproved
     tags: [application_id]
     fields:
       - name: applicationId
-        type: String
+        type: string
       - name: approvedAmount
-        type: int
+        type: integer
       - name: approvedBy
-        type: String
+        type: string
 
   - name: LoanApplicationRejected
     tags: [application_id]
     fields:
       - name: applicationId
-        type: String
+        type: string
       - name: reason
-        type: String
+        type: string
       - name: rejectedBy
-        type: String
+        type: string
 
 commands:
   - name: SubmitLoanApplication
@@ -81,17 +81,17 @@ commands:
     produces: [LoanApplicationSubmitted]
     fields:
       - name: applicationId
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
       - name: customerId
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
       - name: amount
-        type: int
-        validation: greaterThan(0)
+        type: integer
+        exclusiveMinimum: 0
       - name: purpose
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
 
   - name: RecordCreditScore
     pattern: commutative
@@ -99,42 +99,43 @@ commands:
     guardEvents: [LoanApplicationSubmitted]
     fields:
       - name: applicationId
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
       - name: score
-        type: int
-        validation: between(300, 850)
+        type: integer
+        minimum: 300
+        maximum: 850
       - name: provider
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
 
   - name: ApproveLoanApplication
     pattern: non-commutative
     produces: [LoanApplicationApproved]
     fields:
       - name: applicationId
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
       - name: approvedAmount
-        type: int
-        validation: greaterThan(0)
+        type: integer
+        exclusiveMinimum: 0
       - name: approvedBy
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
 
   - name: RejectLoanApplication
     pattern: non-commutative
     produces: [LoanApplicationRejected]
     fields:
       - name: applicationId
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
       - name: reason
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
       - name: rejectedBy
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
 
 views:
   - name: LoanApplicationReview
@@ -142,28 +143,28 @@ views:
     tag: application_id
     fields:
       - name: applicationId
-        type: String
+        type: string
       - name: customerId
-        type: String
+        type: string
       - name: amount
-        type: int
+        type: integer
       - name: creditScore
-        type: int
+        type: integer
       - name: status
-        type: String
+        type: string
 
   - name: PendingAutoApprovals
     reads: [LoanApplicationSubmitted, CreditScoreChecked, LoanApplicationApproved]
     tag: application_id
     fields:
       - name: applicationId
-        type: String
+        type: string
       - name: amount
-        type: int
+        type: integer
       - name: creditScore
-        type: int
+        type: integer
       - name: status
-        type: String
+        type: string
 
 automations:
   - name: AutoApproveSmallLoans
@@ -184,46 +185,111 @@ outbox:
 
 Fields carry explicit types. The generator should reject unknown types instead of guessing.
 
-Events are facts and do not carry validation rules. Commands represent input and should carry
-validation rules.
+Events are facts and do not carry validation constraints. Commands represent input and should carry
+constraint keywords on fields that need them.
 
-Supported type vocabulary:
+Type vocabulary follows JSON Schema conventions:
 
-| YAML type | Java type | Validation mapping |
-|---|---|---|
-| `String` | `String` | string constraints |
-| `int` | `int` | integer constraints |
-| `long` | `long` | long constraints |
-| `BigDecimal` | `BigDecimal` | decimal constraints |
-| `boolean` | `boolean` | boolean constraints |
-| `UUID` | `UUID` | UUID parsing or pattern constraint |
-| `Instant` | `Instant` | timestamp serialization |
+| YAML type | Java type |
+|---|---|
+| `string` | `String` |
+| `integer` | `int` |
+| `number` | `java.math.BigDecimal` |
+| `boolean` | `boolean` |
+| `long` | `long` |
+| `UUID` | `java.util.UUID` |
+| `Instant` | `java.time.Instant` |
 
 ## Validation
 
-Command fields support a small validation vocabulary that maps to generated Java validation code.
+Command fields use JSON Schema constraint keywords directly on the field.
 
 ```yaml
 fields:
   - name: customerId
-    type: String
-    validation: [notNull, notBlank]
+    type: string
+    minLength: 1
   - name: amount
-    type: int
-    validation: greaterThan(0)
+    type: integer
+    exclusiveMinimum: 0
   - name: score
-    type: int
-    validation: between(300, 850)
+    type: integer
+    minimum: 300
+    maximum: 850
+  - name: description
+    type: string
+    minLength: 1
+    maxLength: 200
 ```
 
-Supported constraints:
+Supported constraint keywords:
 
-| Constraint | Meaning |
+| Keyword | Applies to | Meaning |
+|---|---|---|
+| `minLength: 1` | `string` | must be non-blank |
+| `minLength: N` | `string` | minimum character count |
+| `maxLength: N` | `string` | maximum character count |
+| `minimum: N` | `integer`, `number` | value ≥ N (inclusive) |
+| `exclusiveMinimum: N` | `integer`, `number` | value > N (exclusive) |
+| `maximum: N` | `integer`, `number` | value ≤ N (inclusive) |
+| `exclusiveMaximum: N` | `integer`, `number` | value < N (exclusive) |
+
+These keywords map directly to YAVI validator methods in generated command records.
+
+## Collections
+
+Use `type: array` for lists and `type: map` for string-keyed maps. Both follow JSON Schema
+conventions closely.
+
+**Array field (generates `List<T>`):**
+```yaml
+- name: roles
+  type: array
+  items:
+    type: string
+- name: attachmentIds
+  type: array
+  items:
+    type: UUID
+  minItems: 1
+```
+
+**Map field (generates `Map<String, V>`, keys are always string):**
+```yaml
+- name: metadata
+  type: map
+  additionalProperties:
+    type: string
+```
+
+Collection size constraints:
+
+| Keyword | Meaning |
 |---|---|
-| `notNull` | value must be present |
-| `notBlank` | string must contain non-whitespace content |
-| `greaterThan(n)` | numeric value must be greater than `n` |
-| `between(min, max)` | numeric value must be between `min` and `max` |
+| `minItems: N` | collection must have at least N elements |
+| `maxItems: N` | collection must have at most N elements |
+
+**Java types generated:**
+
+| Field type | Java type |
+|---|---|
+| `array` + `items: {type: string}` | `List<String>` |
+| `array` + `items: {type: integer}` | `List<Integer>` |
+| `array` + `items: {type: UUID}` | `List<java.util.UUID>` |
+| `map` + `additionalProperties: {type: string}` | `Map<String, String>` |
+
+**SQL column types generated for views:**
+
+| Field type | PostgreSQL column |
+|---|---|
+| `array` of `string` | `TEXT[]` |
+| `array` of `integer` | `INTEGER[]` |
+| `array` of `UUID` | `UUID[]` |
+| `map` | `JSONB` |
+
+Events can carry collection fields as facts. Commands can carry collection fields with `minItems`/`maxItems`
+constraints. Per-element constraints are not supported in the model — express them in prose in the
+automation or command handler description if needed.
 
 ## Shared Schemas
 
@@ -232,32 +298,38 @@ Commands inherit fields and add validation.
 
 ```yaml
 schemas:
-  - name: LoanApplicationData
+  - name: MoneyAmount
     fields:
-      - name: applicationId
-        type: String
-      - name: customerId
-        type: String
       - name: amount
-        type: int
-      - name: purpose
-        type: String
+        type: integer
+        exclusiveMinimum: 0
+      - name: description
+        type: string
+        minLength: 1
 
 events:
-  - name: LoanApplicationSubmitted
-    tags: [application_id, customer_id]
-    schema: LoanApplicationData
+  - name: DepositMade
+    tags: [wallet_id, deposit_id]
+    fields:
+      - name: depositId
+        type: string
+      - name: walletId
+        type: string
+    schema: MoneyAmount
 
 commands:
-  - name: SubmitLoanApplication
-    pattern: idempotent
-    produces: [LoanApplicationSubmitted]
-    schema: LoanApplicationData
-    validation:
-      applicationId: [notNull, notBlank]
-      customerId: [notNull, notBlank]
-      amount: greaterThan(0)
-      purpose: [notNull, notBlank]
+  - name: Deposit
+    pattern: commutative
+    produces: [DepositMade]
+    guardEvents: [WalletOpened]
+    fields:
+      - name: depositId
+        type: string
+        minLength: 1
+      - name: walletId
+        type: string
+        minLength: 1
+    schema: MoneyAmount
 ```
 
 Schema references should be resolved before generation. Agents and templates should receive fully
@@ -281,8 +353,7 @@ Each command needs:
 - `name`: Java command record name
 - `pattern`: DCB command pattern
 - `produces`: event types the command can append
-- `fields` or `schema`: command input shape
-- `validation`: input constraints, either per field or by inherited schema field
+- `fields` or `schema`: command input shape with JSON Schema constraint keywords
 
 Supported command patterns:
 

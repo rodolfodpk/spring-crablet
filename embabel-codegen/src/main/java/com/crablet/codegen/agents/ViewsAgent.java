@@ -98,14 +98,23 @@ public class ViewsAgent {
     }
 
     private String sqlType(FieldSpec f) {
+        if ("array".equals(f.type())) {
+            return switch (f.items() != null ? f.items().type() : "string") {
+                case "integer", "int" -> "INTEGER[]";
+                case "long"           -> "BIGINT[]";
+                case "UUID"           -> "UUID[]";
+                default               -> "TEXT[]";
+            };
+        }
+        if ("map".equals(f.type())) return "JSONB";
         return switch (f.type()) {
-            case "int" -> "INTEGER";
-            case "long" -> "BIGINT";
-            case "boolean" -> "BOOLEAN";
-            case "BigDecimal" -> "NUMERIC(19,4)";
-            case "UUID" -> "UUID";
-            case "Instant" -> "TIMESTAMP WITH TIME ZONE";
-            default -> "TEXT";
+            case "integer", "int" -> "INTEGER";
+            case "long"           -> "BIGINT";
+            case "boolean"        -> "BOOLEAN";
+            case "number", "BigDecimal" -> "NUMERIC(19,4)";
+            case "UUID"           -> "UUID";
+            case "Instant"        -> "TIMESTAMP WITH TIME ZONE";
+            default               -> "TEXT";
         };
     }
 }

@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=./event-model-schema.json
 domain: LoanApplication
 basePackage: com.example.loan
 
@@ -6,13 +7,13 @@ events:
     tags: [application_id, customer_id]
     fields:
       - name: applicationId
-        type: String
+        type: string
       - name: customerId
-        type: String
+        type: string
       - name: requestedAmount
-        type: int
+        type: integer
       - name: purpose
-        type: String
+        type: string
       - name: submittedAt
         type: Instant
 
@@ -22,17 +23,17 @@ commands:
     produces: [LoanApplicationSubmitted]
     fields:
       - name: applicationId
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
       - name: customerId
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
       - name: requestedAmount
-        type: int
-        validation: greaterThan(0)
+        type: integer
+        exclusiveMinimum: 0
       - name: purpose
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
 
 views:
   - name: PendingLoanApplications
@@ -40,15 +41,15 @@ views:
     tag: application_id
     fields:
       - name: applicationId
-        type: String
+        type: string
       - name: customerId
-        type: String
+        type: string
       - name: requestedAmount
-        type: int
+        type: integer
       - name: purpose
-        type: String
+        type: string
       - name: status
-        type: String
+        type: string
       - name: submittedAt
         type: Instant
 

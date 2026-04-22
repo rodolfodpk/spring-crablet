@@ -77,7 +77,7 @@ public class EventsAgent {
 
     private String describeFields(EventSpec e) {
         return e.fields().stream()
-                .map(f -> f.name() + ":" + f.type())
+                .map(f -> f.name() + ":" + f.displayType())
                 .collect(Collectors.joining(", "));
     }
 }

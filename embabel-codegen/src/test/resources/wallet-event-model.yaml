@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../docs/examples/event-model-schema.json
 domain: Wallet
 basePackage: com.example.wallet
 
@@ -5,22 +6,22 @@ schemas:
   - name: MoneyAmount
     fields:
       - name: amount
-        type: int
-        validation: greaterThan(0)
+        type: integer
+        exclusiveMinimum: 0
       - name: description
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
 
 events:
   - name: WalletOpened
     tags: [wallet_id]
     fields:
       - name: walletId
-        type: String
+        type: string
       - name: owner
-        type: String
+        type: string
       - name: initialBalance
-        type: int
+        type: integer
       - name: openedAt
         type: Instant
 
@@ -28,53 +29,53 @@ events:
     tags: [wallet_id, deposit_id]
     fields:
       - name: depositId
-        type: String
+        type: string
       - name: walletId
-        type: String
+        type: string
       - name: amount
-        type: int
+        type: integer
       - name: newBalance
-        type: int
+        type: integer
       - name: depositedAt
         type: Instant
       - name: description
-        type: String
+        type: string
 
   - name: WithdrawalMade
     tags: [wallet_id, withdrawal_id]
     fields:
       - name: withdrawalId
-        type: String
+        type: string
       - name: walletId
-        type: String
+        type: string
       - name: amount
-        type: int
+        type: integer
       - name: newBalance
-        type: int
+        type: integer
       - name: withdrawnAt
         type: Instant
       - name: description
-        type: String
+        type: string
 
   - name: MoneyTransferred
     tags: [from_wallet_id, to_wallet_id, transfer_id]
     fields:
       - name: transferId
-        type: String
+        type: string
       - name: fromWalletId
-        type: String
+        type: string
       - name: toWalletId
-        type: String
+        type: string
       - name: amount
-        type: int
+        type: integer
       - name: fromBalance
-        type: int
+        type: integer
       - name: toBalance
-        type: int
+        type: integer
       - name: transferredAt
         type: Instant
       - name: description
-        type: String
+        type: string
 
 commands:
   - name: OpenWallet
@@ -82,14 +83,14 @@ commands:
     produces: [WalletOpened]
     fields:
       - name: walletId
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
       - name: owner
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
       - name: initialBalance
-        type: int
-        validation: greaterThanOrEqual(0)
+        type: integer
+        minimum: 0
 
   - name: Deposit
     pattern: commutative
@@ -98,11 +99,11 @@ commands:
     schema: MoneyAmount
     fields:
       - name: depositId
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
       - name: walletId
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
 
   - name: Withdraw
     pattern: non-commutative
@@ -110,11 +111,11 @@ commands:
     schema: MoneyAmount
     fields:
       - name: withdrawalId
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
       - name: walletId
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
 
   - name: TransferMoney
     pattern: non-commutative
@@ -122,14 +123,14 @@ commands:
     schema: MoneyAmount
     fields:
       - name: transferId
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
       - name: fromWalletId
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
       - name: toWalletId
-        type: String
-        validation: [notNull, notBlank]
+        type: string
+        minLength: 1
 
 views:
   - name: WalletBalance
@@ -137,11 +138,11 @@ views:
     tag: wallet_id
     fields:
       - name: walletId
-        type: String
+        type: string
       - name: owner
-        type: String
+        type: string
       - name: balance
-        type: int
+        type: integer
       - name: lastUpdatedAt
         type: Instant
 

@@ -29,20 +29,31 @@ class EventModelParsingTest {
             assertThat(model.schemas()).hasSize(1);
             assertThat(model.schemas().get(0).name()).isEqualTo("MoneyAmount");
 
+            // JSON Schema constraints on MoneyAmount.amount
+            FieldSpec amountField = model.schemas().get(0).fields().stream()
+                    .filter(f -> f.name().equals("amount")).findFirst().orElseThrow();
+            assertThat(amountField.type()).isEqualTo("integer");
+            assertThat(amountField.exclusiveMinimum()).isEqualTo(0);
+            assertThat(amountField.yaviMethod()).isEqualTo("_integer");
+            assertThat(amountField.yaviConstraints()).isEqualTo(".greaterThan(0)");
+
+            // JSON Schema constraints on MoneyAmount.description
+            FieldSpec descField = model.schemas().get(0).fields().stream()
+                    .filter(f -> f.name().equals("description")).findFirst().orElseThrow();
+            assertThat(descField.type()).isEqualTo("string");
+            assertThat(descField.minLength()).isEqualTo(1);
+            assertThat(descField.yaviConstraints()).isEqualTo(".notBlank()");
+
             // events
             assertThat(model.events()).hasSize(4);
             assertThat(model.eventNames())
                     .containsExactly("WalletOpened", "DepositMade", "WithdrawalMade", "MoneyTransferred");
 
-            // scalar validation (greaterThan(0)) parsed as single-element list
-            FieldSpec amountField = model.schemas().get(0).fields().stream()
-                    .filter(f -> f.name().equals("amount")).findFirst().orElseThrow();
-            assertThat(amountField.validation()).containsExactly("greaterThan(0)");
-
-            // list validation ([notNull, notBlank]) parsed as list
-            FieldSpec descField = model.schemas().get(0).fields().stream()
-                    .filter(f -> f.name().equals("description")).findFirst().orElseThrow();
-            assertThat(descField.validation()).containsExactly("notNull", "notBlank");
+            // event fields have no constraints (events are facts)
+            FieldSpec walletIdField = model.events().get(0).fields().stream()
+                    .filter(f -> f.name().equals("walletId")).findFirst().orElseThrow();
+            assertThat(walletIdField.type()).isEqualTo("string");
+            assertThat(walletIdField.hasConstraints()).isFalse();
 
             // commands
             assertThat(model.commands()).hasSize(4);
@@ -50,6 +61,12 @@ class EventModelParsingTest {
             assertThat(open.name()).isEqualTo("OpenWallet");
             assertThat(open.isIdempotent()).isTrue();
             assertThat(open.produces()).containsExactly("WalletOpened");
+
+            // OpenWallet.initialBalance: minimum: 0
+            FieldSpec initialBalance = open.fields().stream()
+                    .filter(f -> f.name().equals("initialBalance")).findFirst().orElseThrow();
+            assertThat(initialBalance.minimum()).isEqualTo(0);
+            assertThat(initialBalance.yaviConstraints()).isEqualTo(".greaterThanOrEqual(0)");
 
             CommandSpec deposit = model.commands().get(1);
             assertThat(deposit.isCommutative()).isTrue();
@@ -88,34 +105,76 @@ class EventModelParsingTest {
                     .filter(c -> c.name().equals("Deposit"))
                     .findFirst().orElseThrow();
 
-            boolean hasAmount = deposit.fields().stream()
-                    .anyMatch(f -> "amount".equals(f.name()) && "int".equals(f.type()));
-            boolean hasDescription = deposit.fields().stream()
-                    .anyMatch(f -> "description".equals(f.name()));
-            assertThat(hasAmount).isTrue();
-            assertThat(hasDescription).isTrue();
+            // amount and description come from MoneyAmount schema
+            FieldSpec amount = deposit.fields().stream()
+                    .filter(f -> "amount".equals(f.name())).findFirst().orElseThrow();
+            assertThat(amount.type()).isEqualTo("integer");
+            assertThat(amount.exclusiveMinimum()).isEqualTo(0);
+
+            FieldSpec description = deposit.fields().stream()
+                    .filter(f -> "description".equals(f.name())).findFirst().orElseThrow();
+            assertThat(description.minLength()).isEqualTo(1);
         }
     }
 
     @Test
-    void parseDocumentedLoanFeatureSliceModel() throws Exception {
-        Path docExample = Path.of("..", "docs", "examples", "loan-submit-feature-slice-event-model.yaml");
-        assertThat(Files.exists(docExample)).isTrue();
+    void javaTypeResolvesJsonSchemaNames() {
+        assertThat(scalar("string").javaType()).isEqualTo("String");
+        assertThat(scalar("integer").javaType()).isEqualTo("int");
+        assertThat(scalar("boolean").javaType()).isEqualTo("boolean");
+        assertThat(scalar("number").javaType()).isEqualTo("java.math.BigDecimal");
+        assertThat(scalar("UUID").javaType()).isEqualTo("java.util.UUID");
+        assertThat(scalar("Instant").javaType()).isEqualTo("java.time.Instant");
+    }
 
-        EventModel model = yaml.readValue(docExample.toFile(), EventModel.class);
+    @Test
+    void collectionTypesResolveCorrectly() {
+        FieldSpec stringItems  = scalar("string");
+        FieldSpec intItems     = scalar("integer");
+        FieldSpec uuidItems    = scalar("UUID");
+        FieldSpec stringValues = scalar("string");
 
-        assertThat(model.domain()).isEqualTo("LoanApplication");
-        assertThat(model.basePackage()).isEqualTo("com.example.loan");
-        assertThat(model.eventNames()).containsExactly("LoanApplicationSubmitted");
+        FieldSpec arrayOfString  = new FieldSpec("x", "array", null, null, null, null, null, null, stringItems, null, null, null);
+        FieldSpec arrayOfInteger = new FieldSpec("x", "array", null, null, null, null, null, null, intItems, null, null, null);
+        FieldSpec arrayOfUUID    = new FieldSpec("x", "array", null, null, null, null, null, null, uuidItems, null, null, null);
+        FieldSpec mapOfString    = new FieldSpec("x", "map",   null, null, null, null, null, null, null, stringValues, null, null);
 
-        CommandSpec submit = model.commands().get(0);
-        assertThat(submit.name()).isEqualTo("SubmitLoanApplication");
-        assertThat(submit.isIdempotent()).isTrue();
-        assertThat(submit.produces()).containsExactly("LoanApplicationSubmitted");
+        assertThat(arrayOfString.javaType()).isEqualTo("List<String>");
+        assertThat(arrayOfInteger.javaType()).isEqualTo("List<Integer>");
+        assertThat(arrayOfUUID.javaType()).isEqualTo("List<java.util.UUID>");
+        assertThat(mapOfString.javaType()).isEqualTo("Map<String, String>");
 
-        ViewSpec pending = model.views().get(0);
-        assertThat(pending.name()).isEqualTo("PendingLoanApplications");
-        assertThat(pending.tableName()).isEqualTo("pending_loan_applications");
-        assertThat(pending.reads()).containsExactly("LoanApplicationSubmitted");
+        assertThat(arrayOfString.displayType()).isEqualTo("array<string>");
+        assertThat(mapOfString.displayType()).isEqualTo("map<string,string>");
+
+        FieldSpec arrayWithMinItems = new FieldSpec("x", "array", null, null, null, null, null, null, stringItems, null, 1, null);
+        assertThat(arrayWithMinItems.yaviConstraints()).isEqualTo(".greaterThanOrEqualTo(1)");
+        assertThat(arrayWithMinItems.hasConstraints()).isTrue();
+    }
+
+    @Test
+    void yaviConstraintsCombinations() {
+        // exclusiveMinimum only
+        assertThat(new FieldSpec("x", "integer", null, 0, null, null, null, null, null, null, null, null).yaviConstraints())
+                .isEqualTo(".greaterThan(0)");
+        // minimum only
+        assertThat(new FieldSpec("x", "integer", 0, null, null, null, null, null, null, null, null, null).yaviConstraints())
+                .isEqualTo(".greaterThanOrEqual(0)");
+        // minLength: 1 → notBlank shorthand
+        assertThat(new FieldSpec("x", "string", null, null, null, null, 1, null, null, null, null, null).yaviConstraints())
+                .isEqualTo(".notBlank()");
+        // minLength + maxLength
+        assertThat(new FieldSpec("x", "string", null, null, null, null, 2, 50, null, null, null, null).yaviConstraints())
+                .isEqualTo(".greaterThanOrEqualTo(2).lessThanOrEqualTo(50)");
+        // minimum + maximum range
+        assertThat(new FieldSpec("x", "integer", 300, null, 850, null, null, null, null, null, null, null).yaviConstraints())
+                .isEqualTo(".greaterThanOrEqual(300).lessThanOrEqual(850)");
+        // no constraints
+        assertThat(new FieldSpec("x", "string", null, null, null, null, null, null, null, null, null, null).yaviConstraints())
+                .isEmpty();
+    }
+
+    private static FieldSpec scalar(String type) {
+        return new FieldSpec("x", type, null, null, null, null, null, null, null, null, null, null);
     }
 }

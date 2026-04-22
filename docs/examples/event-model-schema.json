@@ -1,0 +1,273 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/crablet/spring-crablet/docs/examples/event-model-schema.json",
+  "title": "EventModel",
+  "description": "Schema for spring-crablet event-model.yaml files",
+  "type": "object",
+  "required": ["domain", "basePackage"],
+  "additionalProperties": false,
+  "properties": {
+    "domain": {
+      "type": "string",
+      "description": "PascalCase domain name (e.g. Wallet, LoanApplication)"
+    },
+    "basePackage": {
+      "type": "string",
+      "description": "Java base package (e.g. com.example.wallet)",
+      "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)*$"
+    },
+    "schemas": {
+      "type": "array",
+      "description": "Reusable field groups shared across events and commands",
+      "items": { "$ref": "#/$defs/SchemaSpec" },
+      "default": []
+    },
+    "events": {
+      "type": "array",
+      "description": "Domain events (facts that have occurred)",
+      "items": { "$ref": "#/$defs/EventSpec" },
+      "default": []
+    },
+    "commands": {
+      "type": "array",
+      "description": "Commands that cause events to be appended",
+      "items": { "$ref": "#/$defs/CommandSpec" },
+      "default": []
+    },
+    "views": {
+      "type": "array",
+      "description": "Materialized read models updated by events",
+      "items": { "$ref": "#/$defs/ViewSpec" },
+      "default": []
+    },
+    "automations": {
+      "type": "array",
+      "description": "Event-driven policies that emit commands",
+      "items": { "$ref": "#/$defs/AutomationSpec" },
+      "default": []
+    },
+    "outbox": {
+      "type": "array",
+      "description": "Integration publishers for external event delivery",
+      "items": { "$ref": "#/$defs/OutboxSpec" },
+      "default": []
+    }
+  },
+  "$defs": {
+    "FieldType": {
+      "type": "string",
+      "description": "JSON Schema type name or Crablet-specific type",
+      "enum": ["string", "integer", "number", "boolean", "long", "UUID", "Instant", "array", "map"]
+    },
+    "FieldSpec": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "camelCase field name"
+        },
+        "type": {
+          "$ref": "#/$defs/FieldType",
+          "default": "string"
+        },
+        "minimum": {
+          "type": "integer",
+          "description": "Inclusive lower bound for integer/number fields"
+        },
+        "exclusiveMinimum": {
+          "type": "integer",
+          "description": "Exclusive lower bound for integer/number fields"
+        },
+        "maximum": {
+          "type": "integer",
+          "description": "Inclusive upper bound for integer/number fields"
+        },
+        "exclusiveMaximum": {
+          "type": "integer",
+          "description": "Exclusive upper bound for integer/number fields"
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum string length (minLength: 1 means non-blank)"
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum string length"
+        },
+        "items": {
+          "$ref": "#/$defs/FieldSpec",
+          "description": "Element type for array fields (type: array)"
+        },
+        "additionalProperties": {
+          "$ref": "#/$defs/FieldSpec",
+          "description": "Value type for map fields (type: map, keys are always string)"
+        },
+        "minItems": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum number of elements in an array or map"
+        },
+        "maxItems": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum number of elements in an array or map"
+        }
+      }
+    },
+    "SchemaSpec": {
+      "type": "object",
+      "required": ["name", "fields"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "PascalCase schema name"
+        },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/FieldSpec" }
+        }
+      }
+    },
+    "EventSpec": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "PascalCase event name (past-tense verb phrase)"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "snake_case tag keys used for event-store filtering and DCB boundaries"
+        },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/FieldSpec" },
+          "description": "Event payload fields (no constraint keywords — events are facts)"
+        },
+        "schema": {
+          "type": "string",
+          "description": "Reference to a named schema to inline its fields"
+        }
+      }
+    },
+    "CommandSpec": {
+      "type": "object",
+      "required": ["name", "pattern", "produces"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "PascalCase command name (imperative verb phrase)"
+        },
+        "pattern": {
+          "type": "string",
+          "enum": ["idempotent", "commutative", "non-commutative"],
+          "description": "DCB append pattern"
+        },
+        "produces": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Event type names this command can append"
+        },
+        "guardEvents": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Lifecycle events used for commutative guard (entity must exist)"
+        },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/FieldSpec" },
+          "description": "Command input fields with optional JSON Schema constraint keywords"
+        },
+        "schema": {
+          "type": "string",
+          "description": "Reference to a named schema to inline its fields (with constraints)"
+        }
+      }
+    },
+    "ViewSpec": {
+      "type": "object",
+      "required": ["name", "reads", "tag"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "PascalCase view name"
+        },
+        "reads": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Event type names that update this view"
+        },
+        "tag": {
+          "type": "string",
+          "description": "snake_case tag key used to route events to the correct view row"
+        },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/FieldSpec" },
+          "description": "Projected table columns"
+        }
+      }
+    },
+    "AutomationSpec": {
+      "type": "object",
+      "required": ["name", "triggeredBy", "emitsCommand"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "kebab-case automation handler name"
+        },
+        "triggeredBy": {
+          "type": "string",
+          "description": "Event type name that triggers the automation decision"
+        },
+        "emitsCommand": {
+          "type": "string",
+          "description": "Command type name to emit when the condition passes"
+        },
+        "condition": {
+          "type": "string",
+          "description": "Explicit condition expression evaluated against the trigger event and optional view row"
+        },
+        "readsView": {
+          "type": "string",
+          "description": "View name to read when the condition depends on accumulated state"
+        }
+      }
+    },
+    "OutboxSpec": {
+      "type": "object",
+      "required": ["name", "topic", "handles"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "PascalCase publisher name"
+        },
+        "topic": {
+          "type": "string",
+          "description": "Outbox topic name"
+        },
+        "handles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Event type names this publisher can deliver"
+        },
+        "adapter": {
+          "type": "string",
+          "description": "Integration adapter type (smtp, kafka, http, etc.)"
+        }
+      }
+    }
+  }
+}
