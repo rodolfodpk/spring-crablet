@@ -37,6 +37,61 @@ java -jar embabel-codegen/target/embabel-codegen.jar init \
 For a brownfield app, skip `init` and point `generate --output` at the existing
 `src/main/java` root.
 
+## Practical Walkthrough
+
+For a loan application service, start with one feature: a customer submits an application and
+reviewers can see it in a pending queue.
+
+The developer dialogue should stay outcome-oriented:
+
+```text
+I want to add the Submit Loan Application slice.
+
+Outcome:
+- a customer submits a loan application
+- Crablet records LoanApplicationSubmitted
+- reviewers can query pending applications
+
+Model this as one Crablet slice.
+Ask for missing facts before changing event-model.yaml.
+```
+
+The assistant should turn that into explicit model facts:
+
+| Model fact | Example value |
+|---|---|
+| Command | `SubmitLoanApplication` |
+| Event | `LoanApplicationSubmitted` |
+| Command pattern | `idempotent` |
+| Tags | `application_id`, `customer_id` |
+| Required fields | `applicationId`, `customerId`, `requestedAmount`, `purpose` |
+| Validation | non-blank IDs and purpose, `requestedAmount > 0` |
+| Read model | `PendingLoanApplications` |
+
+Before writing files, ask for a model review:
+
+```text
+Review the proposed event-model.yaml.
+Does embabel-codegen have enough information to generate the command, event,
+handler decision state, view projector, and migration without guessing?
+```
+
+Then ask for the plan:
+
+```bash
+java -jar embabel-codegen/target/embabel-codegen.jar plan \
+  --model event-model.yaml
+```
+
+For this slice, the plan should name the event hierarchy, submit command, command handler,
+state projector, query patterns, pending-applications projector, and Flyway migration.
+
+Only after that plan looks right should you run `generate`. The intended loop is:
+
+```text
+model -> review -> plan -> generate -> verify -> refine the model
+```
+
 ## Dialogue Shape
 
 Use the assistant to keep the slice explicit before generating code.
