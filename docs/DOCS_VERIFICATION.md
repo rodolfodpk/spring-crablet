@@ -13,6 +13,12 @@ make docs-compile-check
 make docs-generate-check
 ```
 
+For AI-first codegen documentation and fixture verification:
+
+```bash
+make codegen-check
+```
+
 It currently validates:
 
 - relative markdown links resolve to real files
@@ -20,6 +26,12 @@ It currently validates:
 - outdated wording such as `2 instances at most` does not reappear in the main onboarding docs
 - early tutorials include explicit `EventType.type(...)` import context
 - the outbox tutorial matches the current `OutboxPublisher` API shape
+
+`codegen-check` separately verifies:
+
+- `embabel-codegen` model parsing, artifact planning, and MCP tool tests
+- the documented loan feature-slice event model parses as a real `EventModel`
+- the planner smoke command prints expected generated artifacts without calling Anthropic
 
 ## Why This Exists
 

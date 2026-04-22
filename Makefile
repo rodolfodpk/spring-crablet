@@ -11,7 +11,7 @@
 # wallet-example-app is built separately after the reactor is installed.
 # See BUILD.md for full explanation.
 
-.PHONY: help install install-all-tests ci-verify build-all compile package test test-skip clean verify build-core build-shared build-reactor build-reactor-verify start wallet-dev docs-check docs-compile-check docs-generate docs-generate-check
+.PHONY: help install install-all-tests ci-verify build-all compile package test test-skip clean verify build-core build-shared build-reactor build-reactor-verify start wallet-dev docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check
 
 # Default target
 help:
@@ -48,6 +48,12 @@ help:
 	@echo "  wallet-dev  - Start wallet development environment (alias for start)"
 	@echo ""
 	@echo "Note: wallet-example-app is a Spring Boot application - use 'mvn spring-boot:run' in wallet-example-app directory"
+	@echo ""
+	@echo "Codegen Commands (run after 'make install'):"
+	@echo "  codegen-build   - Build embabel-codegen fat JAR (embabel-codegen/target/embabel-codegen.jar)"
+	@echo "  codegen-install - Build and install embabel-codegen to local Maven repo"
+	@echo "  codegen-plan-example - Print planned artifacts for the documented loan feature slice"
+	@echo "  codegen-check   - Run embabel-codegen tests and planner smoke check"
 
 # Main build command - handles cyclic dependency automatically
 # Note: Uses 'install' which runs unit tests but not integration tests
@@ -165,3 +171,23 @@ start:
 
 wallet-dev:
 	cd wallet-example-app && ../mvnw spring-boot:run
+
+# Codegen — excluded from reactor, build separately after 'make install'
+codegen-build:
+	@echo "Building embabel-codegen fat JAR..."
+	@cd embabel-codegen && ../mvnw package -DskipTests
+	@echo "✓ JAR: embabel-codegen/target/embabel-codegen.jar"
+
+codegen-install:
+	@echo "Installing embabel-codegen to local Maven repo..."
+	@cd embabel-codegen && ../mvnw install -DskipTests
+	@echo "✓ embabel-codegen installed"
+
+codegen-plan-example: codegen-build
+	@echo "Planning documented loan feature slice..."
+	@cd embabel-codegen && java -jar target/embabel-codegen.jar plan --model ../docs/examples/loan-submit-feature-slice-event-model.yaml
+
+codegen-check:
+	@echo "Running embabel-codegen tests..."
+	@cd embabel-codegen && ../mvnw test
+	@$(MAKE) codegen-plan-example
