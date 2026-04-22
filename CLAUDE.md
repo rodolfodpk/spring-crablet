@@ -290,6 +290,7 @@ These decisions reflect the current repository state and should be treated as th
 - `AutomationHandler` is the single public automation contract.
 - Automations return `AutomationDecision` values through `AutomationHandler.decide()`.
 - External event publication, including HTTP webhooks, belongs in `crablet-outbox`.
+- Automations should decide what command/reaction should happen; they should not own outbox writes or depend on outbox internals. If an automation result needs reliable external publication, hand off the intent at an application/orchestration boundary and let `crablet-outbox` handle delivery.
 - `AutomationSubscription` has been removed.
 - `crablet-event-poller` now owns the shared matching and per-instance override abstractions:
   - `EventSelection`
