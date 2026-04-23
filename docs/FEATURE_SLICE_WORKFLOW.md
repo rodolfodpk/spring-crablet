@@ -48,7 +48,7 @@ reviewers can see it in a pending queue.
 
 ### Classic Event Modeling View
 
-This same slice can be shown as a classic Event Modeling sticky-note board:
+This same slice can be shown as an illustrative Event Modeling sticky-note board:
 
 ![Submit Loan Application event modeling board](assets/loan-submit-event-modeling-board.svg)
 
@@ -59,8 +59,9 @@ The board intentionally stops at the `View` lane. For this first sample, the sli
 - one stored fact: `LoanApplicationSubmitted`
 - one reviewer query model: `PendingLoanApplications`
 
-That keeps the example aligned with the documented sample model. Automation and translation become
-useful on later slices, such as auto-approval rules or outbound notifications.
+That keeps the example aligned with the documented sample model. The board is intentionally scoped
+to the first slice only. Automation and translation become useful on later slices, such as
+auto-approval rules or outbound notifications.
 
 ### Reactive Slice View
 
