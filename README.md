@@ -156,7 +156,7 @@ Read more in [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) and [
 |-------|-------|
 | Start | [AI-First Workflow](docs/AI_FIRST_WORKFLOW.md), [Feature Slice Workflow](docs/FEATURE_SLICE_WORKFLOW.md), [Event Model Format](docs/EVENT_MODEL_FORMAT.md), [Quickstart](docs/QUICKSTART.md), [Create A New Crablet App Manually](docs/CREATE_A_CRABLET_APP.md), [Tutorial](docs/TUTORIAL.md), [Learning Mode](docs/LEARNING_MODE.md) |
 | Architecture | [Deployment Topology](docs/DEPLOYMENT_TOPOLOGY.md), [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md), [Command Patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md) |
-| Operations | [Management API](docs/MANAGEMENT_API.md), [Leader Election](docs/LEADER_ELECTION.md), [Build](docs/BUILD.md), [Performance](docs/PERFORMANCE.md), [Troubleshooting](docs/TROUBLESHOOTING.md) |
+| Operations | [Management API](docs/MANAGEMENT_API.md), [Fault Recovery](docs/FAULT_RECOVERY.md), [Leader Election](docs/LEADER_ELECTION.md), [Build](docs/BUILD.md), [Performance](docs/PERFORMANCE.md), [Troubleshooting](docs/TROUBLESHOOTING.md), [Upgrade Guide](docs/UPGRADE.md) |
 | Database and proxies | [Connection Poolers](crablet-eventstore/docs/CONNECTION_POOLERS.md) (PgBouncer, PgCat, OJP) |
 
 ## License

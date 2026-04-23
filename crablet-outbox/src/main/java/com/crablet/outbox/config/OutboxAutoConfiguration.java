@@ -12,6 +12,7 @@ import com.crablet.eventpoller.internal.sharedfetch.ProcessorScanProgressReposit
 import com.crablet.eventpoller.internal.sharedfetch.SharedFetchModuleProcessor;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.management.ProcessorManagementService;
+import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSource;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
 import com.crablet.outbox.management.OutboxManagementService;
@@ -182,6 +183,7 @@ public class OutboxAutoConfiguration {
             OutboxConfig outboxConfig,
             WriteDataSource writeDataSource,
             ReadDataSource readDataSource,
+            ClockProvider clockProvider,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher) {
 
@@ -207,7 +209,9 @@ public class OutboxAutoConfiguration {
                 outboxConfig.getFetchBatchSize(),
                 taskScheduler,
                 eventPublisher,
-                TopicPublisherPair::toKey);
+                TopicPublisherPair::toKey,
+                new NoopProcessorWakeupSource(),
+                clockProvider);
     }
     
     /**

@@ -10,12 +10,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 @DisplayName("OutboxPublishingServiceImpl Unit Tests")
@@ -51,6 +53,22 @@ class OutboxPublishingServiceImplTest {
         assertThat(publisher.calls.get(2)).containsExactly(events.get(2));
     }
 
+    @Test
+    @DisplayName("Should stop individual publishing at first publisher failure")
+    void shouldStopIndividualPublishing_AtFirstPublisherFailure() {
+        FailingIndividualPublisher publisher = new FailingIndividualPublisher("individual", 2);
+        OutboxPublishingServiceImpl service = serviceFor(publisher);
+        List<StoredEvent> events = List.of(event(1), event(2), event(3));
+
+        assertThatThrownBy(() -> service.publish("wallet", "individual", events))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to publish events");
+
+        assertThat(publisher.calls).hasSize(2);
+        assertThat(publisher.calls.get(0)).containsExactly(events.get(0));
+        assertThat(publisher.calls.get(1)).containsExactly(events.get(1));
+    }
+
     private static OutboxPublishingServiceImpl serviceFor(OutboxPublisher publisher) {
         return new OutboxPublishingServiceImpl(
                 Map.of(publisher.getName(), publisher),
@@ -64,7 +82,7 @@ class OutboxPublishingServiceImplTest {
         return new StoredEvent(
                 "WalletOpened",
                 List.of(),
-                "{}".getBytes(),
+                "{}".getBytes(StandardCharsets.UTF_8),
                 "tx-" + position,
                 position,
                 Instant.parse("2026-01-01T00:00:00Z"));
@@ -98,6 +116,40 @@ class OutboxPublishingServiceImplTest {
         @Override
         public PublishMode getPreferredMode() {
             return mode;
+        }
+    }
+
+    private static final class FailingIndividualPublisher implements OutboxPublisher {
+        private final String name;
+        private final int failOnCall;
+        private final List<List<StoredEvent>> calls = new ArrayList<>();
+
+        private FailingIndividualPublisher(String name, int failOnCall) {
+            this.name = name;
+            this.failOnCall = failOnCall;
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public void publishBatch(List<StoredEvent> events) throws PublishException {
+            calls.add(List.copyOf(events));
+            if (calls.size() == failOnCall) {
+                throw new PublishException("downstream unavailable");
+            }
+        }
+
+        @Override
+        public boolean isHealthy() {
+            return true;
+        }
+
+        @Override
+        public PublishMode getPreferredMode() {
+            return PublishMode.INDIVIDUAL;
         }
     }
 }

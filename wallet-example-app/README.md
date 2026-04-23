@@ -380,6 +380,8 @@ In the current example, `WalletOpenedAutomation` is an `AutomationHandler` that 
 The outbox processor publishes every appended event to a registered `OutboxPublisher`.
 In this app, `LogPublisher` (from `crablet-outbox`) forwards each event to SLF4J —
 useful for observing what is forwarded and as a template for real integrations.
+The app also includes `WalletWebhookPublisher`, a concrete HTTP webhook publisher you can enable
+when you want to deliver wallet events to another service.
 
 ```
 Event appended to event store
@@ -391,6 +393,18 @@ Event appended to event store
 To use a real integration (Kafka, HTTP, etc.), implement `OutboxPublisher` and register
 it as a `@Bean` with the same name as the one referenced in
 `crablet.outbox.topics.topics.<topic>.publishers`.
+
+To try the included webhook publisher:
+
+```properties
+crablet.outbox.topics.topics.wallet-events.publishers=LogPublisher,wallet-webhook
+crablet.wallet.webhook.url=http://localhost:9090/events
+```
+
+`WalletWebhookPublisher` sends one HTTP POST per event and throws `PublishException` on transport
+failures or 5xx responses so the outbox keeps the event pending for retry. It logs and skips 4xx
+responses because those usually indicate a payload or configuration problem that retrying will not
+fix.
 
 ## Configuration
 
@@ -411,6 +425,9 @@ crablet.automations.batch-size=100
 crablet.outbox.enabled=true
 crablet.outbox.polling-interval-ms=1000
 crablet.outbox.topics.topics.wallet-events.publishers=LogPublisher
+# Optional HTTP webhook publisher
+# crablet.outbox.topics.topics.wallet-events.publishers=LogPublisher,wallet-webhook
+# crablet.wallet.webhook.url=http://localhost:9090/events
 
 # Crablet Metrics (optional)
 crablet.metrics.enabled=false

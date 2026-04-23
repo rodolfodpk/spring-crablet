@@ -5,6 +5,7 @@ import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.internal.sharedfetch.SharedFetchModuleProcessor;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.views.ViewSubscription;
@@ -48,6 +49,7 @@ class ViewsAutoConfigurationTest {
                 config,
                 new WriteDataSource(mock(DataSource.class)),
                 new ReadDataSource(mock(DataSource.class)),
+                mock(ClockProvider.class),
                 mock(TaskScheduler.class),
                 mock(ApplicationEventPublisher.class));
 

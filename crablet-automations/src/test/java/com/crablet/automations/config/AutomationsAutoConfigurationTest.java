@@ -135,6 +135,7 @@ class AutomationsAutoConfigurationTest {
                 config,
                 new WriteDataSource(mock(DataSource.class)),
                 new ReadDataSource(mock(DataSource.class)),
+                mock(ClockProvider.class),
                 mock(TaskScheduler.class),
                 mock(ApplicationEventPublisher.class));
 

@@ -14,6 +14,7 @@ import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
+import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSource;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
 import com.crablet.eventstore.ClockProvider;
@@ -154,6 +155,7 @@ public class ViewsAutoConfiguration {
             ViewsConfig viewsConfig,
             WriteDataSource writeDataSource,
             ReadDataSource readDataSource,
+            ClockProvider clockProvider,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher) {
 
@@ -176,6 +178,8 @@ public class ViewsAutoConfiguration {
                 viewsConfig.getFetchBatchSize(),
                 taskScheduler,
                 eventPublisher,
-                Function.identity());
+                Function.identity(),
+                new NoopProcessorWakeupSource(),
+                clockProvider);
     }
 }

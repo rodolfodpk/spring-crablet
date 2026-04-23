@@ -5,6 +5,7 @@ import com.crablet.eventpoller.internal.sharedfetch.SharedFetchModuleProcessor;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.outbox.TopicConfig;
@@ -51,6 +52,7 @@ class OutboxAutoConfigurationTest {
                 outboxConfig,
                 new WriteDataSource(mock(DataSource.class)),
                 new ReadDataSource(mock(DataSource.class)),
+                mock(ClockProvider.class),
                 mock(TaskScheduler.class),
                 mock(ApplicationEventPublisher.class));
 
@@ -77,6 +79,7 @@ class OutboxAutoConfigurationTest {
                 outboxConfig,
                 new WriteDataSource(mock(DataSource.class)),
                 new ReadDataSource(mock(DataSource.class)),
+                mock(ClockProvider.class),
                 mock(TaskScheduler.class),
                 mock(ApplicationEventPublisher.class));
 

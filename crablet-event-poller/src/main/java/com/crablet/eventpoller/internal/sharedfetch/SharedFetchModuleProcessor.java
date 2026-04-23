@@ -11,6 +11,7 @@ import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSource;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSource;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
 import jakarta.annotation.PostConstruct;
@@ -32,7 +33,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -77,6 +77,7 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
     private final TaskScheduler taskScheduler;
     private final Function<I, String> idSerializer;
     private final ProcessorWakeupSource wakeupSource;
+    private final ClockProvider clockProvider;
     private final long pollingIntervalMs;
 
     private final Set<I> catchingUpSet = ConcurrentHashMap.newKeySet();
@@ -108,7 +109,7 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
             Function<I, String> idSerializer) {
         this(configs, selections, moduleName, instanceId, leaderElector, progressTracker,
                 moduleScanRepo, processorScanRepo, eventHandler, readDataSource, fetchBatchSize,
-                taskScheduler, eventPublisher, idSerializer, new NoopProcessorWakeupSource());
+                taskScheduler, eventPublisher, idSerializer, new NoopProcessorWakeupSource(), ClockProvider.systemDefault());
     }
 
     public SharedFetchModuleProcessor(
@@ -127,6 +128,28 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
             ApplicationEventPublisher eventPublisher,
             Function<I, String> idSerializer,
             ProcessorWakeupSource wakeupSource) {
+        this(configs, selections, moduleName, instanceId, leaderElector, progressTracker,
+                moduleScanRepo, processorScanRepo, eventHandler, readDataSource, fetchBatchSize,
+                taskScheduler, eventPublisher, idSerializer, wakeupSource, ClockProvider.systemDefault());
+    }
+
+    public SharedFetchModuleProcessor(
+            Map<I, C> configs,
+            Map<I, EventSelection> selections,
+            String moduleName,
+            String instanceId,
+            LeaderElector leaderElector,
+            ProgressTracker<I> progressTracker,
+            ModuleScanProgressRepository moduleScanRepo,
+            ProcessorScanProgressRepository processorScanRepo,
+            EventHandler<I> eventHandler,
+            DataSource readDataSource,
+            int fetchBatchSize,
+            TaskScheduler taskScheduler,
+            ApplicationEventPublisher eventPublisher,
+            Function<I, String> idSerializer,
+            ProcessorWakeupSource wakeupSource,
+            ClockProvider clockProvider) {
         this.configs = configs;
         this.selections = selections;
         this.moduleName = moduleName;
@@ -141,6 +164,7 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
         this.taskScheduler = taskScheduler;
         this.idSerializer = idSerializer;
         this.wakeupSource = wakeupSource;
+        this.clockProvider = clockProvider;
 
         this.pollingIntervalMs = configs.values().stream()
                 .filter(ProcessorConfig::isEnabled)
@@ -531,7 +555,7 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
     private void requestImmediatePoll() {
         if (shuttingDown) return;
         if (!cycleRunning.get()) {
-            var unused = taskScheduler.schedule(this::runSharedCycle, Instant.now());
+            var unused = taskScheduler.schedule(this::runSharedCycle, clockProvider.now());
         }
     }
 
