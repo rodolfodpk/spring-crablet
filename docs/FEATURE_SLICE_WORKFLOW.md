@@ -46,6 +46,9 @@ For a brownfield app, skip `init` and point `generate --output` at the existing
 For a loan application service, start with one feature: a customer submits an application and
 reviewers can see it in a pending queue.
 
+For the notation rules and the canonical board examples in one place, see
+[Event Modeling](EVENT_MODELING.md).
+
 ### Classic Event Modeling View
 
 This same slice can be shown as an illustrative Event Modeling sticky-note board:

@@ -58,7 +58,8 @@ The generator should produce compiling, structurally complete code. Missing beha
 captured in the event model rather than left as framework boilerplate TODOs.
 
 For the recommended developer dialogue around a single feature, see
-[Feature Slice Workflow](FEATURE_SLICE_WORKFLOW.md). For a concrete generated-slice input, see
+[Feature Slice Workflow](FEATURE_SLICE_WORKFLOW.md). For Event Modeling notation and example
+boards, see [Event Modeling](EVENT_MODELING.md). For a concrete generated-slice input, see
 [loan-submit-feature-slice-event-model.yaml](examples/loan-submit-feature-slice-event-model.yaml).
 
 ## Tool Entrypoints

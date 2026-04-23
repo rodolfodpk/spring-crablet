@@ -70,6 +70,7 @@ Repeat for each new slice. Update `event-model.yaml` when something is structura
 | Goal | Read |
 |------|------|
 | Slice-by-slice guide with dialogue examples | [Feature Slice Workflow](docs/FEATURE_SLICE_WORKFLOW.md) |
+| Event Modeling notation and example boards | [Event Modeling](docs/EVENT_MODELING.md) |
 | Full workflow and tooling details | [AI-First Workflow](docs/AI_FIRST_WORKFLOW.md) |
 | event-model.yaml format | [Event Model Format](docs/EVENT_MODEL_FORMAT.md) |
 | Starter template | [Templates](templates/README.md) |
@@ -180,7 +181,7 @@ Read more in [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) and [
 
 | Topic | Links |
 |-------|-------|
-| Start | [AI-First Workflow](docs/AI_FIRST_WORKFLOW.md), [Feature Slice Workflow](docs/FEATURE_SLICE_WORKFLOW.md), [Event Model Format](docs/EVENT_MODEL_FORMAT.md), [Quickstart](docs/QUICKSTART.md), [Create A New Crablet App Manually](docs/CREATE_A_CRABLET_APP.md), [Tutorial](docs/TUTORIAL.md), [Learning Mode](docs/LEARNING_MODE.md) |
+| Start | [AI-First Workflow](docs/AI_FIRST_WORKFLOW.md), [Feature Slice Workflow](docs/FEATURE_SLICE_WORKFLOW.md), [Event Modeling](docs/EVENT_MODELING.md), [Event Model Format](docs/EVENT_MODEL_FORMAT.md), [Quickstart](docs/QUICKSTART.md), [Create A New Crablet App Manually](docs/CREATE_A_CRABLET_APP.md), [Tutorial](docs/TUTORIAL.md), [Learning Mode](docs/LEARNING_MODE.md) |
 | Architecture | [Deployment Topology](docs/DEPLOYMENT_TOPOLOGY.md), [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md), [Command Patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md) |
 | Operations | [Management API](docs/MANAGEMENT_API.md), [Fault Recovery](docs/FAULT_RECOVERY.md), [Leader Election](docs/LEADER_ELECTION.md), [Build](docs/BUILD.md), [Performance](docs/PERFORMANCE.md), [Troubleshooting](docs/TROUBLESHOOTING.md), [Upgrade Guide](docs/UPGRADE.md) |
 | Database and proxies | [Connection Poolers](crablet-eventstore/docs/CONNECTION_POOLERS.md) (PgBouncer, PgCat, OJP) |
