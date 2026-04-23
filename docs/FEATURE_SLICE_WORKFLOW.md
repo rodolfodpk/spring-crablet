@@ -57,6 +57,10 @@ In Event Modeling, time flows left to right on a horizontal timeline. The lanes 
 layers such as trigger, command, event, view, automation, and translation rather than a
 top-to-bottom flowchart.
 
+In Crablet, the event lane represents committed events. Views, automations, and outbox publication
+should be read as asynchronous poller-backed consequences of those committed events, not as
+synchronous steps inside the command transaction.
+
 ![Submit Loan Application event modeling board](assets/loan-submit-event-modeling-board.svg)
 
 The board intentionally stops at the `View` lane. For this first sample, the slice only needs:

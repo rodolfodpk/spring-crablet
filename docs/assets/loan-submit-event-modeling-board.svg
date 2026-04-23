@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1700" height="900" viewBox="0 0 1700 900" role="img" aria-labelledby="title desc">
   <title id="title">Submit Loan Application Event Modeling Board</title>
-  <desc id="desc">Horizontal Event Modeling timeline for the first loan slice, showing trigger, command, event, and view from left to right.</desc>
+  <desc id="desc">Horizontal Event Modeling timeline for the first loan slice, showing trigger, command, committed event, and an asynchronous poller-backed view projection from left to right.</desc>
   <defs>
     <style>
       .bg { fill: #f5f1e8; }
@@ -40,9 +40,9 @@
   <text class="lane-label" x="110" y="315">COMMAND</text>
   <text class="lane-note" x="110" y="335">Intent to change state</text>
   <text class="lane-label" x="110" y="475">EVENT</text>
-  <text class="lane-note" x="110" y="495">Business fact recorded</text>
+  <text class="lane-note" x="110" y="495">Committed business fact</text>
   <text class="lane-label" x="110" y="635">VIEW</text>
-  <text class="lane-note" x="110" y="655">What reviewers query</text>
+  <text class="lane-note" x="110" y="655">Async poller-backed read model</text>
 
   <g filter="url(#shadow)">
     <rect x="270" y="195" width="320" height="92" rx="6" fill="#ffffff" stroke="#d4d4d8" stroke-width="2"/>
@@ -77,13 +77,13 @@
   <path class="arrow" d="M590 241 L700 241 L700 355"/>
   <path class="arrow" d="M1020 403 L1120 403 L1120 515"/>
   <path class="arrow" d="M1310 615 L1310 675"/>
-  <text class="branch-label" x="1322" y="651">projects to view</text>
+  <text class="branch-label" x="1322" y="651">async projection</text>
 
   <g filter="url(#shadow)">
     <rect x="160" y="725" width="420" height="104" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
     <text class="small-note" x="370" y="761" text-anchor="middle">Reading order</text>
     <text class="small-text" x="370" y="789" text-anchor="middle">Read left to right across time.</text>
-    <text class="small-text" x="370" y="811" text-anchor="middle">The view appears beneath the event it depends on.</text>
+    <text class="small-text" x="370" y="811" text-anchor="middle">The view is updated asynchronously after the event is committed.</text>
   </g>
 
   <g filter="url(#shadow)">

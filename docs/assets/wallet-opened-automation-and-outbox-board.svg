@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1900" height="980" viewBox="0 0 1900 980" role="img" aria-labelledby="title desc">
   <title id="title">Wallet Opened Automation and Outbox Event Modeling Board</title>
-  <desc id="desc">Horizontal Event Modeling timeline for the wallet sample with one main event timeline and lane-specific projections, automation, follow-up command, and illustrative outbox publication.</desc>
+  <desc id="desc">Horizontal Event Modeling timeline for the wallet sample with one main event timeline and asynchronous poller-backed projections, automation, follow-up command, and illustrative outbox publication.</desc>
   <defs>
     <style>
       .bg { fill: #f5f1e8; }
@@ -43,9 +43,9 @@
   <text class="lane-label" x="120" y="425">EVENT</text>
   <text class="lane-note" x="120" y="445">Committed facts across time</text>
   <text class="lane-label" x="120" y="565">VIEW / AUTOMATION</text>
-  <text class="lane-note" x="120" y="585">Consequences triggered by an event</text>
+  <text class="lane-note" x="120" y="585">Async poller-backed consequences of a committed event</text>
   <text class="lane-label" x="120" y="705">COMMAND / TRANSLATION</text>
-  <text class="lane-note" x="120" y="725">Follow-up command and illustrative outbox path</text>
+  <text class="lane-note" x="120" y="725">Async follow-up command and illustrative outbox path</text>
 
   <g filter="url(#shadow)">
     <rect x="300" y="185" width="280" height="86" rx="6" fill="#ffffff" stroke="#d4d4d8" stroke-width="2"/>
@@ -108,13 +108,13 @@
   <path class="arrow" d="M1260 512 L1310 512"/>
 
   <path class="arrow" d="M1110 559 L1110 605"/>
-  <text class="branch-label" x="1124" y="590">projects to view</text>
+  <text class="branch-label" x="1124" y="590">async view projection</text>
 
   <path class="arrow" d="M1180 559 L1390 605"/>
-  <text class="branch-label" x="1270" y="578">wakes automation</text>
+  <text class="branch-label" x="1270" y="578">async automation wakeup</text>
 
   <path class="arrow" d="M1110 559 L1120 745"/>
-  <text class="branch-label" x="1136" y="686">example outbox path</text>
+  <text class="branch-label" x="1136" y="686">async outbox publication</text>
 
   <path class="arrow" d="M1640 695 L1640 745"/>
 
@@ -122,20 +122,20 @@
     <rect x="160" y="855" width="480" height="92" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
     <text class="small-note" x="400" y="890" text-anchor="middle">Reading order</text>
     <text class="small-text" x="400" y="916" text-anchor="middle">Read the event lane left to right as the timeline.</text>
-    <text class="small-text" x="400" y="938" text-anchor="middle">Other lanes sit beneath the event they depend on.</text>
+    <text class="small-text" x="400" y="938" text-anchor="middle">Other lanes represent async poller-backed work after commit.</text>
   </g>
 
   <g filter="url(#shadow)">
     <rect x="690" y="855" width="500" height="92" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
     <text class="small-note" x="940" y="890" text-anchor="middle">Automation consequence</text>
-    <text class="small-text" x="940" y="916" text-anchor="middle">WalletOpened wakes a policy, which emits a follow-up command,</text>
+    <text class="small-text" x="940" y="916" text-anchor="middle">After WalletOpened is committed, the poller wakes a policy that emits</text>
     <text class="small-text" x="940" y="938" text-anchor="middle">which later records WelcomeNotificationSent on the event timeline.</text>
   </g>
 
   <g filter="url(#shadow)">
     <rect x="1240" y="855" width="500" height="92" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
     <text class="small-note" x="1490" y="890" text-anchor="middle">Illustrative outbox consequence</text>
-    <text class="small-text" x="1490" y="916" text-anchor="middle">This board shows one example publication path from WalletOpened</text>
+    <text class="small-text" x="1490" y="916" text-anchor="middle">This board shows one async publication path from WalletOpened</text>
     <text class="small-text" x="1490" y="938" text-anchor="middle">to match the sample, not every later event consequence.</text>
   </g>
 

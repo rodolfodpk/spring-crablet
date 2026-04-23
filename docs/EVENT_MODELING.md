@@ -27,6 +27,10 @@ Other lanes sit above or below that timeline to show:
 - which automations wake up on an event
 - which follow-up commands or translations happen downstream
 
+In Crablet, those downstream consequences are normally asynchronous and poller-backed. A stored
+event is committed first; views, automations, and outbox publication observe that committed event
+later rather than participating in the synchronous command transaction.
+
 When a board is illustrative rather than exhaustive, the docs should say so explicitly.
 
 ## Example Boards
@@ -38,7 +42,8 @@ The first loan slice shows the smallest useful board: trigger, command, event, a
 ![Submit Loan Application event modeling board](assets/loan-submit-event-modeling-board.svg)
 
 This board is intentionally limited to the first observable outcome. It does not add automation or
-outbox behavior because that sample does not define them.
+outbox behavior because that sample does not define them. The view shown there is an asynchronous
+projection from the committed event.
 
 Source context:
 - [Feature Slice Workflow](FEATURE_SLICE_WORKFLOW.md)
@@ -56,7 +61,9 @@ The wallet board shows a richer slice where one committed event fans out into:
 ![Wallet opened automation and outbox event modeling board](assets/wallet-opened-automation-and-outbox-board.svg)
 
 The outbox branch in this board is intentionally illustrative. It is drawn from `WalletOpened` to
-match the sample’s teaching goal, not to claim that every later event consequence is shown.
+match the sample’s teaching goal, not to claim that every later event consequence is shown. The
+view, automation, and outbox lanes all represent asynchronous poller-backed work that happens after
+`WalletOpened` is stored.
 
 Source context:
 - [Feature Slice Workflow](FEATURE_SLICE_WORKFLOW.md)
