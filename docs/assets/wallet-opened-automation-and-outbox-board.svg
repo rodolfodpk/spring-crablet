@@ -128,11 +128,11 @@
     <text class="sticky-text" x="1645" y="1136" text-anchor="middle">wallet-webhook</text>
   </g>
 
-  <g transform="rotate(-0.9 310 1015)" filter="url(#shadow)">
-    <rect x="110" y="955" width="400" height="120" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
-    <text class="small-note" x="310" y="993" text-anchor="middle">Why this board is more informative</text>
-    <text class="small-text" x="310" y="1021" text-anchor="middle">The first event branches into read-side updates,</text>
-    <text class="small-text" x="310" y="1043" text-anchor="middle">automation, and external publication.</text>
+  <g transform="rotate(-0.9 310 1095)" filter="url(#shadow)">
+    <rect x="110" y="1040" width="400" height="110" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
+    <text class="small-note" x="310" y="1076" text-anchor="middle">Why this board is more informative</text>
+    <text class="small-text" x="310" y="1102" text-anchor="middle">The first event branches into read-side updates,</text>
+    <text class="small-text" x="310" y="1124" text-anchor="middle">automation, and external publication.</text>
   </g>
 
   <g transform="rotate(0.8 760 1015)" filter="url(#shadow)">
