@@ -1,0 +1,46 @@
+<mxfile host="app.diagrams.net" modified="2026-04-23T15:45:00Z" agent="Codex" version="24.7.17" type="device">
+  <diagram id="ai-workflow" name="AI Workflow">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="900" as="geometry"/>
+        </mxCell>
+        <mxCell id="title1" value="Crablet AI-First Workflow" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=30;fontStyle=1;fontColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="500" y="30" width="600" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="subtitle1" value="Describe a slice, model it, turn it into an event model, then generate and run the app." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=15;fontColor=#475569;" vertex="1" parent="1">
+          <mxGeometry x="350" y="72" width="900" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="panel1" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#CBD5E1;strokeWidth=2;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="145" width="1440" height="380" as="geometry"/>
+        </mxCell>
+        <mxCell id="s1" value="Developer&#xa;describes a slice" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#0F766E;strokeWidth=2.5;fontSize=22;fontStyle=1;fontColor=#111827;align=center;verticalAlign=middle;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="120" y="275" width="250" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2" value="Claude Code&#xa;models the slice" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#2563EB;strokeWidth=2.5;fontSize=22;fontStyle=1;fontColor=#111827;align=center;verticalAlign=middle;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="450" y="275" width="290" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3" value="event-model.yaml&#xa;becomes the contract" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#2563EB;strokeWidth=2.5;fontSize=21;fontStyle=1;fontColor=#111827;align=center;verticalAlign=middle;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="820" y="275" width="290" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="s4" value="Crablet codegen&#xa;generates and runs the app" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFFFFF;strokeColor=#B45309;strokeWidth=2.5;fontSize=21;fontStyle=1;fontColor=#111827;align=center;verticalAlign=middle;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="275" width="280" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" value="" style="endArrow=block;endFill=1;strokeColor=#475569;strokeWidth=4;" edge="1" parent="1" source="s1" target="s2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="" style="endArrow=block;endFill=1;strokeColor=#475569;strokeWidth=4;" edge="1" parent="1" source="s2" target="s3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="" style="endArrow=block;endFill=1;strokeColor=#475569;strokeWidth=4;" edge="1" parent="1" source="s3" target="s4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="cap1" value="Business intent → event model → generated application" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#475569;" vertex="1" parent="1">
+          <mxGeometry x="520" y="585" width="560" height="26" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

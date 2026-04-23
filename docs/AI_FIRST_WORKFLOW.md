@@ -10,6 +10,16 @@ For application teams, the intended first-user path is to clone the
 [Crablet app template](../templates/crablet-app/README.md), open Claude Code, and add one
 vertical slice at a time.
 
+## At A Glance
+
+### Generation Flow
+
+![Crablet AI-first workflow](assets/crablet-ai-first-high-level.png)
+
+### Crablet Model DFD
+
+![Crablet model DFD](assets/crablet-model-dfd.png)
+
 ## Workflow
 
 1. Build the Crablet runtime and `embabel-codegen` tool.
