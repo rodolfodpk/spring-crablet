@@ -62,6 +62,25 @@ The board intentionally stops at the `View` lane. For this first sample, the sli
 That keeps the example aligned with the documented sample model. Automation and translation become
 useful on later slices, such as auto-approval rules or outbound notifications.
 
+### Reactive Slice View
+
+When a slice does include downstream behavior, the classic Event Modeling notation becomes more
+useful because the board can show the first committed event fanning out into reads, automations,
+and external publication.
+
+The wallet example app already documents both patterns:
+
+![Wallet opened automation and outbox event modeling board](assets/wallet-opened-automation-and-outbox-board.svg)
+
+This board maps to the wallet sample’s documented flow:
+
+- `WalletOpened` updates a query view
+- `WalletOpenedAutomation` emits a follow-up welcome-notification command
+- `WelcomeNotificationSent` records the follow-up fact
+- the outbox publishes committed wallet events through `LogPublisher` or `wallet-webhook`
+
+For code references and runtime behavior, see [wallet-example-app/README.md](../wallet-example-app/README.md).
+
 The developer dialogue should stay outcome-oriented:
 
 ```text
