@@ -65,7 +65,7 @@ Claude will:
 
 Repeat for each new slice. Update `event-model.yaml` when something is structural; edit generated code only for behavior the model cannot express.
 
-The AI-assisted generator is a preview direction. The stable runtime APIs remain usable directly while it matures.
+**Codegen is optional.** The stable runtime APIs (`CommandHandler`, `ViewProjector`, `CommandExecutor`) work independently — you can build a full Crablet application without the generator. The AI-first path is a productivity layer on top, not a requirement.
 
 | Goal | Read |
 |------|------|

@@ -133,6 +133,51 @@ codegen:
   claude-md-path: ../CLAUDE.md   # framework CLAUDE.md injected into every agent prompt
 ```
 
+## When Generation Fails
+
+### Compilation still failing after 3 repair attempts
+
+The pipeline runs up to 3 compile-and-repair cycles. If the build still fails:
+
+1. Read the error lines printed above the `[WARN]` message — they name the file and line.
+2. Open the file and fix the issue manually, or delete it and re-run `generate`.
+3. If the error pattern repeats, the event model is likely under-specified. Add the missing field or type to `event-model.yaml` and re-run `plan` → `generate`.
+
+### No `===FILE: ...===` blocks in LLM output
+
+The agent returned text but no file blocks. This usually means the prompt exceeded the model's context or the `claude-md-path` file is too large. Try:
+- Reduce `max-tokens` if it was increased
+- Check that `claude-md-path` points to a readable file
+- Re-run `generate` — transient API errors are retried on the next invocation
+
+### `ANTHROPIC_API_KEY` not set or invalid
+
+```
+Error: 401 Unauthorized
+```
+
+Set the key before running:
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+### YAML parse error on `event-model.yaml`
+
+```
+com.fasterxml.jackson.dataformat.yaml.JacksonYAMLParseException
+```
+
+Run `plan` first — it parses the YAML without calling Anthropic, so errors appear immediately:
+```bash
+java -jar embabel-codegen.jar plan --model event-model.yaml
+```
+
+Common causes: wrong indentation, missing quotes around strings with special characters, a `$ref` pointing to a schema name that is not defined in the `schemas` block.
+
+### Generated code compiles but behaviour is wrong
+
+The generator produces structural code only — command handlers call the right DCB append method, views write the right columns, but business rules (validation ranges, computed fields) need to be filled in manually. This is expected. Edit the generated file; do not re-run `generate` for the same file unless you also update the model.
+
 ## Event Model Format
 
 See [`docs/EVENT_MODEL_FORMAT.md`](../docs/EVENT_MODEL_FORMAT.md) for the full YAML schema reference and examples.

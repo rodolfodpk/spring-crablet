@@ -12,6 +12,7 @@ import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSource;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSource;
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.StoredEvent;
 import jakarta.annotation.PostConstruct;
 import org.jspecify.annotations.Nullable;
@@ -27,7 +28,6 @@ import javax.sql.DataSource;
 import java.io.EOFException;
 import java.sql.SQLException;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -51,6 +51,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     private final TaskScheduler taskScheduler;
     private final ApplicationEventPublisher eventPublisher;
     private final ProcessorWakeupSource wakeupSource;
+    private final ClockProvider clockProvider;
     private final Object lifecycleMonitor = new Object();
 
     // Track active schedulers
@@ -83,7 +84,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             DataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher) {
-        this(configs, leaderElector, progressTracker, eventFetcher, eventHandler, writeDataSource, taskScheduler, eventPublisher, new NoopProcessorWakeupSource(), 5000L, 500L);
+        this(configs, leaderElector, progressTracker, eventFetcher, eventHandler, writeDataSource, taskScheduler, eventPublisher, new NoopProcessorWakeupSource(), 5000L, 500L, ClockProvider.systemDefault());
     }
 
     public EventProcessorImpl(
@@ -96,7 +97,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher,
             ProcessorWakeupSource wakeupSource) {
-        this(configs, leaderElector, progressTracker, eventFetcher, eventHandler, writeDataSource, taskScheduler, eventPublisher, wakeupSource, 5000L, 500L);
+        this(configs, leaderElector, progressTracker, eventFetcher, eventHandler, writeDataSource, taskScheduler, eventPublisher, wakeupSource, 5000L, 500L, ClockProvider.systemDefault());
     }
 
     public EventProcessorImpl(
@@ -110,7 +111,8 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             ApplicationEventPublisher eventPublisher,
             ProcessorWakeupSource wakeupSource,
             long leaderRetryCooldownMs,
-            long startupDelayMs) {
+            long startupDelayMs,
+            ClockProvider clockProvider) {
         this.configs = configs;
         this.leaderElector = leaderElector;
         this.progressTracker = progressTracker;
@@ -121,6 +123,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
         this.wakeupSource = wakeupSource;
         this.leaderRetryCooldownMs = leaderRetryCooldownMs;
         this.startupDelayMs = startupDelayMs;
+        this.clockProvider = clockProvider;
     }
 
     // Track if schedulers have been initialized
@@ -451,7 +454,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
         long sanitizedDelayMs = Math.max(delayMs, 0L);
         ScheduledFuture<?> future = taskScheduler.schedule(
             () -> scheduledTask(processorId),
-            Instant.now().plusMillis(sanitizedDelayMs)
+            clockProvider.now().plusMillis(sanitizedDelayMs)
         );
         activeSchedulers.put(processorId, future);
         log.trace("[EventProcessorImpl] Scheduled next run for {} in {}ms", processorId, sanitizedDelayMs);

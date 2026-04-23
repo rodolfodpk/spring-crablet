@@ -784,10 +784,11 @@ See [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for full details on read replicas
 - Closing books: `crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md`
 - Leader election: `docs/LEADER_ELECTION.md`
 - Read replicas: `crablet-eventstore/docs/READ_REPLICAS.md`
-- AI-first codegen: `embabel-codegen/README.md` (CLI, MCP server, agent pipeline)
+- AI-first codegen: `embabel-codegen/README.md` (CLI, MCP server, agent pipeline, error recovery)
 - Starter template: `templates/README.md`, `templates/crablet-app/README.md`
 - AI workflow: `docs/AI_FIRST_WORKFLOW.md`, `docs/FEATURE_SLICE_WORKFLOW.md`
-- Event model format: `docs/EVENT_MODEL_FORMAT.md`
+- Event model format: `docs/EVENT_MODEL_FORMAT.md` (includes shared schema / $ref composition)
+- Upgrade guide: `docs/UPGRADE.md` (breaking changes and migration steps)
 - Observability: `docs/OBSERVABILITY.md` (entry point — Micrometer setup, metrics reference, Grafana, PromQL)
 - Metrics deep dives: `crablet-eventstore/docs/METRICS.md`, `crablet-outbox/docs/OUTBOX_METRICS.md`
 - Observability stack: `observability/README.md` (Prometheus + Grafana Docker Compose)

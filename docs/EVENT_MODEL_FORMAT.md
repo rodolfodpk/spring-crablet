@@ -293,8 +293,9 @@ automation or command handler description if needed.
 
 ## Shared Schemas
 
-Use `schemas` when commands and events share the same fields. Events inherit fields as facts.
-Commands inherit fields and add validation.
+Use the top-level `schemas` block to define reusable field groups. Commands and events reference a schema by name using the `schema` key. The generator inlines the fields before sending them to the AI agents — agents always receive fully expanded field lists.
+
+### Defining a schema
 
 ```yaml
 schemas:
@@ -303,37 +304,61 @@ schemas:
       - name: amount
         type: integer
         exclusiveMinimum: 0
-      - name: description
+      - name: currency
         type: string
-        minLength: 1
+        minLength: 3
+        maxLength: 3
+```
 
+### Referencing a schema
+
+Set `schema: <name>` on an event or command. Fields declared directly on the event/command are **merged on top** of the schema fields — a local field with the same name overrides the schema version.
+
+```yaml
 events:
   - name: DepositMade
     tags: [wallet_id, deposit_id]
+    schema: MoneyAmount          # pulls in amount + currency
     fields:
-      - name: depositId
+      - name: depositId          # local fields added on top
         type: string
       - name: walletId
         type: string
-    schema: MoneyAmount
 
 commands:
   - name: Deposit
     pattern: commutative
     produces: [DepositMade]
     guardEvents: [WalletOpened]
+    schema: MoneyAmount          # pulls in amount + currency
     fields:
       - name: depositId
         type: string
-        minLength: 1
+        minLength: 1             # adds validation not in the schema
       - name: walletId
         type: string
         minLength: 1
-    schema: MoneyAmount
+      - name: amount             # overrides the schema's amount to tighten the constraint
+        type: integer
+        exclusiveMinimum: 0
+        maximum: 1000000
 ```
 
-Schema references should be resolved before generation. Agents and templates should receive fully
-expanded field lists.
+### Merge rules
+
+- Schema fields come first in field order.
+- A local field with the same `name` as a schema field replaces it entirely.
+- A local field with a new name is appended after the schema fields.
+- Only one `schema` reference per event or command (no multi-inheritance).
+- `schema` and `fields` can coexist; omitting `fields` is valid when the schema covers everything.
+
+### When to use schemas
+
+- Two or more commands produce events that share the same payload shape.
+- A command and its produced event share most fields (common in idempotent creation patterns).
+- You want to enforce a common field vocabulary (e.g. all money fields use `amount`+`currency`).
+
+Schemas are a codegen-time concept. They do not affect the runtime event store, command handlers, or DCB pattern — they only control what field lists the AI agents see when generating code.
 
 ## Events
 

@@ -1,5 +1,6 @@
 package com.crablet.eventpoller;
 
+import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.eventpoller.config.EventPollerConfig;
@@ -130,7 +131,8 @@ public final class EventProcessorFactory {
         return new EventProcessorImpl<>(
                 configs, leaderElector, progressTracker, eventFetcher, eventHandler,
                 writeDataSource.dataSource(), taskScheduler, eventPublisher, wakeupSourceFactory.create(),
-                eventPollerConfig.getLeaderRetryCooldownMs(), eventPollerConfig.getStartupDelayMs());
+                eventPollerConfig.getLeaderRetryCooldownMs(), eventPollerConfig.getStartupDelayMs(),
+                ClockProvider.systemDefault());
     }
 
     public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
@@ -194,7 +196,8 @@ public final class EventProcessorFactory {
         return new EventProcessorImpl<>(
                 configs, leaderElector, progressTracker, eventFetcher, eventHandler,
                 writeDataSource.dataSource(), taskScheduler, eventPublisher, wakeupSourceFactory.create(),
-                eventPollerConfig.getLeaderRetryCooldownMs(), eventPollerConfig.getStartupDelayMs());
+                eventPollerConfig.getLeaderRetryCooldownMs(), eventPollerConfig.getStartupDelayMs(),
+                ClockProvider.systemDefault());
     }
 
     /**
