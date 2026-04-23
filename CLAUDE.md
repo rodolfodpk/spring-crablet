@@ -388,6 +388,17 @@ shared-examples-domain (Non-reactor, separate build)
 
 wallet-example-app (Example application)
 └── Complete Spring Boot application demonstrating framework usage
+
+embabel-codegen (AI-first tooling, separate build)
+├── CLI: init / plan / generate
+├── MCP server: exposes embabel_init, embabel_plan, embabel_generate to Claude Code
+├── AI agent pipeline: events → commands → views → automations → outbox → compile+repair
+└── Uses Anthropic Java SDK with claude-sonnet-4-6
+
+templates/crablet-app (Starter project template)
+├── Pre-wired pom.xml, event-model.yaml skeleton, Flyway migration
+├── Makefile: plan / generate / verify / check
+└── .claude/settings.json wired for embabel-codegen MCP server
 ```
 
 **Module dependencies:**
@@ -773,6 +784,10 @@ See [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for full details on read replicas
 - Closing books: `crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md`
 - Leader election: `docs/LEADER_ELECTION.md`
 - Read replicas: `crablet-eventstore/docs/READ_REPLICAS.md`
+- AI-first codegen: `embabel-codegen/README.md` (CLI, MCP server, agent pipeline)
+- Starter template: `templates/README.md`, `templates/crablet-app/README.md`
+- AI workflow: `docs/AI_FIRST_WORKFLOW.md`, `docs/FEATURE_SLICE_WORKFLOW.md`
+- Event model format: `docs/EVENT_MODEL_FORMAT.md`
 - Observability: `docs/OBSERVABILITY.md` (entry point — Micrometer setup, metrics reference, Grafana, PromQL)
 - Metrics deep dives: `crablet-eventstore/docs/METRICS.md`, `crablet-outbox/docs/OUTBOX_METRICS.md`
 - Observability stack: `observability/README.md` (Prometheus + Grafana Docker Compose)

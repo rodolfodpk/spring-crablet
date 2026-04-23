@@ -83,6 +83,7 @@ public class OpenWalletCommandHandler
 | Optional add-ons | [Views](crablet-views/README.md), [Outbox](crablet-outbox/README.md), [Automations](crablet-automations/README.md), [Command Web API](crablet-commands-web/README.md), [Micrometer metrics](crablet-metrics-micrometer/README.md), [Observability](docs/OBSERVABILITY.md) |
 | Support and examples | [Test support](crablet-test-support/README.md), [Wallet example app](wallet-example-app/README.md), shared example domain code, compiled docs samples |
 | Internal infrastructure | [Event Poller](crablet-event-poller/README.md) powers the poller-backed modules |
+| AI-first tooling | [Embabel Codegen](embabel-codegen/README.md) — generates code from event-model.yaml; [Templates](templates/README.md) — starter project |
 
 ### Module Boundaries
 
