@@ -17,24 +17,70 @@ Crablet helps Spring teams turn an event-modeled domain into a working event-sou
 
 ## AI-First Workflow
 
-The product direction is model-first:
+The intended path for a new application is to describe one vertical slice at a time in plain language, let Claude turn it into `event-model.yaml`, then generate the full Spring application structure from that model.
 
-1. Model the domain and produce a structured `event-model.yaml`.
-2. Generate the Spring application structure from that model.
-3. Compile and repair generated code until the application builds.
-4. Run the generated code on Crablet's Java runtime.
-5. Customize the code or the model only where the business behavior was not expressed.
+### Getting started in Claude Code
+
+**1. Build the tooling** (once, from this repo):
+
+```bash
+make install && make codegen-build
+```
+
+**2. Bootstrap your app:**
+
+```bash
+java -jar embabel-codegen/target/embabel-codegen.jar init \
+  --name my-service \
+  --package com.example.myservice \
+  --dir ../my-service
+
+cp embabel-codegen/target/embabel-codegen.jar ../my-service/tools/
+```
+
+**3. Open Claude Code from the new project:**
+
+```bash
+cd ../my-service
+export ANTHROPIC_API_KEY=sk-ant-...
+claude
+```
+
+**4. Describe one outcome — Claude handles the rest:**
+
+```text
+Add the first vertical slice: Submit Loan Application.
+
+Outcome:
+- a customer submits a loan application
+- Crablet records LoanApplicationSubmitted
+- reviewers can query pending applications
+
+Use the Crablet feature-slice workflow.
+Ask for missing facts before changing files.
+```
+
+Claude will ask for the missing business facts (entity identity, idempotency rules, required fields, read model columns), run `/event-modeling` to update `event-model.yaml`, call `embabel_plan` and show you the artifact list, then wait for your approval before calling `embabel_generate`.
+
+**5. Verify the build:**
+
+```bash
+./mvnw verify
+```
+
+Repeat from step 4 for each new slice. Update the model when something is structural; edit generated code only for behavior the model cannot express.
 
 The AI-assisted generator is still a preview direction. The stable runtime APIs remain documented and usable directly while the generator matures.
 
 | Goal | Read |
 |------|------|
-| Understand the AI-first product direction | [AI-First Workflow](docs/AI_FIRST_WORKFLOW.md) |
-| Add one generated vertical slice | [Feature Slice Workflow](docs/FEATURE_SLICE_WORKFLOW.md) |
-| Write the generator input | [Event Model Format](docs/EVENT_MODEL_FORMAT.md) |
+| Full workflow details | [AI-First Workflow](docs/AI_FIRST_WORKFLOW.md) |
+| Slice-by-slice guide with dialogue examples | [Feature Slice Workflow](docs/FEATURE_SLICE_WORKFLOW.md) |
+| event-model.yaml format | [Event Model Format](docs/EVENT_MODEL_FORMAT.md) |
+| Starter project | [Templates](templates/README.md) |
+| Codegen CLI and MCP server | [Embabel Codegen](embabel-codegen/README.md) |
 | Run the wallet app | [Quickstart](docs/QUICKSTART.md) |
 | Build manually against the runtime APIs | [Create A New Crablet App Manually](docs/CREATE_A_CRABLET_APP.md) |
-| Understand the one-instance learning setup | [Learning Mode](docs/LEARNING_MODE.md) |
 | Inspect the complete example | [Wallet Example App](wallet-example-app/README.md) |
 
 ## When Crablet Fits
