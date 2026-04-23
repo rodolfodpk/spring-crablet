@@ -180,6 +180,9 @@ Run embabel_plan with model=event-model.yaml.
 This example shows the intended user experience once the template, Claude instructions, and
 `embabel-codegen` MCP tools are wired together.
 
+For the same flow as a standalone transcript, see
+[Submit Loan Application Claude Dialogue](examples/submit-loan-application-claude-dialogue.md).
+
 The developer starts from an initialized app:
 
 ```bash

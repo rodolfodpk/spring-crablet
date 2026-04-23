@@ -62,6 +62,34 @@ Ask for missing facts before changing files.
 Claude should update `event-model.yaml`, run `embabel_plan`, ask you to review the planned
 artifacts, then run `embabel_generate` only after the plan looks right.
 
+For a detailed transcript, see
+[Submit Loan Application Claude Dialogue](../../docs/examples/submit-loan-application-claude-dialogue.md).
+
+The interaction should feel like this:
+
+```text
+Claude:
+I need a few business facts before changing files:
+
+1. What uniquely identifies a loan application?
+2. Should submitting the same application twice be idempotent, rejected, or treated as a new
+   submission?
+3. Which fields are required when the customer submits the application?
+4. Which fields should reviewers see in the pending applications view?
+5. Does this slice need automation or external publishing?
+
+User:
+applicationId identifies the application. Submission is idempotent.
+Required fields are applicationId, customerId, requestedAmount, and purpose.
+requestedAmount must be positive. IDs and purpose must not be blank.
+Reviewers should see applicationId, customerId, requestedAmount, purpose, status, and submittedAt.
+No automation or outbox yet.
+
+Claude:
+I will update event-model.yaml, run embabel_plan, show the planned artifacts, and wait for approval
+before running embabel_generate.
+```
+
 ## Local Commands
 
 Print the artifact plan without calling Anthropic or writing files:
