@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1360" viewBox="0 0 1800 1360" role="img" aria-labelledby="title desc">
   <title id="title">Wallet Opened Automation and Outbox Event Modeling Board</title>
-  <desc id="desc">Event Modeling board with one main automation chain and two explicit branches from WalletOpened: one to a view and one to outbox publication.</desc>
+  <desc id="desc">Event Modeling board with one main automation chain and two explicit illustrative branches from WalletOpened: one to a view and one to outbox publication.</desc>
   <defs>
     <style>
       .bg { fill: #f5f1e8; }
@@ -28,7 +28,7 @@
 
   <rect class="bg" x="0" y="0" width="1800" height="1360"/>
   <text class="title" x="900" y="52" text-anchor="middle">Wallet Opened with Automation and Outbox</text>
-  <text class="subtitle" x="900" y="80" text-anchor="middle">One clear command-to-event chain, plus explicit branches from WalletOpened into a view and external publication.</text>
+  <text class="subtitle" x="900" y="80" text-anchor="middle">One clear command-to-event chain, plus illustrative branches from WalletOpened into a view and outbox publication.</text>
 
   <line class="lane-line" x1="70" y1="170" x2="1730" y2="170"/>
   <line class="lane-line" x1="70" y1="320" x2="1730" y2="320"/>
@@ -119,7 +119,7 @@
   <text class="branch-label" x="1020" y="520">projects to view</text>
 
   <path class="arrow" d="M980 534 L1055 534 L1055 1127 L1130 1127"/>
-  <text class="branch-label" x="1000" y="1110">published externally</text>
+  <text class="branch-label" x="975" y="1110">example outbox path</text>
 
   <g filter="url(#shadow)">
     <rect x="140" y="1210" width="420" height="104" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
@@ -138,8 +138,8 @@
   <g filter="url(#shadow)">
     <rect x="1110" y="1210" width="470" height="104" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
     <text class="small-note" x="1345" y="1246" text-anchor="middle">Translation branch</text>
-    <text class="small-text" x="1345" y="1274" text-anchor="middle">The original committed event can also fan out to outbox publication</text>
-    <text class="small-text" x="1345" y="1296" text-anchor="middle">without waiting for the welcome-notification follow-up event.</text>
+    <text class="small-text" x="1345" y="1274" text-anchor="middle">This board illustrates outbox publication from WalletOpened</text>
+    <text class="small-text" x="1345" y="1296" text-anchor="middle">to match the sample, not every later event consequence.</text>
   </g>
 
   <rect x="1220" y="120" width="480" height="120" rx="10" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
