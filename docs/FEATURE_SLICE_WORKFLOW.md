@@ -50,6 +50,10 @@ reviewers can see it in a pending queue.
 
 This same slice can be shown as an illustrative Event Modeling sticky-note board:
 
+In Event Modeling, time flows left to right on a horizontal timeline. The lanes are semantic
+layers such as trigger, command, event, view, automation, and translation rather than a
+top-to-bottom flowchart.
+
 ![Submit Loan Application event modeling board](assets/loan-submit-event-modeling-board.svg)
 
 The board intentionally stops at the `View` lane. For this first sample, the slice only needs:

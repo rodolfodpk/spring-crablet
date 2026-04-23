@@ -1,112 +1,111 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="900" viewBox="0 0 1700 900" role="img" aria-labelledby="title desc">
   <title id="title">Submit Loan Application Event Modeling Board</title>
-  <desc id="desc">Workshop-style event modeling board for the loan submission sample, illustrating only the first slice through its read model.</desc>
+  <desc id="desc">Horizontal Event Modeling timeline for the first loan slice, showing trigger, command, event, and view from left to right.</desc>
   <defs>
     <style>
       .bg { fill: #f5f1e8; }
       .title { font: 700 28px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #1f2937; }
       .subtitle { font: 400 16px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #5b6470; }
       .lane-line { stroke: #c9bfae; stroke-width: 3; stroke-dasharray: 10 10; }
-      .lane-label { font: 700 22px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #374151; letter-spacing: 1px; }
+      .lane-label { font: 700 21px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #374151; letter-spacing: 1px; }
       .lane-note { font: 400 13px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #6b7280; }
-      .sticky-title { font: 700 24px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #111827; }
-      .sticky-text { font: 400 17px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #1f2937; }
+      .sticky-title { font: 700 22px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #111827; }
+      .sticky-text { font: 400 16px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #1f2937; }
       .small-note { font: 700 18px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #374151; }
       .small-text { font: 400 15px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #475569; }
-      .string { stroke: #6b7280; stroke-width: 3; fill: none; stroke-linecap: round; }
-      .dot { fill: #6b7280; }
+      .arrow { stroke: #55606e; stroke-width: 4; fill: none; marker-end: url(#arrowhead); stroke-linecap: round; stroke-linejoin: round; }
+      .branch-label { font: 700 14px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #55606e; }
+      .legend { font: 700 16px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #374151; }
+      .legend-text { font: 400 15px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #475569; }
     </style>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
       <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#000000" flood-opacity="0.18"/>
     </filter>
+    <marker id="arrowhead" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#55606e"/>
+    </marker>
   </defs>
 
-  <rect class="bg" x="0" y="0" width="1600" height="980"/>
-  <text class="title" x="800" y="52" text-anchor="middle">Submit Loan Application</text>
-  <text class="subtitle" x="800" y="80" text-anchor="middle">Illustrative Event Modeling board for the first Crablet loan slice</text>
+  <rect class="bg" x="0" y="0" width="1700" height="900"/>
+  <text class="title" x="850" y="52" text-anchor="middle">Submit Loan Application</text>
+  <text class="subtitle" x="850" y="80" text-anchor="middle">Illustrative Event Modeling timeline for the first Crablet loan slice</text>
 
-  <line class="lane-line" x1="70" y1="170" x2="1530" y2="170"/>
-  <line class="lane-line" x1="70" y1="350" x2="1530" y2="350"/>
-  <line class="lane-line" x1="70" y1="530" x2="1530" y2="530"/>
-  <line class="lane-line" x1="70" y1="710" x2="1530" y2="710"/>
+  <line class="lane-line" x1="90" y1="180" x2="1620" y2="180"/>
+  <line class="lane-line" x1="90" y1="340" x2="1620" y2="340"/>
+  <line class="lane-line" x1="90" y1="500" x2="1620" y2="500"/>
+  <line class="lane-line" x1="90" y1="660" x2="1620" y2="660"/>
 
-  <text class="lane-label" x="90" y="145">TRIGGER</text>
-  <text class="lane-note" x="90" y="165">What starts the flow</text>
+  <text class="lane-label" x="110" y="155">TRIGGER</text>
+  <text class="lane-note" x="110" y="175">What starts the flow</text>
+  <text class="lane-label" x="110" y="315">COMMAND</text>
+  <text class="lane-note" x="110" y="335">Intent to change state</text>
+  <text class="lane-label" x="110" y="475">EVENT</text>
+  <text class="lane-note" x="110" y="495">Business fact recorded</text>
+  <text class="lane-label" x="110" y="635">VIEW</text>
+  <text class="lane-note" x="110" y="655">What reviewers query</text>
 
-  <text class="lane-label" x="90" y="325">COMMAND</text>
-  <text class="lane-note" x="90" y="345">Intent to change state</text>
-
-  <text class="lane-label" x="90" y="505">EVENT</text>
-  <text class="lane-note" x="90" y="525">Business fact recorded</text>
-
-  <text class="lane-label" x="90" y="685">VIEW</text>
-  <text class="lane-note" x="90" y="705">What reviewers query</text>
-
-  <path class="string" d="M505 205 C555 255, 555 280, 505 330"/>
-  <circle class="dot" cx="505" cy="205" r="5"/>
-  <circle class="dot" cx="505" cy="330" r="5"/>
-  <path class="string" d="M825 385 C875 435, 875 460, 825 510"/>
-  <circle class="dot" cx="825" cy="385" r="5"/>
-  <circle class="dot" cx="825" cy="510" r="5"/>
-  <path class="string" d="M1145 565 C1195 615, 1195 640, 1145 690"/>
-  <circle class="dot" cx="1145" cy="565" r="5"/>
-  <circle class="dot" cx="1145" cy="690" r="5"/>
-
-  <g transform="rotate(-2 505 245)" filter="url(#shadow)">
-    <rect x="300" y="190" width="410" height="110" rx="6" fill="#ffffff" stroke="#d4d4d8" stroke-width="2"/>
-    <rect x="300" y="190" width="410" height="18" fill="#efe7d6"/>
-    <text class="sticky-title" x="505" y="236" text-anchor="middle">Customer submits</text>
-    <text class="sticky-title" x="505" y="264" text-anchor="middle">loan application</text>
-    <text class="sticky-text" x="505" y="288" text-anchor="middle">UI form or POST /loan-applications</text>
+  <g filter="url(#shadow)">
+    <rect x="270" y="195" width="320" height="92" rx="6" fill="#ffffff" stroke="#d4d4d8" stroke-width="2"/>
+    <rect x="270" y="195" width="320" height="18" fill="#efe7d6"/>
+    <text class="sticky-title" x="430" y="240" text-anchor="middle">Customer submits</text>
+    <text class="sticky-title" x="430" y="264" text-anchor="middle">loan application</text>
   </g>
 
-  <g transform="rotate(1.5 825 425)" filter="url(#shadow)">
-    <rect x="610" y="370" width="430" height="112" rx="6" fill="#cfe3ff" stroke="#8cb6ff" stroke-width="2"/>
-    <rect x="610" y="370" width="430" height="18" fill="#b9d4ff"/>
-    <text class="sticky-title" x="825" y="418" text-anchor="middle">SubmitLoanApplication</text>
-    <text class="sticky-text" x="825" y="446" text-anchor="middle">applicationId, customerId,</text>
-    <text class="sticky-text" x="825" y="470" text-anchor="middle">requestedAmount, purpose</text>
+  <g filter="url(#shadow)">
+    <rect x="660" y="355" width="360" height="96" rx="6" fill="#cfe3ff" stroke="#8cb6ff" stroke-width="2"/>
+    <rect x="660" y="355" width="360" height="18" fill="#b9d4ff"/>
+    <text class="sticky-title" x="840" y="401" text-anchor="middle">SubmitLoanApplication</text>
+    <text class="sticky-text" x="840" y="427" text-anchor="middle">applicationId, customerId,</text>
+    <text class="sticky-text" x="840" y="449" text-anchor="middle">requestedAmount, purpose</text>
   </g>
 
-  <g transform="rotate(-1.3 1145 605)" filter="url(#shadow)">
-    <rect x="915" y="548" width="460" height="116" rx="6" fill="#f7ea72" stroke="#d2b100" stroke-width="2"/>
-    <rect x="915" y="548" width="460" height="18" fill="#f1df48"/>
-    <text class="sticky-title" x="1145" y="596" text-anchor="middle">LoanApplicationSubmitted</text>
-    <text class="sticky-text" x="1145" y="624" text-anchor="middle">applicationId, customerId, requestedAmount,</text>
-    <text class="sticky-text" x="1145" y="648" text-anchor="middle">purpose, submittedAt</text>
+  <g filter="url(#shadow)">
+    <rect x="1080" y="515" width="390" height="100" rx="6" fill="#f7ea72" stroke="#d2b100" stroke-width="2"/>
+    <rect x="1080" y="515" width="390" height="18" fill="#f1df48"/>
+    <text class="sticky-title" x="1275" y="561" text-anchor="middle">LoanApplicationSubmitted</text>
+    <text class="sticky-text" x="1275" y="587" text-anchor="middle">applicationId, customerId, requestedAmount,</text>
+    <text class="sticky-text" x="1275" y="609" text-anchor="middle">purpose, submittedAt</text>
   </g>
 
-  <g transform="rotate(0.8 1145 785)" filter="url(#shadow)">
-    <rect x="895" y="730" width="500" height="112" rx="6" fill="#b8efb6" stroke="#74c36a" stroke-width="2"/>
-    <rect x="895" y="730" width="500" height="18" fill="#9ee09a"/>
-    <text class="sticky-title" x="1145" y="778" text-anchor="middle">PendingLoanApplications</text>
-    <text class="sticky-text" x="1145" y="806" text-anchor="middle">applicationId, customerId, requestedAmount,</text>
-    <text class="sticky-text" x="1145" y="830" text-anchor="middle">purpose, status, submittedAt</text>
+  <g filter="url(#shadow)">
+    <rect x="1260" y="675" width="300" height="96" rx="6" fill="#b8efb6" stroke="#74c36a" stroke-width="2"/>
+    <rect x="1260" y="675" width="300" height="18" fill="#9ee09a"/>
+    <text class="sticky-title" x="1410" y="721" text-anchor="middle">PendingLoanApplications</text>
+    <text class="sticky-text" x="1410" y="747" text-anchor="middle">reviewer queue</text>
   </g>
 
-  <g transform="rotate(-1.2 410 800)" filter="url(#shadow)">
-    <rect x="180" y="752" width="460" height="120" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
-    <text class="small-note" x="410" y="790" text-anchor="middle">Why this illustrative board stops here</text>
-    <text class="small-text" x="410" y="820" text-anchor="middle">This first sample only needs a fact plus</text>
-    <text class="small-text" x="410" y="842" text-anchor="middle">a reviewer-facing read model.</text>
+  <path class="arrow" d="M590 241 L700 241 L700 355"/>
+  <path class="arrow" d="M1020 403 L1120 403 L1120 515"/>
+  <path class="arrow" d="M1310 615 L1310 675"/>
+  <text class="branch-label" x="1322" y="651">projects to view</text>
+
+  <g filter="url(#shadow)">
+    <rect x="160" y="725" width="420" height="104" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
+    <text class="small-note" x="370" y="761" text-anchor="middle">Reading order</text>
+    <text class="small-text" x="370" y="789" text-anchor="middle">Read left to right across time.</text>
+    <text class="small-text" x="370" y="811" text-anchor="middle">The view appears beneath the event it depends on.</text>
   </g>
 
-  <g transform="rotate(1.1 650 884)" filter="url(#shadow)">
-    <rect x="520" y="854" width="260" height="78" rx="8" fill="#ffe3e3" stroke="#e6a7a7" stroke-width="2"/>
-    <text class="small-note" x="650" y="885" text-anchor="middle">Not shown yet</text>
-    <text class="small-text" x="650" y="908" text-anchor="middle">automation</text>
+  <g filter="url(#shadow)">
+    <rect x="620" y="725" width="420" height="104" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
+    <text class="small-note" x="830" y="761" text-anchor="middle">Why this illustrative board stops here</text>
+    <text class="small-text" x="830" y="789" text-anchor="middle">This first sample only models one write-side fact</text>
+    <text class="small-text" x="830" y="811" text-anchor="middle">and one reviewer-facing read model.</text>
   </g>
 
-  <g transform="rotate(-0.9 940 884)" filter="url(#shadow)">
-    <rect x="810" y="854" width="260" height="78" rx="8" fill="#ffe3e3" stroke="#e6a7a7" stroke-width="2"/>
-    <text class="small-note" x="940" y="885" text-anchor="middle">Not shown yet</text>
-    <text class="small-text" x="940" y="908" text-anchor="middle">translation / outbox</text>
+  <g filter="url(#shadow)">
+    <rect x="1080" y="725" width="400" height="104" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
+    <text class="small-note" x="1280" y="761" text-anchor="middle">Not shown on this slice</text>
+    <text class="small-text" x="1280" y="789" text-anchor="middle">Automation and outbox stay off this board</text>
+    <text class="small-text" x="1280" y="811" text-anchor="middle">because the documented sample does not define them.</text>
   </g>
 
-  <g transform="rotate(0.7 1240 884)" filter="url(#shadow)">
-    <rect x="1080" y="844" width="320" height="96" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
-    <text class="small-note" x="1240" y="880" text-anchor="middle">Add those on later slices</text>
-    <text class="small-text" x="1240" y="904" text-anchor="middle">when the flow actually reacts</text>
-    <text class="small-text" x="1240" y="924" text-anchor="middle">or publishes externally.</text>
-  </g>
+  <rect x="1280" y="110" width="320" height="108" rx="10" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
+  <text class="legend" x="1310" y="146">Color key</text>
+  <rect x="1310" y="164" width="22" height="22" fill="#cfe3ff" stroke="#8cb6ff" stroke-width="2"/>
+  <text class="legend-text" x="1344" y="181">command</text>
+  <rect x="1410" y="164" width="22" height="22" fill="#f7ea72" stroke="#d2b100" stroke-width="2"/>
+  <text class="legend-text" x="1444" y="181">event</text>
+  <rect x="1510" y="164" width="22" height="22" fill="#b8efb6" stroke="#74c36a" stroke-width="2"/>
+  <text class="legend-text" x="1544" y="181">view</text>
 </svg>

@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1360" viewBox="0 0 1800 1360" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="980" viewBox="0 0 1900 980" role="img" aria-labelledby="title desc">
   <title id="title">Wallet Opened Automation and Outbox Event Modeling Board</title>
-  <desc id="desc">Event Modeling board with one main automation chain and two explicit illustrative branches from WalletOpened: one to a view and one to outbox publication.</desc>
+  <desc id="desc">Horizontal Event Modeling timeline for the wallet sample with one main event timeline and lane-specific projections, automation, follow-up command, and illustrative outbox publication.</desc>
   <defs>
     <style>
       .bg { fill: #f5f1e8; }
@@ -9,14 +9,14 @@
       .lane-line { stroke: #c9bfae; stroke-width: 3; stroke-dasharray: 10 10; }
       .lane-label { font: 700 21px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #374151; letter-spacing: 1px; }
       .lane-note { font: 400 13px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #6b7280; }
-      .sticky-title { font: 700 22px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #111827; }
-      .sticky-text { font: 400 16px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #1f2937; }
+      .sticky-title { font: 700 21px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #111827; }
+      .sticky-text { font: 400 15px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #1f2937; }
       .small-note { font: 700 18px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #374151; }
       .small-text { font: 400 15px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #475569; }
-      .legend { font: 700 16px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #374151; }
-      .legend-text { font: 400 15px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #475569; }
       .arrow { stroke: #55606e; stroke-width: 4; fill: none; marker-end: url(#arrowhead); stroke-linecap: round; stroke-linejoin: round; }
       .branch-label { font: 700 14px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #55606e; }
+      .legend { font: 700 16px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #374151; }
+      .legend-text { font: 400 15px 'Trebuchet MS', 'Segoe UI', sans-serif; fill: #475569; }
     </style>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
       <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#000000" flood-opacity="0.18"/>
@@ -26,132 +26,129 @@
     </marker>
   </defs>
 
-  <rect class="bg" x="0" y="0" width="1800" height="1360"/>
-  <text class="title" x="900" y="52" text-anchor="middle">Wallet Opened with Automation and Outbox</text>
-  <text class="subtitle" x="900" y="80" text-anchor="middle">One clear command-to-event chain, plus illustrative branches from WalletOpened into a view and outbox publication.</text>
+  <rect class="bg" x="0" y="0" width="1900" height="980"/>
+  <text class="title" x="950" y="52" text-anchor="middle">Wallet Opened with Automation and Outbox</text>
+  <text class="subtitle" x="950" y="80" text-anchor="middle">Horizontal Event Modeling timeline with a main event stream and illustrative view, automation, and outbox consequences.</text>
 
-  <line class="lane-line" x1="70" y1="170" x2="1730" y2="170"/>
-  <line class="lane-line" x1="70" y1="320" x2="1730" y2="320"/>
-  <line class="lane-line" x1="70" y1="470" x2="1730" y2="470"/>
-  <line class="lane-line" x1="70" y1="620" x2="1730" y2="620"/>
-  <line class="lane-line" x1="70" y1="770" x2="1730" y2="770"/>
-  <line class="lane-line" x1="70" y1="920" x2="1730" y2="920"/>
-  <line class="lane-line" x1="70" y1="1180" x2="1730" y2="1180"/>
+  <line class="lane-line" x1="100" y1="170" x2="1820" y2="170"/>
+  <line class="lane-line" x1="100" y1="310" x2="1820" y2="310"/>
+  <line class="lane-line" x1="100" y1="450" x2="1820" y2="450"/>
+  <line class="lane-line" x1="100" y1="590" x2="1820" y2="590"/>
+  <line class="lane-line" x1="100" y1="730" x2="1820" y2="730"/>
 
-  <text class="lane-label" x="90" y="145">TRIGGER</text>
-  <text class="lane-note" x="90" y="165">What starts the flow</text>
-  <text class="lane-label" x="90" y="295">COMMAND</text>
-  <text class="lane-note" x="90" y="315">Intent to change state</text>
-  <text class="lane-label" x="90" y="445">EVENT</text>
-  <text class="lane-note" x="90" y="465">Committed business fact</text>
-  <text class="lane-label" x="90" y="595">VIEW</text>
-  <text class="lane-note" x="90" y="615">Read model</text>
-  <text class="lane-label" x="90" y="745">AUTOMATED TRIGGER</text>
-  <text class="lane-note" x="90" y="765">Policy wakes up on an event</text>
-  <text class="lane-label" x="90" y="895">COMMAND</text>
-  <text class="lane-note" x="90" y="915">Follow-up action</text>
-  <text class="lane-label" x="90" y="1045">EVENT / TRANSLATION</text>
-  <text class="lane-note" x="90" y="1065">Follow-up fact and external publication</text>
+  <text class="lane-label" x="120" y="145">TRIGGER</text>
+  <text class="lane-note" x="120" y="165">What starts the flow</text>
+  <text class="lane-label" x="120" y="285">COMMAND</text>
+  <text class="lane-note" x="120" y="305">Intent to change state</text>
+  <text class="lane-label" x="120" y="425">EVENT</text>
+  <text class="lane-note" x="120" y="445">Committed facts across time</text>
+  <text class="lane-label" x="120" y="565">VIEW / AUTOMATION</text>
+  <text class="lane-note" x="120" y="585">Consequences triggered by an event</text>
+  <text class="lane-label" x="120" y="705">COMMAND / TRANSLATION</text>
+  <text class="lane-note" x="120" y="725">Follow-up command and illustrative outbox path</text>
 
   <g filter="url(#shadow)">
-    <rect x="520" y="188" width="460" height="88" rx="6" fill="#ffffff" stroke="#d4d4d8" stroke-width="2"/>
-    <rect x="520" y="188" width="460" height="18" fill="#efe7d6"/>
-    <text class="sticky-title" x="750" y="232" text-anchor="middle">Customer opens wallet</text>
-    <text class="sticky-text" x="750" y="256" text-anchor="middle">UI or API request</text>
+    <rect x="300" y="185" width="280" height="86" rx="6" fill="#ffffff" stroke="#d4d4d8" stroke-width="2"/>
+    <rect x="300" y="185" width="280" height="18" fill="#efe7d6"/>
+    <text class="sticky-title" x="440" y="230" text-anchor="middle">Customer opens wallet</text>
+    <text class="sticky-text" x="440" y="254" text-anchor="middle">UI or API request</text>
   </g>
 
   <g filter="url(#shadow)">
-    <rect x="520" y="338" width="460" height="92" rx="6" fill="#cfe3ff" stroke="#8cb6ff" stroke-width="2"/>
-    <rect x="520" y="338" width="460" height="18" fill="#b9d4ff"/>
-    <text class="sticky-title" x="750" y="383" text-anchor="middle">OpenWalletCommand</text>
-    <text class="sticky-text" x="750" y="409" text-anchor="middle">walletId, ownerId</text>
+    <rect x="610" y="325" width="300" height="90" rx="6" fill="#cfe3ff" stroke="#8cb6ff" stroke-width="2"/>
+    <rect x="610" y="325" width="300" height="18" fill="#b9d4ff"/>
+    <text class="sticky-title" x="760" y="371" text-anchor="middle">OpenWalletCommand</text>
+    <text class="sticky-text" x="760" y="397" text-anchor="middle">walletId, ownerId</text>
   </g>
 
   <g filter="url(#shadow)">
-    <rect x="520" y="488" width="460" height="92" rx="6" fill="#f7ea72" stroke="#d2b100" stroke-width="2"/>
-    <rect x="520" y="488" width="460" height="18" fill="#f1df48"/>
-    <text class="sticky-title" x="750" y="533" text-anchor="middle">WalletOpened</text>
-    <text class="sticky-text" x="750" y="559" text-anchor="middle">walletId, ownerId, openedAt</text>
+    <rect x="960" y="465" width="300" height="94" rx="6" fill="#f7ea72" stroke="#d2b100" stroke-width="2"/>
+    <rect x="960" y="465" width="300" height="18" fill="#f1df48"/>
+    <text class="sticky-title" x="1110" y="511" text-anchor="middle">WalletOpened</text>
+    <text class="sticky-text" x="1110" y="537" text-anchor="middle">walletId, ownerId, openedAt</text>
   </g>
 
   <g filter="url(#shadow)">
-    <rect x="1130" y="638" width="430" height="92" rx="6" fill="#b8efb6" stroke="#74c36a" stroke-width="2"/>
-    <rect x="1130" y="638" width="430" height="18" fill="#9ee09a"/>
-    <text class="sticky-title" x="1345" y="683" text-anchor="middle">WalletSummaryView</text>
-    <text class="sticky-text" x="1345" y="709" text-anchor="middle">wallet becomes visible to queries</text>
+    <rect x="1310" y="465" width="330" height="94" rx="6" fill="#f7ea72" stroke="#d2b100" stroke-width="2"/>
+    <rect x="1310" y="465" width="330" height="18" fill="#f1df48"/>
+    <text class="sticky-title" x="1475" y="511" text-anchor="middle">WelcomeNotificationSent</text>
+    <text class="sticky-text" x="1475" y="537" text-anchor="middle">follow-up fact with idempotency check</text>
   </g>
 
   <g filter="url(#shadow)">
-    <rect x="520" y="788" width="460" height="92" rx="6" fill="#fbd38d" stroke="#d69e2e" stroke-width="2"/>
-    <rect x="520" y="788" width="460" height="18" fill="#f6bf5f"/>
-    <text class="sticky-title" x="750" y="833" text-anchor="middle">WalletOpenedAutomation</text>
-    <text class="sticky-text" x="750" y="859" text-anchor="middle">policy wakes on WalletOpened</text>
+    <rect x="930" y="605" width="340" height="90" rx="6" fill="#b8efb6" stroke="#74c36a" stroke-width="2"/>
+    <rect x="930" y="605" width="340" height="18" fill="#9ee09a"/>
+    <text class="sticky-title" x="1100" y="651" text-anchor="middle">WalletSummaryView</text>
+    <text class="sticky-text" x="1100" y="677" text-anchor="middle">wallet becomes queryable</text>
   </g>
 
   <g filter="url(#shadow)">
-    <rect x="520" y="938" width="460" height="92" rx="6" fill="#cfe3ff" stroke="#8cb6ff" stroke-width="2"/>
-    <rect x="520" y="938" width="460" height="18" fill="#b9d4ff"/>
-    <text class="sticky-title" x="750" y="983" text-anchor="middle">SendWelcomeNotification</text>
-    <text class="sticky-text" x="750" y="1009" text-anchor="middle">follow-up command</text>
+    <rect x="1310" y="605" width="330" height="90" rx="6" fill="#fbd38d" stroke="#d69e2e" stroke-width="2"/>
+    <rect x="1310" y="605" width="330" height="18" fill="#f6bf5f"/>
+    <text class="sticky-title" x="1475" y="651" text-anchor="middle">WalletOpenedAutomation</text>
+    <text class="sticky-text" x="1475" y="677" text-anchor="middle">policy wakes on WalletOpened</text>
   </g>
 
   <g filter="url(#shadow)">
-    <rect x="520" y="1078" width="460" height="98" rx="6" fill="#f7ea72" stroke="#d2b100" stroke-width="2"/>
-    <rect x="520" y="1078" width="460" height="18" fill="#f1df48"/>
-    <text class="sticky-title" x="750" y="1124" text-anchor="middle">WelcomeNotificationSent</text>
-    <text class="sticky-text" x="750" y="1150" text-anchor="middle">new committed fact with idempotency check</text>
+    <rect x="1470" y="745" width="280" height="90" rx="6" fill="#cfe3ff" stroke="#8cb6ff" stroke-width="2"/>
+    <rect x="1470" y="745" width="280" height="18" fill="#b9d4ff"/>
+    <text class="sticky-title" x="1610" y="791" text-anchor="middle">SendWelcomeNotification</text>
+    <text class="sticky-text" x="1610" y="817" text-anchor="middle">follow-up command</text>
   </g>
 
   <g filter="url(#shadow)">
-    <rect x="1130" y="1078" width="330" height="98" rx="6" fill="#f9c4d2" stroke="#db7b97" stroke-width="2"/>
-    <rect x="1130" y="1078" width="330" height="18" fill="#f5a8bc"/>
-    <text class="sticky-title" x="1295" y="1124" text-anchor="middle">Outbox Publication</text>
-    <text class="sticky-text" x="1295" y="1150" text-anchor="middle">LogPublisher or wallet-webhook</text>
+    <rect x="980" y="745" width="280" height="90" rx="6" fill="#f9c4d2" stroke="#db7b97" stroke-width="2"/>
+    <rect x="980" y="745" width="280" height="18" fill="#f5a8bc"/>
+    <text class="sticky-title" x="1120" y="791" text-anchor="middle">Outbox Publication</text>
+    <text class="sticky-text" x="1120" y="817" text-anchor="middle">example path from WalletOpened</text>
   </g>
 
-  <path class="arrow" d="M750 276 L750 338"/>
-  <path class="arrow" d="M750 430 L750 488"/>
-  <path class="arrow" d="M750 580 L750 788"/>
-  <path class="arrow" d="M750 880 L750 938"/>
-  <path class="arrow" d="M750 1030 L750 1078"/>
+  <path class="arrow" d="M580 228 L660 228 L660 325"/>
+  <path class="arrow" d="M910 370 L1010 370 L1010 465"/>
+  <path class="arrow" d="M1260 512 L1310 512"/>
 
-  <path class="arrow" d="M980 534 L1090 534 L1090 684 L1130 684"/>
-  <text class="branch-label" x="1020" y="520">projects to view</text>
+  <path class="arrow" d="M1110 559 L1110 605"/>
+  <text class="branch-label" x="1124" y="590">projects to view</text>
 
-  <path class="arrow" d="M980 534 L1055 534 L1055 1127 L1130 1127"/>
-  <text class="branch-label" x="975" y="1110">example outbox path</text>
+  <path class="arrow" d="M1180 559 L1390 605"/>
+  <text class="branch-label" x="1270" y="578">wakes automation</text>
 
-  <g filter="url(#shadow)">
-    <rect x="140" y="1210" width="420" height="104" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
-    <text class="small-note" x="350" y="1246" text-anchor="middle">Reading order</text>
-    <text class="small-text" x="350" y="1274" text-anchor="middle">Follow the center column top to bottom.</text>
-    <text class="small-text" x="350" y="1296" text-anchor="middle">The two right-side arrows are branches from WalletOpened.</text>
-  </g>
+  <path class="arrow" d="M1110 559 L1120 745"/>
+  <text class="branch-label" x="1136" y="686">example outbox path</text>
+
+  <path class="arrow" d="M1640 695 L1640 745"/>
 
   <g filter="url(#shadow)">
-    <rect x="620" y="1210" width="430" height="104" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
-    <text class="small-note" x="835" y="1246" text-anchor="middle">Automation branch</text>
-    <text class="small-text" x="835" y="1274" text-anchor="middle">WalletOpened wakes a policy that emits</text>
-    <text class="small-text" x="835" y="1296" text-anchor="middle">a follow-up command and a follow-up event.</text>
+    <rect x="160" y="855" width="480" height="92" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
+    <text class="small-note" x="400" y="890" text-anchor="middle">Reading order</text>
+    <text class="small-text" x="400" y="916" text-anchor="middle">Read the event lane left to right as the timeline.</text>
+    <text class="small-text" x="400" y="938" text-anchor="middle">Other lanes sit beneath the event they depend on.</text>
   </g>
 
   <g filter="url(#shadow)">
-    <rect x="1110" y="1210" width="470" height="104" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
-    <text class="small-note" x="1345" y="1246" text-anchor="middle">Translation branch</text>
-    <text class="small-text" x="1345" y="1274" text-anchor="middle">This board illustrates outbox publication from WalletOpened</text>
-    <text class="small-text" x="1345" y="1296" text-anchor="middle">to match the sample, not every later event consequence.</text>
+    <rect x="690" y="855" width="500" height="92" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
+    <text class="small-note" x="940" y="890" text-anchor="middle">Automation consequence</text>
+    <text class="small-text" x="940" y="916" text-anchor="middle">WalletOpened wakes a policy, which emits a follow-up command,</text>
+    <text class="small-text" x="940" y="938" text-anchor="middle">which later records WelcomeNotificationSent on the event timeline.</text>
   </g>
 
-  <rect x="1220" y="120" width="480" height="120" rx="10" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
-  <text class="legend" x="1250" y="158">Color key</text>
-  <rect x="1250" y="176" width="22" height="22" fill="#cfe3ff" stroke="#8cb6ff" stroke-width="2"/>
-  <text class="legend-text" x="1284" y="193">command</text>
-  <rect x="1370" y="176" width="22" height="22" fill="#f7ea72" stroke="#d2b100" stroke-width="2"/>
-  <text class="legend-text" x="1404" y="193">event</text>
-  <rect x="1490" y="176" width="22" height="22" fill="#b8efb6" stroke="#74c36a" stroke-width="2"/>
-  <text class="legend-text" x="1524" y="193">view</text>
-  <rect x="1250" y="208" width="22" height="22" fill="#fbd38d" stroke="#d69e2e" stroke-width="2"/>
-  <text class="legend-text" x="1284" y="225">automation</text>
-  <rect x="1370" y="208" width="22" height="22" fill="#f9c4d2" stroke="#db7b97" stroke-width="2"/>
-  <text class="legend-text" x="1404" y="225">translation / outbox</text>
+  <g filter="url(#shadow)">
+    <rect x="1240" y="855" width="500" height="92" rx="8" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
+    <text class="small-note" x="1490" y="890" text-anchor="middle">Illustrative outbox consequence</text>
+    <text class="small-text" x="1490" y="916" text-anchor="middle">This board shows one example publication path from WalletOpened</text>
+    <text class="small-text" x="1490" y="938" text-anchor="middle">to match the sample, not every later event consequence.</text>
+  </g>
+
+  <rect x="1460" y="110" width="320" height="112" rx="10" fill="#fffaf1" stroke="#d6c8aa" stroke-width="2"/>
+  <text class="legend" x="1490" y="146">Color key</text>
+  <rect x="1490" y="164" width="22" height="22" fill="#cfe3ff" stroke="#8cb6ff" stroke-width="2"/>
+  <text class="legend-text" x="1524" y="181">command</text>
+  <rect x="1590" y="164" width="22" height="22" fill="#f7ea72" stroke="#d2b100" stroke-width="2"/>
+  <text class="legend-text" x="1624" y="181">event</text>
+  <rect x="1690" y="164" width="22" height="22" fill="#b8efb6" stroke="#74c36a" stroke-width="2"/>
+  <text class="legend-text" x="1724" y="181">view</text>
+  <rect x="1490" y="196" width="22" height="22" fill="#fbd38d" stroke="#d69e2e" stroke-width="2"/>
+  <text class="legend-text" x="1524" y="213">automation</text>
+  <rect x="1590" y="196" width="22" height="22" fill="#f9c4d2" stroke="#db7b97" stroke-width="2"/>
+  <text class="legend-text" x="1624" y="213">translation / outbox</text>
 </svg>
