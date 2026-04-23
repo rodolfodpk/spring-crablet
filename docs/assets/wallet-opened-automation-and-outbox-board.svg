@@ -65,11 +65,11 @@
   <path class="string" d="M1455 795 C1505 835, 1510 850, 1470 890"/>
   <circle class="dot" cx="1455" cy="795" r="5"/>
   <circle class="dot" cx="1470" cy="890" r="5"/>
-  <path class="string" d="M1470 945 C1535 990, 1590 1010, 1640 1035"/>
+  <path class="string" d="M1470 945 C1510 985, 1545 1015, 1575 1035"/>
   <circle class="dot" cx="1470" cy="945" r="5"/>
-  <circle class="dot" cx="1640" cy="1035" r="5"/>
-  <path class="string" d="M650 495 C1580 495, 1625 795, 1630 1025"/>
-  <circle class="dot" cx="1630" cy="1025" r="5"/>
+  <circle class="dot" cx="1575" cy="1035" r="5"/>
+  <path class="string" d="M650 495 C1585 495, 1660 790, 1665 1020"/>
+  <circle class="dot" cx="1665" cy="1020" r="5"/>
 
   <g transform="rotate(-1.8 350 235)" filter="url(#shadow)">
     <rect x="180" y="180" width="340" height="90" rx="6" fill="#ffffff" stroke="#d4d4d8" stroke-width="2"/>
@@ -113,19 +113,19 @@
     <text class="sticky-text" x="1470" y="1002" text-anchor="middle">follow-up command</text>
   </g>
 
-  <g transform="rotate(-1.4 1475 1110)" filter="url(#shadow)">
-    <rect x="1260" y="1050" width="430" height="110" rx="6" fill="#f7ea72" stroke="#d2b100" stroke-width="2"/>
-    <rect x="1260" y="1050" width="430" height="18" fill="#f1df48"/>
-    <text class="sticky-title" x="1475" y="1096" text-anchor="middle">WelcomeNotificationSent</text>
-    <text class="sticky-text" x="1475" y="1122" text-anchor="middle">new committed fact with idempotency check</text>
+  <g transform="rotate(-1.4 1435 1110)" filter="url(#shadow)">
+    <rect x="1180" y="1050" width="510" height="110" rx="6" fill="#f7ea72" stroke="#d2b100" stroke-width="2"/>
+    <rect x="1180" y="1050" width="510" height="18" fill="#f1df48"/>
+    <text class="sticky-title" x="1435" y="1096" text-anchor="middle">WelcomeNotificationSent</text>
+    <text class="sticky-text" x="1435" y="1122" text-anchor="middle">new committed fact with idempotency check</text>
   </g>
 
-  <g transform="rotate(1.4 1620 1110)" filter="url(#shadow)">
-    <rect x="1475" y="1044" width="250" height="104" rx="6" fill="#f9c4d2" stroke="#db7b97" stroke-width="2"/>
-    <rect x="1475" y="1044" width="250" height="18" fill="#f5a8bc"/>
-    <text class="sticky-title" x="1600" y="1088" text-anchor="middle">Outbox</text>
-    <text class="sticky-text" x="1600" y="1114" text-anchor="middle">LogPublisher /</text>
-    <text class="sticky-text" x="1600" y="1136" text-anchor="middle">wallet-webhook</text>
+  <g transform="rotate(1.4 1645 1105)" filter="url(#shadow)">
+    <rect x="1535" y="1044" width="220" height="104" rx="6" fill="#f9c4d2" stroke="#db7b97" stroke-width="2"/>
+    <rect x="1535" y="1044" width="220" height="18" fill="#f5a8bc"/>
+    <text class="sticky-title" x="1645" y="1088" text-anchor="middle">Outbox</text>
+    <text class="sticky-text" x="1645" y="1114" text-anchor="middle">LogPublisher /</text>
+    <text class="sticky-text" x="1645" y="1136" text-anchor="middle">wallet-webhook</text>
   </g>
 
   <g transform="rotate(-0.9 310 1015)" filter="url(#shadow)">
