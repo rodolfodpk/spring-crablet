@@ -15,7 +15,7 @@ public class AnthropicService {
     private final String apiKey;
     private final String model;
     private final long maxTokens;
-    private AnthropicClient client;
+    private volatile AnthropicClient client;
 
     public AnthropicService(
             @Value("${codegen.anthropic.api-key:}") String apiKey,

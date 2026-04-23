@@ -65,8 +65,20 @@ public class McpServer {
                     mcpOut.println(response);
                     mcpOut.flush();
                 }
-            } catch (Exception ignored) {
-                // never crash the server
+            } catch (Exception e) {
+                try {
+                    ObjectNode err = json.createObjectNode();
+                    err.put("jsonrpc", "2.0");
+                    err.putNull("id");
+                    ObjectNode error = json.createObjectNode();
+                    error.put("code", -32603);
+                    error.put("message", e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+                    err.set("error", error);
+                    mcpOut.println(json.writeValueAsString(err));
+                    mcpOut.flush();
+                } catch (Exception ignored) {
+                    // if we can't even serialize the error, silently continue
+                }
             }
         }
     }

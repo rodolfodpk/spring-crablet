@@ -3,6 +3,7 @@ package com.crablet.codegen.pipeline;
 import com.crablet.codegen.model.*;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -52,7 +53,8 @@ public class SchemaResolver {
 
     private List<FieldSpec> merge(List<FieldSpec> base, List<FieldSpec> overrides) {
         Map<String, FieldSpec> result = base.stream()
-                .collect(Collectors.toMap(FieldSpec::name, f -> f));
+                .collect(Collectors.toMap(FieldSpec::name, f -> f,
+                        (a, b) -> b, LinkedHashMap::new));
         overrides.forEach(f -> result.put(f.name(), f));
         return List.copyOf(result.values());
     }

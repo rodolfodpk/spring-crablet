@@ -74,13 +74,12 @@ public class ArtifactPlanner {
     }
 
     public String render(EventModel model) {
-        EventModel resolved = schemaResolver.resolve(model);
-        List<PlannedArtifact> artifacts = plan(resolved);
+        List<PlannedArtifact> artifacts = plan(model);
         StringBuilder out = new StringBuilder();
         out.append("Planned artifacts for ")
-                .append(resolved.domain())
+                .append(model.domain())
                 .append(" (")
-                .append(resolved.basePackage())
+                .append(model.basePackage())
                 .append(")\n");
 
         String section = "";
