@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "embabel-codegen": {
+      "command": "java",
+      "args": [
+        "-Dspring.main.banner-mode=off",
+        "-Dlogging.level.root=WARN",
+        "-Dcodegen.claude-md-path=CLAUDE.md",
+        "-jar",
+        "embabel-codegen/target/embabel-codegen.jar",
+        "--mcp"
+      ]
+    }
+  }
+}

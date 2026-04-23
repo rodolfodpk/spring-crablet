@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "embabel-codegen": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "./tools/embabel-codegen.jar",
+        "--mcp"
+      ]
+    }
+  }
+}
