@@ -48,7 +48,7 @@ reviewers can see it in a pending queue.
 
 ### Classic Event Modeling View
 
-This same slice can be shown as a classic Event Modeling board with horizontal lanes:
+This same slice can be shown as a classic Event Modeling sticky-note board:
 
 ![Submit Loan Application event modeling board](assets/loan-submit-event-modeling-board.svg)
 
