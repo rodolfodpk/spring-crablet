@@ -70,6 +70,16 @@ Ask: which read models does this domain need? For each view:
 For outcome-oriented slices, ask which read model proves that the outcome is observable. For
 example: "Which fields should reviewers see in the pending applications view?"
 
+## Event Modeling Board Semantics
+
+If you explain the slice with an Event Modeling diagram or board, preserve the core notation:
+
+- Event Modeling is a horizontal timeline. Time flows left to right.
+- Lanes are semantic layers such as trigger, command, event, view, automation, and translation.
+- Do not turn the board into a top-to-bottom flowchart with time flowing downward.
+- Put views, automations, and translations beneath or above the event they depend on.
+- If a diagram is only illustrative and not a complete consequence map, label it as illustrative.
+
 ### 4. Add Automations (optional)
 
 Ask: are there any event-driven policies? For each automation:
