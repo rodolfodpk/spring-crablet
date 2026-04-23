@@ -17,28 +17,22 @@ Crablet helps Spring teams turn an event-modeled domain into a working event-sou
 
 ## AI-First Workflow
 
-The intended path for a new application is to describe one vertical slice at a time in plain language, let Claude turn it into `event-model.yaml`, then generate the full Spring application structure from that model.
+The only tool you interact with is Claude Code. You describe outcomes in plain language; Claude handles modeling, planning, generating, and repairing — entirely through conversation.
 
-### Getting started in Claude Code
+### One-time setup
 
-**1. Build the tooling** (once, from this repo):
+**Prerequisites:** Java 25, [Claude Code CLI](https://claude.ai/code), `ANTHROPIC_API_KEY`
 
 ```bash
+# 1. Build the codegen JAR (from this repo)
 make install && make codegen-build
-```
 
-**2. Bootstrap your app:**
-
-```bash
-java -jar embabel-codegen/target/embabel-codegen.jar init \
-  --name my-service \
-  --package com.example.myservice \
-  --dir ../my-service
-
+# 2. Copy the template and drop the JAR in place
+cp -r templates/crablet-app ../my-service
 cp embabel-codegen/target/embabel-codegen.jar ../my-service/tools/
 ```
 
-**3. Open Claude Code from the new project:**
+### Start Claude Code
 
 ```bash
 cd ../my-service
@@ -46,7 +40,9 @@ export ANTHROPIC_API_KEY=sk-ant-...
 claude
 ```
 
-**4. Describe one outcome — Claude handles the rest:**
+The template's `.claude/settings.json` wires `embabel-codegen` as an MCP server. You never call `java -jar` directly — Claude Code calls the tools on your behalf.
+
+### Describe one outcome
 
 ```text
 Add the first vertical slice: Submit Loan Application.
@@ -60,25 +56,24 @@ Use the Crablet feature-slice workflow.
 Ask for missing facts before changing files.
 ```
 
-Claude will ask for the missing business facts (entity identity, idempotency rules, required fields, read model columns), run `/event-modeling` to update `event-model.yaml`, call `embabel_plan` and show you the artifact list, then wait for your approval before calling `embabel_generate`.
+Claude will:
+1. Ask for the missing business facts (entity identity, idempotency, required fields, read model columns)
+2. Run `/event-modeling` to update `event-model.yaml`
+3. Call `embabel_plan` and show you the planned artifact list
+4. Wait for your approval before calling `embabel_generate`
+5. Fix any compile errors and tell you when to run `./mvnw verify`
 
-**5. Verify the build:**
+Repeat for each new slice. Update `event-model.yaml` when something is structural; edit generated code only for behavior the model cannot express.
 
-```bash
-./mvnw verify
-```
-
-Repeat from step 4 for each new slice. Update the model when something is structural; edit generated code only for behavior the model cannot express.
-
-The AI-assisted generator is still a preview direction. The stable runtime APIs remain documented and usable directly while the generator matures.
+The AI-assisted generator is a preview direction. The stable runtime APIs remain usable directly while it matures.
 
 | Goal | Read |
 |------|------|
-| Full workflow details | [AI-First Workflow](docs/AI_FIRST_WORKFLOW.md) |
 | Slice-by-slice guide with dialogue examples | [Feature Slice Workflow](docs/FEATURE_SLICE_WORKFLOW.md) |
+| Full workflow and tooling details | [AI-First Workflow](docs/AI_FIRST_WORKFLOW.md) |
 | event-model.yaml format | [Event Model Format](docs/EVENT_MODEL_FORMAT.md) |
-| Starter project | [Templates](templates/README.md) |
-| Codegen CLI and MCP server | [Embabel Codegen](embabel-codegen/README.md) |
+| Starter template | [Templates](templates/README.md) |
+| Codegen CLI and MCP server reference | [Embabel Codegen](embabel-codegen/README.md) |
 | Run the wallet app | [Quickstart](docs/QUICKSTART.md) |
 | Build manually against the runtime APIs | [Create A New Crablet App Manually](docs/CREATE_A_CRABLET_APP.md) |
 | Inspect the complete example | [Wallet Example App](wallet-example-app/README.md) |
