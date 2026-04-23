@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=./event-model-schema.json
+domain: LoanApplication
+basePackage: com.example.loan
+
+events:
+  - name: LoanApplicationSubmitted
+    tags: [application_id, customer_id]
+    fields:
+      - name: applicationId
+        type: string
+      - name: customerId
+        type: string
+      - name: requestedAmount
+        type: integer
+      - name: purpose
+        type: string
+      - name: submittedAt
+        type: Instant
+
+commands:
+  - name: SubmitLoanApplication
+    pattern: idempotent
+    produces: [LoanApplicationSubmitted]
+    fields:
+      - name: applicationId
+        type: string
+        minLength: 1
+      - name: customerId
+        type: string
+        minLength: 1
+      - name: requestedAmount
+        type: integer
+        exclusiveMinimum: 0
+      - name: purpose
+        type: string
+        minLength: 1
+
+views:
+  - name: PendingLoanApplications
+    reads: [LoanApplicationSubmitted]
+    tag: application_id
+    fields:
+      - name: applicationId
+        type: string
+      - name: customerId
+        type: string
+      - name: requestedAmount
+        type: integer
+      - name: purpose
+        type: string
+      - name: status
+        type: string
+      - name: submittedAt
+        type: Instant
+
+automations: []
+outbox: []

@@ -1,0 +1,153 @@
+# yaml-language-server: $schema=../../docs/examples/event-model-schema.json
+domain: Wallet
+basePackage: com.example.wallet
+
+schemas:
+  - name: MoneyAmount
+    fields:
+      - name: amount
+        type: integer
+        exclusiveMinimum: 0
+      - name: description
+        type: string
+        minLength: 1
+
+events:
+  - name: WalletOpened
+    tags: [wallet_id]
+    fields:
+      - name: walletId
+        type: string
+      - name: owner
+        type: string
+      - name: initialBalance
+        type: integer
+      - name: openedAt
+        type: Instant
+
+  - name: DepositMade
+    tags: [wallet_id, deposit_id]
+    fields:
+      - name: depositId
+        type: string
+      - name: walletId
+        type: string
+      - name: amount
+        type: integer
+      - name: newBalance
+        type: integer
+      - name: depositedAt
+        type: Instant
+      - name: description
+        type: string
+
+  - name: WithdrawalMade
+    tags: [wallet_id, withdrawal_id]
+    fields:
+      - name: withdrawalId
+        type: string
+      - name: walletId
+        type: string
+      - name: amount
+        type: integer
+      - name: newBalance
+        type: integer
+      - name: withdrawnAt
+        type: Instant
+      - name: description
+        type: string
+
+  - name: MoneyTransferred
+    tags: [from_wallet_id, to_wallet_id, transfer_id]
+    fields:
+      - name: transferId
+        type: string
+      - name: fromWalletId
+        type: string
+      - name: toWalletId
+        type: string
+      - name: amount
+        type: integer
+      - name: fromBalance
+        type: integer
+      - name: toBalance
+        type: integer
+      - name: transferredAt
+        type: Instant
+      - name: description
+        type: string
+
+commands:
+  - name: OpenWallet
+    pattern: idempotent
+    produces: [WalletOpened]
+    fields:
+      - name: walletId
+        type: string
+        minLength: 1
+      - name: owner
+        type: string
+        minLength: 1
+      - name: initialBalance
+        type: integer
+        minimum: 0
+
+  - name: Deposit
+    pattern: commutative
+    produces: [DepositMade]
+    guardEvents: [WalletOpened]
+    schema: MoneyAmount
+    fields:
+      - name: depositId
+        type: string
+        minLength: 1
+      - name: walletId
+        type: string
+        minLength: 1
+
+  - name: Withdraw
+    pattern: non-commutative
+    produces: [WithdrawalMade]
+    schema: MoneyAmount
+    fields:
+      - name: withdrawalId
+        type: string
+        minLength: 1
+      - name: walletId
+        type: string
+        minLength: 1
+
+  - name: TransferMoney
+    pattern: non-commutative
+    produces: [MoneyTransferred]
+    schema: MoneyAmount
+    fields:
+      - name: transferId
+        type: string
+        minLength: 1
+      - name: fromWalletId
+        type: string
+        minLength: 1
+      - name: toWalletId
+        type: string
+        minLength: 1
+
+views:
+  - name: WalletBalance
+    reads: [WalletOpened, DepositMade, WithdrawalMade, MoneyTransferred]
+    tag: wallet_id
+    fields:
+      - name: walletId
+        type: string
+      - name: owner
+        type: string
+      - name: balance
+        type: integer
+      - name: lastUpdatedAt
+        type: Instant
+
+automations:
+  - name: welcome-notification
+    triggeredBy: WalletOpened
+    emitsCommand: SendWelcomeNotification
+    condition: always

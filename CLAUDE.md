@@ -141,6 +141,122 @@ public class YourViewProjector extends AbstractTypedViewProjector<YourEvent> {
 }
 ```
 
+### Automation Handler Template
+
+```java
+@Component
+public class YourAutomationHandler implements AutomationHandler {
+
+    private final ObjectMapper objectMapper;
+    private final JdbcTemplate jdbcTemplate; // inject if readsView is needed
+
+    public YourAutomationHandler(ObjectMapper objectMapper, JdbcTemplate jdbcTemplate) {
+        this.objectMapper = objectMapper;
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    @Override
+    public String getAutomationName() {
+        return "your-automation-name";
+    }
+
+    @Override
+    public Set<String> getEventTypes() {
+        return Set.of(type(YourTriggerEvent.class));
+    }
+
+    @Override
+    public Set<String> getRequiredTags() {
+        return Set.of(YOUR_TAG_KEY);
+    }
+
+    @Override
+    public List<AutomationDecision> decide(StoredEvent stored) {
+        // 1. Extract tag value
+        String entityId = stored.tags().stream()
+            .filter(tag -> tag.key().equals(YOUR_TAG_KEY))
+            .map(Tag::value)
+            .findFirst()
+            .orElseThrow();
+
+        // 2. Deserialize event
+        YourTriggerEvent event = readValue(stored, YourTriggerEvent.class);
+
+        // 3. Read from view table (if condition depends on accumulated state)
+        YourViewRow row = jdbcTemplate.queryForObject(
+            "SELECT * FROM your_view WHERE entity_id = ?",
+            (rs, n) -> new YourViewRow(rs.getString("entity_id"), rs.getInt("field")),
+            entityId);
+
+        // 4. Apply condition
+        if (row == null || !meetsCondition(row, event)) {
+            return List.of(new AutomationDecision.NoOp("condition not met"));
+        }
+
+        // 5. Return command to execute
+        return List.of(new AutomationDecision.ExecuteCommand(
+            new YourTargetCommand(entityId /* params */)));
+    }
+
+    private boolean meetsCondition(YourViewRow row, YourTriggerEvent event) {
+        return true; // implement condition
+    }
+
+    private <T> T readValue(StoredEvent stored, Class<T> type) {
+        try {
+            return objectMapper.readValue(stored.data(), type);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to deserialize event: " + stored.type(), e);
+        }
+    }
+}
+```
+
+### Outbox Publisher Template
+
+```java
+@Component
+public class YourOutboxPublisher implements OutboxPublisher {
+
+    private final ObjectMapper objectMapper;
+
+    public YourOutboxPublisher(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
+    @Override
+    public String getName() {
+        return "your-publisher-name";
+    }
+
+    @Override
+    public void publishBatch(List<StoredEvent> events) throws PublishException {
+        for (StoredEvent stored : events) {
+            try {
+                if (stored.type().equals(type(YourEvent.class))) {
+                    YourEvent event = objectMapper.readValue(stored.data(), YourEvent.class);
+                    // publish to external system: HTTP, Kafka, email, etc.
+                }
+            } catch (PublishException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new PublishException("Failed to publish event: " + stored.type(), e);
+            }
+        }
+    }
+
+    @Override
+    public boolean isHealthy() {
+        return true; // implement health check against the external system
+    }
+
+    @Override
+    public PublishMode getPreferredMode() {
+        return PublishMode.INDIVIDUAL; // INDIVIDUAL for HTTP/webhook; BATCH for Kafka
+    }
+}
+```
+
 ### Unit Test Template
 
 ```java
@@ -333,44 +449,18 @@ These decisions reflect the current repository state and should be treated as th
 
 ### DCB (Dynamic Consistency Boundary) Pattern
 
-DCB is the core architectural pattern that replaces traditional aggregate-based event sourcing.
+Three append methods — pick based on operation type:
 
-**Official DCB Specification**: https://dcb.events/
+| Method | Use for | Example |
+|--------|---------|---------|
+| `appendNonCommutative` | Existing entities, order-matters | Withdraw, Transfer |
+| `appendIdempotent` | Entity creation | OpenWallet, DefineCourse |
+| `appendCommutative` | Order-independent, no lifecycle check | Analytics events |
+| `appendCommutative` + `CommutativeGuarded` | Order-independent but entity must be active | Deposit, Credit |
 
-**Note**: Spring-Crablet implements the core DCB principles but doesn't strictly follow the official spec. Our implementation uses streamPosition-based optimistic locking with tag-based queries, which aligns with DCB's philosophy of "context-sensitive consistency enforcement without rigid transactional boundaries."
+**DCB Flow:** project state → validate → generate event → call the matching append method (atomic check + append).
 
-**Core DCB Principle** (from spec):
-- Technique for enforcing consistency in event-driven systems without rigid transactional boundaries
-- Balances strong consistency with scalability
-- Event tagging allows a single event to impact multiple entities within a bounded context
-- Query-based optimistic locking (not stream-based revisions)
-- Enables parallel, unrelated writes while maintaining consistency for cross-entity constraints
-
-**Crablet's three append methods** (library API — not DCB spec vocabulary):
-
-1. **`appendNonCommutative`** (non-commutative operations):
-   - Use for: Operations on existing entities (Withdraw, Transfer)
-   - Detects concurrent modifications via stream position
-
-2. **`appendIdempotent`** (entity creation):
-   - Use for: Preventing duplicate entity creation (OpenWallet)
-   - Fails if event with same tag already exists
-
-3. **`appendCommutative`** (order-independent operations):
-   - Use for: Order-independent operations (Deposit, Credit)
-   - `Commutative` — no conflict detection (truly state-independent operations)
-   - `CommutativeGuarded` — concurrent same-type operations are still allowed, but atomically checks that no lifecycle event (e.g., `EntityClosed`) appeared after the projected position; use this when the entity must be active to accept the operation
-
-**DCB Flow:**
-1. Project current state using `eventStore.project(query, streamPosition, stateType, projectors)`
-2. Returns `ProjectionResult<T>` with both state and stream position
-3. Validate business rules against projected state
-4. Generate events
-5. Call the appropriate append method — atomic check and append
-
-**Key files:**
-- DCB explanation: `crablet-eventstore/docs/DCB_AND_CRABLET.md`
-- Command patterns: `crablet-eventstore/docs/COMMAND_PATTERNS.md`
+Full explanation: `crablet-eventstore/docs/DCB_AND_CRABLET.md` and `crablet-eventstore/docs/COMMAND_PATTERNS.md`.
 
 ### Core Abstractions
 
@@ -453,53 +543,24 @@ public interface WalletCommand {
 
 ### View Projections (crablet-views)
 
-Asynchronous materialized read models from events.
+Base class choices:
+- `AbstractTypedViewProjector<E>` — recommended (sealed interfaces, pattern matching)
+- `AbstractViewProjector` — simple events without sealed interfaces
+- `ViewProjector` — maximum flexibility
 
-**Architecture:**
-- Default: Polling (1s interval) → Filter by tags → View projector → Database view; one DB query per view per cycle
-- Shared-fetch mode (`crablet.views.shared-fetch.enabled=true`): one DB query per cycle fans out to all views via `EventSelectionMatcher`; requires schema migration V14
-- Leader election: Only 1 instance processes per view
-- Idempotent: Events processed at-least-once
-- Progress tracked per view
-
-**Base classes:**
-- `AbstractTypedViewProjector<E>` - Recommended (sealed interfaces, pattern matching)
-- `AbstractViewProjector` - Simple events without sealed interfaces
-- Direct `ViewProjector` - Maximum flexibility
-
-**Key principles:**
-- Use `ON CONFLICT` or upserts for idempotency
-- Each batch committed atomically
-- Tag-based filtering for event subscriptions
-- View projection runs on the write-side datasource via the poller/handler boundary
+Key rules: use `ON CONFLICT` upserts for idempotency; each batch committed atomically; tag-based filtering for subscriptions. See `crablet-views/README.md`.
 
 ### Event Publishing (crablet-outbox)
 
-Transactional outbox for reliable external event publishing.
-
-**Architecture:**
-- Events → Outbox table (same tx) → Polling → Multiple publishers → External systems
-- Leader election with global lock strategy
-- Per-publisher schedulers (independent polling)
-- The generic poller owns fetch, progress, and retry/error tracking; outbox publishers only publish the batch they receive
-
-**OutboxPublisher interface:**
-- `publish(topic, events)` - Publish to external system
-- `getName()` - Publisher identifier
+Implement `OutboxPublisher`: `publishBatch(events)`, `getName()`, `isHealthy()`, `getPreferredMode()`.
+The generic poller owns fetch, progress, and retry/error tracking — publishers only handle the batch they receive.
+See `crablet-outbox/README.md`.
 
 ### Leader Election
 
-PostgreSQL advisory locks for distributed coordination.
+PostgreSQL advisory locks (`pg_try_advisory_lock`). Non-blocking — follower skips the cycle and retries next interval. Automatic failover: 5–30 seconds.
 
-**Mechanism:**
-- `pg_try_advisory_lock(hashcode)` - Non-blocking lock attempt
-- Leader: Acquired lock, processes events
-- Follower: Failed lock, waits for next cycle
-- Automatic failover: 5-30 seconds
-- Advisory locks are session-scoped; leader election must stay on a session-safe write connection
-- With PgBouncer or PgCat, keep leader election on the primary/write path in session mode
-
-**Documentation:** `docs/LEADER_ELECTION.md`
+Key constraint: advisory locks are session-scoped. `crablet.event-poller.notifications.jdbc-url` **must be a direct Postgres connection** — not PgBouncer/PgCat/RDS Proxy. See `docs/LEADER_ELECTION.md`.
 
 ### DataSource Model
 
@@ -507,8 +568,6 @@ Crablet intentionally exposes two datasource roles:
 
 - `WriteDataSource` for writes, progress tracking, and leader election
 - `ReadDataSource` for read-only fetches that may be served by replicas
-
-Prefer explicit read/write endpoints over relying on pooler SQL parsing for correctness.
 
 **DataSource ownership by layer** (important when extending framework classes):
 
@@ -520,103 +579,26 @@ Prefer explicit read/write endpoints over relying on pooler SQL parsing for corr
 | Leader election | `WriteDataSource` | Advisory locks are session-scoped; must stay on the write path |
 | Command appends / EventStore | `WriteDataSource` | All writes go to primary |
 
-**View projector DataSource:** `AbstractViewProjector` and `AbstractTypedViewProjector` inject
-`WriteDataSource` in their constructors. This is intentional —
-view projection writes (SQL upserts to the view table) must go to the primary database.
-The `PlatformTransactionManager` also wraps the same write datasource for atomicity.
-Do **not** inject `ReadDataSource` into a view projector constructor.
+**View projector DataSource:** `AbstractViewProjector` and `AbstractTypedViewProjector` inject `WriteDataSource` in their constructors. This is intentional — view projection writes must go to the primary. Do **not** inject `ReadDataSource` into a view projector constructor.
 
 ## Common Gotchas & Troubleshooting
 
-### Build Issues
+See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for problem/solution pairs covering build issues, DCB pattern issues, testing issues, view projection issues, and event deserialization issues.
 
-**Problem:** "Cannot find symbol: shared-examples-domain classes"
-- **Solution:** Run `make install` or manually build in order: `crablet-eventstore` → `shared-examples-domain` → reactor modules
-
-**Problem:** Tests fail with "Docker not running"
-- **Solution:** Integration tests use Testcontainers. Either start Docker or run unit tests only: `./mvnw test -DexcludedGroups=integration`
-
-### DCB Pattern Issues
-
-**Problem:** `ConcurrencyException` thrown when no concurrent modifications occurred
-- **Enhanced Diagnostics (v1.0+):** The exception now includes diagnostic hints and matching event counts
-- **Solution:** Check that your decision model query matches the tags on your events. Mismatched tags cause false conflicts.
-- **Debug:** Enable debug logging (`logging.level.com.crablet.eventstore=DEBUG`) to see DCB check details
-
-**Problem:** Idempotency check not working (duplicate events stored)
-- **Enhanced Diagnostics (v1.0+):** Exception message now includes specific hint about idempotency tag usage
-- **Solution:** Ensure you're using `AppendCondition.idempotent()` with the correct event type and tag. The tag must uniquely identify the operation (e.g., `deposit_id`, not just `wallet_id`).
-- **Debug:** Check exception message for `Hint:` section with guidance
-
-**Problem:** Query returns no events but events exist in database
-- **Solution:** Verify tags on events match query criteria. Common issue: forgetting period tags (`year`, `month`) when using closing the books pattern.
-- **Debug:** Enable debug logging to see exact query parameters being sent to PostgreSQL
-
-### Testing Issues
-
-**Problem:** Unit test projections return wrong state
-- **Solution:** Ensure you seed events with `.tag()` calls matching your query patterns. `InMemoryEventStore` filters by tags just like the real implementation.
-
-**Problem:** `ClassCastException` in tests
-- **Solution:** Use pattern matching with sealed interfaces instead of casts. If event isn't sealed, extend `AbstractViewProjector` instead of `AbstractTypedViewProjector`.
-
-**Problem:** Integration test database pollution between tests
-- **Solution:** Use unique IDs: `String walletId = "wallet-" + System.currentTimeMillis();` or `UUID.randomUUID().toString()`
-
-### View Projection Issues
-
-**Problem:** View not updating (events not processed)
-- **Solution:** Check leader election - only one instance processes. Verify with logs: "Leader election acquired for view: {viewName}"
-
-**Problem:** View falls behind (lag increasing)
-- **Solution:** Check batch size, processing time, and error logs. Consider increasing batch size or optimizing projector logic.
-
-**Problem:** View projector throws exceptions but silently fails
-- **Enhanced Diagnostics (v1.0+):** Error logs now include full event context (type, position, transaction_id, tags)
-- **Solution:** Views swallow exceptions by design (at-least-once processing). Check logs for enhanced error details including the exact event that failed.
-- **Debug:** Error message now includes hint to check if projector handles all event types
-
-### Event Deserialization Issues
-
-**Problem:** `JsonMappingException` when deserializing events
-- **Solution:** Ensure event classes are properly configured for Jackson (records work out of the box). Check that field names match JSON.
-
-**Problem:** Events stored but projector can't read them
-- **Solution:** Verify `getEventTypes()` in projector returns correct event type names. Use `EventType.type(Class)` pattern for consistency.
+**Quick diagnostics:**
+- `ConcurrencyException`: read the `Hint:`, check `matchingEventsCount`, verify decision-model tags match appended events.
+- View projector silent failures: check logs for event type, position, `transaction_id`, tags; confirm `getEventTypes()` covers all variants.
+- Enable `logging.level.com.crablet.eventstore=DEBUG` to see DCB query parameters and stream positions.
 
 ## Common Development Tasks
 
-### Adding a New Command
+See [docs/tutorials/](docs/tutorials/) for step-by-step walkthroughs. Quick checklist:
 
-1. Define command interface/record in domain package
-2. Implement `CommandHandler<YourCommand>`
-3. Annotate handler with `@Component`
-4. Define events and decision model query
-5. Implement state projector if needed
-6. Write unit tests extending `AbstractHandlerUnitTest`
-7. Write integration tests extending `AbstractCrabletTest`
+**Adding a new command:** define command record → implement `CommandHandler<C>` → `@Component` → define events + decision model query → write unit + integration tests.
 
-### Adding a New View
+**Adding a new view:** Flyway migration for view table → implement `AbstractTypedViewProjector` → `@Component` → `handleEvent()` with upserts → integration tests.
 
-1. Create view table schema (Flyway migration)
-2. Implement `ViewProjector` (extend `AbstractTypedViewProjector`)
-3. Annotate with `@Component`
-4. Implement `handleEvent()` with idempotent upserts
-5. Configure view filters (event types, tags)
-6. Test with integration tests
-
-### Running Wallet Example App
-
-```bash
-make start
-# or
-cd wallet-example-app && ./mvnw spring-boot:run
-```
-
-**Endpoints:**
-- API: http://localhost:8080/api/
-- Swagger: http://localhost:8080/swagger-ui.html
-- View Management: http://localhost:8080/api/views/{viewName}/status
+**Running wallet example:** `make start` → API at `http://localhost:8080/api/`, Swagger at `/swagger-ui.html`.
 
 ## Important Coding Patterns & Conventions
 
@@ -770,90 +752,16 @@ Modules use Spring Boot auto-configuration via `META-INF/spring/org.springframew
 - **DCB debugging:** `logging.level.com.crablet.eventstore=DEBUG` logs query parameters, stream position, and tags used in append checks.
 - **Views:** projector failures log event type, position, `transaction_id`, tags, and view name; confirm `getEventTypes()` and SQL match every variant you emit.
 
-**ConcurrencyException:** read the hint, check `matchingEventsCount`, enable DEBUG, verify decision-model tags match appended events.
-
-**View projector errors:** read the log line for the failing event, confirm the type is subscribed and handled, align SQL with the event payload.
-
 ## Performance Considerations
 
-### Read Replicas (Optional)
-
-Configure separate read and write datasources for horizontal scaling:
-
-```java
-@Bean
-public EventStore eventStore(
-    WriteDataSource writeDataSource,
-    ReadDataSource readDataSource,
-    // ...
-) {
-    return new EventStoreImpl(writeDataSource.dataSource(), readDataSource.dataSource(), ...);
-}
-```
-
-**Benefits:**
-- Event fetching (views, outbox) uses read replicas
-- Command appends go to primary
-- Reduces load on primary database
-- Leader election and other session-scoped features must remain on `WriteDataSource`
-
-### Automation Pattern
-
-Recommended separation of concerns:
-
-- command handlers record facts
-- views model current decision state
-- automations react asynchronously and own follow-up application behavior
-- outbox publishes stored events to external systems
-
-If stored events need to be sent to an external HTTP API, Kafka, analytics, or CRM system, use an `OutboxPublisher`. If an event should trigger application behavior, implement that behavior by returning `AutomationDecision.ExecuteCommand` from `AutomationHandler.decide()` and use commands/events to record the outcome.
-
-**Documentation:** `crablet-eventstore/docs/READ_REPLICAS.md`
-
-### Database Indexes
-
-The framework relies heavily on PostgreSQL indexes for performance:
-
-- **GIN index on tags** - Fast tag-based filtering (e.g., `WHERE tags @> '{wallet_id:alice}'`)
-- **Composite index (type, position)** - Optimized for DCB query pattern
-- **Composite GIN index (type, tags)** - Optimized for idempotency checks
-
-**Key insight:** Tag-based filtering is O(log n) with GIN indexes, making it efficient even with millions of events.
-
-### Batch Processing
-
-**Views and Outbox:**
-- Default batch size: 100 events
-- Configurable via application properties
-- Larger batches = better throughput, higher latency
-- Smaller batches = lower latency, more database round-trips
-
-**Event Appending:**
-- Uses `UNNEST` for batch inserts (single database round-trip)
-- `append_events_if()` function handles multiple events atomically
-
-### Connection Pooling
-
-Consider PgBouncer for connection pooling in production:
-- Reduces connection overhead
-- Handles connection limits gracefully
-- Transaction-level pooling recommended
-
-**Documentation:** `crablet-eventstore/docs/CONNECTION_POOLERS.md`
-
-### Closing the Books Pattern
-
-For entities with long event histories (millions of events):
-- Use `@PeriodConfig` to segment events by period (monthly, daily, etc.)
-- Query only current period events instead of full history
-- Significant performance improvement for mature entities
-
-**Documentation:** `crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md`
+See [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for full details on read replicas, database indexes, batch processing, connection pooling, and closing the books pattern.
 
 ## Documentation Quick Links
 
 - Build instructions: `docs/BUILD.md`
 - Configuration reference: `docs/CONFIGURATION.md`
+- Troubleshooting: `docs/TROUBLESHOOTING.md`
+- Performance: `docs/PERFORMANCE.md`
 - EventStore README: `crablet-eventstore/README.md`
 - Command framework: `crablet-commands/README.md`
 - Event processor: `crablet-event-poller/README.md`
