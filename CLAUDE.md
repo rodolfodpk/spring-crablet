@@ -773,7 +773,9 @@ See [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for full details on read replicas
 - Closing books: `crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md`
 - Leader election: `docs/LEADER_ELECTION.md`
 - Read replicas: `crablet-eventstore/docs/READ_REPLICAS.md`
-- Metrics: `crablet-eventstore/docs/METRICS.md`, `crablet-outbox/docs/OUTBOX_METRICS.md`
+- Observability: `docs/OBSERVABILITY.md` (entry point — Micrometer setup, metrics reference, Grafana, PromQL)
+- Metrics deep dives: `crablet-eventstore/docs/METRICS.md`, `crablet-outbox/docs/OUTBOX_METRICS.md`
+- Observability stack: `observability/README.md` (Prometheus + Grafana Docker Compose)
 
 ## Key Package Locations
 

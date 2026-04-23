@@ -80,7 +80,7 @@ public class OpenWalletCommandHandler
 | Area | Modules |
 |------|---------|
 | Core runtime | [Event Store](crablet-eventstore/README.md), [Commands](crablet-commands/README.md) |
-| Optional add-ons | [Views](crablet-views/README.md), [Outbox](crablet-outbox/README.md), [Automations](crablet-automations/README.md), [Command Web API](crablet-commands-web/README.md), [Micrometer metrics](crablet-metrics-micrometer/README.md) |
+| Optional add-ons | [Views](crablet-views/README.md), [Outbox](crablet-outbox/README.md), [Automations](crablet-automations/README.md), [Command Web API](crablet-commands-web/README.md), [Micrometer metrics](crablet-metrics-micrometer/README.md), [Observability](docs/OBSERVABILITY.md) |
 | Support and examples | [Test support](crablet-test-support/README.md), [Wallet example app](wallet-example-app/README.md), shared example domain code, compiled docs samples |
 | Internal infrastructure | [Event Poller](crablet-event-poller/README.md) powers the poller-backed modules |
 
