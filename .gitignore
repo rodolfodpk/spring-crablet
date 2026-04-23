@@ -38,7 +38,17 @@ build/
 !.cursor/plans/**
 
 ### Claude local tooling ###
-.claude/
+.claude/*
+!.claude/settings.json
+!.claude/skills/
+!.claude/skills/**
+.claude/settings.local.json
+.claude/**/settings.local.json
+templates/crablet-app/.claude/*
+!templates/crablet-app/.claude/settings.json
+!templates/crablet-app/.claude/skills/
+!templates/crablet-app/.claude/skills/**
+templates/crablet-app/.claude/settings.local.json
 
 ### Application Logs ###
 *.log
@@ -54,6 +64,8 @@ results/*.json
 *.json
 !performance-tests/results/summary.md
 !observability/**/*.json
+!.claude/settings.json
+!templates/crablet-app/.claude/settings.json
 
 ### Wallet example results ###
 wallet-example/performance-tests/results/
