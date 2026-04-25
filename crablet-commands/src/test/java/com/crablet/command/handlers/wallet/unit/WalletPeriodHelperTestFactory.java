@@ -53,7 +53,7 @@ public class WalletPeriodHelperTestFactory {
      */
     public static WalletPeriodHelper createTestHelper(EventStore eventStore) {
         // Create simplified resolver that works with InMemoryEventStore
-        TestWalletStatementPeriodResolver periodResolver = new TestWalletStatementPeriodResolver(eventStore);
+        TestWalletStatementPeriodResolver periodResolver = new TestWalletStatementPeriodResolver();
         
         // Create simplified config provider that always returns MONTHLY
         TestPeriodConfigurationProvider configProvider = new TestPeriodConfigurationProvider();
@@ -74,7 +74,7 @@ public class WalletPeriodHelperTestFactory {
      * Works with InMemoryEventStore (no EventRepository, no ObjectMapper, no ClockProvider).
      */
     private static class TestWalletStatementPeriodResolver extends WalletStatementPeriodResolver {
-        public TestWalletStatementPeriodResolver(EventStore eventStore) {
+        TestWalletStatementPeriodResolver() {
             // Pass nulls - we override resolveActivePeriod to not use them
             super(null, null, null, new WalletBalanceStateProjector());
         }

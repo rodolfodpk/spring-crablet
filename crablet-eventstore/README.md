@@ -46,11 +46,14 @@ recommended path for command handlers.
 
 ## Usage
 
-Inject `EventStore` and use it directly:
+Inject `EventStore` via constructor and use it directly:
 
 ```java
-@Autowired
-private EventStore eventStore;
+private final EventStore eventStore;
+
+public MyService(EventStore eventStore) {
+    this.eventStore = eventStore;
+}
 
 public void myOperation() {
     // 1. Project current state (DCB: read current position and state)

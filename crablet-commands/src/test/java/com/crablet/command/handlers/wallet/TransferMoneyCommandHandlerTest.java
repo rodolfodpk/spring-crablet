@@ -2,7 +2,6 @@ package com.crablet.command.handlers.wallet;
 
 import com.crablet.command.CommandDecision;
 import com.crablet.eventstore.AppendEvent;
-import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.wallet.commands.TransferMoneyCommandHandler;
 import com.crablet.examples.wallet.commands.TransferMoneyCommand;
@@ -35,9 +34,6 @@ class TransferMoneyCommandHandlerTest extends com.crablet.test.AbstractCrabletTe
 
     private TransferMoneyCommandHandler handler;
 
-    @Autowired
-    private EventStore eventStore;
-    
     @Autowired
     private WalletTestUtils walletTestUtils;
     

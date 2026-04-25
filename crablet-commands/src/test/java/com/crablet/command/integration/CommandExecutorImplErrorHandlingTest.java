@@ -1,6 +1,5 @@
 package com.crablet.command.integration;
 
-import com.crablet.command.CommandExecutor;
 import com.crablet.command.internal.CommandExecutorImpl;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandDecision;
@@ -8,7 +7,6 @@ import com.crablet.command.InvalidCommandException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -23,9 +21,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @DisplayName("CommandExecutorImpl Error Handling Tests")
 class CommandExecutorImplErrorHandlingTest extends AbstractCommandTest {
-
-    @Autowired
-    private CommandExecutor commandExecutor;
 
     @BeforeEach
     void setUp() {

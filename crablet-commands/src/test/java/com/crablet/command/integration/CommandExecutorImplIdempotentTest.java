@@ -1,11 +1,9 @@
 package com.crablet.command.integration;
 
-import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandDecision;
 import com.crablet.command.ExecutionResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -16,9 +14,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests handleIdempotentResult() method through public API.
  */
 class CommandExecutorImplIdempotentTest extends AbstractCommandTest {
-
-    @Autowired
-    private CommandExecutor commandExecutor;
 
     @BeforeEach
     void setUp() {

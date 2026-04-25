@@ -3,7 +3,6 @@ package com.crablet.command.handlers.courses;
 import com.crablet.command.CommandDecision;
 import com.crablet.test.AbstractCrabletTest;
 import com.crablet.eventstore.AppendEvent;
-import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.course.commands.SubscribeStudentToCourseCommand;
 import com.crablet.examples.course.events.CourseDefined;
@@ -33,9 +32,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
 
     private SubscribeStudentToCourseCommandHandler handler;
-    
-    @Autowired
-    private EventStore eventStore;
     
     @Autowired
     private tools.jackson.databind.ObjectMapper objectMapper;

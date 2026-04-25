@@ -2,7 +2,6 @@ package com.crablet.command.handlers.wallet;
 
 import com.crablet.command.CommandDecision;
 import com.crablet.eventstore.AppendEvent;
-import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.wallet.commands.WithdrawCommandHandler;
 import com.crablet.examples.wallet.commands.WithdrawCommand;
@@ -35,9 +34,6 @@ class WithdrawCommandHandlerTest extends com.crablet.test.AbstractCrabletTest {
 
     private WithdrawCommandHandler handler;
 
-    @Autowired
-    private EventStore eventStore;
-    
     @Autowired
     private WalletTestUtils walletTestUtils;
     

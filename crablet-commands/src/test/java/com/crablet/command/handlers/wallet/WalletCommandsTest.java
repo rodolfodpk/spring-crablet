@@ -3,7 +3,6 @@ package com.crablet.command.handlers.wallet;
 import com.crablet.command.CommandDecision;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.AppendEvent;
-import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.Tag;
 import com.crablet.examples.wallet.commands.DepositCommand;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
@@ -33,9 +32,6 @@ class WalletCommandsTest extends com.crablet.test.AbstractCrabletTest {
     private com.crablet.examples.wallet.commands.DepositCommandHandler depositHandler;
     private com.crablet.examples.wallet.commands.WithdrawCommandHandler withdrawHandler;
     private com.crablet.examples.wallet.commands.OpenWalletCommandHandler openHandler;
-
-    @Autowired
-    private EventStore eventStore;
 
     @Autowired
     private EventRepository testHelper;

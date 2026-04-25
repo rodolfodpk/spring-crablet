@@ -286,8 +286,7 @@ import com.crablet.test.AbstractCrabletTest;
 
 public class WalletIntegrationTest extends AbstractCrabletTest {
     
-    @Autowired
-    protected EventStore eventStore;
+    // eventStore and jdbcTemplate are inherited from AbstractCrabletTest — no redeclaration needed
     
     // Your test methods here
 }
@@ -302,9 +301,6 @@ public class WalletIntegrationTest extends AbstractCrabletTest {
 
 ```java
 class WithdrawCommandHandlerTest extends AbstractCrabletTest {
-    
-    @Autowired
-    private EventStore eventStore;
     
     @Autowired
     private WithdrawCommandHandler handler;

@@ -81,16 +81,6 @@ class CommandTypeResolverTest {
         // Given: A handler for a command class that's not in any @JsonSubTypes
         class CommandNotInSubTypes {}
         
-        @JsonTypeInfo(
-                use = JsonTypeInfo.Id.NAME,
-                include = JsonTypeInfo.As.PROPERTY,
-                property = "commandType"
-        )
-        @JsonSubTypes({
-                // Intentionally missing CommandNotInSubTypes
-        })
-        interface CommandInterfaceWithoutSubType {}
-        
         class HandlerWithoutSubType implements CommandHandler<CommandNotInSubTypes> {
             @Override
             @SuppressWarnings("NullAway")

@@ -5,7 +5,6 @@ import com.crablet.eventstore.ConcurrencyException;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
-import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
 import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
@@ -32,9 +31,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class OpenWalletCommandHandlerTest extends com.crablet.test.AbstractCrabletTest {
 
     private OpenWalletCommandHandler handler;
-
-    @Autowired
-    private EventStore eventStore;
 
     @Autowired
     private EventRepository testHelper;

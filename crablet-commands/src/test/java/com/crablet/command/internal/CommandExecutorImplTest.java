@@ -12,11 +12,9 @@ import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
 import org.junit.jupiter.api.AfterEach;
-import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.Collections;
 import java.util.List;
@@ -37,17 +35,9 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     @Autowired
     private EventRepository eventRepository;
 
-    @Autowired
-    private javax.sql.DataSource dataSource;
-
-    private @Nullable JdbcTemplate jdbcTemplate;
-
     @BeforeEach
     void setUp() {
         TestCommandHandler.clearHandlerLogic();
-        if (dataSource != null) {
-            jdbcTemplate = new JdbcTemplate(dataSource);
-        }
     }
 
     @AfterEach
@@ -324,7 +314,6 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         assertNotNull(result);
 
         // Verify command stored in database
-        assertNotNull(jdbcTemplate, "jdbcTemplate must be initialized");
         Integer count = jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM commands WHERE type = ?",
             Integer.class,

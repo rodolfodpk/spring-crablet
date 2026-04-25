@@ -1,6 +1,5 @@
 package com.crablet.command.integration;
 
-import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandDecision;
 import com.crablet.command.ExecutionResult;
 import com.crablet.eventstore.ConcurrencyException;
@@ -9,7 +8,6 @@ import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.StreamPosition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
 import java.util.List;
@@ -23,9 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests handleConcurrencyException() method through public API.
  */
 class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
-
-    @Autowired
-    private CommandExecutor commandExecutor;
 
     @BeforeEach
     void setUp() {
