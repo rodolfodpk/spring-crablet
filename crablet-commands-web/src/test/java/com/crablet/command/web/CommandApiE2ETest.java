@@ -115,6 +115,10 @@ class CommandApiE2ETest extends AbstractCrabletTest {
 
         assertThat(first.statusCode()).isEqualTo(HttpStatus.CREATED.value());
         assertThat(second.statusCode()).isEqualTo(HttpStatus.CONFLICT.value());
+
+        JsonNode body = objectMapper.readTree(second.body());
+        assertThat(body.get("type").asText()).isEqualTo("urn:crablet:problem:command-api:dcb-concurrency");
+        assertThat(body.get("status").asInt()).isEqualTo(HttpStatus.CONFLICT.value());
     }
 
     @Test
@@ -131,6 +135,8 @@ class CommandApiE2ETest extends AbstractCrabletTest {
                 """);
 
         assertThat(response.statusCode()).isEqualTo(HttpStatus.NOT_FOUND.value());
+        JsonNode body = objectMapper.readTree(response.body());
+        assertThat(body.get("type").asText()).isEqualTo("urn:crablet:problem:command-api:command-not-exposed");
     }
 
     @Test
@@ -144,6 +150,8 @@ class CommandApiE2ETest extends AbstractCrabletTest {
                 """);
 
         assertThat(response.statusCode()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+        JsonNode body = objectMapper.readTree(response.body());
+        assertThat(body.get("type").asText()).isEqualTo("urn:crablet:problem:command-api:bad-request");
     }
 
     @Test
@@ -156,6 +164,8 @@ class CommandApiE2ETest extends AbstractCrabletTest {
         HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
 
         assertThat(response.statusCode()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+        JsonNode body = objectMapper.readTree(response.body());
+        assertThat(body.get("type").asText()).isEqualTo("urn:crablet:problem:command-api:malformed-json");
     }
 
     @Test
