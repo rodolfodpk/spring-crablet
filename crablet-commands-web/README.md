@@ -146,6 +146,20 @@ Content-Type: application/json
 | `404 Not Found` | Command type is known but not in the exposed allowlist |
 | `409 Conflict` | DCB concurrency conflict |
 
+Error responses use Spring `ProblemDetail` JSON with stable `type` values:
+
+| Problem type | When used |
+|--------------|-----------|
+| `urn:crablet:problem:command-api:bad-request` | Missing `commandType`, unknown command type, invalid payload, or malformed correlation header |
+| `urn:crablet:problem:command-api:malformed-json` | Request body is not readable JSON |
+| `urn:crablet:problem:command-api:command-not-exposed` | Command type exists but is not exposed by the allowlist |
+| `urn:crablet:problem:command-api:invalid-command` | Command validation or command argument failure |
+| `urn:crablet:problem:command-api:dcb-concurrency` | DCB concurrency conflict (`409 Conflict`) |
+| `urn:crablet:problem:command-api:unexpected-error` | Unhandled command API error (`500 Internal Server Error`) |
+
+When structured DCB violation details are available, `409 Conflict` responses also include
+`violationCode`, `matchingEventsCount`, and `hint` properties.
+
 ## Management endpoint
 
 `GET /api/commands` returns the list of currently exposed commands sorted by type name:
