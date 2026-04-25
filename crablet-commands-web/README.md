@@ -107,6 +107,18 @@ That is the only configuration required. Spring Boot auto-configuration wires th
 crablet.commands.api.base-path=/api/commands
 ```
 
+**3. Optionally enable HTTP correlation headers** (default: disabled):
+
+```properties
+crablet.commands.api.correlation-header-enabled=true
+# optional; default shown
+crablet.commands.api.correlation-header-name=X-Correlation-Id
+```
+
+When enabled, the generic command API accepts a UUID correlation header, echoes the effective
+correlation ID on responses, and stores it on appended events. If the header is missing, the API
+generates one. A malformed correlation header returns `400 Bad Request`.
+
 ## Request format
 
 Every request is a `POST` with a JSON body containing a `commandType` field plus the

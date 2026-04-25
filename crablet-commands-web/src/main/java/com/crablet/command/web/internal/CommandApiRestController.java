@@ -4,6 +4,8 @@ import com.crablet.command.CommandExecutor;
 import com.crablet.command.ExecutionResult;
 import com.crablet.command.web.CommandApiExposedCommandsResponse;
 import com.crablet.command.web.CommandApiResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +19,7 @@ import tools.jackson.databind.node.ObjectNode;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Generic REST adapter that routes JSON command payloads to the {@link CommandExecutor}.
@@ -55,7 +58,7 @@ class CommandApiRestController {
     }
 
     @PostMapping("${crablet.commands.api.base-path:/api/commands}")
-    ResponseEntity<CommandApiResponse> executeCommand(@RequestBody JsonNode body) {
+    ResponseEntity<CommandApiResponse> executeCommand(@RequestBody JsonNode body, HttpServletRequest request) {
         if (!(body instanceof ObjectNode objectNode)) {
             throw new CommandApiBadRequestException("Command payload must be a JSON object");
         }
@@ -81,10 +84,15 @@ class CommandApiRestController {
             throw new CommandApiBadRequestException("Invalid payload for commandType: " + commandType);
         }
 
-        ExecutionResult result = commandExecutor.execute(command);
+        ExecutionResult result = commandExecutor.execute(command, correlationId(request));
         if (result.wasCreated()) {
             return ResponseEntity.status(HttpStatus.CREATED).body(CommandApiResponse.created());
         }
         return ResponseEntity.ok(CommandApiResponse.idempotent(result.reason()));
+    }
+
+    private static @Nullable UUID correlationId(HttpServletRequest request) {
+        Object value = request.getAttribute(CommandApiCorrelationFilter.CORRELATION_ID_ATTRIBUTE);
+        return value instanceof UUID uuid ? uuid : null;
     }
 }

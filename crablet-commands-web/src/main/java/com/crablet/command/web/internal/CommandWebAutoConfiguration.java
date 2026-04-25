@@ -54,4 +54,9 @@ public class CommandWebAutoConfiguration {
     public CommandApiExceptionHandler commandApiExceptionHandler() {
         return new CommandApiExceptionHandler();
     }
+
+    @Bean
+    public CommandApiCorrelationFilter commandApiCorrelationFilter(CommandApiProperties properties) {
+        return new CommandApiCorrelationFilter(properties);
+    }
 }
