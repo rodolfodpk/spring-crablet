@@ -37,7 +37,7 @@ public class ArtifactPlanner {
         artifacts.add(PlannedArtifact.javaClass("command", commandPackage, resolved.domain() + "QueryPatterns"));
         for (CommandSpec command : resolved.commands()) {
             artifacts.add(PlannedArtifact.javaClass("command", commandPackage, command.name()));
-            artifacts.add(PlannedArtifact.javaClass("command", commandPackage, command.name() + "CommandHandler"));
+            artifacts.add(PlannedArtifact.javaInterface("command", commandPackage, command.name() + "CommandHandler"));
         }
 
         String viewPackage = resolved.basePackage() + ".view";
@@ -54,7 +54,7 @@ public class ArtifactPlanner {
 
         String automationPackage = resolved.basePackage() + ".automation";
         for (AutomationSpec automation : resolved.automations()) {
-            artifacts.add(PlannedArtifact.javaClass(
+            artifacts.add(PlannedArtifact.javaInterface(
                     "automation",
                     automationPackage,
                     toJavaIdentifier(automation.name()) + "AutomationHandler"
@@ -63,7 +63,7 @@ public class ArtifactPlanner {
 
         String outboxPackage = resolved.basePackage() + ".outbox";
         for (OutboxSpec outbox : resolved.outbox()) {
-            artifacts.add(PlannedArtifact.javaClass(
+            artifacts.add(PlannedArtifact.javaInterface(
                     "outbox",
                     outboxPackage,
                     toJavaIdentifier(outbox.name())

@@ -212,7 +212,7 @@ Domain:
 
 Command:
 - com.example.loan.command.SubmitLoanApplication
-- com.example.loan.command.SubmitLoanApplicationCommandHandler
+- com.example.loan.command.SubmitLoanApplicationCommandHandler (Java interface)
 - com.example.loan.command.LoanApplicationState
 - com.example.loan.command.LoanApplicationStateProjector
 - com.example.loan.command.LoanApplicationQueryPatterns
@@ -276,7 +276,7 @@ Created or updated:
 - LoanApplicationSubmitted event record
 - LoanApplicationEvent sealed interface
 - SubmitLoanApplication command record
-- SubmitLoanApplicationCommandHandler
+- SubmitLoanApplicationCommandHandler (Java interface — implement in a separate @Component class)
 - LoanApplicationState and projector
 - LoanApplicationQueryPatterns
 - PendingLoanApplicationsViewProjector
@@ -310,6 +310,11 @@ The Submit Loan Application slice is complete for the generated structural path:
 - the pending applications view has a projector and migration
 - no unrelated automation or outbox artifacts were introduced
 ```
+
+> **Note:** `SubmitLoanApplicationCommandHandler` is a generated Java interface that is safe to
+> overwrite on re-generation. Create a separate `@Component` class implementing it to provide
+> business logic. Other generated artifacts such as `StateProjector`, `QueryPatterns`, and views
+> are concrete classes that the generator owns and may overwrite on re-generation.
 
 ## 6. Refine The Model When Behavior Is Missing
 

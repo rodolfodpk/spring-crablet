@@ -2,13 +2,11 @@ package com.crablet.codegen.agents;
 
 import com.crablet.codegen.model.AutomationSpec;
 import com.crablet.codegen.model.EventModel;
-import com.crablet.codegen.model.ViewSpec;
 import com.crablet.codegen.tools.FileWriterTool;
 import com.crablet.codegen.tools.TemplateLoader;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
-import java.util.stream.Collectors;
 
 @Component
 public class AutomationsAgent {
@@ -26,7 +24,7 @@ public class AutomationsAgent {
     public void generate(EventModel model, Path outputDir) {
         if (model.automations().isEmpty()) return;
         System.out.println("[AutomationsAgent] Generating automation handlers...");
-        String automationTemplate = templates.load("Automation Handler");
+        String automationTemplate = templates.load("Automation Handler Interface");
 
         String system = """
                 You are a Java code generator for the spring-crablet event sourcing framework.
@@ -36,14 +34,15 @@ public class AutomationsAgent {
                 %s
 
                 Key rules:
-                - Implement AutomationHandler interface
-                - getEventTypes() returns Set.of(type(TriggerEvent.class))
-                - getRequiredTags() returns the tag key from the trigger event
-                - decide() receives a StoredEvent and returns List<AutomationDecision>
-                - Use JdbcTemplate to read the named view table when readsView is set
-                - Translate condition: expression into a Java if-statement
-                - Return AutomationDecision.ExecuteCommand when condition met, AutomationDecision.NoOp otherwise
-                - Use ObjectMapper to deserialize the stored event
+                - Generate a Java INTERFACE, not a @Component class.
+                - Extend AutomationHandler.
+                - Declare three default methods: getAutomationName(), getEventTypes(), getRequiredTags().
+                - Do NOT declare decide(). It is inherited and must be implemented by the user.
+                - Do NOT generate implementation classes or any @Component handler files.
+                - getRequiredTags() must always return Set.of(). AutomationSpec has no requiredTags field;
+                  if non-empty is ever needed, use string literals, NOT tag constant class references.
+                - Javadoc: "Create a @Component class implementing this interface to provide decide() logic."
+                  Do NOT mention condition translation, JdbcTemplate, ObjectMapper, or emitted command mapping.
 
                 Output ONLY file blocks — no prose, no markdown:
                 ===FILE: relative/path/to/ClassName.java===
@@ -56,10 +55,6 @@ public class AutomationsAgent {
         String domainPkg = model.basePackage() + ".domain";
 
         for (AutomationSpec automation : model.automations()) {
-            ViewSpec viewSpec = automation.readsView() != null && !automation.readsView().isBlank()
-                    ? model.viewNamed(automation.readsView())
-                    : null;
-
             String user = """
                     Domain: %s
                     Automation name: %s
@@ -69,10 +64,8 @@ public class AutomationsAgent {
 
                     Trigger event: %s
                     Emits command: %s
-                    Condition: %s
-                    %s
 
-                    Generate %sAutomationHandler.java implementing AutomationHandler.
+                    Generate %sAutomationHandler.java as a Java interface extending AutomationHandler.
                     """.formatted(
                     model.domain(),
                     automation.name(),
@@ -81,12 +74,6 @@ public class AutomationsAgent {
                     commandPkg,
                     automation.triggeredBy(),
                     automation.emitsCommand(),
-                    automation.condition() != null ? automation.condition() : "always",
-                    viewSpec != null
-                            ? "Reads view table: " + viewSpec.tableName()
-                            + "\nView fields: " + viewSpec.fields().stream()
-                            .map(f -> f.name() + ":" + f.type()).collect(Collectors.joining(", "))
-                            : "No view lookup needed",
                     automation.name()
             );
 

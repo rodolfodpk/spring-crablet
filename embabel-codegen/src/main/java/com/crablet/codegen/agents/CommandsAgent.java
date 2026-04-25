@@ -25,7 +25,7 @@ public class CommandsAgent {
 
     public void generate(EventModel model, Path outputDir) {
         System.out.println("[CommandsAgent] Generating state record, StateProjector, and command handlers...");
-        String commandHandlerTemplate = templates.load("Command Handler");
+        String commandHandlerTemplate = templates.load("Command Handler Interface");
 
         String system = """
                 You are a Java code generator for the spring-crablet event sourcing framework.
@@ -34,15 +34,27 @@ public class CommandsAgent {
                 Framework patterns to follow:
                 %s
 
-                DCB pattern selection:
+                Command append strategy:
                 - idempotent   → IdempotentCommandHandler — entity creation (first event)
-                - commutative  → CommutativeCommandHandler — order-independent, always uses lifecycle guard
+                - commutative  → CommutativeCommandHandler — two variants, distinguished by guardEvents:
+                                  guardEvents non-empty → CommutativeGuarded.withLifecycleGuard
+                                  guardEvents empty    → Commutative.of(appendEvent) (pure, no guard)
                 - non-commutative → NonCommutativeCommandHandler — order-matters operations
 
                 For YAVI validation, use:
                   _string(name, c -> c.notNull().notBlank())
                   _integer(name, c -> c.greaterThan(0))
                   _integer(name, c -> c.between(300, 850))
+
+                Command handler files are Java INTERFACES — empty interface body, no @Component, no handle() method,
+                and no decide() declaration. Inherit decide() from the selected sub-interface.
+                Do not generate implementation classes or any additional @Component handler files.
+                Include a Javadoc comment with:
+                  - one-line description of the command
+                  - the append strategy name and its rationale
+                  - a <pre> structural sketch showing a complete decide() implementation
+                  - a note to create a @Component class implementing this interface in a separate file
+                In <pre> blocks inside Javadoc, write */ as *&#47;.
 
                 Output ONLY file blocks — no prose, no markdown:
                 ===FILE: relative/path/to/ClassName.java===
@@ -64,7 +76,13 @@ public class CommandsAgent {
                 1. %sState record — boolean flags (isExisting, isAlreadyDecided, etc.) and numeric fields derived from the events below
                 2. %sStateProjector — implements StateProjector<Optional<%sState>, %sEvent>; handles each event
                 3. %sQueryPatterns — static factory methods for decision model queries and lifecycle guards
-                4. One CommandHandler per command below — choose the correct DCB pattern
+                4. One CommandHandler Java INTERFACE per command — empty interface body, no @Component.
+                   Extend IdempotentCommandHandler, NonCommutativeCommandHandler, or CommutativeCommandHandler
+                   based on the append strategy. CommutativeCommandHandler covers both pure commutative and
+                   commutative-with-lifecycle-guard; choose the CommandDecision factory from the [guard=...] hint.
+                   The interface file must compile with only necessary imports. Javadoc sketch uses framework
+                   type names (EventType.type, AppendEvent.builder, CommandDecision factories).
+                   Write */ inside <pre> blocks as *&#47;.
 
                 Commands:
                 %s

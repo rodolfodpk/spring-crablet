@@ -7,7 +7,6 @@ import com.crablet.codegen.tools.TemplateLoader;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
-import java.util.stream.Collectors;
 
 @Component
 public class OutboxAgent {
@@ -25,7 +24,7 @@ public class OutboxAgent {
     public void generate(EventModel model, Path outputDir) {
         if (model.outbox().isEmpty()) return;
         System.out.println("[OutboxAgent] Generating outbox publishers...");
-        String outboxTemplate = templates.load("Outbox Publisher");
+        String outboxTemplate = templates.load("Outbox Publisher Interface");
 
         String system = """
                 You are a Java code generator for the spring-crablet event sourcing framework.
@@ -35,15 +34,17 @@ public class OutboxAgent {
                 %s
 
                 Key rules:
-                - Implement OutboxPublisher interface
-                - publishBatch() iterates events and calls adapter for matching event types
-                - Use ObjectMapper to deserialize each StoredEvent
-                - For 'smtp' adapter: declare a delegating SmtpEmailService field with TODO constructor
-                - For 'http' adapter: declare a RestClient/HttpClient field with TODO base URL
-                - For 'kafka' adapter: declare a KafkaTemplate field (String, String)
-                - For 'custom' adapter: add a comment for the developer to implement
-                - getPreferredMode(): HTTP → INDIVIDUAL, Kafka → BATCH, others → INDIVIDUAL
-                - isHealthy() should check the adapter's connectivity
+                - Generate a Java INTERFACE, not a @Component class.
+                - Extend OutboxPublisher.
+                - Declare two default methods: getName() and getPreferredMode().
+                - Do NOT declare publishBatch() or isHealthy(). They must be implemented by the user.
+                - Do NOT generate implementation classes or any @Component publisher files.
+                - PublishMode is a nested enum on OutboxPublisher; it resolves as an inherited member type.
+                  Do NOT import com.crablet.outbox.PublishMode — that standalone class does not exist.
+                  Only import com.crablet.outbox.OutboxPublisher.
+                - getPreferredMode() hint: HTTP → PublishMode.INDIVIDUAL, Kafka → PublishMode.BATCH, else INDIVIDUAL.
+                - Javadoc: "Create a @Component class implementing this interface to provide publishBatch()
+                  and isHealthy() logic." Do NOT mention clients, event iteration, retry, or adapter details.
 
                 Output ONLY file blocks — no prose, no markdown:
                 ===FILE: relative/path/to/ClassName.java===
@@ -64,7 +65,7 @@ public class OutboxAgent {
                     Adapter type: %s
                     Handles events: %s
 
-                    Generate %s.java implementing OutboxPublisher.
+                    Generate %s.java as a Java interface extending OutboxPublisher.
                     """.formatted(
                     model.domain(),
                     outbox.name(),

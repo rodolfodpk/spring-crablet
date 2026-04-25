@@ -187,7 +187,17 @@ Common causes: wrong indentation, missing quotes around strings with special cha
 
 ### Generated code compiles but behaviour is wrong
 
-The generator produces structural code only — command handlers call the right DCB append method, views write the right columns, but business rules (validation ranges, computed fields) need to be filled in manually. This is expected. Edit the generated file; do not re-run `generate` for the same file unless you also update the model.
+**Command handlers**, **automation handlers**, and **outbox publishers** are generated as Java
+interfaces. They carry machine-owned metadata and, for command handlers, a Javadoc structural sketch.
+Create separate `@Component` classes implementing those interfaces to provide business logic,
+workflow policy, and external integration code. The generator never touches those implementation
+classes.
+
+**View projectors**, `StateProjector`, `QueryPatterns`, state records, events, and commands are
+concrete generator-owned artifacts. They contain structural code only — views write the right
+columns and projectors handle each event type — but computed fields and validation ranges may need
+manual review. Do not re-run `generate` for those files unless you also update the model, as manual
+edits will be overwritten.
 
 ## Event Model Format
 
