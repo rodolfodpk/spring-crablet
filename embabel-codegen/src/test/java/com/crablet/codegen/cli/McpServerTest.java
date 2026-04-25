@@ -1,5 +1,6 @@
 package com.crablet.codegen.cli;
 
+import com.crablet.codegen.k8s.K8sGenerator;
 import com.crablet.codegen.pipeline.SchemaResolver;
 import com.crablet.codegen.planning.ArtifactPlanner;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -16,7 +17,8 @@ class McpServerTest {
     private final McpServer server = new McpServer(
             null,
             null,
-            new ArtifactPlanner(new SchemaResolver())
+            new ArtifactPlanner(new SchemaResolver()),
+            new K8sGenerator()
     );
 
     @Test
@@ -28,9 +30,9 @@ class McpServerTest {
         JsonNode root = json.readTree(response);
         JsonNode tools = root.path("result").path("tools");
 
-        assertThat(tools).hasSize(3);
+        assertThat(tools).hasSize(4);
         assertThat(tools.findValuesAsText("name"))
-                .contains("embabel_init", "embabel_plan", "embabel_generate");
+                .contains("embabel_init", "embabel_plan", "embabel_generate", "embabel_k8s");
     }
 
     @Test

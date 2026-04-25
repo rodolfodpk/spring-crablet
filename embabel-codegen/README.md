@@ -87,6 +87,16 @@ java -jar embabel-codegen.jar generate \
   --output src/main/java
 ```
 
+**`k8s`** — generate Kubernetes manifests from `event-model.yaml` (no Anthropic; uses `deployment` in the model)
+
+```bash
+java -jar embabel-codegen.jar k8s \
+  --model event-model.yaml \
+  --output .
+```
+
+Writes `k8s/base` with Namespace, Deployments, Service, optional KEDA ScaledObjects, Secret template, and `README-k8s.md`. See [Deployment Topology](../docs/DEPLOYMENT_TOPOLOGY.md#kubernetes-optional) for how this maps to Crablet’s poller rules.
+
 **`--mcp`** — start as an MCP server (used by Claude Code)
 
 ```bash
@@ -95,13 +105,14 @@ java -jar embabel-codegen.jar --mcp
 
 ## MCP Server (Claude Code Integration)
 
-When started with `--mcp`, the JAR exposes three tools over stdio JSON-RPC:
+When started with `--mcp`, the JAR exposes tools over stdio JSON-RPC:
 
 | Tool | Description |
 |---|---|
 | `embabel_plan` | Print planned artifacts without writing files |
 | `embabel_generate` | Generate code from event-model.yaml |
 | `embabel_init` | Bootstrap a new Crablet project |
+| `embabel_k8s` | Write `k8s/base` from event-model (same as CLI `k8s`) |
 
 Claude Code discovers the server via `.claude/settings.json` in the application project. The `templates/crablet-app` starter ships with this wired up.
 

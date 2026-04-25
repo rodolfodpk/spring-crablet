@@ -1,5 +1,6 @@
 package com.crablet.codegen.agents;
 
+import com.crablet.codegen.k8s.ViewNameResolver;
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.model.FieldSpec;
 import com.crablet.codegen.model.ViewSpec;
@@ -42,6 +43,7 @@ public class ViewsAgent {
                 - The sealed event interface is in the domain package
                 - Inject WriteDataSource (NOT ReadDataSource) in the constructor
                 - For SQL migrations use Flyway convention: V{n}__create_{table_name}.sql
+                - getViewName() must return the kebab-case view processor name given below (view_progress.view_name)
 
                 Output ONLY file blocks — no prose, no markdown:
                 ===FILE: relative/path/to/ClassName.java===
@@ -56,9 +58,11 @@ public class ViewsAgent {
             String domainPkg = model.basePackage() + ".domain";
             int migNum = migration.getAndIncrement();
 
+            String kebabViewName = ViewNameResolver.viewName(view.name());
             String user = """
                     Domain: %s
-                    View name: %s
+                    View spec name (PascalCase): %s
+                    View processor name for getViewName() and view_progress (kebab-case): %s
                     Package: %s
                     Domain package (events live here): %s
                     Sealed event interface: %sEvent
@@ -71,11 +75,12 @@ public class ViewsAgent {
                     %s
 
                     Generate:
-                    1. %sViewProjector.java (extends AbstractTypedViewProjector<%sEvent>)
+                    1. %sViewProjector.java (extends AbstractTypedViewProjector<%sEvent>) with getViewName() returning "%s"
                     2. V%d__create_%s.sql (Flyway migration creating the view table)
                     """.formatted(
                     model.domain(),
                     view.name(),
+                    kebabViewName,
                     viewPkg,
                     domainPkg,
                     model.domain(),
@@ -88,6 +93,7 @@ public class ViewsAgent {
                             .collect(Collectors.joining("\n")),
                     view.name(),
                     model.domain(),
+                    kebabViewName,
                     migNum,
                     view.tableName()
             );

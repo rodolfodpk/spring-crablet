@@ -251,6 +251,8 @@ deployment:
   # commandReplicas: 2        # distributed only — fixed command-api replicas
   keda:
     enabled: false            # true → KEDA ScaledObjects for poller-backed workers
-    minReplicas: 0            # distributed only; monolith forces >= 1
+    minReplicas: 0            # distributed only; monolith forces >= 1 (command API stays up)
     pollingInterval: 30       # seconds between KEDA PostgreSQL checks
 ```
+
+**Kubernetes (optional):** from the app template, `make k8s` (requires `embabel-codegen.jar` in `tools/`) writes `k8s/base` from this `deployment` block. See `k8s/base/README-k8s.md` for fill-in, KEDA install (`helm install keda kedacore/keda --namespace keda --create-namespace`), and how monolith vs distributed maps to Deployments. `minReplicas: 0` only affects distributed workers; PDBs are omitted when `minReplicas` is 0. Platform-agnostic rules: [DEPLOYMENT_TOPOLOGY.md](../../../docs/DEPLOYMENT_TOPOLOGY.md).

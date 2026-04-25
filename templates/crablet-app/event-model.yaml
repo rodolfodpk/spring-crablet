@@ -54,3 +54,11 @@ views:
 
 automations: []
 outbox: []
+
+# Optional — used by `make k8s` for Kubernetes / KEDA generation (defaults apply if omitted)
+# deployment:
+#   topology: monolith        # monolith | distributed
+#   keda:
+#     enabled: false
+#     minReplicas: 0
+#     pollingInterval: 30

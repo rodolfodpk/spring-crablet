@@ -2,6 +2,8 @@
 
 Crablet is split into a small required write-side core and optional libraries you add by capability. This page lists module areas and when to adopt each. For **poller-backed module deployment and scaling rules** (views, outbox, automations), see [Deployment Topology](DEPLOYMENT_TOPOLOGY.md) — the constraints are documented there, not duplicated below.
 
+**Kubernetes:** the [app template](../templates/crablet-app/README.md) can generate `k8s/base` with `make k8s` (see [Embabel Codegen](../embabel-codegen/README.md)) from the `deployment` block in `event-model.yaml`. Read `k8s/base/README-k8s.md` in the generated output for how singleton workers, KEDA, and env vars line up with the table below — still anchored in [Deployment Topology](DEPLOYMENT_TOPOLOGY.md).
+
 | Area | Modules |
 |------|---------|
 | Core runtime | [Event Store](../crablet-eventstore/README.md), [Commands](../crablet-commands/README.md) |

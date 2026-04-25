@@ -2,6 +2,8 @@ package com.crablet.codegen.cli;
 
 import com.crablet.codegen.bootstrap.InitService;
 import com.crablet.codegen.model.EventModel;
+import com.crablet.codegen.k8s.K8sGenerator;
+import com.crablet.codegen.k8s.K8sTopology;
 import com.crablet.codegen.pipeline.CodegenPipeline;
 import com.crablet.codegen.planning.ArtifactPlanner;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,16 +23,19 @@ public class CodegenCommand {
     private final InitService initService;
     private final McpServer mcpServer;
     private final ArtifactPlanner artifactPlanner;
+    private final K8sGenerator k8sGenerator;
 
     public CodegenCommand(
             CodegenPipeline pipeline,
             InitService initService,
             McpServer mcpServer,
-            ArtifactPlanner artifactPlanner) {
+            ArtifactPlanner artifactPlanner,
+            K8sGenerator k8sGenerator) {
         this.pipeline = pipeline;
         this.initService = initService;
         this.mcpServer = mcpServer;
         this.artifactPlanner = artifactPlanner;
+        this.k8sGenerator = k8sGenerator;
     }
 
     public void run(String[] args) throws Exception {
@@ -42,6 +47,7 @@ public class CodegenCommand {
             case "plan" -> runPlan(parseFlags(args, 1));
             case "generate" -> runGenerate(parseFlags(args, 1));
             case "init" -> runInit(parseFlags(args, 1));
+            case "k8s" -> runK8s(parseFlags(args, 1));
             case "--mcp", "mcp" -> mcpServer.run();
             default -> {
                 System.err.println("Unknown command: " + args[0]);
@@ -83,6 +89,22 @@ public class CodegenCommand {
         System.out.println("  generate --model event-model.yaml --output " + dir + "/src/main/java");
     }
 
+    private void runK8s(Map<String, String> flags) throws Exception {
+        String modelPath = flags.getOrDefault("--model", "event-model.yaml");
+        String outputPath = flags.getOrDefault("--output", ".");
+
+        ObjectMapper yaml = new ObjectMapper(new YAMLFactory());
+        EventModel model = yaml.readValue(new File(modelPath), EventModel.class);
+        Path outputDir = Path.of(outputPath).toAbsolutePath();
+
+        K8sTopology topology = K8sTopology.from(model);
+        k8sGenerator.generate(topology, outputDir);
+
+        System.out.println("Kubernetes manifests from: " + modelPath);
+        System.out.println("Output directory:          " + outputDir.resolve("k8s/base"));
+        System.out.println("Done. See k8s/base/README-k8s.md. Fill secret-template.yaml before deploy.");
+    }
+
     private Map<String, String> parseFlags(String[] args, int from) {
         Map<String, String> flags = new HashMap<>();
         for (int i = from; i < args.length - 1; i += 2) {
@@ -109,6 +131,10 @@ public class CodegenCommand {
 
                   plan       Print planned artifacts without calling Anthropic or writing files
                              --model event-model.yaml   (default: event-model.yaml)
+
+                  k8s        Generate Kubernetes manifests (k8s/base) from event-model.yaml
+                             --model event-model.yaml   (default: event-model.yaml)
+                             --output .                 (default: app root; writes k8s/base under it)
 
                   help       Show this message
 

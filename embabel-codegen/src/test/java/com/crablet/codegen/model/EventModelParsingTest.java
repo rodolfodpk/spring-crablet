@@ -193,6 +193,25 @@ class EventModelParsingTest {
     }
 
     @Test
+    void commandFieldValidationKeyIsIgnoredForForwardCompatibleYaml() throws Exception {
+        EventModel model = yaml.readValue("""
+                domain: Demo
+                basePackage: com.example.demo
+                events: []
+                commands:
+                  - name: SubmitX
+                    pattern: idempotent
+                    produces: [E1]
+                    fields:
+                      - name: id
+                        type: String
+                        validation: [notNull, notBlank]
+                """, EventModel.class);
+
+        assertThat(model.commands().get(0).fields().get(0).name()).isEqualTo("id");
+    }
+
+    @Test
     void deploymentNormalizesInvalidValues() throws Exception {
         EventModel model = yaml.readValue("""
                 domain: Demo

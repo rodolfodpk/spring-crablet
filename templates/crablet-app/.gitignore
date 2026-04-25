@@ -1,5 +1,6 @@
 target/
 tools/*.jar
+k8s/
 .env
 .idea/
 *.iml

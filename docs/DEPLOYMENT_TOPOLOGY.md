@@ -59,3 +59,7 @@ Use this wording consistently:
 - `crablet-outbox/README.md`
 - `crablet-automations/README.md`
 - learning guides and example app docs
+
+## Kubernetes (optional)
+
+The rules above (singleton workers per module, monolith vs split) can be **encoded in YAML** for Kubernetes. The [app template](../templates/crablet-app/README.md) and [Embabel Codegen](../embabel-codegen/README.md) support `make k8s` / `java -jar embabel-codegen.jar k8s`, which writes `k8s/base` from `event-model.yaml` including a `deployment:` block. See the generated `k8s/base/README-k8s.md` in your app for KEDA, secrets, and env vars — that file is the operational layer; this document stays the conceptual source for **why** the topology is shaped that way. See also [Module reference](MODULES.md).

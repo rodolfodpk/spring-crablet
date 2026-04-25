@@ -1,7 +1,10 @@
 package com.crablet.codegen.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/** event-model YAML may include extra keys (e.g. {@code validation}) for tooling; ignore for parse. */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record FieldSpec(
         @JsonProperty("name") String name,
         @JsonProperty("type") String type,

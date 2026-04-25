@@ -1,6 +1,8 @@
 package com.crablet.codegen.cli;
 
 import com.crablet.codegen.bootstrap.InitService;
+import com.crablet.codegen.k8s.K8sGenerator;
+import com.crablet.codegen.k8s.K8sTopology;
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.pipeline.CodegenPipeline;
 import com.crablet.codegen.planning.ArtifactPlanner;
@@ -20,7 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
 /**
- * Stdio MCP server exposing embabel_init, embabel_plan, and embabel_generate as tools.
+ * Stdio MCP server exposing embabel_init, embabel_plan, embabel_generate, and embabel_k8s as tools.
  * Activated with the --mcp flag; Claude Code discovers it via .claude/settings.json.
  *
  * Protocol: MCP 2024-11-05 over newline-delimited JSON-RPC on stdin/stdout.
@@ -33,13 +35,19 @@ public class McpServer {
     private final CodegenPipeline pipeline;
     private final InitService initService;
     private final ArtifactPlanner artifactPlanner;
+    private final K8sGenerator k8sGenerator;
     private final ObjectMapper json = new ObjectMapper();
     private final ObjectMapper yaml = new ObjectMapper(new YAMLFactory());
 
-    public McpServer(CodegenPipeline pipeline, InitService initService, ArtifactPlanner artifactPlanner) {
+    public McpServer(
+            CodegenPipeline pipeline,
+            InitService initService,
+            ArtifactPlanner artifactPlanner,
+            K8sGenerator k8sGenerator) {
         this.pipeline = pipeline;
         this.initService = initService;
         this.artifactPlanner = artifactPlanner;
+        this.k8sGenerator = k8sGenerator;
     }
 
     public void run() throws Exception {
@@ -148,6 +156,15 @@ public class McpServer {
                         prop("dir", "string",
                                 "Target directory path (default: ../<name>)"))));
 
+        tools.add(tool("embabel_k8s",
+                "Generate Kubernetes manifests (k8s/base) from event-model.yaml using the " +
+                "deployment topology and module list. No Anthropic calls.",
+                schema(
+                        prop("model", "string",
+                                "Path to event-model.yaml (default: event-model.yaml)"),
+                        prop("output", "string",
+                                "Output directory; k8s/base is created under it (default: .)"))));
+
         ObjectNode result = json.createObjectNode();
         result.set("tools", tools);
         return result;
@@ -163,6 +180,7 @@ public class McpServer {
                 case "embabel_generate" -> callGenerate(args, capture);
                 case "embabel_plan" -> callPlan(args);
                 case "embabel_init" -> callInit(args, capture);
+                case "embabel_k8s" -> callK8s(args);
                 default -> throw new IllegalArgumentException("Unknown tool: " + toolName);
             };
         } catch (Exception e) {
@@ -198,6 +216,15 @@ public class McpServer {
         String modelPath = args.path("model").asText("event-model.yaml");
         EventModel model = yaml.readValue(new File(modelPath), EventModel.class);
         return artifactPlanner.render(model);
+    }
+
+    private String callK8s(JsonNode args) throws Exception {
+        String modelPath = args.path("model").asText("event-model.yaml");
+        String outputPath = args.path("output").asText(".");
+        EventModel model = yaml.readValue(new File(modelPath), EventModel.class);
+        Path outputDir = Path.of(outputPath).toAbsolutePath();
+        k8sGenerator.generate(K8sTopology.from(model), outputDir);
+        return "Wrote k8s manifests to " + outputDir.resolve("k8s/base");
     }
 
     private String callInit(JsonNode args, ByteArrayOutputStream capture) {
