@@ -769,6 +769,7 @@ See [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for full details on read replicas
 
 ## Documentation Quick Links
 
+- Maintainer notes and exploratory spikes (non-binding): `docs/notes-future.md`
 - Build instructions: `docs/BUILD.md`
 - Configuration reference: `docs/CONFIGURATION.md`
 - Troubleshooting: `docs/TROUBLESHOOTING.md`
