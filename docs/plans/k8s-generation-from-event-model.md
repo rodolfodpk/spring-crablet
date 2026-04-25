@@ -5,30 +5,45 @@
 Generate correct, production-ready Kubernetes manifests from `event-model.yaml`.
 Key value: encoding crablet's non-obvious topology rules so newcomers don't get them wrong.
 
+## Recommended order
+
+1. **[`README_ROOT_REFRESH.md`](README_ROOT_REFRESH.md)** — lands `docs/MODULES.md` and a cleaner top-level doc index; do this first so K8s and topology docs have stable targets.
+2. **Refresh this plan** (this file) after model step completion — see **Current status** below.
+3. **Continue implementation** — `K8sTopology`, `Dns1123`, `K8sGenerator`, CLI/MCP `k8s`, tests, skill tweaks as needed.
+
+## Current status (keep in sync with the repo)
+
+- **Done — deployment model (former Step 1):** `EventModel` has `@JsonProperty("deployment") DeploymentSpec deployment` with compact-constructor default to `DeploymentSpec.defaults()`. `DeploymentSpec` and `KedaSpec` exist under `embabel-codegen/.../model/`. The event-modeling **skill** documents `deployment` / KEDA / topology; keep it aligned when generated YAML or flags change.
+- **Remaining:** K8s topology mapping, generator, `k8s` CLI + MCP, tests, Makefile `k8s` target, post-ship `DEPLOYMENT_TOPOLOGY.md` K8s subsection (per documentation strategy). CLI/MCP `k8s` not in checklist until implemented — update verified facts when added.
+
 ## Verified facts from the codebase
 
-| Fact | Source |
+| Fact | Source / note |
 |---|---|
-| `EventModel` has no `deployment` field yet | `model/EventModel.java:7` |
-| CLI: `plan`, `generate`, `init`, `mcp` only | `CodegenCommand.java:41` |
-| MCP tools: `embabel_generate`, `embabel_plan`, `embabel_init` only | `McpServer.java:120` |
+| `EventModel` includes `deployment: DeploymentSpec` (defaults when absent) | `model/EventModel.java` |
+| `DeploymentSpec`, `KedaSpec` exist | `model/DeploymentSpec.java`, `model/KedaSpec.java` |
+| CLI: `plan`, `generate`, `init`, `mcp` (add `k8s` when implemented) | `CodegenCommand.java` |
+| MCP tools: `embabel_generate`, `embabel_plan`, `embabel_init` (add `embabel_k8s` when implemented) | `McpServer.java` |
 | No Mustache — Jackson YAML already in classpath | `embabel-codegen/pom.xml` |
-| `EventSpec.name()`, not `.type()` | `model/EventSpec.java:7` |
-| `ViewSpec.reads` → `List<String>` of raw event names | `model/ViewSpec.java:8` |
+| `EventSpec.name()`, not `.type()` | `model/EventSpec.java` |
+| `ViewSpec.reads` → `List<String>` of raw event names | `model/ViewSpec.java` |
 | `view_progress(view_name, last_position)` | `V3__view_progress_schema.sql` |
 | `automation_progress(automation_name, last_position)` | `AutomationProgressTracker.java` |
 | `outbox_topic_progress(topic, publisher, last_position)` | `OutboxProgressTracker.java` |
 | Module enable: `crablet.views.enabled`, `crablet.automations.enabled`, `crablet.outbox.enabled` | `*AutoConfiguration.java` |
 | `CRABLET_VIEWS_ENABLED=true` enables **all** registered view processors, not one | `ViewsAutoConfiguration.java` |
-| Makefile variable is `CRABLET_CODEGEN_JAR` | `templates/crablet-app/Makefile:1` |
-| Skill already uses flat `commandReplicas` | `.claude/skills/event-modeling/SKILL.md:128` |
+| Makefile variable is `CRABLET_CODEGEN_JAR` | `templates/crablet-app/Makefile` |
+| Event-modeling skill: `deployment` / KEDA / topology | `.claude/skills/event-modeling/SKILL.md` |
+| **Tests:** `embabel-codegen` is **not** in the root Maven reactor; run `cd embabel-codegen && ../mvnw test` (do **not** use `./mvnw test -pl embabel-codegen` from repo root). | `embabel-codegen/README.md`, `make codegen-build` |
 
 ---
 
 ## Scope (v1)
 
-**In:** model parsing, topology mapper, standalone `k8s` CLI + MCP tool, K8s YAML generation,
-module-level KEDA ScaledObjects, unit tests, Makefile target, skill update.
+**Done:** `EventModel` + `deployment` / `DeploymentSpec` / `KedaSpec` parsing (covered by existing `EventModelParsingTest` and related tests; no separate v1 work).
+
+**In (remaining):** topology mapper, standalone `k8s` CLI + MCP tool, K8s YAML generation,
+module-level KEDA ScaledObjects, unit tests, Makefile `k8s` target, skill update as needed.
 
 **Out (v2+):** per-processor include/exclude config, per-view/per-automation deployments,
 sidecars, kustomize overlays, Vault agent, HPA for command-api, TriggerAuthentication.
@@ -52,23 +67,25 @@ sidecars, kustomize overlays, Vault agent, HPA for command-api, TriggerAuthentic
 
 ---
 
-## Step 1 — Add `deployment` to the model (3 new files, 1 edit)
+## Documentation strategy (keep deployment topology)
 
-`KedaSpec.java` and `DeploymentSpec.java` already created in `model/`.
+**Do not replace** [`docs/DEPLOYMENT_TOPOLOGY.md`](../DEPLOYMENT_TOPOLOGY.md) with Kubernetes-only content.
 
-`KedaSpec` compact constructor should normalize invalid values:
-- `minReplicas < 0` → `0`
-- `pollingInterval <= 0` → `30`
+| Doc | Role |
+|-----|------|
+| `DEPLOYMENT_TOPOLOGY.md` | **Platform-agnostic** rules: command-only vs poller-backed, singleton workers, why extra replicas are not more throughput, adoption ordering. Serves every runtime (Compose, VMs, ECS, K8s, etc.). |
+| Generated `k8s/base/README-k8s.md` (and `event-model` `deployment:` block) | **One opinionated K8s encoding** of those rules (env vars, KEDA, monolith vs distributed). |
 
-### Edit `EventModel.java`
-Add `@JsonProperty("deployment") DeploymentSpec deployment` as the last field.
-Compact constructor default: `deployment = (deployment == null) ? DeploymentSpec.defaults() : deployment;`
+**After this feature ships:**
 
-Backward-compatible: existing YAML files without `deployment:` parse with all defaults.
+1. Add a **Kubernetes** subsection to `DEPLOYMENT_TOPOLOGY.md` (or a short `docs/DEPLOYMENT_KUBERNETES.md` linked from the topology doc) that states: *the topology rules above are what the manifests implement*; link to the template/app path for `make k8s` and to `README-k8s.md` in generated output.
+2. **Avoid duplicating** long KEDA install / secret-format tables in `DEPLOYMENT_TOPOLOGY.md` — point to `README-k8s.md` for operational detail; keep the topology page conceptual.
+3. **Do not** remove or relink the many existing references to `DEPLOYMENT_TOPOLOGY.md` across tutorials and READMEs unless a dedicated redirect page is required (not recommended).
+4. **After [`README_ROOT_REFRESH.md`](README_ROOT_REFRESH.md) lands:** add **`docs/MODULES.md`** to the story — generated K8s / topology should be **discoverable** from the module reference page (e.g. a short “Kubernetes” pointer to `make k8s` + `k8s/base/README-k8s.md` and link back to `DEPLOYMENT_TOPOLOGY.md` for the conceptual rules). No long duplication; link-centric.
 
 ---
 
-## Step 2 — K8sTopology mapper
+## Step 1 — K8sTopology mapper
 
 **New package:** `embabel-codegen/src/main/java/com/crablet/codegen/k8s/`
 
@@ -120,9 +137,11 @@ static String viewName(String specName)
 // Used in ViewsAgent prompt: "getViewName() must return <ViewNameResolver.viewName(spec.name())>"
 ```
 
+**Implementation contract:** When implementing, wire **`ViewsAgent`** (or whatever generates view projectors) so the **LLM prompt actually uses the same `ViewNameResolver` rule** for `getViewName()`. If the prompt drifts, `view_progress.view_name` in the DB and KEDA SQL that reference view backlog will not line up. K8s `viewEventTypes` are not enough on their own — **view identity strings must be consistent end-to-end.**
+
 ---
 
-## Step 3 — K8s YAML generator
+## Step 2 — K8s YAML generator
 
 **`K8sGenerator.java`** — uses `ObjectMapper(YAMLFactory)` (already in classpath) for structured
 YAML; `secret-template.yaml` written from a static string constant.
@@ -240,7 +259,7 @@ binds `SPRING_DATASOURCE_*` env vars (Spring Boot default `spring.datasource.*` 
 
 ---
 
-## Step 4 — CLI + MCP integration
+## Step 3 — CLI + MCP integration
 
 ### `CodegenCommand.java`
 Add `case "k8s" -> runK8s(parseFlags(args, 1));`.
@@ -259,7 +278,7 @@ Add `k8s` to `.PHONY` and `help` output.
 
 ---
 
-## Step 5 — Skill update
+## Step 4 — Skill update
 
 **File: `.claude/skills/event-modeling/SKILL.md`**
 
@@ -274,7 +293,7 @@ deployment:
     pollingInterval: 30     # seconds between KEDA PostgreSQL checks
 ```
 
-Add to Step 6 notes:
+Also capture in `README-k8s.md` / skill (operator notes), not only inline YAML comments:
 - KEDA install: `helm install keda kedacore/keda --namespace keda --create-namespace`
 - `minReplicas: 0` (scale-to-zero) is only effective in `distributed` topology; monolith ignores it and uses `1`
 - PDB is omitted when `minReplicas = 0`
@@ -282,11 +301,11 @@ Add to Step 6 notes:
 
 ---
 
-## Step 6 — Tests (4 classes)
+## Step 5 — Tests (3 new classes under `k8s/` + existing model tests)
 
 **`embabel-codegen/src/test/java/com/crablet/codegen/k8s/`**
 
-1. **`DeploymentSpecParsingTest`** — parse YAML with and without `deployment:` block; assert defaults.
+1. **Deployment / model parsing** — keep **`EventModelParsingTest`** (and related) **green**; do not add a separate `DeploymentSpecParsingTest` unless you need cases not already covered.
 2. **`K8sTopologyTest`** — unit-test `K8sTopology.from()`:
    - command-only → `hasViews=false`, `hasAutomations=false`, `hasOutbox=false`
    - monolith with views → `commandReplicas=1` (overridden), `kedaMinReplicas >= 1`
@@ -312,7 +331,8 @@ Add to Step 6 notes:
 
 ## Verification
 
-1. `./mvnw test -pl embabel-codegen` — all 4 new test classes pass, no regressions
+1. `cd embabel-codegen && ../mvnw test` — all new test classes in `embabel-codegen` pass, no regressions (`embabel-codegen` is not in the root reactor; do not use `./mvnw test -pl embabel-codegen` from root)
 2. `make k8s` in `templates/crablet-app/` against template `event-model.yaml` — writes `k8s/base/`
 3. `kubectl kustomize k8s/base/` — validates YAML structure (no KEDA CRDs needed)
 4. `embabel_generate`, `embabel_plan`, `embabel_init` still work unchanged
+5. **Docs:** `DEPLOYMENT_TOPOLOGY.md` updated per **Documentation strategy** above (K8s subsection or new page + cross-links; topology doc stays conceptual)

@@ -67,18 +67,6 @@ Repeat for each new slice. Update `event-model.yaml` when something is structura
 
 **Codegen is optional.** The stable runtime APIs (`CommandHandler`, `ViewProjector`, `CommandExecutor`) work independently — you can build a full Crablet application without the generator. The AI-first path is a productivity layer on top, not a requirement.
 
-| Goal | Read |
-|------|------|
-| Slice-by-slice guide with dialogue examples | [Feature Slice Workflow](docs/FEATURE_SLICE_WORKFLOW.md) |
-| Event Modeling notation and example boards | [Event Modeling](docs/EVENT_MODELING.md) |
-| Full workflow and tooling details | [AI-First Workflow](docs/AI_FIRST_WORKFLOW.md) |
-| event-model.yaml format | [Event Model Format](docs/EVENT_MODEL_FORMAT.md) |
-| Starter template | [Templates](templates/README.md) |
-| Codegen CLI and MCP server reference | [Embabel Codegen](embabel-codegen/README.md) |
-| Run the wallet app | [Quickstart](docs/QUICKSTART.md) |
-| Build manually against the runtime APIs | [Create A New Crablet App Manually](docs/CREATE_A_CRABLET_APP.md) |
-| Inspect the complete example | [Wallet Example App](wallet-example-app/README.md) |
-
 ## When Crablet Fits
 
 Crablet is a good fit when command decisions depend on more than one entity stream, consistency is naturally query-based, and you want the code to make concurrency semantics explicit.
@@ -87,77 +75,13 @@ It is probably not the right tool if plain CRUD is enough, one aggregate per com
 
 ## Manual Runtime Path
 
-Crablet can still be used directly as a Java framework. On top of the `EventStore`, the typical write side is a command handler and an executor.
-
-```java
-public record WalletOpened(String walletId, String owner) implements WalletEvent {}
-
-@Component
-public class OpenWalletCommandHandler
-        implements IdempotentCommandHandler<OpenWalletCommand> {
-
-    @Override
-    public CommandDecision.Idempotent decide(EventStore eventStore,
-                                             OpenWalletCommand command) {
-        AppendEvent event = AppendEvent.builder(type(WalletOpened.class))
-                .tag(WALLET_ID, command.walletId())
-                .data(new WalletOpened(command.walletId(), command.owner()))
-                .build();
-        return CommandDecision.Idempotent.of(
-                event, type(WalletOpened.class), WALLET_ID, command.walletId());
-    }
-}
-```
-
-`CommandExecutor` wraps the handler in a transaction, runs the DCB check, and appends the event atomically. Views, outbox, automations, and an optional HTTP command adapter are layered on top independently.
+Crablet can be used directly as a Java framework: `EventStore`, command handlers, and `CommandExecutor` are the typical write path; views, outbox, automations, and the optional HTTP command adapter layer on top. For a first project, start with the [module reference](docs/MODULES.md), [Create a new Crablet app manually](docs/CREATE_A_CRABLET_APP.md), the [Tutorial](docs/TUTORIAL.md), the [Commands](crablet-commands/README.md) and [Event Store](crablet-eventstore/README.md) module READMEs, and the [Wallet example](wallet-example-app/README.md) for a full app shape.
 
 ## Learning And Deployment
 
 - **Learning mode:** run one application instance with commands, views, automations, and outbox together. See [Learning Mode](docs/LEARNING_MODE.md).
 - **Command-only production:** applications using only `crablet-eventstore` and `crablet-commands` can scale horizontally in the normal Spring Boot way. See [Commands-First Adoption](docs/COMMANDS_FIRST_ADOPTION.md).
 - **Poller-backed production:** applications enabling views, outbox, or automations should default to **one application instance per cluster** for the simplest topology, or use one singleton worker service per poller-backed module for isolation. See [Deployment Topology](docs/DEPLOYMENT_TOPOLOGY.md).
-
-## Modules
-
-| Area | Modules |
-|------|---------|
-| Core runtime | [Event Store](crablet-eventstore/README.md), [Commands](crablet-commands/README.md) |
-| Optional add-ons | [Views](crablet-views/README.md), [Outbox](crablet-outbox/README.md), [Automations](crablet-automations/README.md), [Command Web API](crablet-commands-web/README.md), [Micrometer metrics](crablet-metrics-micrometer/README.md), [Observability](docs/OBSERVABILITY.md) |
-| Support and examples | [Test support](crablet-test-support/README.md), [Wallet example app](wallet-example-app/README.md), shared example domain code, compiled docs samples |
-| Internal infrastructure | [Event Poller](crablet-event-poller/README.md) powers the poller-backed modules |
-| AI-first tooling | [Embabel Codegen](embabel-codegen/README.md) — generates code from event-model.yaml; [Templates](templates/README.md) — starter project |
-
-### Module Boundaries
-
-Crablet has a small required write-side core and several optional features that can be added
-independently. Application teams should choose modules by capability, not by adopting the whole
-stack at once.
-
-| Boundary | Module | Responsibility | When to add it |
-|---|---|---|---|
-| Event store | `crablet-eventstore` | Append events, run DCB consistency checks, query streams by type/tag/position, provide `ClockProvider`, `ReadDataSource`, and `WriteDataSource` infrastructure | Always. This is the persistence and consistency core. |
-| Write model | `crablet-commands` | Command handler contracts, `CommandDecision` types, `CommandExecutor`, command audit records, and atomic command-to-event execution | Add when the application accepts commands. This is the normal production entry point. |
-| HTTP command adapter | `crablet-commands-web` | Generic Spring MVC endpoint for dispatching commands through `CommandExecutor` | Add when you want a framework-provided HTTP command API instead of hand-written controllers. |
-| Poller infrastructure | `crablet-event-poller` | Shared scheduling, leader election, progress tracking, backoff, wakeup handling, pause/resume/reset support | Usually pulled transitively by views, automations, or outbox. Depend on it directly only for custom poller-backed modules. |
-| Read models | `crablet-views` | Asynchronous view projection from stored events into query-optimized tables, with per-view subscriptions and management operations | Add after the write side works and users need fast reads, dashboards, or query APIs. |
-| Internal follow-up behavior | `crablet-automations` | Event-triggered policies that return `AutomationDecision`s, usually executing commands through `CommandExecutor` | Add when one stored event should cause application behavior inside the same bounded context. |
-| External publication | `crablet-outbox` | Reliable event publication to external systems through `OutboxPublisher` implementations, with per-topic/per-publisher progress | Add when events must leave the application boundary: HTTP webhooks, Kafka, analytics, CRM, email, or integrations. |
-| Metrics | `crablet-metrics-micrometer` | Micrometer listeners for command, view, automation, outbox, and processor metrics | Add when operating Crablet in environments with Prometheus, Grafana, or other Micrometer backends. |
-
-The **write model** is synchronous: a command handler decides, `CommandExecutor` checks consistency,
-and the event store appends within the command transaction. This path can run by itself with only
-`crablet-eventstore` and `crablet-commands`.
-
-The **read model and side-effect features** are asynchronous: views, automations, and outbox all read
-committed events through `crablet-event-poller`, maintain their own progress, and can be paused,
-resumed, reset, or isolated as worker services. These features should be added deliberately after
-the command side is stable.
-
-Use **views** for query state, **automations** for internal follow-up decisions, and **outbox** for
-external delivery. Automations should not call external systems directly; publish externally through
-outbox so retries, progress, and deduplication are explicit.
-
-Those modules do not contain or depend at runtime on the example wallet/course application code. Example-only code lives in `shared-examples-domain`, `wallet-example-app`, and `docs-samples`. Some Crablet modules use `shared-examples-domain` as a test-scoped dependency only; it is not part of the runtime dependency graph for users.
 
 ## Why Java 25
 
@@ -177,14 +101,21 @@ Crablet maps that model onto three append methods. These are **Crablet API terms
 
 Read more in [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) and [Command Patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md).
 
-## Where To Go Next
+## Documentation
 
-| Topic | Links |
-|-------|-------|
-| Start | [AI-First Workflow](docs/AI_FIRST_WORKFLOW.md), [Feature Slice Workflow](docs/FEATURE_SLICE_WORKFLOW.md), [Event Modeling](docs/EVENT_MODELING.md), [Event Model Format](docs/EVENT_MODEL_FORMAT.md), [Quickstart](docs/QUICKSTART.md), [Create A New Crablet App Manually](docs/CREATE_A_CRABLET_APP.md), [Tutorial](docs/TUTORIAL.md), [Learning Mode](docs/LEARNING_MODE.md) |
-| Architecture | [Deployment Topology](docs/DEPLOYMENT_TOPOLOGY.md), [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md), [Command Patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md) |
-| Operations | [Management API](docs/MANAGEMENT_API.md), [Fault Recovery](docs/FAULT_RECOVERY.md), [Leader Election](docs/LEADER_ELECTION.md), [Build](docs/BUILD.md), [Performance](docs/PERFORMANCE.md), [Troubleshooting](docs/TROUBLESHOOTING.md), [Upgrade Guide](docs/UPGRADE.md) |
-| Database and proxies | [Connection Poolers](crablet-eventstore/docs/CONNECTION_POOLERS.md) (PgBouncer, PgCat, OJP) |
+### Start
+
+[Quickstart](docs/QUICKSTART.md) · [Tutorial](docs/TUTORIAL.md) · [Create a new Crablet app manually](docs/CREATE_A_CRABLET_APP.md) · [Learning mode](docs/LEARNING_MODE.md) · [Feature slice workflow](docs/FEATURE_SLICE_WORKFLOW.md) · [Event modeling](docs/EVENT_MODELING.md) · [Event model format](docs/EVENT_MODEL_FORMAT.md) · [AI-first workflow](docs/AI_FIRST_WORKFLOW.md) · [Templates](templates/README.md) · [Embabel codegen](embabel-codegen/README.md) · [Wallet example](wallet-example-app/README.md)
+
+### Architecture and public API
+
+[Module reference](docs/MODULES.md) · [Public API](docs/PUBLIC_API.md) (generic HTTP command API vs custom controllers) · [Deployment topology](docs/DEPLOYMENT_TOPOLOGY.md) · [DCB and Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) · [Command patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md)
+
+### Build and operate
+
+[Build](docs/BUILD.md) · [Performance](docs/PERFORMANCE.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Upgrade](docs/UPGRADE.md) · [Management API](docs/MANAGEMENT_API.md) · [Fault recovery](docs/FAULT_RECOVERY.md) · [Leader election](docs/LEADER_ELECTION.md) · [Connection poolers](crablet-eventstore/docs/CONNECTION_POOLERS.md) · [Observability](docs/OBSERVABILITY.md)
+
+Contributors: see [Build](docs/BUILD.md) and [CLAUDE.md](CLAUDE.md).
 
 ## License
 
