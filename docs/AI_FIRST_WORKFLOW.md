@@ -33,25 +33,39 @@ vertical slice at a time.
 9. Update the event model when missing behavior is structural, and customize code when behavior is
    genuinely application-specific.
 
-The intended shape is:
+The intended shape when using Claude Code:
+
+```text
+1. make install && make codegen-build
+2. cp -r templates/crablet-app ../wallet-service
+   cp embabel-codegen/target/embabel-codegen.jar ../wallet-service/tools/
+3. cd ../wallet-service && export ANTHROPIC_API_KEY=sk-ant-... && claude
+4. Describe one outcome → Claude calls embabel_plan → approve → Claude calls embabel_generate
+5. ./mvnw verify
+```
+
+CLI shortcut (from the app directory, no Claude Code needed):
 
 ```bash
-make install
-make codegen-build
+# one-time setup (from the spring-crablet repo):
+make install && make codegen-build
+cp -r templates/crablet-app ../wallet-service
+cp embabel-codegen/target/embabel-codegen.jar ../wallet-service/tools/
 
+# day-to-day (from the app directory):
+make plan      # dry run — shows planned artifacts without generating code
+make generate  # generate structural code from event-model.yaml
+make verify    # compile and test
+make check     # plan + verify in one step
+```
+
+For greenfield apps without the template, `init` has no Makefile shortcut — use the CLI directly:
+
+```bash
 java -jar embabel-codegen/target/embabel-codegen.jar init \
   --name wallet-service \
   --package com.example.wallet \
   --dir ../wallet-service
-
-# Use a dialogue or event-modeling skill to produce event-model.yaml.
-
-java -jar embabel-codegen/target/embabel-codegen.jar generate \
-  --model event-model.yaml \
-  --output ../wallet-service/src/main/java
-
-cd ../wallet-service
-./mvnw verify
 ```
 
 The generator should produce compiling, structurally complete code. Missing behavior should be
@@ -64,11 +78,20 @@ boards, see [Event Modeling](EVENT_MODELING.md). For a concrete generated-slice 
 
 ## Tool Entrypoints
 
-`embabel-codegen` is built as a fat JAR:
+`embabel-codegen` is built as a fat JAR. From the `spring-crablet` repository:
 
 ```bash
 make codegen-build
 java -jar embabel-codegen/target/embabel-codegen.jar help
+```
+
+When working inside a project initialized from the template, use the Makefile shortcuts instead:
+
+```bash
+make plan      # embabel-codegen plan
+make generate  # embabel-codegen generate
+make verify    # ./mvnw verify
+make check     # plan + verify
 ```
 
 The CLI commands are:

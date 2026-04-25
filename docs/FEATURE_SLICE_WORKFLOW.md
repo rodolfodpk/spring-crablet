@@ -29,19 +29,23 @@ For generation, the shell running the tool needs:
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-For a greenfield app, initialize the project:
+For a greenfield app, initialize the project using the starter template:
 
 ```bash
-java -jar embabel-codegen/target/embabel-codegen.jar init \
-  --name loan-service \
-  --package com.example.loan \
-  --dir ../loan-service
+cp -r templates/crablet-app ../loan-service
+cp embabel-codegen/target/embabel-codegen.jar ../loan-service/tools/
 ```
 
-For a brownfield app, skip `init` and point `generate --output` at the existing
+> **CLI alternative** (no template): `java -jar embabel-codegen/target/embabel-codegen.jar init --name loan-service --package com.example.loan --dir ../loan-service`
+
+For a brownfield app, skip the template step and point `generate --output` at the existing
 `src/main/java` root.
 
 ## Practical Walkthrough
+
+> **Workflow paths:** The dialogue and MCP tool calls below describe the recommended Claude Code
+> experience. Every `embabel_plan` / `embabel_generate` call has an equivalent CLI command shown
+> directly below it for contributor checks, automation scripts, or use outside Claude Code.
 
 For a loan application service, start with one feature: a customer submits an application and
 reviewers can see it in a pending queue.
@@ -129,9 +133,14 @@ handler decision state, view projector, and migration without guessing?
 
 Then ask for the plan:
 
+Claude Code MCP path:
+```text
+Run embabel_plan with model=event-model.yaml.
+```
+
+CLI shortcut:
 ```bash
-java -jar embabel-codegen/target/embabel-codegen.jar plan \
-  --model event-model.yaml
+make plan   # runs: java -jar tools/embabel-codegen.jar plan --model event-model.yaml
 ```
 
 For this slice, the plan should name the event hierarchy, submit command, command handler,
@@ -198,9 +207,14 @@ List missing model facts instead of guessing.
 You can also ask `embabel-codegen` for the deterministic artifact plan without
 calling Anthropic or writing files:
 
+Claude Code MCP path:
+```text
+Run embabel_plan with model=event-model.yaml.
+```
+
+CLI shortcut:
 ```bash
-java -jar embabel-codegen/target/embabel-codegen.jar plan \
-  --model event-model.yaml
+make plan   # runs: java -jar tools/embabel-codegen.jar plan --model event-model.yaml
 ```
 
 From the `spring-crablet` repository, the shortest contributor smoke check for the
@@ -413,10 +427,10 @@ Tool:
 embabel_plan model=event-model.yaml
 ```
 
-Equivalent CLI path:
+CLI shortcut:
 
 ```bash
-java -jar tools/embabel-codegen.jar plan --model event-model.yaml
+make plan   # runs: java -jar tools/embabel-codegen.jar plan --model event-model.yaml
 ```
 
 Claude shows the plan to the developer and waits for approval:
@@ -477,12 +491,10 @@ Tool:
 embabel_generate model=event-model.yaml output=src/main/java
 ```
 
-Equivalent CLI path:
+CLI shortcut:
 
 ```bash
-java -jar tools/embabel-codegen.jar generate \
-  --model event-model.yaml \
-  --output src/main/java
+make generate   # runs: java -jar tools/embabel-codegen.jar generate --model event-model.yaml --output src/main/java
 ```
 
 The generator runs the agent pipeline and compile-and-repair loop. Claude should report the result
@@ -570,18 +582,16 @@ describe outcome
 
 ## Generate The Slice
 
-CLI path:
-
-```bash
-java -jar embabel-codegen/target/embabel-codegen.jar generate \
-  --model event-model.yaml \
-  --output ../loan-service/src/main/java
-```
-
 Claude Code MCP path:
 
 ```text
 Run embabel_generate with model=event-model.yaml and output=../loan-service/src/main/java.
+```
+
+CLI shortcut:
+
+```bash
+make generate   # runs: java -jar tools/embabel-codegen.jar generate --model event-model.yaml --output src/main/java
 ```
 
 The generator runs the agent pipeline for events, commands, views, automations,

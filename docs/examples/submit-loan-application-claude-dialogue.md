@@ -194,10 +194,10 @@ Tool:
 embabel_plan model=event-model.yaml
 ```
 
-Equivalent CLI path:
+CLI shortcut:
 
 ```bash
-java -jar tools/embabel-codegen.jar plan --model event-model.yaml
+make plan   # runs: java -jar tools/embabel-codegen.jar plan --model event-model.yaml
 ```
 
 Claude shows the planned artifacts and waits for approval:
@@ -260,12 +260,10 @@ Tool:
 embabel_generate model=event-model.yaml output=src/main/java
 ```
 
-Equivalent CLI path:
+CLI shortcut:
 
 ```bash
-java -jar tools/embabel-codegen.jar generate \
-  --model event-model.yaml \
-  --output src/main/java
+make generate   # runs: java -jar tools/embabel-codegen.jar generate --model event-model.yaml --output src/main/java
 ```
 
 Claude reports the result in slice terms:
