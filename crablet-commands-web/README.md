@@ -136,6 +136,29 @@ Content-Type: application/json
 }
 ```
 
+With correlation headers enabled:
+
+```http
+POST /api/commands
+Content-Type: application/json
+X-Correlation-Id: 7b7a0e36-6c5a-41d1-9cf3-1fef2e4828e8
+
+{
+  "commandType": "open_wallet",
+  "walletId": "wallet-123",
+  "owner": "Alice",
+  "initialBalance": 100
+}
+```
+
+```http
+HTTP/1.1 201 Created
+X-Correlation-Id: 7b7a0e36-6c5a-41d1-9cf3-1fef2e4828e8
+Content-Type: application/json
+
+{"status":"CREATED","reason":null}
+```
+
 ## Response codes
 
 | Status | Meaning |
@@ -159,6 +182,20 @@ Error responses use Spring `ProblemDetail` JSON with stable `type` values:
 
 When structured DCB violation details are available, `409 Conflict` responses also include
 `violationCode`, `matchingEventsCount`, and `hint` properties.
+
+Example `409 Conflict` body:
+
+```json
+{
+  "type": "urn:crablet:problem:command-api:dcb-concurrency",
+  "title": "Conflict",
+  "status": 409,
+  "detail": "AppendCondition violated: Concurrent lifecycle event detected",
+  "violationCode": "GUARD_VIOLATION",
+  "matchingEventsCount": 1,
+  "hint": "Refresh state and retry the command if it is still valid."
+}
+```
 
 ## Management endpoint
 
