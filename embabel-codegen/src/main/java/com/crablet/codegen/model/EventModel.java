@@ -12,7 +12,8 @@ public record EventModel(
         @JsonProperty("commands") List<CommandSpec> commands,
         @JsonProperty("views") List<ViewSpec> views,
         @JsonProperty("automations") List<AutomationSpec> automations,
-        @JsonProperty("outbox") List<OutboxSpec> outbox
+        @JsonProperty("outbox") List<OutboxSpec> outbox,
+        @JsonProperty("deployment") DeploymentSpec deployment
 ) {
     public EventModel {
         schemas = (schemas == null) ? List.of() : schemas;
@@ -21,6 +22,7 @@ public record EventModel(
         views = (views == null) ? List.of() : views;
         automations = (automations == null) ? List.of() : automations;
         outbox = (outbox == null) ? List.of() : outbox;
+        deployment = (deployment == null) ? DeploymentSpec.defaults() : deployment;
     }
 
     public List<String> eventNames() {

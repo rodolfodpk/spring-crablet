@@ -35,7 +35,8 @@ public class SchemaResolver {
                 commands,
                 model.views(),
                 model.automations(),
-                model.outbox()
+                model.outbox(),
+                model.deployment()
         );
     }
 

@@ -153,6 +153,68 @@ class EventModelParsingTest {
     }
 
     @Test
+    void deploymentDefaultsWhenMissing() throws Exception {
+        EventModel model = yaml.readValue("""
+                domain: Demo
+                basePackage: com.example.demo
+                events: []
+                commands: []
+                """, EventModel.class);
+
+        assertThat(model.deployment().topology()).isEqualTo("monolith");
+        assertThat(model.deployment().isDistributed()).isFalse();
+        assertThat(model.deployment().commandReplicas()).isEqualTo(2);
+        assertThat(model.deployment().keda().enabled()).isFalse();
+        assertThat(model.deployment().keda().minReplicas()).isZero();
+        assertThat(model.deployment().keda().pollingInterval()).isEqualTo(30);
+    }
+
+    @Test
+    void deploymentParsesExplicitKedaConfig() throws Exception {
+        EventModel model = yaml.readValue("""
+                domain: Demo
+                basePackage: com.example.demo
+                events: []
+                commands: []
+                deployment:
+                  topology: distributed
+                  commandReplicas: 4
+                  keda:
+                    enabled: true
+                    minReplicas: 1
+                    pollingInterval: 15
+                """, EventModel.class);
+
+        assertThat(model.deployment().isDistributed()).isTrue();
+        assertThat(model.deployment().commandReplicas()).isEqualTo(4);
+        assertThat(model.deployment().keda().enabled()).isTrue();
+        assertThat(model.deployment().keda().minReplicas()).isEqualTo(1);
+        assertThat(model.deployment().keda().pollingInterval()).isEqualTo(15);
+    }
+
+    @Test
+    void deploymentNormalizesInvalidValues() throws Exception {
+        EventModel model = yaml.readValue("""
+                domain: Demo
+                basePackage: com.example.demo
+                events: []
+                commands: []
+                deployment:
+                  topology: ""
+                  commandReplicas: 0
+                  keda:
+                    enabled: true
+                    minReplicas: -3
+                    pollingInterval: 0
+                """, EventModel.class);
+
+        assertThat(model.deployment().topology()).isEqualTo("monolith");
+        assertThat(model.deployment().commandReplicas()).isEqualTo(2);
+        assertThat(model.deployment().keda().minReplicas()).isZero();
+        assertThat(model.deployment().keda().pollingInterval()).isEqualTo(30);
+    }
+
+    @Test
     void yaviConstraintsCombinations() {
         // exclusiveMinimum only
         assertThat(new FieldSpec("x", "integer", null, 0, null, null, null, null, null, null, null, null).yaviConstraints())
