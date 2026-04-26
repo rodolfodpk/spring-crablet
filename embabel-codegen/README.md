@@ -17,7 +17,7 @@ event-model.yaml
   → RepairAgent       → compile → fix → compile (up to 3 attempts)
 ```
 
-Each agent calls Anthropic with the CLAUDE.md context from the framework root so that generated code matches the project's patterns exactly.
+Each agent injects **section templates** from **`embabel-codegen/CLAUDE.md`** (see `TemplateLoader`) into its system prompt so generated code matches the codegen shape (handler interfaces, view projector, etc.). Run the CLI from the **`embabel-codegen`** directory (as the root `Makefile` `codegen-*` targets do) so `codegen.claude-md-path: CLAUDE.md` resolves to that file.
 
 ## Prerequisites
 
@@ -141,7 +141,7 @@ codegen:
     api-key: ${ANTHROPIC_API_KEY}
     model: claude-sonnet-4-6
     max-tokens: 8096
-  claude-md-path: ../CLAUDE.md   # framework CLAUDE.md injected into every agent prompt
+  claude-md-path: CLAUDE.md      # this module's CLAUDE.md (run JAR from embabel-codegen/; see above)
 ```
 
 ## When Generation Fails

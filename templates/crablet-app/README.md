@@ -9,7 +9,7 @@ describe one vertical slice
   -> update event-model.yaml
   -> run embabel_plan
   -> approve the planned artifacts
-  -> run embabel_generate
+  -> run embabel_generate with output: "src/main/java"
   -> run ./mvnw verify
 ```
 
@@ -90,9 +90,46 @@ I will update event-model.yaml, run embabel_plan, show the planned artifacts, an
 before running embabel_generate.
 ```
 
+## How code generation works
+
+The template’s **`.claude/settings.json`** starts the codegen JAR in MCP mode when Claude Code
+opens the project:
+
+```json
+{
+  "mcpServers": {
+    "embabel-codegen": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "./tools/embabel-codegen.jar",
+        "--mcp"
+      ]
+    }
+  }
+}
+```
+
+That exposes these MCP tools (Claude Code can call them without you running `java -jar` by
+hand): **`embabel_plan`**, **`embabel_generate`**, **`embabel_init`**, **`embabel_k8s`**.
+
+**Kubernetes:** **`make k8s`** is the Makefile entry point for the same **`embabel_k8s`** MCP tool
+(no Anthropic calls; writes `k8s/base` from `event-model.yaml`).
+
+**Output directory:** the **`embabel_generate`** tool defaults **`output` to `.` (project root)**.
+For this template, always pass **`output: "src/main/java"`** — the same directory as
+`make generate` (`java -jar … generate --output src/main/java`). Otherwise generated sources
+are written next to `pom.xml` instead of under `src/main/java`.
+
+**Primary workflow:** describe a slice in Claude Code → update `event-model.yaml` →
+`embabel_plan` → review → **`embabel_generate` with `output: "src/main/java"`** → `./mvnw verify`.
+
+**Local commands** (below) are for when you are **not** using Claude Code, or for **scripting**
+and **debugging** — see each command’s description.
+
 ## Local Commands
 
-Print the artifact plan without calling Anthropic or writing files:
+Print the artifact plan without calling Anthropic or writing files (CI- and script-friendly):
 
 ```bash
 make plan
@@ -103,6 +140,9 @@ Generate the structural code:
 ```bash
 make generate
 ```
+
+Same AI codegen pipeline as **`embabel_generate`** (calls Anthropic, compiles, may repair
+errors). Use when regenerating from the shell — not a typical deterministic CI step.
 
 Generate Kubernetes manifests under `k8s/base` from `event-model.yaml` (add a `deployment:` block; see the `/event-modeling` skill and `k8s/base/README-k8s.md` after generation):
 
@@ -115,6 +155,8 @@ Build and test the app:
 ```bash
 make verify
 ```
+
+Full Maven verification (CI- and script-friendly).
 
 Run the local verification path:
 

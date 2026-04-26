@@ -12,4 +12,6 @@ codegen:
     api-key: ${ANTHROPIC_API_KEY:}
     model: claude-sonnet-4-6
     max-tokens: 8096
-  claude-md-path: ../CLAUDE.md
+  # Resolved relative to process working directory. Run the JAR from the embabel-codegen module
+  # (see root Makefile codegen-* targets) so this loads embabel-codegen/CLAUDE.md with codegen templates.
+  claude-md-path: CLAUDE.md

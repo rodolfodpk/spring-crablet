@@ -10,18 +10,28 @@ A ready-to-use Spring Boot application skeleton configured for the AI-first Crab
 - `pom.xml` with all Crablet runtime dependencies
 - `event-model.yaml` skeleton to describe your domain
 - `V1__eventstore_schema.sql` Flyway migration (full Crablet schema)
-- `Makefile` with `plan`, `generate`, `verify`, and `check` targets
+- `Makefile` with `plan`, `generate`, `k8s`, `verify`, and `check` targets
 - `.claude/settings.json` pre-wired for the `embabel-codegen` MCP server
 - `/event-modeling` Claude Code skill for running a domain modeling workshop
 
-**Workflow:**
+**Workflow (primary — Claude Code + MCP):**
 
 ```
-describe one vertical slice
+Open Claude Code at the template root, describe one vertical slice
   → update event-model.yaml
-  → make plan           # review what will be generated
-  → make generate       # AI generates + compiles + repairs
-  → make verify         # full test run
+  → embabel_plan — review planned artifacts
+  → embabel_generate with output: src/main/java  (same as make generate; MCP default . is wrong for this template)
+  → ./mvnw verify
+```
+
+**Manual or scripted (no Claude Code, debugging, intentional regeneration):**
+
+```
+make plan      # review plan only, no Anthropic (CI- / script-friendly)
+make generate  # same AI pipeline as embabel_generate — not a normal CI step
+make k8s       # same as embabel_k8s; Kubernetes manifests, no Anthropic
+make verify    # full Maven test run (CI-friendly)
+make check     # plan + verify
 ```
 
 **Setup:**

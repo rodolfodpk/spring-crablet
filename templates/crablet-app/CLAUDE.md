@@ -8,7 +8,9 @@ When adding a feature:
 2. Update `event-model.yaml` first.
 3. Keep the slice scoped to one observable user outcome.
 4. Run `embabel_plan` and show the planned artifacts.
-5. Ask for confirmation before running `embabel_generate`.
+5. Ask for confirmation before running `embabel_generate` with **`output` set to `src/main/java`**
+   (same as `make generate`. The MCP tool defaults `output` to the project root `.`, which
+   places generated files in the wrong tree for this template).
 6. Run `./mvnw verify` after generation.
 7. Prefer improving `event-model.yaml` over hand-patching generated structural code.
 

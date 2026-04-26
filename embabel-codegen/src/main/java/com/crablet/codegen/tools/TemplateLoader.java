@@ -14,7 +14,7 @@ public class TemplateLoader {
 
     private final Path claudeMdPath;
 
-    public TemplateLoader(@Value("${codegen.claude-md-path:../CLAUDE.md}") String claudeMdPath) {
+    public TemplateLoader(@Value("${codegen.claude-md-path:CLAUDE.md}") String claudeMdPath) {
         this.claudeMdPath = Path.of(claudeMdPath).toAbsolutePath();
     }
 
