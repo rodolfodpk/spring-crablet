@@ -149,14 +149,14 @@ It should link back to `docs/AI_FIRST_WORKFLOW.md` near the top.
 The existing plan:
 
 ```text
-docs/plans/embabel-codegen-from-event-model.md
+docs/dev/plans/embabel-codegen-from-event-model.md
 ```
 
 uses implementation-first language. Keep the file if it is already referenced, but future docs
 should use product-first naming:
 
 ```text
-docs/plans/ai-assisted-app-generation-from-event-models.md
+docs/dev/plans/ai-assisted-app-generation-from-event-models.md
 ```
 
 Recommended heading:

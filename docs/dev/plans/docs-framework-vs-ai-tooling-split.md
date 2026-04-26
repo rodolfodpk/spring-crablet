@@ -5,6 +5,9 @@
 tooling**; **Framework Path** and **AI-First Path** body sections reordered (framework first). `make
 docs-check` passes.
 
+**Update:** Maintainer and historical material (including `DOCS_VERIFICATION.md` and this plan) now
+lives under [`docs/dev/`](../README.md) — not part of the primary end-user path.
+
 ## Goal
 
 Give the `docs/` folder and root README explicit, separate sections for:
@@ -19,7 +22,7 @@ Since `embabel-codegen` and the AI-first workflow were introduced, the docs/ fla
 
 ## Step 1 — Create `docs/ai-tooling/` and move 4 files
 
-`DOCS_VERIFICATION.md` stays at `docs/DOCS_VERIFICATION.md` — it covers repo-wide checks (deployment wording, tutorial fixtures, outbox API shape, markdown links) and is not AI-tooling-specific.
+`DOCS_VERIFICATION.md` was at `docs/DOCS_VERIFICATION.md` and is now at `docs/dev/DOCS_VERIFICATION.md` — it covers repo-wide checks (deployment wording, tutorial fixtures, outbox API shape, markdown links) and is not AI-tooling-specific.
 
 | Current | New |
 |---|---|
@@ -38,13 +41,13 @@ Use `git mv` so history is preserved.
 
 Two complementary rg checks find all references — run both before editing.
 
-**Check 1** catches old root-prefixed paths (`docs/FILENAME.md`). Exclude `docs/plans/**` entirely — plan files are historical records and may keep stale references without breaking the live docs.
+**Check 1** catches old root-prefixed paths (`docs/FILENAME.md`). Exclude `docs/dev/plans/**` entirely — plan files are historical records and may keep stale references without breaking the live docs.
 
 ```bash
 rg 'docs/AI_FIRST_WORKFLOW\.md|docs/FEATURE_SLICE_WORKFLOW\.md|docs/EVENT_MODELING\.md|docs/EVENT_MODEL_FORMAT\.md' \
   --type md \
   --glob '!.git/**' \
-  --glob '!docs/plans/**'
+  --glob '!docs/dev/plans/**'
 ```
 
 **Check 2** catches bare-filename relative links (`](AI_FIRST_WORKFLOW.md)` or `](./AI_FIRST_WORKFLOW.md)`). The pattern matches only targets that start with the filename (no preceding path separator), so links updated to `docs/ai-tooling/...` or `../ai-tooling/...` will not produce false hits.
@@ -54,7 +57,7 @@ rg '\]\((?:\.\/)?(?:AI_FIRST_WORKFLOW|FEATURE_SLICE_WORKFLOW|EVENT_MODELING|EVEN
   --type md \
   --glob '!docs/ai-tooling/**' \
   --glob '!.git/**' \
-  --glob '!docs/plans/**'
+  --glob '!docs/dev/plans/**'
 ```
 
 The union of both outputs is the authoritative list to fix. Known files (convenience checklist):
@@ -91,7 +94,7 @@ In the `check_links` function, search for the **three** existing old `docs/...` 
 (add new)                            "docs/ai-tooling/EVENT_MODELING.md"
 ```
 
-(`docs/DOCS_VERIFICATION.md` stays — no change for that entry.)
+(`docs/DOCS_VERIFICATION.md` is now `docs/dev/DOCS_VERIFICATION.md` — update the `check_links` entry accordingly when editing verification.)
 
 ---
 
@@ -119,7 +122,7 @@ Also give the two runtime paths equal weight in the README body:
 
 - Module READMEs (`crablet-*/`) — none link to the moved files (confirmed by audit); rg will catch any exceptions.
 - `docs/examples/` and `docs/tutorials/` — no changes.
-- `docs/plans/**` — plan files are historical records; stale links in them are acceptable and excluded from the verification gate.
+- `docs/dev/plans/**` — plan files are historical records; stale links in them are acceptable and excluded from the verification gate.
 - No content edits inside moved files beyond fixing relative paths.
 - Published site / crablet.app (if any) — separate deployment concern.
 

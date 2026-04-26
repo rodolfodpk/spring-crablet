@@ -93,7 +93,7 @@ default `.` would misplace generated sources relative to this template and `make
 
 ## Executed changes
 
-- **`docs/plans/document-crablet-codegen-mcp-workflow.md`** — Plan text updated (output path, CI
+- **`docs/dev/plans/document-crablet-codegen-mcp-workflow.md`** — Plan text updated (output path, CI
   wording, verification run); status set to EXECUTED; this section and verification table added.
 - **`templates/crablet-app/README.md`** — "The workflow" opener lists **`embabel_generate` with
   `output: "src/main/java"`**; added **How code generation works** (`.claude/settings.json` JSON,

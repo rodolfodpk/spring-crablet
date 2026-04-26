@@ -61,7 +61,7 @@ check_links() {
     "docs/COMMANDS_FIRST_ADOPTION.md"
     "docs/DEPLOYMENT_TOPOLOGY.md"
     "docs/TUTORIAL.md"
-    "docs/DOCS_VERIFICATION.md"
+    "docs/dev/DOCS_VERIFICATION.md"
     "docs/tutorials/01-event-store-basics.md"
     "docs/tutorials/02-commands.md"
     "docs/tutorials/03-dcb-consistency-boundaries.md"

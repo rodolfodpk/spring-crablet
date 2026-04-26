@@ -111,7 +111,7 @@ Read more in [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) and [
 
 [AI-first workflow](docs/ai-tooling/AI_FIRST_WORKFLOW.md) · [Feature slice workflow](docs/ai-tooling/FEATURE_SLICE_WORKFLOW.md) · [Event modeling](docs/ai-tooling/EVENT_MODELING.md) · [Event model format](docs/ai-tooling/EVENT_MODEL_FORMAT.md) · [Templates](templates/README.md) · [Crablet app template](templates/crablet-app/README.md) · [Embabel codegen](embabel-codegen/README.md)
 
-Contributors: see [Build](docs/BUILD.md) and [CLAUDE.md](CLAUDE.md).
+Contributors: see [Build](docs/BUILD.md), [CLAUDE.md](CLAUDE.md), and [framework development docs](docs/dev/README.md) (maintainer plans, reviews, doc verification).
 
 ## License
 

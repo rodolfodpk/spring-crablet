@@ -1,6 +1,6 @@
 # Future notes (non-binding)
 
-Informal items for maintainers: not a committed roadmap. Promote real work to `docs/plans/`, issues, or the appropriate module when ready.
+Informal items for maintainers: not a committed roadmap. Promote real work to `docs/dev/plans/`, issues, or the appropriate module when ready.
 
 ## Backlog ideas
 

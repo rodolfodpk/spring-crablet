@@ -468,7 +468,8 @@ See [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for full details on read replicas
 
 ## Documentation Quick Links
 
-- Maintainer notes and exploratory spikes (non-binding): `docs/notes-future.md`
+- **Framework development** (maintainers — design notes, plans, reviews): start at `docs/dev/README.md`
+- Maintainer notes and exploratory spikes (non-binding): `docs/dev/notes-future.md`
 - Build instructions: `docs/BUILD.md`
 - Configuration reference: `docs/CONFIGURATION.md`
 - Troubleshooting: `docs/TROUBLESHOOTING.md`
