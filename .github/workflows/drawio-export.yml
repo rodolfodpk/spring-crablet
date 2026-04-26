@@ -16,6 +16,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # drawio-export-action default `action-mode: auto` compares against git history; shallow clone errors.
+          fetch-depth: 0
 
       - name: Export shared-examples draw.io diagrams
         uses: rlespinasse/drawio-export-action@v2
