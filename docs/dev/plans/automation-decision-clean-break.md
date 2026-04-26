@@ -226,7 +226,7 @@ Primary files to check:
 
 - `crablet-automations/README.md`
 - root `README.md` automation references
-- `docs/tutorials/05-automations.md`
+- `docs/user/tutorials/05-automations.md`
 - `docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial05AutomationsSample.java`
 - `wallet-example-app/src/main/java/com/crablet/wallet/automations/WalletOpenedAutomation.java`
 - architecture docs that say automations perform side effects directly

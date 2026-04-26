@@ -3,7 +3,7 @@
 This tutorial introduces `crablet-commands`.
 
 Canonical compile fixture:
-[Part 2 compile fixture](../../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial02CommandsSample.java)
+[Part 2 compile fixture](../../../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial02CommandsSample.java)
 
 ## Why This Part Exists
 

@@ -17,7 +17,7 @@ Crablet helps Spring teams turn an event-modeled domain into a working event-sou
 
 ## Framework Path
 
-Crablet can be used directly as a Java framework: `EventStore`, command handlers, and `CommandExecutor` are the typical write path; views, outbox, automations, and the optional HTTP command adapter layer on top. For a first project, start with the [module reference](docs/MODULES.md), [Create a new Crablet app manually](docs/CREATE_A_CRABLET_APP.md), the [Tutorial](docs/TUTORIAL.md), the [Commands](crablet-commands/README.md) and [Event Store](crablet-eventstore/README.md) module READMEs, and the [Wallet example](wallet-example-app/README.md) for a full app shape.
+Crablet can be used directly as a Java framework: `EventStore`, command handlers, and `CommandExecutor` are the typical write path; views, outbox, automations, and the optional HTTP command adapter layer on top. For a first project, start with the [module reference](docs/user/MODULES.md), [Create a new Crablet app manually](docs/user/CREATE_A_CRABLET_APP.md), the [Tutorial](docs/user/TUTORIAL.md), the [Commands](crablet-commands/README.md) and [Event Store](crablet-eventstore/README.md) module READMEs, and the [Wallet example](wallet-example-app/README.md) for a full app shape.
 
 ## AI-First Path
 
@@ -79,9 +79,9 @@ It is probably not the right tool if plain CRUD is enough, one aggregate per com
 
 ## Learning And Deployment
 
-- **Learning mode:** run one application instance with commands, views, automations, and outbox together. See [Learning Mode](docs/LEARNING_MODE.md).
-- **Command-only production:** applications using only `crablet-eventstore` and `crablet-commands` can scale horizontally in the normal Spring Boot way. See [Commands-First Adoption](docs/COMMANDS_FIRST_ADOPTION.md).
-- **Poller-backed production:** applications enabling views, outbox, or automations should default to **one application instance per cluster** for the simplest topology, or use one singleton worker service per poller-backed module for isolation. See [Deployment Topology](docs/DEPLOYMENT_TOPOLOGY.md).
+- **Learning mode:** run one application instance with commands, views, automations, and outbox together. See [Learning Mode](docs/user/LEARNING_MODE.md).
+- **Command-only production:** applications using only `crablet-eventstore` and `crablet-commands` can scale horizontally in the normal Spring Boot way. See [Commands-First Adoption](docs/user/COMMANDS_FIRST_ADOPTION.md).
+- **Poller-backed production:** applications enabling views, outbox, or automations should default to **one application instance per cluster** for the simplest topology, or use one singleton worker service per poller-backed module for isolation. See [Deployment Topology](docs/user/DEPLOYMENT_TOPOLOGY.md).
 
 ## Why Java 25
 
@@ -103,15 +103,17 @@ Read more in [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) and [
 
 ## Documentation
 
+[Documentation index](docs/README.md) — how **user** (`docs/user/`) and **dev** (`docs/dev/`) are organized.
+
 ### Framework
 
-[Quickstart](docs/QUICKSTART.md) · [Tutorial](docs/TUTORIAL.md) · [Create a new Crablet app manually](docs/CREATE_A_CRABLET_APP.md) · [Learning mode](docs/LEARNING_MODE.md) · [Commands-first adoption](docs/COMMANDS_FIRST_ADOPTION.md) · [Module reference](docs/MODULES.md) · [Public API](docs/PUBLIC_API.md) · [Deployment topology](docs/DEPLOYMENT_TOPOLOGY.md) · [DCB and Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) · [Command patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md) · [Configuration](docs/CONFIGURATION.md) · [Build](docs/BUILD.md) · [Performance](docs/PERFORMANCE.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Upgrade](docs/UPGRADE.md) · [Management API](docs/MANAGEMENT_API.md) · [Fault recovery](docs/FAULT_RECOVERY.md) · [Leader election](docs/LEADER_ELECTION.md) · [Connection poolers](crablet-eventstore/docs/CONNECTION_POOLERS.md) · [Observability](docs/OBSERVABILITY.md) · [Wallet example](wallet-example-app/README.md)
+[Quickstart](docs/user/QUICKSTART.md) · [Tutorial](docs/user/TUTORIAL.md) · [Create a new Crablet app manually](docs/user/CREATE_A_CRABLET_APP.md) · [Learning mode](docs/user/LEARNING_MODE.md) · [Commands-first adoption](docs/user/COMMANDS_FIRST_ADOPTION.md) · [Module reference](docs/user/MODULES.md) · [Public API](docs/user/PUBLIC_API.md) · [Deployment topology](docs/user/DEPLOYMENT_TOPOLOGY.md) · [DCB and Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) · [Command patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md) · [Configuration](docs/user/CONFIGURATION.md) · [Build](docs/user/BUILD.md) · [Performance](docs/user/PERFORMANCE.md) · [Troubleshooting](docs/user/TROUBLESHOOTING.md) · [Upgrade](docs/user/UPGRADE.md) · [Management API](docs/user/MANAGEMENT_API.md) · [Fault recovery](docs/user/FAULT_RECOVERY.md) · [Leader election](docs/user/LEADER_ELECTION.md) · [Connection poolers](crablet-eventstore/docs/CONNECTION_POOLERS.md) · [Observability](docs/user/OBSERVABILITY.md) · [Wallet example](wallet-example-app/README.md)
 
 ### AI tooling
 
-[AI-first workflow](docs/ai-tooling/AI_FIRST_WORKFLOW.md) · [Feature slice workflow](docs/ai-tooling/FEATURE_SLICE_WORKFLOW.md) · [Event modeling](docs/ai-tooling/EVENT_MODELING.md) · [Event model format](docs/ai-tooling/EVENT_MODEL_FORMAT.md) · [Templates](templates/README.md) · [Crablet app template](templates/crablet-app/README.md) · [Embabel codegen](embabel-codegen/README.md)
+[AI-first workflow](docs/user/ai-tooling/AI_FIRST_WORKFLOW.md) · [Feature slice workflow](docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md) · [Event modeling](docs/user/ai-tooling/EVENT_MODELING.md) · [Event model format](docs/user/ai-tooling/EVENT_MODEL_FORMAT.md) · [Templates](templates/README.md) · [Crablet app template](templates/crablet-app/README.md) · [Embabel codegen](embabel-codegen/README.md)
 
-Contributors: see [Build](docs/BUILD.md), [CLAUDE.md](CLAUDE.md), and [framework development docs](docs/dev/README.md) (maintainer plans, reviews, doc verification).
+Contributors: see [Build](docs/user/BUILD.md), [CLAUDE.md](CLAUDE.md), and [framework development docs](docs/dev/README.md) (maintainer plans, reviews, doc verification).
 
 ## License
 

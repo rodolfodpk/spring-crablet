@@ -11,12 +11,12 @@ Crablet-specific scaffolding beyond what Spring Initializr already provides.
 
 ## Key Changes
 
-- Add `docs/CREATE_A_CRABLET_APP.md` as the canonical guide for creating a new
+- Add `docs/user/CREATE_A_CRABLET_APP.md` as the canonical guide for creating a new
   Crablet app in a fresh repository.
 - Add one short root `README.md` link to the new guide, keeping the README as a
   compact project front door.
-- Keep `docs/QUICKSTART.md` focused on running this repository's wallet example.
-- Keep `docs/COMMANDS_FIRST_ADOPTION.md` focused on adoption strategy and
+- Keep `docs/user/QUICKSTART.md` focused on running this repository's wallet example.
+- Keep `docs/user/COMMANDS_FIRST_ADOPTION.md` focused on adoption strategy and
   command-side-first production guidance.
 
 ## Guide Content
@@ -46,8 +46,8 @@ Crablet-specific scaffolding beyond what Spring Initializr already provides.
   - one HTTP entry point, either custom controller or `crablet-commands-web`
   - one verification step showing events were persisted
 - Link to:
-  - `docs/COMMANDS_FIRST_ADOPTION.md`
-  - `docs/TUTORIAL.md`
+  - `docs/user/COMMANDS_FIRST_ADOPTION.md`
+  - `docs/user/TUTORIAL.md`
   - `wallet-example-app/README.md`
 
 ## CLI Position

@@ -36,8 +36,8 @@ The series now stays close to the wallet example used elsewhere in the repositor
 
 **Reference implementation**
 
-- [wallet-example-app](../wallet-example-app/README.md) for a complete reference application
-- [Getting Started With Crablet](../crablet-eventstore/GETTING_STARTED.md) for integration setup
+- [wallet-example-app](../../wallet-example-app/README.md) for a complete reference application
+- [Getting Started With Crablet](../../crablet-eventstore/GETTING_STARTED.md) for integration setup
 
 ## Module Map
 
@@ -76,4 +76,4 @@ Examples:
 
 This is intentional. The processor runtime always runs per processor instance in the default path, even when many processors share the same module-level defaults. When shared-fetch is enabled, that sharing is still module-scoped.
 
-For deeper details, see [Leader Election](LEADER_ELECTION.md) and the module READMEs for `views`, `automations`, and `outbox`. If you need the shared infrastructure details directly, see [Event Poller](../crablet-event-poller/README.md).
+For deeper details, see [Leader Election](LEADER_ELECTION.md) and the module READMEs for `views`, `automations`, and `outbox`. If you need the shared infrastructure details directly, see [Event Poller](../../crablet-event-poller/README.md).

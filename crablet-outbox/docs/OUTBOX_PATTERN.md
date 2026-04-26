@@ -94,7 +94,7 @@ The outbox uses **PostgreSQL advisory locks** for leader election, ensuring only
 - **No configuration needed**: Leader election is transparent
 - **Position tracking**: Each (topic, publisher) pair tracks its own progress independently
 
-For complete leader election documentation including crash detection, failover timing, and deployment recommendations, see [Leader Election Guide](../../docs/LEADER_ELECTION.md).
+For complete leader election documentation including crash detection, failover timing, and deployment recommendations, see [Leader Election Guide](../../docs/user/LEADER_ELECTION.md).
 
 ### Per-Publisher Schedulers
 
@@ -364,7 +364,7 @@ Events may be published multiple times in the following scenarios:
 
 **Failure scenario:** Instance A crashes → PostgreSQL releases lock → Instance B detects and takes over within 5-30 seconds.
 
-For complete details on crash detection, failover mechanism, and deployment patterns, see [Leader Election Guide](../../docs/LEADER_ELECTION.md).
+For complete details on crash detection, failover mechanism, and deployment patterns, see [Leader Election Guide](../../docs/user/LEADER_ELECTION.md).
 
 ## Performance
 
@@ -453,6 +453,6 @@ curl http://localhost:8080/api/outbox/status
 
 ## See Also
 
-- [Leader Election Guide](../../docs/LEADER_ELECTION.md) - Complete leader election documentation
+- [Leader Election Guide](../../docs/user/LEADER_ELECTION.md) - Complete leader election documentation
 - [EventStore README](../crablet-eventstore/README.md) - DCB event sourcing library
 - [Command README](../crablet-commands/README.md) - Command framework

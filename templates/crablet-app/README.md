@@ -63,7 +63,7 @@ Claude should update `event-model.yaml`, run `embabel_plan`, ask you to review t
 artifacts, then run `embabel_generate` only after the plan looks right.
 
 For a detailed transcript, see
-[Submit Loan Application Claude Dialogue](../../docs/examples/submit-loan-application-claude-dialogue.md).
+[Submit Loan Application Claude Dialogue](../../docs/user/examples/submit-loan-application-claude-dialogue.md).
 
 The interaction should feel like this:
 

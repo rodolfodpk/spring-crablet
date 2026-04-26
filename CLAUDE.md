@@ -40,7 +40,7 @@ class YourHandlerUnitTest extends AbstractHandlerUnitTest {
 
 ## Build Commands
 
-See [BUILD.md](docs/BUILD.md) for full details. Quick reference:
+See [BUILD.md](docs/user/BUILD.md) for full details. Quick reference:
 
 ```bash
 make install            # Full build with unit tests (recommended)
@@ -193,13 +193,13 @@ These decisions reflect the current repository state and should be treated as th
   - Both `crablet-commands-web` and `wallet-example-app` E2E use the default embedded Tomcat from `spring-boot-starter-web`; no explicit server override.
   - `crablet-commands-web` is server-agnostic at runtime — it depends only on `jakarta.servlet-api`.
   - Virtual-thread request dispatch is verified in both modules via a focused test-only endpoint, not by duplicating full API behavior tests.
-- The root tutorial is now a tutorial series under `docs/tutorials/`, not one monolithic walkthrough.
+- The root tutorial is now a tutorial series under `docs/user/tutorials/`, not one monolithic walkthrough.
 
 ### Build graph, examples, and `crablet-test-support`
 
 - `shared-examples-domain` depends on `crablet-eventstore` (main) for real domain types; framework modules use it in **test** scope for realistic tests and shared scenarios.
 - **`crablet-test-support`** holds shared test utilities (`InMemoryEventStore`, `AbstractHandlerUnitTest`, `AbstractCrabletTest`, `DCBTestHelpers`) so modules do not re-copy that code.
-- **`shared-examples-domain`** and **`wallet-example-app`** are excluded from the reactor; **`make install`** (see `docs/BUILD.md`) applies the correct build order and stub JAR steps.
+- **`shared-examples-domain`** and **`wallet-example-app`** are excluded from the reactor; **`make install`** (see `docs/user/BUILD.md`) applies the correct build order and stub JAR steps.
 
 **When creating your own application:** depend on framework modules normally; your app does not need to live in this repo. Use your own domain in tests; framework tests keep using `shared-examples-domain` where needed.
 
@@ -308,7 +308,7 @@ See `crablet-outbox/README.md`.
 
 PostgreSQL advisory locks (`pg_try_advisory_lock`). Non-blocking — follower skips the cycle and retries next interval. Automatic failover: 5–30 seconds.
 
-Key constraint: advisory locks are session-scoped. `crablet.event-poller.notifications.jdbc-url` **must be a direct Postgres connection** — not PgBouncer/PgCat/RDS Proxy. See `docs/LEADER_ELECTION.md`.
+Key constraint: advisory locks are session-scoped. `crablet.event-poller.notifications.jdbc-url` **must be a direct Postgres connection** — not PgBouncer/PgCat/RDS Proxy. See `docs/user/LEADER_ELECTION.md`.
 
 ### DataSource Model
 
@@ -331,7 +331,7 @@ Crablet intentionally exposes two datasource roles:
 
 ## Common Gotchas & Troubleshooting
 
-See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for problem/solution pairs covering build issues, DCB pattern issues, testing issues, view projection issues, and event deserialization issues.
+See [docs/user/TROUBLESHOOTING.md](docs/user/TROUBLESHOOTING.md) for problem/solution pairs covering build issues, DCB pattern issues, testing issues, view projection issues, and event deserialization issues.
 
 **Quick diagnostics:**
 - `ConcurrencyException`: read the `Hint:`, check `matchingEventsCount`, verify decision-model tags match appended events.
@@ -340,7 +340,7 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for problem/solution pair
 
 ## Common Development Tasks
 
-See [docs/tutorials/](docs/tutorials/) for step-by-step walkthroughs. Quick checklist:
+See [docs/user/tutorials/](docs/user/tutorials/) for step-by-step walkthroughs. Quick checklist:
 
 **Adding a new command:** define command record → implement `CommandHandler<C>` → `@Component` → define events + decision model query → write unit + integration tests.
 
@@ -464,16 +464,18 @@ Modules use Spring Boot auto-configuration via `META-INF/spring/org.springframew
 
 ## Performance Considerations
 
-See [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for full details on read replicas, database indexes, batch processing, connection pooling, and closing the books pattern.
+See [docs/user/PERFORMANCE.md](docs/user/PERFORMANCE.md) for full details on read replicas, database indexes, batch processing, connection pooling, and closing the books pattern.
 
 ## Documentation Quick Links
 
+- **Doc layout:** `docs/README.md` — **user** (`docs/user/`) vs **dev** (`docs/dev/`)
+- **User docs** (applications on Crablet): start at `docs/user/README.md`
 - **Framework development** (maintainers — design notes, plans, reviews): start at `docs/dev/README.md`
 - Maintainer notes and exploratory spikes (non-binding): `docs/dev/notes-future.md`
-- Build instructions: `docs/BUILD.md`
-- Configuration reference: `docs/CONFIGURATION.md`
-- Troubleshooting: `docs/TROUBLESHOOTING.md`
-- Performance: `docs/PERFORMANCE.md`
+- Build instructions: `docs/user/BUILD.md`
+- Configuration reference: `docs/user/CONFIGURATION.md`
+- Troubleshooting: `docs/user/TROUBLESHOOTING.md`
+- Performance: `docs/user/PERFORMANCE.md`
 - EventStore README: `crablet-eventstore/README.md`
 - Command framework: `crablet-commands/README.md`
 - Event processor: `crablet-event-poller/README.md`
@@ -483,14 +485,14 @@ See [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for full details on read replicas
 - DCB explained: `crablet-eventstore/docs/DCB_AND_CRABLET.md`
 - Command patterns: `crablet-eventstore/docs/COMMAND_PATTERNS.md`
 - Closing books: `crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md`
-- Leader election: `docs/LEADER_ELECTION.md`
+- Leader election: `docs/user/LEADER_ELECTION.md`
 - Read replicas: `crablet-eventstore/docs/READ_REPLICAS.md`
 - AI-first codegen: `embabel-codegen/README.md` (CLI, MCP server, agent pipeline, error recovery)
 - Starter template: `templates/README.md`, `templates/crablet-app/README.md`
-- AI workflow: `docs/ai-tooling/AI_FIRST_WORKFLOW.md`, `docs/ai-tooling/FEATURE_SLICE_WORKFLOW.md`
-- Event model format: `docs/ai-tooling/EVENT_MODEL_FORMAT.md` (includes shared schema / $ref composition)
-- Upgrade guide: `docs/UPGRADE.md` (breaking changes and migration steps)
-- Observability: `docs/OBSERVABILITY.md` (entry point — Micrometer setup, metrics reference, Grafana, PromQL)
+- AI workflow: `docs/user/ai-tooling/AI_FIRST_WORKFLOW.md`, `docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md`
+- Event model format: `docs/user/ai-tooling/EVENT_MODEL_FORMAT.md` (includes shared schema / $ref composition)
+- Upgrade guide: `docs/user/UPGRADE.md` (breaking changes and migration steps)
+- Observability: `docs/user/OBSERVABILITY.md` (entry point — Micrometer setup, metrics reference, Grafana, PromQL)
 - Metrics deep dives: `crablet-eventstore/docs/METRICS.md`, `crablet-outbox/docs/OUTBOX_METRICS.md`
 - Observability stack: `observability/README.md` (Prometheus + Grafana Docker Compose)
 

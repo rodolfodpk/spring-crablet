@@ -114,10 +114,10 @@ provide runtime wiring through Spring Boot auto-configuration when the
 dependencies are on the classpath, but the PostgreSQL schema is still owned by
 your application migrations.
 
-For the event store schema, use [Database Schema](../crablet-eventstore/SCHEMA.md)
+For the event store schema, use [Database Schema](../../crablet-eventstore/SCHEMA.md)
 as the reference and copy the current SQL shape into your app's first migration.
 The wallet example's
-[`V1__eventstore_schema.sql`](../wallet-example-app/src/main/resources/db/migration/V1__eventstore_schema.sql)
+[`V1__eventstore_schema.sql`](../../wallet-example-app/src/main/resources/db/migration/V1__eventstore_schema.sql)
 is the runnable reference in this repository.
 
 ## Build The First Manual Vertical Slice
@@ -146,7 +146,7 @@ class CommandApiConfig {
 
 Requests go to `POST /api/commands` by default and include a `commandType` field
 plus the command-specific payload. See
-[crablet-commands-web](../crablet-commands-web/README.md) for the full request
+[crablet-commands-web](../../crablet-commands-web/README.md) for the full request
 contract.
 
 ## Generator Reference
@@ -174,4 +174,4 @@ Prefer improving `event-model.yaml` over editing generated structural code by ha
 - [Commands-First Adoption](COMMANDS_FIRST_ADOPTION.md)
 - [Tutorial](TUTORIAL.md)
 - [Quickstart](QUICKSTART.md)
-- [Wallet Example App](../wallet-example-app/README.md)
+- [Wallet Example App](../../wallet-example-app/README.md)

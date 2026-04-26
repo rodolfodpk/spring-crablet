@@ -673,7 +673,7 @@ Changes made to `.claude/skills/event-modeling/SKILL.md`:
 2. ~~Enhance `event-modeling` skill to emit `event-model.yaml` with full field set~~ **Done** — skill updated to follow all 7 steps + emit `event-model.yaml`
 3. ~~Create `embabel-codegen/` module in this repo (excluded from reactor, Java, Spring Shell + Spring AI)~~ **Done** — all agents, pipeline, CLI, model, tools implemented; fat JAR builds to 29MB; `help` and `init` work without `ANTHROPIC_API_KEY`; `generate` fails fast with a clear message when key is absent
 4. ~~Add `codegen-build` and `codegen-install` targets to `Makefile`~~ **Done**
-5. ~~Unified UX — document “From zero to generated domain”~~ **Done** — `docs/CREATE_A_CRABLET_APP.md` restructured to lead with the AI-first path (`init` → `/event-modeling` → `generate` → `./mvnw verify`); manual path kept as secondary section; MCP shortcut documented
+5. ~~Unified UX — document “From zero to generated domain”~~ **Done** — `docs/user/CREATE_A_CRABLET_APP.md` restructured to lead with the AI-first path (`init` → `/event-modeling` → `generate` → `./mvnw verify`); manual path kept as secondary section; MCP shortcut documented
 6. ~~Validate YAML parsing and schema resolution on the Wallet domain~~ **Done** — `embabel-codegen/src/test/resources/wallet-event-model.yaml` added; 2 tests pass (parsing + schema inlining); CLI reaches EventsAgent before failing on missing API key; full generation requires `ANTHROPIC_API_KEY` to be set:
    ```bash
    export ANTHROPIC_API_KEY=sk-...

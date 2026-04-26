@@ -4,7 +4,7 @@ This guide describes the intended developer dialogue for adding one vertical sli
 `embabel-codegen`.
 
 In normal app development, start from the
-[Crablet app template](../../templates/crablet-app/README.md) and use this workflow from inside the
+[Crablet app template](../../../templates/crablet-app/README.md) and use this workflow from inside the
 cloned app.
 
 A slice should be one observable user outcome, not a whole subsystem. For example:
@@ -95,7 +95,7 @@ This board maps to the wallet sample’s documented flow:
 - `WelcomeNotificationSent` records the follow-up fact
 - the outbox publishes committed wallet events through `LogPublisher` or `wallet-webhook`
 
-For code references and runtime behavior, see [wallet-example-app/README.md](../../wallet-example-app/README.md).
+For code references and runtime behavior, see [wallet-example-app/README.md](../../../wallet-example-app/README.md).
 
 The developer dialogue should stay outcome-oriented:
 

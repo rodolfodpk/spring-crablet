@@ -165,7 +165,7 @@ crablet.metrics.enabled=false
 
 ## See Also
 
-- [`crablet-metrics-micrometer/README.md`](../crablet-metrics-micrometer/README.md) — full module reference and customization
-- [`observability/README.md`](../observability/README.md) — Docker Compose stack quickstart
-- [`crablet-eventstore/docs/METRICS.md`](../crablet-eventstore/docs/METRICS.md) — EventStore metric details and DCB guidance
-- [`crablet-outbox/docs/OUTBOX_METRICS.md`](../crablet-outbox/docs/OUTBOX_METRICS.md) — Outbox metric details
+- [`crablet-metrics-micrometer/README.md`](../../crablet-metrics-micrometer/README.md) — full module reference and customization
+- [`observability/README.md`](../../observability/README.md) — Docker Compose stack quickstart
+- [`crablet-eventstore/docs/METRICS.md`](../../crablet-eventstore/docs/METRICS.md) — EventStore metric details and DCB guidance
+- [`crablet-outbox/docs/OUTBOX_METRICS.md`](../../crablet-outbox/docs/OUTBOX_METRICS.md) — Outbox metric details

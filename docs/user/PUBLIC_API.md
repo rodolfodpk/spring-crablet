@@ -19,7 +19,7 @@ Use custom `@RestController` endpoints when:
 
 Reads should normally come from views, and integration events should normally leave the service via
 outbox publishers. For the full generic command HTTP contract, see
-[`crablet-commands-web/README.md`](../crablet-commands-web/README.md).
+[`crablet-commands-web/README.md`](../../crablet-commands-web/README.md).
 
 The generic command API also supports opt-in UUID correlation headers. Enable
 `crablet.commands.api.correlation-header-enabled=true` to accept and echo `X-Correlation-Id`

@@ -145,7 +145,7 @@ Framework integration tests use Flyway (classpath `db/migration` from this modul
 4. Reactor modules (full build with tests)
 ```
 
-See [Build](../docs/BUILD.md) for details.
+See [Build](../docs/user/BUILD.md) for details.
 
 ## See Also
 

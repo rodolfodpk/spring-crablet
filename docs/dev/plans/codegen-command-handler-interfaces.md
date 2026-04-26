@@ -89,7 +89,7 @@ assertThat(plan).contains("com.example.loan.command.LoanApplicationQueryPatterns
 ```
 
 **New test:** add a method with a model containing an automation and outbox entry (inline YAML
-or fixture at `docs/examples/loan-with-automation-event-model.yaml`) to assert:
+or fixture at `docs/user/examples/loan-with-automation-event-model.yaml`) to assert:
 - automation handler → `(Java interface)`
 - outbox publisher → `(Java interface)`
 - view projector → `(Java class)`
@@ -363,8 +363,8 @@ Remove adapter **implementation** hints: SmtpEmailService/RestClient/KafkaTempla
 
 ---
 
-### 8. `docs/examples/submit-loan-application-claude-dialogue.md`
-**Path:** `docs/examples/submit-loan-application-claude-dialogue.md`
+### 8. `docs/user/examples/submit-loan-application-claude-dialogue.md`
+**Path:** `docs/user/examples/submit-loan-application-claude-dialogue.md`
 
 - Step 4 artifact plan: `SubmitLoanApplicationCommandHandler (Java interface)`
 - Step 5 output list: `SubmitLoanApplicationCommandHandler (Java interface — implement in a separate @Component class)`
@@ -402,7 +402,7 @@ Replace the "Generated code compiles but behaviour is wrong" paragraph to cover:
   (`CommandSpec.hasGuard()` section, `viewSpec` lookup block). Re-check actual locations at
   implementation time — they may have shifted.
 - **`commutative` YAML convention:** if `commutative` without a `guardEvents` list was previously
-  always assumed to mean "with guard," consider adding a note to `docs/ai-tooling/EVENT_MODEL_FORMAT.md`
+  always assumed to mean "with guard," consider adding a note to `docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`
   clarifying that `guardEvents: []` means pure commutative.
 
 ---
@@ -417,7 +417,7 @@ Replace the "Generated code compiles but behaviour is wrong" paragraph to cover:
    not contain `"X Interface"`. Correct ordering (X Template before X Interface Template) ensures
    `load("X")` finds the right section.
 3. Run manual generation against a fixture with command + automation + outbox entries
-   (add `docs/examples/loan-with-automation-event-model.yaml` if needed). Confirm:
+   (add `docs/user/examples/loan-with-automation-event-model.yaml` if needed). Confirm:
    - command handlers: empty interface body, Javadoc `decide()` sketch, no `@Component`
    - automation handlers: three default methods, no `decide()`, no structural sketch
    - outbox publishers: two default methods, no `publishBatch()`/`isHealthy()`, no structural sketch

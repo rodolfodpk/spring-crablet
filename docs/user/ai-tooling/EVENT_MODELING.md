@@ -67,7 +67,7 @@ view, automation, and outbox lanes all represent asynchronous poller-backed work
 
 Source context:
 - [Feature Slice Workflow](FEATURE_SLICE_WORKFLOW.md)
-- [Wallet Example App](../../wallet-example-app/README.md)
+- [Wallet Example App](../../../wallet-example-app/README.md)
 
 ## Relationship To Other Docs
 

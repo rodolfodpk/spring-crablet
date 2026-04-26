@@ -47,7 +47,7 @@ public void publishBatch(List<StoredEvent> events) throws PublishException {
 }
 ```
 
-See [`crablet-automations/README.md`](../crablet-automations/README.md) and [`crablet-outbox/README.md`](../crablet-outbox/README.md).
+See [`crablet-automations/README.md`](../../crablet-automations/README.md) and [`crablet-outbox/README.md`](../../crablet-outbox/README.md).
 
 ---
 
@@ -151,6 +151,6 @@ Remove any `DataSource` constructor parameter from custom `EventHandler` impleme
 
 ## See Also
 
-- [`crablet-automations/README.md`](../crablet-automations/README.md) — AutomationHandler reference
-- [`crablet-metrics-micrometer/README.md`](../crablet-metrics-micrometer/README.md) — Breaking changes section
+- [`crablet-automations/README.md`](../../crablet-automations/README.md) — AutomationHandler reference
+- [`crablet-metrics-micrometer/README.md`](../../crablet-metrics-micrometer/README.md) — Breaking changes section
 - [`docs/OBSERVABILITY.md`](OBSERVABILITY.md) — Updated Grafana dashboard instructions

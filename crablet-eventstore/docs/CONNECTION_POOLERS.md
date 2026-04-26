@@ -248,7 +248,7 @@ OJP's primary value is preventing connection storms when scaling horizontally. A
 ## See Also
 
 - [Read Replica Guide](./READ_REPLICAS.md) — Crablet's two-datasource model
-- [Leader Election](../../docs/LEADER_ELECTION.md) — Advisory lock behavior
+- [Leader Election](../../docs/user/LEADER_ELECTION.md) — Advisory lock behavior
 - [PgBouncer](https://www.pgbouncer.org/) — Official PgBouncer documentation
 - [PgCat](https://github.com/postgresml/pgcat) — Official PgCat project
 - [OJP](https://github.com/Open-J-Proxy/ojp) — Official OJP project

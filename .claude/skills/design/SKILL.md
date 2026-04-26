@@ -101,7 +101,7 @@ Work through each step with the user using `AskUserQuestion`. Each step requires
 
 ### Step 3: Write Module Design Documents
 
-Using the validated architecture from Step 2, for each module create `docs/design/!`date +%Y-%m-%d`/{module-name}/design.md` containing:
+Using the validated architecture from Step 2, for each module create `docs/user/design/!`date +%Y-%m-%d`/{module-name}/design.md` containing:
 
 ```markdown
 # {Module Name}
@@ -144,7 +144,7 @@ Iterate until approved.
 
 ### Step 4: Write Module Test Specifications
 
-For each module, create `docs/design/!`date +%Y-%m-%d`/{module-name}/tests.md` containing:
+For each module, create `docs/user/design/!`date +%Y-%m-%d`/{module-name}/tests.md` containing:
 
 ```markdown
 # {Module Name} — Test Specification
@@ -176,7 +176,7 @@ Write all test specifications without asking for approval. The module designs we
 
 ### Step 5: Write the Architecture Document
 
-Create `docs/design/!`date +%Y-%m-%d`/architecture.md` containing:
+Create `docs/user/design/!`date +%Y-%m-%d`/architecture.md` containing:
 
 ```markdown
 # Architecture Overview

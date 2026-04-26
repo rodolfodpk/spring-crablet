@@ -4,7 +4,7 @@ Material here is for **maintainers and contributors** working on the Crablet **c
 design notes, completed migrations, modularity reviews, and internal checklists.
 
 **End users and application teams** should start from the root [README](../../README.md#documentation)
-(**Framework** and **AI tooling**) and the guides under `docs/` (quickstart, tutorials, configuration,
+(**Framework** and **AI tooling**) and the guides under `docs/user/` (quickstart, tutorials, configuration,
 etc.) — not from this folder.
 
 | Path | Contents |

@@ -3,7 +3,7 @@
 This tutorial introduces `crablet-eventstore` only.
 
 Canonical compile fixture:
-[Part 1 compile fixture](../../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial01EventStoreBasicsSample.java)
+[Part 1 compile fixture](../../../docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial01EventStoreBasicsSample.java)
 
 ## Why This Part Exists
 

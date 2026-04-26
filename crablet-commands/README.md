@@ -33,7 +33,7 @@ Crablet Command provides a lightweight framework for command handling on top of 
 - **Transaction Management**: Automatic transaction lifecycle management
 - **DCB Support**: Full support for Dynamic Consistency Boundary pattern
 
-For a commands-first adoption guide, see [Commands-First Adoption](../docs/COMMANDS_FIRST_ADOPTION.md).
+For a commands-first adoption guide, see [Commands-First Adoption](../docs/user/COMMANDS_FIRST_ADOPTION.md).
 
 **Light framework shape:**
 - Implement one `CommandHandler<T>` per command type

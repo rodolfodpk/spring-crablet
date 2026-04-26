@@ -229,7 +229,7 @@ The event processor is built around a few key interfaces:
 
    With shared-fetch enabled, the module uses one scheduled fetch loop for the module and routes fetched events to the processors inside that module.
 
-3. **Leader Election**: Uses PostgreSQL advisory locks to ensure only one instance processes a module's processor set at a time. Each built-in module has its own lock key. See [Leader Election Guide](../docs/LEADER_ELECTION.md) for detailed explanation of how leader election, crash detection, and failover work.
+3. **Leader Election**: Uses PostgreSQL advisory locks to ensure only one instance processes a module's processor set at a time. Each built-in module has its own lock key. See [Leader Election Guide](../docs/user/LEADER_ELECTION.md) for detailed explanation of how leader election, crash detection, and failover work.
 
 4. **Backoff**: After a threshold of empty polls, the scheduler skips cycles with exponential backoff
 

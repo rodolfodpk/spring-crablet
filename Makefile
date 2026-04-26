@@ -27,7 +27,7 @@ help:
 	@echo "  verify           - Full build with tests and verification"
 	@echo "  docs-check       - Validate markdown links and key documentation guardrails"
 	@echo "  docs-compile-check - Compile tutorial fixture sources in docs-samples"
-	@echo "  docs-generate    - Regenerate source-derived snippets under docs/generated"
+	@echo "  docs-generate    - Regenerate source-derived snippets under docs/user/generated"
 	@echo "  docs-generate-check - Fail if generated snippets are out of date"
 	@echo ""
 	@echo "Test Commands:"

@@ -84,6 +84,6 @@ Snippet regions are marked in the fixture sources with:
 // docs:end snippet-name
 ```
 
-Generated output is written to [generated docs](../generated).
+Generated output is written to [generated docs](../user/generated).
 
 This is the bridge from “compile fixtures exist” to “snippets come from source.”

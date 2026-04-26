@@ -7,7 +7,7 @@ substrate for generated applications and the manual path for teams that want dir
 This workflow is currently a preview direction while the generator matures.
 
 For application teams, the intended first-user path is to clone the
-[Crablet app template](../../templates/crablet-app/README.md), open Claude Code, and add one
+[Crablet app template](../../../templates/crablet-app/README.md), open Claude Code, and add one
 vertical slice at a time.
 
 ## At A Glance
@@ -155,13 +155,13 @@ structural gaps by hand.
 
 Generated applications target the same runtime modules documented elsewhere in this repository:
 
-- [Event Store](../../crablet-eventstore/README.md)
-- [Commands](../../crablet-commands/README.md)
-- [Views](../../crablet-views/README.md)
-- [Automations](../../crablet-automations/README.md)
-- [Outbox](../../crablet-outbox/README.md)
-- [Command Web API](../../crablet-commands-web/README.md)
-- [Micrometer metrics](../../crablet-metrics-micrometer/README.md)
+- [Event Store](../../../crablet-eventstore/README.md)
+- [Commands](../../../crablet-commands/README.md)
+- [Views](../../../crablet-views/README.md)
+- [Automations](../../../crablet-automations/README.md)
+- [Outbox](../../../crablet-outbox/README.md)
+- [Command Web API](../../../crablet-commands-web/README.md)
+- [Micrometer metrics](../../../crablet-metrics-micrometer/README.md)
 
 These APIs are still useful when generated code needs customization or when you choose the manual
 runtime path.

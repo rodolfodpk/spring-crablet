@@ -85,8 +85,8 @@ docs/AI_FIRST_WORKFLOW.md
 
 Alternative names:
 
-- `docs/EVENT_MODEL_TO_APP.md`
-- `docs/GENERATE_A_CRABLET_APP.md`
+- `docs/user/EVENT_MODEL_TO_APP.md`
+- `docs/user/GENERATE_A_CRABLET_APP.md`
 
 Recommended title:
 
@@ -119,12 +119,12 @@ rather than stable usage.
 
 ## Quickstart Changes
 
-The current `docs/QUICKSTART.md` starts with the wallet example app and curl commands. That is
+The current `docs/user/QUICKSTART.md` starts with the wallet example app and curl commands. That is
 still useful, but it should not be the first product experience once AI-first positioning lands.
 
 Recommended split:
 
-- `docs/QUICKSTART.md`: generate or inspect a working app from an event model
+- `docs/user/QUICKSTART.md`: generate or inspect a working app from an event model
 - `wallet-example-app/README.md`: complete reference app details
 
 The quickstart should show the event-model-to-app path first. It can then link to the existing
@@ -132,7 +132,7 @@ wallet example for a runnable, hand-maintained reference implementation.
 
 ## Manual App Guide Changes
 
-`docs/CREATE_A_CRABLET_APP.md` should be demoted from the default start path to the manual path.
+`docs/user/CREATE_A_CRABLET_APP.md` should be demoted from the default start path to the manual path.
 
 Recommended intro:
 
@@ -142,7 +142,7 @@ runtime APIs. Use it when you want explicit control over the code, when generate
 appropriate, or while the AI-first generator is still maturing.
 ```
 
-It should link back to `docs/AI_FIRST_WORKFLOW.md` near the top.
+It should link back to `docs/user/AI_FIRST_WORKFLOW.md` near the top.
 
 ## Embabel Plan Rename
 
@@ -212,11 +212,11 @@ Operations
 
 ## Proposed Implementation Sequence
 
-1. Add `docs/AI_FIRST_WORKFLOW.md`.
+1. Add `docs/user/AI_FIRST_WORKFLOW.md`.
 2. Update the root `README.md` opening, value bullets, and "Where To Go Next" links.
-3. Update `docs/QUICKSTART.md` to point first at the event-model-to-app workflow.
-4. Update `docs/CREATE_A_CRABLET_APP.md` to clearly label it as the manual API path.
-5. Add or extract `docs/EVENT_MODEL_FORMAT.md` from the YAML section in the Embabel plan.
+3. Update `docs/user/QUICKSTART.md` to point first at the event-model-to-app workflow.
+4. Update `docs/user/CREATE_A_CRABLET_APP.md` to clearly label it as the manual API path.
+5. Add or extract `docs/user/EVENT_MODEL_FORMAT.md` from the YAML section in the Embabel plan.
 6. Rename or supersede the Embabel plan with product-first wording.
 7. Keep module READMEs mostly API/reference-oriented, but add a short note that generated apps
    target these APIs.

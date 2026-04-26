@@ -205,7 +205,7 @@ Events are facts — they never carry constraint keywords. Constraints only appe
 ## YAML Template
 
 ```yaml
-# yaml-language-server: $schema=../../docs/examples/event-model-schema.json
+# yaml-language-server: $schema=../../docs/user/examples/event-model-schema.json
 domain: YourDomain
 basePackage: com.example.yourdomain
 
@@ -255,4 +255,4 @@ deployment:
     pollingInterval: 30       # seconds between KEDA PostgreSQL checks
 ```
 
-**Kubernetes (optional):** from the app template, `make k8s` (requires `embabel-codegen.jar` in `tools/`) writes `k8s/base` from this `deployment` block. See `k8s/base/README-k8s.md` for fill-in, KEDA install (`helm install keda kedacore/keda --namespace keda --create-namespace`), and how monolith vs distributed maps to Deployments. `minReplicas: 0` only affects distributed workers; PDBs are omitted when `minReplicas` is 0. Platform-agnostic rules: [DEPLOYMENT_TOPOLOGY.md](../../../docs/DEPLOYMENT_TOPOLOGY.md).
+**Kubernetes (optional):** from the app template, `make k8s` (requires `embabel-codegen.jar` in `tools/`) writes `k8s/base` from this `deployment` block. See `k8s/base/README-k8s.md` for fill-in, KEDA install (`helm install keda kedacore/keda --namespace keda --create-namespace`), and how monolith vs distributed maps to Deployments. `minReplicas: 0` only affects distributed workers; PDBs are omitted when `minReplicas` is 0. Platform-agnostic rules: [DEPLOYMENT_TOPOLOGY.md](../../../docs/user/DEPLOYMENT_TOPOLOGY.md).

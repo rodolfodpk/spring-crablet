@@ -110,7 +110,7 @@ eventStore.appendCommutative(events);
 
 Crablet Outbox uses:
 - **Per-publisher schedulers**: Independent scheduler per (topic, publisher) pair for isolation and flexible polling
-- **Global leader election**: PostgreSQL advisory locks for automatic failover. See [Leader Election Guide](../docs/LEADER_ELECTION.md) for details.
+- **Global leader election**: PostgreSQL advisory locks for automatic failover. See [Leader Election Guide](../docs/user/LEADER_ELECTION.md) for details.
 - **At-least-once delivery**: Events may be published multiple times (idempotent consumers required)
 
 **Recommended deployment:**
@@ -239,7 +239,7 @@ curl http://localhost:8080/api/outbox/default/publishers/LogPublisher/status
 curl -X POST http://localhost:8080/api/outbox/default/publishers/LogPublisher/reset
 ```
 
-For the built-in framework API, see [Management API](../docs/MANAGEMENT_API.md).
+For the built-in framework API, see [Management API](../docs/user/MANAGEMENT_API.md).
 
 ## Monitoring
 

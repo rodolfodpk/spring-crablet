@@ -32,7 +32,7 @@ Always use `AskUserQuestion` for user input. Follow these principles:
 
 1. Use `AskUserQuestion` to ask which parts of the codebase to analyze. Header: "Scope". Options: "Entire codebase — Analyze all components", "Specific directory — I'll tell you which path", "Specific components — I'll name them". If the user picks a specific scope, follow up to collect details.
 
-2. **Read before asking.** Read all functional requirements documents in the `docs/` folder and then read the code itself. Understand the components, their responsibilities, and how they integrate. Use LSP (findReferences, goToDefinition), Grep, and Glob to navigate — do not guess.
+2. **Read before asking.** Read all functional requirements documents in the `docs/user/` folder and then read the code itself. Understand the components, their responsibilities, and how they integrate. Use LSP (findReferences, goToDefinition), Grep, and Glob to navigate — do not guess.
 
 3. **Surface your understanding.** Before asking domain questions, present a brief synthesis of what you learned from the code and requirements:
    - Components you found and their responsibilities

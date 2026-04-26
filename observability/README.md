@@ -5,7 +5,7 @@ Prometheus + Grafana pre-configured to scrape the `wallet-example-app` and displ
 ## Prerequisites
 
 - Docker and Docker Compose
-- `wallet-example-app` running on port `8080` (see [`make start`](../docs/BUILD.md))
+- `wallet-example-app` running on port `8080` (see [`make start`](../docs/user/BUILD.md))
 
 ## Quick Start
 

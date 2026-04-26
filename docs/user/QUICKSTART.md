@@ -102,7 +102,7 @@ Expected response shape:
 
 Use the reference application as the concrete guide for your first integration:
 
-- App guide: [Wallet Example App](../wallet-example-app/README.md)
+- App guide: [Wallet Example App](../../wallet-example-app/README.md)
 - Tutorial path: [Tutorial](TUTORIAL.md)
 - Command-side-first adoption: [Commands-First Adoption](COMMANDS_FIRST_ADOPTION.md)
 

@@ -460,7 +460,7 @@ View subscriptions are configured in `ViewConfiguration.java`:
 View projections use PostgreSQL advisory locks for leader election:
 - Only one instance processes each view at a time
 - Automatic failover if leader crashes (5-30 seconds)
-- See [Leader Election Guide](../docs/LEADER_ELECTION.md) for details
+- See [Leader Election Guide](../docs/user/LEADER_ELECTION.md) for details
 
 **Recommended deployment:**
 - Default to **1 application instance per cluster**
@@ -546,7 +546,7 @@ Test wiring in this module:
 - **`TestApplication`** (test scope) imports **`CrabletFlywayConfiguration`** from `crablet-test-support`, so the same **V1–V6** framework migrations as other modules apply on the test classpath, alongside this app’s own scripts under `src/main/resources/db/migration/`.
 - **`AbstractWalletTest`** resets data between tests and seeds default view-processor rows via **`WalletIntegrationTestDbCleanup`** and **`WalletViewProgressFixtures`** (`src/test/java/com/crablet/wallet/cleanup/`). E2E tests call the same helpers for consistent `TRUNCATE` sets (events, commands, views, outbox, automations, shared-fetch tables as needed).
 
-For the general testing story and `IntegrationTestDbCleanup`, see **[EventStore testing guide](../crablet-eventstore/TESTING.md)** and **[Build guide](../docs/BUILD.md)**.
+For the general testing story and `IntegrationTestDbCleanup`, see **[EventStore testing guide](../crablet-eventstore/TESTING.md)** and **[Build guide](../docs/user/BUILD.md)**.
 
 ### Running
 
@@ -566,5 +566,5 @@ cd wallet-example-app
 - **[Crablet Automations](../crablet-automations/README.md)** - Event-driven automations
 - **[Crablet Outbox](../crablet-outbox/README.md)** - Transactional outbox pattern
 - **[Shared Examples Domain](../shared-examples-domain/README.md)** - Example domains (wallet, course, notification)
-- **[Leader Election](../docs/LEADER_ELECTION.md)** - Leader election mechanism
-- **[Build Guide](../docs/BUILD.md)** - Build instructions
+- **[Leader Election](../docs/user/LEADER_ELECTION.md)** - Leader election mechanism
+- **[Build Guide](../docs/user/BUILD.md)** - Build instructions

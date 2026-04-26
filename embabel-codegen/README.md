@@ -95,7 +95,7 @@ java -jar embabel-codegen.jar k8s \
   --output .
 ```
 
-Writes `k8s/base` with Namespace, Deployments, Service, optional KEDA ScaledObjects, Secret template, and `README-k8s.md`. See [Deployment Topology](../docs/DEPLOYMENT_TOPOLOGY.md#kubernetes-optional) for how this maps to Crablet’s poller rules.
+Writes `k8s/base` with Namespace, Deployments, Service, optional KEDA ScaledObjects, Secret template, and `README-k8s.md`. See [Deployment Topology](../docs/user/DEPLOYMENT_TOPOLOGY.md#kubernetes-optional) for how this maps to Crablet’s poller rules.
 
 **`--mcp`** — start as an MCP server (used by Claude Code)
 
@@ -129,7 +129,7 @@ The intended workflow pairs this tool with the `/event-modeling` skill in Claude
 5. ./mvnw verify                            # full test run
 ```
 
-See [`docs/ai-tooling/AI_FIRST_WORKFLOW.md`](../docs/ai-tooling/AI_FIRST_WORKFLOW.md) and [`docs/ai-tooling/FEATURE_SLICE_WORKFLOW.md`](../docs/ai-tooling/FEATURE_SLICE_WORKFLOW.md) for the full process.
+See [`docs/user/ai-tooling/AI_FIRST_WORKFLOW.md`](../docs/user/ai-tooling/AI_FIRST_WORKFLOW.md) and [`docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md`](../docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md) for the full process.
 
 ## Configuration
 
@@ -201,12 +201,12 @@ edits will be overwritten.
 
 ## Event Model Format
 
-See [`docs/ai-tooling/EVENT_MODEL_FORMAT.md`](../docs/ai-tooling/EVENT_MODEL_FORMAT.md) for the full YAML schema reference and examples.
+See [`docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`](../docs/user/ai-tooling/EVENT_MODEL_FORMAT.md) for the full YAML schema reference and examples.
 
 ## See Also
 
 - [`templates/crablet-app`](../templates/crablet-app/README.md) — starter project that uses this tool
-- [`docs/ai-tooling/AI_FIRST_WORKFLOW.md`](../docs/ai-tooling/AI_FIRST_WORKFLOW.md) — end-to-end workflow
-- [`docs/ai-tooling/FEATURE_SLICE_WORKFLOW.md`](../docs/ai-tooling/FEATURE_SLICE_WORKFLOW.md) — slice-by-slice guide
-- [`docs/ai-tooling/EVENT_MODEL_FORMAT.md`](../docs/ai-tooling/EVENT_MODEL_FORMAT.md) — event-model.yaml schema
-- [`docs/examples/`](../docs/examples/) — example event models
+- [`docs/user/ai-tooling/AI_FIRST_WORKFLOW.md`](../docs/user/ai-tooling/AI_FIRST_WORKFLOW.md) — end-to-end workflow
+- [`docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md`](../docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md) — slice-by-slice guide
+- [`docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`](../docs/user/ai-tooling/EVENT_MODEL_FORMAT.md) — event-model.yaml schema
+- [`docs/user/examples/`](../docs/user/examples/) — example event models

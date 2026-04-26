@@ -40,6 +40,8 @@ print_matches() {
 check_links() {
   local missing=0
   local markdown_files=(
+    "docs/README.md"
+    "docs/user/README.md"
     "README.md"
     "crablet-commands/README.md"
     "crablet-event-poller/README.md"
@@ -49,25 +51,25 @@ check_links() {
     "crablet-automations/README.md"
     "wallet-example-app/README.md"
     "templates/crablet-app/README.md"
-    "docs/ai-tooling/AI_FIRST_WORKFLOW.md"
-    "docs/ai-tooling/FEATURE_SLICE_WORKFLOW.md"
-    "docs/ai-tooling/EVENT_MODEL_FORMAT.md"
-    "docs/ai-tooling/EVENT_MODELING.md"
-    "docs/QUICKSTART.md"
-    "docs/CREATE_A_CRABLET_APP.md"
-    "docs/PERFORMANCE.md"
-    "docs/TROUBLESHOOTING.md"
-    "docs/LEARNING_MODE.md"
-    "docs/COMMANDS_FIRST_ADOPTION.md"
-    "docs/DEPLOYMENT_TOPOLOGY.md"
-    "docs/TUTORIAL.md"
+    "docs/user/ai-tooling/AI_FIRST_WORKFLOW.md"
+    "docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md"
+    "docs/user/ai-tooling/EVENT_MODEL_FORMAT.md"
+    "docs/user/ai-tooling/EVENT_MODELING.md"
+    "docs/user/QUICKSTART.md"
+    "docs/user/CREATE_A_CRABLET_APP.md"
+    "docs/user/PERFORMANCE.md"
+    "docs/user/TROUBLESHOOTING.md"
+    "docs/user/LEARNING_MODE.md"
+    "docs/user/COMMANDS_FIRST_ADOPTION.md"
+    "docs/user/DEPLOYMENT_TOPOLOGY.md"
+    "docs/user/TUTORIAL.md"
     "docs/dev/DOCS_VERIFICATION.md"
-    "docs/tutorials/01-event-store-basics.md"
-    "docs/tutorials/02-commands.md"
-    "docs/tutorials/03-dcb-consistency-boundaries.md"
-    "docs/tutorials/04-views.md"
-    "docs/tutorials/05-automations.md"
-    "docs/tutorials/06-outbox.md"
+    "docs/user/tutorials/01-event-store-basics.md"
+    "docs/user/tutorials/02-commands.md"
+    "docs/user/tutorials/03-dcb-consistency-boundaries.md"
+    "docs/user/tutorials/04-views.md"
+    "docs/user/tutorials/05-automations.md"
+    "docs/user/tutorials/06-outbox.md"
   )
 
   local file=""
@@ -105,14 +107,14 @@ check_links() {
 check_forbidden_phrases() {
   local scope=(
     "README.md"
-    "docs/QUICKSTART.md"
-    "docs/LEARNING_MODE.md"
-    "docs/COMMANDS_FIRST_ADOPTION.md"
-    "docs/DEPLOYMENT_TOPOLOGY.md"
-    "docs/TUTORIAL.md"
-    "docs/tutorials/04-views.md"
-    "docs/tutorials/05-automations.md"
-    "docs/tutorials/06-outbox.md"
+    "docs/user/QUICKSTART.md"
+    "docs/user/LEARNING_MODE.md"
+    "docs/user/COMMANDS_FIRST_ADOPTION.md"
+    "docs/user/DEPLOYMENT_TOPOLOGY.md"
+    "docs/user/TUTORIAL.md"
+    "docs/user/tutorials/04-views.md"
+    "docs/user/tutorials/05-automations.md"
+    "docs/user/tutorials/06-outbox.md"
     "crablet-event-poller/README.md"
     "crablet-views/README.md"
     "crablet-outbox/README.md"
@@ -140,11 +142,11 @@ check_required_phrase() {
 
 check_tutorial_import_context() {
   local tutorial_files=(
-    "docs/tutorials/01-event-store-basics.md"
-    "docs/tutorials/02-commands.md"
-    "docs/tutorials/03-dcb-consistency-boundaries.md"
-    "docs/tutorials/04-views.md"
-    "docs/tutorials/05-automations.md"
+    "docs/user/tutorials/01-event-store-basics.md"
+    "docs/user/tutorials/02-commands.md"
+    "docs/user/tutorials/03-dcb-consistency-boundaries.md"
+    "docs/user/tutorials/04-views.md"
+    "docs/user/tutorials/05-automations.md"
   )
 
   local file=""
@@ -157,12 +159,12 @@ check_tutorial_import_context() {
 check_canonical_fixture_links() {
   local files=(
     "crablet-eventstore/GETTING_STARTED.md"
-    "docs/tutorials/01-event-store-basics.md"
-    "docs/tutorials/02-commands.md"
-    "docs/tutorials/03-dcb-consistency-boundaries.md"
-    "docs/tutorials/04-views.md"
-    "docs/tutorials/05-automations.md"
-    "docs/tutorials/06-outbox.md"
+    "docs/user/tutorials/01-event-store-basics.md"
+    "docs/user/tutorials/02-commands.md"
+    "docs/user/tutorials/03-dcb-consistency-boundaries.md"
+    "docs/user/tutorials/04-views.md"
+    "docs/user/tutorials/05-automations.md"
+    "docs/user/tutorials/06-outbox.md"
   )
 
   local file=""
@@ -173,18 +175,18 @@ check_canonical_fixture_links() {
 }
 
 check_outbox_api_snippet() {
-  local file="docs/tutorials/06-outbox.md"
+  local file="docs/user/tutorials/06-outbox.md"
   contains "publishBatch" "$file" || fail "$file must use publishBatch(...)"
   contains "isHealthy" "$file" || fail "$file must show isHealthy()"
 }
 
 check_runtime_doc_examples() {
-  contains "createdb wallet_db" "docs/BUILD.md" || fail "docs/BUILD.md must show database creation for wallet-example-app"
+  contains "createdb wallet_db" "docs/user/BUILD.md" || fail "docs/user/BUILD.md must show database creation for wallet-example-app"
   contains "createdb wallet_db" "wallet-example-app/README.md" || fail "wallet-example-app/README.md must show database creation"
-  contains "lastUpdatedAt" "docs/QUICKSTART.md" || fail "docs/QUICKSTART.md must show the current wallet response shape"
+  contains "lastUpdatedAt" "docs/user/QUICKSTART.md" || fail "docs/user/QUICKSTART.md must show the current wallet response shape"
 
-  contains "wallet-transaction-view" "docs/MANAGEMENT_API.md" || fail "docs/MANAGEMENT_API.md must reference wallet-transaction-view"
-  contains "wallet-opened-welcome-notification" "docs/MANAGEMENT_API.md" || fail "docs/MANAGEMENT_API.md must reference the current automation name"
+  contains "wallet-transaction-view" "docs/user/MANAGEMENT_API.md" || fail "docs/user/MANAGEMENT_API.md must reference wallet-transaction-view"
+  contains "wallet-opened-welcome-notification" "docs/user/MANAGEMENT_API.md" || fail "docs/user/MANAGEMENT_API.md must reference the current automation name"
 
   if print_matches "/actuator/outbox" "crablet-outbox/README.md" "crablet-outbox/docs/OUTBOX_PATTERN.md" >/dev/null; then
     print_matches "/actuator/outbox" "crablet-outbox/README.md" "crablet-outbox/docs/OUTBOX_PATTERN.md"
@@ -211,16 +213,16 @@ check_links
 check_forbidden_phrases
 check_required_phrase "(1|one) application instance per cluster" "1 application instance per cluster" \
   "README.md" \
-  "docs/DEPLOYMENT_TOPOLOGY.md" \
-  "docs/TUTORIAL.md" \
+  "docs/user/DEPLOYMENT_TOPOLOGY.md" \
+  "docs/user/TUTORIAL.md" \
   "crablet-event-poller/README.md" \
   "crablet-views/README.md" \
   "crablet-outbox/README.md" \
   "crablet-automations/README.md"
 check_required_phrase "singleton worker service per poller-backed module|one active poller per (poller-backed )?module" "singleton worker service per poller-backed module or one active poller per module" \
   "README.md" \
-  "docs/DEPLOYMENT_TOPOLOGY.md" \
-  "docs/TUTORIAL.md" \
+  "docs/user/DEPLOYMENT_TOPOLOGY.md" \
+  "docs/user/TUTORIAL.md" \
   "crablet-event-poller/README.md"
 check_tutorial_import_context
 check_canonical_fixture_links

@@ -7,7 +7,7 @@ Key value: encoding crablet's non-obvious topology rules so newcomers don't get 
 
 ## Recommended order
 
-1. **[`README_ROOT_REFRESH.md`](README_ROOT_REFRESH.md)** — lands `docs/MODULES.md` and a cleaner top-level doc index; do this first so K8s and topology docs have stable targets.
+1. **[`README_ROOT_REFRESH.md`](README_ROOT_REFRESH.md)** — lands `docs/user/MODULES.md` and a cleaner top-level doc index; do this first so K8s and topology docs have stable targets.
 2. **Refresh this plan** (this file) after model step completion — see **Current status** below.
 3. **Continue implementation** — `K8sTopology`, `Dns1123`, `K8sGenerator`, CLI/MCP `k8s`, tests, skill tweaks as needed.
 
@@ -69,7 +69,7 @@ sidecars, kustomize overlays, Vault agent, HPA for command-api, TriggerAuthentic
 
 ## Documentation strategy (keep deployment topology)
 
-**Do not replace** [`docs/DEPLOYMENT_TOPOLOGY.md`](../DEPLOYMENT_TOPOLOGY.md) with Kubernetes-only content.
+**Do not replace** [`docs/user/DEPLOYMENT_TOPOLOGY.md`](../../user/DEPLOYMENT_TOPOLOGY.md) with Kubernetes-only content.
 
 | Doc | Role |
 |-----|------|
@@ -78,10 +78,10 @@ sidecars, kustomize overlays, Vault agent, HPA for command-api, TriggerAuthentic
 
 **After this feature ships:**
 
-1. Add a **Kubernetes** subsection to `DEPLOYMENT_TOPOLOGY.md` (or a short `docs/DEPLOYMENT_KUBERNETES.md` linked from the topology doc) that states: *the topology rules above are what the manifests implement*; link to the template/app path for `make k8s` and to `README-k8s.md` in generated output.
+1. Add a **Kubernetes** subsection to `DEPLOYMENT_TOPOLOGY.md` (or a short `docs/user/DEPLOYMENT_KUBERNETES.md` linked from the topology doc) that states: *the topology rules above are what the manifests implement*; link to the template/app path for `make k8s` and to `README-k8s.md` in generated output.
 2. **Avoid duplicating** long KEDA install / secret-format tables in `DEPLOYMENT_TOPOLOGY.md` — point to `README-k8s.md` for operational detail; keep the topology page conceptual.
 3. **Do not** remove or relink the many existing references to `DEPLOYMENT_TOPOLOGY.md` across tutorials and READMEs unless a dedicated redirect page is required (not recommended).
-4. **After [`README_ROOT_REFRESH.md`](README_ROOT_REFRESH.md) lands:** add **`docs/MODULES.md`** to the story — generated K8s / topology should be **discoverable** from the module reference page (e.g. a short “Kubernetes” pointer to `make k8s` + `k8s/base/README-k8s.md` and link back to `DEPLOYMENT_TOPOLOGY.md` for the conceptual rules). No long duplication; link-centric.
+4. **After [`README_ROOT_REFRESH.md`](README_ROOT_REFRESH.md) lands:** add **`docs/user/MODULES.md`** to the story — generated K8s / topology should be **discoverable** from the module reference page (e.g. a short “Kubernetes” pointer to `make k8s` + `k8s/base/README-k8s.md` and link back to `DEPLOYMENT_TOPOLOGY.md` for the conceptual rules). No long duplication; link-centric.
 
 ---
 
