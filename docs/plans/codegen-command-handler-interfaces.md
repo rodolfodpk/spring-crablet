@@ -402,7 +402,7 @@ Replace the "Generated code compiles but behaviour is wrong" paragraph to cover:
   (`CommandSpec.hasGuard()` section, `viewSpec` lookup block). Re-check actual locations at
   implementation time — they may have shifted.
 - **`commutative` YAML convention:** if `commutative` without a `guardEvents` list was previously
-  always assumed to mean "with guard," consider adding a note to `docs/EVENT_MODEL_FORMAT.md`
+  always assumed to mean "with guard," consider adding a note to `docs/ai-tooling/EVENT_MODEL_FORMAT.md`
   clarifying that `guardEvents: []` means pure commutative.
 
 ---

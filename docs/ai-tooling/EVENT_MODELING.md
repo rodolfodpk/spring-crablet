@@ -39,7 +39,7 @@ When a board is illustrative rather than exhaustive, the docs should say so expl
 
 The first loan slice shows the smallest useful board: trigger, command, event, and one read model.
 
-![Submit Loan Application event modeling board](assets/loan-submit-event-modeling-board.svg)
+![Submit Loan Application event modeling board](../assets/loan-submit-event-modeling-board.svg)
 
 This board is intentionally limited to the first observable outcome. It does not add automation or
 outbox behavior because that sample does not define them. The view shown there is an asynchronous
@@ -47,7 +47,7 @@ projection from the committed event.
 
 Source context:
 - [Feature Slice Workflow](FEATURE_SLICE_WORKFLOW.md)
-- [loan-submit-feature-slice-event-model.yaml](examples/loan-submit-feature-slice-event-model.yaml)
+- [loan-submit-feature-slice-event-model.yaml](../examples/loan-submit-feature-slice-event-model.yaml)
 
 ### Reactive Slice
 
@@ -58,7 +58,7 @@ The wallet board shows a richer slice where one committed event fans out into:
 - a follow-up command and follow-up event
 - an illustrative outbox publication path
 
-![Wallet opened automation and outbox event modeling board](assets/wallet-opened-automation-and-outbox-board.svg)
+![Wallet opened automation and outbox event modeling board](../assets/wallet-opened-automation-and-outbox-board.svg)
 
 The outbox branch in this board is intentionally illustrative. It is drawn from `WalletOpened` to
 match the sample’s teaching goal, not to claim that every later event consequence is shown. The
@@ -67,7 +67,7 @@ view, automation, and outbox lanes all represent asynchronous poller-backed work
 
 Source context:
 - [Feature Slice Workflow](FEATURE_SLICE_WORKFLOW.md)
-- [Wallet Example App](../wallet-example-app/README.md)
+- [Wallet Example App](../../wallet-example-app/README.md)
 
 ## Relationship To Other Docs
 

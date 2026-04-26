@@ -7,18 +7,18 @@ substrate for generated applications and the manual path for teams that want dir
 This workflow is currently a preview direction while the generator matures.
 
 For application teams, the intended first-user path is to clone the
-[Crablet app template](../templates/crablet-app/README.md), open Claude Code, and add one
+[Crablet app template](../../templates/crablet-app/README.md), open Claude Code, and add one
 vertical slice at a time.
 
 ## At A Glance
 
 ### Generation Flow
 
-![Crablet AI-first workflow](assets/crablet-ai-first-high-level.png)
+![Crablet AI-first workflow](../assets/crablet-ai-first-high-level.png)
 
 ### Crablet Model DFD
 
-![Crablet model DFD](assets/crablet-model-dfd.png)
+![Crablet model DFD](../assets/crablet-model-dfd.png)
 
 ## Workflow
 
@@ -74,7 +74,7 @@ captured in the event model rather than left as framework boilerplate TODOs.
 For the recommended developer dialogue around a single feature, see
 [Feature Slice Workflow](FEATURE_SLICE_WORKFLOW.md). For Event Modeling notation and example
 boards, see [Event Modeling](EVENT_MODELING.md). For a concrete generated-slice input, see
-[loan-submit-feature-slice-event-model.yaml](examples/loan-submit-feature-slice-event-model.yaml).
+[loan-submit-feature-slice-event-model.yaml](../examples/loan-submit-feature-slice-event-model.yaml).
 
 ## Tool Entrypoints
 
@@ -155,13 +155,13 @@ structural gaps by hand.
 
 Generated applications target the same runtime modules documented elsewhere in this repository:
 
-- [Event Store](../crablet-eventstore/README.md)
-- [Commands](../crablet-commands/README.md)
-- [Views](../crablet-views/README.md)
-- [Automations](../crablet-automations/README.md)
-- [Outbox](../crablet-outbox/README.md)
-- [Command Web API](../crablet-commands-web/README.md)
-- [Micrometer metrics](../crablet-metrics-micrometer/README.md)
+- [Event Store](../../crablet-eventstore/README.md)
+- [Commands](../../crablet-commands/README.md)
+- [Views](../../crablet-views/README.md)
+- [Automations](../../crablet-automations/README.md)
+- [Outbox](../../crablet-outbox/README.md)
+- [Command Web API](../../crablet-commands-web/README.md)
+- [Micrometer metrics](../../crablet-metrics-micrometer/README.md)
 
 These APIs are still useful when generated code needs customization or when you choose the manual
 runtime path.
@@ -170,9 +170,9 @@ runtime path.
 
 Until the generator is ready for primary use, the stable path is still:
 
-- run the wallet reference app with [Quickstart](QUICKSTART.md)
-- build a new app manually with [Create A New Crablet App Manually](CREATE_A_CRABLET_APP.md)
-- learn the runtime concepts through the [Tutorial](TUTORIAL.md)
+- run the wallet reference app with [Quickstart](../QUICKSTART.md)
+- build a new app manually with [Create A New Crablet App Manually](../CREATE_A_CRABLET_APP.md)
+- learn the runtime concepts through the [Tutorial](../TUTORIAL.md)
 
 The manual path should remain fully documented. The AI-first path changes the product center of
 gravity, but it does not remove the need for clear runtime references.

@@ -15,7 +15,11 @@ Crablet helps Spring teams turn an event-modeled domain into a working event-sou
 - Small Java runtime for consistency, persistence, polling, and operational behavior
 - Manual APIs available when generated code needs customization
 
-## AI-First Workflow
+## Framework Path
+
+Crablet can be used directly as a Java framework: `EventStore`, command handlers, and `CommandExecutor` are the typical write path; views, outbox, automations, and the optional HTTP command adapter layer on top. For a first project, start with the [module reference](docs/MODULES.md), [Create a new Crablet app manually](docs/CREATE_A_CRABLET_APP.md), the [Tutorial](docs/TUTORIAL.md), the [Commands](crablet-commands/README.md) and [Event Store](crablet-eventstore/README.md) module READMEs, and the [Wallet example](wallet-example-app/README.md) for a full app shape.
+
+## AI-First Path
 
 The only tool you interact with is Claude Code. You describe outcomes in plain language; Claude handles modeling, planning, generating, and repairing — entirely through conversation.
 
@@ -73,10 +77,6 @@ Crablet is a good fit when command decisions depend on more than one entity stre
 
 It is probably not the right tool if plain CRUD is enough, one aggregate per command already fits your domain, or your team is not ready to standardize on Java 25.
 
-## Manual Runtime Path
-
-Crablet can be used directly as a Java framework: `EventStore`, command handlers, and `CommandExecutor` are the typical write path; views, outbox, automations, and the optional HTTP command adapter layer on top. For a first project, start with the [module reference](docs/MODULES.md), [Create a new Crablet app manually](docs/CREATE_A_CRABLET_APP.md), the [Tutorial](docs/TUTORIAL.md), the [Commands](crablet-commands/README.md) and [Event Store](crablet-eventstore/README.md) module READMEs, and the [Wallet example](wallet-example-app/README.md) for a full app shape.
-
 ## Learning And Deployment
 
 - **Learning mode:** run one application instance with commands, views, automations, and outbox together. See [Learning Mode](docs/LEARNING_MODE.md).
@@ -103,17 +103,13 @@ Read more in [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) and [
 
 ## Documentation
 
-### Start
+### Framework
 
-[Quickstart](docs/QUICKSTART.md) · [Tutorial](docs/TUTORIAL.md) · [Create a new Crablet app manually](docs/CREATE_A_CRABLET_APP.md) · [Learning mode](docs/LEARNING_MODE.md) · [Feature slice workflow](docs/FEATURE_SLICE_WORKFLOW.md) · [Event modeling](docs/EVENT_MODELING.md) · [Event model format](docs/EVENT_MODEL_FORMAT.md) · [AI-first workflow](docs/AI_FIRST_WORKFLOW.md) · [Templates](templates/README.md) · [Embabel codegen](embabel-codegen/README.md) · [Wallet example](wallet-example-app/README.md)
+[Quickstart](docs/QUICKSTART.md) · [Tutorial](docs/TUTORIAL.md) · [Create a new Crablet app manually](docs/CREATE_A_CRABLET_APP.md) · [Learning mode](docs/LEARNING_MODE.md) · [Commands-first adoption](docs/COMMANDS_FIRST_ADOPTION.md) · [Module reference](docs/MODULES.md) · [Public API](docs/PUBLIC_API.md) · [Deployment topology](docs/DEPLOYMENT_TOPOLOGY.md) · [DCB and Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) · [Command patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md) · [Configuration](docs/CONFIGURATION.md) · [Build](docs/BUILD.md) · [Performance](docs/PERFORMANCE.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Upgrade](docs/UPGRADE.md) · [Management API](docs/MANAGEMENT_API.md) · [Fault recovery](docs/FAULT_RECOVERY.md) · [Leader election](docs/LEADER_ELECTION.md) · [Connection poolers](crablet-eventstore/docs/CONNECTION_POOLERS.md) · [Observability](docs/OBSERVABILITY.md) · [Wallet example](wallet-example-app/README.md)
 
-### Architecture and public API
+### AI tooling
 
-[Module reference](docs/MODULES.md) · [Public API](docs/PUBLIC_API.md) (generic HTTP command API vs custom controllers) · [Deployment topology](docs/DEPLOYMENT_TOPOLOGY.md) · [DCB and Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) · [Command patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md)
-
-### Build and operate
-
-[Build](docs/BUILD.md) · [Performance](docs/PERFORMANCE.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Upgrade](docs/UPGRADE.md) · [Management API](docs/MANAGEMENT_API.md) · [Fault recovery](docs/FAULT_RECOVERY.md) · [Leader election](docs/LEADER_ELECTION.md) · [Connection poolers](crablet-eventstore/docs/CONNECTION_POOLERS.md) · [Observability](docs/OBSERVABILITY.md)
+[AI-first workflow](docs/ai-tooling/AI_FIRST_WORKFLOW.md) · [Feature slice workflow](docs/ai-tooling/FEATURE_SLICE_WORKFLOW.md) · [Event modeling](docs/ai-tooling/EVENT_MODELING.md) · [Event model format](docs/ai-tooling/EVENT_MODEL_FORMAT.md) · [Templates](templates/README.md) · [Crablet app template](templates/crablet-app/README.md) · [Embabel codegen](embabel-codegen/README.md)
 
 Contributors: see [Build](docs/BUILD.md) and [CLAUDE.md](CLAUDE.md).
 

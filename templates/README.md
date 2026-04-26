@@ -54,5 +54,5 @@ See [`templates/crablet-app/README.md`](crablet-app/README.md) for full setup an
 ## See Also
 
 - [`embabel-codegen/README.md`](../embabel-codegen/README.md) — the AI codegen tool
-- [`docs/AI_FIRST_WORKFLOW.md`](../docs/AI_FIRST_WORKFLOW.md) — end-to-end workflow
+- [`docs/ai-tooling/AI_FIRST_WORKFLOW.md`](../docs/ai-tooling/AI_FIRST_WORKFLOW.md) — end-to-end workflow
 - [`docs/CREATE_A_CRABLET_APP.md`](../docs/CREATE_A_CRABLET_APP.md) — step-by-step app creation guide

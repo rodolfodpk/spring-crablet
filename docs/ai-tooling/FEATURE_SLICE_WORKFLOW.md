@@ -4,7 +4,7 @@ This guide describes the intended developer dialogue for adding one vertical sli
 `embabel-codegen`.
 
 In normal app development, start from the
-[Crablet app template](../templates/crablet-app/README.md) and use this workflow from inside the
+[Crablet app template](../../templates/crablet-app/README.md) and use this workflow from inside the
 cloned app.
 
 A slice should be one observable user outcome, not a whole subsystem. For example:
@@ -65,7 +65,7 @@ In Crablet, the event lane represents committed events. Views, automations, and 
 should be read as asynchronous poller-backed consequences of those committed events, not as
 synchronous steps inside the command transaction.
 
-![Submit Loan Application event modeling board](assets/loan-submit-event-modeling-board.svg)
+![Submit Loan Application event modeling board](../assets/loan-submit-event-modeling-board.svg)
 
 The board intentionally stops at the `View` lane. For this first sample, the slice only needs:
 
@@ -86,7 +86,7 @@ and external publication.
 
 The wallet example app already documents both patterns:
 
-![Wallet opened automation and outbox event modeling board](assets/wallet-opened-automation-and-outbox-board.svg)
+![Wallet opened automation and outbox event modeling board](../assets/wallet-opened-automation-and-outbox-board.svg)
 
 This board maps to the wallet sample’s documented flow:
 
@@ -95,7 +95,7 @@ This board maps to the wallet sample’s documented flow:
 - `WelcomeNotificationSent` records the follow-up fact
 - the outbox publishes committed wallet events through `LogPublisher` or `wallet-webhook`
 
-For code references and runtime behavior, see [wallet-example-app/README.md](../wallet-example-app/README.md).
+For code references and runtime behavior, see [wallet-example-app/README.md](../../wallet-example-app/README.md).
 
 The developer dialogue should stay outcome-oriented:
 
@@ -179,21 +179,21 @@ The assistant should clarify:
 - sample scenario used to verify the slice
 
 For this example, the resulting model should look like
-[loan-submit-feature-slice-event-model.yaml](examples/loan-submit-feature-slice-event-model.yaml).
+[loan-submit-feature-slice-event-model.yaml](../examples/loan-submit-feature-slice-event-model.yaml).
 
 Then ask it to update only the model:
 
 ```text
 Update event-model.yaml for this slice only.
 Keep existing slices intact.
-Use the format in docs/EVENT_MODEL_FORMAT.md.
+Use the format in docs/ai-tooling/EVENT_MODEL_FORMAT.md.
 Do not invent external adapters or placeholder TODOs.
 ```
 
 Before generation, run one model review:
 
 ```text
-Review event-model.yaml against docs/EVENT_MODEL_FORMAT.md.
+Review event-model.yaml against docs/ai-tooling/EVENT_MODEL_FORMAT.md.
 Tell me whether embabel-codegen has enough information to generate:
 - events
 - commands
@@ -242,7 +242,7 @@ This example shows the intended user experience once the template, Claude instru
 `embabel-codegen` MCP tools are wired together.
 
 For the same flow as a standalone transcript, see
-[Submit Loan Application Claude Dialogue](examples/submit-loan-application-claude-dialogue.md).
+[Submit Loan Application Claude Dialogue](../examples/submit-loan-application-claude-dialogue.md).
 
 The developer starts from an initialized app:
 
@@ -599,7 +599,7 @@ and outbox publishers, then runs a compile-and-repair loop up to three times.
 
 ## Expected Generated Artifacts
 
-For [loan-submit-feature-slice-event-model.yaml](examples/loan-submit-feature-slice-event-model.yaml),
+For [loan-submit-feature-slice-event-model.yaml](../examples/loan-submit-feature-slice-event-model.yaml),
 the generated Java should target `com.example.loan`.
 
 Expected domain artifacts:

@@ -5,7 +5,7 @@ APIs. Use it for brownfield additions, explicit module layout control, or learni
 the APIs that generated applications target.
 
 For the recommended event-model-to-app path, start with
-[AI-First Workflow](AI_FIRST_WORKFLOW.md) and [Event Model Format](EVENT_MODEL_FORMAT.md).
+[AI-First Workflow](ai-tooling/AI_FIRST_WORKFLOW.md) and [Event Model Format](ai-tooling/EVENT_MODEL_FORMAT.md).
 
 ## Prerequisites
 
@@ -169,8 +169,8 @@ Prefer improving `event-model.yaml` over editing generated structural code by ha
 
 ## Next Reading
 
-- [AI-First Workflow](AI_FIRST_WORKFLOW.md)
-- [Event Model Format](EVENT_MODEL_FORMAT.md)
+- [AI-First Workflow](ai-tooling/AI_FIRST_WORKFLOW.md)
+- [Event Model Format](ai-tooling/EVENT_MODEL_FORMAT.md)
 - [Commands-First Adoption](COMMANDS_FIRST_ADOPTION.md)
 - [Tutorial](TUTORIAL.md)
 - [Quickstart](QUICKSTART.md)

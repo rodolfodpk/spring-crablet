@@ -129,7 +129,7 @@ The intended workflow pairs this tool with the `/event-modeling` skill in Claude
 5. ./mvnw verify                            # full test run
 ```
 
-See [`docs/AI_FIRST_WORKFLOW.md`](../docs/AI_FIRST_WORKFLOW.md) and [`docs/FEATURE_SLICE_WORKFLOW.md`](../docs/FEATURE_SLICE_WORKFLOW.md) for the full process.
+See [`docs/ai-tooling/AI_FIRST_WORKFLOW.md`](../docs/ai-tooling/AI_FIRST_WORKFLOW.md) and [`docs/ai-tooling/FEATURE_SLICE_WORKFLOW.md`](../docs/ai-tooling/FEATURE_SLICE_WORKFLOW.md) for the full process.
 
 ## Configuration
 
@@ -201,12 +201,12 @@ edits will be overwritten.
 
 ## Event Model Format
 
-See [`docs/EVENT_MODEL_FORMAT.md`](../docs/EVENT_MODEL_FORMAT.md) for the full YAML schema reference and examples.
+See [`docs/ai-tooling/EVENT_MODEL_FORMAT.md`](../docs/ai-tooling/EVENT_MODEL_FORMAT.md) for the full YAML schema reference and examples.
 
 ## See Also
 
 - [`templates/crablet-app`](../templates/crablet-app/README.md) — starter project that uses this tool
-- [`docs/AI_FIRST_WORKFLOW.md`](../docs/AI_FIRST_WORKFLOW.md) — end-to-end workflow
-- [`docs/FEATURE_SLICE_WORKFLOW.md`](../docs/FEATURE_SLICE_WORKFLOW.md) — slice-by-slice guide
-- [`docs/EVENT_MODEL_FORMAT.md`](../docs/EVENT_MODEL_FORMAT.md) — event-model.yaml schema
+- [`docs/ai-tooling/AI_FIRST_WORKFLOW.md`](../docs/ai-tooling/AI_FIRST_WORKFLOW.md) — end-to-end workflow
+- [`docs/ai-tooling/FEATURE_SLICE_WORKFLOW.md`](../docs/ai-tooling/FEATURE_SLICE_WORKFLOW.md) — slice-by-slice guide
+- [`docs/ai-tooling/EVENT_MODEL_FORMAT.md`](../docs/ai-tooling/EVENT_MODEL_FORMAT.md) — event-model.yaml schema
 - [`docs/examples/`](../docs/examples/) — example event models
