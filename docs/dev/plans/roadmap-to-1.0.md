@@ -2,6 +2,8 @@
 
 Agreed sequencing (April 2026): API hardening → 1.0 contract & distribution → ops & codegen maturity → cross-cutting.
 
+_Last validated: 2026-04-28 against main (`788808d`). Update this line when phases close or scope shifts._
+
 ---
 
 ## Near-term API hardening — completed
@@ -24,14 +26,14 @@ All seven pre-1.0 API quality items are done. Listed here for reference.
 
 ### 1a. `@Stable` / `@Internal` annotations
 
-Define a `@Stable` marker annotation in `crablet-eventstore` (the root module everyone depends on).
+Define `@Stable` and `@Internal` marker annotations in `crablet-eventstore` — the root module that all others depend on, so the annotation type is available everywhere without a separate `crablet-annotations` artifact. Alternatively, a dedicated zero-dependency `crablet-annotations` module is a clean option if the annotation needs to be usable outside the framework; either choice is fine as long as it is decided before Central publication.
 
-Apply `@Stable` to:
-- `EventStore`, `CommandDecision`, `CommandHandler` sub-interfaces, `CommandExecutor`
-- `AppendEvent`, `StoredEvent`, `Query` / `QueryBuilder`, `StreamPosition`, `Tag`
-- `StateProjector`, `ProjectionResult`
-- `ViewProjector` / `AbstractTypedViewProjector`
-- `AutomationHandler`, `OutboxPublisher`
+Apply `@Stable` to public types in their home modules (the annotation travels with the type, not with `crablet-eventstore`):
+- `crablet-eventstore`: `EventStore`, `AppendEvent`, `StoredEvent`, `Query` / `QueryBuilder`, `StreamPosition`, `Tag`, `StateProjector`, `ProjectionResult`
+- `crablet-commands`: `CommandDecision`, `CommandHandler` sub-interfaces, `CommandExecutor`
+- `crablet-views`: `ViewProjector`, `AbstractTypedViewProjector`
+- `crablet-automations`: `AutomationHandler`
+- `crablet-outbox`: `OutboxPublisher`
 
 Apply `@Internal` (or move to `.internal` packages) to:
 - `CommandExecutorImpl`, `EventStoreImpl`, `EventRepositoryImpl`
@@ -41,10 +43,7 @@ No behavior changes — documentation and policy.
 
 ### 1b. Upgrade guide completeness
 
-Audit `UPGRADE.md` against `git log` since the earliest SNAPSHOT tag. Additions needed at minimum:
-- `appendIdempotent(Query)` overload
-- `OnDuplicate` policy on `Idempotent`
-- `CommutativeDecision` return type narrowing on `CommutativeCommandHandler`
+Audit `UPGRADE.md` against the full `main` history for any user-visible break not yet documented — SNAPSHOT tags were not applied systematically, so `git log` from the initial commit is the reliable scope. The three items added in `788808d` cover the last known gaps. Checklist for each entry: affects which interface/type, what the before/after migration looks like, and whether a compile error surfaces the break automatically.
 
 ### 1c. Maven Central publication
 
@@ -57,6 +56,7 @@ Audit `UPGRADE.md` against `git log` since the earliest SNAPSHOT tag. Additions 
 
 - Add `crablet-test-support`, `shared-examples-domain`, `wallet-example-app` to the existing Checkstyle import-style gate
 - Run in report mode first to get the violation diff, fix, then enforce in CI
+- **Not a 1.0 semantic blocker** — this is developer-experience consistency, not API stability. Can trail Central publication by a patch release if violation count is large.
 
 ---
 
@@ -81,14 +81,15 @@ Audit `UPGRADE.md` against `git log` since the earliest SNAPSHOT tag. Additions 
 
 `crablet-commands-web` already captures the header and sets `CorrelationContext`. Remaining work:
 - Propagate to `ViewProjector` (pass correlation through `StoredEvent` → view write)
-- `OutboxPublisher.publishBatch` already receives `StoredEvent` which carries `correlationId`/`causationId`; no API change needed
-- Remaining work: document envelope conventions (which fields to forward in HTTP/Kafka payloads) and add an integration test verifying the IDs survive the full command → view → outbox path
+- `OutboxPublisher.publishBatch` already receives `StoredEvent` which carries `correlationId`/`causationId`; no API change needed — remaining work is envelope conventions (which fields to forward in HTTP/Kafka payloads) and an integration test verifying the IDs survive the full command → view → outbox path
 
 ### 3b. Second complete example (Course domain)
 
 `shared-examples-domain` already has Course domain logic. Remaining work:
 - Wire into `wallet-example-app` (or a sibling `course-example-app`) with Flyway migrations, view projectors, an automation, and HTTP endpoints
 - Gives multi-aggregate constraint testing (course capacity + student subscription) a real runnable home
+
+**Note on ordering:** 3a's integration test is simpler to write once 3b's richer app trail exists — the Course example exercises more module interactions (views + automations + outbox) than the current wallet app. If capacity is limited, 3b first is the lower-risk order.
 
 ---
 

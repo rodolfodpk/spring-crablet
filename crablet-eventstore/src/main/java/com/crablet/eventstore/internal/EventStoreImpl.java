@@ -61,7 +61,8 @@ import java.util.stream.Collectors;
  * <p><strong>Read/Write Separation:</strong>
  * <ul>
  *   <li>Read operations (project) use read-only connections</li>
- *   <li>Write operations (appendCommutative, appendNonCommutative, appendIdempotent, storeCommand) use write connections</li>
+ *   <li>Write operations (appendCommutative, appendNonCommutative, appendIdempotent) use write connections</li>
+ *   <li>Command audit writes ({@link com.crablet.eventstore.CommandAuditStore#storeCommand}) use the transaction-scoped write connection</li>
  *   <li>Transactions (executeInTransaction) use write connections as they may include writes</li>
  * </ul>
  *
