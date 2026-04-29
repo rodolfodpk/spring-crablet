@@ -1,10 +1,12 @@
-# Roadmap to 1.0 and beyond
+# Roadmap to 1.0
 
-Agreed sequencing (April 2026): API hardening → 1.0 contract & distribution → cross-cutting.
+Agreed sequencing (April 2026): API hardening → 1.0 contract & distribution → post-1.0 cross-cutting.
 
 **1.0 is done when:** public API surface is annotated (`@Stable`/`@Internal`), UPGRADE.md covers all user-visible breaks, and artifacts are on Maven Central. Items 1d (LISTEN/NOTIFY warning — already done) and 1e (Checkstyle parity) are Phase 1 housekeeping but not blockers for the 1.0 tag.
 
-_Last validated: 2026-04-28 against main (`1e21a1f`). Update this line when phases close or scope shifts._
+**Phase 2 is post-1.0** — correlation/causation propagation and the Course example are valuable but not required to ship 1.0.
+
+_Last validated: 2026-04-28 against main (`1e21a1f`). Update the hash and date whenever a phase closes or scope shifts; consider linking to a 1.0 milestone or tag once one exists._
 
 ---
 
