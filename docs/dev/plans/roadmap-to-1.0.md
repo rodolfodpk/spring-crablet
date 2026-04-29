@@ -1,6 +1,6 @@
 # Roadmap to 1.0 and beyond
 
-Agreed sequencing (April 2026): API hardening → 1.0 contract & distribution → ops & codegen maturity → cross-cutting.
+Agreed sequencing (April 2026): API hardening → 1.0 contract & distribution → ops ergonomics → cross-cutting.
 
 _Last validated: 2026-04-28 against main (`788808d`). Update this line when phases close or scope shifts._
 
