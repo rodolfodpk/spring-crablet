@@ -4,6 +4,7 @@ import com.crablet.eventstore.EventStore;
 import com.crablet.test.cleanup.IntegrationTestDbCleanup;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -63,7 +64,7 @@ public abstract class AbstractCrabletTest {
         // Clean all tables in the correct order to respect foreign key constraints
         try {
             IntegrationTestDbCleanup.truncateEventStoreTablesAndRestartPositionSequence(jdbcTemplate);
-        } catch (org.springframework.jdbc.BadSqlGrammarException e) {
+        } catch (BadSqlGrammarException e) {
             // Tables don't exist yet - Flyway will create them
             // This is expected on first run
         } catch (Exception e) {

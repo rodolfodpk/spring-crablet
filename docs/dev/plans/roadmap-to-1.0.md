@@ -76,7 +76,7 @@ Full `main` history audited. Eight breaking changes now documented in `UPGRADE.m
 
 `PostgresNotifyWakeupSource` now emits an actionable warning when `unwrap(PGConnection.class)` fails (the symptom of routing through a pooler): message names PgBouncer transaction mode, PgCat, and RDS Proxy by name and tells the operator to point `jdbc-url` at a direct PostgreSQL connection. Other `SQLException`s get a generic "falling back to scheduled polling" message. No URL heuristics needed — the failure is caught at the point it actually happens.
 
-### 1e. Checkstyle parity
+### 1e. Checkstyle parity — done
 
 - Add `crablet-test-support`, `shared-examples-domain`, `wallet-example-app` to the existing Checkstyle import-style gate
 - Run in report mode first to get the violation diff, fix, then enforce in CI
