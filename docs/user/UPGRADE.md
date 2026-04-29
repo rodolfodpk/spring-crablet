@@ -4,6 +4,131 @@ Step-by-step migration notes for each breaking change in the `1.0.0-SNAPSHOT` se
 
 ---
 
+## `TopicPublisherPair` — moved from `.internal` to public package
+
+**Affects:** Any code that imports `com.crablet.outbox.internal.TopicPublisherPair`
+
+### What changed
+
+`TopicPublisherPair` is now a public type at `com.crablet.outbox.TopicPublisherPair`. The `.internal` path no longer exists.
+
+### Migration
+
+Update the import:
+
+```java
+// Before:
+import com.crablet.outbox.internal.TopicPublisherPair;
+
+// After:
+import com.crablet.outbox.TopicPublisherPair;
+```
+
+---
+
+## `StreamPosition.of(long)` — factory removed
+
+**Affects:** Any code calling `StreamPosition.of(long)` directly
+
+### What changed
+
+The `StreamPosition.of(long position)` factory was removed. `StreamPosition` now carries additional fields (timestamp, transaction ID) that cannot be reconstructed from a position number alone.
+
+### Migration
+
+You should not be constructing `StreamPosition` from a raw `long` — it must come from a projection result. Use `StreamPosition.zero()` as a starting point, or capture the position from `ProjectionResult.streamPosition()`:
+
+```java
+// Before (incorrect — reconstructed from raw value):
+StreamPosition pos = StreamPosition.of(42L);
+
+// After — capture from projection:
+ProjectionResult<MyState> result = eventStore.project(query, projector);
+StreamPosition pos = result.streamPosition();
+
+// Or start from zero for a full projection:
+eventStore.project(query, StreamPosition.zero(), projector);
+```
+
+---
+
+## `WriteDataSource` / `ReadDataSource` — typed beans replace `@Qualifier DataSource`
+
+**Affects:** Any Spring `@Configuration` class that injected `@Qualifier("primaryDataSource") DataSource` or `@Qualifier("readDataSource") DataSource`
+
+### What changed
+
+The framework now uses typed wrapper beans `WriteDataSource` and `ReadDataSource` instead of raw `DataSource` beans with Spring qualifiers. This removes the qualifier coupling and makes the write/read split explicit at the type level.
+
+### Migration
+
+Replace qualified `DataSource` parameters with the typed wrappers:
+
+```java
+// Before:
+@Bean
+public MyComponent myComponent(
+        @Qualifier("primaryDataSource") DataSource writeDataSource,
+        @Qualifier("readDataSource") DataSource readDataSource) { ... }
+
+// After:
+@Bean
+public MyComponent myComponent(
+        WriteDataSource writeDataSource,
+        ReadDataSource readDataSource) { ... }
+```
+
+If you need the underlying `javax.sql.DataSource`, call `.dataSource()` on the wrapper.
+
+---
+
+## `crablet.event-poller.notifications.enabled` — property removed
+
+**Affects:** Any configuration setting `crablet.event-poller.notifications.enabled=true`
+
+### What changed
+
+The `enabled` boolean toggle was removed from notification properties. LISTEN wakeup is now enabled implicitly by the presence of `jdbc-url`. No `enabled` flag is needed.
+
+### Migration
+
+Remove the `enabled` property. If you set `jdbc-url`, wakeup is active. If you omit it, the poller falls back to pure scheduled polling:
+
+```yaml
+# Before:
+crablet.event-poller.notifications.enabled: true
+crablet.event-poller.notifications.jdbc-url: jdbc:postgresql://db:5432/mydb
+
+# After:
+crablet.event-poller.notifications.jdbc-url: jdbc:postgresql://db:5432/mydb
+```
+
+---
+
+## `CommandHandler.Decision` inner record — removed
+
+**Affects:** Command handlers that returned `Decision.of(event)` from `decide()`
+
+### What changed
+
+The `Decision` inner record on `CommandHandler` was removed. Handlers must now return the appropriate `CommandDecision` variant directly, matching the sub-interface they implement.
+
+### Migration
+
+Replace `Decision.of(event)` with the correct `CommandDecision` variant:
+
+```java
+// Before:
+return Decision.of(depositEvent);
+
+// After — choose the variant that matches your handler type:
+return CommandDecision.Commutative.of(depositEvent);          // CommutativeCommandHandler
+return CommandDecision.NonCommutative.of(event, query, pos);  // NonCommutativeCommandHandler
+return CommandDecision.Idempotent.of(event, type, key, val);  // IdempotentCommandHandler
+```
+
+---
+
 ## `CommutativeCommandHandler.decide()` — return type narrowed to `CommutativeDecision`
 
 **Affects:** Any class implementing `CommutativeCommandHandler`

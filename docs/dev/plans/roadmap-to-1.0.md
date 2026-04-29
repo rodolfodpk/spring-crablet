@@ -47,9 +47,9 @@ Apply `@Internal` (or move to `.internal` packages) to implementation classes on
 
 No behavior changes — documentation and policy.
 
-### 1b. Upgrade guide completeness
+### 1b. Upgrade guide completeness — done
 
-Audit `UPGRADE.md` against the full `main` history for any user-visible break not yet documented — SNAPSHOT tags were not applied systematically, so `git log` from the initial commit is the reliable scope. Three known missing entries (identified in this roadmap work) are not yet in `UPGRADE.md`: `appendIdempotent(Query)` overload, `OnDuplicate` policy on `Idempotent`, and `CommutativeDecision` return type narrowing. Checklist for each entry: affects which interface/type, what the before/after migration looks like, and whether a compile error surfaces the break automatically.
+Full `main` history audited. Eight breaking changes now documented in `UPGRADE.md` (newest first): `TopicPublisherPair` package move, `StreamPosition.of(long)` removal, `WriteDataSource`/`ReadDataSource` typed beans, `notifications.enabled` property removal, `CommandHandler.Decision` record removal, `CommutativeDecision` return type narrowing, `OnDuplicate` policy on `Idempotent`, `appendIdempotent(Query)` overload, plus existing entries for `AutomationHandler react()→decide()`, metrics renames, `AutomationSubscription` removal, shared-fetch V14 migration, and `EventHandler` DataSource constructor removal.
 
 ### 1c. Maven Central publication
 
