@@ -2,9 +2,9 @@
 
 Agreed sequencing (April 2026): API hardening → 1.0 contract & distribution → cross-cutting.
 
-**1.0 is done when:** public API surface is annotated (`@Stable`/`@Internal`), UPGRADE.md covers all user-visible breaks, and artifacts are on Maven Central.
+**1.0 is done when:** public API surface is annotated (`@Stable`/`@Internal`), UPGRADE.md covers all user-visible breaks, and artifacts are on Maven Central. Items 1d (LISTEN/NOTIFY warning — already done) and 1e (Checkstyle parity) are Phase 1 housekeeping but not blockers for the 1.0 tag.
 
-_Last validated: 2026-04-28 against main (`788808d`). Update this line when phases close or scope shifts._
+_Last validated: 2026-04-28 against main (`1e21a1f`). Update this line when phases close or scope shifts._
 
 ---
 
@@ -48,7 +48,7 @@ No behavior changes — documentation and policy.
 
 ### 1b. Upgrade guide completeness
 
-Audit `UPGRADE.md` against the full `main` history for any user-visible break not yet documented — SNAPSHOT tags were not applied systematically, so `git log` from the initial commit is the reliable scope. The three items added in `788808d` cover the last known gaps. Checklist for each entry: affects which interface/type, what the before/after migration looks like, and whether a compile error surfaces the break automatically.
+Audit `UPGRADE.md` against the full `main` history for any user-visible break not yet documented — SNAPSHOT tags were not applied systematically, so `git log` from the initial commit is the reliable scope. Three known missing entries (identified in this roadmap work) are not yet in `UPGRADE.md`: `appendIdempotent(Query)` overload, `OnDuplicate` policy on `Idempotent`, and `CommutativeDecision` return type narrowing. Checklist for each entry: affects which interface/type, what the before/after migration looks like, and whether a compile error surfaces the break automatically.
 
 ### 1c. Maven Central publication
 
@@ -80,10 +80,10 @@ Audit `UPGRADE.md` against the full `main` history for any user-visible break no
 
 ### 2a. Correlation/causation end-to-end
 
-`crablet-commands-web` already captures the header and sets `CorrelationContext`. Remaining work:
-- Bind `CorrelationContext` while dispatching poller-backed handlers, using each `StoredEvent`'s correlation ID and position as causation ID
-- Document how `ViewProjector` implementations should persist correlation/causation when views need traceability
-- `OutboxPublisher.publishBatch` already receives `StoredEvent` which carries `correlationId`/`causationId`; no API change needed — remaining work is envelope conventions (which fields to forward in HTTP/Kafka payloads) and an integration test verifying the IDs survive the full command → automation/view → outbox path
+`crablet-commands-web` captures the incoming header and sets `CorrelationContext`. `AutomationDispatcher` already binds `CorrelationContext` during dispatch (`CAUSATION_ID` from `event.position()`, `CORRELATION_ID` from `event.correlationId()`). Remaining work:
+- **Views** — no equivalent binding exists in the view dispatch path; `ViewProjector` implementations that need traceability have no `CorrelationContext` in scope; document the pattern and add binding if warranted
+- **Outbox** — `OutboxPublisher.publishBatch` already receives `StoredEvent` carrying `correlationId`/`causationId`; no API change needed — remaining work is envelope conventions (which fields to forward in HTTP/Kafka payloads)
+- **Integration test** — verify IDs survive the full command → view → outbox path
 
 ### 2b. Second complete example (Course domain)
 
