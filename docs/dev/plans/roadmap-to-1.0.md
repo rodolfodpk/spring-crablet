@@ -67,12 +67,6 @@ Audit `UPGRADE.md` against the full `main` history for any user-visible break no
 - Add startup pooler detection: if `notifications.jdbc-url` looks like a PgBouncer/RDS Proxy/PgCat URL, log a warning at boot time
 - `CONFIGURATION.md` already recommends 30 s polling when LISTEN wakeup is active; no interval-guidance changes needed
 
-### 2b. ECS/Fargate spike (time-boxed)
-
-- Extend `embabel-codegen` with a `--target=ecs` flag generating a minimal ECS task definition + service JSON mirroring the existing K8s topology (command API pod vs singleton worker pod)
-- Document what emulates well with MiniStack vs what needs a real AWS account
-- Outcome decides whether to continue to Terraform/CDK or park it
-
 ---
 
 ## Phase 3 — cross-cutting
