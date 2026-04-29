@@ -139,7 +139,7 @@ public interface EventStore {
      * <p>
      * <strong>Transaction Guarantees:</strong>
      * <ul>
-     *   <li>All operations (queries, projections, appends, command storage) use the same database transaction</li>
+     *   <li>All operations (queries, projections, appends) use the same database transaction</li>
      *   <li>All operations see a consistent database snapshot</li>
      *   <li>All operations commit atomically, or all rollback on error</li>
      *   <li>The transactionId returned by append methods represents the entire transaction</li>

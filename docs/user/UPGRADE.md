@@ -4,6 +4,83 @@ Step-by-step migration notes for each breaking change in the `1.0.0-SNAPSHOT` se
 
 ---
 
+## `CommutativeCommandHandler.decide()` — return type narrowed to `CommutativeDecision`
+
+**Affects:** Any class implementing `CommutativeCommandHandler`
+
+### What changed
+
+`CommutativeCommandHandler.decide()` previously returned the parent `CommandDecision` sealed type. It now returns `CommandDecision.CommutativeDecision`, a new sealed intermediate type that permits only `Commutative` and `CommutativeGuarded`. This makes the contract consistent with `NonCommutativeCommandHandler` and `IdempotentCommandHandler`, and prevents accidentally returning a `NonCommutative` or `Idempotent` decision from a commutative handler.
+
+### Migration
+
+No code changes are required if you were already returning the correct variant. The compiler will flag any handler that was returning a non-commutative decision type — treat that as a bug to fix, not as churn.
+
+```java
+// Before — compiled but was too permissive:
+@Override
+public CommandDecision decide(EventStore eventStore, DepositCommand command) {
+    return CommandDecision.Commutative.of(event);
+}
+
+// After — return type is now narrowed:
+@Override
+public CommandDecision.CommutativeDecision decide(EventStore eventStore, DepositCommand command) {
+    return CommandDecision.Commutative.of(event);
+}
+```
+
+---
+
+## `CommandDecision.Idempotent` — `OnDuplicate` policy
+
+**Affects:** Code that uses `CommandDecision.Idempotent` or `IdempotentCommandHandler`
+
+### What changed
+
+`CommandDecision.Idempotent` gained an `onDuplicate` field controlling what happens when a duplicate is detected. The default is `OnDuplicate.RETURN_IDEMPOTENT` (previous behavior — silent success). Use `OnDuplicate.THROW` for entity-creation commands where a duplicate indicates a real conflict.
+
+### Migration
+
+Existing handlers that call `Idempotent.of(event, eventType, tagKey, tagValue)` continue to work unchanged (defaults to `RETURN_IDEMPOTENT`). To opt into strict duplicate rejection:
+
+```java
+// Throw on duplicate (e.g. OpenWalletCommand — wallet must be unique)
+return CommandDecision.Idempotent.of(event, type(WalletOpened.class),
+        WALLET_ID, command.walletId(), OnDuplicate.THROW);
+```
+
+---
+
+## `EventStore.appendIdempotent` — `Query` overload added
+
+**Affects:** Code calling `EventStore.appendIdempotent` directly (outside the command framework)
+
+### What changed
+
+A second overload was added:
+
+```java
+String appendIdempotent(List<AppendEvent> events, Query idempotencyQuery);
+```
+
+The original raw-string signature (`eventType`, `tagKey`, `tagValue`) is still available. The new overload is preferred when the idempotency criteria involve multiple tags or when consistency with `appendNonCommutative` is desired.
+
+### Migration
+
+No migration required — the raw-string signature is unchanged. Migrate to the `Query` overload at your convenience:
+
+```java
+// Before:
+eventStore.appendIdempotent(events, type(WalletOpened.class), WALLET_ID, walletId);
+
+// After (equivalent, using Query):
+eventStore.appendIdempotent(events,
+        QueryBuilder.builder().event(type(WalletOpened.class), WALLET_ID, walletId).build());
+```
+
+---
+
 ## AutomationHandler API — `react()` → `decide()`
 
 **Affects:** Any class implementing `AutomationHandler`

@@ -384,6 +384,60 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
 
 See [Closing the Books Pattern Guide](../crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md) for complete documentation and examples.
 
+## Command Audit Store
+
+When `crablet.eventstore.persist-commands=true` (the default), every command execution is written to the `commands` table **in the same database transaction** as the appended events. This gives you a durable, queryable record linking every command to the events it produced.
+
+### What is stored
+
+| Column | Type | Content |
+|---|---|---|
+| `transaction_id` | `xid8` | PostgreSQL transaction ID — same value as `events.transaction_id` for events appended in this execution |
+| `type` | `varchar(64)` | Command type name (e.g. `"deposit"`, `"open_wallet"`) |
+| `data` | `jsonb` | Full command serialized as JSON |
+| `metadata` | `jsonb` | `{"command_type": "..."}` — reserved for future enrichment |
+| `occurred_at` | `timestamptz` | Wall-clock time at execution |
+
+The `transaction_id` primary key means one row per command execution — duplicate executions (idempotent replays) do not produce a second row.
+
+### Atomicity
+
+The command row is written inside the same `Connection` and transaction as the event append. If the append fails and rolls back, the command row rolls back too. If the command row write fails, the whole transaction rolls back. Command and events are always consistent.
+
+### Querying the audit trail
+
+Join `commands` to `events` on `transaction_id` to see which command produced which events:
+
+```sql
+-- Events produced by a specific command type
+SELECT c.occurred_at, c.type AS command_type, c.data AS command,
+       e.type AS event_type, e.data AS event
+FROM commands c
+JOIN events e ON e.transaction_id = c.transaction_id
+WHERE c.type = 'deposit'
+ORDER BY c.occurred_at DESC;
+
+-- Full history for a wallet (all commands and events, newest first)
+SELECT c.occurred_at, c.type AS command_type, e.type AS event_type, e.tags
+FROM commands c
+JOIN events e ON e.transaction_id = c.transaction_id
+WHERE e.tags @> ARRAY['wallet_id=abc123']
+ORDER BY c.occurred_at DESC;
+```
+
+### When to disable
+
+Set `crablet.eventstore.persist-commands=false` if:
+
+- The audit trail is not required and you want to reduce write amplification in high-throughput scenarios
+- You are running integration tests that do not exercise audit queries (disabling speeds up test setup)
+
+When disabled, `CommandExecutor` skips the `storeCommand` call entirely. Events are still appended normally.
+
+### Architecture note
+
+`storeCommand` is on the `CommandAuditStore` interface, not on `EventStore`. This keeps `EventStore` free of command-layer concerns — views, outbox, and automations never see this method. `EventStoreImpl` implements both interfaces; inside `executeInTransaction`, `CommandExecutorImpl` casts the transaction-scoped store to `CommandAuditStore` via `instanceof` before calling it.
+
 ## Metrics
 
 CommandExecutor supports metrics collection via Spring's `ApplicationEventPublisher`:
