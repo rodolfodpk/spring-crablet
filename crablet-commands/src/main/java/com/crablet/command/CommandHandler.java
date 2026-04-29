@@ -1,5 +1,6 @@
 package com.crablet.command;
 
+import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.EventStore;
 
 /**
@@ -9,6 +10,7 @@ import com.crablet.eventstore.EventStore;
  * and return a {@link CommandDecision} describing the intended concurrency
  * semantics and events to append.
  */
+@Stable
 public interface CommandHandler<T> {
 
     /**

@@ -1,5 +1,6 @@
 package com.crablet.command;
 
+import com.crablet.eventstore.Stable;
 import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
@@ -10,6 +11,7 @@ import java.util.UUID;
  * CommandExecutor handles command validation, event generation, and transaction management.
  * It delegates to appropriate CommandHandlers based on command type.
  */
+@Stable
 public interface CommandExecutor {
 
     /**

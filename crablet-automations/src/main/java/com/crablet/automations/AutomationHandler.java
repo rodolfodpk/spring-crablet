@@ -1,5 +1,6 @@
 package com.crablet.automations;
 
+import com.crablet.eventstore.Stable;
 import com.crablet.eventpoller.processor.ProcessorRuntimeOverrides;
 import com.crablet.eventstore.StoredEvent;
 import org.jspecify.annotations.Nullable;
@@ -47,6 +48,7 @@ import java.util.Set;
  * should make application decisions and record outcomes through commands and events
  * where appropriate.
  */
+@Stable
 public interface AutomationHandler extends AutomationDefinition, ProcessorRuntimeOverrides {
 
     /** Unique name identifying this automation. */

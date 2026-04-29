@@ -1,5 +1,6 @@
 package com.crablet.views;
 
+import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.WriteDataSource;
@@ -29,6 +30,7 @@ import java.util.List;
  * Included to facilitate testability - tests can inject a fixed clock
  * for deterministic time-based assertions.
  */
+@Stable
 public abstract class AbstractViewProjector implements ViewProjector {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());

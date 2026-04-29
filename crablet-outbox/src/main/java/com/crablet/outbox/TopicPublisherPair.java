@@ -1,5 +1,7 @@
 package com.crablet.outbox;
 
+import com.crablet.eventstore.Stable;
+
 /**
  * Identifies an independent outbox processor by the topic it reads from and the publisher that
  * handles delivery.
@@ -11,6 +13,7 @@ package com.crablet.outbox;
  *                  publish time; must not be null or empty
  * @param publisher the {@link OutboxPublisher#getName() publisher name}; must not be null or empty
  */
+@Stable
 public record TopicPublisherPair(String topic, String publisher) {
 
     /**

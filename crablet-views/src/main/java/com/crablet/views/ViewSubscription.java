@@ -1,5 +1,6 @@
 package com.crablet.views;
 
+import com.crablet.eventstore.Stable;
 import com.crablet.eventpoller.EventSelection;
 import com.crablet.eventpoller.processor.ProcessorRuntimeOverrides;
 import org.jspecify.annotations.Nullable;
@@ -13,6 +14,7 @@ import java.util.Set;
  * <p>Use {@link ViewProjector#subscription(String...)} for the common case (event types only).
  * Use {@link #builder(String)} when tag-based filtering is also needed.
  */
+@Stable
 public class ViewSubscription implements EventSelection, ProcessorRuntimeOverrides {
 
     private final String viewName;

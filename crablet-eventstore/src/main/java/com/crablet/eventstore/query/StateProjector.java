@@ -1,5 +1,6 @@
 package com.crablet.eventstore.query;
 
+import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.StoredEvent;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.List;
  * Per DCB specification: filtering by tags happens in the Query (decision model),
  * not in the projector. The projector receives pre-filtered events from the query.
  */
+@Stable
 public interface StateProjector<T> {
 
     /**

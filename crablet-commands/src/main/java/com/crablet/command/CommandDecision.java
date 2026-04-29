@@ -1,5 +1,6 @@
 package com.crablet.command;
 
+import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.StreamPosition;
@@ -26,6 +27,7 @@ import java.util.List;
  *   <li>{@link NoOp}               — no operation needed (already applied)</li>
  * </ul>
  */
+@Stable
 public sealed interface CommandDecision
         permits CommandDecision.CommutativeDecision, CommandDecision.NonCommutative,
                 CommandDecision.Idempotent, CommandDecision.NoOp {

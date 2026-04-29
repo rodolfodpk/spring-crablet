@@ -9,6 +9,7 @@ import org.jspecify.annotations.Nullable;
  * This distinguishes infrastructure failures (potentially retryable) from
  * programming errors (bugs that need fixing).
  */
+@Stable
 public class EventStoreException extends RuntimeException {
 
     public EventStoreException(@Nullable String message) {

@@ -18,6 +18,7 @@ import java.util.UUID;
  * automation chains). {@code causationId} is the {@code position} of the event that
  * directly caused this one; {@code null} for events triggered by a direct user action.
  */
+@Stable
 public record StoredEvent(
         String type,
         List<Tag> tags,

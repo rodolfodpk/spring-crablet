@@ -1,5 +1,6 @@
 package com.crablet.command;
 
+import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.EventStore;
 
 /**
@@ -18,6 +19,7 @@ import com.crablet.eventstore.EventStore;
  *
  * @param <C> the command type
  */
+@Stable
 public interface NonCommutativeCommandHandler<C> extends CommandHandler<C> {
 
     /**

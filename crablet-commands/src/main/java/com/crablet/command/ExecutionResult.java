@@ -1,5 +1,6 @@
 package com.crablet.command;
 
+import com.crablet.eventstore.Stable;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -15,6 +16,7 @@ import org.jspecify.annotations.Nullable;
  * The reason field provides context for internal components (logging, monitoring, debugging).
  * REST clients only need to check wasCreated() to determine HTTP status code.
  */
+@Stable
 public record ExecutionResult(boolean wasIdempotent, @Nullable String reason) {
 
     public static ExecutionResult created() {

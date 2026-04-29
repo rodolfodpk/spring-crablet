@@ -1,10 +1,13 @@
 package com.crablet.outbox;
 
+import com.crablet.eventstore.Stable;
+
 import java.util.List;
 
 /**
  * A publisher publishes events from topics to external systems.
  */
+@Stable
 public interface OutboxPublisher {
     
     /**

@@ -16,6 +16,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * }
  * }</pre>
  */
+@Stable
 @ConfigurationProperties(prefix = "crablet.eventstore")
 public class EventStoreConfig {
     // Note: Spring Boot will automatically bind properties from application.properties

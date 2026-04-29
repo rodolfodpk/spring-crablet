@@ -1,5 +1,6 @@
 package com.crablet.eventpoller.config;
 
+import com.crablet.eventstore.Internal;
 import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
 import com.crablet.eventpoller.wakeup.PostgresNotifyWakeupSourceFactory;
@@ -28,6 +29,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
  * by declaring your own bean of the same type (or name, for the scheduler) in your
  * application context.
  */
+@Internal
 @AutoConfiguration
 @EnableConfigurationProperties({EventPollerNotificationProperties.class, EventPollerConfig.class})
 public class EventPollerAutoConfiguration {

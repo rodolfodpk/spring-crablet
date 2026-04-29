@@ -1,5 +1,6 @@
 package com.crablet.views.config;
 
+import com.crablet.eventstore.Internal;
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventProcessorFactory;
@@ -51,6 +52,7 @@ import java.util.function.Function;
  *
  * <p>Enabled when {@code crablet.views.enabled=true}.
  */
+@Internal
 @AutoConfiguration(after = EventPollerAutoConfiguration.class)
 @ConditionalOnProperty(name = "crablet.views.enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(ViewsConfig.class)

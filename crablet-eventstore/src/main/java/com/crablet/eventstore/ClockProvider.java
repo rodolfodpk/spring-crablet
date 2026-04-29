@@ -8,6 +8,7 @@ import java.time.Instant;
  * ClockProvider interface for providing timestamps.
  * Allows for testable time control and different clock implementations.
  */
+@Stable
 public interface ClockProvider {
 
     /**

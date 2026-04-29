@@ -1,5 +1,6 @@
 package com.crablet.command;
 
+import com.crablet.eventstore.Stable;
 import com.crablet.command.internal.CommandExecutorImpl;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.EventStore;
@@ -15,6 +16,7 @@ import java.util.List;
  * Use this class from application configuration instead of instantiating
  * {@code com.crablet.command.internal.CommandExecutorImpl} directly.
  */
+@Stable
 public final class CommandExecutors {
 
     private CommandExecutors() {

@@ -8,6 +8,7 @@ import java.time.Instant;
  * StreamPosition represents a position in the event stream.
  * This is a pure data record with no business logic.
  */
+@Stable
 public record StreamPosition(long position, @Nullable Instant occurredAt, @Nullable String transactionId) {
 
     public StreamPosition {

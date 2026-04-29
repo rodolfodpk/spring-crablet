@@ -20,6 +20,7 @@ import java.util.Locale;
  * // Query with: WHERE EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'wallet_id=%')
  * }</pre>
  */
+@Stable
 public record Tag(@Nullable String key, @Nullable String value) {
 
     public Tag {

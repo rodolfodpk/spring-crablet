@@ -1,5 +1,6 @@
 package com.crablet.command.config;
 
+import com.crablet.eventstore.Internal;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandExecutors;
 import com.crablet.command.CommandHandler;
@@ -27,6 +28,7 @@ import java.util.List;
  * <strong>Overriding:</strong> declare your own {@link CommandExecutor} bean to bypass
  * this auto-configuration.
  */
+@Internal
 @AutoConfiguration(after = EventStoreAutoConfiguration.class)
 public class CommandAutoConfiguration {
 

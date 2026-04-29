@@ -1,5 +1,6 @@
 package com.crablet.eventstore.query;
 
+import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.Tag;
 
 import java.util.List;
@@ -8,6 +9,7 @@ import java.util.List;
  * Query represents a query for events in the store.
  * This is a pure data record with no business logic.
  */
+@Stable
 public record Query(List<QueryItem> items) {
     /**
      * Create a query from query items.

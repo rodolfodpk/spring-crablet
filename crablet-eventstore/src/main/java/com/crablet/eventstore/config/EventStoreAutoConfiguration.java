@@ -1,5 +1,6 @@
 package com.crablet.eventstore.config;
 
+import com.crablet.eventstore.Internal;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
@@ -45,6 +46,7 @@ import javax.sql.DataSource;
  *   <li>{@link EventRepository} — low-level event query API</li>
  * </ul>
  */
+@Internal
 @AutoConfiguration
 @EnableConfigurationProperties({ReadReplicaProperties.class, EventStoreNotificationProperties.class})
 public class EventStoreAutoConfiguration {

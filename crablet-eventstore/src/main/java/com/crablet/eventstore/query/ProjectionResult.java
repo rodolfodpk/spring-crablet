@@ -1,5 +1,6 @@
 package com.crablet.eventstore.query;
 
+import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.StreamPosition;
 import org.jspecify.annotations.Nullable;
@@ -14,6 +15,7 @@ import org.jspecify.annotations.Nullable;
  * pass {@link #streamPosition()} explicitly to
  * {@link EventStore#appendNonCommutative(java.util.List, Query, StreamPosition)}.
  */
+@Stable
 public record ProjectionResult<T>(
         T state,
         @Nullable StreamPosition streamPosition

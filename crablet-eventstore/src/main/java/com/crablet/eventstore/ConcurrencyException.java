@@ -10,6 +10,7 @@ import org.jspecify.annotations.Nullable;
  * - EventStoreException - for infrastructure failures
  * - InvalidCommandException - for validation errors
  */
+@Stable
 public class ConcurrencyException extends RuntimeException {
 
     /** The command that triggered the violation, for diagnostics. May be {@code null} when thrown from low-level infrastructure. */

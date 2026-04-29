@@ -1,5 +1,6 @@
 package com.crablet.automations.config;
 
+import com.crablet.eventstore.Internal;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.internal.AutomationDispatcher;
 import com.crablet.automations.internal.AutomationEventFetcher;
@@ -50,6 +51,7 @@ import java.util.function.Function;
  * Auto-configuration for automations using the generic event processor.
  * Enabled when {@code crablet.automations.enabled=true}.
  */
+@Internal
 @AutoConfiguration(after = EventPollerAutoConfiguration.class)
 @ConditionalOnProperty(name = "crablet.automations.enabled", havingValue = "true", matchIfMissing = false)
 @EnableConfigurationProperties(AutomationsConfig.class)

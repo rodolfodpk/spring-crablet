@@ -1,5 +1,6 @@
 package com.crablet.outbox.config;
 
+import com.crablet.eventstore.Internal;
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventProcessorFactory;
@@ -52,6 +53,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 
  * <p>Enabled when {@code crablet.outbox.enabled=true}.
  */
+@Internal
 @AutoConfiguration(after = EventPollerAutoConfiguration.class)
 @ConditionalOnProperty(name = "crablet.outbox.enabled", havingValue = "true", matchIfMissing = false)
 public class OutboxAutoConfiguration {

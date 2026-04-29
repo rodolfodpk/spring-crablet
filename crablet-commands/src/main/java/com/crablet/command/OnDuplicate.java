@@ -1,5 +1,7 @@
 package com.crablet.command;
 
+import com.crablet.eventstore.Stable;
+
 /**
  * Policy controlling what happens when an idempotent append detects a duplicate.
  * <ul>
@@ -10,6 +12,7 @@ package com.crablet.command;
  *       use for operations that are naturally idempotent (e.g., re-sent notifications).</li>
  * </ul>
  */
+@Stable
 public enum OnDuplicate {
     THROW,
     RETURN_IDEMPOTENT

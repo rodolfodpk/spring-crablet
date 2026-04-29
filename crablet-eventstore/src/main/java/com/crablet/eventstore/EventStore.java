@@ -10,6 +10,7 @@ import java.util.function.Function;
  * EventStore is the core interface for appending and reading events.
  * This is the primary abstraction that users interact with.
  */
+@Stable
 public interface EventStore {
 
     /**

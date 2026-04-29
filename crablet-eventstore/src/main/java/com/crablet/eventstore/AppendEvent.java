@@ -14,6 +14,7 @@ import java.util.List;
  * <p>
  * Event data is passed as an Object and will be serialized by EventStore implementation.
  */
+@Stable
 public record AppendEvent(
         String type,
         List<Tag> tags,

@@ -12,6 +12,7 @@ package com.crablet.eventstore;
  * store to {@code CommandAuditStore} to call this method inside the same transaction
  * that appended the events.
  */
+@Stable
 public interface CommandAuditStore {
 
     /**

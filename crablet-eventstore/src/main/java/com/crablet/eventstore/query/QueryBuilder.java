@@ -1,5 +1,6 @@
 package com.crablet.eventstore.query;
 
+import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.AppendConditionBuilder;
 import com.crablet.eventstore.StreamPosition;
 import com.crablet.eventstore.Tag;
@@ -12,6 +13,7 @@ import java.util.List;
  * Fluent builder for constructing DCB queries.
  * Business-agnostic, reusable across domains.
  */
+@Stable
 public class QueryBuilder {
     private final List<QueryItem> items = new ArrayList<>();
 

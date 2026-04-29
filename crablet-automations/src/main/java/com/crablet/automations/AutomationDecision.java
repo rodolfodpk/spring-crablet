@@ -1,5 +1,6 @@
 package com.crablet.automations;
 
+import com.crablet.eventstore.Stable;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
@@ -10,6 +11,7 @@ import java.util.Objects;
  * <p>Automation handlers describe what should happen. The automation dispatcher
  * executes each decision with the framework-owned semantics for that decision type.
  */
+@Stable
 public sealed interface AutomationDecision
         permits AutomationDecision.ExecuteCommand, AutomationDecision.NoOp {
 

@@ -1,11 +1,14 @@
 package com.crablet.command;
 
+import com.crablet.eventstore.Stable;
+
 /**
  * Exception thrown when command validation fails.
  * 
  * This distinguishes validation errors (expected, user-facing) from
  * programming errors (bugs). Includes command context for debugging.
  */
+@Stable
 public class InvalidCommandException extends RuntimeException {
 
     /** The command object that failed validation, for diagnostics. May be {@code null} when only an error string is available. */

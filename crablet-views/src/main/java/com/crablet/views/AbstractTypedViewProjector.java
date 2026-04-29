@@ -1,5 +1,6 @@
 package com.crablet.views;
 
+import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.WriteDataSource;
@@ -53,6 +54,7 @@ import org.springframework.transaction.PlatformTransactionManager;
  *
  * @param <E> The sealed interface type for events (e.g., {@code WalletEvent}, {@code CourseEvent})
  */
+@Stable
 public abstract class AbstractTypedViewProjector<E> extends AbstractViewProjector {
 
     /**

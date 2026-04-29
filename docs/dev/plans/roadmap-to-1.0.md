@@ -28,7 +28,7 @@ All seven pre-1.0 API quality items are done. Listed here for reference.
 
 ## Phase 1 — 1.0 contract
 
-### 1a. `@Stable` / `@Internal` annotations
+### 1a. `@Stable` / `@Internal` annotations — done
 
 Define `@Stable` and `@Internal` marker annotations in `crablet-eventstore` — the root module that all others depend on, so the annotation type is available everywhere without a separate `crablet-annotations` artifact. Alternatively, a dedicated zero-dependency `crablet-annotations` module is a clean option if the annotation needs to be usable outside the framework; either choice is fine as long as it is decided before Central publication.
 

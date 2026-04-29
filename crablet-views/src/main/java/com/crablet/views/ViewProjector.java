@@ -1,5 +1,6 @@
 package com.crablet.views;
 
+import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.StoredEvent;
 
 import java.util.List;
@@ -15,6 +16,7 @@ import java.util.List;
  * Implementations must inject the framework's write datasource, never the read
  * replica, because view projection writes must go to the primary database.
  */
+@Stable
 public interface ViewProjector {
 
     /**
