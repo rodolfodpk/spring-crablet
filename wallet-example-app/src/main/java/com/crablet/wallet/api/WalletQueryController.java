@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
@@ -70,7 +71,7 @@ public class WalletQueryController {
                 (String) row.get("wallet_id"),
                 (String) row.get("owner"),
                 ((BigDecimal) row.get("balance")).intValue(),
-                ((java.sql.Timestamp) row.get("last_updated_at")).toInstant()
+                ((Timestamp) row.get("last_updated_at")).toInstant()
         );
         
         return ResponseEntity.ok(response);

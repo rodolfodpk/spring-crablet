@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.profiles.active=test",
         "spring.threads.virtual.enabled=true",
         "spring.main.keep-alive=true",
+        // CHECKSTYLE:OFF: RegexpSinglelineJava - FQN required in Spring exclude strings
         "spring.autoconfigure.exclude=" +
             "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration," +
             "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration," +
@@ -38,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
             "com.crablet.views.config.ViewsAutoConfiguration," +
             "com.crablet.outbox.config.OutboxAutoConfiguration," +
             "com.crablet.automations.config.AutomationsAutoConfiguration"
+        // CHECKSTYLE:ON: RegexpSinglelineJava
     }
 )
 @DisplayName("Wallet Virtual Thread E2E Tests")

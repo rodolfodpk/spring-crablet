@@ -33,7 +33,10 @@ import java.time.YearMonth;
 import java.util.List;
 
 import static com.crablet.eventstore.EventType.type;
-import static com.crablet.examples.wallet.WalletTags.*;
+import static com.crablet.examples.wallet.WalletTags.FROM_WALLET_ID;
+import static com.crablet.examples.wallet.WalletTags.STATEMENT_ID;
+import static com.crablet.examples.wallet.WalletTags.TO_WALLET_ID;
+import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
 
 /**
  * Wallet-specific period resolver for closing the books pattern.

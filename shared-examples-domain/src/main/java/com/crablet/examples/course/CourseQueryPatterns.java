@@ -2,10 +2,13 @@ package com.crablet.examples.course;
 
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
-import com.crablet.examples.course.events.*;
+import com.crablet.examples.course.events.CourseCapacityChanged;
+import com.crablet.examples.course.events.CourseDefined;
+import com.crablet.examples.course.events.StudentSubscribedToCourse;
 
 import static com.crablet.eventstore.EventType.type;
-import static com.crablet.examples.course.CourseTags.*;
+import static com.crablet.examples.course.CourseTags.COURSE_ID;
+import static com.crablet.examples.course.CourseTags.STUDENT_ID;
 
 /**
  * Reusable query patterns for course operations.

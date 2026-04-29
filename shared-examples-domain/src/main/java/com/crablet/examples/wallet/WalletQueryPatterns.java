@@ -2,10 +2,22 @@ package com.crablet.examples.wallet;
 
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
-import com.crablet.examples.wallet.events.*;
+import com.crablet.examples.wallet.events.DepositMade;
+import com.crablet.examples.wallet.events.MoneyTransferred;
+import com.crablet.examples.wallet.events.WalletOpened;
+import com.crablet.examples.wallet.events.WalletStatementOpened;
+import com.crablet.examples.wallet.events.WithdrawalMade;
 
 import static com.crablet.eventstore.EventType.type;
-import static com.crablet.examples.wallet.WalletTags.*;
+import static com.crablet.examples.wallet.WalletTags.FROM_MONTH;
+import static com.crablet.examples.wallet.WalletTags.FROM_WALLET_ID;
+import static com.crablet.examples.wallet.WalletTags.FROM_YEAR;
+import static com.crablet.examples.wallet.WalletTags.MONTH;
+import static com.crablet.examples.wallet.WalletTags.TO_MONTH;
+import static com.crablet.examples.wallet.WalletTags.TO_WALLET_ID;
+import static com.crablet.examples.wallet.WalletTags.TO_YEAR;
+import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
+import static com.crablet.examples.wallet.WalletTags.YEAR;
 
 /**
  * Reusable query patterns for wallet operations.
