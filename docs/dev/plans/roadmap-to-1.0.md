@@ -64,9 +64,9 @@ Audit `UPGRADE.md` against the full `main` history for any user-visible break no
 - `UPGRADE.md` complete (see 1b)
 - `@Stable` / `@Internal` applied (see 1a)
 
-### 1d. LISTEN/NOTIFY pooler warning
+### 1d. LISTEN/NOTIFY pooler warning — done
 
-Small code change, no new feature: if `notifications.jdbc-url` looks like a PgBouncer/RDS Proxy/PgCat URL at startup, log a warning. `CONFIGURATION.md` already documents the 30 s interval guidance; no doc changes needed.
+`PostgresNotifyWakeupSource` now emits an actionable warning when `unwrap(PGConnection.class)` fails (the symptom of routing through a pooler): message names PgBouncer transaction mode, PgCat, and RDS Proxy by name and tells the operator to point `jdbc-url` at a direct PostgreSQL connection. Other `SQLException`s get a generic "falling back to scheduled polling" message. No URL heuristics needed — the failure is caught at the point it actually happens.
 
 ### 1e. Checkstyle parity
 

@@ -82,7 +82,15 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
             }
         } catch (SQLException e) {
             if (running.get()) {
-                log.warn("Postgres wakeup listener stopped for channel {}: {}", channel, e.getMessage());
+                if (e.getMessage() != null && e.getMessage().toLowerCase().contains("unwrap")) {
+                    log.warn("LISTEN wakeup disabled for channel '{}': could not obtain a direct PostgreSQL connection. "
+                            + "Check that notifications.jdbc-url points directly at PostgreSQL and not through a pooler "
+                            + "(PgBouncer transaction mode, PgCat, RDS Proxy). Falling back to scheduled polling. "
+                            + "Cause: {}", channel, e.getMessage());
+                } else {
+                    log.warn("LISTEN wakeup listener stopped for channel '{}': {}. "
+                            + "Falling back to scheduled polling.", channel, e.getMessage());
+                }
             }
         } finally {
             closeConnectionQuietly();
