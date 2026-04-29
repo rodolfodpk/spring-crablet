@@ -1,6 +1,8 @@
 # Roadmap to 1.0 and beyond
 
-Agreed sequencing (April 2026): API hardening → 1.0 contract & distribution → ops ergonomics → cross-cutting.
+Agreed sequencing (April 2026): API hardening → 1.0 contract & distribution → cross-cutting.
+
+**1.0 is done when:** public API surface is annotated (`@Stable`/`@Internal`), UPGRADE.md covers all user-visible breaks, and artifacts are on Maven Central.
 
 _Last validated: 2026-04-28 against main (`788808d`). Update this line when phases close or scope shifts._
 
@@ -20,6 +22,9 @@ All seven pre-1.0 API quality items are done. Listed here for reference.
 | 6 | `Query.noCondition()` + `Query.empty()` disambiguation | `Query.java` |
 | 7 | `storeCommand`/`hasConflict` removed from `EventStore` | `CommandAuditStore` is a separate interface; guard uses `project()` directly |
 
+Follow-up cleanup before 1.0:
+- Remove stale `EventStore` Javadoc references to command storage now that `CommandAuditStore` owns that concern.
+
 ---
 
 ## Phase 1 — 1.0 contract
@@ -37,7 +42,7 @@ Apply `@Stable` to public types in their home modules (the annotation travels wi
 
 Apply `@Internal` (or move to `.internal` packages) to:
 - `CommandExecutorImpl`, `EventStoreImpl`, `EventRepositoryImpl`
-- All `*Config` internals
+- Implementation-only `*Config` and auto-configuration support classes
 
 No behavior changes — documentation and policy.
 
@@ -52,45 +57,38 @@ Audit `UPGRADE.md` against the full `main` history for any user-visible break no
 - Verify BOM / dependency coordinates match what the starter template and `embabel-codegen` expect
 - Publish snapshot to Central snapshots first; validate `crablet-app` template resolves it
 
-### 1d. Checkstyle parity
+**Before tagging 1.0.0** (release checklist — must be done alongside or before 1c):
+- Semantic versioning policy documented (PATCH vs MINOR vs MAJOR once `@Stable` exists)
+- Java 25 / Spring Boot 4 baseline stated explicitly in README and release notes
+- SBOM generated via `cyclonedx-maven-plugin` and attached to the release
+- `UPGRADE.md` complete (see 1b)
+- `@Stable` / `@Internal` applied (see 1a)
+
+### 1d. LISTEN/NOTIFY pooler warning
+
+Small code change, no new feature: if `notifications.jdbc-url` looks like a PgBouncer/RDS Proxy/PgCat URL at startup, log a warning. `CONFIGURATION.md` already documents the 30 s interval guidance; no doc changes needed.
+
+### 1e. Checkstyle parity
 
 - Add `crablet-test-support`, `shared-examples-domain`, `wallet-example-app` to the existing Checkstyle import-style gate
 - Run in report mode first to get the violation diff, fix, then enforce in CI
-- **Not a 1.0 semantic blocker** — this is developer-experience consistency, not API stability. Can trail Central publication by a patch release if violation count is large.
+- **Not a 1.0 semantic blocker** — developer-experience consistency, not API stability. Can trail Central by a patch release if violation count is large.
 
 ---
 
-## Phase 2 — ops story
+## Phase 2 — cross-cutting
 
-### 2a. LISTEN/NOTIFY ergonomics
-
-- Add startup pooler detection: if `notifications.jdbc-url` looks like a PgBouncer/RDS Proxy/PgCat URL, log a warning at boot time
-- `CONFIGURATION.md` already recommends 30 s polling when LISTEN wakeup is active; no interval-guidance changes needed
-
----
-
-## Phase 3 — cross-cutting
-
-### 3a. Correlation/causation end-to-end
+### 2a. Correlation/causation end-to-end
 
 `crablet-commands-web` already captures the header and sets `CorrelationContext`. Remaining work:
-- Propagate to `ViewProjector` (pass correlation through `StoredEvent` → view write)
-- `OutboxPublisher.publishBatch` already receives `StoredEvent` which carries `correlationId`/`causationId`; no API change needed — remaining work is envelope conventions (which fields to forward in HTTP/Kafka payloads) and an integration test verifying the IDs survive the full command → view → outbox path
+- Bind `CorrelationContext` while dispatching poller-backed handlers, using each `StoredEvent`'s correlation ID and position as causation ID
+- Document how `ViewProjector` implementations should persist correlation/causation when views need traceability
+- `OutboxPublisher.publishBatch` already receives `StoredEvent` which carries `correlationId`/`causationId`; no API change needed — remaining work is envelope conventions (which fields to forward in HTTP/Kafka payloads) and an integration test verifying the IDs survive the full command → automation/view → outbox path
 
-### 3b. Second complete example (Course domain)
+### 2b. Second complete example (Course domain)
 
 `shared-examples-domain` already has Course domain logic. Remaining work:
 - Wire into `wallet-example-app` (or a sibling `course-example-app`) with Flyway migrations, view projectors, an automation, and HTTP endpoints
 - Gives multi-aggregate constraint testing (course capacity + student subscription) a real runnable home
 
-**Note on ordering:** 3a's integration test is simpler to write once 3b's richer app trail exists — the Course example exercises more module interactions (views + automations + outbox) than the current wallet app. If capacity is limited, 3b first is the lower-risk order.
-
----
-
-## Versioning and compatibility notes
-
-Items to address before advertising 1.0 stability to external consumers:
-
-- **Semantic versioning policy** — define what qualifies as PATCH vs MINOR vs MAJOR once `@Stable` exists
-- **Java 25 / Spring Boot 4 baseline** — state explicitly; sets expectations for adoption audience
-- **SBOM / dependency policy** — light touch: `cyclonedx-maven-plugin` at release + declared dependency update cadence
+**Note on ordering:** 2a's integration test is simpler to write once 2b's richer app trail exists — the Course example exercises more module interactions (views + automations + outbox) than the current wallet app. If capacity is limited, 2b first is the lower-risk order.
