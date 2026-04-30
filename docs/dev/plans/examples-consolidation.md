@@ -32,163 +32,189 @@ mkdir examples
 git mv wallet-example-app examples/wallet-example-app
 ```
 
-### 1b. Update `pom.xml` (root)
+### 1b. Fix `mvnw` paths
 
-The reactor comment block referencing `wallet-example-app`:
+From `examples/wallet-example-app`, the wrapper is two levels up. Update all invocations:
+- `cd wallet-example-app && ../mvnw` → `cd examples/wallet-example-app && ../../mvnw`
+
+Affected: `Makefile` (`start`, `wallet-dev`, `clean` targets).
+
+### 1c. Update `pom.xml` (root)
+
+Update the reactor comment block:
 ```xml
-<!-- Build separately: cd wallet-example-app && ../mvnw install -->
-<!-- <module>wallet-example-app</module> -->
+<!-- Build separately: cd examples/wallet-example-app && ../../mvnw install -->
+<!-- <module>examples/wallet-example-app</module> -->
 ```
-Update path to `examples/wallet-example-app`.
 
-### 1c. Update `Makefile`
+### 1d. Update all path references
 
-Affected targets (current path → new path):
-- `start`: `cd wallet-example-app` → `cd examples/wallet-example-app`
-- `wallet-dev`: same
-- `clean`: `cd wallet-example-app` → `cd examples/wallet-example-app`
-- Help text referencing `wallet-example-app` directory
-
-### 1d. Update docs
-
-Files referencing `wallet-example-app` path that need updating:
-- `docs/user/BUILD.md` — build instructions and path examples
-- `docs/user/QUICKSTART.md`
-- `docs/user/TUTORIAL.md`
-- `docs/user/MODULES.md`
-- `docs/user/MANAGEMENT_API.md`
-- `docs/user/OBSERVABILITY.md`
-- `docs/user/CORRELATION_CAUSATION.md`
-- `docs/user/CREATE_A_CRABLET_APP.md`
-- `docs/user/ai-tooling/EVENT_MODELING.md`
-- `docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md`
-- `CLAUDE.md`
+Rather than a hand-maintained list, find every reference with:
+```bash
+rg "wallet-example-app|cd wallet-example-app" --type md --type java --type xml --type yaml --type properties -l
+```
+Update each occurrence. Known locations: `Makefile`, `pom.xml`, `CLAUDE.md`,
+`docs/user/BUILD.md`, `QUICKSTART.md`, `TUTORIAL.md`, `MODULES.md`,
+`MANAGEMENT_API.md`, `OBSERVABILITY.md`, `CORRELATION_CAUSATION.md`,
+`CREATE_A_CRABLET_APP.md`, `ai-tooling/EVENT_MODELING.md`,
+`ai-tooling/FEATURE_SLICE_WORKFLOW.md`, and any `docs/dev/` plan files.
 
 ### 1e. Verify
 
 ```bash
-make install   # reactor build must still pass
-make start     # wallet app must still start
+make install        # reactor build still passes
+make start          # wallet app starts from new path
 ```
 
 ---
 
-## Step 2 — Create `course-example-app`
+## Step 2 — Promote course command handlers into `shared-examples-domain`
 
-### Module coverage
+The three course command handlers currently live in `crablet-commands/src/test/java` and are
+not available as a compile dependency. They must be moved into `shared-examples-domain` so
+`course-example-app` can use them.
 
-| Module | What it exercises |
-|---|---|
-| `crablet-eventstore` | Multi-entity DCB: course + student in one decision model |
-| `crablet-commands` | 3 handlers: `DefineCourse`, `ChangeCourseCapacity`, `SubscribeStudentToCourse` |
-| `crablet-commands-web` | Generic HTTP command API + Swagger |
-| `crablet-views` | Course availability view (capacity, enrolled, seats remaining) |
-| `crablet-automations` | React to `StudentSubscribedToCourse` — notify when course reaches capacity |
-| `crablet-outbox` | Publish enrollment events externally |
-| `crablet-metrics-micrometer` | Implicit via auto-config |
+Files to move to `shared-examples-domain/src/main/java/com/crablet/examples/course/handlers/`:
+- `DefineCourseCommandHandler.java`
+- `ChangeCourseCapacityCommandHandler.java`
+- `SubscribeStudentToCourseCommandHandler.java`
 
-### 2a. Maven module
+After moving, update the `crablet-commands` test classes that reference them to import from the
+new location (or remove duplication if tests already use `shared-examples-domain` in test scope).
+
+---
+
+## Step 3 — Create `course-example-app`
+
+### 3a. Maven module
 
 `examples/course-example-app/pom.xml`:
 - Parent: root `pom.xml`
 - Dependencies: all framework modules + `shared-examples-domain`
-- Excluded from reactor (same pattern as wallet app)
-- Update root `pom.xml` comment block to mention both apps
+- Excluded from reactor (same pattern as wallet app — comment in root `pom.xml`)
+- All `mvnw` invocations use `../../mvnw`
 
-### 2b. Spring Boot application
+### 3b. Spring Boot application
 
 `CourseApplication.java` — standard `@SpringBootApplication`.
 
-`application.yml`:
-- `crablet.views.enabled=true`
-- `crablet.automations.enabled=true`
-- `crablet.outbox.enabled=true`
-- datasource: `jdbc:postgresql://localhost:5432/course_db`
+`application.properties`:
+```properties
+crablet.views.enabled=true
+crablet.automations.enabled=true
+crablet.outbox.enabled=true
+crablet.outbox.topics.topics.course-enrollments.publishers=LogPublisher
+spring.datasource.url=jdbc:postgresql://localhost:5432/course_db
+```
 
-### 2c. Flyway migrations
+### 3c. `CommandApiExposedCommands` bean
 
-`V1__eventstore_schema.sql` — copy from `crablet-test-support` (events + commands tables).
-`V2__course_views.sql` — create view tables:
+Required for `crablet-commands-web` generic endpoint to accept course commands:
+```java
+@Bean
+public CommandApiExposedCommands commandApiExposedCommands() {
+    return CommandApiExposedCommands.fromPackages("com.crablet.examples.course");
+}
+```
+
+### 3d. Flyway migrations
+
+Copy the full framework schema from `wallet-example-app/src/main/resources/db/migration/` —
+all processor tables are required when views, automations, and outbox are enabled:
+
+| Migration | Purpose |
+|---|---|
+| `V1__eventstore_schema.sql` | `events` + `commands` tables |
+| `V3__view_progress_schema.sql` | View processor progress tracking |
+| `V9__reaction_progress_schema.sql` | Automation processor progress tracking |
+| `V12__correlation_causation.sql` | Correlation/causation columns on events |
+| `V13__outbox_schema.sql` | Outbox scan progress |
+| `V14__shared_fetch_scan_progress.sql` | Shared-fetch progress (if enabled) |
+| `V2__course_views.sql` | App-specific: `course_availability` view table |
+
+`V2__course_views.sql`:
 ```sql
 CREATE TABLE course_availability (
-    course_id       VARCHAR(255) PRIMARY KEY,
-    name            VARCHAR(255),
-    capacity        INT,
-    enrolled        INT,
-    updated_at      TIMESTAMP WITH TIME ZONE
+    course_id   VARCHAR(255) PRIMARY KEY,
+    name        VARCHAR(255),
+    capacity    INT          NOT NULL DEFAULT 0,
+    enrolled    INT          NOT NULL DEFAULT 0,
+    updated_at  TIMESTAMP WITH TIME ZONE
 );
 ```
 
-### 2d. View projector
+### 3e. View projector
 
 `CourseAvailabilityViewProjector extends AbstractTypedViewProjector<CourseEvent>`:
-- Subscribes to `CourseDefined`, `CourseCapacityChanged`, `StudentSubscribedToCourse`
+- Subscribes via `ViewProjector.subscription("CourseDefined", "CourseCapacityChanged", "StudentSubscribedToCourse")`
 - Upserts into `course_availability` on each event
 - View name: `"course-availability"`
 
-### 2e. Automation
+### 3f. Automation
 
 `CourseCapacityAutomation implements AutomationHandler`:
 - Listens to `StudentSubscribedToCourse`
-- Reads current enrollment from the event tags
-- If `enrolled == capacity`, returns `AutomationDecision.ExecuteCommand` with a
-  `NotifyCourseFullCommand` (or `AutomationDecision.NoOp` if not yet full)
-- Alternatively: publish directly via outbox if no command is needed
+- **Does not read from event tags** (tags only carry `course_id` and `student_id`)
+- Projects current state from the event store using `CourseQueryPatterns.subscriptionDecisionModel`
+  to determine current enrollment count and capacity
+- Returns `AutomationDecision.ExecuteCommand` (or `NoOp`) based on projected state
 
-### 2f. Outbox publisher
+### 3g. Outbox publisher
 
 `CourseEnrollmentPublisher implements OutboxPublisher`:
-- Topic: `"course-enrollments"`
-- Publishes `StudentSubscribedToCourse` events to a configurable webhook URL
-- Demonstrates reliable external delivery
+- `getName()` returns `"LogPublisher"` (or a webhook variant — see `application.properties`)
+- Topic binding is declared in `application.properties` (`crablet.outbox.topics.topics.course-enrollments.publishers`)
+- `publishBatch` logs or forwards `StudentSubscribedToCourse` events
 
-### 2g. HTTP endpoints
+### 3h. HTTP query endpoint
 
-`CourseCommandController` (or use `crablet-commands-web` generic endpoint):
-- `POST /api/commands` — all three commands via the generic API
-- `GET /api/courses/{courseId}` — reads from `course_availability` view
+`CourseQueryController`:
+- `GET /api/courses/{courseId}` — reads from `course_availability` view table
 
-### 2h. Makefile targets
+### 3i. Makefile targets
 
 ```makefile
 course-start:
-    cd examples/course-example-app && ../mvnw spring-boot:run
+	cd examples/course-example-app && ../../mvnw spring-boot:run
 
 course-dev:
-    cd examples/course-example-app && ../mvnw spring-boot:run
+	cd examples/course-example-app && ../../mvnw spring-boot:run
 ```
 
-Update help text and `clean` target.
+Add `clean` entry and help text.
 
-### 2i. Verify
+### 3j. Verify
 
 ```bash
-make course-start  # app starts, Swagger available at /swagger-ui.html
-# POST define-course, subscribe students, verify availability view updates
-# verify automation fires when capacity is reached
+make course-start
+# POST /api/commands — DefineCourse, SubscribeStudentToCourse
+# GET /api/courses/{id} — verify availability view updates
+# verify automation fires when enrollment reaches capacity
 ```
 
 ---
 
 ## Files created / modified
 
-**New files:**
+**Moved (Step 1):**
+- `wallet-example-app/` → `examples/wallet-example-app/`
+
+**Moved (Step 2):**
+- `crablet-commands/src/test/java/.../handlers/courses/*.java` → `shared-examples-domain/src/main/java/.../course/handlers/`
+
+**New files (Step 3):**
 - `examples/course-example-app/pom.xml`
 - `examples/course-example-app/src/main/java/.../CourseApplication.java`
-- `examples/course-example-app/src/main/resources/application.yml`
-- `examples/course-example-app/src/main/resources/db/migration/V1__eventstore_schema.sql`
-- `examples/course-example-app/src/main/resources/db/migration/V2__course_views.sql`
+- `examples/course-example-app/src/main/java/.../config/CrabletConfig.java`
+- `examples/course-example-app/src/main/resources/application.properties`
+- `examples/course-example-app/src/main/resources/db/migration/V1–V14 + V2__course_views.sql`
 - `examples/course-example-app/src/main/java/.../view/CourseAvailabilityViewProjector.java`
 - `examples/course-example-app/src/main/java/.../automation/CourseCapacityAutomation.java`
 - `examples/course-example-app/src/main/java/.../outbox/CourseEnrollmentPublisher.java`
 - `examples/course-example-app/src/main/java/.../api/CourseQueryController.java`
-- `examples/course-example-app/src/main/java/.../config/CrabletConfig.java`
 
-**Modified files (Step 1):**
+**Modified (Steps 1–3):**
 - `Makefile`
 - `pom.xml` (root)
 - `CLAUDE.md`
-- `docs/user/BUILD.md`, `QUICKSTART.md`, `TUTORIAL.md`, `MODULES.md`, and 6 others
-
-**Moved files (Step 1):**
-- `wallet-example-app/` → `examples/wallet-example-app/`
+- All doc files found by `rg "wallet-example-app"` sweep
