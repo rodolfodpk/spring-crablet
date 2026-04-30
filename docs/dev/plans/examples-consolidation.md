@@ -120,26 +120,29 @@ public CommandApiExposedCommands commandApiExposedCommands() {
 
 ### 3d. Flyway migrations
 
-Copy only the **framework** migrations from `wallet-example-app/src/main/resources/db/migration/`.
-Do **not** copy wallet-specific migrations (V4–V8 wallet view tables, V10 seed rows).
-Add a course-specific view migration in their place.
+Framework migrations come from the new **`crablet-db-migrations`** module (see below).
+Each example app declares it as a `runtime` dependency and adds only its own view tables.
 
-| Migration | Source | Purpose |
+**`crablet-db-migrations`** is a new zero-Java module containing only SQL files:
+
+| Version | File | Purpose |
 |---|---|---|
-| `V1__eventstore_schema.sql` | copy from wallet | `events` + `commands` tables |
-| `V3__view_progress_schema.sql` | copy from wallet | View processor progress tracking |
-| `V9__reaction_progress_schema.sql` | copy from wallet | Creates `reaction_progress` table |
-| `V10__rename_reaction_progress_to_automation_progress.sql` | copy from wallet | Renames to `automation_progress` (required by `crablet-automations`) |
-| `V11__correlation_causation.sql` | copy from wallet (was V12 in wallet) | Correlation/causation columns on events |
-| `V12__outbox_schema.sql` | copy from wallet (was V13) | Outbox scan progress |
-| `V13__shared_fetch_scan_progress.sql` | copy from wallet (was V14) | Shared-fetch progress (if enabled) |
-| `V2__course_views.sql` | new | App-specific: `course_availability` view table |
+| V1 | `V1__eventstore_schema.sql` | `events` + `commands` tables |
+| V2 | `V2__outbox_schema.sql` | `outbox_topic_progress` table |
+| V3 | `V3__view_progress_schema.sql` | `view_progress` table |
+| V4 | `V4__automation_progress_schema.sql` | `automation_progress` table |
+| V5 | `V5__correlation_causation.sql` | `correlation_id` + `causation_id` on events |
+| V6 | `V6__shared_fetch_scan_progress.sql` | `crablet_module_scan_progress` + `processor_scan_progress` |
 
-**Note on version numbering:** Flyway versions must be sequential and gap-free within the app.
-Renumber framework migrations as needed (wallet's V12/V13/V14 become V11/V12/V13 here since
-wallet V10 is a seed row migration that is not copied).
+Source: copy SQL content from `crablet-test-support/src/main/resources/db/migration/V1–V6`
+(already clean and gap-free — no rename migrations needed).
 
-`V2__course_views.sql`:
+**`course-example-app` adds only:**
+
+```
+db/migration/app/V7__course_views.sql
+```
+
 ```sql
 CREATE TABLE course_availability (
     course_id   VARCHAR(255) PRIMARY KEY,
@@ -148,6 +151,39 @@ CREATE TABLE course_availability (
     updated_at  TIMESTAMP WITH TIME ZONE
 );
 ```
+
+**Flyway configuration** (both example apps):
+```properties
+spring.flyway.locations=classpath:db/migration,classpath:db/migration/app
+```
+
+`classpath:db/migration` resolves to V1–V6 from the `crablet-db-migrations` JAR.
+`classpath:db/migration/app` resolves to app-specific migrations in the app's own resources.
+
+---
+
+### New module: `crablet-db-migrations`
+
+**`crablet-db-migrations/pom.xml`:**
+- Parent: root `pom.xml`
+- No Java sources — SQL files only under `src/main/resources/db/migration/`
+- `<packaging>jar</packaging>` (default)
+- Added to the reactor in root `pom.xml`
+
+**`wallet-example-app` migration refactor** (done alongside the move to `examples/`):
+- Add `crablet-db-migrations` as a `runtime` dependency
+- Add `spring.flyway.locations=classpath:db/migration,classpath:db/migration/app`
+- Delete framework migrations (V1, V3, V9, V11, V12, V13, V14) — now from `crablet-db-migrations`
+- Move wallet-specific migrations to `db/migration/app/`, renumbered V7–V12:
+
+| New name | Was | Purpose |
+|---|---|---|
+| `V7__create_wallet_balance_view.sql` | V4 | wallet_balance_view |
+| `V8__create_wallet_transaction_view.sql` | V5 | wallet_transaction_view |
+| `V9__create_wallet_summary_view.sql` | V6 | wallet_summary_view |
+| `V10__remove_wallet_summary_foreign_key.sql` | V7 | drop FK |
+| `V11__create_wallet_statement_view.sql` | V8 | wallet_statement_view |
+| `V12__seed_view_progress.sql` | V10 | seed view_progress rows for management endpoints |
 
 ### 3e. View projector
 
@@ -220,6 +256,10 @@ make course-start
 
 **Moved (Step 2):**
 - `crablet-commands/src/test/java/.../handlers/courses/*.java` → `shared-examples-domain/src/main/java/.../course/handlers/`
+
+**New files (crablet-db-migrations):**
+- `crablet-db-migrations/pom.xml`
+- `crablet-db-migrations/src/main/resources/db/migration/V1–V6` (copied from crablet-test-support)
 
 **New files (Step 3):**
 - `examples/course-example-app/pom.xml`
