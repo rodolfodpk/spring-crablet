@@ -12,7 +12,7 @@ Recommended first adoption path:
 - use the wallet domain as a reference shape
 - add views, automations, or outbox only after the write flow is working
 
-If you want the fastest runnable path instead of a library integration walkthrough, start with the [Quickstart](../docs/user/QUICKSTART.md) and the [Wallet Example App](../wallet-example-app/README.md).
+If you want the fastest runnable path instead of a library integration walkthrough, start with the [Quickstart](../docs/user/QUICKSTART.md) and the [Wallet Example App](../examples/wallet-example-app/README.md).
 
 ## Dependencies
 
@@ -322,4 +322,4 @@ If you add any of those poller-backed modules, default to **one application inst
 - Command-side adoption path: [Commands-First Adoption](../docs/user/COMMANDS_FIRST_ADOPTION.md)
 - Production topology: [Deployment Topology](../docs/user/DEPLOYMENT_TOPOLOGY.md)
 - EventStore details: [EventStore README](README.md)
-- Wallet example app: [Wallet Example App](../wallet-example-app/README.md)
+- Wallet example app: [Wallet Example App](../examples/wallet-example-app/README.md)

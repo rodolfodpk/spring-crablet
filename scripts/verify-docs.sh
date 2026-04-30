@@ -49,7 +49,7 @@ check_links() {
     "crablet-views/README.md"
     "crablet-outbox/README.md"
     "crablet-automations/README.md"
-    "wallet-example-app/README.md"
+    "examples/wallet-example-app/README.md"
     "templates/crablet-app/README.md"
     "docs/user/ai-tooling/AI_FIRST_WORKFLOW.md"
     "docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md"
@@ -119,7 +119,7 @@ check_forbidden_phrases() {
     "crablet-views/README.md"
     "crablet-outbox/README.md"
     "crablet-automations/README.md"
-    "wallet-example-app/README.md"
+    "examples/wallet-example-app/README.md"
   )
 
   if print_matches "2 instances at most" "${scope[@]}" >/dev/null; then
@@ -182,7 +182,7 @@ check_outbox_api_snippet() {
 
 check_runtime_doc_examples() {
   contains "createdb wallet_db" "docs/user/BUILD.md" || fail "docs/user/BUILD.md must show database creation for wallet-example-app"
-  contains "createdb wallet_db" "wallet-example-app/README.md" || fail "wallet-example-app/README.md must show database creation"
+  contains "createdb wallet_db" "examples/wallet-example-app/README.md" || fail "examples/wallet-example-app/README.md must show database creation"
   contains "lastUpdatedAt" "docs/user/QUICKSTART.md" || fail "docs/user/QUICKSTART.md must show the current wallet response shape"
 
   contains "wallet-transaction-view" "docs/user/MANAGEMENT_API.md" || fail "docs/user/MANAGEMENT_API.md must reference wallet-transaction-view"

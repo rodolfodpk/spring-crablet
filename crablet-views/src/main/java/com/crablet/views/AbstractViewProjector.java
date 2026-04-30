@@ -2,6 +2,7 @@ package com.crablet.views;
 
 import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.CorrelationContext;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.WriteDataSource;
 import tools.jackson.databind.ObjectMapper;
@@ -93,7 +94,7 @@ public abstract class AbstractViewProjector implements ViewProjector {
 
             for (StoredEvent event : events) {
                 try {
-                    if (handleEvent(event, writeJdbc)) {
+                    if (handleEventWithCorrelationContext(event)) {
                         handled++;
                     }
                 } catch (Exception e) {
@@ -106,6 +107,16 @@ public abstract class AbstractViewProjector implements ViewProjector {
 
             return handled;
         });
+    }
+
+    private boolean handleEventWithCorrelationContext(StoredEvent event) throws Exception {
+        // Propagate the triggering event context so events appended by projector-side
+        // work can be traced back to the event being projected.
+        var scope = ScopedValue.where(CorrelationContext.CAUSATION_ID, event.position());
+        if (event.correlationId() != null) {
+            scope = scope.where(CorrelationContext.CORRELATION_ID, event.correlationId());
+        }
+        return scope.call(() -> handleEvent(event, writeJdbc));
     }
 
     /**

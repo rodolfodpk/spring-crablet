@@ -47,7 +47,8 @@ make install            # Full build with unit tests (recommended)
 make install-all-tests  # Full build including integration tests
 make test               # Run all tests
 make clean              # Clean build artifacts
-make start              # Run wallet-example-app
+make start              # Run wallet-example-app (port 8080)
+make course-start       # Run course-example-app (port 8081)
 
 # Run specific module tests (after make install)
 ./mvnw test -pl <module-name>
@@ -132,7 +133,10 @@ shared-examples-domain (Non-reactor, separate build)
 └── Used by all modules in test scope
 
 wallet-example-app (Example application)
-└── Complete Spring Boot application demonstrating framework usage
+└── Spring Boot application demonstrating single-aggregate patterns (wallet domain, port 8080)
+
+course-example-app (Example application)
+└── Spring Boot application demonstrating multi-entity DCB constraints (course enrollment, port 8081)
 
 embabel-codegen (AI-first tooling, separate build)
 ├── CLI: init / plan / generate
@@ -199,7 +203,7 @@ These decisions reflect the current repository state and should be treated as th
 
 - `shared-examples-domain` depends on `crablet-eventstore` (main) for real domain types; framework modules use it in **test** scope for realistic tests and shared scenarios.
 - **`crablet-test-support`** holds shared test utilities (`InMemoryEventStore`, `AbstractHandlerUnitTest`, `AbstractCrabletTest`, `DCBTestHelpers`) so modules do not re-copy that code.
-- **`shared-examples-domain`** and **`examples/wallet-example-app`** are excluded from the reactor; **`make install`** (see `docs/user/BUILD.md`) applies the correct build order and stub JAR steps.
+- **`shared-examples-domain`**, **`examples/wallet-example-app`**, and **`examples/course-example-app`** are excluded from the reactor; **`make install`** (see `docs/user/BUILD.md`) applies the correct build order and stub JAR steps.
 
 **When creating your own application:** depend on framework modules normally; your app does not need to live in this repo. Use your own domain in tests; framework tests keep using `shared-examples-domain` where needed.
 

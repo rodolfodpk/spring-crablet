@@ -1,6 +1,7 @@
 package com.crablet.views;
 
 import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.CorrelationContext;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.eventstore.internal.ClockProviderImpl;
@@ -23,6 +24,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -115,6 +117,29 @@ class AbstractViewProjectorTest {
                 .hasMessage("Failed to deserialize event: WalletOpened to Payload");
     }
 
+    @Test
+    @DisplayName("Should bind correlation context while handling each event")
+    void shouldBindCorrelationContext_WhileHandlingEachEvent() {
+        // Given
+        stubTransaction();
+        TestProjector projector = projector(HandleMode.ALL);
+        UUID correlationId = UUID.randomUUID();
+        List<StoredEvent> events = List.of(
+                event("WalletOpened", "{\"walletId\":\"wallet-1\"}", 10, correlationId, null),
+                event("DepositMade", "{\"walletId\":\"wallet-1\"}", 11, null, null)
+        );
+
+        // When
+        int handled = projector.handle("wallet-view", events);
+
+        // Then
+        assertThat(handled).isEqualTo(2);
+        assertThat(projector.seenCorrelationIds).containsExactly(correlationId, null);
+        assertThat(projector.seenCausationIds).containsExactly(10L, 11L);
+        assertThat(CorrelationContext.correlationId()).isNull();
+        assertThat(CorrelationContext.causationId()).isNull();
+    }
+
     private TestProjector projector(HandleMode mode) {
         return new TestProjector(
                 objectMapper,
@@ -141,6 +166,24 @@ class AbstractViewProjectorTest {
         );
     }
 
+    private StoredEvent event(
+            String type,
+            String json,
+            long position,
+            UUID correlationId,
+            Long causationId) {
+        return new StoredEvent(
+                type,
+                List.of(),
+                json.getBytes(StandardCharsets.UTF_8),
+                "tx-" + position,
+                position,
+                clockProvider.now(),
+                correlationId,
+                causationId
+        );
+    }
+
     private enum HandleMode {
         ALL,
         SKIP_SECOND,
@@ -153,6 +196,8 @@ class AbstractViewProjectorTest {
     private static final class TestProjector extends AbstractViewProjector {
         private final HandleMode mode;
         private final java.util.List<String> seenTypes = new java.util.ArrayList<>();
+        private final java.util.List<UUID> seenCorrelationIds = new java.util.ArrayList<>();
+        private final java.util.List<Long> seenCausationIds = new java.util.ArrayList<>();
 
         private TestProjector(
                 ObjectMapper objectMapper,
@@ -172,6 +217,8 @@ class AbstractViewProjectorTest {
         @Override
         protected boolean handleEvent(StoredEvent event, JdbcTemplate jdbcTemplate) {
             seenTypes.add(event.type());
+            seenCorrelationIds.add(CorrelationContext.correlationId());
+            seenCausationIds.add(CorrelationContext.causationId());
             if (mode == HandleMode.FAIL_FIRST) {
                 throw new IllegalStateException("projection failed");
             }

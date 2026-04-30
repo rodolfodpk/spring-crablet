@@ -45,7 +45,7 @@ class McpServerTest {
                   "params": {
                     "name": "embabel_plan",
                     "arguments": {
-                      "model": "../docs/examples/loan-submit-feature-slice-event-model.yaml"
+                      "model": "../docs/user/examples/loan-submit-feature-slice-event-model.yaml"
                     }
                   }
                 }

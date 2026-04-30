@@ -91,22 +91,24 @@ Full `main` history audited. Eight breaking changes now documented in `UPGRADE.m
 - **Outbox** — `OutboxPublisher.publishBatch` already receives `StoredEvent` carrying `correlationId`/`causationId`; no API change needed — remaining work is envelope conventions (which fields to forward in HTTP/Kafka payloads)
 - **Integration test** — verify IDs survive the full command → view → outbox path
 
-### 2b. Examples consolidation + Course domain app
+### 2b. Examples consolidation + Course domain app — done
 
 **Repo layout (done):**
 ```
 examples/
   wallet-example-app/     ← moved from root
-  course-example-app/     ← new (remaining work)
+  course-example-app/     ← new (done)
 shared-examples-domain/   ← stays at root (used in test scope by framework modules)
 ```
 
 **Step 1 — Move `wallet-example-app` into `examples/` — done**
 
-**Step 2 — Create `course-example-app`**
-- New Spring Boot app under `examples/course-example-app/`
+**Step 2 — Create `course-example-app` — done**
+- Spring Boot app under `examples/course-example-app/`
 - Depends on framework modules + `shared-examples-domain`
 - `make` targets: `make course-start`, `make course-dev`
+- All source files implemented: `CourseApplication`, `CourseAvailabilityViewProjector`, `CourseCapacityAutomation`, `CourseQueryController`, Flyway migrations, `CrabletConfig`
+- Pending: commit to git (`examples/course-example-app/` is currently untracked)
 
 Module coverage:
 

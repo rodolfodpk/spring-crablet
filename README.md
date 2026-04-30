@@ -17,7 +17,7 @@ Crablet helps Spring teams turn an event-modeled domain into a working event-sou
 
 ## Framework Path
 
-Crablet can be used directly as a Java framework: `EventStore`, command handlers, and `CommandExecutor` are the typical write path; views, outbox, automations, and the optional HTTP command adapter layer on top. For a first project, start with the [module reference](docs/user/MODULES.md), [Create a new Crablet app manually](docs/user/CREATE_A_CRABLET_APP.md), the [Tutorial](docs/user/TUTORIAL.md), the [Commands](crablet-commands/README.md) and [Event Store](crablet-eventstore/README.md) module READMEs, and the [Wallet example](wallet-example-app/README.md) for a full app shape.
+Crablet can be used directly as a Java framework: `EventStore`, command handlers, and `CommandExecutor` are the typical write path; views, outbox, automations, and the optional HTTP command adapter layer on top. For a first project, start with the [module reference](docs/user/MODULES.md), [Create a new Crablet app manually](docs/user/CREATE_A_CRABLET_APP.md), the [Tutorial](docs/user/TUTORIAL.md), the [Commands](crablet-commands/README.md) and [Event Store](crablet-eventstore/README.md) module READMEs, and the [Wallet example](examples/wallet-example-app/README.md) for a full app shape.
 
 ## AI-First Path
 
@@ -107,7 +107,7 @@ Read more in [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) and [
 
 ### Framework
 
-[Quickstart](docs/user/QUICKSTART.md) · [Tutorial](docs/user/TUTORIAL.md) · [Create a new Crablet app manually](docs/user/CREATE_A_CRABLET_APP.md) · [Learning mode](docs/user/LEARNING_MODE.md) · [Commands-first adoption](docs/user/COMMANDS_FIRST_ADOPTION.md) · [Module reference](docs/user/MODULES.md) · [Public API](docs/user/PUBLIC_API.md) · [Deployment topology](docs/user/DEPLOYMENT_TOPOLOGY.md) · [DCB and Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) · [Command patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md) · [Configuration](docs/user/CONFIGURATION.md) · [Build](docs/user/BUILD.md) · [Performance](docs/user/PERFORMANCE.md) · [Troubleshooting](docs/user/TROUBLESHOOTING.md) · [Upgrade](docs/user/UPGRADE.md) · [Management API](docs/user/MANAGEMENT_API.md) · [Fault recovery](docs/user/FAULT_RECOVERY.md) · [Leader election](docs/user/LEADER_ELECTION.md) · [Connection poolers](crablet-eventstore/docs/CONNECTION_POOLERS.md) · [Observability](docs/user/OBSERVABILITY.md) · [Wallet example](wallet-example-app/README.md)
+[Quickstart](docs/user/QUICKSTART.md) · [Tutorial](docs/user/TUTORIAL.md) · [Create a new Crablet app manually](docs/user/CREATE_A_CRABLET_APP.md) · [Learning mode](docs/user/LEARNING_MODE.md) · [Commands-first adoption](docs/user/COMMANDS_FIRST_ADOPTION.md) · [Module reference](docs/user/MODULES.md) · [Public API](docs/user/PUBLIC_API.md) · [Deployment topology](docs/user/DEPLOYMENT_TOPOLOGY.md) · [DCB and Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) · [Command patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md) · [Configuration](docs/user/CONFIGURATION.md) · [Build](docs/user/BUILD.md) · [Performance](docs/user/PERFORMANCE.md) · [Troubleshooting](docs/user/TROUBLESHOOTING.md) · [Upgrade](docs/user/UPGRADE.md) · [Management API](docs/user/MANAGEMENT_API.md) · [Fault recovery](docs/user/FAULT_RECOVERY.md) · [Leader election](docs/user/LEADER_ELECTION.md) · [Connection poolers](crablet-eventstore/docs/CONNECTION_POOLERS.md) · [Observability](docs/user/OBSERVABILITY.md) · [Wallet example](examples/wallet-example-app/README.md)
 
 ### AI tooling
 

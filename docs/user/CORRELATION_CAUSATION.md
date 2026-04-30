@@ -21,6 +21,30 @@ Long caus = CorrelationContext.causationId();
 
 The `EventStoreImpl` append layer reads these values automatically. No changes to command handlers or event definitions are needed.
 
+## Module Responsibilities
+
+| Module | Responsibility |
+|--------|----------------|
+| `crablet-eventstore` | Defines `CorrelationContext`, persists IDs on append, and exposes them through `StoredEvent` |
+| `crablet-commands` | Binds an explicit correlation ID for `CommandExecutor.execute(command, correlationId)` |
+| `crablet-commands-web` | Reads/generates the HTTP correlation header and passes it to `CommandExecutor` |
+| `crablet-automations` | Propagates the triggering event's correlation ID and sets causation to the triggering event position |
+| `crablet-views` | Binds the projected event's correlation ID and position while projector code runs |
+| `crablet-outbox` | Delivers `StoredEvent` instances to publishers; publishers can forward IDs to external systems |
+| `crablet-db-migrations` | Provides the shared Flyway migration that adds `correlation_id` and `causation_id` |
+
+## Propagation Flow
+
+A typical HTTP-triggered automation chain looks like this:
+
+1. `crablet-commands-web` receives `POST /api/commands`, reads `X-Correlation-Id`, or generates a new UUID.
+2. `crablet-commands` runs the command inside a `CorrelationContext.CORRELATION_ID` scope.
+3. `crablet-eventstore` appends the command's event with that correlation ID and a `null` causation ID.
+4. `crablet-event-poller` fetches the stored event, including its correlation and causation columns.
+5. `crablet-automations` handles the event, keeps the same correlation ID, and sets causation to the triggering event's position.
+6. If the automation executes another command, `crablet-eventstore` appends the new event with the same correlation ID and causation set.
+7. `crablet-views` and `crablet-outbox` receive `StoredEvent` values containing both IDs, so projectors and publishers can keep the trace intact.
+
 ## Explicit API (programmatic callers)
 
 For batch jobs, internal services, or tests that want to set the correlation ID without a servlet filter, pass it directly to `CommandExecutor`:
@@ -36,7 +60,9 @@ This is the recommended approach when there is no HTTP request in scope. The met
 
 ## HTTP Layer
 
-To attach a correlation ID to every HTTP request, declare a servlet filter that binds `CorrelationContext.CORRELATION_ID` for the duration of the request. The wallet example app ships a ready-to-use implementation:
+If you use `crablet-commands-web`, the generic command endpoint handles this for you. The built-in filter reads the configured correlation header, defaults to `X-Correlation-Id`, generates a fresh UUID when the header is absent, echoes the final value in the response, and passes it into `CommandExecutor`.
+
+For application-specific controllers that append events outside the generic command API, declare a servlet filter that binds `CorrelationContext.CORRELATION_ID` for the duration of the request. The wallet example app ships one such implementation:
 
 ```java
 // examples/wallet-example-app/src/main/java/com/crablet/wallet/api/CorrelationFilter.java
@@ -83,6 +109,26 @@ This means:
 - The `causationId` of each produced event is set to the `position` of the event that triggered the automation.
 - Chains (automation A triggers command → event → automation B) propagate correlation end-to-end with accurate causation at every step.
 
+## View Projectors
+
+`AbstractViewProjector` binds correlation and causation while each stored event is projected:
+
+- `CorrelationContext.correlationId()` is the projected event's `correlationId`, or `null`.
+- `CorrelationContext.causationId()` is the projected event's `position`.
+
+Most projectors only update read-model tables and do not need to read the context. If a projector performs additional application work that appends events, those events inherit the projected event as their cause.
+
+## Outbox Publishers
+
+Outbox publishers receive `StoredEvent` instances, so they can read the values directly:
+
+```java
+UUID correlationId = event.correlationId();
+Long causationId = event.causationId();
+```
+
+The built-in `LogPublisher` includes both values in its event log lines. Webhook or broker publishers should include them in message metadata or payloads when downstream systems need traceability.
+
 ## Reading the Values
 
 ```java
@@ -95,12 +141,12 @@ Both are nullable. Events appended before the feature was introduced, or through
 
 ## Database Columns
 
-The migration that adds the columns is split between the two migration locations:
+The shared migration that adds the columns lives in `crablet-db-migrations` and is reused by example apps. Test support carries the same migration for module integration tests:
 
 | Location | File | Applied to |
 |----------|------|-----------|
+| `crablet-db-migrations/src/main/resources/db/migration/` | `V5__correlation_causation.sql` | Example apps and apps that include the shared migration artifact |
 | `crablet-test-support/src/main/resources/db/migration/` | `V5__correlation_causation.sql` | All test databases |
-| `examples/wallet-example-app/src/main/resources/db/migration/` | `V12__correlation_causation.sql` | The wallet example app |
 
 For your own application, add a Flyway migration with:
 

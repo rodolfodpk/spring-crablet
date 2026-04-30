@@ -68,7 +68,7 @@ make start          # wallet app starts from new path
 
 ---
 
-## Step 2 — Promote course command handlers into `shared-examples-domain`
+## Step 2 — Promote course command handlers into `shared-examples-domain` — done
 
 The three course command handlers currently live in `crablet-commands/src/test/java` and are
 not available as a compile dependency. They must be moved into `shared-examples-domain` so
@@ -84,7 +84,7 @@ new location (or remove duplication if tests already use `shared-examples-domain
 
 ---
 
-## Step 3 — Create `course-example-app`
+## Step 3 — Create `course-example-app` — done
 
 ### 3a. Maven module
 

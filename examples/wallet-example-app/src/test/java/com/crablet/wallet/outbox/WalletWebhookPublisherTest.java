@@ -3,11 +3,12 @@ package com.crablet.wallet.outbox;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
 import com.crablet.outbox.PublishException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -22,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("WalletWebhookPublisher Unit Tests")
 class WalletWebhookPublisherTest {
 
-    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+    private final ObjectMapper objectMapper = JsonMapper.builder().build();
     private HttpServer server;
 
     @AfterEach

@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -135,13 +136,16 @@ class LogPublisherTest {
     @DisplayName("Should log event type, data, and position for each event")
     void shouldLogEventTypeDataAndPosition_ForEachEvent() throws PublishException {
         // Given
+        UUID correlationId = UUID.randomUUID();
         StoredEvent event = new StoredEvent(
                 "WithdrawalMade",
                 List.of(),
                 "{\"amount\":50}".getBytes(),
                 "tx-456",
                 200L,
-                Instant.now()
+                Instant.now(),
+                correlationId,
+                123L
         );
         List<StoredEvent> events = List.of(event);
 
@@ -154,6 +158,8 @@ class LogPublisherTest {
         assertThat(eventLog).contains("WithdrawalMade");
         assertThat(eventLog).contains("{\"amount\":50}");
         assertThat(eventLog).contains("200");
+        assertThat(eventLog).contains("correlationId=" + correlationId);
+        assertThat(eventLog).contains("causationId=123");
     }
 
     @Test
@@ -226,4 +232,3 @@ class LogPublisherTest {
         assertThat(logEvents.get(0).getFormattedMessage()).contains("Publishing batch of 1000 events");
     }
 }
-

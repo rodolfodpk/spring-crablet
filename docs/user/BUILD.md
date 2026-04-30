@@ -10,6 +10,12 @@ For the library build:
 make install   # build everything in the right order
 ```
 
+For full local validation before a release or large merge:
+
+```bash
+make validate-all   # framework, docs, codegen, and standalone examples
+```
+
 For the example application:
 
 ```bash
@@ -70,17 +76,19 @@ through a single test-scope dependency — no per-module copies needed.
 | 4 | `build-shared` | `shared-examples-domain` (full build with tests) |
 | 5 | `build-reactor` | all reactor modules (full build with tests) |
 
-`examples/wallet-example-app` is not part of `make install`. It depends on the reactor
-being installed first — see [Running the Example App](#running-the-example-app).
+Neither `examples/wallet-example-app` nor `examples/course-example-app` is part of `make install`. Both depend on the reactor being installed first — see [Running the Example Apps](#running-the-example-apps).
 
 ## Makefile Commands
 
 ```bash
 make install            # full build with unit tests (recommended)
 make install-all-tests  # full build including integration tests
+make validate-all       # full local validation: framework, docs, codegen, examples
 make test               # run all tests (requires prior install)
+make examples-check     # test standalone wallet and course example apps
 make clean              # clean all build artifacts
-make start              # run wallet-example-app
+make start              # run wallet-example-app (port 8080)
+make course-start       # run course-example-app (port 8081)
 ```
 
 Advanced targets (for troubleshooting or incremental builds):
@@ -122,27 +130,41 @@ Run a single module after `make install`:
 ./mvnw test -pl crablet-commands -Dtest=DepositCommandHandlerTest
 ```
 
-## Running the Example App
+## Running the Example Apps
+
+Both example apps are standalone Spring Boot applications excluded from the reactor.
+They inherit version management from the parent POM via the local Maven repository,
+so `make install` must run first.
+
+### Wallet example (port 8080)
+
+Demonstrates single-aggregate patterns: open wallet, deposit, withdraw, transfer.
 
 ```bash
-# Option 1 — easiest
 make install
 createdb wallet_db
-make start
-
-# Option 2 — manual
-make install
-createdb wallet_db
-cd examples/wallet-example-app && ../../mvnw spring-boot:run
+make start          # or: cd examples/wallet-example-app && ../../mvnw spring-boot:run
 ```
-
-`examples/wallet-example-app` is a standalone Spring Boot application excluded from the
-reactor. It inherits version management from the parent POM via the local Maven
-repository, so `make install` must run first.
 
 Once running:
 - API: http://localhost:8080/api/
 - Swagger UI: http://localhost:8080/swagger-ui.html
+
+### Course example (port 8081)
+
+Demonstrates multi-entity DCB: one command enforces both course capacity and student
+subscription limit in a single consistency boundary.
+
+```bash
+make install
+createdb course_db
+make course-start   # or: cd examples/course-example-app && ../../mvnw spring-boot:run
+```
+
+Once running:
+- API: http://localhost:8081/api/courses/{courseId}
+- Commands: POST http://localhost:8081/api/commands (define_course, subscribe_student_to_course, change_course_capacity)
+- Swagger UI: http://localhost:8081/swagger-ui.html
 
 ## Testing
 
@@ -152,6 +174,8 @@ Integration tests start a real PostgreSQL container via Testcontainers (100–50
 ```bash
 make install            # runs unit tests only
 make install-all-tests  # runs unit + integration tests
+make examples-check     # runs standalone example app tests
+make validate-all       # runs all local validation targets
 ```
 
 ## Database Migrations
@@ -171,5 +195,9 @@ crablet-test-support/src/main/resources/db/migration/
 Flyway picks these up automatically on the test classpath because every module
 has `crablet-test-support` as a test-scope dependency. No copies in individual modules.
 
-`examples/wallet-example-app` manages its own migrations in `src/main/resources/db/migration/`
-(V1 eventstore, V3+ view progress and app views, outbox, automations, correlation, shared-fetch, etc.).
+Both example apps use a two-location Flyway configuration:
+- `classpath:db/migration` — framework tables V1–V6 from `crablet-db-migrations`
+- `classpath:db/migration/app` — app-specific views (V7+)
+
+Wallet app-specific migrations: `wallet_balance_view`, `wallet_transaction_view`, `wallet_summary_view`, `wallet_statement_view`.
+Course app-specific migrations: `course_availability` table.

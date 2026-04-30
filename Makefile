@@ -11,7 +11,7 @@
 # examples/wallet-example-app is built separately after the reactor is installed.
 # See BUILD.md for full explanation.
 
-.PHONY: help install install-all-tests ci-verify build-all compile package test test-skip clean verify build-core build-shared build-reactor build-reactor-verify start wallet-dev docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check
+.PHONY: help install install-all-tests ci-verify validate-all build-all compile package test test-skip examples-check clean verify build-core build-shared build-reactor build-reactor-verify start wallet-dev course-start course-dev docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check
 
 # Default target
 help:
@@ -21,6 +21,7 @@ help:
 	@echo "  install          - Build and install all modules (handles cyclic dependencies automatically)"
 	@echo "  install-all-tests - Build with all tests including integration tests (installs to local repo)"
 	@echo "  ci-verify        - Build with all tests for CI (no local repo install, faster)"
+	@echo "  validate-all     - Full local validation: framework, docs, codegen, and examples"
 	@echo "  build-all        - Alias for install"
 	@echo "  compile          - Compile all modules without packaging"
 	@echo "  package          - Build JARs for all modules"
@@ -33,6 +34,7 @@ help:
 	@echo "Test Commands:"
 	@echo "  test        - Run all tests across all modules"
 	@echo "  test-skip   - Build without running tests (faster)"
+	@echo "  examples-check - Test standalone example applications"
 	@echo ""
 	@echo "Clean Commands:"
 	@echo "  clean       - Clean all build artifacts"
@@ -44,8 +46,10 @@ help:
 	@echo "  build-reactor - Build all reactor modules (after core, command and shared are installed)"
 	@echo ""
 	@echo "Application Commands:"
-	@echo "  start       - Start examples/wallet-example-app application"
-	@echo "  wallet-dev  - Start wallet development environment (alias for start)"
+	@echo "  start         - Start examples/wallet-example-app application"
+	@echo "  wallet-dev    - Start wallet development environment (alias for start)"
+	@echo "  course-start  - Start examples/course-example-app application"
+	@echo "  course-dev    - Start course development environment (alias for course-start)"
 	@echo ""
 	@echo "Note: wallet-example-app is a Spring Boot application - use 'mvn spring-boot:run' in examples/wallet-example-app directory"
 	@echo ""
@@ -72,6 +76,9 @@ install-all-tests: build-core build-test-support build-command build-shared buil
 # 4. Verify reactor (no install needed for reactor modules)
 ci-verify: build-core build-test-support build-command build-shared build-reactor-verify
 	@echo "✓ CI build complete with all tests!"
+
+validate-all: install-all-tests docs-check docs-compile-check docs-generate-check codegen-check examples-check
+	@echo "✓ Full local validation complete."
 
 docs-check:
 	@chmod +x scripts/verify-docs.sh
@@ -156,6 +163,13 @@ test: build-core build-test-support build-command build-shared
 test-skip: build-core build-command build-shared
 	@./mvnw install -DskipTests
 
+examples-check:
+	@echo "Testing wallet example app..."
+	@cd examples/wallet-example-app && ../../mvnw clean test
+	@echo "Testing course example app..."
+	@cd examples/course-example-app && ../../mvnw clean test
+	@echo "✓ Example apps tested."
+
 # Full verify (clean build with tests)
 verify: build-core build-command build-shared
 	@./mvnw verify
@@ -172,6 +186,12 @@ start:
 wallet-dev:
 	cd examples/wallet-example-app && ../../mvnw spring-boot:run
 
+course-start:
+	cd examples/course-example-app && ../../mvnw spring-boot:run
+
+course-dev:
+	cd examples/course-example-app && ../../mvnw spring-boot:run
+
 # Codegen — excluded from reactor, build separately after 'make install'
 codegen-build:
 	@echo "Building embabel-codegen fat JAR..."
@@ -185,7 +205,7 @@ codegen-install:
 
 codegen-plan-example: codegen-build
 	@echo "Planning documented loan feature slice..."
-	@cd embabel-codegen && java -jar target/embabel-codegen.jar plan --model ../docs/examples/loan-submit-feature-slice-event-model.yaml
+	@cd embabel-codegen && java -jar target/embabel-codegen.jar plan --model ../docs/user/examples/loan-submit-feature-slice-event-model.yaml
 
 codegen-check:
 	@echo "Running embabel-codegen tests..."

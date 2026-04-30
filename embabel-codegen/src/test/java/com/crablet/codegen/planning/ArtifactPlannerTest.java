@@ -22,7 +22,7 @@ class ArtifactPlannerTest {
     @Test
     void plansDocumentedLoanFeatureSliceWithoutGeneration() throws Exception {
         EventModel model = yaml.readValue(
-                Path.of("..", "docs", "examples", "loan-submit-feature-slice-event-model.yaml").toFile(),
+                Path.of("..", "docs", "user", "examples", "loan-submit-feature-slice-event-model.yaml").toFile(),
                 EventModel.class
         );
 

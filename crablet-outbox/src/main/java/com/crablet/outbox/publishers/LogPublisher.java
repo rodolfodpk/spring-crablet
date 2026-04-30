@@ -6,6 +6,7 @@ import com.crablet.outbox.PublishException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -20,10 +21,12 @@ public class LogPublisher implements OutboxPublisher {
     public void publishBatch(List<StoredEvent> events) throws PublishException {
         log.info("Publishing batch of {} events:", events.size());
         for (StoredEvent event : events) {
-            log.info("  [{}] {} @ position {}", 
+            log.info("  [{}] {} @ position {} correlationId={} causationId={}",
                 event.type(), 
-                new String(event.data()), 
-                event.position()
+                new String(event.data(), StandardCharsets.UTF_8),
+                event.position(),
+                event.correlationId(),
+                event.causationId()
             );
         }
     }

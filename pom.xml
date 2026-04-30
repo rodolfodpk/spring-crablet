@@ -122,6 +122,13 @@
                 <artifactId>crablet-metrics-micrometer</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
+            <!-- Crablet DB Migrations -->
+            <dependency>
+                <groupId>com.crablet</groupId>
+                <artifactId>crablet-db-migrations</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             
             <!-- Shared Examples Domain -->
             <dependency>
