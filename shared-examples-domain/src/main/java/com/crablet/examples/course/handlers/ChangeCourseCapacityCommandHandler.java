@@ -1,15 +1,15 @@
-package com.crablet.command.handlers.courses;
+package com.crablet.examples.course.handlers;
 
 import com.crablet.command.CommandDecision;
 import com.crablet.command.NonCommutativeCommandHandler;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.StreamPosition;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.StateProjector;
-import com.crablet.eventstore.AppendEvent;
-import com.crablet.eventstore.StreamPosition;
-import com.crablet.eventstore.EventStore;
-import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.course.CourseQueryPatterns;
 import com.crablet.examples.course.commands.ChangeCourseCapacityCommand;
 import com.crablet.examples.course.events.CourseCapacityChanged;
@@ -41,8 +41,6 @@ public class ChangeCourseCapacityCommandHandler implements NonCommutativeCommand
 
     @Override
     public CommandDecision.NonCommutative decide(EventStore eventStore, ChangeCourseCapacityCommand command) {
-        // Command is already validated at construction with YAVI
-
         Query decisionModel = CourseQueryPatterns.courseDecisionModel(command.courseId());
 
         CourseStateProjector projector = new CourseStateProjector();

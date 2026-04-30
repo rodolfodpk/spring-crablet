@@ -1,6 +1,6 @@
 package com.crablet.command.handlers.courses.unit;
 
-import com.crablet.command.handlers.courses.ChangeCourseCapacityCommandHandler;
+import com.crablet.examples.course.handlers.ChangeCourseCapacityCommandHandler;
 import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
 import com.crablet.examples.course.commands.ChangeCourseCapacityCommand;
 import com.crablet.examples.course.events.CourseCapacityChanged;

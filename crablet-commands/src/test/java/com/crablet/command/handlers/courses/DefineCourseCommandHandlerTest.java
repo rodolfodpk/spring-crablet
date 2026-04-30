@@ -1,6 +1,7 @@
 package com.crablet.command.handlers.courses;
 
 import com.crablet.command.CommandDecision;
+import com.crablet.examples.course.handlers.DefineCourseCommandHandler;
 import com.crablet.test.AbstractCrabletTest;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.StoredEvent;

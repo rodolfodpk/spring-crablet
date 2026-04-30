@@ -1,6 +1,6 @@
 package com.crablet.command.handlers.courses.unit;
 
-import com.crablet.command.handlers.courses.SubscribeStudentToCourseCommandHandler;
+import com.crablet.examples.course.handlers.SubscribeStudentToCourseCommandHandler;
 import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
 import com.crablet.examples.course.commands.SubscribeStudentToCourseCommand;
 import com.crablet.examples.course.events.CourseDefined;

@@ -1,4 +1,4 @@
-package com.crablet.command.handlers.courses;
+package com.crablet.examples.course.handlers;
 
 import com.crablet.command.CommandDecision;
 import com.crablet.command.IdempotentCommandHandler;
@@ -24,8 +24,6 @@ public class DefineCourseCommandHandler implements IdempotentCommandHandler<Defi
 
     @Override
     public CommandDecision.Idempotent decide(EventStore eventStore, DefineCourseCommand command) {
-        // Command is already validated at construction with YAVI
-
         CourseDefined courseDefined = CourseDefined.of(
                 command.courseId(),
                 command.capacity()
@@ -36,7 +34,6 @@ public class DefineCourseCommandHandler implements IdempotentCommandHandler<Defi
                 .data(courseDefined)
                 .build();
 
-        // Idempotency: fails if ANY CourseDefined event exists for this course_id
         return CommandDecision.Idempotent.of(event, type(CourseDefined.class), COURSE_ID, command.courseId());
     }
 }

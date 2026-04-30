@@ -1,14 +1,19 @@
-package com.crablet.command.handlers.courses;
+package com.crablet.examples.course.handlers;
 
 import com.crablet.command.CommandDecision;
 import com.crablet.command.NonCommutativeCommandHandler;
+import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.AppendEvent;
-import com.crablet.eventstore.StreamPosition;
-import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.query.StateProjector;
 import com.crablet.examples.course.CourseQueryPatterns;
 import com.crablet.examples.course.commands.SubscribeStudentToCourseCommand;
+import com.crablet.examples.course.events.CourseCapacityChanged;
+import com.crablet.examples.course.events.CourseDefined;
 import com.crablet.examples.course.events.StudentSubscribedToCourse;
 import com.crablet.examples.course.exceptions.AlreadySubscribedException;
 import com.crablet.examples.course.exceptions.CourseFullException;
@@ -29,7 +34,8 @@ import static com.crablet.examples.course.CourseTags.STUDENT_ID;
  * Command handler for subscribing students to courses.
  * <p>
  * DCB Principle: Non-commutative operation — order matters for both course capacity
- * and student subscription limit constraints.
+ * and student subscription limit constraints. One decision model spans both the course
+ * and the student, enforcing multi-aggregate consistency in a single boundary.
  */
 @Component
 public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCommandHandler<SubscribeStudentToCourseCommand> {
@@ -43,8 +49,6 @@ public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCom
 
     @Override
     public CommandDecision.NonCommutative decide(EventStore eventStore, SubscribeStudentToCourseCommand command) {
-        // Command is already validated at construction with YAVI
-
         Query decisionModel = CourseQueryPatterns.subscriptionDecisionModel(
                 command.courseId(),
                 command.studentId()
@@ -98,10 +102,7 @@ public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCom
         return CommandDecision.NonCommutative.of(event, decisionModel, projection.streamPosition());
     }
 
-    /**
-     * Composite projector for subscription state (all constraints).
-     */
-    static class SubscriptionStateProjector implements com.crablet.eventstore.query.StateProjector<SubscriptionState> {
+    static class SubscriptionStateProjector implements StateProjector<SubscriptionState> {
         private final String courseId;
         private final String studentId;
 
@@ -116,10 +117,10 @@ public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCom
         }
 
         @Override
-        public java.util.List<String> getEventTypes() {
-            return java.util.List.of(
-                    type(com.crablet.examples.course.events.CourseDefined.class),
-                    type(com.crablet.examples.course.events.CourseCapacityChanged.class),
+        public List<String> getEventTypes() {
+            return List.of(
+                    type(CourseDefined.class),
+                    type(CourseCapacityChanged.class),
                     type(StudentSubscribedToCourse.class)
             );
         }
@@ -130,12 +131,10 @@ public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCom
         }
 
         @Override
-        public SubscriptionState transition(SubscriptionState current, com.crablet.eventstore.StoredEvent event,
-                                             com.crablet.eventstore.query.EventDeserializer context) {
+        public SubscriptionState transition(SubscriptionState current, StoredEvent event, EventDeserializer context) {
             return switch (event.type()) {
-                case String s when s.equals(type(com.crablet.examples.course.events.CourseDefined.class)) -> {
-                    com.crablet.examples.course.events.CourseDefined courseDefined =
-                            context.deserialize(event, com.crablet.examples.course.events.CourseDefined.class);
+                case String s when s.equals(type(CourseDefined.class)) -> {
+                    CourseDefined courseDefined = context.deserialize(event, CourseDefined.class);
                     if (courseDefined.courseId().equals(courseId)) {
                         yield new SubscriptionState(
                                 true,
@@ -147,9 +146,8 @@ public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCom
                     }
                     yield current;
                 }
-                case String s when s.equals(type(com.crablet.examples.course.events.CourseCapacityChanged.class)) -> {
-                    com.crablet.examples.course.events.CourseCapacityChanged capacityChanged =
-                            context.deserialize(event, com.crablet.examples.course.events.CourseCapacityChanged.class);
+                case String s when s.equals(type(CourseCapacityChanged.class)) -> {
+                    CourseCapacityChanged capacityChanged = context.deserialize(event, CourseCapacityChanged.class);
                     if (capacityChanged.courseId().equals(courseId)) {
                         yield new SubscriptionState(
                                 current.courseExists(),
@@ -162,19 +160,16 @@ public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCom
                     yield current;
                 }
                 case String s when s.equals(type(StudentSubscribedToCourse.class)) -> {
-                    com.crablet.examples.course.events.StudentSubscribedToCourse subscription =
-                            context.deserialize(event, com.crablet.examples.course.events.StudentSubscribedToCourse.class);
-
+                    StudentSubscribedToCourse subscription =
+                            context.deserialize(event, StudentSubscribedToCourse.class);
                     boolean affectsCourse = subscription.courseId().equals(courseId);
                     boolean affectsStudent = subscription.studentId().equals(studentId);
-
                     int newCourseSubscriptions = affectsCourse ?
                             current.courseSubscriptionsCount() + 1 : current.courseSubscriptionsCount();
                     int newStudentSubscriptions = affectsStudent ?
                             current.studentSubscriptionsCount() + 1 : current.studentSubscriptionsCount();
                     boolean newAlreadySubscribed = current.studentAlreadySubscribed() ||
                             (affectsCourse && affectsStudent);
-
                     yield new SubscriptionState(
                             current.courseExists(),
                             current.courseCapacity(),
