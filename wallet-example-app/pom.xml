@@ -99,6 +99,13 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
         
+        <!-- Framework DB migrations (events, commands, progress tables) -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-db-migrations</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Flyway for database migrations -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

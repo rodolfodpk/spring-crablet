@@ -12,6 +12,7 @@
     <description>Multi-module event sourcing library with DCB pattern and outbox support</description>
     
     <modules>
+        <module>crablet-db-migrations</module>
         <module>crablet-eventstore</module>
         <module>crablet-commands</module>
         <module>crablet-commands-web</module>
