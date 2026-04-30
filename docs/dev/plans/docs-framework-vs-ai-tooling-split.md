@@ -71,13 +71,13 @@ The union of both outputs is the authoritative list to fix. Known files (conveni
 | `embabel-codegen/README.md` | AI_FIRST_WORKFLOW, FEATURE_SLICE_WORKFLOW, EVENT_MODEL_FORMAT |
 | `templates/README.md` | AI_FIRST_WORKFLOW |
 | `templates/crablet-app/README.md` | scan; rg will confirm |
-| `wallet-example-app/README.md` | scan; rg will confirm |
+| `examples/wallet-example-app/README.md` | scan; rg will confirm |
 
 ### 2b — Outbound links inside moved files
 
 Moving `docs/user/*.md` to `docs/user/ai-tooling/*.md` changes the depth of every relative link. Fix **every** relative link inside each moved file — not just sibling links but also any paths pointing at:
 - `../assets/`, `../examples/`, `../tutorials/`
-- `../../templates/`, `../../wallet-example-app/`
+- `../../templates/`, `../../examples/wallet-example-app/`
 - sibling docs that stay in `docs/user/` (e.g. `../QUICKSTART.md`, `../TUTORIAL.md`, `../CREATE_A_CRABLET_APP.md`)
 - module READMEs (e.g. `../../crablet-eventstore/README.md`)
 

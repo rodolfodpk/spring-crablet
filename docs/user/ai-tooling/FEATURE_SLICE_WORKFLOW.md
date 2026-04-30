@@ -95,7 +95,7 @@ This board maps to the wallet sample’s documented flow:
 - `WelcomeNotificationSent` records the follow-up fact
 - the outbox publishes committed wallet events through `LogPublisher` or `wallet-webhook`
 
-For code references and runtime behavior, see [wallet-example-app/README.md](../../../wallet-example-app/README.md).
+For code references and runtime behavior, see [examples/wallet-example-app/README.md](../../../examples/wallet-example-app/README.md).
 
 The developer dialogue should stay outcome-oriented:
 

@@ -25,10 +25,11 @@
         <!-- shared-examples-domain excluded from reactor to avoid cycle -->
         <!-- Build separately: cd shared-examples-domain && ../mvnw install -->
         <!-- <module>shared-examples-domain</module> -->
-        <!-- wallet-example-app excluded from reactor - it's an example application -->
-        <!-- Build separately: cd wallet-example-app && ../mvnw install -->
-        <!-- Or use: make start or make wallet-dev -->
-        <!-- <module>wallet-example-app</module> -->
+        <!-- example apps excluded from reactor — build separately or use make targets -->
+        <!-- Build separately: cd examples/wallet-example-app && ../../mvnw install -->
+        <!-- Or use: make start / make wallet-dev / make course-start -->
+        <!-- <module>examples/wallet-example-app</module> -->
+        <!-- <module>examples/course-example-app</module> -->
     </modules>
     
     <properties>

@@ -48,7 +48,7 @@ Crablet-specific scaffolding beyond what Spring Initializr already provides.
 - Link to:
   - `docs/user/COMMANDS_FIRST_ADOPTION.md`
   - `docs/user/TUTORIAL.md`
-  - `wallet-example-app/README.md`
+  - `examples/wallet-example-app/README.md`
 
 ## CLI Position
 

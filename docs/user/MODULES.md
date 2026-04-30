@@ -8,7 +8,7 @@ Crablet is split into a small required write-side core and optional libraries yo
 |------|---------|
 | Core runtime | [Event Store](../../crablet-eventstore/README.md), [Commands](../../crablet-commands/README.md) |
 | Optional add-ons | [Views](../../crablet-views/README.md), [Outbox](../../crablet-outbox/README.md), [Automations](../../crablet-automations/README.md), [Command Web API](../../crablet-commands-web/README.md), [Micrometer metrics](../../crablet-metrics-micrometer/README.md), [Observability](OBSERVABILITY.md) |
-| Support and examples | [Test support](../../crablet-test-support/README.md), [Wallet example app](../../wallet-example-app/README.md), shared example domain code, compiled docs samples |
+| Support and examples | [Test support](../../crablet-test-support/README.md), [Wallet example app](../../examples/wallet-example-app/README.md), shared example domain code, compiled docs samples |
 | Internal infrastructure | [Event Poller](../../crablet-event-poller/README.md) powers the poller-backed modules |
 | AI-first tooling | [Embabel Codegen](../../embabel-codegen/README.md) — generates code from event-model.yaml; [Templates](../../templates/README.md) — starter project |
 
@@ -42,4 +42,4 @@ Use **views** for query state, **automations** for internal follow-up decisions,
 external delivery. Automations should not call external systems directly; publish externally through
 outbox so retries, progress, and deduplication are explicit.
 
-Those modules do not contain or depend at runtime on the example wallet/course application code. Example-only code lives in `shared-examples-domain`, `wallet-example-app`, and `docs-samples`. Some Crablet modules use `shared-examples-domain` as a test-scoped dependency only; it is not part of the runtime dependency graph for users.
+Those modules do not contain or depend at runtime on the example wallet/course application code. Example-only code lives in `shared-examples-domain`, `examples/wallet-example-app`, and `docs-samples`. Some Crablet modules use `shared-examples-domain` as a test-scoped dependency only; it is not part of the runtime dependency graph for users.

@@ -228,7 +228,7 @@ Primary files to check:
 - root `README.md` automation references
 - `docs/user/tutorials/05-automations.md`
 - `docs-samples/src/main/java/com/crablet/docs/samples/tutorial/Tutorial05AutomationsSample.java`
-- `wallet-example-app/src/main/java/com/crablet/wallet/automations/WalletOpenedAutomation.java`
+- `examples/wallet-example-app/src/main/java/com/crablet/wallet/automations/WalletOpenedAutomation.java`
 - architecture docs that say automations perform side effects directly
 
 Documentation should state the boundary clearly:

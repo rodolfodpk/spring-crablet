@@ -36,7 +36,7 @@ The series now stays close to the wallet example used elsewhere in the repositor
 
 **Reference implementation**
 
-- [wallet-example-app](../../wallet-example-app/README.md) for a complete reference application
+- [wallet-example-app](../../examples/wallet-example-app/README.md) for a complete reference application
 - [Getting Started With Crablet](../../crablet-eventstore/GETTING_STARTED.md) for integration setup
 
 ## Module Map

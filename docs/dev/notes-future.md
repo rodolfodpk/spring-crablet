@@ -4,7 +4,7 @@ Informal items for maintainers: not a committed roadmap. Promote real work to `d
 
 ## Backlog ideas
 
-- [ ] Opt `docs-samples`, `crablet-test-support`, `shared-examples-domain`, and `wallet-example-app` into the Checkstyle import-style rule after deciding whether sample/support projects should follow the same build gate as core modules.
+- [ ] Opt `docs-samples`, `crablet-test-support`, `shared-examples-domain`, and `examples/wallet-example-app` into the Checkstyle import-style rule after deciding whether sample/support projects should follow the same build gate as core modules.
 
 ## Exploratory spikes
 

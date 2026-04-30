@@ -125,7 +125,7 @@ still useful, but it should not be the first product experience once AI-first po
 Recommended split:
 
 - `docs/user/QUICKSTART.md`: generate or inspect a working app from an event model
-- `wallet-example-app/README.md`: complete reference app details
+- `examples/wallet-example-app/README.md`: complete reference app details
 
 The quickstart should show the event-model-to-app path first. It can then link to the existing
 wallet example for a runnable, hand-maintained reference implementation.

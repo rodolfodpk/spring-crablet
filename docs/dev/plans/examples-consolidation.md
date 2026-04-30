@@ -16,14 +16,14 @@ not framework internals.
 
 ```
 examples/
-  wallet-example-app/     ← moved from root
+  examples/wallet-example-app/     ← moved from root
   course-example-app/     ← new
 shared-examples-domain/   ← stays at root (used by framework modules in test scope)
 ```
 
 ---
 
-## Step 1 — Move `wallet-example-app` into `examples/`
+## Step 1 — Move `wallet-example-app` into `examples/` — done
 
 ### 1a. Move the directory
 
@@ -35,7 +35,7 @@ git mv wallet-example-app examples/wallet-example-app
 ### 1b. Fix `mvnw` paths
 
 From `examples/wallet-example-app`, the wrapper is two levels up. Update all invocations:
-- `cd wallet-example-app && ../mvnw` → `cd examples/wallet-example-app && ../../mvnw`
+- `cd examples/wallet-example-app && ../../mvnw` → `cd examples/wallet-example-app && ../../mvnw`
 
 Affected: `Makefile` (`start`, `wallet-dev`, `clean` targets).
 
@@ -170,7 +170,7 @@ spring.flyway.locations=classpath:db/migration,classpath:db/migration/app
 - `<packaging>jar</packaging>` (default)
 - Added to the reactor in root `pom.xml`
 
-**`wallet-example-app` migration refactor** (done alongside the move to `examples/`):
+**`examples/wallet-example-app` migration refactor** (done alongside the move to `examples/`):
 - Add `crablet-db-migrations` as a `runtime` dependency
 - Add `spring.flyway.locations=classpath:db/migration,classpath:db/migration/app`
 - Delete framework migrations (V1, V3, V9, V11, V12, V13, V14) — now from `crablet-db-migrations`
@@ -251,7 +251,7 @@ make course-start
 
 ## Files created / modified
 
-**Moved (Step 1):**
+**Moved (Step 1 — done):**
 - `wallet-example-app/` → `examples/wallet-example-app/`
 
 **Moved (Step 2):**

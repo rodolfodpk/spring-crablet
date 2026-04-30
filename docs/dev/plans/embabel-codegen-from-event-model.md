@@ -75,7 +75,7 @@ CI and for users not in Claude Code.
 ## Location in the repo
 
 `embabel-codegen` lives inside this repository, excluded from the Maven reactor — the same
-treatment as `wallet-example-app` and `shared-examples-domain`.
+treatment as `examples/wallet-example-app` and `shared-examples-domain`.
 
 ```
 spring-crablet/
@@ -85,7 +85,7 @@ spring-crablet/
 ├── crablet-automations/
 ├── crablet-outbox/
 ├── shared-examples-domain/     ← excluded from reactor
-├── wallet-example-app/         ← excluded from reactor
+├── examples/wallet-example-app/         ← excluded from reactor
 └── embabel-codegen/            ← excluded from reactor, same pattern
 ```
 

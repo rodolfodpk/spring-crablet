@@ -26,7 +26,7 @@ The wallet learning setup is:
 
 ## Start The Project
 
-The wallet example app uses the datasource in `wallet-example-app/src/main/resources/application.properties`, which defaults to:
+The wallet example app uses the datasource in `examples/wallet-example-app/src/main/resources/application.properties`, which defaults to:
 
 ```properties
 spring.datasource.url=jdbc:postgresql://localhost:5432/wallet_db
@@ -102,7 +102,7 @@ Expected response shape:
 
 Use the reference application as the concrete guide for your first integration:
 
-- App guide: [Wallet Example App](../../wallet-example-app/README.md)
+- App guide: [Wallet Example App](../../examples/wallet-example-app/README.md)
 - Tutorial path: [Tutorial](TUTORIAL.md)
 - Command-side-first adoption: [Commands-First Adoption](COMMANDS_FIRST_ADOPTION.md)
 

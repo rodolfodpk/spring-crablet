@@ -4,7 +4,7 @@ Spring Crablet currently ships one built-in REST management API for poller-backe
 
 This API lives in the framework itself and manages the shared background workers behind views, outbox publishers, and automations.
 
-The module-specific endpoints shown in `wallet-example-app` such as `/api/views`, `/api/outbox`, and `/api/automations` are application-level APIs, not generic framework endpoints.
+The module-specific endpoints shown in `examples/wallet-example-app` such as `/api/views`, `/api/outbox`, and `/api/automations` are application-level APIs, not generic framework endpoints.
 
 Swagger UI: `http://localhost:8080/swagger-ui.html`
 
@@ -88,7 +88,7 @@ curl -s http://localhost:8080/api/processors
 
 ## Example-App APIs
 
-`wallet-example-app` may expose friendlier application-level management endpoints such as:
+`examples/wallet-example-app` may expose friendlier application-level management endpoints such as:
 
 - `/api/views/...`
 - `/api/outbox/...`

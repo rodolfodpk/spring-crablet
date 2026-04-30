@@ -190,7 +190,7 @@ These decisions reflect the current repository state and should be treated as th
   - When wakeup is active, raise the polling interval to 30 s or more; scheduled polling becomes a safety net only.
 - Shared-fetch mode (`*.shared-fetch.enabled=true`) is opt-in per module (views, automations, outbox). When enabled, one DB query per cycle fetches all events; `EventSelectionMatcher` routes them in-memory to each processor. Requires schema migration V14 (`module_scan_progress` + `processor_scan_progress` tables). Best combined with LISTEN wakeup and many processors on the same event stream.
 - Web runtime coverage:
-  - Both `crablet-commands-web` and `wallet-example-app` E2E use the default embedded Tomcat from `spring-boot-starter-web`; no explicit server override.
+  - Both `crablet-commands-web` and `examples/wallet-example-app` E2E use the default embedded Tomcat from `spring-boot-starter-web`; no explicit server override.
   - `crablet-commands-web` is server-agnostic at runtime — it depends only on `jakarta.servlet-api`.
   - Virtual-thread request dispatch is verified in both modules via a focused test-only endpoint, not by duplicating full API behavior tests.
 - The root tutorial is now a tutorial series under `docs/user/tutorials/`, not one monolithic walkthrough.
@@ -199,7 +199,7 @@ These decisions reflect the current repository state and should be treated as th
 
 - `shared-examples-domain` depends on `crablet-eventstore` (main) for real domain types; framework modules use it in **test** scope for realistic tests and shared scenarios.
 - **`crablet-test-support`** holds shared test utilities (`InMemoryEventStore`, `AbstractHandlerUnitTest`, `AbstractCrabletTest`, `DCBTestHelpers`) so modules do not re-copy that code.
-- **`shared-examples-domain`** and **`wallet-example-app`** are excluded from the reactor; **`make install`** (see `docs/user/BUILD.md`) applies the correct build order and stub JAR steps.
+- **`shared-examples-domain`** and **`examples/wallet-example-app`** are excluded from the reactor; **`make install`** (see `docs/user/BUILD.md`) applies the correct build order and stub JAR steps.
 
 **When creating your own application:** depend on framework modules normally; your app does not need to live in this repo. Use your own domain in tests; framework tests keep using `shared-examples-domain` where needed.
 

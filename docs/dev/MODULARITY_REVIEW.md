@@ -69,7 +69,7 @@ public class OutboxManagementService implements ProcessorManagementService<Topic
 ```
 
 Any consumer that injects `OutboxManagementService` must import
-`com.crablet.outbox.internal.TopicPublisherPair`. This is what `wallet-example-app`
+`com.crablet.outbox.internal.TopicPublisherPair`. This is what `examples/wallet-example-app`
 does today (line 4 of `OutboxManagementController.java`).
 
 Meanwhile, a public `com.crablet.outbox.TopicPublisherPair` exists and is never used.

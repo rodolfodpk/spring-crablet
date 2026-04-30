@@ -33,7 +33,7 @@ Make `README.md` scannable in under ~90 seconds for first-time visitors while **
      | Create a Crablet app | `docs/user/CREATE_A_CRABLET_APP.md` |
      | Tutorial | `docs/user/TUTORIAL.md` |
      | Commands module | `crablet-commands/README.md` |
-     | Wallet example | `wallet-example-app/README.md` |
+     | Wallet example | `examples/wallet-example-app/README.md` |
      | Module reference | `docs/user/MODULES.md` |
 
    - **Learning And Deployment**: keep as short bullets; no table.

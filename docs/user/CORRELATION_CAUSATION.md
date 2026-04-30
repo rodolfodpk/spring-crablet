@@ -39,7 +39,7 @@ This is the recommended approach when there is no HTTP request in scope. The met
 To attach a correlation ID to every HTTP request, declare a servlet filter that binds `CorrelationContext.CORRELATION_ID` for the duration of the request. The wallet example app ships a ready-to-use implementation:
 
 ```java
-// wallet-example-app/src/main/java/com/crablet/wallet/api/CorrelationFilter.java
+// examples/wallet-example-app/src/main/java/com/crablet/wallet/api/CorrelationFilter.java
 @Component
 public class CorrelationFilter extends OncePerRequestFilter {
 
@@ -100,7 +100,7 @@ The migration that adds the columns is split between the two migration locations
 | Location | File | Applied to |
 |----------|------|-----------|
 | `crablet-test-support/src/main/resources/db/migration/` | `V5__correlation_causation.sql` | All test databases |
-| `wallet-example-app/src/main/resources/db/migration/` | `V12__correlation_causation.sql` | The wallet example app |
+| `examples/wallet-example-app/src/main/resources/db/migration/` | `V12__correlation_causation.sql` | The wallet example app |
 
 For your own application, add a Flyway migration with:
 

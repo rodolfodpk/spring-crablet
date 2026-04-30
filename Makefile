@@ -8,7 +8,7 @@
 # 4. shared-examples-domain (wallet/course/notification examples, used by reactor in test scope)
 # 5. reactor               (all framework modules with full tests)
 #
-# wallet-example-app is built separately after the reactor is installed.
+# examples/wallet-example-app is built separately after the reactor is installed.
 # See BUILD.md for full explanation.
 
 .PHONY: help install install-all-tests ci-verify build-all compile package test test-skip clean verify build-core build-shared build-reactor build-reactor-verify start wallet-dev docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check
@@ -44,10 +44,10 @@ help:
 	@echo "  build-reactor - Build all reactor modules (after core, command and shared are installed)"
 	@echo ""
 	@echo "Application Commands:"
-	@echo "  start       - Start wallet-example-app application"
+	@echo "  start       - Start examples/wallet-example-app application"
 	@echo "  wallet-dev  - Start wallet development environment (alias for start)"
 	@echo ""
-	@echo "Note: wallet-example-app is a Spring Boot application - use 'mvn spring-boot:run' in wallet-example-app directory"
+	@echo "Note: wallet-example-app is a Spring Boot application - use 'mvn spring-boot:run' in examples/wallet-example-app directory"
 	@echo ""
 	@echo "Codegen Commands (run after 'make install'):"
 	@echo "  codegen-build   - Build embabel-codegen fat JAR (embabel-codegen/target/embabel-codegen.jar)"
@@ -167,10 +167,10 @@ clean:
 
 # Application commands
 start:
-	cd wallet-example-app && ../mvnw spring-boot:run
+	cd examples/wallet-example-app && ../../mvnw spring-boot:run
 
 wallet-dev:
-	cd wallet-example-app && ../mvnw spring-boot:run
+	cd examples/wallet-example-app && ../../mvnw spring-boot:run
 
 # Codegen — excluded from reactor, build separately after 'make install'
 codegen-build:

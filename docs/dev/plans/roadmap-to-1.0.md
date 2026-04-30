@@ -76,7 +76,7 @@ Full `main` history audited. Eight breaking changes now documented in `UPGRADE.m
 
 ### 1e. Checkstyle parity — done
 
-- Add `crablet-test-support`, `shared-examples-domain`, `wallet-example-app` to the existing Checkstyle import-style gate
+- Add `crablet-test-support`, `shared-examples-domain`, `examples/wallet-example-app` to the existing Checkstyle import-style gate
 - Run in report mode first to get the violation diff, fix, then enforce in CI
 - **Not a 1.0 semantic blocker** — developer-experience consistency, not API stability. Can trail Central by a patch release if violation count is large.
 
@@ -93,21 +93,15 @@ Full `main` history audited. Eight breaking changes now documented in `UPGRADE.m
 
 ### 2b. Examples consolidation + Course domain app
 
-**Repo layout target:**
+**Repo layout (done):**
 ```
 examples/
-  wallet-example-app/     ← move from root
-  course-example-app/     ← new
+  wallet-example-app/     ← moved from root
+  course-example-app/     ← new (remaining work)
 shared-examples-domain/   ← stays at root (used in test scope by framework modules)
 ```
 
-**Step 1 — Move `wallet-example-app` into `examples/`**
-- Create `examples/` directory
-- Move `wallet-example-app/` into it
-- Update `Makefile` targets (`make start`, `make wallet-dev`, etc.)
-- Update CI references
-- Update doc links (`docs/user/`, `CLAUDE.md`, READMEs)
-- Exclude from reactor the same way it is today (comment in root `pom.xml`)
+**Step 1 — Move `wallet-example-app` into `examples/` — done**
 
 **Step 2 — Create `course-example-app`**
 - New Spring Boot app under `examples/course-example-app/`

@@ -17,7 +17,7 @@ createdb wallet_db
 make start
 ```
 
-`make start` only runs `wallet-example-app`; it does not provision PostgreSQL for you. The default datasource is `jdbc:postgresql://localhost:5432/wallet_db`.
+`make start` only runs `examples/wallet-example-app`; it does not provision PostgreSQL for you. The default datasource is `jdbc:postgresql://localhost:5432/wallet_db`.
 
 ## Module Structure
 
@@ -70,7 +70,7 @@ through a single test-scope dependency — no per-module copies needed.
 | 4 | `build-shared` | `shared-examples-domain` (full build with tests) |
 | 5 | `build-reactor` | all reactor modules (full build with tests) |
 
-`wallet-example-app` is not part of `make install`. It depends on the reactor
+`examples/wallet-example-app` is not part of `make install`. It depends on the reactor
 being installed first — see [Running the Example App](#running-the-example-app).
 
 ## Makefile Commands
@@ -133,10 +133,10 @@ make start
 # Option 2 — manual
 make install
 createdb wallet_db
-cd wallet-example-app && ../mvnw spring-boot:run
+cd examples/wallet-example-app && ../../mvnw spring-boot:run
 ```
 
-`wallet-example-app` is a standalone Spring Boot application excluded from the
+`examples/wallet-example-app` is a standalone Spring Boot application excluded from the
 reactor. It inherits version management from the parent POM via the local Maven
 repository, so `make install` must run first.
 
@@ -171,5 +171,5 @@ crablet-test-support/src/main/resources/db/migration/
 Flyway picks these up automatically on the test classpath because every module
 has `crablet-test-support` as a test-scope dependency. No copies in individual modules.
 
-`wallet-example-app` manages its own migrations in `src/main/resources/db/migration/`
+`examples/wallet-example-app` manages its own migrations in `src/main/resources/db/migration/`
 (V1 eventstore, V3+ view progress and app views, outbox, automations, correlation, shared-fetch, etc.).

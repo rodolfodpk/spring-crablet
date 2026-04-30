@@ -203,7 +203,7 @@ New tables. **Not** owned by the poller jar (no Flyway in `crablet-event-poller`
 **Required only when shared-fetch is enabled.** Flyway always runs migrations that are present — it does not conditionally skip them. What the feature flag controls is **runtime access**: when `crablet.views.shared-fetch.enabled=false` (the default), the shared-fetch code paths must not query the new tables at all. Existing apps that have not added the new migrations will not have the tables, but that is safe because the runtime code never touches them when disabled. Apps must not fail startup just because the new classpath code exists.
 
 **Migration added to:**
-- `wallet-example-app` (Flyway migration)
+- `examples/wallet-example-app` (Flyway migration)
 - `crablet-test-support` (shared test migration)
 
 **Documented in:** `crablet-event-poller/README.md` and a new `crablet-event-poller/SCHEMA.md` listing required tables for shared-fetch mode.
@@ -308,7 +308,7 @@ Position-only v1 can read many irrelevant events in high-volume streams. The `fe
 
 1. **`EventSelectionMatcher`** — standalone unit tests, no Spring wiring
 2. **Cursor state machine** as internal classes, unit-tested independently from scheduling
-3. **Schema** — migrations in `wallet-example-app` + `crablet-test-support`; document in poller README
+3. **Schema** — migrations in `examples/wallet-example-app` + `crablet-test-support`; document in poller README
 4. **Shared fetch loop for views only** behind `crablet.views.shared-fetch.enabled=true`
 5. **Integration tests** (priority-ordered — first three are highest bug-risk):
    - **Handler failure mid-batch:** processor A throws on a matched batch; verify `handledPosition` and `scannedPosition` are **not advanced at all** (no partial-progress signal from `EventHandler`), A enters `CATCHING_UP` or `FAILED`, processor B in the same cycle succeeds, `moduleScanCursor` still advances to window end.
