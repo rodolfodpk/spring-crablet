@@ -104,6 +104,7 @@ crablet.views.enabled=true
 crablet.automations.enabled=true
 crablet.outbox.enabled=true
 crablet.outbox.topics.topics.course-enrollments.publishers=LogPublisher
+crablet.outbox.topics.topics.course-enrollments.required-tags=student_id
 spring.datasource.url=jdbc:postgresql://localhost:5432/course_db
 ```
 
@@ -119,24 +120,29 @@ public CommandApiExposedCommands commandApiExposedCommands() {
 
 ### 3d. Flyway migrations
 
-Copy the full framework schema from `wallet-example-app/src/main/resources/db/migration/` —
-all processor tables are required when views, automations, and outbox are enabled:
+Copy only the **framework** migrations from `wallet-example-app/src/main/resources/db/migration/`.
+Do **not** copy wallet-specific migrations (V4–V8 wallet view tables, V10 seed rows).
+Add a course-specific view migration in their place.
 
-| Migration | Purpose |
-|---|---|
-| `V1__eventstore_schema.sql` | `events` + `commands` tables |
-| `V3__view_progress_schema.sql` | View processor progress tracking |
-| `V9__reaction_progress_schema.sql` | Automation processor progress tracking |
-| `V12__correlation_causation.sql` | Correlation/causation columns on events |
-| `V13__outbox_schema.sql` | Outbox scan progress |
-| `V14__shared_fetch_scan_progress.sql` | Shared-fetch progress (if enabled) |
-| `V2__course_views.sql` | App-specific: `course_availability` view table |
+| Migration | Source | Purpose |
+|---|---|---|
+| `V1__eventstore_schema.sql` | copy from wallet | `events` + `commands` tables |
+| `V3__view_progress_schema.sql` | copy from wallet | View processor progress tracking |
+| `V9__reaction_progress_schema.sql` | copy from wallet | Creates `reaction_progress` table |
+| `V10__rename_reaction_progress_to_automation_progress.sql` | copy from wallet | Renames to `automation_progress` (required by `crablet-automations`) |
+| `V11__correlation_causation.sql` | copy from wallet (was V12 in wallet) | Correlation/causation columns on events |
+| `V12__outbox_schema.sql` | copy from wallet (was V13) | Outbox scan progress |
+| `V13__shared_fetch_scan_progress.sql` | copy from wallet (was V14) | Shared-fetch progress (if enabled) |
+| `V2__course_views.sql` | new | App-specific: `course_availability` view table |
+
+**Note on version numbering:** Flyway versions must be sequential and gap-free within the app.
+Renumber framework migrations as needed (wallet's V12/V13/V14 become V11/V12/V13 here since
+wallet V10 is a seed row migration that is not copied).
 
 `V2__course_views.sql`:
 ```sql
 CREATE TABLE course_availability (
     course_id   VARCHAR(255) PRIMARY KEY,
-    name        VARCHAR(255),
     capacity    INT          NOT NULL DEFAULT 0,
     enrolled    INT          NOT NULL DEFAULT 0,
     updated_at  TIMESTAMP WITH TIME ZONE
@@ -154,17 +160,30 @@ CREATE TABLE course_availability (
 
 `CourseCapacityAutomation implements AutomationHandler`:
 - Listens to `StudentSubscribedToCourse`
-- **Does not read from event tags** (tags only carry `course_id` and `student_id`)
-- Projects current state from the event store using `CourseQueryPatterns.subscriptionDecisionModel`
-  to determine current enrollment count and capacity
-- Returns `AutomationDecision.ExecuteCommand` (or `NoOp`) based on projected state
+- **Does not read from event tags** — tags only carry `course_id` and `student_id`, not enrollment counts
+- Projects current enrollment and capacity from the event store using `CourseQueryPatterns.subscriptionDecisionModel`
+- If enrollment == capacity: returns `AutomationDecision.NoOp("course-full-logged")` and logs a
+  capacity-reached message — **no `NotifyCourseFullCommand` is defined**, so keep this simple
+- Otherwise: returns `AutomationDecision.NoOp("enrollment-ok")`
+
+**Decision:** keep the automation as a read-and-log pattern, not a command-dispatch pattern.
+Adding a `NotifyCourseFullCommand` + handler + event would be a disproportionate addition for
+a demo; the outbox publisher already handles external notification. The automation demonstrates
+the `decide()` contract and event-store projection inside an automation, which is the goal.
 
 ### 3g. Outbox publisher
 
-`CourseEnrollmentPublisher implements OutboxPublisher`:
-- `getName()` returns `"LogPublisher"` (or a webhook variant — see `application.properties`)
-- Topic binding is declared in `application.properties` (`crablet.outbox.topics.topics.course-enrollments.publishers`)
-- `publishBatch` logs or forwards `StudentSubscribedToCourse` events
+Use the built-in `LogPublisher` (already provided by the framework) — no custom publisher class needed.
+Topic and tag filter are declared entirely in `application.properties`:
+
+```properties
+crablet.outbox.topics.topics.course-enrollments.publishers=LogPublisher
+crablet.outbox.topics.topics.course-enrollments.required-tags=student_id
+```
+
+The `required-tags=student_id` filter ensures only `StudentSubscribedToCourse` events (which tag
+both `course_id` and `student_id`) are picked up by this topic — `CourseDefined` and
+`CourseCapacityChanged` only tag `course_id` and will not match.
 
 ### 3h. HTTP query endpoint
 
@@ -210,8 +229,8 @@ make course-start
 - `examples/course-example-app/src/main/resources/db/migration/V1–V14 + V2__course_views.sql`
 - `examples/course-example-app/src/main/java/.../view/CourseAvailabilityViewProjector.java`
 - `examples/course-example-app/src/main/java/.../automation/CourseCapacityAutomation.java`
-- `examples/course-example-app/src/main/java/.../outbox/CourseEnrollmentPublisher.java`
 - `examples/course-example-app/src/main/java/.../api/CourseQueryController.java`
+- (no custom outbox publisher — uses built-in `LogPublisher`)
 
 **Modified (Steps 1–3):**
 - `Makefile`
