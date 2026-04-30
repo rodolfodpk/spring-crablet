@@ -112,12 +112,21 @@ shared-examples-domain/   ← stays at root (used in test scope by framework mod
 **Step 2 — Create `course-example-app`**
 - New Spring Boot app under `examples/course-example-app/`
 - Depends on framework modules + `shared-examples-domain`
-- Flyway migrations: `courses` and `course_enrollments` view tables
-- View projector: course availability view (capacity, enrolled count)
-- Automation: react to `StudentSubscribedToCourse` — e.g. send notification via outbox when course reaches capacity
-- HTTP endpoints: define course, change capacity, subscribe student, get course availability
 - `make` targets: `make course-start`, `make course-dev`
-- Demonstrates multi-aggregate DCB constraint (course capacity + student subscription limit)
+
+Module coverage:
+
+| Module | What it exercises |
+|---|---|
+| `crablet-eventstore` | Multi-entity DCB: one decision model spans course + student (unique to this app — wallet doesn't show this) |
+| `crablet-commands` | 3 handlers from `shared-examples-domain`: `DefineCourse`, `ChangeCourseCapacity`, `SubscribeStudentToCourse` |
+| `crablet-commands-web` | Generic HTTP command API + Swagger |
+| `crablet-views` | Course availability view (capacity, enrolled count, seats remaining) |
+| `crablet-automations` | React to `StudentSubscribedToCourse` — notify when course reaches capacity |
+| `crablet-outbox` | Publish enrollment events to external systems |
+| `crablet-metrics-micrometer` | Implicit via auto-config |
+
+The **key differentiator**: `SubscribeStudentToCourse` checks both the course's remaining capacity AND the student's subscription limit in a single DCB consistency boundary — the multi-aggregate constraint the wallet doesn't demonstrate.
 
 **Why this ordering matters for 2a:** the Course app exercises views + automations + outbox together, giving the correlation/causation integration test a richer and more realistic trail than the wallet app alone.
 
