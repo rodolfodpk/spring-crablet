@@ -10,14 +10,18 @@ markmap:
 #### Immutable event log
 #### State from projections
 ### DCB Pattern
-#### Dynamic Consistency Boundary
-#### Optimistic concurrency (streamPosition)
-#### No distributed locks
-#### Multi-aggregate consistency — one check spans multiple entity streams
-#### Decision model — query that defines the consistency boundary
+#### Dynamic Consistency Boundary — criteria-based, not aggregate-based
+#### Optimistic concurrency via streamPosition (no distributed locks)
+#### AppendCondition — atomic check-and-append
+#### DecisionModel — query defining the consistency boundary
+#### Multi-entity consistency — one check spans multiple entity streams
 #### ConcurrencyException — boundary violated, retry with fresh state
-#### Traditional aggregates: one root per transaction boundary
-#### DCB: boundary is defined per-operation, not per-aggregate
+#### ref: dcb.events/specification (official spec by Sara Pellegrini & Milan Savić)
+#### Crablet's interpretation — inspired by DCB, not a strict implementation
+##### appendNonCommutative / appendCommutative / appendIdempotent — Crablet API, not spec vocabulary
+##### Commutative / non-commutative / idempotent taxonomy — Crablet's own design
+##### Advisory locks for idempotency — Crablet's implementation choice
+##### Guard events for commutative operations — Crablet extension
 ### Vertical Slice Architecture
 #### Complements event modeling slices at the code organization level
 #### Feature-first over layer-first — each slice owns its full stack
@@ -25,11 +29,12 @@ markmap:
 #### Coupling rule — minimize between slices, maximize cohesion within
 #### In Crablet — one slice = CommandHandler + event + ViewProjector
 #### ref: jimmybogard.com/vertical-slice-architecture
-### Append Patterns
+### Append Patterns (Crablet-specific taxonomy)
 #### idempotent — entity creation, duplicate prevention
 #### commutative — order-independent operations
 #### commutative + guard — existence check before commit
 #### non-commutative — state-dependent, detects conflicts
+#### not part of the official DCB spec — Crablet's own API layer on top
 ### Event Modeling
 #### Blueprint — horizontal timeline of the entire system
 #### Read left to right — time flows, events are the spine
