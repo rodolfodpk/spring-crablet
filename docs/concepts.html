@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Concepts — Spring-Crablet</title>
-  <script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.16"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/markmap-lib/dist/browser/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/markmap-view/dist/browser/index.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -63,17 +65,14 @@
   </div>
 
   <script>
-    window.addEventListener('load', () => {
-      const { Transformer, Markmap, loadCSS, loadJS } = window.markmap;
-
+    document.addEventListener('DOMContentLoaded', () => {
       fetch('examples/concepts.md')
         .then(r => r.text())
         .then(md => {
+          const { Transformer } = window.markmap;
+          const { Markmap }     = window.markmap;
           const transformer = new Transformer();
-          const { root, features } = transformer.transform(md);
-          const { styles, scripts } = transformer.getUsedAssets(features);
-          if (styles) loadCSS(styles);
-          if (scripts) loadJS(scripts, { getMarkmap: () => window.markmap });
+          const { root } = transformer.transform(md);
           Markmap.create('#mindmap', { initialExpandLevel: 2 }, root);
         })
         .catch(err => {
