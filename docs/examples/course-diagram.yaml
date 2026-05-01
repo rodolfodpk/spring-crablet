@@ -1,0 +1,15 @@
+# Renderer-only extensions for the course enrollment event modeling diagram.
+# This file is NOT a codegen input — do not feed it to embabel-codegen.
+# Loaded and merged in memory by the diagram renderer alongside course-event-model.yaml.
+
+triggers:
+  - name: "Admin defines course"
+    linkedCommand: DefineCourse
+  - name: "Admin changes capacity"
+    linkedCommand: ChangeCourseCapacity
+  - name: "Student subscribes"
+    linkedCommand: SubscribeStudentToCourse
+
+# StudentSubscribedToCourse spans two tag keys (course_id + student_id) — classic multi-entity DCB.
+eventBadges:
+  StudentSubscribedToCourse: "multi-entity DCB"

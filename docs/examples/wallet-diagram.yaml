@@ -1,0 +1,28 @@
+# Renderer-only extensions for the wallet event modeling diagram.
+# This file is NOT a codegen input — do not feed it to embabel-codegen.
+# Loaded and merged in memory by the diagram renderer alongside wallet-event-model.yaml.
+
+triggers:
+  - name: "Customer opens wallet"
+    linkedCommand: OpenWallet
+  - name: "Customer deposits"
+    linkedCommand: Deposit
+  - name: "Customer withdraws"
+    linkedCommand: Withdraw
+  - name: "Customer transfers"
+    linkedCommand: TransferMoney
+
+# WalletOpenedAutomation is diagram-only: it emits SendWelcomeNotificationCommand from the
+# notification subdomain. The real implementation deserializes WalletOpened and emits directly
+# — no view read needed.
+automations:
+  - name: WalletOpenedAutomation
+    triggeredBy: WalletOpened
+    emitsCommand: SendWelcomeNotification
+
+# SendWelcomeNotification is a synthetic visual node (cross-domain automation target).
+# Rendered as a command card after the main event timeline columns.
+syntheticCommands:
+  - name: SendWelcomeNotification
+    displayLabel: "SendWelcomeNotification"
+    note: "notification subdomain"

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Concepts — Spring-Crablet</title>
+  <script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.18"></script>
+  <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.18"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+      background: #f1f0eb;
+      color: #1f2937;
+      padding: 24px;
+    }
+    nav { margin-bottom: 20px; }
+    nav a {
+      color: #374151;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    nav a:hover { text-decoration: underline; }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; color: #111827; }
+    .subtitle { font-size: 14px; color: #6b7280; margin-bottom: 16px; }
+    .note {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 6px;
+      padding: 8px 14px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: #166534;
+    }
+    .markmap-wrap {
+      border-radius: 8px;
+      border: 1px solid #d6c8aa;
+      background: #fff;
+      overflow: hidden;
+    }
+    .markmap {
+      display: block;
+      width: 100%;
+      height: calc(100vh - 200px);
+      min-height: 500px;
+    }
+    .markmap svg {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <nav><a href="index.html">← Spring-Crablet Docs</a></nav>
+  <h1>Concept Map</h1>
+  <p class="subtitle">Navigation overview — not a diagram renderer output. Explore the framework's conceptual structure.</p>
+  <div class="note">
+    This is an interactive mind map. Click nodes to expand or collapse. Scroll to pan.
+  </div>
+
+  <div class="markmap-wrap">
+    <svg id="mindmap" class="markmap"></svg>
+  </div>
+
+  <script>
+    const { Transformer } = window.markmap;
+    const { Markmap, loadCSS, loadJS } = window.markmap;
+
+    fetch('examples/concepts.md')
+      .then(r => r.text())
+      .then(md => {
+        const transformer = new Transformer();
+        const { root, features } = transformer.transform(md);
+        const { styles, scripts } = transformer.getUsedAssets(features);
+        if (styles) loadCSS(styles);
+        if (scripts) loadJS(scripts, { getMarkmap: () => window.markmap });
+        Markmap.create('#mindmap', { initialExpandLevel: 2 }, root);
+      })
+      .catch(err => {
+        document.querySelector('.markmap-wrap').innerHTML =
+          `<p style="padding:16px;color:#dc2626">Failed to load mind map: ${err.message}</p>`;
+      });
+  </script>
+</body>
+</html>

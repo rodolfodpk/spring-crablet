@@ -1,0 +1,42 @@
+name: Generate mind map SVG
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/examples/concepts.md
+      - .github/workflows/mindmap-svg.yml
+      - .github/scripts/extract-mindmap-svg.js
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate mind map HTML
+        run: npx --yes markmap-cli@latest docs/examples/concepts.md --no-open -o /tmp/concepts-mindmap.html
+
+      - name: Install Playwright + Chromium
+        run: |
+          npm install playwright
+          npx playwright install chromium --with-deps
+
+      - name: Render SVG from mind map
+        run: node .github/scripts/extract-mindmap-svg.js /tmp/concepts-mindmap.html docs/user/assets/concepts-mindmap.svg
+
+      - name: Commit SVG
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'docs: regenerate concepts mind map SVG [skip ci]'
+          file_pattern: docs/user/assets/concepts-mindmap.svg

@@ -1,0 +1,86 @@
+domain: Wallet
+basePackage: com.crablet.examples.wallet
+
+# Fields shown are representative; see source code for complete record definitions.
+# WalletOpenedAutomation is omitted — it emits SendWelcomeNotificationCommand (notification
+# subdomain), so it cannot form a structurally complete codegen input here. See wallet-diagram.yaml.
+
+events:
+  - name: WalletOpened
+    tags: [wallet_id]
+    fields:
+      - { name: walletId, type: string }
+      - { name: owner, type: string }
+      - { name: initialBalance, type: integer }
+
+  - name: DepositMade
+    tags: [wallet_id, deposit_id]
+    fields:
+      - { name: depositId, type: string }
+      - { name: walletId, type: string }
+      - { name: amount, type: integer }
+
+  - name: WithdrawalMade
+    tags: [wallet_id, withdrawal_id]
+    fields:
+      - { name: withdrawalId, type: string }
+      - { name: walletId, type: string }
+      - { name: amount, type: integer }
+
+  - name: MoneyTransferred
+    tags: [transfer_id, from_wallet_id, to_wallet_id]
+    fields:
+      - { name: transferId, type: string }
+      - { name: fromWalletId, type: string }
+      - { name: toWalletId, type: string }
+      - { name: amount, type: integer }
+
+commands:
+  - name: OpenWallet
+    pattern: idempotent
+    produces: [WalletOpened]
+    fields:
+      - { name: walletId, type: string, minLength: 1 }
+      - { name: owner, type: string, minLength: 1 }
+      - { name: initialBalance, type: integer, minimum: 0 }
+
+  - name: Deposit
+    pattern: commutative
+    guardEvents: [WalletOpened]
+    produces: [DepositMade]
+    fields:
+      - { name: depositId, type: string, minLength: 1 }
+      - { name: walletId, type: string, minLength: 1 }
+      - { name: amount, type: integer, exclusiveMinimum: 0 }
+
+  - name: Withdraw
+    pattern: non-commutative
+    produces: [WithdrawalMade]
+    fields:
+      - { name: withdrawalId, type: string, minLength: 1 }
+      - { name: walletId, type: string, minLength: 1 }
+      - { name: amount, type: integer, exclusiveMinimum: 0 }
+
+  - name: TransferMoney
+    pattern: non-commutative
+    produces: [MoneyTransferred]
+    fields:
+      - { name: transferId, type: string, minLength: 1 }
+      - { name: fromWalletId, type: string, minLength: 1 }
+      - { name: toWalletId, type: string, minLength: 1 }
+      - { name: amount, type: integer, exclusiveMinimum: 0 }
+
+views:
+  - name: WalletBalance
+    reads: [WalletOpened, DepositMade, WithdrawalMade, MoneyTransferred]
+    tag: wallet_id
+    fields:
+      - { name: walletId, type: string }
+      - { name: balance, type: integer }
+      - { name: owner, type: string }
+
+outbox:
+  - name: WalletEventPublisher
+    topic: wallet-events
+    handles: [WalletOpened]
+    adapter: webhook

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wallet Domain — Spring-Crablet Event Model</title>
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js"></script>
+  <script src="event-model-renderer.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+      background: #f1f0eb;
+      color: #1f2937;
+      padding: 24px;
+    }
+    nav { margin-bottom: 20px; }
+    nav a {
+      color: #374151;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    nav a:hover { text-decoration: underline; }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; color: #111827; }
+    .subtitle { font-size: 14px; color: #6b7280; margin-bottom: 16px; }
+    .callout {
+      background: #fffbeb;
+      border: 1px solid #d97706;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: #92400e;
+      line-height: 1.5;
+    }
+    .callout a { color: #b45309; }
+    .outbox-note {
+      background: #fdf4ff;
+      border: 1px solid #d8b4fe;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: #6b21a8;
+    }
+    #diagram {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid #d6c8aa;
+      background: #f5f1e8;
+    }
+    #error {
+      color: #dc2626;
+      font-size: 13px;
+      padding: 12px;
+      background: #fef2f2;
+      border-radius: 6px;
+      border: 1px solid #fca5a5;
+    }
+  </style>
+</head>
+<body>
+  <nav><a href="index.html">← Spring-Crablet Docs</a></nav>
+  <h1>Wallet Domain</h1>
+  <p class="subtitle">Single-entity event sourcing — deposit, withdraw, transfer with DCB optimistic concurrency.</p>
+
+  <div class="callout">
+    This diagram is derived from a docs-oriented event model for the <strong>Wallet</strong> domain.
+    The official codegen contract is documented in
+    <a href="https://github.com/rodolfodpk/spring-crablet/blob/main/docs/user/ai-tooling/EVENT_MODEL_FORMAT.md">EVENT_MODEL_FORMAT.md</a>.
+    Fields shown are representative; see
+    <a href="https://github.com/rodolfodpk/spring-crablet/tree/main/shared-examples-domain/src/main/java/com/crablet/examples/wallet">source code</a>
+    for complete record definitions.
+  </div>
+  <div class="outbox-note">
+    Outbox publisher shown is illustrative. The app defaults to <code>LogPublisher</code>;
+    <code>wallet-webhook</code> is an optional HTTP webhook publisher.
+  </div>
+
+  <div id="diagram"><p style="padding:16px;color:#6b7280">Loading diagram…</p></div>
+  <div id="error" style="display:none"></div>
+
+  <script>
+    Promise.all([
+      fetch('examples/wallet-event-model.yaml').then(r => r.text()),
+      fetch('examples/wallet-diagram.yaml').then(r => r.text()),
+    ]).then(([modelText, diagramText]) => {
+      const model   = jsyaml.load(modelText);
+      const diagram = jsyaml.load(diagramText);
+      const modelAutos   = model.automations   || [];
+      const diagramAutos = diagram.automations || [];
+      const autoMap = new Map(modelAutos.map(a => [a.name, a]));
+      diagramAutos.forEach(a => autoMap.set(a.name, a));
+      const merged = {
+        ...model,
+        triggers:          diagram.triggers          || [],
+        automations:       [...autoMap.values()],
+        syntheticCommands: diagram.syntheticCommands || [],
+        eventBadges:       diagram.eventBadges       || {},
+      };
+      EventModelRenderer.render(merged, document.getElementById('diagram'));
+    }).catch(err => {
+      document.getElementById('diagram').style.display = 'none';
+      const errEl = document.getElementById('error');
+      errEl.style.display = 'block';
+      errEl.textContent = 'Failed to load diagram: ' + err.message;
+    });
+  </script>
+</body>
+</html>

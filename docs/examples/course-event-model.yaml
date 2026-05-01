@@ -1,0 +1,56 @@
+domain: CourseEnrollment
+basePackage: com.crablet.examples.course
+
+# Fields shown are representative; see source code for complete record definitions.
+# View name CourseAvailability maps to runtime processor ID course-availability-view
+# (CourseAvailabilityViewProjector.getViewName()).
+
+events:
+  - name: CourseDefined
+    tags: [course_id]
+    fields:
+      - { name: courseId, type: string }
+      - { name: capacity, type: integer }
+
+  - name: CourseCapacityChanged
+    tags: [course_id]
+    fields:
+      - { name: courseId, type: string }
+      - { name: newCapacity, type: integer }
+
+  - name: StudentSubscribedToCourse
+    tags: [course_id, student_id]
+    fields:
+      - { name: studentId, type: string }
+      - { name: courseId, type: string }
+
+commands:
+  - name: DefineCourse
+    pattern: idempotent
+    produces: [CourseDefined]
+    fields:
+      - { name: courseId, type: string, minLength: 1 }
+      - { name: capacity, type: integer, exclusiveMinimum: 0 }
+
+  - name: ChangeCourseCapacity
+    pattern: non-commutative
+    produces: [CourseCapacityChanged]
+    fields:
+      - { name: courseId, type: string, minLength: 1 }
+      - { name: newCapacity, type: integer, exclusiveMinimum: 0 }
+
+  - name: SubscribeStudentToCourse
+    pattern: non-commutative
+    produces: [StudentSubscribedToCourse]
+    fields:
+      - { name: studentId, type: string, minLength: 1 }
+      - { name: courseId, type: string, minLength: 1 }
+
+views:
+  - name: CourseAvailability
+    reads: [CourseDefined, CourseCapacityChanged, StudentSubscribedToCourse]
+    tag: course_id
+    fields:
+      - { name: courseId, type: string }
+      - { name: capacity, type: integer }
+      - { name: enrolledCount, type: integer }
