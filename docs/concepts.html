@@ -34,6 +34,23 @@
       font-size: 12px;
       color: #166534;
     }
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .controls button {
+      background: #faf8f3;
+      border: 1px solid #d6c8aa;
+      border-radius: 6px;
+      padding: 5px 14px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      cursor: pointer;
+    }
+    .controls button:hover { background: #f0ebe0; border-color: #b5a48a; }
     .markmap-wrap {
       border-radius: 8px;
       border: 1px solid #d6c8aa;
@@ -60,6 +77,11 @@
     This is an interactive mind map. Click nodes to expand or collapse. Scroll to pan.
   </div>
 
+  <div class="controls">
+    <button id="btn-zoomin">＋ Zoom in</button>
+    <button id="btn-zoomout">－ Zoom out</button>
+    <button id="btn-fit">⊙ Fit</button>
+  </div>
   <div class="markmap-wrap">
     <svg id="mindmap" class="markmap"></svg>
   </div>
@@ -73,7 +95,11 @@
           const { Markmap }     = window.markmap;
           const transformer = new Transformer();
           const { root } = transformer.transform(md);
-          Markmap.create('#mindmap', { initialExpandLevel: 2 }, root);
+          const mm = Markmap.create('#mindmap', { initialExpandLevel: 2 }, root);
+          const svg = d3.select('#mindmap');
+          document.getElementById('btn-zoomin') .addEventListener('click', () => mm.zoom.scaleBy(svg.transition().duration(300), 1.3));
+          document.getElementById('btn-zoomout').addEventListener('click', () => mm.zoom.scaleBy(svg.transition().duration(300), 1/1.3));
+          document.getElementById('btn-fit')    .addEventListener('click', () => mm.fit());
         })
         .catch(err => {
           document.querySelector('.markmap-wrap').innerHTML =

@@ -5,9 +5,7 @@
 [![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-![Concept map](docs/user/assets/concepts-mindmap.png)
-
-> Interactive version: [Spring-Crablet Concept Map](https://rodolfodpk.github.io/spring-crablet/concepts.html)
+🗺️ [Interactive concept map](https://rodolfodpk.github.io/spring-crablet/concepts.html) — events, commands, modules, AI tooling, deployment.
 
 Crablet helps Spring teams turn an event-modeled domain into a working event-sourced application. It uses AI-assisted generation to produce the structural code around commands, events, views, automations, outbox publishers, and tests, then runs that code on a small Java 25 Spring Boot runtime.
 
