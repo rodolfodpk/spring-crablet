@@ -75,9 +75,14 @@ example: "Which fields should reviewers see in the pending applications view?"
 If you explain the slice with an Event Modeling diagram or board, preserve the core notation:
 
 - Event Modeling is a horizontal timeline. Time flows left to right.
-- Lanes are semantic layers such as trigger, command, event, view, automation, and translation.
+- **Swim lanes** divide the board by sub-system (e.g. inventory, auth, payment, gps) — one lane per bounded area of the system, all sharing the same timeline.
+- **Within each lane**, element types are stacked vertically: wireframes (top), commands, events, read models, automations.
+- **Slices** cut vertically through all element layers — one slice per feature. Four slice types (from the event modeling cheat sheet):
+  - *State Change* — trigger → command → event (write path)
+  - *State View* — event → read model (query path)
+  - *Automation* — event → command (policy/reaction)
+  - *Translation* — event → external system (or external → command)
 - Do not turn the board into a top-to-bottom flowchart with time flowing downward.
-- Put views, automations, and translations beneath or above the event they depend on.
 - If a diagram is only illustrative and not a complete consequence map, label it as illustrative.
 
 ### 4. Add Automations (optional)

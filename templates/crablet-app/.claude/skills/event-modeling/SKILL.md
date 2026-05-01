@@ -44,6 +44,8 @@ For each automation or outbox publisher:
 - Prefer improving `event-model.yaml` over hand-editing generated structural code.
 - Keep generated slices small enough to verify with one command and one observable outcome.
 - If you show an Event Modeling board, time must flow left to right on a horizontal timeline.
-- Use lanes only as semantic layers; do not draw Event Modeling as a top-to-bottom flowchart.
-- Put views, automations, and translations near the event they depend on.
+- Swim lanes divide the board by sub-system (e.g. inventory, auth, payment) — not by element type.
+- Within each lane, element types are stacked vertically: wireframes, commands, events, read models.
+- Slices cut vertically through all element layers — one slice per feature (State Change, State View, Automation, Translation).
+- Do not draw Event Modeling as a top-to-bottom flowchart.
 - If the board is illustrative rather than exhaustive, say so explicitly.
