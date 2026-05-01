@@ -194,7 +194,7 @@ Each automation has a Resilience4j circuit breaker named `"automation-<automatio
 
 Crablet uses two PostgreSQL mechanisms to keep pollers responsive:
 
-- **NOTIFY** — fires automatically after every `appendCommutative` / `appendNonCommutative` / `appendIdempotent` call via `pg_notify`. Always on, no configuration needed. If nothing is LISTENing, PostgreSQL discards it at zero cost.
+- **NOTIFY** — fires automatically after every `appendCommutative` / `appendNonCommutative` / `appendIdempotent` call via `pg_notify`. Always on, no configuration needed. PostgreSQL delivers notifications from an open transaction only after commit. If nothing is LISTENing, PostgreSQL discards the notification at zero cost.
 - **LISTEN** — opt-in. Set `crablet.event-poller.notifications.jdbc-url` to a direct PostgreSQL URL. The poller opens one persistent connection, issues `LISTEN <channel>`, and immediately triggers a poll cycle on each notification. Reduces end-to-end latency from the polling interval to milliseconds.
 
 When LISTEN wakeup is active, raise `polling-interval-ms` to `30000` or more — scheduled polling becomes a safety net only.

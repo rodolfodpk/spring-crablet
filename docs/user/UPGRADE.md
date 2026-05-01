@@ -2,6 +2,10 @@
 
 Step-by-step migration notes for each breaking change in the `1.0.0-SNAPSHOT` series. Changes are listed newest first.
 
+Crablet uses `@Stable` as a documented compatibility signal for application-facing APIs. It is
+not currently enforced by tooling. After `1.0`, breaking changes to stable APIs should be covered
+here, and should use deprecation first when that is practical.
+
 ---
 
 ## `TopicPublisherPair` — moved from `.internal` to public package

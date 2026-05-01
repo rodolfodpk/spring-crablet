@@ -11,7 +11,7 @@
 # examples/wallet-example-app is built separately after the reactor is installed.
 # See BUILD.md for full explanation.
 
-.PHONY: help install install-all-tests ci-verify validate-all build-all compile package test test-skip examples-check clean verify build-core build-shared build-reactor build-reactor-verify start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check
+.PHONY: help install install-all-tests ci-verify validate-all build-all compile package test test-skip examples-check clean verify build-core build-shared build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check
 
 # Default target
 help:
@@ -67,7 +67,7 @@ install: build-core build-test-support build-command build-shared build-reactor
 	@echo "✓ Build complete! All modules installed to local repository."
 
 # Full build with all tests including integration tests (for CI)
-install-all-tests: build-core build-test-support build-command build-shared build-reactor-verify
+install-all-tests: build-core build-test-support build-command build-shared build-reactor-verify build-reactor-install-artifacts
 	@echo "✓ Build complete with all tests! All modules installed to local repository."
 
 # CI build - verifies build, only installs minimal modules needed
@@ -147,6 +147,11 @@ build-reactor:
 build-reactor-verify:
 	@echo "Building reactor modules (with all tests including integration tests)..."
 	@./mvnw verify -Dmaven.clean.skip=true
+
+# Install reactor artifacts after verification so standalone examples resolve real jars, not bootstrap stubs.
+build-reactor-install-artifacts:
+	@echo "Installing verified reactor artifacts..."
+	@./mvnw install -DskipTests -Dmaven.test.skip=true -Dmaven.clean.skip=true
 
 # Compile all modules
 compile: build-core build-command build-shared

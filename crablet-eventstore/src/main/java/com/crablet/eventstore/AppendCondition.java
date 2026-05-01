@@ -67,7 +67,7 @@ public record AppendCondition(
      * <p>
      * Replaces the verbose chain:
      * <pre>{@code
-     * AppendConditionBuilder.of(Query.empty(), StreamPosition.zero())
+     * AppendConditionBuilder.of(Query.noCondition(), StreamPosition.zero())
      *     .withIdempotencyCheck(type(WalletOpened.class), WALLET_ID, walletId)
      *     .build();
      * }</pre>

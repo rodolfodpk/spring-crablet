@@ -24,6 +24,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -43,7 +44,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
     private ApplicationEventPublisher eventPublisher;
 
     private static final long TEST_LOCK_KEY = 1234567890L;
-    private final List<LeaderElectorImpl> createdElectors = new ArrayList<>();
+    private final List<LeaderElectorImpl> createdElectors = new CopyOnWriteArrayList<>();
 
     @BeforeEach
     void setUp() {
@@ -368,7 +369,7 @@ class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
     }
 
     static class TestEventPublisher implements ApplicationEventPublisher {
-        final List<Object> events = new ArrayList<>();
+        final List<Object> events = new CopyOnWriteArrayList<>();
 
         @Override
         public void publishEvent(Object event) {
