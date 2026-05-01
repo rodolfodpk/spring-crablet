@@ -10,6 +10,21 @@ triggers:
   - name: "Student subscribes"
     linkedCommand: SubscribeStudentToCourse
 
+lanes:
+  - id: course
+    label: Course
+  - id: student
+    label: Student enrollment
+
+assignments:
+  DefineCourse: course
+  ChangeCourseCapacity: course
+  CourseDefined: course
+  CourseCapacityChanged: course
+  CourseAvailability: course
+  SubscribeStudentToCourse: student
+  StudentSubscribedToCourse: student
+
 # StudentSubscribedToCourse spans two tag keys (course_id + student_id) — classic multi-entity DCB.
 eventBadges:
   StudentSubscribedToCourse: "multi-entity DCB"

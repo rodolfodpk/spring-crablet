@@ -4,7 +4,7 @@
   // ─── Color palette — matched to docs/user/assets/wallet-opened-automation-and-outbox-board.svg ───
   const C = {
     bg:          '#f5f1e8',
-    laneSep:     '#c9bfae',
+    rowSep:      '#c9bfae',
     arrow:       '#55606e',
     text:        '#111827',
     textMuted:   '#6b7280',
@@ -24,13 +24,13 @@
 
   // ─── Layout constants ────────────────────────────────────────────────────────
   const L = {
-    labelW:      160,   // left gutter for lane labels
+    labelW:      160,   // left gutter for row labels
     colW:        200,   // width of each event column
     cardMargin:  16,    // space between column edge and card edge
     cardStripH:  18,    // card header accent strip height
     titleBlockH: 90,    // domain title + subtitle block at SVG top
     rightPad:    60,    // right margin
-    laneH: {
+    rowH: {
       trigger:   110,
       command:   120,
       event:     130,
@@ -40,7 +40,7 @@
     },
   };
 
-  const LANES = ['trigger', 'command', 'event', 'view', 'automation', 'outbox'];
+  const ROWS = ['trigger', 'command', 'event', 'view', 'automation', 'outbox'];
 
   // ─── SVG DOM helper ──────────────────────────────────────────────────────────
   const NS = 'http://www.w3.org/2000/svg';
@@ -57,20 +57,20 @@
   }
 
   // ─── Coordinate helpers ──────────────────────────────────────────────────────
-  function colX(col)  { return L.labelW + col * L.colW; }
-  function colCX(col) { return colX(col) + L.colW / 2; }
+  function defaultColX(col)  { return L.labelW + col * L.colW; }
+  function defaultColCX(col) { return defaultColX(col) + L.colW / 2; }
 
-  function laneTopY(model, laneKey) {
+  function rowTopY(model, rowKey) {
     let y = L.titleBlockH;
-    for (const k of LANES) {
-      if (k === laneKey) return y;
-      if (isLaneVisible(model, k)) y += L.laneH[k];
+    for (const k of ROWS) {
+      if (k === rowKey) return y;
+      if (isRowVisible(model, k)) y += L.rowH[k];
     }
     return y;
   }
 
-  function isLaneVisible(model, laneKey) {
-    switch (laneKey) {
+  function isRowVisible(model, rowKey) {
+    switch (rowKey) {
       case 'trigger':    return (model.triggers || []).length > 0;
       case 'command':    return true;
       case 'event':      return true;
@@ -83,12 +83,15 @@
 
   function totalHeight(model) {
     let h = L.titleBlockH;
-    LANES.forEach(k => { if (isLaneVisible(model, k)) h += L.laneH[k]; });
+    ROWS.forEach(k => { if (isRowVisible(model, k)) h += L.rowH[k]; });
     return h + 20; // bottom padding
   }
 
-  function totalWidth(numCols) {
-    return L.labelW + numCols * L.colW + L.rightPad;
+  function totalWidth(layout) {
+    if (layout.hasLaneSections) {
+      return L.labelW + layout.totalCols * L.colW + L.rightPad;
+    }
+    return L.labelW + layout.numCols * L.colW + L.rightPad;
   }
 
   // ─── Text helpers ────────────────────────────────────────────────────────────
@@ -115,7 +118,7 @@
       id: 'arrowhead-sm', markerWidth: '8', markerHeight: '8',
       refX: '7', refY: '4', orient: 'auto',
     }, [
-      el('path', { d: 'M0,0 L8,4 L0,8 z', fill: C.laneSep }),
+      el('path', { d: 'M0,0 L8,4 L0,8 z', fill: C.rowSep }),
     ]);
     return el('defs', {}, [shadow, arrowHead, arrowHeadSm]);
   }
@@ -129,22 +132,86 @@
     const outboxes = model.outbox        || [];
     const triggers = model.triggers      || [];
     const synthDefs= model.syntheticCommands || [];
+    const laneDefs = model.lanes || [];
+    const assignments = model.assignments || {};
+    const laneIds = laneDefs.map(l => l.id).filter(Boolean);
+    const hasLaneSections = laneIds.length > 1;
+    const laneLabels = {};
+    laneDefs.forEach(l => { if (l.id) laneLabels[l.id] = l.label || l.id; });
+
+    const knownAssignmentKeys = new Set([
+      ...events.map(e => e.name),
+      ...commands.map(c => c.name),
+      ...views.map(v => v.name),
+      ...autos.map(a => a.name),
+      ...outboxes.map(o => o.name),
+      ...synthDefs.map(s => s.name),
+    ]);
+    const laneSet = new Set(laneIds);
+    Object.entries(assignments).forEach(([name, laneId]) => {
+      if (!knownAssignmentKeys.has(name)) {
+        console.warn(`[EventModelRenderer] assignment '${name}' does not match a rendered element`);
+      }
+      if (hasLaneSections && !laneSet.has(laneId)) {
+        console.warn(`[EventModelRenderer] assignment '${name}' uses unknown lane '${laneId}' — falling back to '${laneIds[0]}'`);
+      }
+    });
+
+    function assignedLane(name, fallbackLane) {
+      if (!hasLaneSections) return null;
+      const assigned = assignments[name];
+      if (assigned && laneSet.has(assigned)) return assigned;
+      if (assigned && !laneSet.has(assigned)) return laneIds[0];
+      if (fallbackLane) return fallbackLane;
+      console.warn(`[EventModelRenderer] '${name}' has no lane assignment — using '${laneIds[0]}'`);
+      return laneIds[0];
+    }
+
+    const laneColumnCounts = {};
+    const laneStartCols = {};
+    laneIds.forEach(id => { laneColumnCounts[id] = 0; });
+
+    function reserveLaneCol(laneId) {
+      const safeLane = laneSet.has(laneId) ? laneId : laneIds[0];
+      const col = laneColumnCounts[safeLane] || 0;
+      laneColumnCounts[safeLane] = col + 1;
+      return col;
+    }
 
     // Step 1: event column index
     const eventIndex = {};
-    events.forEach((e, i) => { eventIndex[e.name] = i; });
+    const eventLanes = {};
+    const eventLocalCols = {};
+    events.forEach((e, i) => {
+      if (hasLaneSections) {
+        const laneId = assignedLane(e.name, null);
+        eventLanes[e.name] = laneId;
+        eventLocalCols[e.name] = reserveLaneCol(laneId);
+      } else {
+        eventIndex[e.name] = i;
+      }
+    });
     const numEventCols = events.length;
 
     // Step 2: synthetic command column allocation
     // Named synthetics and anonymous synthetics share the same pool
-    const synthIndex = {};      // name → col
+    const synthIndex = {};      // name → physical col
+    const synthLane  = {};      // name → lane id
+    const synthLocal = {};      // name → local col
     const synthMeta  = {};      // name → { displayLabel, note }
     synthDefs.forEach(s => { synthMeta[s.name] = s; });
 
     let nextSynthCol = numEventCols;
-    function getSynthCol(name) {
+    function getSynthCol(name, fallbackLane) {
       if (!(name in synthIndex)) {
-        synthIndex[name] = nextSynthCol++;
+        if (hasLaneSections) {
+          const laneId = assignedLane(name, fallbackLane);
+          synthLane[name] = laneId;
+          synthLocal[name] = reserveLaneCol(laneId);
+          synthIndex[name] = null; // filled after lane starts are known
+        } else {
+          synthIndex[name] = nextSynthCol++;
+        }
         if (!(name in synthMeta)) {
           console.warn(`[EventModelRenderer] emitsCommand '${name}' not in commands or syntheticCommands — rendering as anonymous synthetic`);
         }
@@ -152,42 +219,112 @@
       return synthIndex[name];
     }
 
-    // Step 3: command placements — one slot per (col, stackIndex)
-    const cmdColSlots = {}; // col → count of commands placed
+    // Step 3: command placements — one slot per (lane/local col, stackIndex)
+    const cmdColSlots = {}; // physical col → count of commands placed
     const commandPlacements = commands.map(cmd => {
       const firstEvent = (cmd.produces || [])[0];
+      if (hasLaneSections) {
+        const anchorLane = firstEvent !== undefined ? eventLanes[firstEvent] : null;
+        const laneId = assignedLane(cmd.name, anchorLane);
+        if (anchorLane && laneId !== anchorLane) {
+          console.warn(`[EventModelRenderer] command '${cmd.name}' assigned to '${laneId}' but produces event in '${anchorLane}' — using event lane`);
+        }
+        const effectiveLane = anchorLane || laneId;
+        const localCol = firstEvent !== undefined && eventLocalCols[firstEvent] !== undefined
+          ? eventLocalCols[firstEvent] : reserveLaneCol(effectiveLane);
+        return { cmd, laneId: effectiveLane, localCol, col: null, stackIdx: 0 };
+      }
       const col = firstEvent !== undefined && eventIndex[firstEvent] !== undefined
         ? eventIndex[firstEvent] : 0;
-      const stackIdx = cmdColSlots[col] || 0;
-      cmdColSlots[col] = stackIdx + 1;
-      return { cmd, col, stackIdx };
+      return { cmd, laneId: null, localCol: col, col, stackIdx: 0 };
     });
 
     // Step 4: resolve automation emitsCommand columns (after command placements)
     const resolvedCommandCols = {};
-    commandPlacements.forEach(({ cmd, col }) => { resolvedCommandCols[cmd.name] = col; });
+    const resolvedCommandLanes = {};
+    commandPlacements.forEach(({ cmd, col, laneId, localCol }) => {
+      resolvedCommandCols[cmd.name] = col;
+      resolvedCommandLanes[cmd.name] = { laneId, localCol };
+    });
 
     const automationPlacements = autos.map(auto => {
+      if (hasLaneSections) {
+        const fromLane = eventLanes[auto.triggeredBy] || laneIds[0];
+        const autoLane = assignedLane(auto.name, fromLane);
+        const fromLocalCol = eventLocalCols[auto.triggeredBy] !== undefined
+          ? eventLocalCols[auto.triggeredBy] : 0;
+        let toLane = autoLane;
+        let toLocalCol = 0;
+        if (resolvedCommandLanes[auto.emitsCommand]) {
+          toLane = resolvedCommandLanes[auto.emitsCommand].laneId || autoLane;
+          toLocalCol = resolvedCommandLanes[auto.emitsCommand].localCol;
+        } else {
+          getSynthCol(auto.emitsCommand, autoLane);
+          toLane = synthLane[auto.emitsCommand] || autoLane;
+          toLocalCol = synthLocal[auto.emitsCommand] || 0;
+        }
+        return { auto, laneId: autoLane, localCol: fromLocalCol, fromLane, fromLocalCol, toLane, toLocalCol, fromCol: null, toCol: null };
+      }
       const fromCol = eventIndex[auto.triggeredBy] !== undefined
         ? eventIndex[auto.triggeredBy] : 0;
       let toCol;
       if (resolvedCommandCols[auto.emitsCommand] !== undefined) {
         toCol = resolvedCommandCols[auto.emitsCommand];
       } else {
-        toCol = getSynthCol(auto.emitsCommand);
+        toCol = getSynthCol(auto.emitsCommand, null);
       }
-      return { auto, fromCol, toCol };
+      return { auto, laneId: null, localCol: fromCol, fromCol, toCol };
     });
 
-    // Step 5: synthetic command placements (as command cards in command lane)
+    if (hasLaneSections) {
+      let start = 0;
+      laneIds.forEach(id => {
+        laneStartCols[id] = start;
+        start += Math.max(1, laneColumnCounts[id] || 0);
+      });
+      Object.entries(eventLocalCols).forEach(([name, localCol]) => {
+        eventIndex[name] = laneStartCols[eventLanes[name]] + localCol;
+      });
+      commandPlacements.forEach(p => {
+        p.col = laneStartCols[p.laneId] + p.localCol;
+        const stackIdx = cmdColSlots[p.col] || 0;
+        cmdColSlots[p.col] = stackIdx + 1;
+        p.stackIdx = stackIdx;
+        resolvedCommandCols[p.cmd.name] = p.col;
+      });
+      Object.entries(synthLocal).forEach(([name, localCol]) => {
+        synthIndex[name] = laneStartCols[synthLane[name]] + localCol;
+      });
+      automationPlacements.forEach(p => {
+        p.fromCol = laneStartCols[p.fromLane] + p.fromLocalCol;
+        p.toCol = laneStartCols[p.toLane] + p.toLocalCol;
+        p.col = laneStartCols[p.laneId] + p.localCol;
+      });
+    }
+
+    // Step 5: synthetic command placements (as command cards in command row)
     const syntheticPlacements = Object.entries(synthIndex).map(([name, col]) => {
       const meta = synthMeta[name] || {};
-      return { name, col, displayLabel: meta.displayLabel || stripCommandSuffix(name), note: meta.note || '' };
+      return { name, col, laneId: synthLane[name] || null, displayLabel: meta.displayLabel || stripCommandSuffix(name), note: meta.note || '' };
     });
 
     // Step 6: view placements
     const viewPlacements = views.map(view => {
       const cols = (view.reads || []).map(n => eventIndex[n]).filter(c => c !== undefined);
+      if (hasLaneSections) {
+        const readLanes = [...new Set((view.reads || []).map(n => eventLanes[n]).filter(Boolean))];
+        const laneId = assignedLane(view.name, readLanes[0] || laneIds[0]);
+        if (readLanes.length > 1) {
+          console.warn(`[EventModelRenderer] view '${view.name}' reads events across lane partitions — rendering in '${laneId}'`);
+        }
+        const laneCols = (view.reads || [])
+          .filter(n => eventLanes[n] === laneId)
+          .map(n => eventIndex[n])
+          .filter(c => c !== undefined);
+        const minCol = laneCols.length > 0 ? Math.min(...laneCols) : laneStartCols[laneId];
+        const maxCol = laneCols.length > 0 ? Math.max(...laneCols) : minCol;
+        return { view, laneId, minCol, maxCol, readCols: cols };
+      }
       const minCol = cols.length > 0 ? Math.min(...cols) : 0;
       const maxCol = cols.length > 0 ? Math.max(...cols) : 0;
       return { view, minCol, maxCol, readCols: cols };
@@ -196,6 +333,20 @@
     // Step 7: outbox placements
     const outboxPlacements = outboxes.map(pub => {
       const cols = (pub.handles || []).map(n => eventIndex[n]).filter(c => c !== undefined);
+      if (hasLaneSections) {
+        const handledLanes = [...new Set((pub.handles || []).map(n => eventLanes[n]).filter(Boolean))];
+        const laneId = assignedLane(pub.name, handledLanes[0] || laneIds[0]);
+        if (handledLanes.length > 1) {
+          console.warn(`[EventModelRenderer] outbox '${pub.name}' handles events across lane partitions — rendering in '${laneId}'`);
+        }
+        const laneCols = (pub.handles || [])
+          .filter(n => eventLanes[n] === laneId)
+          .map(n => eventIndex[n])
+          .filter(c => c !== undefined);
+        const minCol = laneCols.length > 0 ? Math.min(...laneCols) : laneStartCols[laneId];
+        const maxCol = laneCols.length > 0 ? Math.max(...laneCols) : minCol;
+        return { pub, laneId, minCol, maxCol };
+      }
       const minCol = cols.length > 0 ? Math.min(...cols) : 0;
       const maxCol = cols.length > 0 ? Math.max(...cols) : 0;
       return { pub, minCol, maxCol };
@@ -211,12 +362,16 @@
       const firstEvent = (linkedCmd.produces || [])[0];
       const col = firstEvent !== undefined && eventIndex[firstEvent] !== undefined
         ? eventIndex[firstEvent] : 0;
-      return { trigger, col, linkedCommand: linkedCmd.name };
+      return { trigger, col, linkedCommand: linkedCmd.name, laneId: hasLaneSections ? eventLanes[firstEvent] : null };
     }).filter(Boolean);
 
-    const numCols = nextSynthCol; // total columns including synthetics
+    const totalCols = hasLaneSections
+      ? laneIds.reduce((sum, id) => sum + Math.max(1, laneColumnCounts[id] || 0), 0)
+      : nextSynthCol;
+    const numCols = nextSynthCol; // total columns including synthetics in legacy mode
     return {
       eventIndex, numCols, numEventCols,
+      hasLaneSections, lanes: laneDefs, laneIds, laneLabels, laneStartCols, laneColumnCounts, totalCols,
       commandPlacements, syntheticPlacements,
       viewPlacements, automationPlacements,
       outboxPlacements, triggerPlacements,
@@ -322,7 +477,7 @@
   function renderTriggerArrow(x, y1, y2) {
     return el('path', {
       d: `M ${x} ${y1} L ${x} ${y2}`,
-      stroke: C.laneSep, 'stroke-width': '2', fill: 'none',
+      stroke: C.rowSep, 'stroke-width': '2', fill: 'none',
       'marker-end': 'url(#arrowhead-sm)',
       'stroke-linecap': 'round',
     });
@@ -349,12 +504,49 @@
     return g;
   }
 
-  // ─── Lane background + labels ────────────────────────────────────────────────
-  function renderLanes(model, totalW) {
+  // ─── Row background + labels ─────────────────────────────────────────────────
+  function renderRows(model, layout, totalW) {
     const g = el('g');
     g.appendChild(el('rect', { x: 0, y: 0, width: totalW, height: totalHeight(model), fill: C.bg }));
 
-    const laneLabels = {
+    if (layout.hasLaneSections) {
+      const bandTop = L.titleBlockH - 32;
+      const headerH = 26;
+      const bandBottom = totalHeight(model) - 20;
+      const bandH = bandBottom - bandTop;
+      layout.laneIds.forEach((laneId, i) => {
+        const laneCols = Math.max(1, layout.laneColumnCounts[laneId] || 0);
+        const x = defaultColX(layout.laneStartCols[laneId]);
+        const w = laneCols * L.colW;
+        g.appendChild(el('rect', {
+          x, y: bandTop, width: w, height: bandH,
+          fill: i % 2 === 0 ? '#fff8e8' : '#ece4d2',
+        }));
+        g.appendChild(el('rect', {
+          x, y: bandTop, width: w, height: headerH,
+          fill: i % 2 === 0 ? '#eadfc8' : '#ddd1b8',
+          stroke: '#b9a783', 'stroke-width': '1.5',
+        }));
+        g.appendChild(el('line', {
+          x1: x, y1: bandTop, x2: x, y2: bandBottom,
+          stroke: '#a9966d', 'stroke-width': '2.5',
+        }));
+        g.appendChild(txt(layout.laneLabels[laneId] || laneId, {
+          x: x + w / 2, y: bandTop + 18,
+          'text-anchor': 'middle',
+          'font-family': "'Trebuchet MS','Segoe UI',sans-serif",
+          'font-size': '12', 'font-weight': '700', fill: C.text,
+        }));
+      });
+      const lastLane = layout.laneIds[layout.laneIds.length - 1];
+      const lastX = defaultColX(layout.laneStartCols[lastLane] + Math.max(1, layout.laneColumnCounts[lastLane] || 0));
+      g.appendChild(el('line', {
+        x1: lastX, y1: bandTop, x2: lastX, y2: bandBottom,
+        stroke: '#a9966d', 'stroke-width': '2.5',
+      }));
+    }
+
+    const rowLabels = {
       trigger:    ['TRIGGER',    'What starts the flow'],
       command:    ['COMMAND',    'Intent to change state'],
       event:      ['EVENT',      'Committed business fact'],
@@ -363,14 +555,14 @@
       outbox:     ['OUTBOX',     'External publication (illustrative)'],
     };
 
-    LANES.forEach(k => {
-      if (!isLaneVisible(model, k)) return;
-      const topY = laneTopY(model, k);
+    ROWS.forEach(k => {
+      if (!isRowVisible(model, k)) return;
+      const topY = rowTopY(model, k);
       g.appendChild(el('line', {
         x1: L.labelW - 10, y1: topY, x2: totalW, y2: topY,
-        stroke: C.laneSep, 'stroke-width': '3', 'stroke-dasharray': '10 10',
+        stroke: C.rowSep, 'stroke-width': '3', 'stroke-dasharray': '10 10',
       }));
-      const [main, sub] = laneLabels[k];
+      const [main, sub] = rowLabels[k];
       g.appendChild(txt(main, {
         x: L.labelW - 14, y: topY + 22,
         'text-anchor': 'end',
@@ -390,7 +582,7 @@
     const bottomY = totalHeight(model) - 20;
     g.appendChild(el('line', {
       x1: L.labelW - 10, y1: bottomY, x2: totalW, y2: bottomY,
-      stroke: C.laneSep, 'stroke-width': '3', 'stroke-dasharray': '10 10',
+      stroke: C.rowSep, 'stroke-width': '3', 'stroke-dasharray': '10 10',
     }));
     return g;
   }
@@ -433,7 +625,7 @@
             viewPlacements, automationPlacements,
             outboxPlacements, triggerPlacements, cmdColSlots } = layout;
 
-    const tw = totalWidth(numCols);
+    const tw = totalWidth(layout);
     const th = totalHeight(model);
 
     const svg = el('svg', {
@@ -444,19 +636,20 @@
     });
 
     svg.appendChild(buildDefs());
-    svg.appendChild(renderLanes(model, tw));
+    svg.appendChild(renderRows(model, layout, tw));
     svg.appendChild(renderHeader(model, tw));
 
     const events = model.events || [];
 
     // ── EVENT cards ──
-    if (isLaneVisible(model, 'event')) {
-      const laneY = laneTopY(model, 'event');
-      const cardH = L.laneH.event - 2 * L.cardMargin;
+    if (isRowVisible(model, 'event')) {
+      const rowY = rowTopY(model, 'event');
+      const cardH = L.rowH.event - 2 * L.cardMargin;
       events.forEach((event, col) => {
+        const physicalCol = layout.eventIndex[event.name] !== undefined ? layout.eventIndex[event.name] : col;
         const cardW = L.colW - 2 * L.cardMargin;
-        const cardX = colX(col) + L.cardMargin;
-        const cardY = laneY + L.cardMargin;
+        const cardX = defaultColX(physicalCol) + L.cardMargin;
+        const cardY = rowY + L.cardMargin;
         svg.appendChild(renderCard({
           x: cardX, y: cardY, w: cardW, h: cardH,
           colors: C.event,
@@ -469,17 +662,17 @@
     }
 
     // ── COMMAND cards + cmd→event arrows ──
-    if (isLaneVisible(model, 'command')) {
-      const cmdLaneY = laneTopY(model, 'command');
-      const evtLaneY = laneTopY(model, 'event');
-      const baseCardH = L.laneH.command - 2 * L.cardMargin;
+    if (isRowVisible(model, 'command')) {
+      const cmdRowY = rowTopY(model, 'command');
+      const evtRowY = rowTopY(model, 'event');
+      const baseCardH = L.rowH.command - 2 * L.cardMargin;
 
       commandPlacements.forEach(({ cmd, col, stackIdx }) => {
         const cardW = L.colW - 2 * L.cardMargin;
-        const cardX = colX(col) + L.cardMargin;
+        const cardX = defaultColX(col) + L.cardMargin;
         const stackedH = baseCardH - 4;
-        const cardY = cmdLaneY + L.cardMargin + stackIdx * (stackedH + 8);
-        const cx = colCX(col);
+        const cardY = cmdRowY + L.cardMargin + stackIdx * (stackedH + 8);
+        const cx = defaultColCX(col);
 
         const guardNote = (cmd.guardEvents || []).length > 0 ? `guard: ${cmd.guardEvents[0]}` : null;
         svg.appendChild(renderCard({
@@ -490,7 +683,7 @@
           badge: cmd.pattern,
         }));
         // cmd → event arrow (from actual card bottom)
-        const arrowY1 = evtLaneY + L.cardMargin;
+        const arrowY1 = evtRowY + L.cardMargin;
         const arrowY2 = cardY + stackedH + 6;
         if (arrowY2 < arrowY1 - 4) {
           svg.appendChild(renderArrow(cx, arrowY2, arrowY1 - 4));
@@ -500,8 +693,8 @@
       // Synthetic command cards (cross-domain targets)
       syntheticPlacements.forEach(({ name, col, displayLabel, note }) => {
         const cardW = L.colW - 2 * L.cardMargin;
-        const cardX = colX(col) + L.cardMargin;
-        const cardY = cmdLaneY + L.cardMargin;
+        const cardX = defaultColX(col) + L.cardMargin;
+        const cardY = cmdRowY + L.cardMargin;
         svg.appendChild(renderCard({
           x: cardX, y: cardY, w: cardW, h: baseCardH,
           colors: { fill: C.command.fill, accent: C.command.accent, stroke: C.command.stroke },
@@ -513,16 +706,16 @@
     }
 
     // ── TRIGGER cards + trigger→command arrows ──
-    if (isLaneVisible(model, 'trigger')) {
-      const trigLaneY = laneTopY(model, 'trigger');
-      const cmdLaneY  = laneTopY(model, 'command');
-      const cardH = L.laneH.trigger - 2 * L.cardMargin;
+    if (isRowVisible(model, 'trigger')) {
+      const trigRowY = rowTopY(model, 'trigger');
+      const cmdRowY  = rowTopY(model, 'command');
+      const cardH = L.rowH.trigger - 2 * L.cardMargin;
 
       triggerPlacements.forEach(({ trigger, col }) => {
         const cardW = L.colW - 2 * L.cardMargin;
-        const cardX = colX(col) + L.cardMargin;
-        const cardY = trigLaneY + L.cardMargin;
-        const cx = colCX(col);
+        const cardX = defaultColX(col) + L.cardMargin;
+        const cardY = trigRowY + L.cardMargin;
+        const cx = defaultColCX(col);
 
         svg.appendChild(renderCard({
           x: cardX, y: cardY, w: cardW, h: cardH,
@@ -532,7 +725,7 @@
         }));
         // trigger → command arrow (light, small arrowhead)
         const arrowY1 = cardY + cardH + 2;
-        const arrowY2 = cmdLaneY + L.cardMargin - 2;
+        const arrowY2 = cmdRowY + L.cardMargin - 2;
         if (arrowY2 > arrowY1 + 4) {
           svg.appendChild(renderTriggerArrow(cx, arrowY1, arrowY2));
         }
@@ -540,16 +733,16 @@
     }
 
     // ── VIEW cards + event→view arrows ──
-    if (isLaneVisible(model, 'view')) {
-      const viewLaneY = laneTopY(model, 'view');
-      const evtLaneY  = laneTopY(model, 'event');
-      const cardH = L.laneH.view - 2 * L.cardMargin;
+    if (isRowVisible(model, 'view')) {
+      const viewRowY = rowTopY(model, 'view');
+      const evtRowY  = rowTopY(model, 'event');
+      const cardH = L.rowH.view - 2 * L.cardMargin;
 
       viewPlacements.forEach(({ view, minCol, maxCol, readCols }) => {
         const spanCols = maxCol - minCol + 1;
         const cardW = spanCols * L.colW - 2 * L.cardMargin;
-        const cardX = colX(minCol) + L.cardMargin;
-        const cardY = viewLaneY + L.cardMargin;
+        const cardX = defaultColX(minCol) + L.cardMargin;
+        const cardY = viewRowY + L.cardMargin;
 
         svg.appendChild(renderCard({
           x: cardX, y: cardY, w: cardW, h: cardH,
@@ -564,28 +757,28 @@
         readCols.forEach(col => {
           if (drawnCols.has(col)) return;
           drawnCols.add(col);
-          const cx = colCX(col);
-          const y1 = evtLaneY + L.laneH.event - L.cardMargin + 4;
-          const y2 = viewLaneY + L.cardMargin - 4;
+          const cx = defaultColCX(col);
+          const y1 = evtRowY + L.rowH.event - L.cardMargin + 4;
+          const y2 = viewRowY + L.cardMargin - 4;
           svg.appendChild(renderArrow(cx, y1, y2));
         });
       });
     }
 
     // ── AUTOMATION cards + arcs ──
-    if (isLaneVisible(model, 'automation')) {
-      const autoLaneY = laneTopY(model, 'automation');
-      const evtLaneY  = laneTopY(model, 'event');
-      const cmdLaneY  = laneTopY(model, 'command');
-      const cardH = L.laneH.automation - 2 * L.cardMargin;
+    if (isRowVisible(model, 'automation')) {
+      const autoRowY = rowTopY(model, 'automation');
+      const evtRowY  = rowTopY(model, 'event');
+      const cmdRowY  = rowTopY(model, 'command');
+      const cardH = L.rowH.automation - 2 * L.cardMargin;
 
-      automationPlacements.forEach(({ auto, fromCol, toCol }) => {
-        const minCol = Math.min(fromCol, toCol);
-        const maxCol = Math.max(fromCol, toCol);
+      automationPlacements.forEach(({ auto, fromCol, toCol, col }) => {
+        const minCol = layout.hasLaneSections ? col : Math.min(fromCol, toCol);
+        const maxCol = layout.hasLaneSections ? col : Math.max(fromCol, toCol);
         const spanCols = maxCol - minCol + 1;
         const cardW = Math.max(spanCols * L.colW - 2 * L.cardMargin, L.colW - 2 * L.cardMargin);
-        const cardX = colX(minCol) + L.cardMargin;
-        const cardY = autoLaneY + L.cardMargin;
+        const cardX = defaultColX(minCol) + L.cardMargin;
+        const cardY = autoRowY + L.cardMargin;
 
         svg.appendChild(renderCard({
           x: cardX, y: cardY, w: cardW, h: cardH,
@@ -595,28 +788,28 @@
         }));
 
         // arc: event bottom → automation top
-        const evtCX   = colCX(fromCol);
-        const evtArcY = evtLaneY + L.laneH.event - L.cardMargin + 4;
+        const evtCX   = defaultColCX(fromCol);
+        const evtArcY = evtRowY + L.rowH.event - L.cardMargin + 4;
         const autoTopY = cardY - 4;
         svg.appendChild(renderArc(evtCX, evtArcY, evtCX, autoTopY, 'async'));
 
         // arc: automation top → command bottom (loop back up)
-        const cmdCX    = colCX(toCol);
-        const cmdArcY  = cmdLaneY + L.laneH.command - L.cardMargin;
-        svg.appendChild(renderArc(colCX(minCol + (maxCol - minCol) / 2), autoTopY - 10, cmdCX, cmdArcY, null));
+        const cmdCX    = defaultColCX(toCol);
+        const cmdArcY  = cmdRowY + L.rowH.command - L.cardMargin;
+        svg.appendChild(renderArc(defaultColCX(minCol + (maxCol - minCol) / 2), autoTopY - 10, cmdCX, cmdArcY, null));
       });
     }
 
     // ── OUTBOX cards ──
-    if (isLaneVisible(model, 'outbox')) {
-      const outboxLaneY = laneTopY(model, 'outbox');
-      const cardH = L.laneH.outbox - 2 * L.cardMargin;
+    if (isRowVisible(model, 'outbox')) {
+      const outboxRowY = rowTopY(model, 'outbox');
+      const cardH = L.rowH.outbox - 2 * L.cardMargin;
 
       outboxPlacements.forEach(({ pub, minCol, maxCol }) => {
         const spanCols = maxCol - minCol + 1;
         const cardW = spanCols * L.colW - 2 * L.cardMargin;
-        const cardX = colX(minCol) + L.cardMargin;
-        const cardY = outboxLaneY + L.cardMargin;
+        const cardX = defaultColX(minCol) + L.cardMargin;
+        const cardY = outboxRowY + L.cardMargin;
 
         svg.appendChild(renderCard({
           x: cardX, y: cardY, w: cardW, h: cardH,

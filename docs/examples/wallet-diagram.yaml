@@ -12,6 +12,26 @@ triggers:
   - name: "Customer transfers"
     linkedCommand: TransferMoney
 
+lanes:
+  - id: wallet
+    label: Wallet
+  - id: notification
+    label: Notification
+
+assignments:
+  OpenWallet: wallet
+  Deposit: wallet
+  Withdraw: wallet
+  TransferMoney: wallet
+  WalletOpened: wallet
+  DepositMade: wallet
+  WithdrawalMade: wallet
+  MoneyTransferred: wallet
+  WalletBalance: wallet
+  WalletEventPublisher: wallet
+  WalletOpenedAutomation: wallet
+  SendWelcomeNotification: notification
+
 # WalletOpenedAutomation is diagram-only: it emits SendWelcomeNotificationCommand from the
 # notification subdomain. The real implementation deserializes WalletOpened and emits directly
 # — no view read needed.
