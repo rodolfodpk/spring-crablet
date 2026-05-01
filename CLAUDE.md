@@ -499,6 +499,7 @@ See [docs/user/PERFORMANCE.md](docs/user/PERFORMANCE.md) for full details on rea
 - Observability: `docs/user/OBSERVABILITY.md` (entry point — Micrometer setup, metrics reference, Grafana, PromQL)
 - Metrics deep dives: `crablet-eventstore/docs/METRICS.md`, `crablet-outbox/docs/OUTBOX_METRICS.md`
 - Observability stack: `observability/README.md` (Prometheus + Grafana Docker Compose)
+- Concept mind map: `docs/examples/concepts.md` (source of truth — update this file when adding modules, patterns, or AI tooling; rendered interactively at the GitHub Pages site)
 
 ## Key Package Locations
 
