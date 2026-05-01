@@ -18,6 +18,14 @@ markmap:
 #### ConcurrencyException — boundary violated, retry with fresh state
 #### Traditional aggregates: one root per transaction boundary
 #### DCB: boundary is defined per-operation, not per-aggregate
+### Vertical Slice Architecture
+#### Feature-first over layer-first organization
+#### Each slice owns its request, handler, and response end-to-end
+#### Thin vertical beats fat horizontal layer
+#### Coupling rule — minimize between slices, maximize within
+#### Contrast — horizontal layers share infrastructure, couple features
+#### In Crablet — one slice = command + event + view + optional automation
+#### ref: jimmybogard.com/vertical-slice-architecture
 ### Append Patterns
 #### idempotent — entity creation, duplicate prevention
 #### commutative — order-independent operations
@@ -26,14 +34,18 @@ markmap:
 ### Event Modeling
 #### Blueprint — horizontal timeline of the entire system
 #### Read left to right — time flows, events are the spine
-#### Swim lanes — trigger / command / event / view / automation / outbox
+#### Swim lanes — trigger / command / event / view / automation / translation
+#### Slices — vertical cuts through all swim lanes, one per feature
+##### Each slice = trigger + command + event + view end-to-end
+##### Slices are the unit of delivery, not layers
+##### Minimize coupling between slices, maximize cohesion within
 #### Building Blocks
-##### Trigger — what starts the flow (UI, schedule, external system)
+##### Trigger — what starts the flow (UI wireframe, schedule, external system)
 ##### Command — intent to change state (blue)
 ##### Event — committed business fact, immutable (orange)
 ##### View — async read model built from events (green)
 ##### Automation — policy: if event X then emit command Y (amber)
-##### Outbox — reliable external publication after commit (pink)
+##### Translation — external systems, webhooks, outbox, messaging (pink)
 #### Design Rules
 ##### One fact per event — events describe what happened, not what to do
 ##### Commands validate — events never fail
@@ -45,14 +57,16 @@ markmap:
 ##### 3. Add triggers — who or what issues each command? (white stickies)
 ##### 4. Add views — what reads the events? (green stickies)
 ##### 5. Add automations — what policies fire after events? (amber stickies)
-##### 6. Define boundaries — assign DCB tags, name consistency scopes
+##### 6. Add translations — what crosses system boundaries? (pink stickies)
+##### 7. Draw slices — group trigger+command+event+view into vertical features
+##### 8. Define boundaries — assign DCB tags, name consistency scopes
 #### Mapping to Crablet
 ##### Trigger → HTTP request, scheduler, or external event
 ##### Command → CommandHandler + CommandExecutor
 ##### Event → immutable record appended to EventStore
 ##### View → ViewProjector + async poller
 ##### Automation → AutomationHandler + async poller
-##### Outbox → OutboxPublisher + async poller
+##### Translation → OutboxPublisher + async poller
 
 ## Framework Modules
 ### crablet-eventstore
