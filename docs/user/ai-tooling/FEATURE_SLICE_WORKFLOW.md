@@ -57,17 +57,18 @@ For the notation rules and the canonical board examples in one place, see
 
 This same slice can be shown as an illustrative Event Modeling sticky-note board:
 
-In Event Modeling, time flows left to right on a horizontal timeline. The lanes are semantic
-layers such as trigger, command, event, view, automation, and translation rather than a
-top-to-bottom flowchart.
+In Event Modeling, time flows left to right on a horizontal timeline. Crablet's boards use
+semantic rows such as trigger, command, event, view, automation, and translation. Full Event
+Modeling boards can also group those rows into subsystem lanes such as wallet, notification,
+inventory, auth, or payment. Neither form should become a top-to-bottom flowchart.
 
-In Crablet, the event lane represents committed events. Views, automations, and outbox publication
+In Crablet, the event row represents committed events. Views, automations, and outbox publication
 should be read as asynchronous poller-backed consequences of those committed events, not as
 synchronous steps inside the command transaction.
 
 ![Submit Loan Application event modeling board](../assets/loan-submit-event-modeling-board.svg)
 
-The board intentionally stops at the `View` lane. For this first sample, the slice only needs:
+The board intentionally stops at the `View` row. For this first sample, the slice only needs:
 
 - a trigger from the customer or API
 - one command: `SubmitLoanApplication`

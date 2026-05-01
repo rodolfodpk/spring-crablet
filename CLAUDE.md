@@ -199,6 +199,18 @@ These decisions reflect the current repository state and should be treated as th
   - Virtual-thread request dispatch is verified in both modules via a focused test-only endpoint, not by duplicating full API behavior tests.
 - The root tutorial is now a tutorial series under `docs/user/tutorials/`, not one monolithic walkthrough.
 
+### Event Modeling Vocabulary
+
+Use this terminology consistently when editing docs or diagram tooling:
+
+- **Rows** are semantic element layers: trigger, command, event, view, automation, and outbox or translation.
+- **Lanes** are subsystem or bounded-context groupings: wallet, notification, auth, payments, inventory.
+- Time flows left to right. Do not turn Event Modeling boards into top-to-bottom flowcharts.
+- Clean `event-model.yaml` files stay codegen-focused. Renderer-only lane assignments belong in
+  diagram sidecars such as `docs/examples/wallet-diagram.yaml`.
+
+The `.claude/skills/event-modeling` skill contains the workshop-level Event Modeling guidance.
+
 ### Build graph, examples, and `crablet-test-support`
 
 - `shared-examples-domain` depends on `crablet-eventstore` (main) for real domain types; framework modules use it in **test** scope for realistic tests and shared scenarios.

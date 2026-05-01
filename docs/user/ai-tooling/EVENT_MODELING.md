@@ -8,7 +8,8 @@ workflows.
 Event Modeling is a horizontal timeline.
 
 - time flows left to right
-- lanes are semantic layers such as trigger, command, event, view, automation, and translation
+- subsystem lanes group bounded areas such as wallet, notification, inventory, auth, or payment
+- rows are semantic layers such as trigger, command, event, view, automation, and translation
 - the board should not be drawn as a top-to-bottom flowchart
 
 In Crablet docs, Event Modeling boards are used to explain feature slices before or alongside
@@ -17,9 +18,9 @@ In Crablet docs, Event Modeling boards are used to explain feature slices before
 
 ## How To Read The Boards
 
-Read the event lane from left to right as the timeline of business facts.
+Read the event row from left to right as the timeline of business facts.
 
-Other lanes sit above or below that timeline to show:
+Other rows sit above or below that timeline to show:
 
 - what triggered the flow
 - which command caused a fact to be recorded
@@ -30,6 +31,9 @@ Other lanes sit above or below that timeline to show:
 In Crablet, those downstream consequences are normally asynchronous and poller-backed. A stored
 event is committed first; views, automations, and outbox publication observe that committed event
 later rather than participating in the synchronous command transaction.
+
+The current renderer supports Crablet's semantic rows by default. Optional subsystem lanes are
+declared in diagram sidecar files, not in the clean `event-model.yaml` codegen contract.
 
 When a board is illustrative rather than exhaustive, the docs should say so explicitly.
 
@@ -62,7 +66,7 @@ The wallet board shows a richer slice where one committed event fans out into:
 
 The outbox branch in this board is intentionally illustrative. It is drawn from `WalletOpened` to
 match the sample’s teaching goal, not to claim that every later event consequence is shown. The
-view, automation, and outbox lanes all represent asynchronous poller-backed work that happens after
+view, automation, and outbox rows all represent asynchronous poller-backed work that happens after
 `WalletOpened` is stored.
 
 Source context:

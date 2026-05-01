@@ -77,6 +77,9 @@ If you explain the slice with an Event Modeling diagram or board, preserve the c
 - Event Modeling is a horizontal timeline. Time flows left to right.
 - **Swim lanes** divide the board by sub-system (e.g. inventory, auth, payment, gps) — one lane per bounded area of the system, all sharing the same timeline.
 - **Within each lane**, element types are stacked vertically: wireframes (top), commands, events, read models, automations.
+- In Crablet renderer/docs vocabulary, call those stacked element-type layers **rows**. Reserve
+  **lanes** for subsystem or bounded-context groupings. Renderer lane assignments belong in
+  `*-diagram.yaml` sidecars, not in the clean `event-model.yaml` codegen input.
 - **Slices** cut vertically through all element layers — one slice per feature. Four slice types (from the event modeling cheat sheet):
   - *State Change* — trigger → command → event (write path)
   - *State View* — event → read model (query path)

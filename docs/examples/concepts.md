@@ -38,8 +38,9 @@ markmap:
 ### Event Modeling
 #### Blueprint — horizontal timeline of the entire system
 #### Read left to right — time flows, events are the spine
-#### Swim lanes — one per sub-system (e.g. inventory, auth, payment, gps)
-#### Within each lane — wireframes / commands / events / read models stacked vertically
+#### Subsystem lanes — one per bounded area (e.g. inventory, auth, payment, gps)
+#### Semantic rows — wireframes / commands / events / read models stacked vertically inside lanes
+#### Crablet renderer — rows by default; optional subsystem lanes live in diagram sidecars
 #### Slices — atomic unit of work, vertical cut through all layers
 ##### State Change — trigger → command → event (write path)
 ##### State View — event → read model (query path)
@@ -132,7 +133,7 @@ markmap:
 ### event-model.yaml format
 #### Official codegen input contract
 #### Clean spec — events, commands, views, automations, outbox
-#### Diagram sidecar — triggers, synthetic nodes, eventBadges
+#### Diagram sidecar — triggers, subsystem lanes, assignments, synthetic nodes, eventBadges
 #### Shared schemas ($ref composition)
 ### Starter template
 #### templates/crablet-app — pre-wired pom.xml + Flyway migration
