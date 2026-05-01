@@ -19,12 +19,11 @@ markmap:
 #### Traditional aggregates: one root per transaction boundary
 #### DCB: boundary is defined per-operation, not per-aggregate
 ### Vertical Slice Architecture
-#### Feature-first over layer-first organization
-#### Each slice owns its request, handler, and response end-to-end
+#### Complements event modeling slices at the code organization level
+#### Feature-first over layer-first — each slice owns its full stack
 #### Thin vertical beats fat horizontal layer
-#### Coupling rule — minimize between slices, maximize within
-#### Contrast — horizontal layers share infrastructure, couple features
-#### In Crablet — one slice = command + event + view + optional automation
+#### Coupling rule — minimize between slices, maximize cohesion within
+#### In Crablet — one slice = CommandHandler + event + ViewProjector
 #### ref: jimmybogard.com/vertical-slice-architecture
 ### Append Patterns
 #### idempotent — entity creation, duplicate prevention
@@ -35,10 +34,12 @@ markmap:
 #### Blueprint — horizontal timeline of the entire system
 #### Read left to right — time flows, events are the spine
 #### Swim lanes — trigger / command / event / view / automation / translation
-#### Slices — vertical cuts through all swim lanes, one per feature
-##### Each slice = trigger + command + event + view end-to-end
-##### Slices are the unit of delivery, not layers
-##### Minimize coupling between slices, maximize cohesion within
+#### Slices — atomic unit of work, vertical cut through all swim lanes
+##### State Change — trigger → command → event (write path)
+##### State View — event → read model (query path)
+##### Automation — event → command (policy/reaction)
+##### Translation — event → external system (or external → command)
+##### ref: eventmodeling.org/posts/event-modeling-cheatsheet
 #### Building Blocks
 ##### Trigger — what starts the flow (UI wireframe, schedule, external system)
 ##### Command — intent to change state (blue)
