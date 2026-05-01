@@ -18,27 +18,25 @@ markmap:
 #### Read models may be eventually consistent
 ### DCB Pattern
 #### Dynamic Consistency Boundary — criteria-based, not aggregate-based
-#### Optimistic concurrency via streamPosition (no distributed locks)
-#### AppendCondition — atomic check-and-append
-#### DecisionModel — query defining the consistency boundary
+#### Optimistic concurrency — compare-and-append against a captured position in the decision event stream (no distributed locks)
+#### Append precondition — atomic check-and-append in one transaction
+#### Consistency-boundary query — defines which events constrain the decision
 #### Multi-entity consistency — one check spans multiple entity streams
-#### ConcurrencyException — boundary violated, retry with fresh state
+#### Boundary conflict — append rejected, retry with a fresh projection
 #### ref: dcb.events/specification (official spec by Sara Pellegrini & Milan Savić)
 ### Vertical Slice Architecture
 #### Complements event modeling slices at the code organization level
 #### Feature-first over layer-first — each slice owns its full stack
 #### Thin vertical beats fat horizontal layer
 #### Coupling rule — minimize between slices, maximize cohesion within
-#### Crablet slice shape — see Crablet Architecture Model
+#### Align board slices with code — same vertical cut from model to implementation
 #### ref: jimmybogard.com/vertical-slice-architecture
-### Append patterns
-#### Crablet append taxonomy — see Crablet Architecture Model
 ### Event Modeling
 #### Blueprint — horizontal timeline of the entire system
 #### Read left to right — time flows, events are the spine
 #### Subsystem lanes — one per bounded area (e.g. inventory, auth, payment, gps)
 #### Semantic rows — wireframes / commands / events / read models stacked vertically inside lanes
-#### Crablet renderer — rows by default; optional subsystem lanes live in diagram sidecars
+#### Event model vs diagram artifacts — core model uses rows by default; subsystem lanes live in optional diagram sidecars
 #### Slices — atomic unit of work, vertical cut through all layers
 ##### State Change — trigger → command → event (write path)
 ##### State View — event → read model (query path)
@@ -65,22 +63,27 @@ markmap:
 ##### 5. Add automations — what policies fire after events? (amber stickies)
 ##### 6. Add translations — what crosses system boundaries? (pink stickies)
 ##### 7. Draw slices — group trigger+command+event+view into vertical features
-##### 8. Define boundaries — assign DCB tags, name consistency scopes
-#### Mapping to Crablet
-##### See Crablet Architecture Model — trigger, command, event, view, automation, translation
-### Crablet Architecture Model
-#### Write path — CommandExecutor + CommandHandler + EventStore
-#### Decision projection — command handlers project state from events inside the write transaction
-#### Consistency boundary — DecisionModel + AppendCondition + StreamPosition
-#### Read path — ViewProjector + async poller + materialized views
-#### Automation path — AutomationHandler reacts to committed events and emits commands
-#### Translation path — outbox publishes committed events to external systems
-#### Event spine — immutable events connect commands, views, automations, and outbox
-#### Slice shape — trigger + command + event + view
-#### Crablet append taxonomy — idempotent / commutative / commutative + guard / non-commutative
-#### Postgres advisory locks — idempotent append semantics + session-scoped poller leader election
-#### NOTIFY + optional LISTEN — wake async processors after writes (Postgres; LISTEN needs a direct JDBC URL, not a pooler)
-#### Crablet DCB interpretation — inspired by DCB, not strict spec vocabulary
+##### 8. Define boundaries — tag decision scopes, name consistency scopes
+
+## Crablet Architecture Model
+### Grounded in Core Concepts
+#### Event Sourcing — immutable log; projections on command path and in async read models
+#### CQRS — write path vs materialized read paths below
+#### DCB Pattern — criteria boundary; see consistency boundary + Crablet DCB interpretation
+#### Event Modeling — triggers, commands, events, views, automations, translations map to paths below
+#### Vertical Slice Architecture — CommandHandler + domain events + ViewProjector per feature slice
+### Write path — CommandExecutor + CommandHandler + EventStore
+### Decision projection — command handlers project state from events inside the write transaction
+### Consistency boundary — DecisionModel + AppendCondition + StreamPosition
+### Read path — ViewProjector + async poller + materialized views
+### Automation path — AutomationHandler reacts to committed events and emits commands
+### Translation path — outbox publishes committed events to external systems
+### Event spine — immutable events connect commands, views, automations, and outbox
+### Slice shape — trigger + command + event + view
+### Crablet append taxonomy — idempotent / commutative / commutative + guard / non-commutative
+### Postgres advisory locks — idempotent append semantics + session-scoped poller leader election
+### NOTIFY + optional LISTEN — wake async processors after writes (Postgres; LISTEN needs a direct JDBC URL, not a pooler)
+### Crablet DCB interpretation — inspired by DCB, not strict spec vocabulary
 
 ## Framework Modules
 ### crablet-eventstore
