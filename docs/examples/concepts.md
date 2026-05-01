@@ -33,8 +33,9 @@ markmap:
 ### Event Modeling
 #### Blueprint — horizontal timeline of the entire system
 #### Read left to right — time flows, events are the spine
-#### Swim lanes — trigger / command / event / view / automation / translation
-#### Slices — atomic unit of work, vertical cut through all swim lanes
+#### Swim lanes — one per sub-system (e.g. inventory, auth, payment, gps)
+#### Within each lane — wireframes / commands / events / read models stacked vertically
+#### Slices — atomic unit of work, vertical cut through all layers
 ##### State Change — trigger → command → event (write path)
 ##### State View — event → read model (query path)
 ##### Automation — event → command (policy/reaction)
