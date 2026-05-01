@@ -5,31 +5,6 @@ markmap:
 
 # Spring Crablet
 
-## Event Modeling
-### Methodology
-#### Blueprint — horizontal timeline of the entire system
-#### Read left to right — time flows left across the board
-#### Swim lanes — trigger / command / event / view / automation
-### Building Blocks
-#### Trigger — what starts the flow (UI action, schedule, external event)
-#### Command — intent to change state (blue)
-#### Event — committed business fact, immutable (orange/yellow)
-#### View — async read model built from events (green)
-#### Automation — policy that reacts to events and emits commands (amber)
-#### Outbox — reliable external publication after commit (pink)
-### Design Rules
-#### One fact per event — events describe what happened, not what to do
-#### Commands validate — events never fail
-#### Views are eventual — updated asynchronously after commit
-#### Automations are policies — if event X then command Y
-### Mapping to Crablet
-#### Trigger → HTTP request or scheduler
-#### Command → CommandHandler + CommandExecutor
-#### Event → immutable record appended to EventStore
-#### View → ViewProjector + async poller
-#### Automation → AutomationHandler + async poller
-#### Outbox → OutboxPublisher + async poller
-
 ## Core Concepts
 ### Event Sourcing
 #### Immutable event log
@@ -48,6 +23,36 @@ markmap:
 #### commutative — order-independent operations
 #### commutative + guard — existence check before commit
 #### non-commutative — state-dependent, detects conflicts
+### Event Modeling
+#### Blueprint — horizontal timeline of the entire system
+#### Read left to right — time flows, events are the spine
+#### Swim lanes — trigger / command / event / view / automation / outbox
+#### Building Blocks
+##### Trigger — what starts the flow (UI, schedule, external system)
+##### Command — intent to change state (blue)
+##### Event — committed business fact, immutable (orange)
+##### View — async read model built from events (green)
+##### Automation — policy: if event X then emit command Y (amber)
+##### Outbox — reliable external publication after commit (pink)
+#### Design Rules
+##### One fact per event — events describe what happened, not what to do
+##### Commands validate — events never fail
+##### Views are eventual — updated asynchronously after commit
+##### Automations are policies — no direct writes, only command emission
+#### Workshop Steps
+##### 1. Brainstorm events — what happened in the domain? (orange stickies)
+##### 2. Add commands — what caused each event? (blue stickies)
+##### 3. Add triggers — who or what issues each command? (white stickies)
+##### 4. Add views — what reads the events? (green stickies)
+##### 5. Add automations — what policies fire after events? (amber stickies)
+##### 6. Define boundaries — assign DCB tags, name consistency scopes
+#### Mapping to Crablet
+##### Trigger → HTTP request, scheduler, or external event
+##### Command → CommandHandler + CommandExecutor
+##### Event → immutable record appended to EventStore
+##### View → ViewProjector + async poller
+##### Automation → AutomationHandler + async poller
+##### Outbox → OutboxPublisher + async poller
 
 ## Framework Modules
 ### crablet-eventstore
