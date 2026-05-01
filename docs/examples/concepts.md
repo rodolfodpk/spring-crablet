@@ -5,6 +5,31 @@ markmap:
 
 # Spring Crablet
 
+## Event Modeling
+### Methodology
+#### Blueprint — horizontal timeline of the entire system
+#### Read left to right — time flows left across the board
+#### Swim lanes — trigger / command / event / view / automation
+### Building Blocks
+#### Trigger — what starts the flow (UI action, schedule, external event)
+#### Command — intent to change state (blue)
+#### Event — committed business fact, immutable (orange/yellow)
+#### View — async read model built from events (green)
+#### Automation — policy that reacts to events and emits commands (amber)
+#### Outbox — reliable external publication after commit (pink)
+### Design Rules
+#### One fact per event — events describe what happened, not what to do
+#### Commands validate — events never fail
+#### Views are eventual — updated asynchronously after commit
+#### Automations are policies — if event X then command Y
+### Mapping to Crablet
+#### Trigger → HTTP request or scheduler
+#### Command → CommandHandler + CommandExecutor
+#### Event → immutable record appended to EventStore
+#### View → ViewProjector + async poller
+#### Automation → AutomationHandler + async poller
+#### Outbox → OutboxPublisher + async poller
+
 ## Core Concepts
 ### Event Sourcing
 #### Immutable event log
