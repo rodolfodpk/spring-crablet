@@ -17,7 +17,7 @@ if (!htmlFile || !outFile) {
   const browser = await chromium.launch();
   const page    = await browser.newPage();
 
-  await page.setViewport({ width: 2000, height: 1100 });
+  await page.setViewportSize({ width: 2000, height: 1100 });
   await page.goto(`file://${path.resolve(htmlFile)}`);
 
   // Wait for markmap to finish layouting (uses requestAnimationFrame internally)
