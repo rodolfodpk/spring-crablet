@@ -9,6 +9,13 @@ markmap:
 ### Event Sourcing
 #### Immutable event log
 #### State from projections
+### CQRS
+#### Command Query Responsibility Segregation
+#### Separate write model from read model
+#### Write side — validates intent and records facts
+#### Read side — projects facts into query models
+#### Queries do not mutate write state
+#### Read models may be eventually consistent
 ### DCB Pattern
 #### Dynamic Consistency Boundary — criteria-based, not aggregate-based
 #### Optimistic concurrency via streamPosition (no distributed locks)
@@ -17,24 +24,15 @@ markmap:
 #### Multi-entity consistency — one check spans multiple entity streams
 #### ConcurrencyException — boundary violated, retry with fresh state
 #### ref: dcb.events/specification (official spec by Sara Pellegrini & Milan Savić)
-#### Crablet's interpretation — inspired by DCB, not a strict implementation
-##### appendNonCommutative / appendCommutative / appendIdempotent — Crablet API, not spec vocabulary
-##### Commutative / non-commutative / idempotent taxonomy — Crablet's own design
-##### Advisory locks for idempotency — Crablet's implementation choice
-##### Guard events for commutative operations — Crablet extension
 ### Vertical Slice Architecture
 #### Complements event modeling slices at the code organization level
 #### Feature-first over layer-first — each slice owns its full stack
 #### Thin vertical beats fat horizontal layer
 #### Coupling rule — minimize between slices, maximize cohesion within
-#### In Crablet — one slice = CommandHandler + event + ViewProjector
+#### Crablet slice shape — see Crablet Architecture Model
 #### ref: jimmybogard.com/vertical-slice-architecture
-### Append Patterns (Crablet-specific taxonomy)
-#### idempotent — entity creation, duplicate prevention
-#### commutative — order-independent operations
-#### commutative + guard — existence check before commit
-#### non-commutative — state-dependent, detects conflicts
-#### not part of the official DCB spec — Crablet's own API layer on top
+### Append patterns
+#### Crablet append taxonomy — see Crablet Architecture Model
 ### Event Modeling
 #### Blueprint — horizontal timeline of the entire system
 #### Read left to right — time flows, events are the spine
@@ -69,12 +67,20 @@ markmap:
 ##### 7. Draw slices — group trigger+command+event+view into vertical features
 ##### 8. Define boundaries — assign DCB tags, name consistency scopes
 #### Mapping to Crablet
-##### Trigger → HTTP request, scheduler, or external event
-##### Command → CommandHandler + CommandExecutor
-##### Event → immutable record appended to EventStore
-##### View → ViewProjector + async poller
-##### Automation → AutomationHandler + async poller
-##### Translation → OutboxPublisher + async poller
+##### See Crablet Architecture Model — trigger, command, event, view, automation, translation
+### Crablet Architecture Model
+#### Write path — CommandExecutor + CommandHandler + EventStore
+#### Decision projection — command handlers project state from events inside the write transaction
+#### Consistency boundary — DecisionModel + AppendCondition + StreamPosition
+#### Read path — ViewProjector + async poller + materialized views
+#### Automation path — AutomationHandler reacts to committed events and emits commands
+#### Translation path — outbox publishes committed events to external systems
+#### Event spine — immutable events connect commands, views, automations, and outbox
+#### Slice shape — trigger + command + event + view
+#### Crablet append taxonomy — idempotent / commutative / commutative + guard / non-commutative
+#### Postgres advisory locks — idempotent append semantics + session-scoped poller leader election
+#### NOTIFY + optional LISTEN — wake async processors after writes (Postgres; LISTEN needs a direct JDBC URL, not a pooler)
+#### Crablet DCB interpretation — inspired by DCB, not strict spec vocabulary
 
 ## Framework Modules
 ### crablet-eventstore
