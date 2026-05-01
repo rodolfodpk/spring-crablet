@@ -32,11 +32,11 @@ jobs:
           npm install playwright
           npx playwright install chromium --with-deps
 
-      - name: Render SVG from mind map
-        run: node .github/scripts/extract-mindmap-svg.js /tmp/concepts-mindmap.html docs/user/assets/concepts-mindmap.svg
+      - name: Render PNG from mind map
+        run: node .github/scripts/extract-mindmap-svg.js /tmp/concepts-mindmap.html docs/user/assets/concepts-mindmap.png
 
-      - name: Commit SVG
+      - name: Commit PNG
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: 'docs: regenerate concepts mind map SVG [skip ci]'
-          file_pattern: docs/user/assets/concepts-mindmap.svg
+          commit_message: 'docs: regenerate concepts mind map PNG [skip ci]'
+          file_pattern: docs/user/assets/concepts-mindmap.png

@@ -5,7 +5,7 @@
 [![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-![Concept map](docs/user/assets/concepts-mindmap.svg)
+![Concept map](docs/user/assets/concepts-mindmap.png)
 
 > Interactive version: [Spring-Crablet Concept Map](https://rodolfodpk.github.io/spring-crablet/concepts.html)
 
