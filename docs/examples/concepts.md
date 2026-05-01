@@ -1,6 +1,6 @@
 ---
 markmap:
-  initialExpandLevel: 2
+  initialExpandLevel: -1
 ---
 
 # Spring Crablet

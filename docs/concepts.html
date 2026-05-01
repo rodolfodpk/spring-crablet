@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Concepts — Spring-Crablet</title>
-  <script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.18"></script>
-  <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.18"></script>
+  <script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.16"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -64,23 +63,24 @@
   </div>
 
   <script>
-    const { Transformer } = window.markmap;
-    const { Markmap, loadCSS, loadJS } = window.markmap;
+    window.addEventListener('load', () => {
+      const { Transformer, Markmap, loadCSS, loadJS } = window.markmap;
 
-    fetch('examples/concepts.md')
-      .then(r => r.text())
-      .then(md => {
-        const transformer = new Transformer();
-        const { root, features } = transformer.transform(md);
-        const { styles, scripts } = transformer.getUsedAssets(features);
-        if (styles) loadCSS(styles);
-        if (scripts) loadJS(scripts, { getMarkmap: () => window.markmap });
-        Markmap.create('#mindmap', { initialExpandLevel: 2 }, root);
-      })
-      .catch(err => {
-        document.querySelector('.markmap-wrap').innerHTML =
-          `<p style="padding:16px;color:#dc2626">Failed to load mind map: ${err.message}</p>`;
-      });
+      fetch('examples/concepts.md')
+        .then(r => r.text())
+        .then(md => {
+          const transformer = new Transformer();
+          const { root, features } = transformer.transform(md);
+          const { styles, scripts } = transformer.getUsedAssets(features);
+          if (styles) loadCSS(styles);
+          if (scripts) loadJS(scripts, { getMarkmap: () => window.markmap });
+          Markmap.create('#mindmap', { initialExpandLevel: 2 }, root);
+        })
+        .catch(err => {
+          document.querySelector('.markmap-wrap').innerHTML =
+            `<p style="padding:16px;color:#dc2626">Failed to load mind map: ${err.message}</p>`;
+        });
+    });
   </script>
 </body>
 </html>
