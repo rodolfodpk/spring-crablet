@@ -31,7 +31,7 @@ It currently validates:
 
 - `embabel-codegen` model parsing, artifact planning, and MCP tool tests
 - the documented loan feature-slice event model parses as a real `EventModel`
-- the planner smoke command prints expected generated artifacts without calling Anthropic
+- the planner smoke command prints expected generated artifacts without calling a model
 
 ## Why This Exists
 

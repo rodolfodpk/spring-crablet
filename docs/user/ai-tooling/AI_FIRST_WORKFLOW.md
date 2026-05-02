@@ -7,8 +7,8 @@ substrate for generated applications and the manual path for teams that want dir
 This workflow is currently a preview direction while the generator matures.
 
 For application teams, the intended first-user path is to clone the
-[Crablet app template](../../../templates/crablet-app/README.md), open Claude Code, and add one
-vertical slice at a time.
+[Crablet app template](../../../templates/crablet-app/README.md), open Claude Code or Cursor, and
+add one vertical slice at a time. Codex and other agents can use the same Makefile/CLI workflow.
 
 ## At A Glance
 
@@ -33,18 +33,18 @@ vertical slice at a time.
 9. Update the event model when missing behavior is structural, and customize code when behavior is
    genuinely application-specific.
 
-The intended shape when using Claude Code:
+The intended shape when using Claude Code or Cursor through MCP:
 
 ```text
 1. make install && make codegen-build
 2. cp -r templates/crablet-app ../wallet-service
    cp embabel-codegen/target/embabel-codegen.jar ../wallet-service/tools/
 3. cd ../wallet-service && export ANTHROPIC_API_KEY=sk-ant-... && claude
-4. Describe one outcome → Claude calls embabel_plan → approve → Claude calls embabel_generate
+4. Describe one outcome → the assistant calls embabel_plan → approve → it calls embabel_generate
 5. ./mvnw verify
 ```
 
-CLI shortcut (from the app directory, no Claude Code needed):
+CLI shortcut (from the app directory; useful for Codex, other agents, and terminal workflows):
 
 ```bash
 # one-time setup (from the spring-crablet repo):
@@ -97,7 +97,7 @@ make check     # plan + verify
 The CLI commands are:
 
 - `init`: bootstrap a Spring Boot app with Crablet dependencies
-- `plan`: print planned artifacts without calling Anthropic or writing files
+- `plan`: print planned artifacts without calling a model or writing files
 - `generate`: read `event-model.yaml`, generate code, and run the compile-and-repair loop
 
 For the documented loan-slice fixture, contributors can run the local planner smoke check:
@@ -112,11 +112,16 @@ After changing `embabel-codegen`, the event model format, or the documented fixt
 make codegen-check
 ```
 
-Claude Code can use the same tool through MCP when `.claude/settings.json` is active:
+Claude Code can use the same tool through MCP when `.claude/settings.json` is active. Cursor can use
+the same tool when `.cursor/mcp.json` is active:
 
 - `embabel_init`
 - `embabel_plan`
 - `embabel_generate`
+
+Generation uses the provider configured for `embabel-codegen`: Anthropic by default, OpenAI with
+`CODEGEN_LLM_PROVIDER=openai`, or local/OpenAI-compatible endpoints such as Ollama with
+`CODEGEN_LLM_PROVIDER=openai-compatible`, `CODEGEN_LLM_BASE_URL`, and `CODEGEN_LLM_MODEL`.
 
 ## What The Model Should Drive
 

@@ -161,8 +161,10 @@ Summarize the full model back to the user before writing:
 Then show a YAML preview and ask for confirmation.
 On confirmation, write the file to `event-model.yaml` (or the path the user specifies).
 
-After writing, recommend running `embabel_plan` before `embabel_generate`. Do not generate code until
-the user has reviewed the planned artifacts.
+After writing, recommend running `embabel_plan` before `embabel_generate`, or `make plan` before
+`make generate` when MCP is not available. `plan` is deterministic and does not call a model;
+`generate` uses the configured codegen provider. Do not generate code until the user has reviewed
+the planned artifacts.
 
 ## Output Rules
 

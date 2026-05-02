@@ -1,0 +1,100 @@
+---
+name: crablet-app-dev
+description: >
+  Use this skill for application work in a Crablet app: adding feature slices,
+  sequencing event-model.yaml with codegen, using embabel_plan or embabel_generate,
+  implementing app command handlers, views, automations, outbox publishers, and
+  verifying generated app code. Do not use for spring-crablet framework module
+  internals or public API changes.
+---
+
+# Crablet App Development
+
+This skill is for developers building applications with Crablet.
+
+Source of truth: this repo skill is canonical. The starter template copy at
+`templates/crablet-app/.claude/skills/crablet-app-dev/SKILL.md` should mirror it,
+except for documented template-only wording.
+
+## Routing
+
+- Use `event-modeling` for workshop dialogue and generator-ready `event-model.yaml` shape.
+- Use this skill to sequence the app workflow around that model and implement/repair app code.
+- Use `dcb` for deep DCB diagnosis, `ConcurrencyException` analysis, or command-pattern explanation.
+- Use `crablet-maintainer` only when changing spring-crablet framework modules, APIs, templates, or codegen internals.
+
+## Feature Slice Workflow
+
+Work one vertical slice at a time, scoped to one observable user outcome.
+
+1. Ask for missing business facts before changing files.
+2. Use or sequence with `event-modeling` to update `event-model.yaml` first.
+3. Run `embabel_plan` and show the planned artifacts.
+4. Ask for confirmation before `embabel_generate`.
+5. In the starter template, call `embabel_generate` with `output` set to `src/main/java`.
+6. Run `./mvnw verify` after generation or manual repair.
+7. Prefer improving `event-model.yaml` over hand-patching generated structural code.
+
+For Claude Code and Cursor, use MCP tools when available. For Codex, other agents, or terminal
+workflows, use `make plan`, `make generate`, and `make verify` from the app root. `plan` is
+deterministic and does not call a model; `generate` uses the configured codegen provider.
+
+For each slice, clarify:
+
+- command name, fields, validation, and DCB pattern
+- event name, fields, and tags
+- consistency checks and guard events
+- read model needed to observe the outcome
+- automation or outbox behavior, if needed
+- sample scenario used to verify the slice
+
+## DCB Choice For App Commands
+
+Use this as a quick choice guide. For deeper analysis, use `dcb`.
+
+| Pattern | Use when | App result |
+|---------|----------|------------|
+| `idempotent` | Creating a unique entity or operation record | duplicate submit returns the existing effect |
+| `commutative` | Order does not affect the final outcome | no lifecycle guard is required |
+| `commutative` with guard events | Order does not matter, but the entity must exist or be active | lifecycle query guards the append |
+| `non-commutative` | Current state affects validity | projection stream position detects conflicts |
+
+Tags define the consistency boundary. Ensure decision-model tags match the tags on appended events.
+
+## Generated Code Boundaries
+
+- Generated command-handler artifacts are structural interfaces. User logic belongs in separate `@Component` implementation classes.
+- Generated automation handler and outbox publisher artifacts should carry metadata only; application code implements behavior in separate components.
+- Client setup, credentials, retry policy, and adapter-specific external integration code belong in application-owned boundaries.
+- Commands validate at construction. Handlers may assume command values are valid.
+- Use `ClockProvider.now()` instead of `Instant.now()` for deterministic tests.
+
+## Runtime Modules
+
+- `crablet-eventstore`: required event storage, queries, projections, DCB appends.
+- `crablet-commands`: command handlers and `CommandExecutor`.
+- `crablet-commands-web`: optional generic HTTP command API.
+- `crablet-views`: materialized read models.
+- `crablet-automations`: event-driven commands/reactions.
+- `crablet-outbox`: reliable external publication.
+- `crablet-event-poller`: shared polling infrastructure behind views, automations, and outbox.
+- `crablet-metrics-micrometer`: optional metrics.
+
+Poller-backed modules process at least once. Make views and publishers idempotent.
+
+## App Testing
+
+- Generated apps: run `./mvnw verify`.
+- Command handlers: unit test decisions with representative prior events.
+- Views: test idempotent upserts and all event variants listed by the projector.
+- Automations: test trigger event selection, condition behavior, and emitted command mapping.
+- Outbox: test publisher behavior at the adapter boundary without inventing real credentials.
+
+## App Gotchas
+
+- The MCP tool defaults `output` to `.`, which is wrong for the starter template. Use `src/main/java`.
+- If MCP is unavailable, prefer the Makefile targets over hand-running long `java -jar` commands.
+- Do not generate code until the artifact plan has been reviewed.
+- Do not skip `event-model.yaml`; it is the structural source for generated app code.
+- Do not put external HTTP/webhook publishing inside automations; use outbox for reliable publication.
+- LISTEN/NOTIFY wakeup requires a direct Postgres JDBC URL, not PgBouncer transaction mode, PgCat, or RDS Proxy.

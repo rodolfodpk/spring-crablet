@@ -23,11 +23,16 @@ make install
 make codegen-build
 ```
 
-For generation, the shell running the tool needs:
+For generation, the shell running the tool needs a configured provider. Anthropic remains the
+default:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
+
+OpenAI, DeepSeek, Ollama, and custom OpenAI-compatible endpoints are selected through
+`CODEGEN_LLM_PROVIDER` and provider-specific key/model/base-url settings. `make plan` does not call
+a model.
 
 For a greenfield app, initialize the project using the starter template:
 
@@ -43,9 +48,9 @@ For a brownfield app, skip the template step and point `generate --output` at th
 
 ## Practical Walkthrough
 
-> **Workflow paths:** The dialogue and MCP tool calls below describe the recommended Claude Code
-> experience. Every `embabel_plan` / `embabel_generate` call has an equivalent CLI command shown
-> directly below it for contributor checks, automation scripts, or use outside Claude Code.
+> **Workflow paths:** The dialogue and MCP tool calls below describe the recommended Claude Code or
+> Cursor experience. Every `embabel_plan` / `embabel_generate` call has an equivalent CLI command
+> shown directly below it for contributor checks, automation scripts, Codex, or terminal use.
 
 For a loan application service, start with one feature: a customer submits an application and
 reviewers can see it in a pending queue.
@@ -206,7 +211,7 @@ List missing model facts instead of guessing.
 ```
 
 You can also ask `embabel-codegen` for the deterministic artifact plan without
-calling Anthropic or writing files:
+calling a model or writing files:
 
 Claude Code MCP path:
 ```text

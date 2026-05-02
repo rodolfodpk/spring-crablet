@@ -23,11 +23,11 @@ Crablet can be used directly as a Java framework: `EventStore`, command handlers
 
 ## AI-First Path
 
-The only tool you interact with is Claude Code. You describe outcomes in plain language; Claude handles modeling, planning, generating, and repairing — entirely through conversation.
+You describe outcomes in plain language and keep the source of truth in `event-model.yaml`. Claude Code and Cursor can call the generator through MCP; Codex, other coding agents, and terminal workflows can use the same Makefile/CLI commands.
 
 ### One-time setup
 
-**Prerequisites:** Java 25, [Claude Code CLI](https://claude.ai/code), `ANTHROPIC_API_KEY`
+**Prerequisites:** Java 25, a coding frontend (Claude Code, Cursor, Codex, or terminal), and a configured generator provider. Anthropic users set `ANTHROPIC_API_KEY`; OpenAI users set `OPENAI_API_KEY`; local/Ollama users set `CODEGEN_LLM_PROVIDER`, `CODEGEN_LLM_BASE_URL`, and `CODEGEN_LLM_MODEL`.
 
 ```bash
 # 1. Build the codegen JAR (from this repo)
@@ -38,7 +38,7 @@ cp -r templates/crablet-app ../my-service
 cp embabel-codegen/target/embabel-codegen.jar ../my-service/tools/
 ```
 
-### Start Claude Code
+### Start a frontend
 
 ```bash
 cd ../my-service
@@ -46,7 +46,7 @@ export ANTHROPIC_API_KEY=sk-ant-...
 claude
 ```
 
-The template's `.claude/settings.json` wires `embabel-codegen` as an MCP server. You never call `java -jar` directly — Claude Code calls the tools on your behalf.
+The template's `.claude/settings.json` and `.cursor/mcp.json` wire `embabel-codegen` as an MCP server for Claude Code and Cursor. Codex and other agents can edit `event-model.yaml` and run `make plan`, `make generate`, and `make verify`.
 
 ### Describe one outcome
 
@@ -62,7 +62,7 @@ Use the Crablet feature-slice workflow.
 Ask for missing facts before changing files.
 ```
 
-Claude will:
+The assistant or CLI workflow will:
 1. Ask for the missing business facts (entity identity, idempotency, required fields, read model columns)
 2. Run `/event-modeling` to update `event-model.yaml`
 3. Call `embabel_plan` and show you the planned artifact list
