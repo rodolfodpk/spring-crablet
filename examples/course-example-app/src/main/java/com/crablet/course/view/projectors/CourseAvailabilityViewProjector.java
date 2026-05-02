@@ -6,6 +6,7 @@ import com.crablet.eventstore.WriteDataSource;
 import com.crablet.examples.course.events.CourseCapacityChanged;
 import com.crablet.examples.course.events.CourseDefined;
 import com.crablet.examples.course.events.CourseEvent;
+import com.crablet.examples.course.events.StudentRegistered;
 import com.crablet.examples.course.events.StudentSubscribedToCourse;
 import com.crablet.views.AbstractTypedViewProjector;
 
@@ -69,6 +70,7 @@ public class CourseAvailabilityViewProjector extends AbstractTypedViewProjector<
         return switch (courseEvent) {
             case CourseDefined defined -> handleCourseDefined(defined, jdbcTemplate);
             case CourseCapacityChanged changed -> handleCapacityChanged(changed, jdbcTemplate);
+            case StudentRegistered _ -> false;
             case StudentSubscribedToCourse subscribed -> handleStudentSubscribed(subscribed, jdbcTemplate);
         };
     }

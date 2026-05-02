@@ -16,11 +16,11 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 )
 @JsonSubTypes({
         @JsonSubTypes.Type(value = CourseDefined.class, name = "CourseDefined"),
+        @JsonSubTypes.Type(value = StudentRegistered.class, name = "StudentRegistered"),
         @JsonSubTypes.Type(value = CourseCapacityChanged.class, name = "CourseCapacityChanged"),
         @JsonSubTypes.Type(value = StudentSubscribedToCourse.class, name = "StudentSubscribedToCourse")
 })
 public sealed interface CourseEvent
-        permits CourseDefined, CourseCapacityChanged, StudentSubscribedToCourse {
+        permits CourseDefined, StudentRegistered, CourseCapacityChanged, StudentSubscribedToCourse {
     // Empty interface - pattern matching works on types
 }
-

@@ -14,10 +14,12 @@ import com.crablet.examples.course.CourseQueryPatterns;
 import com.crablet.examples.course.commands.SubscribeStudentToCourseCommand;
 import com.crablet.examples.course.events.CourseCapacityChanged;
 import com.crablet.examples.course.events.CourseDefined;
+import com.crablet.examples.course.events.StudentRegistered;
 import com.crablet.examples.course.events.StudentSubscribedToCourse;
 import com.crablet.examples.course.exceptions.AlreadySubscribedException;
 import com.crablet.examples.course.exceptions.CourseFullException;
 import com.crablet.examples.course.exceptions.CourseNotFoundException;
+import com.crablet.examples.course.exceptions.StudentNotFoundException;
 import com.crablet.examples.course.exceptions.StudentSubscriptionLimitException;
 import com.crablet.examples.course.projections.SubscriptionState;
 import org.slf4j.Logger;
@@ -66,6 +68,12 @@ public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCom
             log.warn("Subscription failed - course not found: courseId={}, studentId={}",
                     command.courseId(), command.studentId());
             throw new CourseNotFoundException(command.courseId());
+        }
+
+        if (!state.studentExists()) {
+            log.warn("Subscription failed - student not found: courseId={}, studentId={}",
+                    command.courseId(), command.studentId());
+            throw new StudentNotFoundException(command.studentId());
         }
 
         if (state.isCourseFull()) {
@@ -121,13 +129,14 @@ public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCom
             return List.of(
                     type(CourseDefined.class),
                     type(CourseCapacityChanged.class),
+                    type(StudentRegistered.class),
                     type(StudentSubscribedToCourse.class)
             );
         }
 
         @Override
         public SubscriptionState getInitialState() {
-            return new SubscriptionState(false, 0, 0, 0, false);
+            return new SubscriptionState(false, false, 0, 0, 0, false);
         }
 
         @Override
@@ -138,6 +147,7 @@ public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCom
                     if (courseDefined.courseId().equals(courseId)) {
                         yield new SubscriptionState(
                                 true,
+                                current.studentExists(),
                                 courseDefined.capacity(),
                                 current.courseSubscriptionsCount(),
                                 current.studentSubscriptionsCount(),
@@ -151,7 +161,22 @@ public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCom
                     if (capacityChanged.courseId().equals(courseId)) {
                         yield new SubscriptionState(
                                 current.courseExists(),
+                                current.studentExists(),
                                 capacityChanged.newCapacity(),
+                                current.courseSubscriptionsCount(),
+                                current.studentSubscriptionsCount(),
+                                current.studentAlreadySubscribed()
+                        );
+                    }
+                    yield current;
+                }
+                case String s when s.equals(type(StudentRegistered.class)) -> {
+                    StudentRegistered registered = context.deserialize(event, StudentRegistered.class);
+                    if (registered.studentId().equals(studentId)) {
+                        yield new SubscriptionState(
+                                current.courseExists(),
+                                true,
+                                current.courseCapacity(),
                                 current.courseSubscriptionsCount(),
                                 current.studentSubscriptionsCount(),
                                 current.studentAlreadySubscribed()
@@ -172,6 +197,7 @@ public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCom
                             (affectsCourse && affectsStudent);
                     yield new SubscriptionState(
                             current.courseExists(),
+                            current.studentExists(),
                             current.courseCapacity(),
                             newCourseSubscriptions,
                             newStudentSubscriptions,

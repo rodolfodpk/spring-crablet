@@ -2,6 +2,7 @@ package com.crablet.examples.course;
 
 import com.crablet.examples.course.commands.ChangeCourseCapacityCommand;
 import com.crablet.examples.course.commands.DefineCourseCommand;
+import com.crablet.examples.course.commands.RegisterStudentCommand;
 import com.crablet.examples.course.commands.SubscribeStudentToCourseCommand;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -19,10 +20,10 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 )
 @JsonSubTypes({
         @JsonSubTypes.Type(value = DefineCourseCommand.class, name = "define_course"),
+        @JsonSubTypes.Type(value = RegisterStudentCommand.class, name = "register_student"),
         @JsonSubTypes.Type(value = ChangeCourseCapacityCommand.class, name = "change_course_capacity"),
         @JsonSubTypes.Type(value = SubscribeStudentToCourseCommand.class, name = "subscribe_student_to_course")
 })
 public interface CourseCommand {
     // Empty interface - pattern matching works on types
 }
-

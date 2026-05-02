@@ -388,8 +388,19 @@ Supported command patterns:
 | `commutative` | order-independent operations |
 | `non-commutative` | state-dependent operations that must detect conflicts |
 
-`guardEvents` may be used with commutative commands when an operation is order-independent but
-requires lifecycle existence.
+`guardEvents` declares lifecycle preconditions for any command pattern. The command `pattern`
+still selects the handler/append strategy; guards describe facts the decision model must read
+before appending.
+
+- `commutative` with `guardEvents` uses a lifecycle guard such as `CommutativeGuarded`.
+- `non-commutative` with `guardEvents` remains non-commutative; its decision model/projector must
+  validate those lifecycle facts before returning `CommandDecision.NonCommutative`.
+- `idempotent` with `guardEvents` is reserved for child/resource creation that depends on an
+  existing parent.
+
+When a command references the same lifecycle entity more than once, one guard event type can imply
+multiple required instances. For example, `TransferMoney` can use `guardEvents: [WalletOpened]`
+while validating both `fromWalletId` and `toWalletId`.
 
 ## Views
 
@@ -403,6 +414,16 @@ Each view needs:
 - `fields`: projected table shape
 
 The generator should create both the projector and the database migration for the view table.
+
+Generated event hierarchies use sealed event roots by default. This is intentional for
+multi-aggregate models: adding a lifecycle event should make business code decide whether the new
+fact matters.
+
+Decision projectors should rely on sealed-event exhaustiveness when every new event may affect
+correctness. Read-model projectors often read only a subset of the domain event family; when they
+switch over the sealed event root, they must explicitly ignore irrelevant variants instead of
+removing sealed typing. Infrastructure-style consumers may route by event type strings when they
+are intentionally non-exhaustive.
 
 ## Automations
 
@@ -433,6 +454,152 @@ Each publisher needs:
 
 The generated publisher should handle Crablet outbox mechanics. Credentials, endpoints, and
 external-system client configuration belong in application configuration.
+
+## Diagram
+
+The optional top-level `diagram:` key carries renderer and tooling metadata. **Java codegen ignores
+it entirely** — it does not affect code generation, artifact planning, or Kubernetes manifest
+generation.
+
+```yaml
+diagram:
+  actors:            # human actor bands (canonical Event Modeling board); order = top-to-bottom
+    - id: customer
+      label: Customer
+  lanes:           # vertical subsystem column groups (optional; >= 2 enables group headers)
+    - id: wallet
+      label: Wallet
+    - id: notification
+      label: Notification
+  assignments:     # blueprint-with-actors: views, outbox, synthetics only (ignore command keys)
+    WalletBalance: wallet
+    SendWelcomeNotification: notification
+  triggers:        # optional actor id → diagram.actors[].id; omit actor for an "External" row
+    - name: "Customer opens wallet"
+      linkedCommand: OpenWallet
+      actor: customer
+  syntheticCommands:  # diagram-only command cards for cross-domain automation targets
+    - name: SendWelcomeNotification
+      displayLabel: "SendWelcomeNotification"
+      note: "notification subdomain"
+  eventBadges:     # badge text shown on event cards
+    WalletOpened: "lifecycle"
+  automations:     # diagram-only automation rows not in the structural automations list
+    - name: WalletOpenedAutomation
+      triggeredBy: WalletOpened
+      emitsCommand: SendWelcomeNotification
+```
+
+### Docs renderer layout modes
+
+- **Flat** — no `diagram.actors` and no `diagram.lanes`: single vertical stack of rows.
+- **Horizontal swim-stack** — `diagram.lanes` without `diagram.actors`: each lane is a horizontal band (legacy column partition).
+- **Canonical blueprint** — `diagram.actors` present: actor/processor bands above, one shared event timeline, `lanes` apply only to the **bottom** section (views, outbox, synthetics). Structural commands render in actor bands; do not assign them in `assignments`.
+
+### Diagram projection (single source)
+
+The HTML/SVG docs renderer **does not** require a second, hand-authored diagram graph. It **projects** an Event Modeling-style board from **`events`**, **`commands`**, **`views`**, **`automations`**, **`outbox`**, plus optional **`diagram.*`** and sidecar overlays (**triggers**, badges, **syntheticCommands**, diagram-only **automations**). **Java codegen ignores `diagram`**; keep structural lists authoritative.
+
+**Horizontal timeline (left → right):** Event column order is **derived in the renderer** using a small causal graph: `guardEvents → produces`, order within `produces`, and **`automation.triggeredBy` → first event emitted by a structural `emitsCommand`**. A topological sort chooses columns; ties break by **`events[]` YAML order**. If the graph cycles or is inconsistent, the renderer falls back to **`events[]` order** and logs a warning.
+
+**Publication edges (canonical boards):** Dashed `publication → …` connectors from events listed in **`outbox[].handles`** are **hidden by default** (they are integration notation, not core Event Modeling flow). Set **`diagram.display.publicationEdges: true`** (merged to renderer `display`) to draw them.
+
+**Outbox and automations:** You do **not** need a `sync` / `async` flag on those entries for the model contract. Outbox means **durable publication after commit**; automations mean **reactions when the event processor sees the trigger event**. Call out user-visible latency (e.g. “caller blocks until X”) in prose, **API design**, or **`note`** fields—not as a generic sync switch in v1.
+
+**Deferred:** Optional hand-authored layout (`diagram.canvas` with explicit element coordinates) is **out of scope for v1**.
+
+### v1 Fields
+
+| Key | Type | Purpose |
+|-----|------|---------|
+| `actors` | array of `{id, label}` | Human actors for the canonical board; `triggers[].actor` references `id`. |
+| `lanes` | array of `{id, label}` | Subsystem groupings. With **actors**, these label only the bottom section; without actors, they drive horizontal swim-stack columns. |
+| `assignments` | map of name → lane id | Element → lane. In blueprint-with-actors mode, use for views, outbox, synthetics (not structural commands). |
+| `triggers` | array of `{name, linkedCommand, actor?}` | Actor cards; optional `actor` matches `diagram.actors[].id` (omit → External row). |
+| `syntheticCommands` | array of `{name, displayLabel?, note?}` | Visual command nodes for cross-domain targets that cannot be codegen inputs. |
+| `eventBadges` | map of event name → label | Badge overlaid on an event card (e.g. "multi-entity DCB"). |
+| `automations` | array of `AutomationSpec` | Diagram-only automations excluded from codegen because they span bounded contexts. |
+
+### Merge Precedence
+
+When the renderer loads a main model plus an optional sidecar YAML:
+
+```
+core model fields < diagram.* overlay < sidecar.*
+```
+
+- `lanes`, `triggers`, `syntheticCommands`, `actors`: later defined array wins entirely (including empty `[]`).
+- `assignments`, `eventBadges`: shallow merge — later keys override matching earlier keys.
+- `automations`: merged by `name`; entries in `model.automations` then `diagram.automations` then
+  `sidecar.automations`, with later same-name entries replacing earlier ones.
+
+Use `diagram.lanes` and `diagram.assignments` for subsystem groupings that belong with the model.
+Use a sidecar YAML for docs-specific overlays (triggers, badges, synthetic commands, diagram-only
+automations) that are visual embellishments rather than structural facts.
+
+### Docs diagram viewer manifest
+
+Published diagrams under `docs/` are driven by [`docs/diagrams.manifest.json`](../../../diagrams.manifest.json) and rendered in [`docs/event-model-viewer.html`](../../../event-model-viewer.html). That page loads the manifest, then fetches each diagram’s YAML paths, calls `EventModelRenderer.mergeEventModelForDiagram(model, sidecar || {})`, and `EventModelRenderer.render` (same merge contract as described above).
+
+**Query parameters**
+
+- With **`?id=<diagramId>`** — show title, subtitle, optional note blocks, then the SVG diagram.
+- With **no `id`** — show an index of all `diagrams[]` entries (no per-diagram notes).
+
+**Manifest shape**
+
+Top level:
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `diagrams` | array | Registered diagrams. |
+
+Each diagram:
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `id` | string | Stable id for `?id=` (e.g. `wallet`, `course`). |
+| `title` | string | Page / card heading. |
+| `subtitle` | string | Short description under the title. |
+| `modelPath` | string | Relative path to the main `event-model.yaml` (see path rules below). |
+| `sidecarPath` | string (optional) | Relative path to diagram-only YAML merged after the model. Omit or use empty sidecar semantics as `{}`. |
+| `notes` | array (optional) | Shown only when `?id=` is set, **after** the subtitle and **before** the diagram. Omit on index. |
+
+**Note blocks** (`notes[]`)
+
+Each note:
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `kind` | string | `callout` (warning-style), `aside` (outbox-style), or `dcb-note` (blue callout). Maps to the same CSS classes used on the legacy diagram pages. |
+| `parts` | array | Structured inline content — **no raw HTML**. |
+
+Each `parts[]` entry:
+
+| `type` | Fields | Renders as |
+|--------|--------|--------------|
+| `text` | `text` | Plain text. Use `\n` for line breaks; note blocks use `white-space: pre-line`. |
+| `strong` | `text` | `<strong>` |
+| `code` | `text` | `<code>` |
+| `link` | `text`, `href` | `<a>` (`target="_blank"` for `http`/`https`) |
+
+**Path rules** (enforced in the viewer)
+
+- Paths must be **relative** (no `https://`, no leading `/`).
+- No `..` segments.
+- Must start with **`examples/`** (YAML lives under [`docs/examples/`](../../examples/)).
+
+**Serving locally**
+
+Open the `docs/` tree over HTTP (e.g. `python3 -m http.server` from `docs/`, or your usual static server) so `fetch` can load the manifest and YAML. File URLs alone are unreliable for `fetch`.
+
+**Checklist after changing YAML or the manifest**
+
+1. `event-model-viewer.html` — index without `id` lists every diagram.
+2. `event-model-viewer.html?id=<id>` — diagram renders; notes appear in the right order when present.
+3. Unknown `id` — clear error (unknown id), not a silent blank diagram.
+4. Broken path — error names the resource (manifest, event model YAML, sidecar).
+5. Legacy URLs `wallet.html` / `course.html` still reach the viewer (redirect + visible link).
 
 ## State Inference
 

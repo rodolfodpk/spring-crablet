@@ -51,6 +51,14 @@
       "description": "Integration publishers for external event delivery",
       "items": { "$ref": "#/$defs/OutboxSpec" },
       "default": []
+    },
+    "deployment": {
+      "$ref": "#/$defs/DeploymentSpec",
+      "description": "Optional deployment topology for Kubernetes generation"
+    },
+    "diagram": {
+      "$ref": "#/$defs/DiagramSpec",
+      "description": "Optional renderer/tooling metadata — ignored by Java codegen"
     }
   },
   "$defs": {
@@ -180,7 +188,7 @@
         "guardEvents": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Lifecycle events used for commutative guard (entity must exist)"
+          "description": "Lifecycle precondition event names the command decision model must validate; independent of command pattern"
         },
         "fields": {
           "type": "array",
@@ -266,6 +274,125 @@
         "adapter": {
           "type": "string",
           "description": "Integration adapter type (smtp, kafka, http, etc.)"
+        }
+      }
+    },
+    "KedaSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "minReplicas": { "type": "integer", "minimum": 0, "default": 0 },
+        "pollingInterval": { "type": "integer", "minimum": 1, "default": 30 }
+      }
+    },
+    "DeploymentSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "topology": {
+          "type": "string",
+          "enum": ["monolith", "distributed"],
+          "default": "monolith",
+          "description": "Deployment topology — monolith (default) or distributed (separate pods per processor)"
+        },
+        "commandReplicas": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 2,
+          "description": "Number of command-handler pod replicas"
+        },
+        "keda": { "$ref": "#/$defs/KedaSpec" }
+      }
+    },
+    "LaneSpec": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id":    { "type": "string", "description": "Lane identifier used in assignments" },
+        "label": { "type": "string", "description": "Display label for the lane header (defaults to id)" }
+      }
+    },
+    "ActorSpec": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id":    { "type": "string", "description": "Actor id referenced by triggers[].actor" },
+        "label": { "type": "string", "description": "Display label for the actor band header" }
+      }
+    },
+    "TriggerSpec": {
+      "type": "object",
+      "required": ["name", "linkedCommand"],
+      "additionalProperties": false,
+      "properties": {
+        "name":          { "type": "string", "description": "Trigger card label" },
+        "linkedCommand": { "type": "string", "description": "Command name this trigger drives" },
+        "actor":         { "type": "string", "description": "Optional actor id (diagram.actors[].id); omit for External row" }
+      }
+    },
+    "SyntheticCommandSpec": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name":         { "type": "string", "description": "Command name used for lane assignments and automation emitsCommand references" },
+        "displayLabel": { "type": "string", "description": "Label shown on the synthetic command card" },
+        "note":         { "type": "string", "description": "Secondary text shown on the card (e.g. subdomain hint)" }
+      }
+    },
+    "DiagramSpec": {
+      "type": "object",
+      "description": "Renderer-only overlay metadata. Java codegen ignores this section entirely.",
+      "additionalProperties": true,
+      "properties": {
+        "actors": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ActorSpec" },
+          "description": "Human actors for canonical Event Modeling boards (top bands); order is top-to-bottom"
+        },
+        "lanes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/LaneSpec" },
+          "description": "Subsystem lanes; in blueprint-with-actors mode these apply to the bottom section only (horizontal swim-stack mode still uses partitions for columns)"
+        },
+        "assignments": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Map of element name → lane id"
+        },
+        "triggers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TriggerSpec" },
+          "description": "External trigger cards rendered above the command row"
+        },
+        "syntheticCommands": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SyntheticCommandSpec" },
+          "description": "Diagram-only command cards for cross-domain automation targets"
+        },
+        "eventBadges": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Map of event name → badge label shown on the event card"
+        },
+        "automations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/AutomationSpec" },
+          "description": "Diagram-only automation rows not present in the structural automations list"
+        },
+        "display": {
+          "type": "object",
+          "description": "Renderer header and glyph options; merged to top-level display for `EventModelRenderer`",
+          "additionalProperties": true,
+          "properties": {
+            "publicationEdges": {
+              "type": "boolean",
+              "description": "If true, canonical actor boards draw dashed publication edges from outbox-handled events to the topic label (default false)"
+            }
+          }
         }
       }
     }

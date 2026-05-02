@@ -4,11 +4,14 @@ A runnable example application demonstrating **multi-entity DCB constraints** wi
 
 ## The key differentiator vs. wallet-example-app
 
-The `SubscribeStudentToCourse` command enforces two constraints simultaneously in a single
-decision model — one query, one stream position, one atomic append:
+The `SubscribeStudentToCourse` command validates course and student lifecycle facts, then enforces
+two constraints simultaneously in a single decision model — one query, one stream position, one
+atomic append:
 
-1. **Course capacity** — the course has N seats; reject when full
-2. **Student subscription limit** — each student may enroll in at most 5 courses
+1. **Course existence** — the course must have been defined
+2. **Student existence** — the student must have been registered
+3. **Course capacity** — the course has N seats; reject when full
+4. **Student subscription limit** — each student may enroll in at most 5 courses
 
 This is the core DCB advantage: consistency across multiple entities without distributed locks or sagas.
 
@@ -17,7 +20,7 @@ This is the core DCB advantage: consistency across multiple entities without dis
 | Module | What it demonstrates |
 |---|---|
 | `crablet-eventstore` | Multi-entity decision model spanning course + student |
-| `crablet-commands` | `DefineCourse`, `ChangeCourseCapacity`, `SubscribeStudentToCourse` handlers |
+| `crablet-commands` | `DefineCourse`, `RegisterStudent`, `ChangeCourseCapacity`, `SubscribeStudentToCourse` handlers |
 | `crablet-commands-web` | Generic HTTP command API with Swagger — POST /api/commands |
 | `crablet-views` | `CourseAvailabilityViewProjector` — capacity, enrolled, seats remaining |
 | `crablet-automations` | `CourseCapacityAutomation` — logs when a course reaches full capacity |
@@ -49,12 +52,17 @@ curl -X POST http://localhost:8081/api/commands \
   -H 'Content-Type: application/json' \
   -d '{"type":"define_course","courseId":"cs101","capacity":3}'
 
-# 2. Subscribe students
+# 2. Register a student
+curl -X POST http://localhost:8081/api/commands \
+  -H 'Content-Type: application/json' \
+  -d '{"type":"register_student","studentId":"alice"}'
+
+# 3. Subscribe students
 curl -X POST http://localhost:8081/api/commands \
   -H 'Content-Type: application/json' \
   -d '{"type":"subscribe_student_to_course","studentId":"alice","courseId":"cs101"}'
 
-# 3. Check availability
+# 4. Check availability
 curl http://localhost:8081/api/courses/cs101
 # → {"courseId":"cs101","capacity":3,"enrolled":1,"available":2,"full":false}
 ```

@@ -69,6 +69,7 @@ class ArtifactPlannerTest {
                         List.of("LoanApplicationSubmitted"),
                         "http"
                 )),
+                null,
                 null
         );
 

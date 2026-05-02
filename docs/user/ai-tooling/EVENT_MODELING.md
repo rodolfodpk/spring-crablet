@@ -32,8 +32,13 @@ In Crablet, those downstream consequences are normally asynchronous and poller-b
 event is committed first; views, automations, and outbox publication observe that committed event
 later rather than participating in the synchronous command transaction.
 
-The current renderer supports Crablet's semantic rows by default. Optional subsystem lanes are
-declared in diagram sidecar files, not in the clean `event-model.yaml` codegen contract.
+The docs renderer has three layout modes (see [EVENT_MODEL_FORMAT.md](EVENT_MODEL_FORMAT.md) under **Diagram**):
+
+- **Flat** — no `diagram.actors` and no `diagram.lanes`: one vertical stack of semantic rows.
+- **Horizontal swim-stack** — `diagram.lanes` **without** `diagram.actors`: stacked horizontal bands per lane (trigger/command/event/… per band).
+- **Canonical blueprint** — `diagram.actors` present: human **External** row (triggers with no `actor`) and declared **actors** above, **automated processor** bands from merged automations, **one** shared event timeline, and `diagram.lanes` only for the **bottom** section (views, outbox, synthetic commands). Structural commands are drawn in actor bands, not via `assignments`.
+
+Declare `diagram.lanes` / `diagram.assignments` / `diagram.actors` in the main file when they reflect facts about the domain; put triggers, badges, synthetics, and diagram-only automation overlays in the sidecar when they are documentation-only additions.
 
 When a board is illustrative rather than exhaustive, the docs should say so explicitly.
 

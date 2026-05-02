@@ -17,6 +17,11 @@ Append strategy mapping:
 - `non-commutative` → `NonCommutativeCommandHandler<C>`
 - `commutative` with `guardEvents` → `CommutativeCommandHandler<C>` using `CommutativeGuarded`
 - `commutative` without `guardEvents` → `CommutativeCommandHandler<C>` using pure `Commutative`
+- `non-commutative` with `guardEvents` → `NonCommutativeCommandHandler<C>`; validate guard lifecycle facts in the decision model before returning `CommandDecision.NonCommutative`
+
+Sealed event roots remain the default for generated domains, including multi-aggregate models.
+Projectors that switch on the sealed root must handle relevant variants and explicitly ignore
+irrelevant variants. Do not remove sealed typing to avoid an exhaustiveness error.
 
 **Idempotent**:
 ```java

@@ -62,3 +62,20 @@ outbox: []
 #     enabled: false
 #     minReplicas: 0
 #     pollingInterval: 30
+
+# Optional — renderer/tooling metadata. Java codegen ignores this section entirely.
+# Use diagram.actors + triggers[].actor for the canonical Event Modeling board (actors above,
+# one event timeline, lanes for bottom section only). Use diagram.lanes without actors for
+# horizontal swim-stack diagrams.
+# diagram:
+#   actors:
+#     - id: customer
+#       label: Customer
+#   lanes:
+#     - id: core
+#       label: Core Domain
+#     - id: integration
+#       label: Integration
+#   assignments:
+#     # CommandName: lane-id
+#     # EventName: lane-id

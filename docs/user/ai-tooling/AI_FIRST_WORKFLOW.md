@@ -26,6 +26,9 @@ add one vertical slice at a time. Codex and other agents can use the same Makefi
 2. Optionally initialize a new Spring Boot application.
 3. Model one feature slice at a time.
 4. Produce or update `event-model.yaml` using the [Event Model Format](EVENT_MODEL_FORMAT.md).
+   The file is the **single structural source**: docs diagrams are **projected** from it plus thin
+   optional `diagram:` metadata (see **Diagram projection** in the format doc)—no parallel canvas to
+   maintain for v1.
 5. Generate the Spring application code.
 6. Compile the generated app.
 7. Repair generation issues until the app builds.

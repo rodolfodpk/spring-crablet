@@ -107,6 +107,7 @@ commands:
 
   - name: Withdraw
     pattern: non-commutative
+    guardEvents: [WalletOpened]
     produces: [WithdrawalMade]
     schema: MoneyAmount
     fields:
@@ -119,6 +120,7 @@ commands:
 
   - name: TransferMoney
     pattern: non-commutative
+    guardEvents: [WalletOpened]
     produces: [MoneyTransferred]
     schema: MoneyAmount
     fields:
@@ -151,3 +153,30 @@ automations:
     triggeredBy: WalletOpened
     emitsCommand: SendWelcomeNotification
     condition: always
+
+diagram:
+  actors:
+    - id: customer
+      label: Customer
+  lanes:
+    - id: wallet
+      label: Wallet
+    - id: notification
+      label: Notification
+  assignments:
+    WalletBalance: wallet
+    SendWelcomeNotification: notification
+  triggers:
+    - name: "Customer opens wallet"
+      linkedCommand: OpenWallet
+      actor: customer
+  syntheticCommands:
+    - name: SendWelcomeNotification
+      displayLabel: "SendWelcomeNotification"
+      note: "notification subdomain"
+  eventBadges:
+    WalletOpened: "lifecycle"
+  automations:
+    - name: WalletOpenedAutomation
+      triggeredBy: WalletOpened
+      emitsCommand: SendWelcomeNotification

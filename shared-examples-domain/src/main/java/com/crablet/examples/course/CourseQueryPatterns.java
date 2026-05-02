@@ -4,6 +4,7 @@ import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
 import com.crablet.examples.course.events.CourseCapacityChanged;
 import com.crablet.examples.course.events.CourseDefined;
+import com.crablet.examples.course.events.StudentRegistered;
 import com.crablet.examples.course.events.StudentSubscribedToCourse;
 
 import static com.crablet.eventstore.EventType.type;
@@ -31,6 +32,8 @@ public class CourseQueryPatterns {
                 .tag(COURSE_ID, courseId)
                 // Course-side: subscriptions to this course (for capacity check)
                 .event(type(StudentSubscribedToCourse.class), COURSE_ID, courseId)
+                // Student-side: student lifecycle guard
+                .event(type(StudentRegistered.class), STUDENT_ID, studentId)
                 // Student-side: subscriptions by this student (for limit check)
                 .event(type(StudentSubscribedToCourse.class), STUDENT_ID, studentId)
                 .build();
@@ -47,4 +50,3 @@ public class CourseQueryPatterns {
                 .build();
     }
 }
-

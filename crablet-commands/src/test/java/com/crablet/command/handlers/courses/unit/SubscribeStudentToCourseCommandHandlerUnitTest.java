@@ -4,10 +4,12 @@ import com.crablet.examples.course.handlers.SubscribeStudentToCourseCommandHandl
 import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
 import com.crablet.examples.course.commands.SubscribeStudentToCourseCommand;
 import com.crablet.examples.course.events.CourseDefined;
+import com.crablet.examples.course.events.StudentRegistered;
 import com.crablet.examples.course.events.StudentSubscribedToCourse;
 import com.crablet.examples.course.exceptions.AlreadySubscribedException;
 import com.crablet.examples.course.exceptions.CourseFullException;
 import com.crablet.examples.course.exceptions.CourseNotFoundException;
+import com.crablet.examples.course.exceptions.StudentNotFoundException;
 import com.crablet.examples.course.exceptions.StudentSubscriptionLimitException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +49,7 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
             .data(CourseDefined.of("course1", 50))
             .tag(COURSE_ID, "course1")
         );
+        givenRegisteredStudent("student1");
         
         // When
         SubscribeStudentToCourseCommand command = SubscribeStudentToCourseCommand.of("student1", "course1");
@@ -70,6 +73,22 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
             .isInstanceOf(CourseNotFoundException.class)
             .hasMessageContaining("course1");
     }
+
+    @Test
+    @DisplayName("Given student does not exist, when subscribing student, then student not found exception")
+    void givenStudentDoesNotExist_whenSubscribingStudent_thenStudentNotFoundException() {
+        // Given
+        given().event(type(CourseDefined.class), builder -> builder
+            .data(CourseDefined.of("course1", 50))
+            .tag(COURSE_ID, "course1")
+        );
+
+        // When & Then
+        SubscribeStudentToCourseCommand command = SubscribeStudentToCourseCommand.of("student1", "course1");
+        assertThatThrownBy(() -> when(handler, command))
+            .isInstanceOf(StudentNotFoundException.class)
+            .hasMessageContaining("student1");
+    }
     
     @Test
     @DisplayName("Given course is full, when subscribing student, then course full exception")
@@ -79,6 +98,9 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
             .data(CourseDefined.of("course1", 2))
             .tag(COURSE_ID, "course1")
         );
+        givenRegisteredStudent("student1");
+        givenRegisteredStudent("student2");
+        givenRegisteredStudent("student3");
         given().event(type(StudentSubscribedToCourse.class), builder -> builder
             .data(StudentSubscribedToCourse.of("student1", "course1"))
             .tag(COURSE_ID, "course1")
@@ -105,6 +127,7 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
             .data(CourseDefined.of("course1", 50))
             .tag(COURSE_ID, "course1")
         );
+        givenRegisteredStudent("student1");
         given().event(type(StudentSubscribedToCourse.class), builder -> builder
             .data(StudentSubscribedToCourse.of("student1", "course1"))
             .tag(COURSE_ID, "course1")
@@ -147,6 +170,7 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
             .data(CourseDefined.of("course6", 50))
             .tag(COURSE_ID, "course6")
         );
+        givenRegisteredStudent("student1");
         
         // Student subscribed to 5 courses
         for (int i = 1; i <= 5; i++) {
@@ -173,6 +197,7 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
             .data(CourseDefined.of("course1", 50))
             .tag(COURSE_ID, "course1")
         );
+        givenRegisteredStudent("student1");
         
         // When - get events with tags
         SubscribeStudentToCourseCommand command = SubscribeStudentToCourseCommand.of("student1", "course1");
@@ -189,5 +214,11 @@ class SubscribeStudentToCourseCommandHandlerUnitTest extends AbstractHandlerUnit
             assertThat(tags).containsEntry("student_id", "student1");
         });
     }
-}
 
+    private void givenRegisteredStudent(String studentId) {
+        given().event(type(StudentRegistered.class), builder -> builder
+            .data(StudentRegistered.of(studentId))
+            .tag(STUDENT_ID, studentId)
+        );
+    }
+}

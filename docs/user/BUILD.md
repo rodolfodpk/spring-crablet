@@ -163,7 +163,7 @@ make course-start   # or: cd examples/course-example-app && ../../mvnw spring-bo
 
 Once running:
 - API: http://localhost:8081/api/courses/{courseId}
-- Commands: POST http://localhost:8081/api/commands (define_course, subscribe_student_to_course, change_course_capacity)
+- Commands: POST http://localhost:8081/api/commands (define_course, register_student, subscribe_student_to_course, change_course_capacity)
 - Swagger UI: http://localhost:8081/swagger-ui.html
 
 ## Testing

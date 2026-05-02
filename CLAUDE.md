@@ -6,12 +6,13 @@ This file is the repo-level routing hub for Claude Code work in spring-crablet.
 
 - Application work, generated Crablet apps, feature slices, app command handlers, app views, automations, outbox, codegen sequencing: use `.claude/skills/crablet-app-dev/SKILL.md`.
 - Framework module changes, public API work, eventstore/commands/poller internals, shared-fetch, auto-configuration, templates, codegen internals, maintainer docs: use `.claude/skills/crablet-maintainer/SKILL.md`.
-- Event Modeling workshop dialogue and generator-ready `event-model.yaml` shape: use `.claude/skills/event-modeling/SKILL.md`.
+- Event Modeling workshop, generator-ready `event-model.yaml`, and **canonical docs diagram vocabulary** (`docs/event-model-renderer.js` rules): use `.claude/skills/event-modeling/SKILL.md`.
 - Deep DCB explanation, choosing or diagnosing DCB for an application command handler, `ConcurrencyException` analysis: use `.claude/skills/dcb/SKILL.md`.
 
 Searchable signposts:
 
 - Datasource rules, shared-fetch, LISTEN/NOTIFY, generated interface policy, and build graph caveats live in `crablet-maintainer`.
+- Docs HTML diagram renderer: `docs/event-model-renderer.js`; arrow/canvas rules summarized in `.claude/skills/event-modeling/SKILL.md` (§ Canonical HTML diagram).
 - Feature-slice workflow, MCP `output: src/main/java`, generated app verification, and app implementation defaults live in `crablet-app-dev`.
 
 ## Build Commands
@@ -105,6 +106,7 @@ Module dependencies:
 - Use `EventType.type(Class)` for event type names.
 - Use snake_case tag keys; tag keys are normalized to lowercase and tag values remain case-sensitive.
 - Prefer domain-specific query pattern helpers for reused decision models.
+- When changing **docs/event-model-renderer.js** or describing a canonical actor board, align with **`.claude/skills/event-modeling/SKILL.md`** (§ Canonical HTML diagram) and **`docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`**.
 - When changing docs or diagrams, use Event Modeling vocabulary consistently: rows are semantic element layers; lanes are subsystem or bounded-context groupings; time flows left to right.
 
 ## Documentation Quick Links
@@ -126,7 +128,8 @@ Module dependencies:
 - Leader election: `docs/user/LEADER_ELECTION.md`
 - AI-first workflow: `docs/user/ai-tooling/AI_FIRST_WORKFLOW.md`
 - Feature slice workflow: `docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md`
-- Event model format: `docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`
+- Event model format & diagram projection: `docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`
+- HTML diagram renderer: `docs/event-model-renderer.js`
 - Codegen: `embabel-codegen/README.md`
 - Starter template: `templates/crablet-app/README.md`
 - Concept map source: `docs/examples/concepts.md`

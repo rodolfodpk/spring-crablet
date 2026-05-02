@@ -74,6 +74,11 @@ class EventModelParsingTest {
 
             CommandSpec withdraw = model.commands().get(2);
             assertThat(withdraw.isNonCommutative()).isTrue();
+            assertThat(withdraw.guardEvents()).containsExactly("WalletOpened");
+
+            CommandSpec transfer = model.commands().get(3);
+            assertThat(transfer.isNonCommutative()).isTrue();
+            assertThat(transfer.guardEvents()).containsExactly("WalletOpened");
 
             // views
             assertThat(model.views()).hasSize(1);
@@ -150,6 +155,106 @@ class EventModelParsingTest {
         FieldSpec arrayWithMinItems = new FieldSpec("x", "array", null, null, null, null, null, null, stringItems, null, 1, null);
         assertThat(arrayWithMinItems.yaviConstraints()).isEqualTo(".greaterThanOrEqualTo(1)");
         assertThat(arrayWithMinItems.hasConstraints()).isTrue();
+    }
+
+    @Test
+    void diagramAbsentBecomesEmptyNotNull() throws Exception {
+        EventModel model = yaml.readValue("""
+                domain: Demo
+                basePackage: com.example.demo
+                events: []
+                commands: []
+                """, EventModel.class);
+
+        assertThat(model.diagram()).isNotNull();
+        assertThat(model.diagram().lanes()).isEmpty();
+        assertThat(model.diagram().assignments()).isEmpty();
+        assertThat(model.diagram().triggers()).isEmpty();
+        assertThat(model.diagram().syntheticCommands()).isEmpty();
+        assertThat(model.diagram().eventBadges()).isEmpty();
+        assertThat(model.diagram().automations()).isEmpty();
+        assertThat(model.diagram().actors()).isEmpty();
+    }
+
+    @Test
+    void diagramLanesAndAssignmentsParse() throws Exception {
+        try (InputStream in = getClass().getClassLoader()
+                .getResourceAsStream("wallet-event-model.yaml")) {
+            EventModel model = yaml.readValue(in, EventModel.class);
+
+            DiagramSpec diagram = model.diagram();
+            assertThat(diagram.lanes()).hasSize(2);
+            assertThat(diagram.lanes().get(0).id()).isEqualTo("wallet");
+            assertThat(diagram.lanes().get(0).label()).isEqualTo("Wallet");
+            assertThat(diagram.lanes().get(1).id()).isEqualTo("notification");
+
+            assertThat(diagram.actors()).hasSize(1);
+            assertThat(diagram.actors().get(0).id()).isEqualTo("customer");
+            assertThat(diagram.assignments()).containsEntry("WalletBalance", "wallet");
+            assertThat(diagram.assignments()).containsEntry("SendWelcomeNotification", "notification");
+            assertThat(diagram.assignments()).doesNotContainKey("OpenWallet");
+        }
+    }
+
+    @Test
+    void diagramFullV1OverlaySetParses() throws Exception {
+        try (InputStream in = getClass().getClassLoader()
+                .getResourceAsStream("wallet-event-model.yaml")) {
+            EventModel model = yaml.readValue(in, EventModel.class);
+            DiagramSpec diagram = model.diagram();
+
+            assertThat(diagram.triggers()).hasSize(1);
+            assertThat(diagram.triggers().get(0).name()).isEqualTo("Customer opens wallet");
+            assertThat(diagram.triggers().get(0).linkedCommand()).isEqualTo("OpenWallet");
+            assertThat(diagram.triggers().get(0).actor()).isEqualTo("customer");
+
+            assertThat(diagram.syntheticCommands()).hasSize(1);
+            assertThat(diagram.syntheticCommands().get(0).name()).isEqualTo("SendWelcomeNotification");
+            assertThat(diagram.syntheticCommands().get(0).displayLabel()).isEqualTo("SendWelcomeNotification");
+            assertThat(diagram.syntheticCommands().get(0).note()).isEqualTo("notification subdomain");
+
+            assertThat(diagram.eventBadges()).containsEntry("WalletOpened", "lifecycle");
+
+            assertThat(diagram.automations()).hasSize(1);
+            assertThat(diagram.automations().get(0).name()).isEqualTo("WalletOpenedAutomation");
+            assertThat(diagram.automations().get(0).triggeredBy()).isEqualTo("WalletOpened");
+            assertThat(diagram.automations().get(0).emitsCommand()).isEqualTo("SendWelcomeNotification");
+        }
+    }
+
+    @Test
+    void unknownKeysUnderDiagramDoNotFailParsing() throws Exception {
+        EventModel model = yaml.readValue("""
+                domain: Demo
+                basePackage: com.example.demo
+                events: []
+                commands: []
+                diagram:
+                  lanes:
+                    - id: main
+                      label: Main
+                  unknownFutureKey: should-not-fail
+                  anotherUnknown:
+                    nested: value
+                """, EventModel.class);
+
+        assertThat(model.diagram().lanes()).hasSize(1);
+        assertThat(model.diagram().lanes().get(0).id()).isEqualTo("main");
+    }
+
+    @Test
+    void schemaResolverPreservesDiagram() throws Exception {
+        try (InputStream in = getClass().getClassLoader()
+                .getResourceAsStream("wallet-event-model.yaml")) {
+            EventModel model = yaml.readValue(in, EventModel.class);
+            SchemaResolver resolver = new SchemaResolver();
+            EventModel resolved = resolver.resolve(model);
+
+            assertThat(resolved.diagram().lanes()).hasSize(2);
+            assertThat(resolved.diagram().assignments()).containsEntry("WalletBalance", "wallet");
+            assertThat(resolved.diagram().actors()).hasSize(1);
+            assertThat(resolved.diagram().triggers()).hasSize(1);
+        }
     }
 
     @Test

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event model diagrams — Spring-Crablet</title>
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js"></script>
+  <script src="event-model-renderer.js?v=guard-badge-20260502"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+      background: #f1f0eb;
+      color: #1f2937;
+      padding: 24px;
+    }
+    nav { margin-bottom: 20px; }
+    nav a {
+      color: #374151;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    nav a:hover { text-decoration: underline; }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; color: #111827; }
+    .subtitle { font-size: 14px; color: #6b7280; margin-bottom: 16px; }
+    .callout {
+      background: #fffbeb;
+      border: 1px solid #d97706;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: #92400e;
+      line-height: 1.5;
+      white-space: pre-line;
+    }
+    .callout a { color: #b45309; }
+    .outbox-note {
+      background: #fdf4ff;
+      border: 1px solid #d8b4fe;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: #6b21a8;
+      white-space: pre-line;
+    }
+    .dcb-note {
+      background: #eff6ff;
+      border: 1px solid #93c5fd;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: #1e40af;
+      white-space: pre-line;
+    }
+    #diagram {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid #d6c8aa;
+      background: #f5f1e8;
+    }
+    #error {
+      color: #dc2626;
+      font-size: 13px;
+      padding: 12px;
+      background: #fef2f2;
+      border-radius: 6px;
+      border: 1px solid #fca5a5;
+    }
+    .index-intro { font-size: 14px; color: #4b5563; margin-bottom: 20px; max-width: 52em; line-height: 1.5; }
+    .diagram-links { list-style: none; }
+    .diagram-links li { margin-bottom: 10px; }
+    .diagram-links a {
+      color: #1d4ed8;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .diagram-links a:hover { text-decoration: underline; }
+    .diagram-links .blurb { display: block; font-size: 13px; font-weight: 400; color: #6b7280; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div id="app-root">
+    <nav><a href="index.html">← Spring-Crablet Docs</a></nav>
+    <h1>Event model diagrams</h1>
+    <p class="subtitle" id="page-subtitle">Loading…</p>
+    <div id="notes"></div>
+    <div id="diagram"><p style="padding:16px;color:#6b7280">Loading diagram…</p></div>
+    <div id="error" style="display:none"></div>
+  </div>
+
+  <script>
+(function () {
+  var NOTE_CLASS = {
+    callout: 'callout',
+    aside: 'outbox-note',
+    'dcb-note': 'dcb-note'
+  };
+
+  function assertSafeExamplesPath(p, label) {
+    if (typeof p !== 'string' || !p) {
+      throw new Error(label + ': path is required');
+    }
+    if (p.includes('..') || p.startsWith('/') || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(p)) {
+      throw new Error(label + ': path must be relative with no scheme and no ".." segments');
+    }
+    if (!p.startsWith('examples/')) {
+      throw new Error(label + ': path must start with examples/');
+    }
+  }
+
+  function fetchText(url, resourceLabel) {
+    return fetch(url).then(function (r) {
+      if (!r.ok) {
+        throw new Error('Failed to load ' + resourceLabel + ' (HTTP ' + r.status + '): ' + url);
+      }
+      return r.text();
+    });
+  }
+
+  function fetchJson(url, resourceLabel) {
+    return fetch(url).then(function (r) {
+      if (!r.ok) {
+        throw new Error('Failed to load ' + resourceLabel + ' (HTTP ' + r.status + '): ' + url);
+      }
+      return r.json();
+    });
+  }
+
+  function appendParts(container, parts) {
+    if (!Array.isArray(parts)) return;
+    for (var i = 0; i < parts.length; i++) {
+      var part = parts[i];
+      if (!part || typeof part !== 'object') continue;
+      switch (part.type) {
+        case 'text':
+          container.appendChild(document.createTextNode(part.text != null ? part.text : ''));
+          break;
+        case 'strong': {
+          var s = document.createElement('strong');
+          s.textContent = part.text != null ? part.text : '';
+          container.appendChild(s);
+          break;
+        }
+        case 'code': {
+          var c = document.createElement('code');
+          c.textContent = part.text != null ? part.text : '';
+          container.appendChild(c);
+          break;
+        }
+        case 'link': {
+          var a = document.createElement('a');
+          var href = part.href || '#';
+          a.setAttribute('href', href);
+          a.textContent = part.text != null ? part.text : href;
+          a.rel = 'noopener noreferrer';
+          if (/^https?:/i.test(href)) a.target = '_blank';
+          container.appendChild(a);
+          break;
+        }
+        default:
+          break;
+      }
+    }
+  }
+
+  function renderNotes(container, notes) {
+    container.innerHTML = '';
+    if (!Array.isArray(notes)) return;
+    for (var i = 0; i < notes.length; i++) {
+      var n = notes[i];
+      if (!n || typeof n !== 'object') continue;
+      var cls = NOTE_CLASS[n.kind];
+      if (!cls) continue;
+      var div = document.createElement('div');
+      div.className = cls;
+      appendParts(div, n.parts);
+      container.appendChild(div);
+    }
+  }
+
+  function getQueryId() {
+    var params = new URLSearchParams(window.location.search);
+    var id = params.get('id');
+    return id && id.trim() ? id.trim() : null;
+  }
+
+  function showError(message) {
+    var diagramEl = document.getElementById('diagram');
+    var errEl = document.getElementById('error');
+    if (diagramEl) diagramEl.style.display = 'none';
+    if (errEl) {
+      errEl.style.display = 'block';
+      errEl.textContent = message;
+    }
+  }
+
+  function buildIndex(manifest) {
+    var root = document.getElementById('app-root');
+    root.innerHTML = '';
+
+    var nav = document.createElement('nav');
+    var na = document.createElement('a');
+    na.href = 'index.html';
+    na.textContent = '← Spring-Crablet Docs';
+    nav.appendChild(na);
+    root.appendChild(nav);
+
+    var h1 = document.createElement('h1');
+    h1.textContent = 'Event model diagrams';
+    root.appendChild(h1);
+
+    var intro = document.createElement('p');
+    intro.className = 'index-intro';
+    intro.textContent = 'Choose a domain diagram. Each view loads YAML from docs/examples and renders with the shared event-model renderer.';
+    root.appendChild(intro);
+
+    var ul = document.createElement('ul');
+    ul.className = 'diagram-links';
+    var diagrams = manifest && manifest.diagrams ? manifest.diagrams : [];
+    for (var i = 0; i < diagrams.length; i++) {
+      var d = diagrams[i];
+      if (!d || !d.id) continue;
+      var li = document.createElement('li');
+      var a = document.createElement('a');
+      a.href = 'event-model-viewer.html?id=' + encodeURIComponent(d.id);
+      a.textContent = d.title || d.id;
+      li.appendChild(a);
+      if (d.subtitle) {
+        var blurb = document.createElement('span');
+        blurb.className = 'blurb';
+        blurb.textContent = d.subtitle;
+        li.appendChild(blurb);
+      }
+      ul.appendChild(li);
+    }
+    root.appendChild(ul);
+  }
+
+  function runDiagramView(manifest, diagramId) {
+    var diagrams = manifest.diagrams || [];
+    var spec = null;
+    for (var i = 0; i < diagrams.length; i++) {
+      if (diagrams[i] && diagrams[i].id === diagramId) {
+        spec = diagrams[i];
+        break;
+      }
+    }
+    if (!spec) {
+      document.title = 'Diagram not found — Spring-Crablet';
+      var h1El = document.querySelector('h1');
+      if (h1El) h1El.textContent = 'Diagram not found';
+      showError('Unknown diagram id: "' + diagramId + '". Open event-model-viewer.html (no query) for a list.');
+      var subEl = document.getElementById('page-subtitle');
+      if (subEl) subEl.textContent = '';
+      var notesEl0 = document.getElementById('notes');
+      if (notesEl0) notesEl0.innerHTML = '';
+      return;
+    }
+
+    document.title = (spec.title || diagramId) + ' — Spring-Crablet Event Model';
+    document.querySelector('h1').textContent = spec.title || diagramId;
+    document.getElementById('page-subtitle').textContent = spec.subtitle || '';
+
+    var notesEl = document.getElementById('notes');
+    notesEl.innerHTML = '';
+    renderNotes(notesEl, spec.notes);
+
+    assertSafeExamplesPath(spec.modelPath, 'modelPath');
+    if (spec.sidecarPath) {
+      assertSafeExamplesPath(spec.sidecarPath, 'sidecarPath');
+    }
+
+    var modelUrl = spec.modelPath;
+    var sidecarUrl = spec.sidecarPath || null;
+
+    var sidecarPromise = sidecarUrl
+      ? fetchText(sidecarUrl, 'diagram sidecar YAML')
+      : Promise.resolve('');
+
+    Promise.all([
+      fetchText(modelUrl, 'event model YAML'),
+      sidecarPromise
+    ]).then(function (pair) {
+      var modelText = pair[0];
+      var sidecarText = pair[1];
+      var model = jsyaml.load(modelText);
+      var sidecar = sidecarText ? jsyaml.load(sidecarText) : {};
+      var merged = EventModelRenderer.mergeEventModelForDiagram(model, sidecar || {});
+      EventModelRenderer.render(merged, document.getElementById('diagram'));
+    }).catch(function (err) {
+      document.getElementById('diagram').style.display = 'none';
+      var errEl = document.getElementById('error');
+      errEl.style.display = 'block';
+      errEl.textContent = err.message || String(err);
+    });
+  }
+
+  var manifestUrl = 'diagrams.manifest.json';
+  var queryId = getQueryId();
+
+  fetchJson(manifestUrl, 'diagram manifest')
+    .then(function (manifest) {
+      if (!queryId) {
+        buildIndex(manifest);
+        document.title = 'Event model diagrams — Spring-Crablet';
+        return;
+      }
+      runDiagramView(manifest, queryId);
+    })
+    .catch(function (err) {
+      if (!queryId) {
+        var root = document.getElementById('app-root');
+        if (root) {
+          root.innerHTML = '<nav><a href="index.html">← Spring-Crablet Docs</a></nav><h1>Event model diagrams</h1><div id="error"></div>';
+        }
+      }
+      showError(err.message || String(err));
+    });
+})();
+  </script>
+</body>
+</html>

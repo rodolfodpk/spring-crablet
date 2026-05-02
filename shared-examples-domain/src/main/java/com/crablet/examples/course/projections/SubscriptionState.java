@@ -8,6 +8,7 @@ package com.crablet.examples.course.projections;
  */
 public record SubscriptionState(
         boolean courseExists,
+        boolean studentExists,
         int courseCapacity,
         int courseSubscriptionsCount,
         int studentSubscriptionsCount,
@@ -28,4 +29,3 @@ public record SubscriptionState(
         return studentSubscriptionsCount >= maxSubscriptions;
     }
 }
-

@@ -1,36 +1,21 @@
 # Renderer-only extensions for the wallet event modeling diagram.
 # This file is NOT a codegen input — do not feed it to embabel-codegen.
-# Loaded and merged in memory by the diagram renderer alongside wallet-event-model.yaml.
+# Loaded and merged alongside wallet-event-model.yaml (which already contains diagram.lanes
+# and diagram.assignments). Sidecar values override model.diagram values where defined.
 
 triggers:
   - name: "Customer opens wallet"
     linkedCommand: OpenWallet
+    actor: customer
   - name: "Customer deposits"
     linkedCommand: Deposit
+    actor: customer
   - name: "Customer withdraws"
     linkedCommand: Withdraw
+    actor: customer
   - name: "Customer transfers"
     linkedCommand: TransferMoney
-
-lanes:
-  - id: wallet
-    label: Wallet
-  - id: notification
-    label: Notification
-
-assignments:
-  OpenWallet: wallet
-  Deposit: wallet
-  Withdraw: wallet
-  TransferMoney: wallet
-  WalletOpened: wallet
-  DepositMade: wallet
-  WithdrawalMade: wallet
-  MoneyTransferred: wallet
-  WalletBalance: wallet
-  WalletEventPublisher: wallet
-  WalletOpenedAutomation: wallet
-  SendWelcomeNotification: notification
+    actor: customer
 
 # WalletOpenedAutomation is diagram-only: it emits SendWelcomeNotificationCommand from the
 # notification subdomain. The real implementation deserializes WalletOpened and emits directly

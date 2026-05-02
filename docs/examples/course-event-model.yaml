@@ -12,6 +12,11 @@ events:
       - { name: courseId, type: string }
       - { name: capacity, type: integer }
 
+  - name: StudentRegistered
+    tags: [student_id]
+    fields:
+      - { name: studentId, type: string }
+
   - name: CourseCapacityChanged
     tags: [course_id]
     fields:
@@ -32,8 +37,15 @@ commands:
       - { name: courseId, type: string, minLength: 1 }
       - { name: capacity, type: integer, exclusiveMinimum: 0 }
 
+  - name: RegisterStudent
+    pattern: idempotent
+    produces: [StudentRegistered]
+    fields:
+      - { name: studentId, type: string, minLength: 1 }
+
   - name: ChangeCourseCapacity
     pattern: non-commutative
+    guardEvents: [CourseDefined]
     produces: [CourseCapacityChanged]
     fields:
       - { name: courseId, type: string, minLength: 1 }
@@ -41,6 +53,7 @@ commands:
 
   - name: SubscribeStudentToCourse
     pattern: non-commutative
+    guardEvents: [CourseDefined, StudentRegistered]
     produces: [StudentSubscribedToCourse]
     fields:
       - { name: studentId, type: string, minLength: 1 }
@@ -54,3 +67,10 @@ views:
       - { name: courseId, type: string }
       - { name: capacity, type: integer }
       - { name: enrolledCount, type: integer }
+
+diagram:
+  actors:
+    - id: admin
+      label: Admin
+    - id: student
+      label: Student

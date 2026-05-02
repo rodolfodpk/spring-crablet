@@ -37,10 +37,15 @@ public class CommandsAgent {
 
                 Command append strategy:
                 - idempotent   → IdempotentCommandHandler — entity creation (first event)
-                - commutative  → CommutativeCommandHandler — two variants, distinguished by guardEvents:
-                                  guardEvents non-empty → CommutativeGuarded.withLifecycleGuard
-                                  guardEvents empty    → Commutative.of(appendEvent) (pure, no guard)
+                - commutative  → CommutativeCommandHandler — order-independent operations
                 - non-commutative → NonCommutativeCommandHandler — order-matters operations
+
+                guardEvents declare lifecycle preconditions independently of append strategy.
+                - commutative with guardEvents → use CommutativeGuarded.withLifecycleGuard
+                - commutative without guardEvents → use Commutative.of(appendEvent)
+                - non-commutative with guardEvents → still use NonCommutativeCommandHandler and
+                  CommandDecision.NonCommutative; make the decision model/projector read and
+                  validate those lifecycle events before appending.
 
                 For YAVI validation, use:
                   _string(name, c -> c.notNull().notBlank())
@@ -79,8 +84,10 @@ public class CommandsAgent {
                 3. %sQueryPatterns — static factory methods for decision model queries and lifecycle guards
                 4. One CommandHandler Java INTERFACE per command — empty interface body, no @Component.
                    Extend IdempotentCommandHandler, NonCommutativeCommandHandler, or CommutativeCommandHandler
-                   based on the append strategy. CommutativeCommandHandler covers both pure commutative and
-                   commutative-with-lifecycle-guard; choose the CommandDecision factory from the [guard=...] hint.
+                   based only on the append strategy. guardEvents are lifecycle preconditions, not handler-type
+                   selectors. CommutativeCommandHandler covers both pure commutative and
+                   commutative-with-lifecycle-guard; for non-commutative commands, use guardEvents in the
+                   decision model/projection sketch and still return CommandDecision.NonCommutative.
                    The interface file must compile with only necessary imports. Javadoc sketch uses framework
                    type names (EventType.type, AppendEvent.builder, CommandDecision factories).
                    Write */ inside <pre> blocks as *&#47;.

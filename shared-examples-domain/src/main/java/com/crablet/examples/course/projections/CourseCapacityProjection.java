@@ -6,6 +6,7 @@ import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.course.events.CourseEvent;
 import com.crablet.examples.course.events.CourseDefined;
 import com.crablet.examples.course.events.CourseCapacityChanged;
+import com.crablet.examples.course.events.StudentRegistered;
 import com.crablet.examples.course.events.StudentSubscribedToCourse;
 
 /**
@@ -41,8 +42,8 @@ public class CourseCapacityProjection implements StateProjector<Integer> {
         return switch (courseEvent) {
             case CourseDefined e -> e.capacity();
             case CourseCapacityChanged e -> e.newCapacity();
+            case StudentRegistered _ -> currentState;
             case StudentSubscribedToCourse _ -> currentState; // Subscription doesn't change capacity
         };
     }
 }
-

@@ -3,7 +3,8 @@ name: event-modeling
 description: >
   Conducts a structured event-modeling workshop with the user to produce an event-model.yaml
   file for a given domain. Use when the user wants to design a new feature or application using
-  the spring-crablet event sourcing framework.
+  the spring-crablet event sourcing framework. Includes canonical docs diagram (HTML renderer)
+  vocabulary when discussing projected boards.
 argument-hint: "[domain name or description]"
 allowed-tools: Read, Write, AskUserQuestion, TaskCreate, TaskUpdate
 ---
@@ -50,7 +51,7 @@ For each group of events, identify the command that causes them. For each comman
   - `commutative` — order-independent (deposits, credits, analytics)
   - `non-commutative` — state-dependent, must detect conflicts (withdrawals, approvals)
 - List which events it `produces`
-- If commutative but entity must exist first, add `guardEvents`
+- If a command requires existing lifecycle facts before it can append, add `guardEvents`
 - Collect input fields and their validation constraints
 
 For each command, ask:
@@ -70,6 +71,23 @@ Ask: which read models does this domain need? For each view:
 For outcome-oriented slices, ask which read model proves that the outcome is observable. For
 example: "Which fields should reviewers see in the pending applications view?"
 
+### Sealed Event Handling
+
+Crablet generated domains use a sealed event root by default. Keep sealed events for multi-aggregate
+models: they make decision logic and projectors notice new domain facts at compile time.
+
+When a lifecycle fact is authoritative for a command precondition, model it as a real event and add
+it to `guardEvents` rather than treating it as prose. For example, a course enrollment model should
+use `StudentRegistered` when subscription requires a registered student.
+
+For each view, distinguish the events it reads from the full event family:
+- Decision projectors should use sealed event exhaustiveness when missing a new event would change
+  correctness.
+- Read-model projectors that only care about a subset should explicitly ignore irrelevant sealed
+  variants in code, rather than dropping sealed typing.
+- Broad infrastructure consumers may route by event type strings when they intentionally should not
+  be exhaustive.
+
 ## Event Modeling Board Semantics
 
 If you explain the slice with an Event Modeling diagram or board, preserve the core notation:
@@ -78,8 +96,14 @@ If you explain the slice with an Event Modeling diagram or board, preserve the c
 - **Swim lanes** divide the board by sub-system (e.g. inventory, auth, payment, gps) — one lane per bounded area of the system, all sharing the same timeline.
 - **Within each lane**, element types are stacked vertically: wireframes (top), commands, events, read models, automations.
 - In Crablet renderer/docs vocabulary, call those stacked element-type layers **rows**. Reserve
-  **lanes** for subsystem or bounded-context groupings. Renderer lane assignments belong in
-  `*-diagram.yaml` sidecars, not in the clean `event-model.yaml` codegen input.
+  **lanes** for subsystem or bounded-context groupings.
+- When the model has **two or more bounded contexts or subsystems** (e.g. wallet + notification,
+  course + student enrollment), suggest adding `diagram.lanes` and `diagram.assignments` to the
+  `event-model.yaml`. Java codegen ignores the `diagram:` key entirely; it is for the renderer
+  and tooling only.
+- Use a `*-diagram.yaml` sidecar only for purely docs-specific visual overlays that do not belong
+  with the model: trigger cards, synthetic command nodes, event badges, and diagram-only automation
+  rows that cross bounded context lines and cannot be codegen inputs.
 - **Slices** cut vertically through all element layers — one slice per feature. Four slice types (from the event modeling cheat sheet):
   - *State Change* — trigger → command → event (write path)
   - *State View* — event → read model (query path)
@@ -87,6 +111,30 @@ If you explain the slice with an Event Modeling diagram or board, preserve the c
   - *Translation* — event → external system (or external → command)
 - Do not turn the board into a top-to-bottom flowchart with time flowing downward.
 - If a diagram is only illustrative and not a complete consequence map, label it as illustrative.
+
+### Canonical HTML diagram (spring-crablet docs)
+
+The interactive docs board is implemented in **`docs/event-model-renderer.js`** and follows
+**`docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`**. When explaining a projected board with
+**`diagram.actors`** (canonical blueprint), use this vocabulary so narrative matches pixels:
+
+- **Uniform cards** — In the lane stack, **command**, **event**, and **view** share the same box
+  size. Policies appear as **⚙** / labels in **actor or processor bands** above, not as orange
+  “AUTOMATION” swim-lane tiles.
+- **Header legend** — On actor boards the swatch row is **Command / Event / View** only; omit an
+  Automation color tile (nothing on canvas uses that fill in canonical mode).
+- **Arrow strokes (directed, arrowhead at target):**
+  - **Wireframe → command** — solid, downward (crosses band).
+  - **Command → event** — solid, downward.
+  - **Event → view** — solid downward when same lane and aligned; **dashed** when the event’s
+    command lane ≠ view lane (cross-lane); **elbow path** when event column ≠ view card column.
+  - **View → actor wireframe** — solid, upward (feedback: what the actor sees).
+  - **View → automation** — **dashed**, upward — **async / poller-backed** path (not synchronous RPC).
+- **Outbox publication** — Dashed `publication → …` edges from **`outbox.handles`** events are
+  **hidden by default** (integration overlay, not core Event Modeling). Opt in with
+  **`diagram.display.publicationEdges: true`**.
+- **Sidecars** — Docs-only triggers, synthetic commands, badges, and cross-context automations
+  often live in **`*-diagram.yaml`**; merge rules are in **EVENT_MODEL_FORMAT.md**.
 
 ### 4. Add Automations (optional)
 
@@ -234,7 +282,7 @@ commands:
   - name: DoSomething
     pattern: idempotent          # idempotent | commutative | non-commutative
     produces: [SomethingHappened]
-    # guardEvents: [EntityCreated]  # commutative only, when entity must exist
+    # guardEvents: [EntityCreated]  # lifecycle preconditions; valid for any command pattern
     fields:
       - name: entityId
         type: string

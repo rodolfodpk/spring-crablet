@@ -127,6 +127,7 @@ markmap:
 #### WalletOpenedAutomation → SendWelcomeNotification
 ### Course Enrollment (multi-entity DCB)
 #### DefineCourse → CourseDefined (idempotent)
+#### RegisterStudent → StudentRegistered (idempotent)
 #### ChangeCourseCapacity → CourseCapacityChanged (non-commutative)
 #### SubscribeStudentToCourse → StudentSubscribedToCourse
 #### Multi-entity: course_id + student_id tag boundary

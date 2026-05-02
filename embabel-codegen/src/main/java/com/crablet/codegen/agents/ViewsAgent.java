@@ -40,6 +40,8 @@ public class ViewsAgent {
                 Key rules:
                 - Extend AbstractTypedViewProjector<SealedEventInterface>
                 - handleEvent() uses switch + pattern matching over sealed interface variants
+                - The switch must handle all sealed event variants. For events not listed in Reads events,
+                  add an explicit ignored case returning false rather than a default branch or removing sealed typing.
                 - Use ON CONFLICT DO UPDATE for upserts (idempotency)
                 - The sealed event interface is in the domain package
                 - Inject WriteDataSource (NOT ReadDataSource) in the constructor

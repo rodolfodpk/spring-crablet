@@ -1,29 +1,20 @@
 # Renderer-only extensions for the course enrollment event modeling diagram.
 # This file is NOT a codegen input — do not feed it to embabel-codegen.
-# Loaded and merged in memory by the diagram renderer alongside course-event-model.yaml.
+# Loaded and merged alongside course-event-model.yaml (diagram.actors lives in the main file).
 
 triggers:
   - name: "Admin defines course"
     linkedCommand: DefineCourse
+    actor: admin
   - name: "Admin changes capacity"
     linkedCommand: ChangeCourseCapacity
+    actor: admin
+  - name: "Student registers"
+    linkedCommand: RegisterStudent
+    actor: student
   - name: "Student subscribes"
     linkedCommand: SubscribeStudentToCourse
-
-lanes:
-  - id: course
-    label: Course
-  - id: student
-    label: Student enrollment
-
-assignments:
-  DefineCourse: course
-  ChangeCourseCapacity: course
-  CourseDefined: course
-  CourseCapacityChanged: course
-  CourseAvailability: course
-  SubscribeStudentToCourse: student
-  StudentSubscribedToCourse: student
+    actor: student
 
 # StudentSubscribedToCourse spans two tag keys (course_id + student_id) — classic multi-entity DCB.
 eventBadges:

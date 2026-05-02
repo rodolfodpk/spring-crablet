@@ -55,6 +55,7 @@ commands:
 
   - name: Withdraw
     pattern: non-commutative
+    guardEvents: [WalletOpened]
     produces: [WithdrawalMade]
     fields:
       - { name: withdrawalId, type: string, minLength: 1 }
@@ -63,6 +64,7 @@ commands:
 
   - name: TransferMoney
     pattern: non-commutative
+    guardEvents: [WalletOpened]
     produces: [MoneyTransferred]
     fields:
       - { name: transferId, type: string, minLength: 1 }
@@ -84,3 +86,17 @@ outbox:
     topic: wallet-events
     handles: [WalletOpened]
     adapter: webhook
+
+diagram:
+  actors:
+    - id: customer
+      label: Customer
+  lanes:
+    - id: wallet
+      label: Wallet
+    - id: notification
+      label: Notification
+  assignments:
+    WalletBalance: wallet
+    WalletEventPublisher: wallet
+    SendWelcomeNotification: notification

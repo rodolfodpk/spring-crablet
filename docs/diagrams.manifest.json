@@ -1,0 +1,91 @@
+{
+  "diagrams": [
+    {
+      "id": "wallet",
+      "title": "Wallet Domain",
+      "subtitle": "Single-entity event sourcing — deposit, withdraw, transfer with DCB optimistic concurrency.",
+      "modelPath": "examples/wallet-event-model.yaml",
+      "sidecarPath": "examples/wallet-diagram.yaml",
+      "notes": [
+        {
+          "kind": "callout",
+          "parts": [
+            { "type": "text", "text": "This diagram is derived from a docs-oriented event model for the " },
+            { "type": "strong", "text": "Wallet" },
+            { "type": "text", "text": " domain.\nThe official codegen contract is documented in " },
+            {
+              "type": "link",
+              "text": "EVENT_MODEL_FORMAT.md",
+              "href": "https://github.com/rodolfodpk/spring-crablet/blob/main/docs/user/ai-tooling/EVENT_MODEL_FORMAT.md"
+            },
+            { "type": "text", "text": ".\nFields shown are representative; see " },
+            {
+              "type": "link",
+              "text": "source code",
+              "href": "https://github.com/rodolfodpk/spring-crablet/tree/main/shared-examples-domain/src/main/java/com/crablet/examples/wallet"
+            },
+            { "type": "text", "text": " for complete record definitions." }
+          ]
+        },
+        {
+          "kind": "aside",
+          "parts": [
+            { "type": "text", "text": "Outbox publisher shown is illustrative. The app defaults to " },
+            { "type": "code", "text": "LogPublisher" },
+            { "type": "text", "text": ";\n" },
+            { "type": "code", "text": "wallet-webhook" },
+            { "type": "text", "text": " is an optional HTTP webhook publisher." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "course",
+      "title": "Course Enrollment",
+      "subtitle": "Multi-entity DCB — student subscription spans course capacity and per-student enrollment consistency boundaries.",
+      "modelPath": "examples/course-event-model.yaml",
+      "sidecarPath": "examples/course-diagram.yaml",
+      "notes": [
+        {
+          "kind": "callout",
+          "parts": [
+            { "type": "text", "text": "This diagram is derived from a docs-oriented event model for the " },
+            { "type": "strong", "text": "CourseEnrollment" },
+            { "type": "text", "text": " domain.\nThe official codegen contract is documented in " },
+            {
+              "type": "link",
+              "text": "EVENT_MODEL_FORMAT.md",
+              "href": "https://github.com/rodolfodpk/spring-crablet/blob/main/docs/user/ai-tooling/EVENT_MODEL_FORMAT.md"
+            },
+            { "type": "text", "text": ".\nFields shown are representative; see " },
+            {
+              "type": "link",
+              "text": "source code",
+              "href": "https://github.com/rodolfodpk/spring-crablet/tree/main/shared-examples-domain/src/main/java/com/crablet/examples/course"
+            },
+            { "type": "text", "text": " for complete record definitions." }
+          ]
+        },
+        {
+          "kind": "dcb-note",
+          "parts": [
+            { "type": "strong", "text": "Multi-entity DCB:" },
+            { "type": "text", "text": " " },
+            { "type": "code", "text": "StudentSubscribedToCourse" },
+            {
+              "type": "text",
+              "text": " carries two tag keys (\n"
+            },
+            { "type": "code", "text": "course_id" },
+            { "type": "text", "text": " + " },
+            { "type": "code", "text": "student_id" },
+            {
+              "type": "text",
+              "text": "), enabling a single event to enforce consistency\nacross both the course capacity boundary and the per-student enrollment boundary simultaneously."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
