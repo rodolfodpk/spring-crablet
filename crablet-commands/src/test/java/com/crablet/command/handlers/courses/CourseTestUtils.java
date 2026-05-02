@@ -4,6 +4,7 @@ import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
 import com.crablet.examples.course.events.CourseCapacityChanged;
 import com.crablet.examples.course.events.CourseDefined;
+import com.crablet.examples.course.events.StudentRegistered;
 import com.crablet.examples.course.events.StudentSubscribedToCourse;
 import tools.jackson.databind.ObjectMapper;
 
@@ -65,6 +66,27 @@ public class CourseTestUtils {
     }
 
     /**
+     * Create a StoredEvent from a StudentRegistered event for testing.
+     */
+    public StoredEvent createEvent(StudentRegistered studentRegistered) {
+        try {
+            byte[] data = objectMapper.writeValueAsBytes(studentRegistered);
+            List<Tag> tags = List.of(new Tag("student_id", studentRegistered.studentId()));
+
+            return new StoredEvent(
+                    "StudentRegistered",
+                    tags,
+                    data,
+                    "1", // Mock transaction ID
+                    1L, // Mock position
+                    studentRegistered.registeredAt()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create test event", e);
+        }
+    }
+
+    /**
      * Create a StoredEvent from a StudentSubscribedToCourse event for testing.
      */
     public StoredEvent createEvent(StudentSubscribedToCourse subscription) {
@@ -116,4 +138,3 @@ public class CourseTestUtils {
         }
     }
 }
-

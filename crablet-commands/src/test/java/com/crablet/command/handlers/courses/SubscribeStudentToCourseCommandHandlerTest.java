@@ -7,6 +7,7 @@ import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.course.commands.SubscribeStudentToCourseCommand;
 import com.crablet.examples.course.events.CourseDefined;
+import com.crablet.examples.course.events.StudentRegistered;
 import com.crablet.examples.course.events.StudentSubscribedToCourse;
 import com.crablet.examples.course.exceptions.AlreadySubscribedException;
 import com.crablet.examples.course.exceptions.CourseFullException;
@@ -48,14 +49,9 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
     @Test
     @DisplayName("Should successfully subscribe student to course")
     void testHandleSubscribe_Success() {
-        // Arrange - create course
-        CourseDefined courseDefined = CourseDefined.of("c1", 10);
-        StoredEvent courseEvent = courseTestUtils.createEvent(courseDefined);
-        AppendEvent courseInputEvent = AppendEvent.builder(courseEvent.type())
-                .data(courseEvent.data())
-                .tag("course_id", "c1")
-                .build();
-        eventStore.appendCommutative(List.of(courseInputEvent));
+        // Arrange - create course and student
+        appendCourseDefined("c1", 10);
+        appendStudentRegistered("s1");
 
         SubscribeStudentToCourseCommand cmd = SubscribeStudentToCourseCommand.of("s1", "c1");
 
@@ -88,16 +84,11 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
     @DisplayName("Should throw exception when course is full")
     void testHandleSubscribe_CourseFull() {
         // Arrange - create course with capacity 3 and subscribe 3 students
-        CourseDefined courseDefined = CourseDefined.of("c1", 3);
-        StoredEvent courseEvent = courseTestUtils.createEvent(courseDefined);
-        AppendEvent courseInputEvent = AppendEvent.builder(courseEvent.type())
-                .data(courseEvent.data())
-                .tag("course_id", "c1")
-                .build();
-        eventStore.appendCommutative(List.of(courseInputEvent));
+        appendCourseDefined("c1", 3);
 
         // Subscribe 3 students (fill the course)
         for (int i = 1; i <= 3; i++) {
+            appendStudentRegistered("s" + i);
             SubscribeStudentToCourseCommand cmd = SubscribeStudentToCourseCommand.of("s" + i, "c1");
             CommandDecision result = handler.handle(eventStore, cmd);
             CommandDecision.NonCommutative nc = (CommandDecision.NonCommutative) result;
@@ -105,6 +96,7 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
         }
 
         // Try to subscribe 4th student
+        appendStudentRegistered("s4");
         SubscribeStudentToCourseCommand cmd = SubscribeStudentToCourseCommand.of("s4", "c1");
 
         // Act & Assert
@@ -116,13 +108,8 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
     @DisplayName("Should throw exception when student already subscribed to course")
     void testHandleSubscribe_AlreadySubscribed() {
         // Arrange - create course and subscribe student
-        CourseDefined courseDefined = CourseDefined.of("c1", 10);
-        StoredEvent courseEvent = courseTestUtils.createEvent(courseDefined);
-        AppendEvent courseInputEvent = AppendEvent.builder(courseEvent.type())
-                .data(courseEvent.data())
-                .tag("course_id", "c1")
-                .build();
-        eventStore.appendCommutative(List.of(courseInputEvent));
+        appendCourseDefined("c1", 10);
+        appendStudentRegistered("s1");
 
         SubscribeStudentToCourseCommand firstCmd = SubscribeStudentToCourseCommand.of("s1", "c1");
         CommandDecision firstResult = handler.handle(eventStore, firstCmd);
@@ -141,14 +128,9 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
     @DisplayName("Should throw exception when student reaches subscription limit")
     void testHandleSubscribe_StudentLimitReached() {
         // Arrange - create 5 courses and subscribe student to all
+        appendStudentRegistered("s1");
         for (int i = 1; i <= 5; i++) {
-            CourseDefined courseDefined = CourseDefined.of("c" + i, 10);
-            StoredEvent courseEvent = courseTestUtils.createEvent(courseDefined);
-            AppendEvent courseInputEvent = AppendEvent.builder(courseEvent.type())
-                    .data(courseEvent.data())
-                    .tag("course_id", "c" + i)
-                    .build();
-            eventStore.appendCommutative(List.of(courseInputEvent));
+            appendCourseDefined("c" + i, 10);
 
             SubscribeStudentToCourseCommand cmd = SubscribeStudentToCourseCommand.of("s1", "c" + i);
             CommandDecision result = handler.handle(eventStore, cmd);
@@ -157,13 +139,7 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
         }
 
         // Create 6th course
-        CourseDefined courseDefined = CourseDefined.of("c6", 10);
-        StoredEvent courseEvent = courseTestUtils.createEvent(courseDefined);
-        AppendEvent courseInputEvent = AppendEvent.builder(courseEvent.type())
-                .data(courseEvent.data())
-                .tag("course_id", "c6")
-                .build();
-        eventStore.appendCommutative(List.of(courseInputEvent));
+        appendCourseDefined("c6", 10);
 
         // Try to subscribe to 6th course (exceeds limit of 5)
         SubscribeStudentToCourseCommand cmd = SubscribeStudentToCourseCommand.of("s1", "c6");
@@ -171,5 +147,25 @@ class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
         // Act & Assert
         assertThatThrownBy(() -> handler.handle(eventStore, cmd))
                 .isInstanceOf(StudentSubscriptionLimitException.class);
+    }
+
+    private void appendCourseDefined(String courseId, int capacity) {
+        CourseDefined courseDefined = CourseDefined.of(courseId, capacity);
+        StoredEvent courseEvent = courseTestUtils.createEvent(courseDefined);
+        AppendEvent courseInputEvent = AppendEvent.builder(courseEvent.type())
+                .data(courseEvent.data())
+                .tag("course_id", courseId)
+                .build();
+        eventStore.appendCommutative(List.of(courseInputEvent));
+    }
+
+    private void appendStudentRegistered(String studentId) {
+        StudentRegistered studentRegistered = StudentRegistered.of(studentId);
+        StoredEvent studentEvent = courseTestUtils.createEvent(studentRegistered);
+        AppendEvent studentInputEvent = AppendEvent.builder(studentEvent.type())
+                .data(studentEvent.data())
+                .tag("student_id", studentId)
+                .build();
+        eventStore.appendCommutative(List.of(studentInputEvent));
     }
 }
