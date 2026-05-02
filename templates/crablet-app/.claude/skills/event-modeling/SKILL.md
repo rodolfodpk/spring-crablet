@@ -13,6 +13,10 @@ Use this skill when the user wants to add or change a Crablet feature slice.
 7. Ask for confirmation before running `embabel_generate`.
 8. Run `./mvnw verify` after generation.
 
+For Claude Code and Cursor, use MCP tools when available. For Codex, other agents, or terminal
+workflows, use `make plan`, `make generate`, and `make verify`. `plan` is deterministic and does
+not call a model; `generate` uses the configured codegen provider.
+
 ## Required Questions
 
 For each command:

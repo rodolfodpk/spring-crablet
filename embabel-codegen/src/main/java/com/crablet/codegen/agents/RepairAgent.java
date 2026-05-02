@@ -1,5 +1,6 @@
 package com.crablet.codegen.agents;
 
+import com.crablet.codegen.llm.CodegenLlmClient;
 import com.crablet.codegen.pipeline.CompileError;
 import com.crablet.codegen.tools.FileWriterTool;
 import org.springframework.stereotype.Component;
@@ -14,10 +15,10 @@ import java.util.stream.Collectors;
 @Component
 public class RepairAgent {
 
-    private final AnthropicService anthropic;
+    private final CodegenLlmClient llm;
 
-    public RepairAgent(AnthropicService anthropic) {
-        this.anthropic = anthropic;
+    public RepairAgent(CodegenLlmClient llm) {
+        this.llm = llm;
     }
 
     public void fix(List<CompileError> errors, Path outputDir) {
@@ -59,7 +60,7 @@ public class RepairAgent {
                     currentContent
             );
 
-            String fixed = anthropic.complete(system, user);
+            String fixed = llm.complete(system, user);
             // Extract just the content between the FILE markers and write it
             int start = fixed.indexOf('\n');
             int end = fixed.lastIndexOf("===END FILE===");

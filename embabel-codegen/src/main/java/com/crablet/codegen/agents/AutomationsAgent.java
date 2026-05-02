@@ -1,5 +1,6 @@
 package com.crablet.codegen.agents;
 
+import com.crablet.codegen.llm.CodegenLlmClient;
 import com.crablet.codegen.model.AutomationSpec;
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.tools.FileWriterTool;
@@ -11,12 +12,12 @@ import java.nio.file.Path;
 @Component
 public class AutomationsAgent {
 
-    private final AnthropicService anthropic;
+    private final CodegenLlmClient llm;
     private final FileWriterTool fileWriter;
     private final TemplateLoader templates;
 
-    public AutomationsAgent(AnthropicService anthropic, FileWriterTool fileWriter, TemplateLoader templates) {
-        this.anthropic = anthropic;
+    public AutomationsAgent(CodegenLlmClient llm, FileWriterTool fileWriter, TemplateLoader templates) {
+        this.llm = llm;
         this.fileWriter = fileWriter;
         this.templates = templates;
     }
@@ -77,7 +78,7 @@ public class AutomationsAgent {
                     automation.name()
             );
 
-            String response = anthropic.complete(system, user);
+            String response = llm.complete(system, user);
             fileWriter.writeGeneratedFiles(response, outputDir);
         }
     }

@@ -8,10 +8,33 @@ logging:
     root: warn
 
 codegen:
+  llm:
+    provider: ${CODEGEN_LLM_PROVIDER:anthropic}
+    api-key: ${CODEGEN_LLM_API_KEY:}
+    base-url: ${CODEGEN_LLM_BASE_URL:}
+    model: ${CODEGEN_LLM_MODEL:}
+    max-tokens: ${CODEGEN_LLM_MAX_TOKENS:8096}
   anthropic:
     api-key: ${ANTHROPIC_API_KEY:}
+    base-url: ${ANTHROPIC_BASE_URL:}
     model: claude-sonnet-4-6
     max-tokens: 8096
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    base-url: ${OPENAI_BASE_URL:}
+    model: ${OPENAI_MODEL:}
+  deepseek:
+    api-key: ${DEEPSEEK_API_KEY:}
+    base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+    model: ${DEEPSEEK_MODEL:deepseek-chat}
+  ollama:
+    api-key: ${OLLAMA_API_KEY:ollama}
+    base-url: ${OLLAMA_BASE_URL:http://localhost:11434/v1}
+    model: ${OLLAMA_MODEL:}
+  openai-compatible:
+    api-key: ${OPENAI_COMPATIBLE_API_KEY:}
+    base-url: ${OPENAI_COMPATIBLE_BASE_URL:}
+    model: ${OPENAI_COMPATIBLE_MODEL:}
   # Resolved relative to process working directory. Run the JAR from the embabel-codegen module
   # (see root Makefile codegen-* targets) so this loads embabel-codegen/CLAUDE.md with codegen templates.
   claude-md-path: CLAUDE.md

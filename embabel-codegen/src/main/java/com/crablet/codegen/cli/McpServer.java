@@ -140,7 +140,7 @@ public class McpServer {
 
         tools.add(tool("embabel_plan",
                 "Print the planned spring-crablet artifacts for an event-model.yaml without " +
-                "calling Anthropic or writing files.",
+                "calling a model or writing files.",
                 schema(
                         prop("model", "string",
                                 "Path to event-model.yaml (default: event-model.yaml)"))));

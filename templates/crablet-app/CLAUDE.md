@@ -1,36 +1,20 @@
 # Crablet App Instructions
 
-This is a Crablet application. Work one vertical slice at a time.
+This is a generated Crablet application.
 
-When adding a feature:
+## Skill Routing
 
-1. Ask for missing business facts before changing files.
-2. Update `event-model.yaml` first.
-3. Keep the slice scoped to one observable user outcome.
-4. Run `embabel_plan` and show the planned artifacts.
-5. Ask for confirmation before running `embabel_generate` with **`output` set to `src/main/java`**
-   (same as `make generate`. The MCP tool defaults `output` to the project root `.`, which
-   places generated files in the wrong tree for this template).
-6. Run `./mvnw verify` after generation.
-7. Prefer improving `event-model.yaml` over hand-patching generated structural code.
+- App feature slices, command handlers, views, automations, outbox, codegen sequencing, and verification: use `.claude/skills/crablet-app-dev/SKILL.md`.
+- Event Modeling workshop dialogue and `event-model.yaml` shape: use `.claude/skills/event-modeling/SKILL.md`.
 
-For each slice, clarify:
+## Essentials
 
-- command name, fields, and validation
-- event name, fields, and tags
-- command pattern: `idempotent`, `commutative`, or `non-commutative`
-- consistency checks and guard events
-- read model needed to observe the result
-- automation or outbox behavior, if needed
-- sample scenario used to verify the slice
-
-Generated applications target the Crablet runtime modules:
-
-- `crablet-eventstore`
-- `crablet-commands`
-- `crablet-commands-web`
-- `crablet-views`
-- `crablet-automations`
-- `crablet-outbox`
-
-Do not generate code until the artifact plan has been reviewed.
+- Work one vertical slice at a time.
+- Ask for missing business facts before changing files.
+- Update `event-model.yaml` before generated structural code.
+- Run `embabel_plan` and review artifacts before `embabel_generate`.
+- Generate with `output` set to `src/main/java`.
+- Claude Code and Cursor can use MCP tools; Codex and terminal workflows should use `make plan`,
+  `make generate`, and `make verify`.
+- `plan` is deterministic and does not call a model. `generate` uses the configured provider.
+- Run `./mvnw verify` after generation or manual repair.

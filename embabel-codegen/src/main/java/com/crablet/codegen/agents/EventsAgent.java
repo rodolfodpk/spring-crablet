@@ -1,5 +1,6 @@
 package com.crablet.codegen.agents;
 
+import com.crablet.codegen.llm.CodegenLlmClient;
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.model.EventSpec;
 import com.crablet.codegen.model.FieldSpec;
@@ -13,12 +14,12 @@ import java.util.stream.Collectors;
 @Component
 public class EventsAgent {
 
-    private final AnthropicService anthropic;
+    private final CodegenLlmClient llm;
     private final FileWriterTool fileWriter;
     private final TemplateLoader templates;
 
-    public EventsAgent(AnthropicService anthropic, FileWriterTool fileWriter, TemplateLoader templates) {
-        this.anthropic = anthropic;
+    public EventsAgent(CodegenLlmClient llm, FileWriterTool fileWriter, TemplateLoader templates) {
+        this.llm = llm;
         this.fileWriter = fileWriter;
         this.templates = templates;
     }
@@ -71,7 +72,7 @@ public class EventsAgent {
                         .collect(Collectors.joining("\n"))
         );
 
-        String response = anthropic.complete(system, user);
+        String response = llm.complete(system, user);
         fileWriter.writeGeneratedFiles(response, outputDir);
     }
 

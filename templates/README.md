@@ -12,24 +12,25 @@ A ready-to-use Spring Boot application skeleton configured for the AI-first Crab
 - `V1__eventstore_schema.sql` Flyway migration (full Crablet schema)
 - `Makefile` with `plan`, `generate`, `k8s`, `verify`, and `check` targets
 - `.claude/settings.json` pre-wired for the `embabel-codegen` MCP server
+- `.cursor/mcp.json` pre-wired for the same MCP server
 - `/event-modeling` Claude Code skill for running a domain modeling workshop
 
-**Workflow (primary — Claude Code + MCP):**
+**Workflow (MCP — Claude Code or Cursor):**
 
 ```
-Open Claude Code at the template root, describe one vertical slice
+Open Claude Code or Cursor at the template root, describe one vertical slice
   → update event-model.yaml
   → embabel_plan — review planned artifacts
   → embabel_generate with output: src/main/java  (same as make generate; MCP default . is wrong for this template)
   → ./mvnw verify
 ```
 
-**Manual or scripted (no Claude Code, debugging, intentional regeneration):**
+**Manual or scripted (Codex, other agents, debugging, intentional regeneration):**
 
 ```
-make plan      # review plan only, no Anthropic (CI- / script-friendly)
+make plan      # review plan only, no model call (CI- / script-friendly)
 make generate  # same AI pipeline as embabel_generate — not a normal CI step
-make k8s       # same as embabel_k8s; Kubernetes manifests, no Anthropic
+make k8s       # same as embabel_k8s; Kubernetes manifests, no model call
 make verify    # full Maven test run (CI-friendly)
 make check     # plan + verify
 ```
@@ -43,7 +44,7 @@ make install && make codegen-build
 # 2. Copy the JAR into the template tools directory
 cp embabel-codegen/target/embabel-codegen.jar templates/crablet-app/tools/
 
-# 3. Open Claude Code from the template root
+# 3. Configure a generator provider and open your frontend
 cd templates/crablet-app
 export ANTHROPIC_API_KEY=sk-ant-...
 claude

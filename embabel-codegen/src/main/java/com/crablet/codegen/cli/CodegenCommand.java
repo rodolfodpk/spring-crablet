@@ -129,7 +129,7 @@ public class CodegenCommand {
                              --model event-model.yaml   (default: event-model.yaml)
                              --output src/main/java      (default: .)
 
-                  plan       Print planned artifacts without calling Anthropic or writing files
+                  plan       Print planned artifacts without calling a model or writing files
                              --model event-model.yaml   (default: event-model.yaml)
 
                   k8s        Generate Kubernetes manifests (k8s/base) from event-model.yaml

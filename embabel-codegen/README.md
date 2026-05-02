@@ -2,7 +2,8 @@
 
 AI-powered code generator for spring-crablet. Reads an `event-model.yaml` and generates production-ready Spring Boot source files for every layer of a Crablet application — events, commands, views, automations, and outbox — then compiles and self-repairs up to three times.
 
-Uses the Anthropic Java SDK with `claude-sonnet-4-6`.
+Uses Embabel's LLM abstraction. Anthropic remains the default provider for backward compatibility,
+and OpenAI-compatible providers can be selected with configuration.
 
 ## How It Works
 
@@ -22,7 +23,10 @@ Each agent injects **section templates** from **`embabel-codegen/CLAUDE.md`** (s
 ## Prerequisites
 
 - Java 25
-- `ANTHROPIC_API_KEY` in the environment
+- A configured generator provider:
+  - Anthropic: `ANTHROPIC_API_KEY`
+  - OpenAI: `OPENAI_API_KEY` plus `CODEGEN_LLM_MODEL` or `OPENAI_MODEL`
+  - Local/OpenAI-compatible: `CODEGEN_LLM_PROVIDER=openai-compatible`, `CODEGEN_LLM_BASE_URL`, and `CODEGEN_LLM_MODEL`
 - Maven (the framework build, `make install`, must have run first)
 
 ## Build
@@ -54,7 +58,7 @@ java -jar embabel-codegen.jar init \
 
 Creates `pom.xml`, main class, `application.yml`, and `event-model.yaml` skeleton.
 
-**`plan`** — print planned artifacts without calling Anthropic or writing files
+**`plan`** — print planned artifacts without calling a model or writing files
 
 ```bash
 java -jar embabel-codegen.jar plan --model event-model.yaml
@@ -87,7 +91,7 @@ java -jar embabel-codegen.jar generate \
   --output src/main/java
 ```
 
-**`k8s`** — generate Kubernetes manifests from `event-model.yaml` (no Anthropic; uses `deployment` in the model)
+**`k8s`** — generate Kubernetes manifests from `event-model.yaml` (no model call; uses `deployment` in the model)
 
 ```bash
 java -jar embabel-codegen.jar k8s \
@@ -97,13 +101,13 @@ java -jar embabel-codegen.jar k8s \
 
 Writes `k8s/base` with Namespace, Deployments, Service, optional KEDA ScaledObjects, Secret template, and `README-k8s.md`. See [Deployment Topology](../docs/user/DEPLOYMENT_TOPOLOGY.md#kubernetes-optional) for how this maps to Crablet’s poller rules.
 
-**`--mcp`** — start as an MCP server (used by Claude Code)
+**`--mcp`** — start as an MCP server (used by Claude Code, Cursor, and other MCP-capable clients)
 
 ```bash
 java -jar embabel-codegen.jar --mcp
 ```
 
-## MCP Server (Claude Code Integration)
+## MCP Server
 
 When started with `--mcp`, the JAR exposes tools over stdio JSON-RPC:
 
@@ -114,19 +118,20 @@ When started with `--mcp`, the JAR exposes tools over stdio JSON-RPC:
 | `embabel_init` | Bootstrap a new Crablet project |
 | `embabel_k8s` | Write `k8s/base` from event-model (same as CLI `k8s`) |
 
-Claude Code discovers the server via `.claude/settings.json` in the application project. The `templates/crablet-app` starter ships with this wired up.
+Claude Code discovers the server via `.claude/settings.json` in the application project. Cursor can
+use the same server via `.cursor/mcp.json`. The `templates/crablet-app` starter ships with both
+files wired up.
 
 ## AI-First Workflow
 
-The intended workflow pairs this tool with the `/event-modeling` skill in Claude Code:
+The intended workflow pairs this tool with event-modeling guidance in an AI coding frontend:
 
 ```
-1. claude init --name my-service           # bootstrap the project
-2. /event-modeling                          # run the modeling workshop in Claude Code
-                                            # → produces event-model.yaml
-3. embabel_plan                             # review what will be generated
-4. embabel_generate                         # generate + compile + repair
-5. ./mvnw verify                            # full test run
+1. Start Claude Code or Cursor from the app root, or use Codex/terminal with Makefile commands
+2. Model one slice and update event-model.yaml
+3. embabel_plan / make plan                 # review what will be generated
+4. embabel_generate / make generate          # generate + compile + repair
+5. ./mvnw verify                             # full test run
 ```
 
 See [`docs/user/ai-tooling/AI_FIRST_WORKFLOW.md`](../docs/user/ai-tooling/AI_FIRST_WORKFLOW.md) and [`docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md`](../docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md) for the full process.
@@ -137,12 +142,48 @@ Set in `application.yml` or via environment:
 
 ```yaml
 codegen:
+  llm:
+    provider: ${CODEGEN_LLM_PROVIDER:anthropic}
+    api-key: ${CODEGEN_LLM_API_KEY:}
+    base-url: ${CODEGEN_LLM_BASE_URL:}
+    model: ${CODEGEN_LLM_MODEL:}
+    max-tokens: ${CODEGEN_LLM_MAX_TOKENS:8096}
   anthropic:
     api-key: ${ANTHROPIC_API_KEY}
     model: claude-sonnet-4-6
-    max-tokens: 8096
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    model: ${OPENAI_MODEL:}
+  ollama:
+    api-key: ${OLLAMA_API_KEY:ollama}
+    base-url: ${OLLAMA_BASE_URL:http://localhost:11434/v1}
+    model: ${OLLAMA_MODEL:}
+  openai-compatible:
+    api-key: ${OPENAI_COMPATIBLE_API_KEY:}
+    base-url: ${OPENAI_COMPATIBLE_BASE_URL:}
+    model: ${OPENAI_COMPATIBLE_MODEL:}
   claude-md-path: CLAUDE.md      # this module's CLAUDE.md (run JAR from embabel-codegen/; see above)
 ```
+
+Examples:
+
+```bash
+# Anthropic default
+export ANTHROPIC_API_KEY=sk-ant-...
+
+# OpenAI
+export CODEGEN_LLM_PROVIDER=openai
+export OPENAI_API_KEY=sk-...
+export OPENAI_MODEL=gpt-5.2
+
+# Local Ollama through its OpenAI-compatible API
+export CODEGEN_LLM_PROVIDER=openai-compatible
+export CODEGEN_LLM_BASE_URL=http://localhost:11434/v1
+export CODEGEN_LLM_MODEL=qwen2.5-coder:32b
+```
+
+Only point custom `base-url` values at model endpoints you control or trust. Do not feed untrusted
+provider URLs into shared CI.
 
 ## When Generation Fails
 
@@ -161,13 +202,13 @@ The agent returned text but no file blocks. This usually means the prompt exceed
 - Check that `claude-md-path` points to a readable file
 - Re-run `generate` — transient API errors are retried on the next invocation
 
-### `ANTHROPIC_API_KEY` not set or invalid
+### Provider key or configuration is missing
 
 ```
-Error: 401 Unauthorized
+Error: ANTHROPIC_API_KEY is not set...
 ```
 
-Set the key before running:
+Set the provider-specific key or switch provider configuration before running:
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
@@ -178,7 +219,7 @@ export ANTHROPIC_API_KEY=sk-ant-...
 com.fasterxml.jackson.dataformat.yaml.JacksonYAMLParseException
 ```
 
-Run `plan` first — it parses the YAML without calling Anthropic, so errors appear immediately:
+Run `plan` first — it parses the YAML without calling a model, so errors appear immediately:
 ```bash
 java -jar embabel-codegen.jar plan --model event-model.yaml
 ```

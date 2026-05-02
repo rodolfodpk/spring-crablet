@@ -17,8 +17,10 @@ describe one vertical slice
 
 - Java 25
 - PostgreSQL
-- Claude Code
-- `ANTHROPIC_API_KEY` in the shell that starts Claude Code
+- Claude Code, Cursor, Codex, or a terminal workflow
+- A configured generator provider. Anthropic users set `ANTHROPIC_API_KEY`; OpenAI users set
+  `OPENAI_API_KEY` and a model; local/Ollama users set `CODEGEN_LLM_PROVIDER`,
+  `CODEGEN_LLM_BASE_URL`, and `CODEGEN_LLM_MODEL`.
 - `embabel-codegen.jar`
 
 Phase 1 uses a local generator JAR. From a sibling `spring-crablet` checkout:
@@ -35,6 +37,33 @@ cp ../spring-crablet/embabel-codegen/target/embabel-codegen.jar tools/embabel-co
 
 Longer term, the template should download a versioned release artifact instead of copying from a
 framework checkout.
+
+## Provider Setup
+
+Anthropic remains the default:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+OpenAI:
+
+```bash
+export CODEGEN_LLM_PROVIDER=openai
+export OPENAI_API_KEY=sk-...
+export OPENAI_MODEL=gpt-5.2
+```
+
+Local Ollama or another OpenAI-compatible endpoint:
+
+```bash
+export CODEGEN_LLM_PROVIDER=openai-compatible
+export CODEGEN_LLM_BASE_URL=http://localhost:11434/v1
+export CODEGEN_LLM_MODEL=qwen2.5-coder:32b
+```
+
+Only point custom `CODEGEN_LLM_BASE_URL` values at model endpoints you control or trust. Local
+model quality varies; use a model that can reliably follow strict file-block output instructions.
 
 ## First Slice
 
@@ -61,6 +90,9 @@ Ask for missing facts before changing files.
 
 Claude should update `event-model.yaml`, run `embabel_plan`, ask you to review the planned
 artifacts, then run `embabel_generate` only after the plan looks right.
+
+Cursor can use the same MCP tools through `.cursor/mcp.json`. Codex and other agents can edit
+`event-model.yaml` and use the local `make plan` / `make generate` commands.
 
 For a detailed transcript, see
 [Submit Loan Application Claude Dialogue](../../docs/user/examples/submit-loan-application-claude-dialogue.md).
@@ -92,8 +124,8 @@ before running embabel_generate.
 
 ## How code generation works
 
-The template’s **`.claude/settings.json`** starts the codegen JAR in MCP mode when Claude Code
-opens the project:
+The template’s **`.claude/settings.json`** and **`.cursor/mcp.json`** start the codegen JAR in MCP
+mode when Claude Code or Cursor opens the project:
 
 ```json
 {
@@ -110,26 +142,26 @@ opens the project:
 }
 ```
 
-That exposes these MCP tools (Claude Code can call them without you running `java -jar` by
-hand): **`embabel_plan`**, **`embabel_generate`**, **`embabel_init`**, **`embabel_k8s`**.
+That exposes these MCP tools without you running `java -jar` by hand: **`embabel_plan`**,
+**`embabel_generate`**, **`embabel_init`**, **`embabel_k8s`**.
 
 **Kubernetes:** **`make k8s`** is the Makefile entry point for the same **`embabel_k8s`** MCP tool
-(no Anthropic calls; writes `k8s/base` from `event-model.yaml`).
+(no model calls; writes `k8s/base` from `event-model.yaml`).
 
 **Output directory:** the **`embabel_generate`** tool defaults **`output` to `.` (project root)**.
 For this template, always pass **`output: "src/main/java"`** — the same directory as
 `make generate` (`java -jar … generate --output src/main/java`). Otherwise generated sources
 are written next to `pom.xml` instead of under `src/main/java`.
 
-**Primary workflow:** describe a slice in Claude Code → update `event-model.yaml` →
+**Primary workflow:** describe a slice in Claude Code or Cursor → update `event-model.yaml` →
 `embabel_plan` → review → **`embabel_generate` with `output: "src/main/java"`** → `./mvnw verify`.
 
-**Local commands** (below) are for when you are **not** using Claude Code, or for **scripting**
-and **debugging** — see each command’s description.
+**Local commands** (below) are for Codex, other agents, terminal use, scripting, and debugging —
+see each command’s description.
 
 ## Local Commands
 
-Print the artifact plan without calling Anthropic or writing files (CI- and script-friendly):
+Print the artifact plan without calling a model or writing files (CI- and script-friendly):
 
 ```bash
 make plan
@@ -141,7 +173,7 @@ Generate the structural code:
 make generate
 ```
 
-Same AI codegen pipeline as **`embabel_generate`** (calls Anthropic, compiles, may repair
+Same AI codegen pipeline as **`embabel_generate`** (calls the configured model, compiles, may repair
 errors). Use when regenerating from the shell — not a typical deterministic CI step.
 
 Generate Kubernetes manifests under `k8s/base` from `event-model.yaml` (add a `deployment:` block; see the `/event-modeling` skill and `k8s/base/README-k8s.md` after generation):

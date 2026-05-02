@@ -1,5 +1,6 @@
 package com.crablet.codegen.agents;
 
+import com.crablet.codegen.llm.CodegenLlmClient;
 import com.crablet.codegen.k8s.ViewNameResolver;
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.model.FieldSpec;
@@ -15,12 +16,12 @@ import java.util.stream.Collectors;
 @Component
 public class ViewsAgent {
 
-    private final AnthropicService anthropic;
+    private final CodegenLlmClient llm;
     private final FileWriterTool fileWriter;
     private final TemplateLoader templates;
 
-    public ViewsAgent(AnthropicService anthropic, FileWriterTool fileWriter, TemplateLoader templates) {
-        this.anthropic = anthropic;
+    public ViewsAgent(CodegenLlmClient llm, FileWriterTool fileWriter, TemplateLoader templates) {
+        this.llm = llm;
         this.fileWriter = fileWriter;
         this.templates = templates;
     }
@@ -98,7 +99,7 @@ public class ViewsAgent {
                     view.tableName()
             );
 
-            String response = anthropic.complete(system, user);
+            String response = llm.complete(system, user);
             fileWriter.writeGeneratedFiles(response, outputDir);
         }
     }

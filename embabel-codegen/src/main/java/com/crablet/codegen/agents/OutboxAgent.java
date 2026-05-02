@@ -1,5 +1,6 @@
 package com.crablet.codegen.agents;
 
+import com.crablet.codegen.llm.CodegenLlmClient;
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.model.OutboxSpec;
 import com.crablet.codegen.tools.FileWriterTool;
@@ -11,12 +12,12 @@ import java.nio.file.Path;
 @Component
 public class OutboxAgent {
 
-    private final AnthropicService anthropic;
+    private final CodegenLlmClient llm;
     private final FileWriterTool fileWriter;
     private final TemplateLoader templates;
 
-    public OutboxAgent(AnthropicService anthropic, FileWriterTool fileWriter, TemplateLoader templates) {
-        this.anthropic = anthropic;
+    public OutboxAgent(CodegenLlmClient llm, FileWriterTool fileWriter, TemplateLoader templates) {
+        this.llm = llm;
         this.fileWriter = fileWriter;
         this.templates = templates;
     }
@@ -77,7 +78,7 @@ public class OutboxAgent {
                     outbox.name()
             );
 
-            String response = anthropic.complete(system, user);
+            String response = llm.complete(system, user);
             fileWriter.writeGeneratedFiles(response, outputDir);
         }
     }

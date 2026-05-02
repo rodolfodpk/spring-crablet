@@ -3,6 +3,7 @@ package com.crablet.codegen.agents;
 import com.crablet.codegen.model.CommandSpec;
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.model.FieldSpec;
+import com.crablet.codegen.llm.CodegenLlmClient;
 import com.crablet.codegen.tools.FileWriterTool;
 import com.crablet.codegen.tools.TemplateLoader;
 import org.springframework.stereotype.Component;
@@ -13,12 +14,12 @@ import java.util.stream.Collectors;
 @Component
 public class CommandsAgent {
 
-    private final AnthropicService anthropic;
+    private final CodegenLlmClient llm;
     private final FileWriterTool fileWriter;
     private final TemplateLoader templates;
 
-    public CommandsAgent(AnthropicService anthropic, FileWriterTool fileWriter, TemplateLoader templates) {
-        this.anthropic = anthropic;
+    public CommandsAgent(CodegenLlmClient llm, FileWriterTool fileWriter, TemplateLoader templates) {
+        this.llm = llm;
         this.fileWriter = fileWriter;
         this.templates = templates;
     }
@@ -102,7 +103,7 @@ public class CommandsAgent {
                         .collect(Collectors.joining("\n"))
         );
 
-        String response = anthropic.complete(system, user);
+        String response = llm.complete(system, user);
         fileWriter.writeGeneratedFiles(response, outputDir);
     }
 
