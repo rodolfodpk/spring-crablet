@@ -6,6 +6,7 @@ import com.crablet.views.ViewProjector;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -231,7 +232,7 @@ class ViewEventHandlerTest {
         events.add(new StoredEvent(
             "WalletOpened",
             List.of(new Tag("wallet_id", "wallet-1")),
-            "{\"walletId\":\"wallet-1\"}".getBytes(),
+            "{\"walletId\":\"wallet-1\"}".getBytes(StandardCharsets.UTF_8),
             "tx-1",
             1L,
             Instant.now()
@@ -239,7 +240,7 @@ class ViewEventHandlerTest {
         events.add(new StoredEvent(
             "DepositMade",
             List.of(new Tag("wallet_id", "wallet-1")),
-            "{\"amount\":100}".getBytes(),
+            "{\"amount\":100}".getBytes(StandardCharsets.UTF_8),
             "tx-2",
             2L,
             Instant.now()

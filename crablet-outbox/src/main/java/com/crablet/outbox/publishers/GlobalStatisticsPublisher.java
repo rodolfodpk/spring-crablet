@@ -95,7 +95,7 @@ public class GlobalStatisticsPublisher {
         Instant now = clockProvider.now();
         Duration sinceLastLog = Duration.between(lastLogTime, now);
         
-        if (sinceLastLog.getSeconds() >= config.getLogIntervalSeconds()) {
+        if (sinceLastLog.toSeconds() >= config.getLogIntervalSeconds()) {
             logStatistics(now);
             lastLogTime = now;
         }
@@ -112,12 +112,12 @@ public class GlobalStatisticsPublisher {
             return; // No events processed yet
         }
         
-        double eventsPerSecond = total / (double) Math.max(1, totalDuration.getSeconds());
+        double eventsPerSecond = total / (double) Math.max(1, totalDuration.toSeconds());
         
         log.info("===== Global Outbox Statistics =====");
         log.info("Total events processed: {}", total);
         log.info("Throughput: {} events/sec", String.format(Locale.ROOT, "%.2f", eventsPerSecond));
-        log.info("Uptime: {} seconds", totalDuration.getSeconds());
+        log.info("Uptime: {} seconds", totalDuration.toSeconds());
         
         // Log per-topic statistics
         if (!eventsPerTopic.isEmpty()) {

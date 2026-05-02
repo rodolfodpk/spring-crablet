@@ -22,7 +22,6 @@ import com.crablet.eventstore.notify.NoopEventAppendNotifier;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.query.QueryItem;
 import com.crablet.eventstore.query.StateProjector;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
@@ -36,7 +35,6 @@ import org.springframework.jdbc.core.RowMapper;
 
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
-import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -44,7 +42,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
@@ -52,7 +49,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * JDBC-based implementation of EventStore using PostgreSQL functions.
@@ -431,8 +427,8 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                     // Set parameters using existing logic
                     for (int i = 0; i < params.size(); i++) {
                         Object param = params.get(i);
-                        if (param instanceof String[]) {
-                            stmt.setArray(i + 1, connection.createArrayOf("text", (String[]) param));
+                        if (param instanceof String[] strings) {
+                            stmt.setArray(i + 1, connection.createArrayOf("text", strings));
                         } else {
                             stmt.setObject(i + 1, param);
                         }
@@ -482,39 +478,6 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             throw e;
         } catch (Exception e) {
             throw new EventStoreException("Failed to check event existence", e);
-        }
-    }
-
-    /**
-     * Private method to append events using a provided connection.
-     * Used internally by ConnectionScopedEventStore.
-     */
-    private void appendWithConnection(Connection connection, List<AppendEvent> events) {
-        if (events.isEmpty()) {
-            return;
-        }
-
-        try (PreparedStatement stmt = connection.prepareStatement(APPEND_EVENTS_BATCH_SQL)) {
-
-            // Prepare arrays for append_events_batch function
-            String[] types = events.stream().map(AppendEvent::type).toArray(String[]::new);
-            String[] tagArrays = events.stream()
-                    .map(event -> convertTagsToPostgresArray(event.tags()))
-                    .toArray(String[]::new);
-            String[] dataStrings = events.stream()
-                    .map(event -> serializeEventData(event.eventData()))
-                    .toArray(String[]::new);
-
-            stmt.setArray(1, connection.createArrayOf("text", types));
-            stmt.setArray(2, connection.createArrayOf("text", tagArrays));
-            stmt.setArray(3, connection.createArrayOf("jsonb", dataStrings));
-            stmt.setTimestamp(4, Timestamp.from(clock.now()));
-            stmt.setObject(5, CorrelationContext.correlationId());
-            stmt.setObject(6, CorrelationContext.causationId());
-
-            stmt.execute();
-        } catch (SQLException e) {
-            throw new EventStoreException("Failed to append events with connection", e);
         }
     }
 
@@ -660,103 +623,6 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     // Connection-based methods for ConnectionScopedEventStore
 
     /**
-     * Private method to query events using a provided connection.
-     * Used internally by ConnectionScopedEventStore.
-     */
-    private List<StoredEvent> queryWithConnection(Connection connection, Query query, StreamPosition after) {
-        try {
-            // Build SQL query directly instead of using the function
-            StringBuilder sql = new StringBuilder();
-            sql.append("SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id ");
-            sql.append("FROM events ");
-
-            List<Object> params = new ArrayList<>();
-
-            // Handle null stream position
-            if (after != null) {
-                sql.append("WHERE position > ? ");
-                params.add(after.position());
-            }
-
-            // Build OR conditions for each QueryItem (go-crablet style)
-            if (query != null && !query.items().isEmpty()) {
-                List<String> orConditions = new ArrayList<>();
-
-                for (QueryItem item : query.items()) {
-                    StringBuilder condition = new StringBuilder("(");
-                    List<String> andConditions = new ArrayList<>();
-
-                    // Handle event types for this QueryItem
-                    if (!item.eventTypes().isEmpty()) {
-                        andConditions.add("type = ANY(?)");
-                        params.add(item.eventTypes().toArray(new String[0]));
-                    }
-
-                    // Handle tags for this QueryItem
-                    if (!item.tags().isEmpty()) {
-                        List<String> tagStrings = item.tags().stream()
-                                .map(tag -> tag.key() + "=" + tag.value())
-                                .collect(Collectors.toList());
-                        andConditions.add("tags @> ?::TEXT[]");
-                        params.add(tagStrings.toArray(new String[0]));
-                    }
-
-                    if (!andConditions.isEmpty()) {
-                        condition.append(String.join(" AND ", andConditions));
-                        condition.append(")");
-                        orConditions.add(condition.toString());
-                    }
-                }
-
-                if (!orConditions.isEmpty()) {
-                    if (after != null) {
-                        sql.append("AND ");
-                    } else {
-                        sql.append("WHERE ");
-                    }
-                    sql.append("(").append(String.join(" OR ", orConditions)).append(")");
-                }
-            }
-
-            sql.append("ORDER BY transaction_id, position ASC");
-
-            try (PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
-                // Set fetch size for memory efficiency
-                stmt.setFetchSize(config.getFetchSize());
-
-                for (int i = 0; i < params.size(); i++) {
-                    Object param = params.get(i);
-                    if (param instanceof String[]) {
-                        stmt.setArray(i + 1, connection.createArrayOf("text", (String[]) param));
-                    } else {
-                        stmt.setObject(i + 1, param);
-                    }
-                }
-
-                List<StoredEvent> events = new ArrayList<>();
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        StoredEvent event = new StoredEvent(
-                                rs.getString("type"),
-                                parseTagsFromArray(rs.getArray("tags")),
-                                rs.getBytes("data"),
-                                rs.getString("transaction_id"),
-                                rs.getLong("position"),
-                                rs.getTimestamp("occurred_at").toInstant(),
-                                rs.getObject("correlation_id", UUID.class),
-                                (Long) rs.getObject("causation_id")
-                        );
-                        events.add(event);
-                    }
-                }
-                return events;
-            }
-        } catch (SQLException e) {
-            throw new EventStoreException("Failed to query events using connection", e);
-        }
-    }
-
-    /**
      * Private method to project state using a provided connection.
      * Used internally by ConnectionScopedEventStore.
      *
@@ -766,11 +632,10 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
      * @param connection Existing connection from transaction context
      * @param query The query to filter events
      * @param after StreamPosition to project events after
-     * @param stateType The type of state to project
      * @param projectors List of projectors to apply
      * @return ProjectionResult with final state and stream position
      */
-    private <T> ProjectionResult<T> projectWithConnection(Connection connection, Query query, StreamPosition after, Class<T> stateType, List<StateProjector<T>> projectors) {
+    private <T> ProjectionResult<T> projectWithConnection(Connection connection, Query query, StreamPosition after, List<StateProjector<T>> projectors) {
         try {
             // Build SQL using existing helper
             StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id FROM events");
@@ -792,8 +657,8 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 // Set parameters using existing logic
                 for (int i = 0; i < params.size(); i++) {
                     Object param = params.get(i);
-                    if (param instanceof String[]) {
-                        stmt.setArray(i + 1, connection.createArrayOf("text", (String[]) param));
+                    if (param instanceof String[] strings) {
+                        stmt.setArray(i + 1, connection.createArrayOf("text", strings));
                     } else {
                         stmt.setObject(i + 1, param);
                     }
@@ -840,8 +705,8 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             try (PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
                 for (int i = 0; i < params.size(); i++) {
                     Object param = params.get(i);
-                    if (param instanceof String[]) {
-                        stmt.setArray(i + 1, connection.createArrayOf("text", (String[]) param));
+                    if (param instanceof String[] strings) {
+                        stmt.setArray(i + 1, connection.createArrayOf("text", strings));
                     } else {
                         stmt.setObject(i + 1, param);
                     }
@@ -858,22 +723,6 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     // Helper methods
 
 
-    /**
-     * Build query from projectors following DCB specification.
-     * DCB spec: "queries can be automatically deferred from the decision model definition"
-     * See: https://dcb.events/#reading-events
-     */
-    private <T> Query buildQueryFromProjectors(List<StateProjector<T>> projectors) {
-        if (projectors == null || projectors.isEmpty()) {
-            return Query.empty();
-        }
-
-        List<QueryItem> items = projectors.stream()
-                .map(p -> QueryItem.of(p.getEventTypes(), List.of())) // Tags come from Query, not projector
-                .toList();
-
-        return Query.of(items);
-    }
 
     /**
      * Check if projector handles this event type.
@@ -881,22 +730,6 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     private <T> boolean handlesEventType(StateProjector<T> projector, StoredEvent event) {
         List<String> eventTypes = projector.getEventTypes();
         return eventTypes.isEmpty() || eventTypes.contains(event.type());
-    }
-
-    /**
-     * Parse tags from PostgreSQL array.
-     */
-    private List<Tag> parseTagsFromArray(Array tagArray) throws SQLException {
-        if (tagArray == null) {
-            return new ArrayList<>();
-        }
-        String[] tagStrings = (String[]) tagArray.getArray();
-        return Arrays.stream(tagStrings)
-                .map(tagStr -> {
-                    String[] parts = tagStr.split("=", 2);
-                    return new Tag(parts[0], parts.length > 1 ? parts[1] : "");
-                })
-                .collect(Collectors.toList());
     }
 
     /**
@@ -931,13 +764,13 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
      */
     private String serializeEventData(Object eventData) {
         // If already a String, assume it's JSON and return as-is
-        if (eventData instanceof String) {
-            return (String) eventData;
+        if (eventData instanceof String s) {
+            return s;
         }
 
         // If already a byte[], convert to String (assume it's UTF-8 JSON)
-        if (eventData instanceof byte[]) {
-            return new String((byte[]) eventData, StandardCharsets.UTF_8);
+        if (eventData instanceof byte[] bytes) {
+            return new String(bytes, StandardCharsets.UTF_8);
         }
 
         try {
@@ -975,12 +808,10 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
 
             // Fail fast: Validate success is a boolean
             Object successObj = result.get("success");
-            if (!(successObj instanceof Boolean)) {
+            if (!(successObj instanceof Boolean success)) {
                 log.warn("Unexpected success value type: {}", successObj);
                 throw new ConcurrencyException("AppendCondition violated: " + result.get("message"));
             }
-
-            Boolean success = (Boolean) successObj;
 
             // Fail fast: Check if condition failed
             if (!success) {
@@ -1138,7 +969,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         private final Connection connection;
         private boolean appendedEvents;
 
-        public ConnectionScopedEventStore(Connection connection) {
+        private ConnectionScopedEventStore(Connection connection) {
             this.connection = connection;
         }
 
@@ -1168,7 +999,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
 
         @Override
         public <T> ProjectionResult<T> project(Query query, StreamPosition after, Class<T> stateType, List<StateProjector<T>> projectors) {
-            return EventStoreImpl.this.projectWithConnection(connection, query, after, stateType, projectors);
+            return EventStoreImpl.this.projectWithConnection(connection, query, after, projectors);
         }
 
         @Override
@@ -1187,7 +1018,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             EventStoreImpl.this.storeCommandWithConnection(connection, commandJson, commandType, transactionId);
         }
 
-        public boolean hasAppendedEvents() {
+        private boolean hasAppendedEvents() {
             return appendedEvents;
         }
     }

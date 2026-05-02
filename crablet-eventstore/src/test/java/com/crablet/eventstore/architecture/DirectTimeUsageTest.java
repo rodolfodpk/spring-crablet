@@ -79,10 +79,11 @@ class DirectTimeUsageTest {
         if (!Files.exists(mainJava)) {
             return Stream.empty();
         }
-        try {
-            return Files.walk(mainJava)
-                    .filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".java"));
+        try (Stream<Path> walk = Files.walk(mainJava)) {
+            return walk.filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".java"))
+                    .toList()
+                    .stream();
         } catch (IOException e) {
             throw new RuntimeException("Failed to scan " + mainJava, e);
         }

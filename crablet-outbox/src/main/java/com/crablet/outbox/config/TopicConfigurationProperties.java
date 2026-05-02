@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Topic configuration properties.
@@ -19,6 +20,8 @@ import java.util.Map;
 public class TopicConfigurationProperties {
     
     private static final Logger log = LoggerFactory.getLogger(TopicConfigurationProperties.class);
+    private static final Pattern COMMA_SEPARATOR = Pattern.compile(",");
+
     
     private Map<String, TopicProperties> topics = new HashMap<>();
     
@@ -69,7 +72,7 @@ public class TopicConfigurationProperties {
             
             // Add required tags
             if (props.getRequiredTags() != null && !props.getRequiredTags().trim().isEmpty()) {
-                String[] tags = props.getRequiredTags().split(",");
+                String[] tags = COMMA_SEPARATOR.split(props.getRequiredTags(), -1);
                 for (String tag : tags) {
                     if (!tag.trim().isEmpty()) {
                         builder.requireTag(tag.trim());
@@ -79,7 +82,7 @@ public class TopicConfigurationProperties {
             
             // Add anyOf tags
             if (props.getAnyOfTags() != null && !props.getAnyOfTags().trim().isEmpty()) {
-                String[] tags = props.getAnyOfTags().split(",");
+                String[] tags = COMMA_SEPARATOR.split(props.getAnyOfTags(), -1);
                 for (String tag : tags) {
                     if (!tag.trim().isEmpty()) {
                         builder.anyOfTag(tag.trim());
@@ -96,7 +99,7 @@ public class TopicConfigurationProperties {
             
             // Add publishers
             if (props.getPublishers() != null && !props.getPublishers().trim().isEmpty()) {
-                String[] publishers = props.getPublishers().split(",");
+                String[] publishers = COMMA_SEPARATOR.split(props.getPublishers(), -1);
                 for (String publisher : publishers) {
                     if (!publisher.trim().isEmpty()) {
                         builder.publisher(publisher.trim());

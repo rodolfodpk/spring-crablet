@@ -3,6 +3,7 @@ package com.crablet.eventstore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 
@@ -22,7 +23,7 @@ class StoredEventTest {
         // Given
         String type = "WalletOpened";
         List<Tag> tags = List.of(new Tag("wallet_id", "wallet-123"));
-        byte[] data = "test-data".getBytes();
+        byte[] data = "test-data".getBytes(StandardCharsets.UTF_8);
         String transactionId = "tx-123";
         long position = 100L;
         Instant occurredAt = Instant.now();
@@ -46,7 +47,7 @@ class StoredEventTest {
         StoredEvent event = new StoredEvent(
                 "WalletOpened",
                 List.of(new Tag("wallet_id", "wallet-123")),
-                "test".getBytes(),
+                "test".getBytes(StandardCharsets.UTF_8),
                 "tx-123",
                 100L,
                 Instant.now()
@@ -63,7 +64,7 @@ class StoredEventTest {
         StoredEvent event = new StoredEvent(
                 "WalletOpened",
                 List.of(new Tag("wallet_id", "wallet-123")),
-                "test".getBytes(),
+                "test".getBytes(StandardCharsets.UTF_8),
                 "tx-123",
                 100L,
                 Instant.now()
@@ -84,7 +85,7 @@ class StoredEventTest {
                         new Tag("wallet_id", "wallet-123"),
                         new Tag("user_id", "user-456")
                 ),
-                "test".getBytes(),
+                "test".getBytes(StandardCharsets.UTF_8),
                 "tx-123",
                 100L,
                 Instant.now()
@@ -102,7 +103,7 @@ class StoredEventTest {
         StoredEvent event = new StoredEvent(
                 "WalletOpened",
                 List.of(new Tag("wallet_id", "wallet-123")),
-                "test".getBytes(),
+                "test".getBytes(StandardCharsets.UTF_8),
                 "tx-123",
                 100L,
                 Instant.now()
@@ -120,7 +121,7 @@ class StoredEventTest {
         StoredEvent event = new StoredEvent(
                 "DepositMade",
                 List.of(new Tag("wallet_id", "wallet-123")),
-                "test".getBytes(),
+                "test".getBytes(StandardCharsets.UTF_8),
                 "tx-123",
                 100L,
                 Instant.now()
@@ -140,7 +141,7 @@ class StoredEventTest {
         StoredEvent event = new StoredEvent(
                 "DepositMade",
                 List.of(new Tag("wallet_id", "wallet-123")),
-                "test".getBytes(),
+                "test".getBytes(StandardCharsets.UTF_8),
                 "tx-123",
                 100L,
                 Instant.now()
@@ -159,7 +160,7 @@ class StoredEventTest {
         // Given
         String type = "WalletOpened";
         List<Tag> tags = List.of(new Tag("wallet_id", "wallet-123"));
-        byte[] data = "test".getBytes();
+        byte[] data = "test".getBytes(StandardCharsets.UTF_8);
         String transactionId = "tx-123";
         long position = 100L;
         Instant occurredAt = Instant.now();
@@ -179,7 +180,7 @@ class StoredEventTest {
         // Given
         String type = "WalletOpened";
         List<Tag> tags = List.of(new Tag("wallet_id", "wallet-123"));
-        byte[] data = "test".getBytes();
+        byte[] data = "test".getBytes(StandardCharsets.UTF_8);
         String transactionId = "tx-123";
         Instant occurredAt = Instant.now();
 
@@ -198,7 +199,7 @@ class StoredEventTest {
         StoredEvent event = new StoredEvent(
                 "WalletOpened",
                 List.of(),
-                "test".getBytes(),
+                "test".getBytes(StandardCharsets.UTF_8),
                 "tx-123",
                 100L,
                 Instant.now()
@@ -236,7 +237,7 @@ class StoredEventTest {
     @SuppressWarnings("NullAway")
     void shouldHandleNullTags_ShouldAllow() {
         // Given - Records allow null fields unless validated
-        byte[] data = "test".getBytes();
+        byte[] data = "test".getBytes(StandardCharsets.UTF_8);
 
         // When - Direct constructor allows null
         StoredEvent event = new StoredEvent(
@@ -260,7 +261,7 @@ class StoredEventTest {
         StoredEvent event = new StoredEvent(
                 "WalletOpened",
                 List.of(new Tag("wallet_id", "wallet-123")),
-                "test".getBytes(),
+                "test".getBytes(StandardCharsets.UTF_8),
                 "tx-123",
                 100L,
                 Instant.now()
@@ -278,7 +279,7 @@ class StoredEventTest {
         StoredEvent event = new StoredEvent(
                 "WalletOpened",
                 null,
-                "test".getBytes(),
+                "test".getBytes(StandardCharsets.UTF_8),
                 "tx-123",
                 100L,
                 Instant.now()

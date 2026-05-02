@@ -71,7 +71,7 @@ public class StatisticsPublisher implements OutboxPublisher {
         Instant now = clockProvider.now();
         Duration sinceLastLog = Duration.between(lastLogTime, now);
         
-        if (sinceLastLog.getSeconds() >= logIntervalSeconds) {
+        if (sinceLastLog.toSeconds() >= logIntervalSeconds) {
             logStatistics(now);
             lastLogTime = now;
         }
@@ -81,12 +81,12 @@ public class StatisticsPublisher implements OutboxPublisher {
         Duration totalDuration = Duration.between(firstEventTime, now);
         long total = totalEventsProcessed.get();
         
-        double eventsPerSecond = total / (double) Math.max(1, totalDuration.getSeconds());
+        double eventsPerSecond = total / (double) Math.max(1, totalDuration.toSeconds());
         
         log.info("===== Outbox Statistics =====");
         log.info("Total events processed: {}", total);
         log.info("Throughput: {} events/sec", String.format(Locale.ROOT, "%.2f", eventsPerSecond));
-        log.info("Uptime: {} seconds", totalDuration.getSeconds());
+        log.info("Uptime: {} seconds", totalDuration.toSeconds());
         
         if (!eventTypeCounters.isEmpty()) {
             log.info("Events by type:");

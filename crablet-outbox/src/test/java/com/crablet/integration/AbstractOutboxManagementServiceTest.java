@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -48,7 +49,7 @@ abstract class AbstractOutboxManagementServiceTest extends AbstractCrabletTest {
         
         AppendEvent event = AppendEvent.builder("TestEvent")
             .tag("test_id", "pause-test")
-            .data("{\"test\":\"pause\"}".getBytes())
+            .data("{\"test\":\"pause\"}".getBytes(StandardCharsets.UTF_8))
             .build();
         
         eventStore.appendCommutative(List.of(event));
@@ -85,7 +86,7 @@ abstract class AbstractOutboxManagementServiceTest extends AbstractCrabletTest {
         
         AppendEvent event = AppendEvent.builder("TestEvent")
             .tag("test_id", "status-test")
-            .data("{\"test\":\"status\"}".getBytes())
+            .data("{\"test\":\"status\"}".getBytes(StandardCharsets.UTF_8))
             .build();
         
         eventStore.appendCommutative(List.of(event));

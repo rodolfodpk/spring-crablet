@@ -12,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -90,7 +91,7 @@ class LogPublisherTest {
         StoredEvent event = new StoredEvent(
                 "WalletOpened",
                 List.of(new com.crablet.eventstore.Tag("wallet_id", "wallet-123")),
-                "{\"walletId\":\"wallet-123\"}".getBytes(),
+                "{\"walletId\":\"wallet-123\"}".getBytes(StandardCharsets.UTF_8),
                 "tx-123",
                 100L,
                 Instant.now()
@@ -116,7 +117,7 @@ class LogPublisherTest {
             events.add(new StoredEvent(
                     "DepositMade",
                     List.of(),
-                    ("{\"amount\":" + i + "}").getBytes(),
+                    ("{\"amount\":" + i + "}").getBytes(StandardCharsets.UTF_8),
                     "tx-" + i,
                     100L + i,
                     Instant.now()
@@ -140,7 +141,7 @@ class LogPublisherTest {
         StoredEvent event = new StoredEvent(
                 "WithdrawalMade",
                 List.of(),
-                "{\"amount\":50}".getBytes(),
+                "{\"amount\":50}".getBytes(StandardCharsets.UTF_8),
                 "tx-456",
                 200L,
                 Instant.now(),
@@ -195,7 +196,7 @@ class LogPublisherTest {
         StoredEvent event = new StoredEvent(
                 "SpecialEvent",
                 List.of(),
-                dataWithSpecialChars.getBytes(),
+                dataWithSpecialChars.getBytes(StandardCharsets.UTF_8),
                 "tx-special",
                 400L,
                 Instant.now()
@@ -216,7 +217,7 @@ class LogPublisherTest {
             events.add(new StoredEvent(
                     "Event" + i,
                     List.of(),
-                    ("data-" + i).getBytes(),
+                    ("data-" + i).getBytes(StandardCharsets.UTF_8),
                     "tx-" + i,
                     1000L + i,
                     Instant.now()

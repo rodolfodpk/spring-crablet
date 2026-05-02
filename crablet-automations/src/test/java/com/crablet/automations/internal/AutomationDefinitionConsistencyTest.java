@@ -15,6 +15,7 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
@@ -99,7 +100,7 @@ class AutomationDefinitionConsistencyTest {
         return new StoredEvent(
                 type,
                 List.of(new Tag("wallet_id", "wallet-1"), new Tag("owner_id", "owner-1")),
-                "{\"wallet_id\":\"wallet-1\"}".getBytes(),
+                "{\"wallet_id\":\"wallet-1\"}".getBytes(StandardCharsets.UTF_8),
                 "tx-1",
                 1L,
                 Instant.now()

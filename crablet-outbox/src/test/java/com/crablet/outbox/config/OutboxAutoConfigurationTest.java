@@ -39,7 +39,7 @@ class OutboxAutoConfigurationTest {
         TopicConfigurationProperties properties = new TopicConfigurationProperties();
         TopicPublisherPair pair = new TopicPublisherPair("wallet", "publisher-a");
         Map<TopicPublisherPair, OutboxProcessorConfig> configs = Map.of(
-                pair, new OutboxProcessorConfig(pair, outboxConfig, topicConfig, properties));
+                pair, new OutboxProcessorConfig(pair, outboxConfig, properties));
         LeaderElector leaderElector = mock(LeaderElector.class);
         when(leaderElector.getInstanceId()).thenReturn("instance-1");
 
@@ -65,7 +65,7 @@ class OutboxAutoConfigurationTest {
         OutboxConfig outboxConfig = new OutboxConfig();
         TopicPublisherPair pair = new TopicPublisherPair("missing", "publisher-a");
         OutboxProcessorConfig config = new OutboxProcessorConfig(
-                pair, outboxConfig, TopicConfig.builder("missing").publishers("publisher-a").build(),
+                pair, outboxConfig,
                 new TopicConfigurationProperties());
         LeaderElector leaderElector = mock(LeaderElector.class);
         when(leaderElector.getInstanceId()).thenReturn("instance-1");

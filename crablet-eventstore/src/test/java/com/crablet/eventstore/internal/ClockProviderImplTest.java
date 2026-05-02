@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -76,7 +77,7 @@ class ClockProviderImplTest {
     
     @Test
     void testGetClockAfterSetClock() {
-        Clock customClock = Clock.systemDefaultZone();
+        Clock customClock = Clock.system(ZoneId.systemDefault());
         
         clockProvider.setClock(customClock);
         
@@ -96,7 +97,7 @@ class ClockProviderImplTest {
     
     @Test
     void testClockAdvancesWithSystemDefaultZone() {
-        Clock defaultZoneClock = Clock.systemDefaultZone();
+        Clock defaultZoneClock = Clock.system(ZoneId.systemDefault());
         clockProvider.setClock(defaultZoneClock);
         
         Instant time1 = clockProvider.now();

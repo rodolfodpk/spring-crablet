@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -138,7 +139,7 @@ class StatisticsPublisherTest {
             events.add(new StoredEvent(
                     "EventType",
                     List.of(),
-                    "data".getBytes(),
+                    "data".getBytes(StandardCharsets.UTF_8),
                     "tx-" + i,
                     100L + i,
                     clockProvider.now()
@@ -242,7 +243,7 @@ class StatisticsPublisherTest {
             events.add(new StoredEvent(
                     "WalletOpened",
                     List.of(),
-                    ("data-" + i).getBytes(),
+                    ("data-" + i).getBytes(StandardCharsets.UTF_8),
                     "tx-" + i,
                     100L + i,
                     clockProvider.now()
@@ -260,7 +261,7 @@ class StatisticsPublisherTest {
         return new StoredEvent(
                 type,
                 List.of(),
-                ("data-" + position).getBytes(),
+                ("data-" + position).getBytes(StandardCharsets.UTF_8),
                 "tx-" + position,
                 position,
                 clockProvider.now()

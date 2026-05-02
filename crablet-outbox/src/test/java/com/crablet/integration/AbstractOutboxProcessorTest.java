@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +71,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         // Append event
         AppendEvent event = AppendEvent.builder("TestEvent")
             .tag("test", "123")  // Use 'test' tag to match topic requirements
-            .data("{\"test\":\"data\"}".getBytes())
+            .data("{\"test\":\"data\"}".getBytes(StandardCharsets.UTF_8))
             .build();
         
         eventStore.appendCommutative(List.of(event));
@@ -115,7 +116,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         // Append events
         AppendEvent event = AppendEvent.builder("TestEvent")
             .tag("test", "456")  // Use 'test' tag to match topic requirements
-            .data("{\"test\":\"data\"}".getBytes())
+            .data("{\"test\":\"data\"}".getBytes(StandardCharsets.UTF_8))
             .build();
         
         eventStore.appendCommutative(List.of(event));
@@ -162,15 +163,15 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent1")
                 .tag("test", "batch1")  // Use 'test' tag to match topic requirements
-                .data("{\"test\":\"batch1\"}".getBytes())
+                .data("{\"test\":\"batch1\"}".getBytes(StandardCharsets.UTF_8))
                 .build(),
             AppendEvent.builder("TestEvent2")
                 .tag("test", "batch2")  // Use 'test' tag to match topic requirements
-                .data("{\"test\":\"batch2\"}".getBytes())
+                .data("{\"test\":\"batch2\"}".getBytes(StandardCharsets.UTF_8))
                 .build(),
             AppendEvent.builder("TestEvent3")
                 .tag("test", "batch3")  // Use 'test' tag to match topic requirements
-                .data("{\"test\":\"batch3\"}".getBytes())
+                .data("{\"test\":\"batch3\"}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
         
@@ -221,11 +222,11 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent1")
                 .tag("test", "latch1")  // Use 'test' tag to match topic requirements
-                .data("{\"test\":\"latch1\"}".getBytes())
+                .data("{\"test\":\"latch1\"}".getBytes(StandardCharsets.UTF_8))
                 .build(),
             AppendEvent.builder("TestEvent2")
                 .tag("test", "latch2")  // Use 'test' tag to match topic requirements
-                .data("{\"test\":\"latch2\"}".getBytes())
+                .data("{\"test\":\"latch2\"}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
         
@@ -296,7 +297,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         
         AppendEvent event = AppendEvent.builder("TestEvent")
             .tag("test", "failure-test")
-            .data("{\"test\":\"failure\"}".getBytes())
+            .data("{\"test\":\"failure\"}".getBytes(StandardCharsets.UTF_8))
             .build();
 
         eventStore.appendCommutative(List.of(event));
@@ -338,15 +339,15 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         List<AppendEvent> events = List.of(
             AppendEvent.builder("OrderedEvent1")
                 .tag("test", "order1")
-                .data("{\"order\":1}".getBytes())
+                .data("{\"order\":1}".getBytes(StandardCharsets.UTF_8))
                 .build(),
             AppendEvent.builder("OrderedEvent2")
                 .tag("test", "order2")
-                .data("{\"order\":2}".getBytes())
+                .data("{\"order\":2}".getBytes(StandardCharsets.UTF_8))
                 .build(),
             AppendEvent.builder("OrderedEvent3")
                 .tag("test", "order3")
-                .data("{\"order\":3}".getBytes())
+                .data("{\"order\":3}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
 
@@ -378,11 +379,11 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         List<AppendEvent> firstBatch = List.of(
             AppendEvent.builder("FirstEvent1")
                 .tag("test", "resume1")
-                .data("{\"batch\":1}".getBytes())
+                .data("{\"batch\":1}".getBytes(StandardCharsets.UTF_8))
                 .build(),
             AppendEvent.builder("FirstEvent2")
                 .tag("test", "resume2")
-                .data("{\"batch\":1}".getBytes())
+                .data("{\"batch\":1}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
 
@@ -408,7 +409,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         
         AppendEvent newEvent = AppendEvent.builder("NewEvent")
             .tag("test", "resume3")
-            .data("{\"batch\":2}".getBytes())
+            .data("{\"batch\":2}".getBytes(StandardCharsets.UTF_8))
             .build();
 
         eventStore.appendCommutative(List.of(newEvent));
@@ -438,23 +439,23 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         List<AppendEvent> events = List.of(
             AppendEvent.builder("ConcurrentEvent1")
                 .tag("test", "concurrent1")
-                .data("{\"concurrent\":1}".getBytes())
+                .data("{\"concurrent\":1}".getBytes(StandardCharsets.UTF_8))
                 .build(),
             AppendEvent.builder("ConcurrentEvent2")
                 .tag("test", "concurrent2")
-                .data("{\"concurrent\":2}".getBytes())
+                .data("{\"concurrent\":2}".getBytes(StandardCharsets.UTF_8))
                 .build(),
             AppendEvent.builder("ConcurrentEvent3")
                 .tag("test", "concurrent3")
-                .data("{\"concurrent\":3}".getBytes())
+                .data("{\"concurrent\":3}".getBytes(StandardCharsets.UTF_8))
                 .build(),
             AppendEvent.builder("ConcurrentEvent4")
                 .tag("test", "concurrent4")
-                .data("{\"concurrent\":4}".getBytes())
+                .data("{\"concurrent\":4}".getBytes(StandardCharsets.UTF_8))
                 .build(),
             AppendEvent.builder("ConcurrentEvent5")
                 .tag("test", "concurrent5")
-                .data("{\"concurrent\":5}".getBytes())
+                .data("{\"concurrent\":5}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
 
@@ -520,16 +521,16 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
             AppendEvent.builder("TagEvent1")
                 .tag("test", "tag1")
                 .tag("category", "important")
-                .data("{\"tags\":\"multiple\"}".getBytes())
+                .data("{\"tags\":\"multiple\"}".getBytes(StandardCharsets.UTF_8))
                 .build(),
             AppendEvent.builder("TagEvent2")
                 .tag("test", "tag2")
                 .tag("priority", "high")
-                .data("{\"tags\":\"different\"}".getBytes())
+                .data("{\"tags\":\"different\"}".getBytes(StandardCharsets.UTF_8))
                 .build(),
             AppendEvent.builder("TagEvent3")
                 .tag("test", "tag3")
-                .data("{\"tags\":\"simple\"}".getBytes())
+                .data("{\"tags\":\"simple\"}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
 
@@ -564,7 +565,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         for (int i = 1; i <= batchSize; i++) {
             events.add(AppendEvent.builder("BatchEvent" + i)
                 .tag("test", "batch" + i)
-                .data(("{\"batch\":\"" + i + "\"}").getBytes())
+                .data(("{\"batch\":\"" + i + "\"}").getBytes(StandardCharsets.UTF_8))
                 .build());
         }
 

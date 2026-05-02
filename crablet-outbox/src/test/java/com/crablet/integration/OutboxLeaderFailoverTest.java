@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -67,7 +68,7 @@ class OutboxLeaderFailoverTest extends AbstractCrabletTest {
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent")
                 .tag("test", "value1")
-                .data("{\"test\":\"data1\"}".getBytes())
+                .data("{\"test\":\"data1\"}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
         eventStore.appendCommutative(events);

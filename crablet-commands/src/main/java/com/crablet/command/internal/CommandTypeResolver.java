@@ -79,12 +79,11 @@ public class CommandTypeResolver {
     private static Class<?> getCommandClassFromHandler(Class<?> handlerClass) {
         // Check implemented interfaces
         for (Type genericInterface : handlerClass.getGenericInterfaces()) {
-            if (genericInterface instanceof ParameterizedType) {
-                ParameterizedType paramType = (ParameterizedType) genericInterface;
+            if (genericInterface instanceof ParameterizedType paramType) {
                 if (isCommandHandler(paramType)) {
                     Type[] typeArgs = paramType.getActualTypeArguments();
-                    if (typeArgs.length > 0 && typeArgs[0] instanceof Class) {
-                        return (Class<?>) typeArgs[0];
+                    if (typeArgs.length > 0 && typeArgs[0] instanceof Class<?> commandClass) {
+                        return commandClass;
                     }
                 }
             }
@@ -92,12 +91,11 @@ public class CommandTypeResolver {
 
         // Check superclass (for abstract base handlers)
         Type genericSuperclass = handlerClass.getGenericSuperclass();
-        if (genericSuperclass instanceof ParameterizedType) {
-            ParameterizedType paramType = (ParameterizedType) genericSuperclass;
+        if (genericSuperclass instanceof ParameterizedType paramType) {
             if (isCommandHandler(paramType)) {
                 Type[] typeArgs = paramType.getActualTypeArguments();
-                if (typeArgs.length > 0 && typeArgs[0] instanceof Class) {
-                    return (Class<?>) typeArgs[0];
+                if (typeArgs.length > 0 && typeArgs[0] instanceof Class<?> commandClass) {
+                    return commandClass;
                 }
             }
         }

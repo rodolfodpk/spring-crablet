@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -53,7 +54,7 @@ abstract class AbstractOutboxLockAcquisitionTest extends AbstractCrabletTest {
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent1")
                 .tag("test", "value1")
-                .data("{\"test\":\"data1\"}".getBytes())
+                .data("{\"test\":\"data1\"}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
         eventStore.appendCommutative(events);
@@ -82,11 +83,11 @@ abstract class AbstractOutboxLockAcquisitionTest extends AbstractCrabletTest {
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent1")
                 .tag("test", "value1")
-                .data("{\"test\":\"data1\"}".getBytes())
+                .data("{\"test\":\"data1\"}".getBytes(StandardCharsets.UTF_8))
                 .build(),
             AppendEvent.builder("TestEvent2")
                 .tag("test", "value2")
-                .data("{\"test\":\"data2\"}".getBytes())
+                .data("{\"test\":\"data2\"}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
         
@@ -116,11 +117,11 @@ abstract class AbstractOutboxLockAcquisitionTest extends AbstractCrabletTest {
         List<AppendEvent> events = List.of(
             AppendEvent.builder("TestEvent1")
                 .tag("test", "value1")
-                .data("{\"test\":\"data1\"}".getBytes())
+                .data("{\"test\":\"data1\"}".getBytes(StandardCharsets.UTF_8))
                 .build(),
             AppendEvent.builder("TestEvent2")
                 .tag("test", "value2")
-                .data("{\"test\":\"data2\"}".getBytes())
+                .data("{\"test\":\"data2\"}".getBytes(StandardCharsets.UTF_8))
                 .build()
         );
         

@@ -97,8 +97,8 @@ public class EventRepositoryImpl implements EventRepository {
                     // Set parameters
                     for (int i = 0; i < params.size(); i++) {
                         Object param = params.get(i);
-                        if (param instanceof String[]) {
-                            stmt.setArray(i + 1, connection.createArrayOf("text", (String[]) param));
+                        if (param instanceof String[] strings) {
+                            stmt.setArray(i + 1, connection.createArrayOf("text", strings));
                         } else {
                             stmt.setObject(i + 1, param);
                         }

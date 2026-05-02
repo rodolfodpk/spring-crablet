@@ -17,17 +17,14 @@ public class OutboxProcessorConfig implements ProcessorConfig<TopicPublisherPair
     
     private final TopicPublisherPair processorId;
     private final OutboxConfig outboxConfig;
-    private final TopicConfig topicConfig;
     private final TopicConfigurationProperties topicConfigProperties;
     
     public OutboxProcessorConfig(
             TopicPublisherPair processorId,
             OutboxConfig outboxConfig,
-            TopicConfig topicConfig,
             TopicConfigurationProperties topicConfigProperties) {
         this.processorId = processorId;
         this.outboxConfig = outboxConfig;
-        this.topicConfig = topicConfig;
         this.topicConfigProperties = topicConfigProperties;
     }
     
@@ -113,7 +110,7 @@ public class OutboxProcessorConfig implements ProcessorConfig<TopicPublisherPair
             for (String publisherName : topicConfig.getPublishers()) {
                 TopicPublisherPair pair = new TopicPublisherPair(topicName, publisherName);
                 OutboxProcessorConfig config = new OutboxProcessorConfig(
-                    pair, outboxConfig, topicConfig, topicConfigProperties);
+                    pair, outboxConfig, topicConfigProperties);
                 configs.put(pair, config);
             }
         }

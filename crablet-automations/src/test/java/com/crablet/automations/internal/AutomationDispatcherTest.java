@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -169,14 +170,14 @@ class AutomationDispatcherTest {
                 new StoredEvent(
                         "WalletOpened",
                         List.of(new Tag("wallet_id", "wallet-1")),
-                        "{\"wallet_id\":\"wallet-1\",\"owner\":\"Alice\"}".getBytes(),
+                        "{\"wallet_id\":\"wallet-1\",\"owner\":\"Alice\"}".getBytes(StandardCharsets.UTF_8),
                         "tx-1",
                         1L,
                         Instant.now()),
                 new StoredEvent(
                         "DepositMade",
                         List.of(new Tag("wallet_id", "wallet-1")),
-                        "{\"amount\":100}".getBytes(),
+                        "{\"amount\":100}".getBytes(StandardCharsets.UTF_8),
                         "tx-2",
                         2L,
                         Instant.now())
