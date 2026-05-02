@@ -539,7 +539,7 @@ automations) that are visual embellishments rather than structural facts.
 
 ### Docs diagram viewer manifest
 
-Published diagrams under `docs/` are driven by [`docs/diagrams.manifest.json`](../../../diagrams.manifest.json) and rendered in [`docs/event-model-viewer.html`](../../../event-model-viewer.html). That page loads the manifest, then fetches each diagram’s YAML paths, calls `EventModelRenderer.mergeEventModelForDiagram(model, sidecar || {})`, and `EventModelRenderer.render` (same merge contract as described above).
+Published diagrams under `docs/` are driven by [`docs/diagrams.manifest.json`](../../diagrams.manifest.json) and rendered in [`docs/event-model-viewer.html`](../../event-model-viewer.html). That page loads the manifest, then fetches each diagram’s YAML paths, calls `EventModelRenderer.mergeEventModelForDiagram(model, sidecar || {})`, and `EventModelRenderer.render` (same merge contract as described above).
 
 **Query parameters**
 
