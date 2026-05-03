@@ -1841,30 +1841,48 @@
 
     procAnchors.forEach(pa => {
       const synth = layout.syntheticPlacements.find(sp => sp.name === pa.auto.emitsCommand);
-      if (!synth) return;
-      const lid = synth.laneId;
-      const c = synth.col;
-      const lb = layout.laneBands.find(b => b.laneId === lid);
-      if (!lb) return;
-      const bucket = layout.laneColBuckets[lid][c] || [];
-      const idx = bucket.findIndex(x => x._synthetic && x.name === synth.name);
-      if (idx < 0) return;
-      let y = lb.innerStacksY;
-      for (let i = 0; i < idx; i++) {
-        const cmd = bucket[i];
-        if (cmd._synthetic) {
-          y += CAN.cardH;
-        } else {
-          const firstP = (cmd.produces || [])[0];
-          const hasEvt = firstP && layout.eventByNameCanon[firstP];
-          y += CAN.cardH + (hasEvt ? CAN.stackGap + CAN.cardH : 0);
+      if (synth) {
+        const lid = synth.laneId;
+        const c = synth.col;
+        const lb = layout.laneBands.find(b => b.laneId === lid);
+        if (!lb) return;
+        const bucket = layout.laneColBuckets[lid][c] || [];
+        const idx = bucket.findIndex(x => x._synthetic && x.name === synth.name);
+        if (idx < 0) return;
+        let y = lb.innerStacksY;
+        for (let i = 0; i < idx; i++) {
+          const cmd = bucket[i];
+          if (cmd._synthetic) {
+            y += CAN.cardH;
+          } else {
+            const firstP = (cmd.produces || [])[0];
+            const hasEvt = firstP && layout.eventByNameCanon[firstP];
+            y += CAN.cardH + (hasEvt ? CAN.stackGap + CAN.cardH : 0);
+          }
+          y += CAN.betweenStacks;
         }
-        y += CAN.betweenStacks;
-      }
-      const synthTop = y;
-      if (pa.yBottom + 8 < synthTop - 4) {
+        const synthTop = y;
+        if (pa.yBottom + 8 < synthTop - 4) {
+          const fromX = pa.arcFromX != null ? pa.arcFromX : defaultColCX(pa.fromCol);
+          svg.appendChild(renderDownArc(fromX, pa.yBottom, defaultColCX(c), synthTop - 2));
+        }
+      } else {
+        // Real command: locate its lane and column in laneColBuckets
+        let cmdLane = null, cmdCol = null;
+        outer: for (const lid of layout.laneIds) {
+          for (let c = 0; c < layout.numCols; c++) {
+            if ((layout.laneColBuckets[lid][c] || []).some(x => x.name === pa.auto.emitsCommand && !x._synthetic)) {
+              cmdLane = lid; cmdCol = c; break outer;
+            }
+          }
+        }
+        if (cmdLane == null) return;
+        const yCmd = cmdTops[cmdLane + '\n' + pa.auto.emitsCommand];
+        if (yCmd == null) return;
         const fromX = pa.arcFromX != null ? pa.arcFromX : defaultColCX(pa.fromCol);
-        svg.appendChild(renderDownArc(fromX, pa.yBottom, defaultColCX(c), synthTop - 2));
+        if (pa.yBottom + 8 < yCmd - 4) {
+          svg.appendChild(renderDownArc(fromX, pa.yBottom, defaultColCX(cmdCol), yCmd - 2));
+        }
       }
     });
 
