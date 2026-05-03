@@ -86,6 +86,66 @@
           ]
         }
       ]
+    },
+    {
+      "id": "loan-submit",
+      "title": "Loan Application — Submit Slice",
+      "subtitle": "Minimal feature slice: customer submits a loan application, a fraud detector automation fires, and a pending-applications view is projected.",
+      "outputPath": "docs/user/assets/loan-submit-event-modeling-board.svg",
+      "modelPath": "examples/loan-submit-event-model.yaml",
+      "sidecarPath": "examples/loan-submit-diagram.yaml",
+      "notes": [
+        {
+          "kind": "callout",
+          "parts": [
+            { "type": "text", "text": "Illustrative first slice for the " },
+            { "type": "strong", "text": "LoanApplication" },
+            { "type": "text", "text": " domain — one write-side fact, one async view, and a fraud-detector automation.\nSee " },
+            {
+              "type": "link",
+              "text": "Feature Slice Workflow",
+              "href": "https://github.com/rodolfodpk/spring-crablet/blob/main/docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md"
+            },
+            { "type": "text", "text": " for the full workflow." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wallet-opened",
+      "title": "Wallet Opened — Automation and Outbox Slice",
+      "subtitle": "Reactive slice: one committed event fans out into a view projection, an automation, a follow-up command and event, and an illustrative outbox path.",
+      "outputPath": "docs/user/assets/wallet-opened-automation-and-outbox-board.svg",
+      "modelPath": "examples/wallet-opened-event-model.yaml",
+      "sidecarPath": "examples/wallet-opened-diagram.yaml",
+      "notes": [
+        {
+          "kind": "callout",
+          "parts": [
+            { "type": "text", "text": "Illustrative " },
+            { "type": "strong", "text": "WalletOpened" },
+            { "type": "text", "text": " slice — shows how a single committed event drives view, automation, and outbox consequences asynchronously.\nFor the full wallet domain see the " },
+            {
+              "type": "link",
+              "text": "Wallet Domain diagram",
+              "href": "event-model-viewer.html?id=wallet"
+            },
+            { "type": "text", "text": "." }
+          ]
+        },
+        {
+          "kind": "aside",
+          "parts": [
+            { "type": "text", "text": "Outbox publisher shown is illustrative. The " },
+            { "type": "code", "text": "notification" },
+            { "type": "text", "text": " lane represents a separate subdomain; " },
+            { "type": "code", "text": "WalletOpenedAutomation" },
+            { "type": "text", "text": " emits " },
+            { "type": "code", "text": "SendWelcomeNotification" },
+            { "type": "text", "text": " cross-lane." }
+          ]
+        }
+      ]
     }
   ]
 }

@@ -85,7 +85,9 @@ async function generateDiagram(browser, diagram) {
       svg = svg.replace(/^<svg\b/, '<svg xmlns="http://www.w3.org/2000/svg"');
     }
 
-    const outPath = path.join(OUTPUT_DIR, `${diagram.id}-event-model.svg`);
+    const outPath = diagram.outputPath
+      ? path.join(REPO_ROOT, diagram.outputPath)
+      : path.join(OUTPUT_DIR, `${diagram.id}-event-model.svg`);
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
     fs.writeFileSync(outPath, svg, 'utf-8');
     console.log(`  ${diagram.id}: ${outPath}`);

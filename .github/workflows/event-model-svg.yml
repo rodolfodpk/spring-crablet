@@ -38,4 +38,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: 'docs: regenerate event-model SVGs [skip ci]'
-          file_pattern: 'shared-examples-domain/docs/*.svg'
+          file_pattern: 'shared-examples-domain/docs/*.svg docs/user/assets/*.svg'

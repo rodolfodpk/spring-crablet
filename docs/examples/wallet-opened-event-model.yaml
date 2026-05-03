@@ -1,0 +1,62 @@
+# Illustrative board for the WalletOpened slice: the opening event fans out into
+# a view projection, an automation, and an outbox publication.
+# For the full wallet domain see wallet-event-model.yaml.
+
+domain: WalletOpenedSlice
+basePackage: com.crablet.examples.wallet
+
+events:
+  - name: WalletOpened
+    tags: [wallet_id]
+    fields:
+      - { name: walletId, type: string }
+      - { name: owner, type: string }
+      - { name: openedAt, type: Instant }
+
+  - name: WelcomeNotificationSent
+    tags: [wallet_id]
+    fields:
+      - { name: walletId, type: string }
+
+commands:
+  - name: OpenWallet
+    pattern: idempotent
+    produces: [WalletOpened]
+    fields:
+      - { name: walletId, type: string, minLength: 1 }
+      - { name: owner, type: string, minLength: 1 }
+
+  - name: SendWelcomeNotification
+    pattern: idempotent
+    guardEvents: [WalletOpened]
+    produces: [WelcomeNotificationSent]
+    fields:
+      - { name: walletId, type: string, minLength: 1 }
+
+views:
+  - name: WalletSummaryView
+    reads: [WalletOpened]
+    tag: wallet_id
+    fields:
+      - { name: walletId, type: string }
+      - { name: owner, type: string }
+
+outbox:
+  - name: WalletEventPublisher
+    topic: wallet-events
+    handles: [WalletOpened]
+    adapter: webhook
+
+diagram:
+  actors:
+    - id: customer
+      label: Customer
+  lanes:
+    - id: wallet
+      label: Wallet
+    - id: notification
+      label: Notification
+  assignments:
+    WalletSummaryView: wallet
+    WalletEventPublisher: wallet
+    SendWelcomeNotification: notification

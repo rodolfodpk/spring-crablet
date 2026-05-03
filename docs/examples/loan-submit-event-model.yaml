@@ -1,0 +1,58 @@
+domain: LoanApplication
+basePackage: com.example.loan
+
+events:
+  - name: LoanApplicationSubmitted
+    tags: [application_id, customer_id]
+    fields:
+      - { name: applicationId, type: string }
+      - { name: customerId, type: string }
+      - { name: requestedAmount, type: integer }
+      - { name: purpose, type: string }
+      - { name: submittedAt, type: Instant }
+
+  - name: LoanApplicationFlaggedAsFraudulent
+    tags: [application_id]
+    fields:
+      - { name: applicationId, type: string }
+      - { name: reason, type: string }
+
+commands:
+  - name: SubmitLoanApplication
+    pattern: idempotent
+    produces: [LoanApplicationSubmitted]
+    fields:
+      - { name: applicationId, type: string, minLength: 1 }
+      - { name: customerId, type: string, minLength: 1 }
+      - { name: requestedAmount, type: integer, exclusiveMinimum: 0 }
+      - { name: purpose, type: string, minLength: 1 }
+
+  - name: FlagLoanApplication
+    pattern: idempotent
+    guardEvents: [LoanApplicationSubmitted]
+    produces: [LoanApplicationFlaggedAsFraudulent]
+    fields:
+      - { name: applicationId, type: string, minLength: 1 }
+      - { name: reason, type: string, minLength: 1 }
+
+views:
+  - name: PendingLoanApplications
+    reads: [LoanApplicationSubmitted]
+    tag: application_id
+    fields:
+      - { name: applicationId, type: string }
+      - { name: customerId, type: string }
+      - { name: requestedAmount, type: integer }
+      - { name: purpose, type: string }
+      - { name: status, type: string }
+      - { name: submittedAt, type: Instant }
+
+automations:
+  - name: FraudDetector
+    triggeredBy: LoanApplicationSubmitted
+    emitsCommand: FlagLoanApplication
+
+diagram:
+  actors:
+    - id: customer
+      label: Customer

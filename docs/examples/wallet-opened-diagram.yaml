@@ -1,0 +1,12 @@
+# Renderer-only extensions for the wallet-opened slice board.
+# This file is NOT a codegen input — do not feed it to embabel-codegen.
+
+triggers:
+  - name: "Customer opens wallet"
+    linkedCommand: OpenWallet
+    actor: customer
+
+automations:
+  - name: WalletOpenedAutomation
+    triggeredBy: WalletOpened
+    emitsCommand: SendWelcomeNotification
