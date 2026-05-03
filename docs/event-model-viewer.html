@@ -5,7 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Event model diagrams — Spring-Crablet</title>
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js"></script>
-  <script src="event-model-renderer.js?v=guard-badge-20260502"></script>
+  <script>
+    (function () {
+      var s = document.createElement('script');
+      s.src = 'event-model-renderer.js?v=' + Date.now();
+      document.write(s.outerHTML);
+    })();
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
