@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - '**/*.drawio'
+      - 'docs/user/assets/**/*.drawio'
       - '.github/workflows/drawio-export.yml'
 
 jobs:
@@ -19,14 +19,6 @@ jobs:
         with:
           # drawio-export-action default `action-mode: auto` compares against git history; shallow clone errors.
           fetch-depth: 0
-
-      - name: Export shared-examples draw.io diagrams
-        uses: rlespinasse/drawio-export-action@v2
-        with:
-          path: shared-examples-domain/docs
-          format: png
-          output: .
-          transparent: false
 
       - name: Export user-docs draw.io diagrams
         uses: rlespinasse/drawio-export-action@v2
@@ -52,5 +44,5 @@ jobs:
           commit_message: "docs: auto-export draw.io diagrams to PNG"
           # After export, commit everything under the diagram trees (drawio, *.drawio.png, *.png, etc.)
           # so we are not limited to a single filename pattern and git-add does not error on a missing pathspec.
-          file_pattern: 'shared-examples-domain/docs docs/user/assets'
+          file_pattern: 'docs/user/assets'
           disable_globbing: true

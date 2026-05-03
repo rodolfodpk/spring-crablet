@@ -11,7 +11,7 @@
 # examples/wallet-example-app is built separately after the reactor is installed.
 # See BUILD.md for full explanation.
 
-.PHONY: help install install-all-tests ci-verify validate-all build-all compile package test test-skip examples-check clean verify build-core build-shared build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check
+.PHONY: help install install-all-tests ci-verify validate-all build-all compile package test test-skip examples-check clean verify build-core build-shared build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check event-model-diagrams
 
 # Default target
 help:
@@ -50,7 +50,8 @@ help:
 	@echo "  wallet-dev    - Start wallet development environment (alias for start)"
 	@echo "  course-start  - Start examples/course-example-app application"
 	@echo "  course-dev    - Start course development environment (alias for course-start)"
-	@echo "  serve-docs    - Serve the GitHub Pages site locally at http://localhost:8091"
+	@echo "  serve-docs         - Serve the GitHub Pages site locally at http://localhost:8091"
+	@echo "  event-model-diagrams - Generate event-model SVGs (requires playwright + js-yaml npm packages)"
 	@echo ""
 	@echo "Note: wallet-example-app is a Spring Boot application - use 'mvn spring-boot:run' in examples/wallet-example-app directory"
 	@echo ""
@@ -202,6 +203,9 @@ serve-docs:
 	@echo "Serving docs site at http://localhost:8091"
 	@echo "Open: http://localhost:8091/index.html"
 	cd docs && python3 -m http.server 8091
+
+event-model-diagrams:
+	node .github/scripts/generate-event-model-svgs.js
 
 # Codegen — excluded from reactor, build separately after 'make install'
 codegen-build:

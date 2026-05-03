@@ -1,0 +1,41 @@
+name: Generate event-model SVGs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/event-model-renderer.js
+      - docs/diagrams.manifest.json
+      - docs/examples/**/*.yaml
+      - .github/scripts/generate-event-model-svgs.js
+      - .github/workflows/event-model-svg.yml
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm install --no-save playwright js-yaml
+          npx playwright install chromium --with-deps
+
+      - name: Generate SVGs
+        run: node .github/scripts/generate-event-model-svgs.js
+
+      - name: Commit SVGs
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'docs: regenerate event-model SVGs [skip ci]'
+          file_pattern: 'shared-examples-domain/docs/*.svg'
