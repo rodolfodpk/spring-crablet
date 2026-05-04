@@ -1,121 +1,94 @@
-# Crablet: AI-Assisted Event-Sourced Spring Applications From Event Models
+# Crablet
 
 [![Java CI](https://github.com/rodolfodpk/spring-crablet/actions/workflows/maven.yml/badge.svg)](https://github.com/rodolfodpk/spring-crablet/actions/workflows/maven.yml)
 [![codecov](https://codecov.io/gh/rodolfodpk/spring-crablet/branch/main/graph/badge.svg)](https://codecov.io/gh/rodolfodpk/spring-crablet)
 [![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-🗺️ [Interactive concept map](https://rodolfodpk.github.io/spring-crablet/concepts.html) — events, commands, modules, AI tooling, deployment.
+Crablet is a Java 25 / Spring Boot stack for building event-sourced applications from event-modeled domains.
 
-Crablet helps Spring teams turn an event-modeled domain into a working event-sourced application. It uses AI-assisted generation to produce the structural code around commands, events, views, automations, outbox publishers, and tests, then runs that code on a small Java 25 Spring Boot runtime.
+The project has three goals:
 
-## Why Crablet May Be Useful
+1. Provide a small Spring-native runtime for commands, events, consistency checks, views, automations, outbox publishing, and tests.
+2. Use AI tooling to support Event Modeling workshops, keep `event-model.yaml` as the structural source of truth, and generate Spring application code from that model.
+3. Generate small local Kubernetes deployments so teams can test a modeled service outside the IDE without designing production infrastructure first.
 
-- Event-model-first workflow for DCB-style domains
-- AI-assisted generation for commands, events, handlers, views, automations, outbox publishers, and tests
-- Cross-entity consistency without forcing everything into one aggregate stream
-- Small Java runtime for consistency, persistence, polling, and operational behavior
-- Manual APIs available when generated code needs customization
+The AI tooling is optional. The Java runtime APIs work directly when a team wants to build by hand, customize generated code, or adopt Crablet one module at a time.
 
-## Framework Path
+## What You Build
 
-Crablet can be used directly as a Java framework: `EventStore`, command handlers, and `CommandExecutor` are the typical write path; views, outbox, automations, and the optional HTTP command adapter layer on top. For a first project, start with the [module reference](docs/user/MODULES.md), [Create a new Crablet app manually](docs/user/CREATE_A_CRABLET_APP.md), the [Tutorial](docs/user/TUTORIAL.md), the [Commands](crablet-commands/README.md) and [Event Store](crablet-eventstore/README.md) module READMEs, and the [Wallet example](examples/wallet-example-app/README.md) for a full app shape.
+A Crablet application is a Spring Boot service backed by the Crablet event store. Commands make decisions against event history, append new events, and optionally feed read models, automations, and outbox publishers.
 
-## AI-First Path
+The same model can drive:
 
-You describe outcomes in plain language and keep the source of truth in `event-model.yaml`. Claude Code and Cursor can call the generator through MCP; Codex, other coding agents, and terminal workflows can use the same Makefile/CLI commands.
+- command records, handlers, validation, and consistency decisions
+- event records and sealed event interfaces
+- state projectors and materialized views
+- automations that react to events and emit commands
+- outbox publishers for integration events
+- focused test scaffolding
+- local Kubernetes manifests for testing
 
-### One-time setup
+## AI-Assisted Workflow
 
-**Prerequisites:** Java 25, a coding frontend (Claude Code, Cursor, Codex, or terminal), and a configured generator provider. Anthropic users set `ANTHROPIC_API_KEY`; OpenAI users set `OPENAI_API_KEY`; local/Ollama users set `CODEGEN_LLM_PROVIDER`, `CODEGEN_LLM_BASE_URL`, and `CODEGEN_LLM_MODEL`.
-
-```bash
-# 1. Build the codegen JAR (from this repo)
-make install && make codegen-build
-
-# 2. Copy the template and drop the JAR in place
-cp -r templates/crablet-app ../my-service
-cp embabel-codegen/target/embabel-codegen.jar ../my-service/tools/
-```
-
-### Start a frontend
-
-```bash
-cd ../my-service
-export ANTHROPIC_API_KEY=sk-ant-...
-claude
-```
-
-The template's `.claude/settings.json` and `.cursor/mcp.json` wire `embabel-codegen` as an MCP server for Claude Code and Cursor. Codex and other agents can edit `event-model.yaml` and run `make plan`, `make generate`, and `make verify`.
-
-### Describe one outcome
+Crablet is designed to start from an Event Modeling conversation. During a workshop, the team captures outcomes, commands, events, views, policies, and integration points. The assistant turns that into `event-model.yaml`, plans the generated artifacts, asks for approval, and then generates the Spring code.
 
 ```text
-Add the first vertical slice: Submit Loan Application.
-
-Outcome:
-- a customer submits a loan application
-- Crablet records LoanApplicationSubmitted
-- reviewers can query pending applications
-
-Use the Crablet feature-slice workflow.
-Ask for missing facts before changing files.
+Describe one feature slice
+  -> update event-model.yaml
+  -> plan generated artifacts
+  -> approve
+  -> generate Spring code
+  -> compile and repair
+  -> optionally generate local k8s manifests
 ```
 
-The assistant or CLI workflow will:
-1. Ask for the missing business facts (entity identity, idempotency, required fields, read model columns)
-2. Run `/event-modeling` to update `event-model.yaml`
-3. Call `embabel_plan` and show you the planned artifact list
-4. Wait for your approval before calling `embabel_generate`
-5. Fix any compile errors and tell you when to run `./mvnw verify`
+Claude Code and Cursor can call the generator through MCP. Codex and terminal workflows can use the same Makefile and CLI commands.
 
-Repeat for each new slice. Update `event-model.yaml` when something is structural; edit generated code only for behavior the model cannot express.
+```bash
+make install && make codegen-build
+cp -r templates/crablet-app ../my-service
+cp embabel-codegen/target/embabel-codegen.jar ../my-service/tools/
+cd ../my-service
+make plan
+make generate
+make verify
+make k8s
+```
 
-**Codegen is optional.** The stable runtime APIs (`CommandHandler`, `ViewProjector`, `CommandExecutor`) work independently — you can build a full Crablet application without the generator. The AI-first path is a productivity layer on top, not a requirement.
+See [AI-first workflow](docs/user/ai-tooling/AI_FIRST_WORKFLOW.md), [Feature slice workflow](docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md), [Event Modeling](docs/user/ai-tooling/EVENT_MODELING.md), and [Event model format](docs/user/ai-tooling/EVENT_MODEL_FORMAT.md).
+
+## Java Spring Runtime
+
+Crablet can also be used as a normal Java framework. The core path is `EventStore`, command handlers, and `CommandExecutor`; views, automations, outbox, metrics, and the optional HTTP command adapter layer on top.
+
+Start with [Quickstart](docs/user/QUICKSTART.md), [Tutorial](docs/user/TUTORIAL.md), [Create a new Crablet app manually](docs/user/CREATE_A_CRABLET_APP.md), [Module reference](docs/user/MODULES.md), [Event Store](crablet-eventstore/README.md), [Commands](crablet-commands/README.md), and the [Wallet example](examples/wallet-example-app/README.md).
+
+## Local Kubernetes
+
+The generator can create a small Kubernetes base from `event-model.yaml` and its `deployment:` block:
+
+```bash
+make k8s
+```
+
+This is for local and test environments. It helps teams exercise the service shape, secrets, environment variables, and worker topology early. Production topology still needs deliberate operational design.
+
+See [Deployment topology](docs/user/DEPLOYMENT_TOPOLOGY.md), [Crablet app template](templates/crablet-app/README.md), and [Embabel codegen](embabel-codegen/README.md).
 
 ## When Crablet Fits
 
-Crablet is a good fit when command decisions depend on more than one entity stream, consistency is naturally query-based, and you want the code to make concurrency semantics explicit.
+Crablet fits domains where command decisions depend on event history, consistency may cross entity boundaries, and the team wants the model, generated code, and runtime behavior to stay aligned.
 
-It is probably not the right tool if plain CRUD is enough, one aggregate per command already fits your domain, or your team is not ready to standardize on Java 25.
-
-## Learning And Deployment
-
-- **Learning mode:** run one application instance with commands, views, automations, and outbox together. See [Learning Mode](docs/user/LEARNING_MODE.md).
-- **Command-only production:** applications using only `crablet-eventstore` and `crablet-commands` can scale horizontally in the normal Spring Boot way. See [Commands-First Adoption](docs/user/COMMANDS_FIRST_ADOPTION.md).
-- **Poller-backed production:** applications enabling views, outbox, or automations should default to **one application instance per cluster** for the simplest topology, or use one singleton worker service per poller-backed module for isolation. See [Deployment Topology](docs/user/DEPLOYMENT_TOPOLOGY.md).
-
-## Why Java 25
-
-Crablet intentionally targets Java 25. The framework leans on modern Java features such as records, sealed types, and pattern matching to keep the public API small and explicit.
-
-## DCB At A Glance
-
-Traditional event sourcing ties consistency to a single aggregate stream. DCB lets you define consistency boundaries dynamically, so a command can check consistency across multiple entity types using a query.
-
-Crablet maps that model onto three append methods. These are **Crablet API terms**, not DCB spec vocabulary:
-
-| Method | Use case | Concurrency check |
-|--------|----------|-------------------|
-| `appendIdempotent` | Entity creation and duplicate prevention | Uniqueness/idempotency check |
-| `appendNonCommutative` | State-dependent operations | Stream-position-based conflict detection |
-| `appendCommutative` | Order-independent operations | None, optionally guarded by lifecycle checks |
-
-Read more in [DCB And Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) and [Command Patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md).
+It is probably not the right tool when plain CRUD is enough, one aggregate per command already explains the whole domain, or Java 25 / Spring Boot is not a good platform choice for the team.
 
 ## Documentation
 
-[Documentation index](docs/README.md) — how **user** (`docs/user/`) and **dev** (`docs/dev/`) are organized.
-
-### Framework
-
-[Quickstart](docs/user/QUICKSTART.md) · [Tutorial](docs/user/TUTORIAL.md) · [Create a new Crablet app manually](docs/user/CREATE_A_CRABLET_APP.md) · [Learning mode](docs/user/LEARNING_MODE.md) · [Commands-first adoption](docs/user/COMMANDS_FIRST_ADOPTION.md) · [Module reference](docs/user/MODULES.md) · [Public API](docs/user/PUBLIC_API.md) · [Deployment topology](docs/user/DEPLOYMENT_TOPOLOGY.md) · [DCB and Crablet](crablet-eventstore/docs/DCB_AND_CRABLET.md) · [Command patterns](crablet-eventstore/docs/COMMAND_PATTERNS.md) · [Configuration](docs/user/CONFIGURATION.md) · [Build](docs/user/BUILD.md) · [Performance](docs/user/PERFORMANCE.md) · [Troubleshooting](docs/user/TROUBLESHOOTING.md) · [Upgrade](docs/user/UPGRADE.md) · [Management API](docs/user/MANAGEMENT_API.md) · [Fault recovery](docs/user/FAULT_RECOVERY.md) · [Leader election](docs/user/LEADER_ELECTION.md) · [Connection poolers](crablet-eventstore/docs/CONNECTION_POOLERS.md) · [Observability](docs/user/OBSERVABILITY.md) · [Wallet example](examples/wallet-example-app/README.md)
-
-### AI tooling
-
-[AI-first workflow](docs/user/ai-tooling/AI_FIRST_WORKFLOW.md) · [Feature slice workflow](docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md) · [Event modeling](docs/user/ai-tooling/EVENT_MODELING.md) · [Event model format](docs/user/ai-tooling/EVENT_MODEL_FORMAT.md) · [Templates](templates/README.md) · [Crablet app template](templates/crablet-app/README.md) · [Embabel codegen](embabel-codegen/README.md)
-
-Contributors: see [Build](docs/user/BUILD.md), [CLAUDE.md](CLAUDE.md), and [framework development docs](docs/dev/README.md) (maintainer plans, reviews, doc verification).
+- [Documentation index](docs/README.md)
+- [User docs](docs/user/README.md)
+- [AI tooling docs](docs/user/ai-tooling/AI_FIRST_WORKFLOW.md)
+- [Framework development docs](docs/dev/README.md)
+- [Interactive concept map](https://rodolfodpk.github.io/spring-crablet/concepts.html)
 
 ## License
 
