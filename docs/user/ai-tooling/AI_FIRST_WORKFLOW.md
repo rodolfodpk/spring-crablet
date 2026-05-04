@@ -9,6 +9,9 @@ This workflow is currently a preview direction while the generator matures.
 For application teams, the intended first-user path is to clone the
 [Crablet app template](../../../templates/crablet-app/README.md), open Claude Code or Cursor, and
 add one vertical slice at a time. Codex and other agents can use the same Makefile/CLI workflow.
+When using Claude Code, start prompts with the relevant skill name for predictable routing, for
+example `/crablet-greenfield`, `/event-modeling`, or `/crablet-codegen`; see
+[AI Skills](AI_SKILLS.md).
 
 ## At A Glance
 

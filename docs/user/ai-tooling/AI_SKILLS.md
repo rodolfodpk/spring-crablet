@@ -8,6 +8,23 @@ The generated app template includes the app-facing subset of these skills under
 `.claude/skills/`. The framework repository also includes maintainer-focused skills for runtime and
 codegen work.
 
+## How To Use Them
+
+For the most predictable result, invoke the skill explicitly at the start of the prompt:
+
+```text
+/event-modeling turn this loan approval flow into event-model.yaml
+```
+
+```text
+/crablet-codegen run the plan and explain what will be generated
+```
+
+Claude Code can also route implicitly through `CLAUDE.md`: a plain request such as "add a feature
+where customers submit a loan application" should lead it toward the relevant Crablet skills.
+Explicit invocation is still recommended in docs, examples, and first-time workflows because it
+makes the intended entry point unambiguous.
+
 ## Main Skills
 
 | Skill | Use it for |
