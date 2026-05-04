@@ -56,7 +56,7 @@ make verify
 make k8s
 ```
 
-See [AI-first workflow](docs/user/ai-tooling/AI_FIRST_WORKFLOW.md), [Feature slice workflow](docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md), [Event Modeling](docs/user/ai-tooling/EVENT_MODELING.md), and [Event model format](docs/user/ai-tooling/EVENT_MODEL_FORMAT.md).
+See [AI-first workflow](docs/user/ai-tooling/AI_FIRST_WORKFLOW.md), [AI skills](docs/user/ai-tooling/AI_SKILLS.md), [Feature slice workflow](docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md), [Event Modeling](docs/user/ai-tooling/EVENT_MODELING.md), and [Event model format](docs/user/ai-tooling/EVENT_MODEL_FORMAT.md).
 
 ## Java Spring Runtime
 
@@ -87,6 +87,7 @@ It is probably not the right tool when plain CRUD is enough, one aggregate per c
 - [Documentation index](docs/README.md)
 - [User docs](docs/user/README.md)
 - [AI tooling docs](docs/user/ai-tooling/AI_FIRST_WORKFLOW.md)
+- [AI skills](docs/user/ai-tooling/AI_SKILLS.md)
 - [Framework development docs](docs/dev/README.md)
 - [Interactive concept map](https://rodolfodpk.github.io/spring-crablet/concepts.html)
 
