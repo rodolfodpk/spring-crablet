@@ -4,9 +4,9 @@ This is a generated Crablet application.
 
 ## Skill Routing
 
-- App feature slices, command handlers, views, automations, outbox, codegen sequencing, and verification: use `.claude/skills/crablet-app-dev/SKILL.md`.
-- Event Modeling workshop dialogue and `event-model.yaml` shape: use `.claude/skills/event-modeling/SKILL.md`.
-- Diagram metadata (`diagram.actors`, `diagram.lanes`, `diagram.assignments`, sidecar overlays): use `.claude/skills/crablet-diagram-advisor/SKILL.md`.
+- App feature slices, command handlers, views, automations, outbox, codegen sequencing, and verification: invoke `/crablet-app-dev`.
+- Event Modeling workshop dialogue and `event-model.yaml` shape: invoke `/event-modeling`.
+- Diagram metadata (`diagram.actors`, `diagram.lanes`, `diagram.assignments`, sidecar overlays): invoke `/crablet-diagram-advisor`.
 
 ## Essentials
 

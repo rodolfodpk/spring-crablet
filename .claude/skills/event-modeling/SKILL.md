@@ -160,29 +160,7 @@ If you explain the slice with an Event Modeling diagram or board, preserve the c
 - Do not turn the board into a top-to-bottom flowchart with time flowing downward.
 - If a diagram is only illustrative and not a complete consequence map, label it as illustrative.
 
-### Canonical HTML diagram (spring-crablet docs)
-
-The interactive docs board is implemented in **`docs/event-model-renderer.js`** and follows
-**`docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`**. When explaining a projected board with
-**`diagram.actors`** (canonical blueprint), use this vocabulary so narrative matches pixels:
-
-- **Uniform cards** — In the lane stack, **command**, **event**, and **view** share the same box
-  size. Policies appear as **⚙** / labels in **actor or processor bands** above, not as orange
-  “AUTOMATION” swim-lane tiles.
-- **Header legend** — On actor boards the swatch row is **Command / Event / View** only; omit an
-  Automation color tile (nothing on canvas uses that fill in canonical mode).
-- **Arrow strokes (directed, arrowhead at target):**
-  - **Wireframe → command** — solid, downward (crosses band).
-  - **Command → event** — solid, downward.
-  - **Event → view** — solid downward when same lane and aligned; **dashed** when the event’s
-    command lane ≠ view lane (cross-lane); **elbow path** when event column ≠ view card column.
-  - **View → actor wireframe** — solid, upward (feedback: what the actor sees).
-  - **View → automation** — **dashed**, upward — **async / poller-backed** path (not synchronous RPC).
-- **Outbox publication** — Dashed `publication → …` edges from **`outbox.handles`** events are
-  **hidden by default** (integration overlay, not core Event Modeling). Opt in with
-  **`diagram.display.publicationEdges: true`**.
-- **Sidecars** — Docs-only triggers, synthetic commands, badges, and cross-context automations
-  often live in **`*-diagram.yaml`**; merge rules are in **EVENT_MODEL_FORMAT.md**.
+For rendered board vocabulary, actor bands, and arrow rules, use `/crablet-diagram-advisor`.
 
 ### 4. Add Automations (optional)
 
@@ -208,48 +186,22 @@ Ask: does any event need to be published to an external system? For each publish
 
 ### 6. Deployment Topology
 
-Ask:
+Ask: monolith or distributed? For full trade-offs see `docs/user/DEPLOYMENT_TOPOLOGY.md`.
 
-> "How would you like this application deployed?
->
-> **Monolith** — one Spring Boot application per cluster. Commands, views, automations, and outbox
-> all run in the same process. Simplest to operate; if views, automations, or outbox are enabled,
-> the instance count is capped at 1 (with an optional standby replica). Command-only apps can
-> scale horizontally.
->
-> **Distributed** — separate deployments per concern:
-> - `command-api`: N horizontally scalable replicas (web + command handlers only)
-> - one singleton `views-worker` deployment when views are present
-> - one singleton `automations-worker` deployment when automations are present
-> - one singleton `outbox-worker` deployment when outbox publishers are present"
+Use `AskUserQuestion` with these two choices. Capture as:
 
-Use `AskUserQuestion` with these two choices. Capture the answer as:
-
-| Choice | `deployment.topology` value |
+| Choice | `deployment.topology` |
 |---|---|
 | Monolith | `monolith` |
 | Distributed | `distributed` |
 
-If the user picks **monolith** and the model has views, automations, or outbox, add a note:
-> "Poller-backed modules are present — this application must run as a single instance (or 2 for
-> active/standby). It cannot be scaled horizontally."
+If the user picks **monolith** and the model has views, automations, or outbox, note:
+> "Poller-backed modules are present — this application must run as a single instance
+> (or 2 for active/standby). It cannot be scaled horizontally."
 
-If the user picks **distributed**, also ask:
-> "How many `command-api` replicas should be provisioned? (default: 2)"
-
-Capture as `deployment.commandReplicas` (integer, default 2).
-
-For KEDA, ask whether poller-backed workers should use PostgreSQL-backed scale-to-zero:
-> "Should poller-backed workers use KEDA scale-to-zero? This requires installing KEDA with:
-> `helm install keda kedacore/keda --namespace keda --create-namespace`."
-
-Capture as:
-- `deployment.keda.enabled` (boolean, default false)
-- `deployment.keda.minReplicas` (integer, default 0; scale-to-zero is only effective in distributed topology)
-- `deployment.keda.pollingInterval` (integer seconds, default 30)
-
-If topology is `monolith`, note that `keda.minReplicas: 0` is ignored and rendered as `1` because
-the command API must stay available. PodDisruptionBudgets are omitted when `keda.minReplicas = 0`.
+If **distributed**, also capture `deployment.commandReplicas` (integer, default 2).
+For KEDA scale-to-zero capture `deployment.keda.enabled`, `deployment.keda.minReplicas`,
+and `deployment.keda.pollingInterval`. See `DEPLOYMENT_TOPOLOGY.md` for KEDA install details.
 
 ### 7. Review and Write
 

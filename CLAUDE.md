@@ -4,16 +4,23 @@ This file is the repo-level routing hub for Claude Code work in spring-crablet.
 
 ## Skill Routing
 
-- Application work, generated Crablet apps, feature slices, app command handlers, app views, automations, outbox, codegen sequencing: use `.claude/skills/crablet-app-dev/SKILL.md`.
-- Framework module changes, public API work, eventstore/commands/poller internals, shared-fetch, auto-configuration, templates, codegen internals, maintainer docs: use `.claude/skills/crablet-maintainer/SKILL.md`.
-- Event Modeling workshop, generator-ready `event-model.yaml`, and **canonical docs diagram vocabulary** (`docs/event-model-renderer.js` rules): use `.claude/skills/event-modeling/SKILL.md`.
-- Deep DCB explanation, choosing or diagnosing DCB for an application command handler, `ConcurrencyException` analysis: use `.claude/skills/dcb/SKILL.md`.
-- Docs diagram renderer rules, actor-board vocabulary, sidecar overlays, or multi-lane board authoring: use `.claude/skills/crablet-diagram-advisor/SKILL.md`.
+- Application work, generated Crablet apps, feature slices, app command handlers, app views, automations, outbox, codegen sequencing: invoke `/crablet-app-dev`.
+- Framework module changes, public API work, eventstore/commands/poller internals, shared-fetch, auto-configuration, templates, codegen internals, maintainer docs: invoke `/crablet-maintainer`.
+- Event Modeling workshop, generator-ready `event-model.yaml`: invoke `/event-modeling`.
+- Deep DCB explanation, choosing or diagnosing DCB for an application command handler, `ConcurrencyException` analysis: invoke `/dcb`.
+- Docs diagram renderer rules, actor-board vocabulary, sidecar overlays, or multi-lane board authoring: invoke `/crablet-diagram-advisor`.
+
+Other tools (invoke by name when needed):
+- `/balanced-coupling` — evaluate module coupling; classify balanced vs unbalanced
+- `/design` — produce modular architecture designs from functional requirements
+- `/review` — modularity analysis using Balanced Coupling model
+- `/document` — produce modularity review documents in Markdown and HTML
+- `/jspecify-skill` — add jspecify nullability support to Java modules
 
 Searchable signposts:
 
 - Datasource rules, shared-fetch, LISTEN/NOTIFY, generated interface policy, and build graph caveats live in `crablet-maintainer`.
-- Docs HTML diagram renderer: `docs/event-model-renderer.js`; workshop vocabulary in `.claude/skills/event-modeling/SKILL.md` (§ Canonical HTML diagram); full renderer/arrow rules in `.claude/skills/crablet-diagram-advisor/SKILL.md`.
+- Docs HTML diagram renderer: `docs/event-model-renderer.js`; board notation in `/event-modeling` (§ Event Modeling Board Semantics); full renderer/arrow rules in `/crablet-diagram-advisor`.
 - Feature-slice workflow, MCP `output: src/main/java`, generated app verification, and app implementation defaults live in `crablet-app-dev`.
 
 ## Build Commands
@@ -107,7 +114,7 @@ Module dependencies:
 - Use `EventType.type(Class)` for event type names.
 - Use snake_case tag keys; tag keys are normalized to lowercase and tag values remain case-sensitive.
 - Prefer domain-specific query pattern helpers for reused decision models.
-- When changing **docs/event-model-renderer.js** or describing a canonical actor board, align with **`.claude/skills/event-modeling/SKILL.md`** (§ Canonical HTML diagram) and **`docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`**.
+- When changing **docs/event-model-renderer.js** or describing a canonical actor board, align with **`/crablet-diagram-advisor`** and **`docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`**.
 - When changing docs or diagrams, use Event Modeling vocabulary consistently: rows are semantic element layers; lanes are subsystem or bounded-context groupings; time flows left to right.
 
 ## Documentation Quick Links
