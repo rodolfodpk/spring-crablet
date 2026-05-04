@@ -5,6 +5,7 @@ This is a generated Crablet application.
 ## Skill Routing
 
 - App feature slices, command handlers, views, automations, outbox, codegen sequencing, and verification: invoke `/crablet-app-dev`.
+- Greenfield pacing from app baseline through workshop, first slice, and evolving features: invoke `/crablet-greenfield`.
 - Codegen provider config, artifact ownership, repair cycle, and recovery: invoke `/crablet-codegen`.
 - DCB command patterns (`idempotent` / `commutative` / `non-commutative`), tags as the consistency boundary, `guardEvents`, and related consistency questions: invoke `/dcb`.
 - Diagram metadata (`diagram.actors`, `diagram.lanes`, `diagram.assignments`, sidecar overlays): invoke `/crablet-diagram-advisor`.

@@ -7,6 +7,7 @@ The workflow is:
 ```text
 describe one vertical slice
   -> update event-model.yaml
+  -> run make diagram-preview
   -> run embabel_plan
   -> approve the planned artifacts
   -> run embabel_generate with output: "src/main/java"
@@ -17,6 +18,7 @@ describe one vertical slice
 
 - Java 25
 - PostgreSQL
+- Node.js for `make diagram-preview`
 - Claude Code, Cursor, Codex, or a terminal workflow
 - A configured generator provider. Anthropic users set `ANTHROPIC_API_KEY`; OpenAI users set
   `OPENAI_API_KEY` and a model; local/Ollama users set `CODEGEN_LLM_PROVIDER`,
@@ -154,7 +156,8 @@ For this template, always pass **`output: "src/main/java"`** — the same direct
 are written next to `pom.xml` instead of under `src/main/java`.
 
 **Primary workflow:** describe a slice in Claude Code or Cursor → update `event-model.yaml` →
-`embabel_plan` → review → **`embabel_generate` with `output: "src/main/java"`** → `./mvnw verify`.
+`make diagram-preview` → `embabel_plan` → review → **`embabel_generate` with
+`output: "src/main/java"`** → `./mvnw verify`.
 
 **Local commands** (below) are for Codex, other agents, terminal use, scripting, and debugging —
 see each command’s description.
@@ -175,6 +178,19 @@ make generate
 
 Same AI codegen pipeline as **`embabel_generate`** (calls the configured model, compiles, may repair
 errors). Use when regenerating from the shell — not a typical deterministic CI step.
+
+Generate a standalone Event Modeling board preview from `event-model.yaml`:
+
+```bash
+make diagram-preview
+```
+
+This writes `diagram-preview.html` from the current model. It uses the vendored renderer in
+`tools/event-model-renderer.js` and requires `js-yaml`. If it is missing, run:
+
+```bash
+npm install --prefix tools --silent
+```
 
 Generate Kubernetes manifests under `k8s/base` from `event-model.yaml` (add a `deployment:` block; see the `/event-modeling` skill and `k8s/base/README-k8s.md` after generation):
 

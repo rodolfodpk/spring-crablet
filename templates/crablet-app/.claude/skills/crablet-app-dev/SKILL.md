@@ -19,6 +19,7 @@ repo is the generated app root.
 ## Routing
 
 - Use `event-modeling` for workshop dialogue and generator-ready `event-model.yaml` shape.
+- Use `crablet-greenfield` for end-to-end greenfield pacing across app baseline, modeling, slices, and app evolution.
 - Use this skill to sequence the app workflow around that model and implement/repair app code.
 - Use `dcb` for deep DCB diagnosis, `ConcurrencyException` analysis, or command-pattern explanation when available.
 - Framework module, public API, template, or codegen internals belong in the spring-crablet repo, not this app.
@@ -29,11 +30,14 @@ Work one vertical slice at a time, scoped to one observable user outcome.
 
 1. Ask for missing business facts before changing files.
 2. Use or sequence with `event-modeling` to update `event-model.yaml` first.
-3. Run `embabel_plan` and show the planned artifacts.
-4. Ask for confirmation before `embabel_generate`.
-5. Call `embabel_generate` with `output` set to `src/main/java`.
-6. Run `./mvnw verify` after generation or manual repair.
-7. Prefer improving `event-model.yaml` over hand-patching generated structural code.
+3. After any model-affecting change, run `make diagram-preview` from this app root or provide a
+   textual board walk-through; check actors, lanes, commands, events, views, automations, and outbox
+   before planning.
+4. Run `embabel_plan` and show the planned artifacts.
+5. Ask for confirmation before `embabel_generate`.
+6. Call `embabel_generate` with `output` set to `src/main/java`.
+7. Run `./mvnw verify` after generation or manual repair.
+8. Prefer improving `event-model.yaml` over hand-patching generated structural code.
 
 For Claude Code and Cursor, use MCP tools when available. For Codex, other agents, or terminal
 workflows, use `make plan`, `make generate`, and `make verify` from the app root. `plan` is

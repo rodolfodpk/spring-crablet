@@ -12,6 +12,7 @@ codegen work.
 
 | Skill | Use it for |
 |-------|------------|
+| `/crablet-greenfield` | Start a new Crablet app: baseline setup, Event Modeling workshop, first generated slice, and later app evolution. |
 | `/event-modeling` | Facilitate Event Modeling workshop dialogue and turn the conversation into generator-ready `event-model.yaml`. |
 | `/crablet-codegen` | Configure codegen providers, run plan/generate, manage artifact ownership, and recover from generation or repair failures. |
 | `/crablet-app-dev` | Build one generated application slice at a time: commands, handlers, views, automations, outbox, and verification. |
@@ -39,5 +40,6 @@ codegen work.
 - Repository routing hub: [CLAUDE.md](../../../CLAUDE.md)
 - Generated app routing hub: [templates/crablet-app/CLAUDE.md](../../../templates/crablet-app/CLAUDE.md)
 
-For the normal application workflow, start with `/event-modeling`, then use `/crablet-codegen` or
-the Makefile targets to plan and generate, and `/crablet-app-dev` to finish or customize the slice.
+For a new application, start with `/crablet-greenfield`. For an already-scoped slice, start with
+`/event-modeling`, then use `/crablet-codegen` or the Makefile targets to plan and generate, and
+`/crablet-app-dev` to finish or customize the slice.

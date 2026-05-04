@@ -107,3 +107,6 @@ For each reaction or policy:
 - Slices cut vertically through all element layers — one slice per feature (State Change, State View, Automation, Translation).
 - Do not draw Event Modeling as a top-to-bottom flowchart.
 - If the board is illustrative rather than exhaustive, say so explicitly.
+
+Downstream sequencing lives in `crablet-app-dev`; full greenfield pacing lives in
+`crablet-greenfield`.

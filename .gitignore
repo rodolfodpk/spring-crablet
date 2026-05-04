@@ -69,6 +69,7 @@ results/*.json
 !.claude/settings.json
 !templates/crablet-app/.claude/settings.json
 !templates/crablet-app/.cursor/mcp.json
+!templates/crablet-app/tools/package.json
 
 ### Wallet example results ###
 wallet-example/performance-tests/results/

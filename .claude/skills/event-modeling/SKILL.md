@@ -327,3 +327,6 @@ deployment:
 ```
 
 **Kubernetes (optional):** from the app template, `make k8s` (requires `embabel-codegen.jar` in `tools/`) writes `k8s/base` from this `deployment` block. See `k8s/base/README-k8s.md` for fill-in, KEDA install (`helm install keda kedacore/keda --namespace keda --create-namespace`), and how monolith vs distributed maps to Deployments. `minReplicas: 0` only affects distributed workers; PDBs are omitted when `minReplicas` is 0. Platform-agnostic rules: [DEPLOYMENT_TOPOLOGY.md](../../../docs/user/DEPLOYMENT_TOPOLOGY.md).
+
+Downstream sequencing lives in `crablet-app-dev`; full greenfield pacing lives in
+`crablet-greenfield`.

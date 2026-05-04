@@ -5,6 +5,7 @@ This file is the repo-level routing hub for Claude Code work in spring-crablet.
 ## Skill Routing
 
 - Application work, generated Crablet apps, feature slices, app command handlers, app views, automations, outbox, codegen sequencing: invoke `/crablet-app-dev`.
+- Greenfield onboarding, repo bootstrap, first workshop, first slice, and evolving app lifecycle: invoke `/crablet-greenfield`.
 - Framework module changes, public API work, eventstore/commands/poller internals, shared-fetch, auto-configuration, templates, codegen internals, maintainer docs: invoke `/crablet-maintainer`.
 - Event Modeling workshop, generator-ready `event-model.yaml`: invoke `/event-modeling`.
 - Deep DCB explanation, choosing or diagnosing DCB for an application command handler, `ConcurrencyException` analysis: invoke `/dcb`.
@@ -24,7 +25,7 @@ Searchable signposts:
 
 - Datasource rules, shared-fetch, LISTEN/NOTIFY, generated interface policy, and build graph caveats live in `crablet-maintainer`.
 - Docs HTML diagram renderer: `docs/event-model-renderer.js`; board notation in `/event-modeling` (§ Event Modeling Board Semantics); full renderer/arrow rules in `/crablet-diagram-advisor`.
-- Feature-slice workflow, MCP `output: src/main/java`, generated app verification, and app implementation defaults live in `crablet-app-dev`.
+- Greenfield lifecycle pacing lives in `crablet-greenfield`; feature-slice workflow, MCP `output: src/main/java`, generated app verification, and app implementation defaults live in `crablet-app-dev`.
 
 ## Build Commands
 

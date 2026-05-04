@@ -13,6 +13,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMPLATE_ROOT="${ROOT}/templates/crablet-app"
 SKILLS="${TEMPLATE_ROOT}/.claude/skills"
 TEMPLATE_CLAUDE="${TEMPLATE_ROOT}/CLAUDE.md"
+TOOLS="${TEMPLATE_ROOT}/tools"
 
 die() {
   printf 'check-template-skills: ERROR: %s\n' "$*" >&2
@@ -39,6 +40,7 @@ grep_markers() {
 SKILL_IDS=(
   event-modeling
   dcb
+  crablet-greenfield
   crablet-app-dev
   crablet-codegen
   crablet-local-dev
@@ -63,10 +65,16 @@ grep_markers "${SKILLS}/dcb/SKILL.md" \
   'non-commutative' \
   'guardEvents'
 
+grep_markers "${SKILLS}/crablet-greenfield/SKILL.md" \
+  'Phase A' \
+  'make diagram-preview' \
+  'crablet-app-dev'
+
 grep_markers "${SKILLS}/crablet-app-dev/SKILL.md" \
   'make plan' \
   'make generate' \
-  'make verify'
+  'make verify' \
+  'make diagram-preview'
 
 grep_markers "${SKILLS}/crablet-codegen/SKILL.md" \
   'Regeneration behavior' \
@@ -87,6 +95,25 @@ grep_markers "${SKILLS}/crablet-k8s/SKILL.md" \
   'deployment.topology' \
   'KEDA' \
   'k8s/base'
+
+[[ -f "${TOOLS}/diagram-preview.js" ]] || die "missing ${TOOLS}/diagram-preview.js"
+[[ -f "${TOOLS}/event-model-renderer.js" ]] || die "missing ${TOOLS}/event-model-renderer.js"
+[[ -f "${TOOLS}/package.json" ]] || die "missing ${TOOLS}/package.json"
+
+grep_markers "${TEMPLATE_ROOT}/Makefile" \
+  'diagram-preview:' \
+  'tools/diagram-preview.js'
+
+grep_markers "${TOOLS}/diagram-preview.js" \
+  'event-model.yaml' \
+  'diagram-preview.html' \
+  'EventModelRenderer.render'
+
+grep_markers "${TOOLS}/package.json" \
+  'js-yaml'
+
+cmp -s "${ROOT}/docs/event-model-renderer.js" "${TOOLS}/event-model-renderer.js" \
+  || die "${TOOLS}/event-model-renderer.js must match docs/event-model-renderer.js"
 
 [[ -f "${TEMPLATE_CLAUDE}" ]] || die "missing ${TEMPLATE_CLAUDE}"
 

@@ -23,16 +23,16 @@ commands:
     fields:
       - name: applicationId
         type: String
-        validation: [notNull, notBlank]
+        minLength: 1
       - name: customerId
         type: String
-        validation: [notNull, notBlank]
+        minLength: 1
       - name: requestedAmount
         type: int
-        validation: greaterThan(0)
+        exclusiveMinimum: 0
       - name: purpose
         type: String
-        validation: [notNull, notBlank]
+        minLength: 1
 
 views:
   - name: PendingLoanApplications
