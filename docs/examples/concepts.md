@@ -79,17 +79,14 @@ markmap:
 ### Translation path — outbox publishes committed events to external systems
 ### Event spine — immutable events connect commands, views, automations, and outbox
 ### Slice shape — trigger + command + event + view
+### event-model.yaml — structural source of truth for code generation
+### Diagram projection — derived from commands, events, views, automations, and outbox
+### Diagram metadata — optional diagram.* layout hints; Java codegen ignores them
+### Sidecar overlays — docs-only triggers, badges, synthetic nodes, and illustrative automations
 ### Crablet append taxonomy — idempotent / commutative / commutative + guard / non-commutative
 ### Postgres advisory locks — idempotent append semantics + session-scoped poller leader election
 ### NOTIFY + optional LISTEN — wake async processors after writes (Postgres; LISTEN needs a direct JDBC URL, not a pooler)
 ### Crablet DCB interpretation — inspired by DCB, not strict spec vocabulary
-### Crablet interpretation of Event Modeling
-#### event-model.yaml — structural source of truth for code generation
-#### Renderer projection — diagrams are derived from commands, events, views, automations, and outbox
-#### Default Crablet diagram — semantic rows when no diagram metadata is present
-#### diagram.* metadata — actors, subsystem lanes, assignments, display hints
-#### Sidecar overlays — docs-only triggers, badges, synthetic nodes, and illustrative automations
-#### Java codegen ignores diagram metadata — structural lists stay authoritative
 
 ## Framework Modules
 ### crablet-eventstore
