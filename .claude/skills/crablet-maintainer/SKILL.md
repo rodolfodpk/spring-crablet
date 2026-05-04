@@ -97,6 +97,27 @@ Projection writes must go to the primary.
 - Framework modules should use `shared-examples-domain` in test scope for realistic scenarios where useful.
 - Shared test utilities live in `crablet-test-support`.
 
+## Root vs Template Copy Policy
+
+Root skill copies (`/.claude/skills/`) are maintainer-aware. They may reference:
+- Framework and runtime semantics
+- Codegen artifact planning
+- Docs renderer rules and renderer internals
+- Template consistency policy
+- DCB correctness at the framework level
+- Automation/outbox boundaries
+
+Template skill copies (`templates/crablet-app/.claude/skills/`) must stay app-user focused:
+- No renderer internals (arrow stroke behavior, canvas constants, docs-authoring details)
+- No framework module change guidance
+- No codegen adapter internals
+- Only user-facing behaviors that affect the running app
+
+When a root user-facing section changes, mirror the relevant subset into the template copy.
+When a framework-only or renderer-only section changes, do not copy it into the template.
+The template skill header should say "this Crablet app" rather than "a Crablet app" or
+"the framework repo."
+
 ## Maintainer Checklist
 
 When changing framework behavior:

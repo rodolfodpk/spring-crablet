@@ -2,6 +2,49 @@
 
 Use this skill when the user wants to add or change a Crablet feature slice.
 
+## Facilitation Aids
+
+Use these when starting a new slice or unblocking a stuck session.
+
+**Brain dump mode** — Ask the user to list everything that happened in the domain without
+worrying about naming or ordering. Extract named events afterward.
+
+**Timeline arrangement** — Arrange events left to right by rough occurrence order. Ask: "Which
+of these must happen before which?" Let ordering emerge from dependencies.
+
+**Hot spots** — Ask: "Where is there contention or ambiguity?" Mark those areas before designing
+commands or views; they often reveal missing events or contested consistency boundaries.
+
+**Feature slice summary (Given/When/Then)** — Summarize each slice:
+- *Given* — the prior events (the current state)
+- *When* — the command is submitted
+- *Then* — the expected events and resulting read-model values
+
+**Saga-like workflow modeling** — For multi-step processes, model explicitly:
+1. A committed event wakes an automation.
+2. A TODO/read model holds accumulated decision state.
+3. The automation reads that state and emits a command or returns NoOp.
+4. The emitted command records the next event.
+5. External publication uses outbox.
+6. Idempotent downstream commands protect at-least-once retries.
+
+Do not use hidden generic saga state. Make decision state explicit as a TODO/read model.
+
+**Policies in Crablet** — Event Storming uses "policies" (when X happens, do Y) as a single
+concept. In Crablet, the right construct depends on who or what reacts:
+
+| Policy type | Trigger | Crablet model |
+|---|---|---|
+| Automated reaction | Event → system emits command | `automations:` → generated `AutomationHandler` |
+| Stateful automated reaction | Event → check accumulated state → emit command | `views:` (TODO/work queue) + `automations:` |
+| Human decision | Event → person reviews and acts | `views:` (work queue) + `commands:` |
+| External publication | Event → publish outside Crablet | `outbox:` → generated `OutboxPublisher` |
+
+Ask for each reaction: "Does a person need to act, or does the system act automatically? Does
+it publish outside Crablet, or emit another command inside it?"
+
+Do not model human decisions as automations. The view IS the human policy's inbox.
+
 ## Workflow
 
 1. Ask for the user-visible outcome.
@@ -34,12 +77,14 @@ For each view:
 - Which tag identifies the row or lookup key?
 - Which fields should be materialized?
 
-For each automation or outbox publisher:
+For each reaction or policy:
 
 - Which event triggers it?
-- Which condition must pass?
-- Which command is emitted, or which external topic is published?
-- Which adapter boundary should application code own?
+- Is it automated (system acts) or human (person reviews and decides)?
+- **Automated reaction**: which command does the system emit?
+- **Stateful automated reaction**: which TODO/read `views:` entry does it read before deciding?
+- **Human decision**: which `views:` work queue surfaces the pending item, and which `commands:` entry does the person submit?
+- **External publication**: which `outbox:` topic and adapter boundary owns the publication?
 
 ## Rules
 

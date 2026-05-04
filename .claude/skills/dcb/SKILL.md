@@ -186,3 +186,14 @@ If the user provides a command or scenario to analyze:
 5. **Optionally scaffold** the full handler if the user confirms
 
 Keep it practical. Lead with the pattern decision, then the code.
+
+## Cross-Links
+
+- **Automation retries and duplicate work**: at-least-once automation delivery can re-run a command.
+  Make the downstream command idempotent (Pattern 1) to protect against duplicates. See the
+  **Process Rule** in `crablet-app-dev` for the full 6-step pattern.
+- **Cross-entity operations with external publication**: the DCB boundary protects consistency
+  inside the eventstore. Reliable external publication belongs in `crablet-outbox`, not in command
+  handlers or automation handlers. Do not call external systems from inside a command handler.
+- **Tags and decision models**: tags define the DCB boundary. Tags on the decision model must
+  exactly match the tags on the appended events, or the cursor check misses the conflict.

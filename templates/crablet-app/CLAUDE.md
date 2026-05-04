@@ -6,6 +6,7 @@ This is a generated Crablet application.
 
 - App feature slices, command handlers, views, automations, outbox, codegen sequencing, and verification: use `.claude/skills/crablet-app-dev/SKILL.md`.
 - Event Modeling workshop dialogue and `event-model.yaml` shape: use `.claude/skills/event-modeling/SKILL.md`.
+- Diagram metadata (`diagram.actors`, `diagram.lanes`, `diagram.assignments`, sidecar overlays): use `.claude/skills/crablet-diagram-advisor/SKILL.md`.
 
 ## Essentials
 

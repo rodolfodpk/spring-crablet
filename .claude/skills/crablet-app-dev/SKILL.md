@@ -90,6 +90,21 @@ Poller-backed modules process at least once. Make views and publishers idempoten
 - Automations: test trigger event selection, condition behavior, and emitted command mapping.
 - Outbox: test publisher behavior at the adapter boundary without inventing real credentials.
 
+## Process Rule
+
+For any multi-step event-driven workflow:
+
+1. A committed event wakes an automation.
+2. A TODO/read model holds accumulated decision state.
+3. The automation reads that state and returns `ExecuteCommand` or `NoOp`.
+4. The emitted command records the next event.
+5. External publication uses outbox.
+6. Idempotent downstream commands protect at-least-once retries.
+
+Do not put hidden generic saga state inside automation handlers. If an automation needs shared
+decision state across events, model it as an explicit TODO/read model that the automation reads.
+For the DCB pattern that protects the emitted command, use `dcb`.
+
 ## App Gotchas
 
 - The MCP tool defaults `output` to `.`, which is wrong for the starter template. Use `src/main/java`.

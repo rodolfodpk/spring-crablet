@@ -20,6 +20,54 @@ produce structurally complete Java code without guessing.
 If `$ARGUMENTS` contains a domain name or description, use it as the starting context.
 Otherwise use `AskUserQuestion` to ask: "What domain or feature would you like to model?"
 
+## Facilitation Aids
+
+Use these when starting a workshop or unblocking a stuck session.
+
+**Brain dump mode** — Ask the user to list everything that happened in the domain without
+worrying about naming or ordering. Treat responses as raw material; extract named events afterward.
+
+**Timeline arrangement** — Once events are listed, arrange them left to right by rough occurrence
+order. Ask: "Which of these must happen before which?" Let ordering emerge from dependencies, not
+from process-diagram habits.
+
+**Hot spots** — Ask: "Where is there contention, ambiguity, or known disagreement?" Mark those
+areas before designing commands or views. Hot spots often reveal missing events or contested
+consistency boundaries.
+
+**Feature slice summary (Given/When/Then)** — Summarize each slice as:
+- *Given* — the prior events (the current state)
+- *When* — the command is submitted
+- *Then* — the expected events and resulting read-model values
+
+This format doubles as a test specification and keeps slices small.
+
+**Saga-like workflow modeling** — If the domain has a multi-step process, model it as:
+1. A committed event wakes an automation.
+2. A TODO/read model holds accumulated decision state.
+3. The automation reads that state and emits a command or returns NoOp.
+4. The emitted command records the next event.
+5. External publication uses outbox.
+6. Idempotent downstream commands protect at-least-once retries.
+
+Do not introduce hidden generic saga state. If a process needs shared decision state, model it as
+an explicit TODO/read model and keep the automation logic simple.
+
+**Policies in Crablet** — Event Storming uses "policies" (when X happens, do Y) as a single
+concept. In Crablet, the right construct depends on who or what reacts:
+
+| Policy type | Trigger | Crablet model |
+|---|---|---|
+| Automated reaction | Event → system emits command | `automations:` → generated `AutomationHandler` |
+| Stateful automated reaction | Event → check accumulated state → emit command | `views:` (TODO/work queue) + `automations:` |
+| Human decision | Event → person reviews and acts | `views:` (work queue) + `commands:` |
+| External publication | Event → publish outside Crablet | `outbox:` → generated `OutboxPublisher` |
+
+Ask for each reaction: "Does a person need to act, or does the system act automatically? Does
+it publish outside Crablet, or emit another command inside it?"
+
+Do not model human decisions as automations. The view IS the human policy's inbox.
+
 ## Workshop Steps
 
 Use TaskCreate to track these steps: Discover Events, Identify Commands, Design Views,
@@ -34,7 +82,7 @@ Extract named domain events. For each event, identify:
 - The payload fields
 
 For a single feature slice, start with concrete questions before writing files:
-- What uniquely identifies the aggregate or process in this slice?
+- What uniquely identifies the entity or process in this slice?
 - What fact should be recorded when the outcome happens?
 - Which tags should be attached for DCB checks and projections?
 - Which payload fields must be present on the event?
@@ -73,8 +121,8 @@ example: "Which fields should reviewers see in the pending applications view?"
 
 ### Sealed Event Handling
 
-Crablet generated domains use a sealed event root by default. Keep sealed events for multi-aggregate
-models: they make decision logic and projectors notice new domain facts at compile time.
+Crablet generated domains use a sealed event root by default. Keep sealed events for multi-entity
+or multi-process models: they make decision logic and projectors notice new domain facts at compile time.
 
 When a lifecycle fact is authoritative for a command precondition, model it as a real event and add
 it to `guardEvents` rather than treating it as prose. For example, a course enrollment model should
@@ -138,7 +186,12 @@ The interactive docs board is implemented in **`docs/event-model-renderer.js`** 
 
 ### 4. Add Automations (optional)
 
-Ask: are there any event-driven policies? For each automation:
+Ask: are there any event-driven reactions or policies? First classify each one using the
+"Policies in Crablet" table in the Facilitation Aids. Only add `automations:` entries for
+system-driven command emission. Human decisions belong in `views:` + `commands:`; external
+publication belongs in `outbox:`.
+
+For each automation:
 - Name it (kebab-case)
 - `triggeredBy` — the event that fires it
 - `emitsCommand` — the command to emit when the condition passes

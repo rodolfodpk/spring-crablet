@@ -8,11 +8,12 @@ This file is the repo-level routing hub for Claude Code work in spring-crablet.
 - Framework module changes, public API work, eventstore/commands/poller internals, shared-fetch, auto-configuration, templates, codegen internals, maintainer docs: use `.claude/skills/crablet-maintainer/SKILL.md`.
 - Event Modeling workshop, generator-ready `event-model.yaml`, and **canonical docs diagram vocabulary** (`docs/event-model-renderer.js` rules): use `.claude/skills/event-modeling/SKILL.md`.
 - Deep DCB explanation, choosing or diagnosing DCB for an application command handler, `ConcurrencyException` analysis: use `.claude/skills/dcb/SKILL.md`.
+- Docs diagram renderer rules, actor-board vocabulary, sidecar overlays, or multi-lane board authoring: use `.claude/skills/crablet-diagram-advisor/SKILL.md`.
 
 Searchable signposts:
 
 - Datasource rules, shared-fetch, LISTEN/NOTIFY, generated interface policy, and build graph caveats live in `crablet-maintainer`.
-- Docs HTML diagram renderer: `docs/event-model-renderer.js`; arrow/canvas rules summarized in `.claude/skills/event-modeling/SKILL.md` (§ Canonical HTML diagram).
+- Docs HTML diagram renderer: `docs/event-model-renderer.js`; workshop vocabulary in `.claude/skills/event-modeling/SKILL.md` (§ Canonical HTML diagram); full renderer/arrow rules in `.claude/skills/crablet-diagram-advisor/SKILL.md`.
 - Feature-slice workflow, MCP `output: src/main/java`, generated app verification, and app implementation defaults live in `crablet-app-dev`.
 
 ## Build Commands
