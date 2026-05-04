@@ -200,8 +200,16 @@ If the user picks **monolith** and the model has views, automations, or outbox, 
 > (or 2 for active/standby). It cannot be scaled horizontally."
 
 If **distributed**, also capture `deployment.commandReplicas` (integer, default 2).
-For KEDA scale-to-zero capture `deployment.keda.enabled`, `deployment.keda.minReplicas`,
-and `deployment.keda.pollingInterval`. See `DEPLOYMENT_TOPOLOGY.md` for KEDA install details.
+
+For KEDA scale-to-zero, capture:
+- `deployment.keda.enabled` (boolean, default `false`)
+- `deployment.keda.minReplicas` (integer, default `0`; `0` = scale-to-zero, only effective in distributed topology)
+- `deployment.keda.pollingInterval` (integer seconds, default `30`)
+
+If topology is **monolith**, `keda.minReplicas: 0` is ignored — forced to 1 because the
+command API must stay available. PodDisruptionBudgets are omitted when `keda.minReplicas = 0`.
+
+For KEDA + LISTEN/NOTIFY interaction and KEDA install details, use `/crablet-k8s`.
 
 ### 7. Review and Write
 

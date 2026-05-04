@@ -7,6 +7,7 @@ This is a generated Crablet application.
 - App feature slices, command handlers, views, automations, outbox, codegen sequencing, and verification: invoke `/crablet-app-dev`.
 - Event Modeling workshop dialogue and `event-model.yaml` shape: invoke `/event-modeling`.
 - Diagram metadata (`diagram.actors`, `diagram.lanes`, `diagram.assignments`, sidecar overlays): invoke `/crablet-diagram-advisor`.
+- Local codegen loop, Testcontainers, LISTEN/NOTIFY constraint, troubleshooting: invoke `/crablet-local-dev`.
 
 ## Essentials
 

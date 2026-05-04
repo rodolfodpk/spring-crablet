@@ -9,8 +9,11 @@ This file is the repo-level routing hub for Claude Code work in spring-crablet.
 - Event Modeling workshop, generator-ready `event-model.yaml`: invoke `/event-modeling`.
 - Deep DCB explanation, choosing or diagnosing DCB for an application command handler, `ConcurrencyException` analysis: invoke `/dcb`.
 - Docs diagram renderer rules, actor-board vocabulary, sidecar overlays, or multi-lane board authoring: invoke `/crablet-diagram-advisor`.
+- Local build, Testcontainers, MCP codegen loop, module test targets, troubleshooting: invoke `/crablet-local-dev`.
 
 Other tools (invoke by name when needed):
+- `/crablet-k8s` — Crablet-specific KEDA, LISTEN/NOTIFY + scale-to-zero, K8s manifest mapping
+- `/kubernetes-skill` — generic K8s manifests, Helm, RBAC, security hardening, hallucination prevention
 - `/balanced-coupling` — evaluate module coupling; classify balanced vs unbalanced
 - `/design` — produce modular architecture designs from functional requirements
 - `/review` — modularity analysis using Balanced Coupling model
