@@ -11,7 +11,7 @@
 # examples/wallet-example-app is built separately after the reactor is installed.
 # See BUILD.md for full explanation.
 
-.PHONY: help install install-all-tests ci-verify validate-all build-all compile package test test-skip examples-check clean verify build-core build-shared build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check event-model-diagrams
+.PHONY: help install install-all-tests ci-verify validate-all skills-check build-all compile package test test-skip examples-check clean verify build-core build-shared build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check event-model-diagrams
 
 # Default target
 help:
@@ -21,7 +21,8 @@ help:
 	@echo "  install          - Build and install all modules (handles cyclic dependencies automatically)"
 	@echo "  install-all-tests - Build with all tests including integration tests (installs to local repo)"
 	@echo "  ci-verify        - Build with all tests for CI (no local repo install, faster)"
-	@echo "  validate-all     - Full local validation: framework, docs, codegen, and examples"
+	@echo "  validate-all     - Full local validation: framework, docs, codegen, examples, and template skills"
+	@echo "  skills-check     - Verify templates/crablet-app skill files and CLAUDE routing"
 	@echo "  build-all        - Alias for install"
 	@echo "  compile          - Compile all modules without packaging"
 	@echo "  package          - Build JARs for all modules"
@@ -79,8 +80,13 @@ install-all-tests: build-core build-test-support build-command build-shared buil
 ci-verify: build-core build-test-support build-command build-shared build-reactor-verify
 	@echo "✓ CI build complete with all tests!"
 
-validate-all: install-all-tests docs-check docs-compile-check docs-generate-check codegen-check examples-check
+validate-all: skills-check install-all-tests docs-check docs-compile-check docs-generate-check codegen-check examples-check
 	@echo "✓ Full local validation complete."
+
+skills-check:
+	@chmod +x scripts/check-template-skills.sh
+	@./scripts/check-template-skills.sh
+
 
 docs-check:
 	@chmod +x scripts/verify-docs.sh

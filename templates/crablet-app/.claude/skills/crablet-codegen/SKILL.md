@@ -1,0 +1,94 @@
+---
+name: crablet-codegen
+description: >
+  Use this skill in a generated Crablet app for codegen provider setup, generator-owned vs
+  user-owned artifact boundaries, repair-cycle behavior, and generation failure recovery.
+  Do not use for feature-slice workflow sequencing (use crablet-app-dev) or local invocation/output
+  paths (use crablet-local-dev).
+---
+
+# Crablet Codegen
+
+This skill is a compact reference for provider configuration, artifact ownership, and recovery
+when generation fails or generated code compiles but still needs application behavior.
+
+## Scope Boundary
+
+| Topic | Skill |
+|---|---|
+| Slice workflow (`plan` -> `generate` -> `verify`) | `crablet-app-dev` |
+| Local invocation, output path, MCP vs terminal | `crablet-local-dev` |
+| Provider setup, artifact ownership, repair/recovery | `crablet-codegen` |
+| Framework codegen internals | Use the spring-crablet root repo skill |
+
+## Provider Setup
+
+Five named providers are supported by Crablet codegen.
+
+| Provider | `CODEGEN_LLM_PROVIDER` | Key env vars | Notes |
+|---|---|---|---|
+| Anthropic | `anthropic` (default; may omit var) | `ANTHROPIC_API_KEY` | Default model: `claude-sonnet-4-6` |
+| OpenAI | `openai` | `OPENAI_API_KEY`, `OPENAI_MODEL` or `CODEGEN_LLM_MODEL` | Both model vars work |
+| DeepSeek | `deepseek` | `DEEPSEEK_API_KEY`; optional `DEEPSEEK_BASE_URL`, `DEEPSEEK_MODEL` | Defaults: `https://api.deepseek.com`, `deepseek-chat` |
+| Ollama | `ollama` | `OLLAMA_MODEL`; optional `OLLAMA_BASE_URL` | Default base URL: `http://localhost:11434/v1` |
+| OpenAI-compatible | `openai-compatible` | `CODEGEN_LLM_API_KEY`, `CODEGEN_LLM_BASE_URL`, `CODEGEN_LLM_MODEL`; or `OPENAI_COMPATIBLE_API_KEY`, `OPENAI_COMPATIBLE_BASE_URL`, `OPENAI_COMPATIBLE_MODEL` | Use for OpenAI API-compatible endpoints not listed above |
+
+`CODEGEN_LLM_API_KEY`, `CODEGEN_LLM_BASE_URL`, and `CODEGEN_LLM_MODEL` are provider-neutral
+overrides. Provider-specific variables such as `ANTHROPIC_API_KEY` and `OPENAI_MODEL` are the
+normal documented path.
+
+Ollama can also be addressed through `openai-compatible` using `CODEGEN_LLM_*` variables. The
+named `ollama` provider is simpler for local setups.
+
+If using `make plan` / `make generate` or the MCP server, `claude-md-path` is handled
+automatically. If invoking the JAR directly, run it the same way the template Makefile does so
+`codegen.claude-md-path: CLAUDE.md` resolves to the right file.
+
+## Artifact Ownership
+
+Generator-owned files can be overwritten by the next generation run. User-owned `@Component`
+implementation classes are not touched by the generator.
+
+| Artifact | Generated as | Regeneration behavior |
+|---|---|---|
+| Domain events (sealed interface + records) | Concrete records | Overwritten; do not hand-edit |
+| Command records | Concrete records | Overwritten; do not hand-edit |
+| `StateProjector`, `QueryPatterns`, state records | Concrete `@Component` / classes | Overwritten; do not hand-edit |
+| View projectors | Concrete `@Component` | Overwritten; do not hand-edit; verify computed fields and validation ranges manually |
+| Flyway migrations | `.sql` files | Overwritten; do not hand-edit |
+| Command handler interfaces | Empty Java interface | Overwritten; do not hand-edit |
+| Automation handler interfaces | Metadata-only Java interface | Overwritten; do not hand-edit |
+| Outbox publisher interfaces | Metadata-only Java interface | Overwritten; do not hand-edit |
+| `@Component` command handler implementation | User class | Never touched by generator |
+| `@Component` automation implementation | User class | Never touched by generator |
+| `@Component` outbox publisher implementation | User class | Never touched by generator |
+
+Key rule: if behavior is wrong, create or edit the `@Component` implementation class. Do not put
+business logic in the generated interface.
+
+## Repair Cycle
+
+The generator runs compile -> fix -> compile automatically, up to 3 times. Output shows
+`[RepairAgent]` lines during repair. If all 3 attempts fail, the build prints a `[WARN]` with the
+compiler errors above it.
+
+When repair is exhausted:
+
+1. Read the compiler error. It names the file and line.
+2. Fix the generator-owned file manually, or delete that generated file and rerun generation, as an
+   emergency unblock. Manual fixes to generator-owned files are temporary; the next generation run
+   can overwrite them.
+3. Make the durable fix in `event-model.yaml` when the model is under-specified. If the model is
+   correct and the error repeats, report the issue against spring-crablet codegen.
+
+Do not delete user `@Component` implementation classes.
+
+## Recovery Decision Tree
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Compilation fails after 3 repair attempts | Generator cannot resolve the error | Read the compiler error. Fix the generated file as a temporary unblock, or fix `event-model.yaml` and rerun |
+| No `===FILE: ...===` blocks in output | Prompt exceeded context, or `claude-md-path` is misconfigured | Use the template Makefile/MCP flow, or check direct JAR invocation |
+| YAML parse error / `$ref` not found | Malformed `event-model.yaml` or missing schema entry | Run `plan` first. It parses without a model call and shows the error immediately |
+| `ANTHROPIC_API_KEY is not set` or similar | Provider not configured | Set the provider-specific env var or switch `CODEGEN_LLM_PROVIDER` |
+| Generated code compiles but behavior is wrong | Business logic missing; generated interfaces have no logic | Create a `@Component` class implementing the generated interface. Never edit the interface |
