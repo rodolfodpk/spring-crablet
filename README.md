@@ -72,7 +72,7 @@ The generator can create a small Kubernetes base from `event-model.yaml` and its
 make k8s
 ```
 
-This is for local and test environments. It helps teams exercise the service shape, secrets, environment variables, and worker topology early. Production topology still needs deliberate operational design.
+This is for local and test environments. It helps teams exercise the service shape, secrets, environment variables, and worker topology early. Production topology still needs deliberate operational design. When views, automations, or outbox are enabled, default to **1 application instance per cluster** for the simplest correctness-first shape, or run a **singleton worker service per poller-backed module**.
 
 See [Deployment topology](docs/user/DEPLOYMENT_TOPOLOGY.md), [Crablet app template](templates/crablet-app/README.md), and [Embabel codegen](embabel-codegen/README.md).
 
