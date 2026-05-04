@@ -36,7 +36,6 @@ markmap:
 #### Read left to right — time flows, events are the spine
 #### Subsystem lanes — one per bounded area (e.g. inventory, auth, payment, gps)
 #### Semantic rows — wireframes / commands / events / read models stacked vertically inside lanes
-#### Event model vs diagram artifacts — core model uses rows by default; subsystem lanes live in optional diagram sidecars
 #### Slices — atomic unit of work, vertical cut through all layers
 ##### State Change — trigger → command → event (write path)
 ##### State View — event → read model (query path)
@@ -84,6 +83,13 @@ markmap:
 ### Postgres advisory locks — idempotent append semantics + session-scoped poller leader election
 ### NOTIFY + optional LISTEN — wake async processors after writes (Postgres; LISTEN needs a direct JDBC URL, not a pooler)
 ### Crablet DCB interpretation — inspired by DCB, not strict spec vocabulary
+### Crablet interpretation of Event Modeling
+#### event-model.yaml — structural source of truth for code generation
+#### Renderer projection — diagrams are derived from commands, events, views, automations, and outbox
+#### Default Crablet diagram — semantic rows when no diagram metadata is present
+#### diagram.* metadata — actors, subsystem lanes, assignments, display hints
+#### Sidecar overlays — docs-only triggers, badges, synthetic nodes, and illustrative automations
+#### Java codegen ignores diagram metadata — structural lists stay authoritative
 
 ## Framework Modules
 ### crablet-eventstore
@@ -143,7 +149,8 @@ markmap:
 ### event-model.yaml format
 #### Official codegen input contract
 #### Clean spec — events, commands, views, automations, outbox
-#### Diagram sidecar — triggers, subsystem lanes, assignments, synthetic nodes, eventBadges
+#### Diagram metadata — optional diagram.* layout hints ignored by Java codegen
+#### Diagram sidecar — docs-only triggers, synthetic nodes, eventBadges, overlays
 #### Shared schemas ($ref composition)
 ### Starter template
 #### templates/crablet-app — pre-wired pom.xml + Flyway migration
