@@ -25,15 +25,21 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import javax.sql.DataSource;
+import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Logger;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -284,6 +290,75 @@ class EventStoreImplTest {
         }));
 
         assertFalse(eventStore.exists(Query.forEventAndTag("TestEvent", "test_id", testId)));
+    }
+
+    @Test
+    void existsUsesReadDataSource() {
+        CountingDataSource readCounter = new CountingDataSource(dataSource);
+        CountingDataSource writeCounter = new CountingDataSource(dataSource);
+        EventStoreImpl withCounters = new EventStoreImpl(
+                writeCounter, readCounter, objectMapper, newConfig(),
+                clockProvider, mock(ApplicationEventPublisher.class));
+
+        withCounters.exists(Query.forEventAndTag("NoOp", "test_id", UUID.randomUUID().toString()));
+
+        assertThat(readCounter.getConnectionCount()).isGreaterThan(0);
+        assertThat(writeCounter.getConnectionCount()).isEqualTo(0);
+    }
+
+    @Test
+    void appendCommutativeUsesWriteDataSource() {
+        CountingDataSource readCounter = new CountingDataSource(dataSource);
+        CountingDataSource writeCounter = new CountingDataSource(dataSource);
+        EventStoreImpl withCounters = new EventStoreImpl(
+                writeCounter, readCounter, objectMapper, newConfig(),
+                clockProvider, mock(ApplicationEventPublisher.class));
+
+        withCounters.appendCommutative(List.of(appendEvent(UUID.randomUUID().toString(), "write-routing")));
+
+        assertThat(writeCounter.getConnectionCount()).isGreaterThan(0);
+        assertThat(readCounter.getConnectionCount()).isEqualTo(0);
+    }
+
+    private EventStoreConfig newConfig() {
+        EventStoreConfig c = new EventStoreConfig();
+        c.setPersistCommands(false);
+        c.setTransactionIsolation("READ_COMMITTED");
+        c.setFetchSize(1000);
+        return c;
+    }
+
+    static class CountingDataSource implements DataSource {
+        private final DataSource delegate;
+        private final AtomicInteger count = new AtomicInteger();
+
+        CountingDataSource(DataSource delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public Connection getConnection() throws SQLException {
+            count.incrementAndGet();
+            return delegate.getConnection();
+        }
+
+        @Override
+        public Connection getConnection(String username, String password) throws SQLException {
+            count.incrementAndGet();
+            return delegate.getConnection(username, password);
+        }
+
+        int getConnectionCount() {
+            return count.get();
+        }
+
+        @Override public PrintWriter getLogWriter() throws SQLException { return delegate.getLogWriter(); }
+        @Override public void setLogWriter(PrintWriter out) throws SQLException { delegate.setLogWriter(out); }
+        @Override public void setLoginTimeout(int s) throws SQLException { delegate.setLoginTimeout(s); }
+        @Override public int getLoginTimeout() throws SQLException { return delegate.getLoginTimeout(); }
+        @Override public Logger getParentLogger() throws SQLFeatureNotSupportedException { return delegate.getParentLogger(); }
+        @Override public <T> T unwrap(Class<T> iface) throws SQLException { return delegate.unwrap(iface); }
+        @Override public boolean isWrapperFor(Class<?> iface) throws SQLException { return delegate.isWrapperFor(iface); }
     }
 
     @Test
