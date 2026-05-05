@@ -9,7 +9,6 @@ import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSource;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.StoredEvent;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -221,22 +220,22 @@ class EventProcessorImplWakeupTest {
     }
 
     static class StubProgressTracker implements ProgressTracker<String> {
-        @Override public long getLastPosition(@NonNull String id) { return 0L; }
-        @Override public void updateProgress(@NonNull String id, long pos) {}
-        @Override public void recordError(@NonNull String id, @Nullable String err, int max) {}
-        @Override public void resetErrorCount(@NonNull String id) {}
-        @Override public @NonNull ProcessorStatus getStatus(@NonNull String id) { return ProcessorStatus.ACTIVE; }
-        @Override public void setStatus(@NonNull String id, @NonNull ProcessorStatus s) {}
-        @Override public void autoRegister(@NonNull String id, @NonNull String instanceId) {}
+        @Override public long getLastPosition(String id) { return 0L; }
+        @Override public void updateProgress(String id, long pos) {}
+        @Override public void recordError(String id, @Nullable String err, int max) {}
+        @Override public void resetErrorCount(String id) {}
+        @Override public ProcessorStatus getStatus(String id) { return ProcessorStatus.ACTIVE; }
+        @Override public void setStatus(String id, ProcessorStatus s) {}
+        @Override public void autoRegister(String id, String instanceId) {}
     }
 
     static class StubEventFetcher implements EventFetcher<String> {
-        @Override public @NonNull List<StoredEvent> fetchEvents(@NonNull String id, long pos, int batch) {
+        @Override public List<StoredEvent> fetchEvents(String id, long pos, int batch) {
             return List.of();
         }
     }
 
     static class StubEventHandler implements EventHandler<String> {
-        @Override public int handle(@NonNull String id, @NonNull List<StoredEvent> events) { return 0; }
+        @Override public int handle(String id, List<StoredEvent> events) { return 0; }
     }
 }

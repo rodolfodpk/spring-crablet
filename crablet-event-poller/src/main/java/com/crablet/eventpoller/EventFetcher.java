@@ -1,7 +1,6 @@
 package com.crablet.eventpoller;
 
 import com.crablet.eventstore.StoredEvent;
-import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 
@@ -21,6 +20,6 @@ public interface EventFetcher<I> {
      * @param batchSize Maximum number of events to fetch
      * @return List of events to process
      */
-    @NonNull List<StoredEvent> fetchEvents(@NonNull I processorId, long lastPosition, int batchSize);
+    List<StoredEvent> fetchEvents(I processorId, long lastPosition, int batchSize);
 }
 

@@ -17,7 +17,6 @@ import com.crablet.eventstore.Tag;
 import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.test.config.CrabletFlywayConfiguration;
-import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -437,19 +436,19 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         }
 
         @Override
-        public long getLastPosition(@NonNull String processorId) {
+        public long getLastPosition(String processorId) {
             return positions.getOrDefault(processorId, 0L);
         }
 
         @Override
-        public void updateProgress(@NonNull String processorId, long position) {
+        public void updateProgress(String processorId, long position) {
             positions.put(processorId, position);
             statuses.put(processorId, ProcessorStatus.ACTIVE);
             errorCounts.put(processorId, 0);
         }
 
         @Override
-        public void recordError(@NonNull String processorId, @Nullable String error, int maxErrors) {
+        public void recordError(String processorId, @Nullable String error, int maxErrors) {
             errorCounts.put(processorId, errorCounts.getOrDefault(processorId, 0) + 1);
             if (errorCounts.get(processorId) >= maxErrors) {
                 statuses.put(processorId, ProcessorStatus.FAILED);
@@ -457,22 +456,22 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         }
 
         @Override
-        public void resetErrorCount(@NonNull String processorId) {
+        public void resetErrorCount(String processorId) {
             errorCounts.put(processorId, 0);
         }
 
         @Override
-        public @NonNull ProcessorStatus getStatus(@NonNull String processorId) {
+        public ProcessorStatus getStatus(String processorId) {
             return statuses.getOrDefault(processorId, ProcessorStatus.ACTIVE);
         }
 
         @Override
-        public void setStatus(@NonNull String processorId, @NonNull ProcessorStatus status) {
+        public void setStatus(String processorId, ProcessorStatus status) {
             statuses.put(processorId, status);
         }
 
         @Override
-        public void autoRegister(@NonNull String processorId, @NonNull String instanceId) {
+        public void autoRegister(String processorId, String instanceId) {
             if (!positions.containsKey(processorId)) {
                 positions.put(processorId, 0L);
                 statuses.put(processorId, ProcessorStatus.ACTIVE);
@@ -490,7 +489,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         private volatile boolean shouldThrow = false;
 
         @Override
-        public int handle(@NonNull String processorId, @NonNull List<StoredEvent> events) throws Exception {
+        public int handle(String processorId, List<StoredEvent> events) throws Exception {
             if (shouldThrow) {
                 throw new RuntimeException("Test exception");
             }
@@ -520,7 +519,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         }
 
         @Override
-        public @NonNull List<StoredEvent> fetchEvents(@NonNull String processorId, long lastPosition, int batchSize) {
+        public List<StoredEvent> fetchEvents(String processorId, long lastPosition, int batchSize) {
             // Simple implementation: fetch events directly from database
             // In real implementation, this would use read replica and filter by tags/types
             try (var connection = readDataSource.getConnection();

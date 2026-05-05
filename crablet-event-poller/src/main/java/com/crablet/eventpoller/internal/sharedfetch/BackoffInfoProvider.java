@@ -1,7 +1,6 @@
 package com.crablet.eventpoller.internal.sharedfetch;
 
 import com.crablet.eventpoller.internal.BackoffState;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
@@ -16,7 +15,7 @@ import java.util.Map;
  */
 public interface BackoffInfoProvider<I> {
 
-    @Nullable BackoffState getBackoffStateForProcessor(@NonNull I processorId);
+    @Nullable BackoffState getBackoffStateForProcessor(I processorId);
 
-    @NonNull Map<I, BackoffState> getAllBackoffStates();
+    Map<I, BackoffState> getAllBackoffStates();
 }

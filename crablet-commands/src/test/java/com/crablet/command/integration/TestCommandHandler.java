@@ -3,7 +3,6 @@ package com.crablet.command.integration;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandDecision;
 import com.crablet.eventstore.EventStore;
-import org.jspecify.annotations.NonNull;
 
 import java.util.function.Function;
 
@@ -24,7 +23,7 @@ public class TestCommandHandler implements CommandHandler<TestCommand> {
     }
     
     @Override
-    public CommandDecision handle(@NonNull EventStore eventStore, @NonNull TestCommand command) {
+    public CommandDecision handle(EventStore eventStore, TestCommand command) {
         Function<TestCommand, CommandDecision> logic = handlerLogic.get();
         if (logic == null) {
             throw new IllegalStateException("TestCommandHandler logic not set. Call setHandlerLogic() in test setup.");

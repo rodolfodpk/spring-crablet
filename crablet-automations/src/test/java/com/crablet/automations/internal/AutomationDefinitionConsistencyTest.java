@@ -6,7 +6,6 @@ import com.crablet.automations.config.AutomationsConfig;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.ExecutionResult;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
@@ -149,14 +148,14 @@ class AutomationDefinitionConsistencyTest {
 
     private static CommandExecutor noOpExecutor() {
         return new CommandExecutor() {
-            @Override public <T> ExecutionResult execute(@NonNull T command) { return null; }
+            @Override public <T> ExecutionResult execute(T command) { return null; }
 
             @Override
-            public <T> ExecutionResult execute(@NonNull T command, @Nullable UUID correlationId) {
+            public <T> ExecutionResult execute(T command, @Nullable UUID correlationId) {
                 return execute(command);
             }
 
-            @Override public <T> ExecutionResult execute(@NonNull T command, CommandHandler<T> handler) { return null; }
+            @Override public <T> ExecutionResult execute(T command, CommandHandler<T> handler) { return null; }
         };
     }
 

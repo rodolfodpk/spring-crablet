@@ -2,7 +2,6 @@ package com.crablet.views;
 
 import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.StoredEvent;
-import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 
@@ -29,7 +28,7 @@ public interface ViewProjector {
      * Handle a batch of events.
      * The write datasource is owned by the projector (injected at construction time).
      */
-    int handle(@NonNull String viewName, @NonNull List<StoredEvent> events) throws Exception;
+    int handle(String viewName, List<StoredEvent> events) throws Exception;
 
     /**
      * Build a {@link ViewSubscription} for this projector using the given event types.
@@ -44,7 +43,7 @@ public interface ViewProjector {
      * For subscriptions that also require tag filtering, use
      * {@link ViewSubscription#builder(String)} directly.
      */
-    default @NonNull ViewSubscription subscription(@NonNull String... eventTypes) {
+    default ViewSubscription subscription(String... eventTypes) {
         return ViewSubscription.builder(getViewName())
                 .eventTypes(eventTypes)
                 .build();

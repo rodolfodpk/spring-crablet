@@ -1,6 +1,5 @@
 package com.crablet.eventpoller.wakeup;
 
-import org.jspecify.annotations.NonNull;
 
 /**
  * Default wakeup source factory used when notifications are disabled.
@@ -8,7 +7,7 @@ import org.jspecify.annotations.NonNull;
 public final class NoopProcessorWakeupSourceFactory implements ProcessorWakeupSourceFactory {
 
     @Override
-    public @NonNull ProcessorWakeupSource create() {
+    public ProcessorWakeupSource create() {
         return new NoopProcessorWakeupSource();
     }
 }

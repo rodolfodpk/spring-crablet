@@ -8,7 +8,6 @@ import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
-import org.jspecify.annotations.NonNull;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -42,7 +41,7 @@ class CommandExecutorImplConstructorTest {
         // This handler will fail type extraction because it doesn't have @JsonSubTypes
         class InvalidHandler implements CommandHandler<Object> {
             @Override
-            public CommandDecision handle(@NonNull EventStore eventStore, @NonNull Object command) {
+            public CommandDecision handle(EventStore eventStore, Object command) {
                 return null;
             }
         }

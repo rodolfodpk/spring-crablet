@@ -2,7 +2,6 @@ package com.crablet.command;
 
 import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.EventStore;
-import org.jspecify.annotations.NonNull;
 
 /**
  * Specialization of {@link CommandHandler} for <b>idempotent</b> operations —
@@ -30,10 +29,10 @@ public interface IdempotentCommandHandler<C> extends CommandHandler<C> {
      * @param command    the command to handle
      * @return idempotent decision carrying events and idempotency tag
      */
-    CommandDecision.Idempotent decide(@NonNull EventStore eventStore, @NonNull C command);
+    CommandDecision.Idempotent decide(EventStore eventStore, C command);
 
     @Override
-    default CommandDecision handle(@NonNull EventStore eventStore, @NonNull C command) {
+    default CommandDecision handle(EventStore eventStore, C command) {
         return decide(eventStore, command);
     }
 }

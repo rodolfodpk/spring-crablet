@@ -1,6 +1,5 @@
 package com.crablet.eventpoller.progress;
 
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -13,12 +12,12 @@ public interface ProgressTracker<I> {
     /**
      * Get last processed position.
      */
-    long getLastPosition(@NonNull I processorId);
+    long getLastPosition(I processorId);
 
     /**
      * Update progress after successful processing.
      */
-    void updateProgress(@NonNull I processorId, long position);
+    void updateProgress(I processorId, long position);
 
     /**
      * Record an error.
@@ -27,22 +26,22 @@ public interface ProgressTracker<I> {
      * @param error Error message
      * @param maxErrors Maximum errors before marking as FAILED
      */
-    void recordError(@NonNull I processorId, @Nullable String error, int maxErrors);
+    void recordError(I processorId, @Nullable String error, int maxErrors);
 
     /**
      * Reset error count.
      */
-    void resetErrorCount(@NonNull I processorId);
+    void resetErrorCount(I processorId);
 
     /**
      * Get processor status.
      */
-    @NonNull ProcessorStatus getStatus(@NonNull I processorId);
+    ProcessorStatus getStatus(I processorId);
 
     /**
      * Set processor status.
      */
-    void setStatus(@NonNull I processorId, @NonNull ProcessorStatus status);
+    void setStatus(I processorId, ProcessorStatus status);
 
     /**
      * Auto-register processor if not exists.
@@ -50,6 +49,6 @@ public interface ProgressTracker<I> {
      * @param processorId Processor identifier
      * @param instanceId Instance ID for leader tracking
      */
-    void autoRegister(@NonNull I processorId, @NonNull String instanceId);
+    void autoRegister(I processorId, String instanceId);
 }
 

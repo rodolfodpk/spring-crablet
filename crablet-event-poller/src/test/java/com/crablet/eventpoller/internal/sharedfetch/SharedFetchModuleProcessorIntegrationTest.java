@@ -17,7 +17,6 @@ import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.test.config.CrabletFlywayConfiguration;
 import com.crablet.test.cleanup.IntegrationTestDbCleanup;
-import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -573,16 +572,16 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
         private final Map<String, ProcessorStatus> statuses = new ConcurrentHashMap<>();
         private final Map<String, Integer> errorCounts = new ConcurrentHashMap<>();
 
-        @Override public long getLastPosition(@NonNull String id) { return positions.getOrDefault(id, 0L); }
-        @Override public void updateProgress(@NonNull String id, long pos) { positions.put(id, pos); }
-        @Override public void recordError(@NonNull String id, @Nullable String err, int max) {
+        @Override public long getLastPosition(String id) { return positions.getOrDefault(id, 0L); }
+        @Override public void updateProgress(String id, long pos) { positions.put(id, pos); }
+        @Override public void recordError(String id, @Nullable String err, int max) {
             int count = errorCounts.merge(id, 1, Integer::sum);
             if (count >= max) statuses.put(id, ProcessorStatus.FAILED);
         }
-        @Override public void resetErrorCount(@NonNull String id) { errorCounts.put(id, 0); }
-        @Override public @NonNull ProcessorStatus getStatus(@NonNull String id) { return statuses.getOrDefault(id, ProcessorStatus.ACTIVE); }
-        @Override public void setStatus(@NonNull String id, @NonNull ProcessorStatus s) { statuses.put(id, s); }
-        @Override public void autoRegister(@NonNull String id, @NonNull String instanceId) { positions.putIfAbsent(id, 0L); }
+        @Override public void resetErrorCount(String id) { errorCounts.put(id, 0); }
+        @Override public ProcessorStatus getStatus(String id) { return statuses.getOrDefault(id, ProcessorStatus.ACTIVE); }
+        @Override public void setStatus(String id, ProcessorStatus s) { statuses.put(id, s); }
+        @Override public void autoRegister(String id, String instanceId) { positions.putIfAbsent(id, 0L); }
 
         void reset() { positions.clear(); statuses.clear(); errorCounts.clear(); }
     }
@@ -592,7 +591,7 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
         private volatile boolean shouldThrow = false;
 
         @Override
-        public int handle(@NonNull String processorId, @NonNull List<StoredEvent> events) throws Exception {
+        public int handle(String processorId, List<StoredEvent> events) throws Exception {
             if (shouldThrow) throw new RuntimeException("Simulated handler failure");
             handled.addAll(events);
             return events.size();

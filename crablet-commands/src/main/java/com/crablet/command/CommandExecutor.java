@@ -1,7 +1,6 @@
 package com.crablet.command;
 
 import com.crablet.eventstore.Stable;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
@@ -26,7 +25,7 @@ public interface CommandExecutor {
      * @param command the command to execute
      * @return ExecutionResult indicating whether the operation was new or idempotent
      */
-    <T> ExecutionResult execute(@NonNull T command);
+    <T> ExecutionResult execute(T command);
 
     /**
      * Execute a command within a single transaction, binding an explicit correlation ID.
@@ -45,7 +44,7 @@ public interface CommandExecutor {
      * @param correlationId the correlation ID to attach to all appended events, or {@code null}
      * @return ExecutionResult indicating whether the operation was new or idempotent
      */
-    <T> ExecutionResult execute(@NonNull T command, @Nullable UUID correlationId);
+    <T> ExecutionResult execute(T command, @Nullable UUID correlationId);
 
     /**
      * Execute a command within a single transaction using an explicit handler.
@@ -59,5 +58,5 @@ public interface CommandExecutor {
      * @param handler the handler to use for this command (must be {@code CommandHandler<T>})
      * @return ExecutionResult indicating whether the operation was new or idempotent
      */
-    <T> ExecutionResult execute(@NonNull T command, @NonNull CommandHandler<T> handler);
+    <T> ExecutionResult execute(T command, CommandHandler<T> handler);
 }

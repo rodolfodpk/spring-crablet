@@ -2,7 +2,6 @@ package com.crablet.command;
 
 import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.EventStore;
-import org.jspecify.annotations.NonNull;
 
 /**
  * Specialization of {@link CommandHandler} for <b>commutative</b> operations —
@@ -39,10 +38,10 @@ public interface CommutativeCommandHandler<C> extends CommandHandler<C> {
      * @param command    the command to handle
      * @return {@link CommandDecision.Commutative} or {@link CommandDecision.CommutativeGuarded}
      */
-    CommandDecision.CommutativeDecision decide(@NonNull EventStore eventStore, @NonNull C command);
+    CommandDecision.CommutativeDecision decide(EventStore eventStore, C command);
 
     @Override
-    default CommandDecision handle(@NonNull EventStore eventStore, @NonNull C command) {
+    default CommandDecision handle(EventStore eventStore, C command) {
         return decide(eventStore, command);
     }
 }

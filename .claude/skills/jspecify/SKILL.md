@@ -11,6 +11,19 @@ description: >
 
 Jspecify provides a set of annotations to explicitly declare the nullness expectations of the Java code.
 
+## Correct JSpecify mental model
+
+Prefer package-level defaults over annotating every type.
+
+- Add `@NullMarked` to packages that should be checked.
+- Inside a `@NullMarked` package, reference types are non-null by default.
+- Use `@Nullable` only where `null` is a valid value.
+- Do **not** add `@NonNull` to normal parameters, return types, fields, or type arguments inside `@NullMarked` scope. It is redundant and creates noisy IDE inspections such as "Redundant nullability annotation in the scope of @NullMarked".
+- Keep `@NonNull` only in code that is not under `@NullMarked`, or when overriding/implementing APIs from unmarked code and the annotation is needed to communicate the contract.
+- Runtime null guards are separate from nullness annotations. Keep explicit null checks at public/framework boundaries when they provide a deliberate exception type or message.
+
+When cleaning an existing codebase, first remove redundant `org.jspecify.annotations.NonNull` imports and `@NonNull` usages from `@NullMarked` packages, then compile with NullAway/JSpecify mode. Do not remove `@Nullable` annotations unless the code contract actually changes.
+
 ## Add jSpecify support in Maven projects
 If you are using Maven, then add the jspecify dependency in `pom.xml`.
 In `pom.xml`, update or add the `maven-compiler-plugin`, to include the following configuration.
@@ -105,6 +118,8 @@ package com.mycompnay.myproject;
 
 If `package-info.java` file already exists, update the file to add `@org.jspecify.annotations.NullMarked` annotation.
 DO NOT REMOVE ANY OTHER EXISTING CODE IN `package-info.java` FILE.
+
+After adding `@NullMarked`, do not annotate every non-null API with `@NonNull`. The package annotation already does that work.
 
 ## Verify jSpecify support
 If python is installed, after adding the jSpecify support, run `scripts/verify_nullmarked.py` 

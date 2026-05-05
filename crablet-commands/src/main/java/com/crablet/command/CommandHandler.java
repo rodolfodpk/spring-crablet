@@ -2,7 +2,6 @@ package com.crablet.command;
 
 import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.EventStore;
-import org.jspecify.annotations.NonNull;
 
 /**
  * Generic interface for type-safe command handling.
@@ -30,5 +29,5 @@ public interface CommandHandler<T> {
      * @param command    The command to handle
      * @return the command decision describing how the events should be appended
      */
-    CommandDecision handle(@NonNull EventStore eventStore, @NonNull T command);
+    CommandDecision handle(EventStore eventStore, T command);
 }

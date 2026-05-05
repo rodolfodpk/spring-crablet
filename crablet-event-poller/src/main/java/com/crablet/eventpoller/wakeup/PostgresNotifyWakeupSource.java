@@ -1,6 +1,5 @@
 package com.crablet.eventpoller.wakeup;
 
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
@@ -38,7 +37,7 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
     }
 
     @Override
-    public synchronized void start(@NonNull Runnable onWakeup) {
+    public synchronized void start(Runnable onWakeup) {
         if (!running.compareAndSet(false, true)) {
             return;
         }
@@ -58,7 +57,7 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
         }
     }
 
-    private void listenLoop(@NonNull Runnable onWakeup) {
+    private void listenLoop(Runnable onWakeup) {
         try {
             Connection listenConnection = username == null && password == null
                     ? DriverManager.getConnection(jdbcUrl)

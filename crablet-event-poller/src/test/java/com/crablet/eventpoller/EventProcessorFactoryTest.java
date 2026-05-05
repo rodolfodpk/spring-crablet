@@ -11,7 +11,6 @@ import com.crablet.eventpoller.wakeup.ProcessorWakeupSource;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
-import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.jspecify.annotations.Nullable;
@@ -159,13 +158,13 @@ class EventProcessorFactoryTest {
     }
 
     static class TestProgressTracker implements ProgressTracker<String> {
-        @Override public long getLastPosition(@NonNull String processorId) { return 0; }
-        @Override public void updateProgress(@NonNull String processorId, long position) {}
-        @Override public void recordError(@NonNull String processorId, @Nullable String error, int maxErrors) {}
-        @Override public void resetErrorCount(@NonNull String processorId) {}
-        @Override public @NonNull ProcessorStatus getStatus(@NonNull String processorId) { return ProcessorStatus.ACTIVE; }
-        @Override public void setStatus(@NonNull String processorId, @NonNull ProcessorStatus status) {}
-        @Override public void autoRegister(@NonNull String processorId, @NonNull String instanceId) {}
+        @Override public long getLastPosition(String processorId) { return 0; }
+        @Override public void updateProgress(String processorId, long position) {}
+        @Override public void recordError(String processorId, @Nullable String error, int maxErrors) {}
+        @Override public void resetErrorCount(String processorId) {}
+        @Override public ProcessorStatus getStatus(String processorId) { return ProcessorStatus.ACTIVE; }
+        @Override public void setStatus(String processorId, ProcessorStatus status) {}
+        @Override public void autoRegister(String processorId, String instanceId) {}
     }
 
     static class TestProcessorConfig implements ProcessorConfig<String> {
@@ -175,7 +174,7 @@ class EventProcessorFactoryTest {
             this.id = id;
         }
 
-        @Override public @NonNull String getProcessorId() { return id; }
+        @Override public String getProcessorId() { return id; }
         @Override public long getPollingIntervalMs() { return 1000L; }
         @Override public int getBatchSize() { return 100; }
         @Override public boolean isBackoffEnabled() { return true; }

@@ -16,7 +16,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
-import org.springframework.lang.NonNull;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -367,7 +366,7 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
         final List<Object> events = new ArrayList<>();
 
         @Override
-        public void publishEvent(@NonNull Object event) {
+        public void publishEvent(Object event) {
             events.add(event);
         }
     }

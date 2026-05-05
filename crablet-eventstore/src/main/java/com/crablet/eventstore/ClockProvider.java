@@ -1,7 +1,6 @@
 package com.crablet.eventstore;
 
 import com.crablet.eventstore.internal.ClockProviderImpl;
-import org.jspecify.annotations.NonNull;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -18,7 +17,7 @@ public interface ClockProvider {
      *
      * @return Current instant
      */
-    @NonNull Instant now();
+    Instant now();
 
     /**
      * Set a fixed clock for testing purposes.
@@ -26,7 +25,7 @@ public interface ClockProvider {
      *
      * @param clock The clock to use
      */
-    void setClock(@NonNull Clock clock);
+    void setClock(Clock clock);
 
     /**
      * Reset to system clock.

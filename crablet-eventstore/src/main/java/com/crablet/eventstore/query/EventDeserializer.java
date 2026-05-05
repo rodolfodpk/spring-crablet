@@ -1,7 +1,6 @@
 package com.crablet.eventstore.query;
 
 import com.crablet.eventstore.StoredEvent;
-import org.jspecify.annotations.NonNull;
 
 /**
  * EventDeserializer provides utilities for deserializing events during projection.
@@ -22,6 +21,6 @@ public interface EventDeserializer {
      * @return Deserialized event instance
      * @throws RuntimeException if deserialization fails
      */
-    <E> @NonNull E deserialize(@NonNull StoredEvent event, @NonNull Class<E> eventType);
+    <E> E deserialize(StoredEvent event, Class<E> eventType);
 }
 
