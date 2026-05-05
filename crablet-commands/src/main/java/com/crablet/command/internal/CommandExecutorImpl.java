@@ -21,6 +21,7 @@ import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.Tag;
 import com.crablet.eventstore.query.StateProjector;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
@@ -134,13 +135,13 @@ public class CommandExecutorImpl implements CommandExecutor {
     }
 
     @Override
-    public <T> ExecutionResult execute(T command) {
+    public <T> ExecutionResult execute(@NonNull T command) {
         CommandHandler<T> handler = getHandlerForCommand(command);
         return execute(command, handler);
     }
 
     @Override
-    public <T> ExecutionResult execute(T command, @Nullable UUID correlationId) {
+    public <T> ExecutionResult execute(@NonNull T command, @Nullable UUID correlationId) {
         if (correlationId == null) {
             return execute(command);
         }
@@ -155,7 +156,7 @@ public class CommandExecutorImpl implements CommandExecutor {
     }
 
     @Override
-    public <T> ExecutionResult execute(T command, CommandHandler<T> handler) {
+    public <T> ExecutionResult execute(@NonNull T command, @NonNull CommandHandler<T> handler) {
         // Validate command
         if (command == null) {
             throw new InvalidCommandException("Command cannot be null", "NULL_COMMAND");
@@ -324,7 +325,7 @@ public class CommandExecutorImpl implements CommandExecutor {
      * @return typed handler CommandHandler<T>
      */
     @SuppressWarnings("unchecked")
-    private <T> CommandHandler<T> getHandlerForCommand(T command) {
+    private <T> CommandHandler<T> getHandlerForCommand(@NonNull T command) {
         if (command == null) {
             throw new InvalidCommandException("Command cannot be null", "NULL_COMMAND");
         }
@@ -360,7 +361,7 @@ public class CommandExecutorImpl implements CommandExecutor {
      * Validate command result with fail-fast principles.
      * Throws immediately on any validation failure.
      */
-    private <T> void validateCommandDecision(CommandDecision result, T command) {
+    private <T> void validateCommandDecision(CommandDecision result, @NonNull T command) {
         // Fail fast: Validate events list is not null
         if (result.events() == null) {
             throw new InvalidCommandException("Handler returned null events", command);
@@ -397,7 +398,8 @@ public class CommandExecutorImpl implements CommandExecutor {
      * Handle ConcurrencyException by consulting the domain's declared {@link OnDuplicate} policy.
      * Returns ExecutionResult for idempotent duplicate operations, throws for others.
      */
-    private <T> ExecutionResult handleConcurrencyException(ConcurrencyException e, String commandType, T command,
+    private <T> ExecutionResult handleConcurrencyException(ConcurrencyException e, String commandType,
+                                                           @NonNull T command,
                                                            CommandDecision result) {
         String message = e.getMessage();
         if (message == null || !message.toLowerCase().contains("duplicate operation detected")) {
@@ -416,7 +418,7 @@ public class CommandExecutorImpl implements CommandExecutor {
     /**
      * Handle idempotent result with fail-fast principles.
      */
-    private ExecutionResult handleIdempotentResult(@org.jspecify.annotations.Nullable String reason, String commandType) {
+    private ExecutionResult handleIdempotentResult(@Nullable String reason, String commandType) {
         String r = reason != null ? reason : "DUPLICATE_OPERATION";
         log.debug("Transaction committed successfully for command: {} (idempotent)", commandType);
         return ExecutionResult.idempotent(r);
