@@ -77,6 +77,12 @@ markmap:
 ### Read path — ViewProjector + async poller + materialized views
 ### Automation path — AutomationHandler reacts to committed events and emits commands
 ### Translation path — outbox publishes committed events to external systems
+### Event selection — shared eventTypes + required/any-of/exact tag filters
+#### Views expose it through ViewSubscription
+#### Automations expose it through AutomationDefinition / AutomationHandler
+#### Outbox exposes it through TopicConfig
+#### Empty dimensions mean unrestricted; configured dimensions combine with AND
+#### Legacy fetch applies selection in SQL; shared-fetch applies the same selection during in-memory routing
 ### Event spine — immutable events connect commands, views, automations, and outbox
 ### Slice shape — trigger + command + event + view
 ### event-model.yaml — structural source of truth for code generation
@@ -108,16 +114,19 @@ markmap:
 #### AbstractTypedViewProjector — sealed interface pattern matching
 ### crablet-outbox
 #### OutboxPublisher — reliable external event delivery
+#### TopicConfig — event selection + publisher routing
 #### Transactional outbox pattern
 #### Per-(topic, publisher) processor
 ### crablet-automations
 #### AutomationHandler — event-driven command emission
+#### AutomationDefinition — event selection for automation wakeups
 #### AutomationDecision — decide what command to emit
 #### Leader election per processor
 ### crablet-event-poller
 #### EventProcessor — shared polling infrastructure
+#### EventSelection — event types + tag filter contract
 #### Leader election via PostgreSQL advisory locks
-#### Shared-fetch mode — one query per cycle
+#### Shared-fetch mode — one query per module cycle, same selection semantics
 #### LISTEN/NOTIFY wakeup (opt-in)
 
 ## Examples

@@ -41,6 +41,7 @@ Treat these as current repository policy unless the change explicitly revises th
 - `AutomationHandler` is the single public automation contract; `AutomationSubscription` has been removed.
 - Automations decide commands/reactions. Reliable external publication belongs in `crablet-outbox`.
 - `crablet-event-poller` owns shared event matching and per-instance override abstractions: `EventSelection`, `EventSelectionSqlBuilder`, `EventSelectionMatcher`, `ProcessorRuntimeOverrides`, and `ProcessorRuntimeOverrideResolver`.
+- Views, automations, and outbox topics expose the same `EventSelection` mental model: `eventTypes`, `requiredTags`, `anyOfTags`, and `exactTags`; empty dimensions are unrestricted, dimensions combine with AND, legacy fetch applies the selection in SQL, and shared-fetch applies the same selection during in-memory routing.
 - Generic poller handlers should not accept raw `DataSource`.
 - View projection writes are owned by `crablet-views`, not by the generic poller contract.
 - Poller-backed modules model global module defaults plus per-processor configuration.
