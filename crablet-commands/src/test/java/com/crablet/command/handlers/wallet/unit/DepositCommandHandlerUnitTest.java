@@ -1,8 +1,8 @@
 package com.crablet.command.handlers.wallet.unit;
 
 import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
-import com.crablet.examples.wallet.commands.DepositCommandHandler;
 import com.crablet.examples.wallet.commands.DepositCommand;
+import com.crablet.examples.wallet.commands.DepositCommandHandler;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WalletStatementOpened;
@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static com.crablet.eventstore.period.PeriodTags.monthly;
 import static com.crablet.eventstore.EventType.type;
+import static com.crablet.eventstore.period.PeriodTags.monthly;
 import static com.crablet.examples.wallet.WalletTags.WALLET_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

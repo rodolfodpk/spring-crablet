@@ -1,6 +1,5 @@
 package com.crablet.views.config;
 
-import com.crablet.eventstore.Internal;
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventProcessorFactory;
@@ -19,23 +18,24 @@ import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSource;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
 import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.Internal;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.views.ViewProjector;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import com.crablet.views.ViewSubscription;
 import com.crablet.views.internal.ViewEventFetcher;
 import com.crablet.views.internal.ViewEventHandler;
 import com.crablet.views.internal.ViewProcessorConfig;
 import com.crablet.views.internal.ViewProgressTracker;
 import com.crablet.views.service.ViewManagementService;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.TaskScheduler;
 
 import java.util.HashMap;

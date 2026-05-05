@@ -5,15 +5,15 @@ import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.processor.ProcessorConfig;
-import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventpoller.progress.ProcessorStatus;
+import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSource;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.TaskScheduler;
 
@@ -50,7 +50,6 @@ class EventProcessorFactoryTest {
                 mockProgressTracker(),
                 (processorId, lastPosition, batchSize) -> List.of(),
                 (processorId, events) -> 0,
-                new WriteDataSource(mock(DataSource.class)),
                 mock(TaskScheduler.class),
                 mock(ApplicationEventPublisher.class));
 
@@ -72,7 +71,6 @@ class EventProcessorFactoryTest {
                 mockProgressTracker(),
                 (processorId, lastPosition, batchSize) -> List.of(),
                 (processorId, events) -> 0,
-                new WriteDataSource(mock(DataSource.class)),
                 mock(TaskScheduler.class),
                 mock(ApplicationEventPublisher.class),
                 wakeupFactory,

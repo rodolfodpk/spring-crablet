@@ -1,11 +1,12 @@
 package com.crablet.outbox.internal;
 
-import com.crablet.outbox.TopicPublisherPair;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventstore.StoredEvent;
+import com.crablet.outbox.TopicPublisherPair;
 import com.crablet.outbox.publishing.OutboxPublishingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.List;
 
 /**

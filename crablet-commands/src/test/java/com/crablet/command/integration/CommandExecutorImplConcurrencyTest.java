@@ -2,10 +2,10 @@ package com.crablet.command.integration;
 
 import com.crablet.command.CommandDecision;
 import com.crablet.command.ExecutionResult;
-import com.crablet.eventstore.ConcurrencyException;
-import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.AppendEvent;
+import com.crablet.eventstore.ConcurrencyException;
 import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.query.Query;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

@@ -1,17 +1,17 @@
 package com.crablet.views;
 
-import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.CorrelationContext;
+import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.WriteDataSource;
-import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 

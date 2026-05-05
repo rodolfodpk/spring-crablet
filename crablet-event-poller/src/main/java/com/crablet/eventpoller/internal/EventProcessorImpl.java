@@ -15,8 +15,8 @@ import com.crablet.eventpoller.wakeup.ProcessorWakeupSource;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.StoredEvent;
 import jakarta.annotation.PostConstruct;
-import org.jspecify.annotations.Nullable;
 import jakarta.annotation.PreDestroy;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -24,13 +24,14 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.TaskScheduler;
-import javax.sql.DataSource;
+
 import java.io.EOFException;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -59,8 +60,8 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
 
     // Track backoff states
     private final Map<I, BackoffState> backoffStates = new ConcurrentHashMap<>();
-    private final Map<I, Boolean> runningProcessors = new ConcurrentHashMap<>();
-    private final Map<I, Boolean> immediateRunRequested = new ConcurrentHashMap<>();
+    private final Set<I> runningProcessors = ConcurrentHashMap.newKeySet();
+    private final Set<I> immediateRunRequested = ConcurrentHashMap.newKeySet();
 
     // Leader retry scheduler
     private @Nullable ScheduledFuture<?> leaderRetryScheduler;
@@ -81,10 +82,9 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             ProgressTracker<I> progressTracker,
             EventFetcher<I> eventFetcher,
             EventHandler<I> eventHandler,
-            DataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher) {
-        this(configs, leaderElector, progressTracker, eventFetcher, eventHandler, writeDataSource, taskScheduler, eventPublisher, new NoopProcessorWakeupSource(), 5000L, 500L, ClockProvider.systemDefault());
+        this(configs, leaderElector, progressTracker, eventFetcher, eventHandler, taskScheduler, eventPublisher, new NoopProcessorWakeupSource(), 5000L, 500L, ClockProvider.systemDefault());
     }
 
     public EventProcessorImpl(
@@ -93,11 +93,10 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             ProgressTracker<I> progressTracker,
             EventFetcher<I> eventFetcher,
             EventHandler<I> eventHandler,
-            DataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher,
             ProcessorWakeupSource wakeupSource) {
-        this(configs, leaderElector, progressTracker, eventFetcher, eventHandler, writeDataSource, taskScheduler, eventPublisher, wakeupSource, 5000L, 500L, ClockProvider.systemDefault());
+        this(configs, leaderElector, progressTracker, eventFetcher, eventHandler, taskScheduler, eventPublisher, wakeupSource, 5000L, 500L, ClockProvider.systemDefault());
     }
 
     public EventProcessorImpl(
@@ -106,7 +105,6 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             ProgressTracker<I> progressTracker,
             EventFetcher<I> eventFetcher,
             EventHandler<I> eventHandler,
-            DataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher,
             ProcessorWakeupSource wakeupSource,
@@ -367,7 +365,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             }
 
             BackoffState backoffState = backoffStates.get(processorId);
-            acquiredRunSlot = runningProcessors.putIfAbsent(processorId, Boolean.TRUE) == null;
+            acquiredRunSlot = runningProcessors.add(processorId);
             if (!acquiredRunSlot) {
                 log.trace("Processor {} is already running, skipping duplicate scheduled task", processorId);
                 return;
@@ -411,7 +409,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
         } finally {
             if (acquiredRunSlot) {
                 runningProcessors.remove(processorId);
-                if (immediateRunRequested.remove(processorId) != null) {
+                if (immediateRunRequested.remove(processorId)) {
                     nextDelayMs = 0L;
                 }
                 scheduleProcessorRun(processorId, nextDelayMs);
@@ -431,7 +429,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
                 continue;
             }
 
-            immediateRunRequested.put(processorId, Boolean.TRUE);
+            immediateRunRequested.add(processorId);
             ScheduledFuture<?> existing = activeSchedulers.get(processorId);
             if (existing != null) {
                 existing.cancel(false);

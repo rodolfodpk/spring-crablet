@@ -1,11 +1,11 @@
 package com.crablet.command.handlers.unit;
 
-import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandDecision;
-import com.crablet.eventstore.period.PeriodTags;
+import com.crablet.command.CommandHandler;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.Tag;
+import com.crablet.eventstore.period.PeriodTags;
 import com.crablet.test.InMemoryEventStore;
 import org.assertj.core.api.Assertions;
 

@@ -5,14 +5,14 @@ import com.crablet.eventstore.AppendConditionBuilder;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.CommandAuditStore;
-import com.crablet.eventstore.CorrelationContext;
 import com.crablet.eventstore.ConcurrencyException;
+import com.crablet.eventstore.CorrelationContext;
 import com.crablet.eventstore.DCBViolation;
 import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.EventStoreException;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.StreamPosition;
-import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.Tag;
 import com.crablet.eventstore.metrics.ConcurrencyViolationMetric;
 import com.crablet.eventstore.metrics.EventTypeMetric;
@@ -23,15 +23,16 @@ import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.StateProjector;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.RowMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
@@ -42,13 +43,11 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.UUID;
-import org.jspecify.annotations.Nullable;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Function;
 
 /**
@@ -564,10 +563,11 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 String jsonResult = rs.getString(1);
                 return parseAppendResult(jsonResult, null);
             }
+        } catch (ConcurrencyException e) {
+            eventPublisher.publishEvent(new ConcurrencyViolationMetric());
+            throw e;
         } catch (SQLException e) {
             throw new EventStoreException("Failed to append events with condition using connection", e);
-        } catch (ConcurrencyException e) {
-            throw e;
         }
     }
 

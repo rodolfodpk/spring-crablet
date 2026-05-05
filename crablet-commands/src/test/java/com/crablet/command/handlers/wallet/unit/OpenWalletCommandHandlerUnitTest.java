@@ -1,8 +1,8 @@
 package com.crablet.command.handlers.wallet.unit;
 
 import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
-import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
+import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.events.WalletOpened;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

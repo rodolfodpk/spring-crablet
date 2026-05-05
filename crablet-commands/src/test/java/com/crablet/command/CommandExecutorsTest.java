@@ -1,9 +1,9 @@
 package com.crablet.command;
 
+import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
-import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.StreamPosition;
 import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.query.ProjectionResult;
@@ -18,7 +18,6 @@ import tools.jackson.databind.json.JsonMapper;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
-
 
 import static org.assertj.core.api.Assertions.assertThat;
 

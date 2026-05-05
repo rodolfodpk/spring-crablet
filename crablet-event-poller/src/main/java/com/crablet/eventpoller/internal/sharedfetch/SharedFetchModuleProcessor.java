@@ -5,6 +5,7 @@ import com.crablet.eventpoller.EventSelection;
 import com.crablet.eventpoller.EventSelectionMatcher;
 import com.crablet.eventpoller.internal.BackoffState;
 import com.crablet.eventpoller.leader.LeaderElector;
+import com.crablet.eventpoller.metrics.ProcessingCycleMetric;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.eventpoller.progress.ProcessorStatus;
@@ -15,8 +16,8 @@ import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
 import jakarta.annotation.PostConstruct;
-import org.jspecify.annotations.Nullable;
 import jakarta.annotation.PreDestroy;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -75,6 +76,7 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
     private final DataSource readDataSource;
     private final int fetchBatchSize;
     private final TaskScheduler taskScheduler;
+    private final ApplicationEventPublisher eventPublisher;
     private final Function<I, String> idSerializer;
     private final ProcessorWakeupSource wakeupSource;
     private final ClockProvider clockProvider;
@@ -91,6 +93,7 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
     private final Object lifecycleMonitor = new Object();
     private volatile @Nullable ScheduledFuture<?> sharedSchedule;
     private volatile @Nullable ScheduledFuture<?> leaderRetrySchedule;
+    private volatile @Nullable ScheduledFuture<?> pendingImmediatePoll;
 
     public SharedFetchModuleProcessor(
             Map<I, C> configs,
@@ -162,6 +165,7 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
         this.readDataSource = readDataSource;
         this.fetchBatchSize = fetchBatchSize;
         this.taskScheduler = taskScheduler;
+        this.eventPublisher = eventPublisher;
         this.idSerializer = idSerializer;
         this.wakeupSource = wakeupSource;
         this.clockProvider = clockProvider;
@@ -323,6 +327,7 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
 
             if (events.isEmpty()) {
                 moduleBackoff.recordEmpty();
+                eventPublisher.publishEvent(new ProcessingCycleMetric(moduleName, instanceId, 0, true));
                 return;
             }
 
@@ -374,6 +379,7 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
                 moduleBackoff.recordSuccess();
             }
             // neutral (fetched but nothing dispatched): no backoff change
+            eventPublisher.publishEvent(new ProcessingCycleMetric(moduleName, instanceId, events.size(), !anyDispatched));
 
             List<I> catchingUpSnapshot = List.copyOf(catchingUpSet);
             for (I id : catchingUpSnapshot) {
@@ -555,7 +561,7 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
     private void requestImmediatePoll() {
         if (shuttingDown) return;
         if (!cycleRunning.get()) {
-            var unused = taskScheduler.schedule(this::runSharedCycle, clockProvider.now());
+            pendingImmediatePoll = taskScheduler.schedule(this::runSharedCycle, clockProvider.now());
         }
     }
 
@@ -582,6 +588,10 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
             if (leaderRetrySchedule != null) {
                 leaderRetrySchedule.cancel(false);
                 leaderRetrySchedule = null;
+            }
+            if (pendingImmediatePoll != null) {
+                pendingImmediatePoll.cancel(false);
+                pendingImmediatePoll = null;
             }
             wakeupSource.close();
             leaderElector.releaseGlobalLeader();

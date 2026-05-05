@@ -2,30 +2,30 @@ package com.crablet;
 
 import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventstore.ClockProvider;
-import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
+import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.outbox.config.GlobalStatisticsConfig;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.config.TopicConfigurationProperties;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
+import com.crablet.test.config.CrabletFlywayConfiguration;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import com.crablet.test.config.CrabletFlywayConfiguration;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import javax.sql.DataSource;
 

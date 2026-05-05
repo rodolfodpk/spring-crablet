@@ -1,7 +1,7 @@
 package com.crablet.outbox;
 
-import com.crablet.eventstore.Stable;
 import com.crablet.eventpoller.EventSelection;
+import com.crablet.eventstore.Stable;
 
 import java.util.Arrays;
 import java.util.Collections;

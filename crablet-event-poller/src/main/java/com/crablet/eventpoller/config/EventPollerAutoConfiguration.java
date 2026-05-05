@@ -1,10 +1,10 @@
 package com.crablet.eventpoller.config;
 
-import com.crablet.eventstore.Internal;
 import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
 import com.crablet.eventpoller.wakeup.PostgresNotifyWakeupSourceFactory;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
+import com.crablet.eventstore.Internal;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

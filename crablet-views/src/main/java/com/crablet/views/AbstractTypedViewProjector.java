@@ -1,12 +1,12 @@
 package com.crablet.views;
 
-import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.WriteDataSource;
-import tools.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Generic abstract base class for view projectors that use sealed interfaces for type-safe event handling.

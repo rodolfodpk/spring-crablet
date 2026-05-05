@@ -1,9 +1,9 @@
 package com.crablet.command.handlers.wallet;
 
 import com.crablet.command.CommandDecision;
-import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.Tag;
+import com.crablet.eventstore.query.EventRepository;
 import com.crablet.examples.wallet.commands.DepositCommand;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.examples.wallet.commands.WithdrawCommand;

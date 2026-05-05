@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg id="mindmap" class="markmap mindmap" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="2000" height="1100" viewBox="0 0 2000 1100"><style>.markmap {
+<svg id="mindmap" class="markmap mindmap" xmlns="http://www.w3.org/2000/svg" width="2000" height="1100"
+     viewBox="0 0 2000 1100"><style>.markmap {
   --markmap-max-width: 9999px;
   --markmap-a-color: #0097e6;
   --markmap-a-hover-color: #00a8ff;

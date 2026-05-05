@@ -1,8 +1,8 @@
 package com.crablet.eventpoller.internal;
 
 import com.crablet.eventpoller.EventFetcher;
-import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.EventHandler;
+import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.integration.AbstractEventProcessorTest;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.management.ProcessorManagementService;
@@ -19,10 +19,10 @@ import com.crablet.eventstore.Tag;
 import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.test.config.CrabletFlywayConfiguration;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
@@ -561,7 +561,6 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
                 ProgressTracker<String> progressTracker,
                 EventFetcher<String> eventFetcher,
                 EventHandler<String> eventHandler,
-                DataSource dataSource,
                 TaskScheduler taskScheduler,
                 ApplicationEventPublisher eventPublisher) {
             return new EventProcessorImpl<>(
@@ -570,7 +569,6 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
                 progressTracker,
                 eventFetcher,
                 eventHandler,
-                dataSource,
                 taskScheduler,
                 eventPublisher
             );

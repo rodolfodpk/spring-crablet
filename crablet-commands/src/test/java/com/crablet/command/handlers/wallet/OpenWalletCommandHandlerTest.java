@@ -2,13 +2,13 @@ package com.crablet.command.handlers.wallet;
 
 import com.crablet.command.CommandDecision;
 import com.crablet.eventstore.ConcurrencyException;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.Tag;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
-import com.crablet.eventstore.StoredEvent;
-import com.crablet.eventstore.Tag;
-import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
+import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.events.WalletOpened;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

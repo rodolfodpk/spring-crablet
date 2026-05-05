@@ -17,10 +17,10 @@ import com.crablet.eventstore.Tag;
 import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.test.config.CrabletFlywayConfiguration;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationEventPublisher;
@@ -681,7 +681,6 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
                 ProgressTracker<String> progressTracker,
                 EventFetcher<String> eventFetcher,
                 EventHandler<String> eventHandler,
-                DataSource writeDataSource,
                 TaskScheduler taskScheduler,
                 ApplicationEventPublisher eventPublisher) {
             return new EventProcessorImpl<>(
@@ -690,7 +689,6 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
                 progressTracker,
                 eventFetcher,
                 eventHandler,
-                writeDataSource,
                 taskScheduler,
                 eventPublisher
             );

@@ -3,15 +3,13 @@ package com.crablet.eventstore.query;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.test.InMemoryEventStore;
-
-import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
 
-import static com.crablet.eventstore.EventType.type;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**

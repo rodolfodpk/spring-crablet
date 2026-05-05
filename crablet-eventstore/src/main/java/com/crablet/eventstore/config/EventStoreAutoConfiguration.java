@@ -1,33 +1,33 @@
 package com.crablet.eventstore.config;
 
-import com.crablet.eventstore.Internal;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
+import com.crablet.eventstore.Internal;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.eventstore.internal.ClockProviderImpl;
-import com.crablet.eventstore.internal.EventStoreNotificationProperties;
 import com.crablet.eventstore.internal.EventRepositoryImpl;
 import com.crablet.eventstore.internal.EventStoreImpl;
+import com.crablet.eventstore.internal.EventStoreNotificationProperties;
 import com.crablet.eventstore.internal.ReadReplicaProperties;
 import com.crablet.eventstore.notify.EventAppendNotifier;
 import com.crablet.eventstore.notify.PostgresNotifyEventAppendNotifier;
 import com.crablet.eventstore.query.EventRepository;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import tools.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
+import tools.jackson.databind.ObjectMapper;
 
 import javax.sql.DataSource;
 

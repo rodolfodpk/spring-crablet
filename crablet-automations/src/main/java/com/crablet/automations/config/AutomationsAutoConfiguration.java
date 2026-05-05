@@ -1,6 +1,5 @@
 package com.crablet.automations.config;
 
-import com.crablet.eventstore.Internal;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.internal.AutomationDispatcher;
 import com.crablet.automations.internal.AutomationEventFetcher;
@@ -26,6 +25,7 @@ import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSource;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
 import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.Internal;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;

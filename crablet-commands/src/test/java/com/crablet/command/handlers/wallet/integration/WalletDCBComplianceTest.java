@@ -1,20 +1,20 @@
 package com.crablet.command.handlers.wallet.integration;
 
 import com.crablet.command.CommandExecutor;
-import com.crablet.examples.wallet.commands.DepositCommandHandler;
-import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
-import com.crablet.examples.wallet.commands.WithdrawCommandHandler;
-import com.crablet.test.AbstractCrabletTest;
+import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.wallet.WalletQueryPatterns;
 import com.crablet.examples.wallet.commands.DepositCommand;
+import com.crablet.examples.wallet.commands.DepositCommandHandler;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
+import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.commands.WithdrawCommand;
+import com.crablet.examples.wallet.commands.WithdrawCommandHandler;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;
+import com.crablet.test.AbstractCrabletTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

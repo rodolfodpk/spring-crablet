@@ -1,7 +1,7 @@
 package com.crablet.command;
 
-import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.Stable;
 
 /**
  * Generic interface for type-safe command handling.

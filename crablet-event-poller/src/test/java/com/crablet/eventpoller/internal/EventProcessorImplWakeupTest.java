@@ -15,7 +15,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.Trigger;
 
-import javax.sql.DataSource;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -139,7 +138,6 @@ class EventProcessorImplWakeupTest {
                 new StubProgressTracker(),
                 new StubEventFetcher(),
                 new StubEventHandler(),
-                mock(DataSource.class),
                 scheduler,
                 mock(ApplicationEventPublisher.class),
                 wakeupSource,

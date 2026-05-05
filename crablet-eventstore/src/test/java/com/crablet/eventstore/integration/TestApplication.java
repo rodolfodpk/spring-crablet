@@ -1,22 +1,22 @@
 package com.crablet.eventstore.integration;
 
 import com.crablet.eventstore.ClockProvider;
-import com.crablet.eventstore.internal.ClockProviderImpl;
-import com.crablet.eventstore.query.EventRepository;
-import com.crablet.eventstore.internal.EventRepositoryImpl;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
+import com.crablet.eventstore.internal.ClockProviderImpl;
+import com.crablet.eventstore.internal.EventRepositoryImpl;
 import com.crablet.eventstore.internal.EventStoreImpl;
+import com.crablet.eventstore.query.EventRepository;
 import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
 import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
+import com.crablet.test.config.CrabletFlywayConfiguration;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
-import com.crablet.test.config.CrabletFlywayConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.DependsOn;

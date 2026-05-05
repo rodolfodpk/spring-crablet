@@ -1,20 +1,20 @@
 package com.crablet.command.handlers.wallet.unit;
 
+import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.EventStore;
+import com.crablet.eventstore.StreamPosition;
 import com.crablet.eventstore.period.PeriodType;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
-import com.crablet.eventstore.AppendEvent;
-import com.crablet.eventstore.StreamPosition;
-import com.crablet.eventstore.EventStore;
 import com.crablet.examples.wallet.WalletQueryPatterns;
 import com.crablet.examples.wallet.events.WalletStatementOpened;
 import com.crablet.examples.wallet.period.PeriodConfigurationProvider;
 import com.crablet.examples.wallet.period.WalletPeriodHelper;
 import com.crablet.examples.wallet.period.WalletStatementId;
 import com.crablet.examples.wallet.period.WalletStatementPeriodResolver;
-import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
+import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 
 import java.time.Clock;
 import java.time.Instant;

@@ -1,28 +1,28 @@
 package com.crablet.eventstore.integration;
 
+import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.CommandAuditStore;
 import com.crablet.eventstore.ConcurrencyException;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.Tag;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
-import com.crablet.eventstore.AppendEvent;
-import com.crablet.eventstore.StreamPosition;
-import com.crablet.eventstore.StoredEvent;
-import com.crablet.eventstore.Tag;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;
-import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
-import tools.jackson.databind.ObjectMapper;
+import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Objects;

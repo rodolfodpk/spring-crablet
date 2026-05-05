@@ -1,7 +1,7 @@
 package com.crablet.automations;
 
-import com.crablet.eventstore.Stable;
 import com.crablet.eventpoller.EventSelection;
+import com.crablet.eventstore.Stable;
 
 /**
  * Shared matching contract for automations.

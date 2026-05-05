@@ -1,8 +1,8 @@
 package com.crablet.command.handlers.wallet.unit;
 
 import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
-import com.crablet.examples.wallet.commands.WithdrawCommandHandler;
 import com.crablet.examples.wallet.commands.WithdrawCommand;
+import com.crablet.examples.wallet.commands.WithdrawCommandHandler;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;

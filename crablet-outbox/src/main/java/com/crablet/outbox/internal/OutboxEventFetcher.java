@@ -1,11 +1,9 @@
 package com.crablet.outbox.internal;
 
-import com.crablet.outbox.TopicPublisherPair;
 import com.crablet.eventpoller.AbstractJdbcEventFetcher;
 import com.crablet.eventpoller.EventSelectionSqlBuilder;
 import com.crablet.outbox.TopicConfig;
-import com.crablet.outbox.config.OutboxConfig;
-
+import com.crablet.outbox.TopicPublisherPair;
 import org.jspecify.annotations.Nullable;
 
 import javax.sql.DataSource;
@@ -21,7 +19,6 @@ public class OutboxEventFetcher extends AbstractJdbcEventFetcher<TopicPublisherP
 
     public OutboxEventFetcher(
             DataSource readDataSource,
-            OutboxConfig outboxConfig,
             Map<String, TopicConfig> topicConfigs) {
         super(readDataSource);
         this.topicConfigs = topicConfigs;

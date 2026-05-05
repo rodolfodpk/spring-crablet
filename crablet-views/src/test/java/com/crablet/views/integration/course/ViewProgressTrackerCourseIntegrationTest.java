@@ -1,8 +1,8 @@
 package com.crablet.views.integration.course;
 
 import com.crablet.eventpoller.progress.ProcessorStatus;
-import com.crablet.views.internal.ViewProgressTracker;
 import com.crablet.views.integration.AbstractViewsTest;
+import com.crablet.views.internal.ViewProgressTracker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,7 +14,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 
 import javax.sql.DataSource;
-
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;

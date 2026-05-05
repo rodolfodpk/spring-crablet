@@ -1,8 +1,5 @@
 package com.crablet.eventpoller;
 
-import com.crablet.eventstore.ClockProvider;
-import com.crablet.eventstore.ReadDataSource;
-import com.crablet.eventstore.WriteDataSource;
 import com.crablet.eventpoller.config.EventPollerConfig;
 import com.crablet.eventpoller.internal.EventProcessorImpl;
 import com.crablet.eventpoller.internal.LeaderElectorImpl;
@@ -14,6 +11,9 @@ import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
+import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.ReadDataSource;
+import com.crablet.eventstore.WriteDataSource;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.TaskScheduler;
 
@@ -65,7 +65,7 @@ public final class EventProcessorFactory {
      */
     /**
      * Creates a {@link LeaderElector} for use with
-     * {@link #createProcessor(Map, LeaderElector, ProgressTracker, EventFetcher, EventHandler, WriteDataSource, TaskScheduler, ApplicationEventPublisher)}.
+     * {@link #createProcessor(Map, LeaderElector, ProgressTracker, EventFetcher, EventHandler, TaskScheduler, ApplicationEventPublisher)}.
      * Expose this as a separate bean when tests or management components need to inject the elector directly.
      */
     public static LeaderElector createLeaderElector(
@@ -87,7 +87,6 @@ public final class EventProcessorFactory {
             ProgressTracker<I> progressTracker,
             EventFetcher<I> eventFetcher,
             EventHandler<I> eventHandler,
-            WriteDataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher) {
         return createProcessor(
@@ -96,7 +95,6 @@ public final class EventProcessorFactory {
                 progressTracker,
                 eventFetcher,
                 eventHandler,
-                writeDataSource,
                 taskScheduler,
                 eventPublisher,
                 new NoopProcessorWakeupSourceFactory());
@@ -108,12 +106,11 @@ public final class EventProcessorFactory {
             ProgressTracker<I> progressTracker,
             EventFetcher<I> eventFetcher,
             EventHandler<I> eventHandler,
-            WriteDataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher,
             ProcessorWakeupSourceFactory wakeupSourceFactory) {
         return createProcessor(configs, leaderElector, progressTracker, eventFetcher, eventHandler,
-                writeDataSource, taskScheduler, eventPublisher, wakeupSourceFactory, new EventPollerConfig());
+                taskScheduler, eventPublisher, wakeupSourceFactory, new EventPollerConfig());
     }
 
     public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
@@ -122,7 +119,6 @@ public final class EventProcessorFactory {
             ProgressTracker<I> progressTracker,
             EventFetcher<I> eventFetcher,
             EventHandler<I> eventHandler,
-            WriteDataSource writeDataSource,
             TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher,
             ProcessorWakeupSourceFactory wakeupSourceFactory,
@@ -130,7 +126,7 @@ public final class EventProcessorFactory {
 
         return new EventProcessorImpl<>(
                 configs, leaderElector, progressTracker, eventFetcher, eventHandler,
-                writeDataSource.dataSource(), taskScheduler, eventPublisher, wakeupSourceFactory.create(),
+                taskScheduler, eventPublisher, wakeupSourceFactory.create(),
                 eventPollerConfig.getLeaderRetryCooldownMs(), eventPollerConfig.getStartupDelayMs(),
                 ClockProvider.systemDefault());
     }
@@ -195,7 +191,7 @@ public final class EventProcessorFactory {
 
         return new EventProcessorImpl<>(
                 configs, leaderElector, progressTracker, eventFetcher, eventHandler,
-                writeDataSource.dataSource(), taskScheduler, eventPublisher, wakeupSourceFactory.create(),
+                taskScheduler, eventPublisher, wakeupSourceFactory.create(),
                 eventPollerConfig.getLeaderRetryCooldownMs(), eventPollerConfig.getStartupDelayMs(),
                 ClockProvider.systemDefault());
     }

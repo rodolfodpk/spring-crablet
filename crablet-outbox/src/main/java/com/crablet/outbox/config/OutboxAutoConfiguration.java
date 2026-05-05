@@ -1,6 +1,5 @@
 package com.crablet.outbox.config;
 
-import com.crablet.eventstore.Internal;
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventProcessorFactory;
@@ -13,13 +12,13 @@ import com.crablet.eventpoller.internal.sharedfetch.ProcessorScanProgressReposit
 import com.crablet.eventpoller.internal.sharedfetch.SharedFetchModuleProcessor;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.management.ProcessorManagementService;
+import com.crablet.eventpoller.processor.EventProcessor;
+import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSource;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
-import com.crablet.outbox.management.OutboxManagementService;
-import com.crablet.eventpoller.processor.EventProcessor;
-import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.Internal;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.outbox.OutboxPublisher;
@@ -29,6 +28,7 @@ import com.crablet.outbox.internal.OutboxEventFetcher;
 import com.crablet.outbox.internal.OutboxEventHandler;
 import com.crablet.outbox.internal.OutboxProcessorConfig;
 import com.crablet.outbox.internal.OutboxProgressTracker;
+import com.crablet.outbox.management.OutboxManagementService;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
 import com.crablet.outbox.publishing.OutboxPublishingService;
 import com.crablet.outbox.publishing.OutboxPublishingServiceImpl;
@@ -89,9 +89,8 @@ public class OutboxAutoConfiguration {
     @Bean
     public EventFetcher<TopicPublisherPair> outboxEventFetcher(
             ReadDataSource readDataSource,
-            OutboxConfig outboxConfig,
             Map<String, TopicConfig> topicConfigs) {
-        return new OutboxEventFetcher(readDataSource.dataSource(), outboxConfig, topicConfigs);
+        return new OutboxEventFetcher(readDataSource.dataSource(), topicConfigs);
     }
     
     /**

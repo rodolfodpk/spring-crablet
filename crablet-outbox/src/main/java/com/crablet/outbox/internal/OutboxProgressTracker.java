@@ -1,8 +1,8 @@
 package com.crablet.outbox.internal;
 
-import com.crablet.outbox.TopicPublisherPair;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
+import com.crablet.outbox.TopicPublisherPair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

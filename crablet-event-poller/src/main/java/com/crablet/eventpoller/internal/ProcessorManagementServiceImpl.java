@@ -56,14 +56,7 @@ public class ProcessorManagementServiceImpl<T extends ProcessorConfig<I>, I>
 
     @Override
     public boolean pause(I processorId) {
-        // Check if processor exists by checking getAllStatuses
-        // (getStatus returns ACTIVE for non-existent processors, so we can't rely on null check)
-        Map<I, ProcessorStatus> allStatuses = eventProcessor.getAllStatuses();
-        if (!allStatuses.containsKey(processorId)) {
-            log.warn("Processor {} not found for pause operation", processorId);
-            return false;
-        }
-
+        if (!processorExists(processorId, "pause")) return false;
         eventProcessor.pause(processorId);
         log.info("Processor {} paused successfully", processorId);
         return true;
@@ -71,13 +64,7 @@ public class ProcessorManagementServiceImpl<T extends ProcessorConfig<I>, I>
 
     @Override
     public boolean resume(I processorId) {
-        // Check if processor exists
-        Map<I, ProcessorStatus> allStatuses = eventProcessor.getAllStatuses();
-        if (!allStatuses.containsKey(processorId)) {
-            log.warn("Processor {} not found for resume operation", processorId);
-            return false;
-        }
-
+        if (!processorExists(processorId, "resume")) return false;
         eventProcessor.resume(processorId);
         log.info("Processor {} resumed successfully", processorId);
         return true;
@@ -85,19 +72,19 @@ public class ProcessorManagementServiceImpl<T extends ProcessorConfig<I>, I>
 
     @Override
     public boolean reset(I processorId) {
-        // Check if processor exists
-        Map<I, ProcessorStatus> allStatuses = eventProcessor.getAllStatuses();
-        if (!allStatuses.containsKey(processorId)) {
-            log.warn("Processor {} not found for reset operation", processorId);
-            return false;
-        }
-
-        // Reset: clear errors via ProgressTracker and resume
+        if (!processorExists(processorId, "reset")) return false;
         progressTracker.resetErrorCount(processorId);
         progressTracker.setStatus(processorId, ProcessorStatus.ACTIVE);
         eventProcessor.resume(processorId);
         log.info("Processor {} reset successfully", processorId);
         return true;
+    }
+
+    // getStatus returns ACTIVE for non-existent processors, so containsKey is the reliable check
+    private boolean processorExists(I processorId, String operation) {
+        if (eventProcessor.getAllStatuses().containsKey(processorId)) return true;
+        log.warn("Processor {} not found for {} operation", processorId, operation);
+        return false;
     }
 
     @Override

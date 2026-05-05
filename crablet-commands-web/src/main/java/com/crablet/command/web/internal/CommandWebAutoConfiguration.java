@@ -1,9 +1,9 @@
 package com.crablet.command.web.internal;
 
 import com.crablet.command.CommandExecutor;
-import com.crablet.command.config.CommandAutoConfiguration;
-import com.crablet.command.DiscoveredCommandRegistry;
 import com.crablet.command.CommandHandler;
+import com.crablet.command.DiscoveredCommandRegistry;
+import com.crablet.command.config.CommandAutoConfiguration;
 import com.crablet.command.web.CommandApiExposedCommands;
 import com.crablet.command.web.CommandApiProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;

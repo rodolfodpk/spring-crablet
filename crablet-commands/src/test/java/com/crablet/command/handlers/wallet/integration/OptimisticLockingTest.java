@@ -2,15 +2,15 @@ package com.crablet.command.handlers.wallet.integration;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.ConcurrencyException;
-import com.crablet.test.AbstractCrabletTest;
+import com.crablet.eventstore.Tag;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryItem;
-import com.crablet.eventstore.Tag;
 import com.crablet.examples.wallet.commands.DepositCommand;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.examples.wallet.commands.TransferMoneyCommand;
 import com.crablet.examples.wallet.commands.WithdrawCommand;
+import com.crablet.test.AbstractCrabletTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

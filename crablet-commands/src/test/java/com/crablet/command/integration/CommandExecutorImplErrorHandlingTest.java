@@ -1,9 +1,9 @@
 package com.crablet.command.integration;
 
-import com.crablet.command.internal.CommandExecutorImpl;
-import com.crablet.command.CommandHandler;
 import com.crablet.command.CommandDecision;
+import com.crablet.command.CommandHandler;
 import com.crablet.command.InvalidCommandException;
+import com.crablet.command.internal.CommandExecutorImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

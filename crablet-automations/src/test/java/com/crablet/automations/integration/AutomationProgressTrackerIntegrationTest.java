@@ -1,8 +1,8 @@
 package com.crablet.automations.integration;
 
 import com.crablet.automations.internal.AutomationProgressTracker;
-import com.crablet.test.config.CrabletFlywayConfiguration;
 import com.crablet.eventpoller.progress.ProcessorStatus;
+import com.crablet.test.config.CrabletFlywayConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
