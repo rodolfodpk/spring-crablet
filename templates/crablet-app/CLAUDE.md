@@ -12,6 +12,8 @@ This is a generated Crablet application.
 - Crablet deployment topology, `make k8s`, generated `k8s/base`, KEDA, and singleton worker layout: invoke `/crablet-k8s`.
 - Local codegen loop, Testcontainers, LISTEN/NOTIFY constraint, troubleshooting: invoke `/crablet-local-dev`.
 - Event Modeling workshop dialogue and `event-model.yaml` shape: invoke `/event-modeling`.
+- Gherkin feature import into draft `event-model.yaml`: invoke `/crablet-codegen` and use the
+  `import-gherkin` command.
 
 ## Essentials
 

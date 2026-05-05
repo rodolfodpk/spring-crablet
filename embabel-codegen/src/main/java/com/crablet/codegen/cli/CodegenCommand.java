@@ -1,6 +1,7 @@
 package com.crablet.codegen.cli;
 
 import com.crablet.codegen.bootstrap.InitService;
+import com.crablet.codegen.gherkin.GherkinImportService;
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.k8s.K8sGenerator;
 import com.crablet.codegen.k8s.K8sTopology;
@@ -21,6 +22,7 @@ public class CodegenCommand {
 
     private final CodegenPipeline pipeline;
     private final InitService initService;
+    private final GherkinImportService gherkinImportService;
     private final McpServer mcpServer;
     private final ArtifactPlanner artifactPlanner;
     private final K8sGenerator k8sGenerator;
@@ -28,11 +30,13 @@ public class CodegenCommand {
     public CodegenCommand(
             CodegenPipeline pipeline,
             InitService initService,
+            GherkinImportService gherkinImportService,
             McpServer mcpServer,
             ArtifactPlanner artifactPlanner,
             K8sGenerator k8sGenerator) {
         this.pipeline = pipeline;
         this.initService = initService;
+        this.gherkinImportService = gherkinImportService;
         this.mcpServer = mcpServer;
         this.artifactPlanner = artifactPlanner;
         this.k8sGenerator = k8sGenerator;
@@ -48,6 +52,7 @@ public class CodegenCommand {
             case "generate" -> runGenerate(parseFlags(args, 1));
             case "init" -> runInit(parseFlags(args, 1));
             case "k8s" -> runK8s(parseFlags(args, 1));
+            case "import-gherkin" -> runImportGherkin(parseFlags(args, 1));
             case "--mcp", "mcp" -> mcpServer.run();
             default -> {
                 System.err.println("Unknown command: " + args[0]);
@@ -105,6 +110,21 @@ public class CodegenCommand {
         System.out.println("Done. See k8s/base/README-k8s.md. Fill secret-template.yaml before deploy.");
     }
 
+    private void runImportGherkin(Map<String, String> flags) {
+        String inputPath = flags.getOrDefault("--input", "workflow.feature");
+        String outputPath = flags.getOrDefault("--output", "event-model.yaml");
+        String domain = flags.get("--domain");
+        String basePackage = flags.get("--base-package");
+        Path input = Path.of(inputPath);
+        Path output = Path.of(outputPath);
+
+        gherkinImportService.writeImportedModel(input, output, domain, basePackage);
+
+        System.out.println("Imported Gherkin from: " + input);
+        System.out.println("Wrote draft event model to: " + output.toAbsolutePath());
+        System.out.println("Next: review the draft model, fill any missing structural facts, then run plan.");
+    }
+
     private Map<String, String> parseFlags(String[] args, int from) {
         Map<String, String> flags = new HashMap<>();
         for (int i = from; i < args.length - 1; i += 2) {
@@ -135,6 +155,12 @@ public class CodegenCommand {
                   k8s        Generate Kubernetes manifests (k8s/base) from event-model.yaml
                              --model event-model.yaml   (default: event-model.yaml)
                              --output .                 (default: app root; writes k8s/base under it)
+
+                  import-gherkin  Import a .feature file into a draft event-model.yaml
+                             --input workflow.feature   (default: workflow.feature)
+                             --output event-model.yaml  (default: event-model.yaml)
+                             --domain LoanApplication   (optional override)
+                             --base-package com.example.loan   (optional override)
 
                   help       Show this message
 

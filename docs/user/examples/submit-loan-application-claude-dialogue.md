@@ -4,6 +4,19 @@ This example shows the intended Claude Code experience for adding one generated 
 slice. It is written as a transcript so contributors can see the desired interaction, not only the
 commands.
 
+The same slice can also start from a Gherkin `.feature` file. In that variant, the assistant
+imports the feature into a draft `event-model.yaml` before asking for the structural facts that
+the model still needs.
+
+```text
+User:
+I already have this as a Gherkin feature file.
+
+Claude:
+I will import the feature into a draft event-model.yaml first, then review the missing structural
+facts before generating code.
+```
+
 The developer starts from an initialized Crablet app:
 
 ```bash
@@ -175,6 +188,18 @@ views:
 
 automations: []
 outbox: []
+scenarios:
+  - name: Submit a new loan application
+    tags: [loan, vertical-slice]
+    steps:
+      - keyword: Given
+        text: a customer submits a loan application
+      - keyword: When
+        text: the request is accepted
+      - keyword: Then
+        text: the system records LoanApplicationSubmitted
+      - keyword: And
+        text: pending applications includes the new application
 ```
 
 ## 4. Review The Artifact Plan

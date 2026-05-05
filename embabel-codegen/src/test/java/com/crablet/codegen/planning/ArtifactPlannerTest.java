@@ -3,6 +3,8 @@ package com.crablet.codegen.planning;
 import com.crablet.codegen.model.AutomationSpec;
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.model.OutboxSpec;
+import com.crablet.codegen.model.ScenarioSpec;
+import com.crablet.codegen.model.ScenarioStepSpec;
 import com.crablet.codegen.model.ViewSpec;
 import com.crablet.codegen.pipeline.SchemaResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -69,6 +71,15 @@ class ArtifactPlannerTest {
                         List.of("LoanApplicationSubmitted"),
                         "http"
                 )),
+                List.of(new ScenarioSpec(
+                        "Submit Loan Application",
+                        List.of("loan", "vertical-slice"),
+                        List.of(
+                                new ScenarioStepSpec("Given", "a customer submits a loan application"),
+                                new ScenarioStepSpec("When", "the request is accepted"),
+                                new ScenarioStepSpec("Then", "the system records LoanApplicationSubmitted")
+                        )
+                )),
                 null,
                 null
         );
@@ -78,5 +89,6 @@ class ArtifactPlannerTest {
         assertThat(plan).contains("com.example.loan.automation.WelcomeEmailAutomationHandler (Java interface)");
         assertThat(plan).contains("com.example.loan.outbox.LoanNotificationsPublisher (Java interface)");
         assertThat(plan).contains("com.example.loan.view.PendingLoanApplicationsViewProjector (Java class)");
+        assertThat(plan).contains("com.example.loan.test.SubmitLoanApplicationScenarioTest");
     }
 }

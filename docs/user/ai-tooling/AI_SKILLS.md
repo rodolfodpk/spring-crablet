@@ -31,7 +31,7 @@ makes the intended entry point unambiguous.
 |-------|------------|
 | `/crablet-greenfield` | Start a new Crablet app: baseline setup, Event Modeling workshop, first generated slice, and later app evolution. |
 | `/event-modeling` | Facilitate Event Modeling workshop dialogue and turn the conversation into generator-ready `event-model.yaml`. |
-| `/crablet-codegen` | Configure codegen providers, run plan/generate, manage artifact ownership, and recover from generation or repair failures. |
+| `/crablet-codegen` | Configure codegen providers, import Gherkin features, run plan/generate, manage artifact ownership, and recover from generation or repair failures. |
 | `/crablet-app-dev` | Build one generated application slice at a time: commands, handlers, views, automations, outbox, and verification. |
 | `/dcb` | Choose or diagnose command consistency patterns: `idempotent`, `commutative`, `non-commutative`, tags, and `guardEvents`. |
 | `/crablet-k8s` | Map the `deployment:` model to local Kubernetes manifests, KEDA settings, and singleton worker topology. |

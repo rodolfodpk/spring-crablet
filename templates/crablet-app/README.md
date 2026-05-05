@@ -6,6 +6,7 @@ The workflow is:
 
 ```text
 describe one vertical slice
+  -> optionally import a Gherkin feature file
   -> update event-model.yaml
   -> run make diagram-preview
   -> run embabel_plan
@@ -92,6 +93,8 @@ Ask for missing facts before changing files.
 
 Claude should update `event-model.yaml`, run `embabel_plan`, ask you to review the planned
 artifacts, then run `embabel_generate` only after the plan looks right.
+If the slice starts as a `.feature` file, import it first and use the draft model as the review
+starting point.
 
 Cursor can use the same MCP tools through `.cursor/mcp.json`. Codex and other agents can edit
 `event-model.yaml` and use the local `make plan` / `make generate` commands.

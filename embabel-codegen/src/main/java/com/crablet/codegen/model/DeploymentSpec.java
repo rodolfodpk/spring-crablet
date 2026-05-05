@@ -1,5 +1,6 @@
 package com.crablet.codegen.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record DeploymentSpec(
@@ -17,6 +18,7 @@ public record DeploymentSpec(
         return new DeploymentSpec("monolith", 2, KedaSpec.defaults());
     }
 
+    @JsonIgnore
     public boolean isDistributed() {
         return "distributed".equalsIgnoreCase(topology);
     }

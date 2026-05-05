@@ -8,7 +8,7 @@ This format is still a preview contract while the generator matures.
 ## Top-Level Shape
 
 An `event-model.yaml` describes the domain, target Java package, reusable schemas, events,
-commands, views, automations, and outbox publishers.
+commands, views, automations, outbox publishers, and optional imported `scenarios`.
 
 ```yaml
 domain: LoanApplication
@@ -20,11 +20,12 @@ commands: []
 views: []
 automations: []
 outbox: []
+scenarios: []
 ```
 
 Only `domain`, `basePackage`, `events`, and `commands` are required for the smallest write-side
-application. Views, automations, and outbox publishers are added when the model needs generated
-read models or event-driven integrations.
+application. Views, automations, outbox publishers, and scenarios are added when the model needs
+generated read models, event-driven integrations, or imported behavior scenarios for test drafts.
 
 ## Complete Example
 

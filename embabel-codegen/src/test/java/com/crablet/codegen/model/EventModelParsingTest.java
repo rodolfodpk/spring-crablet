@@ -177,6 +177,28 @@ class EventModelParsingTest {
     }
 
     @Test
+    void scenariosParseAndDefaultToEmptyWhenAbsent() throws Exception {
+        EventModel model = yaml.readValue("""
+                domain: Demo
+                basePackage: com.example.demo
+                events: []
+                commands: []
+                scenarios:
+                  - name: Submit a new loan application
+                    tags: [loan]
+                    steps:
+                      - keyword: Given
+                        text: a customer submits a loan application
+                      - keyword: Then
+                        text: the system records LoanApplicationSubmitted
+                """, EventModel.class);
+
+        assertThat(model.scenarios()).hasSize(1);
+        assertThat(model.scenarios().get(0).name()).isEqualTo("Submit a new loan application");
+        assertThat(model.scenarios().get(0).steps()).hasSize(2);
+    }
+
+    @Test
     void diagramLanesAndAssignmentsParse() throws Exception {
         try (InputStream in = getClass().getClassLoader()
                 .getResourceAsStream("wallet-event-model.yaml")) {

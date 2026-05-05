@@ -36,6 +36,7 @@ public class SchemaResolver {
                 model.views(),
                 model.automations(),
                 model.outbox(),
+                model.scenarios(),
                 model.deployment(),
                 model.diagram()
         );

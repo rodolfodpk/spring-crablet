@@ -101,6 +101,16 @@ java -jar embabel-codegen.jar k8s \
 
 Writes `k8s/base` with Namespace, Deployments, Service, optional KEDA ScaledObjects, Secret template, and `README-k8s.md`. See [Deployment Topology](../docs/user/DEPLOYMENT_TOPOLOGY.md#kubernetes-optional) for how this maps to Crablet’s poller rules.
 
+**`import-gherkin`** — import a Gherkin `.feature` file into a draft `event-model.yaml` with `scenarios`
+
+```bash
+java -jar embabel-codegen.jar import-gherkin \
+  --input docs/user/examples/submit-loan-application.feature \
+  --output event-model.yaml \
+  --domain LoanApplication \
+  --base-package com.example.loan
+```
+
 **`--mcp`** — start as an MCP server (used by Claude Code, Cursor, and other MCP-capable clients)
 
 ```bash

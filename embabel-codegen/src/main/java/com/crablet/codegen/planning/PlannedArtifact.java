@@ -18,4 +18,8 @@ public record PlannedArtifact(
     public static PlannedArtifact migration(String section, String fileName, String tableName) {
         return new PlannedArtifact(section, "migration", fileName, "Flyway migration for " + tableName);
     }
+
+    public static PlannedArtifact testClass(String section, String packageName, String className) {
+        return new PlannedArtifact(section, "test", packageName + "." + className, "JUnit 5 test class");
+    }
 }

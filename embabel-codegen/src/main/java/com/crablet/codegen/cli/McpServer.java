@@ -1,6 +1,7 @@
 package com.crablet.codegen.cli;
 
 import com.crablet.codegen.bootstrap.InitService;
+import com.crablet.codegen.gherkin.GherkinImportService;
 import com.crablet.codegen.k8s.K8sGenerator;
 import com.crablet.codegen.k8s.K8sTopology;
 import com.crablet.codegen.model.EventModel;
@@ -34,6 +35,7 @@ public class McpServer {
 
     private final CodegenPipeline pipeline;
     private final InitService initService;
+    private final GherkinImportService gherkinImportService;
     private final ArtifactPlanner artifactPlanner;
     private final K8sGenerator k8sGenerator;
     private final ObjectMapper json = new ObjectMapper();
@@ -42,10 +44,12 @@ public class McpServer {
     public McpServer(
             CodegenPipeline pipeline,
             InitService initService,
+            GherkinImportService gherkinImportService,
             ArtifactPlanner artifactPlanner,
             K8sGenerator k8sGenerator) {
         this.pipeline = pipeline;
         this.initService = initService;
+        this.gherkinImportService = gherkinImportService;
         this.artifactPlanner = artifactPlanner;
         this.k8sGenerator = k8sGenerator;
     }
@@ -165,6 +169,19 @@ public class McpServer {
                         prop("output", "string",
                                 "Output directory; k8s/base is created under it (default: .)"))));
 
+        tools.add(tool("embabel_import_gherkin",
+                "Import a Gherkin .feature file into a draft event-model.yaml with scenarios. " +
+                "The imported model stays canonical and can be reviewed before plan/generate.",
+                schema(
+                        prop("input", "string",
+                                "Path to the .feature file (default: workflow.feature)"),
+                        prop("output", "string",
+                                "Path to the draft event-model.yaml (default: event-model.yaml)"),
+                        prop("domain", "string",
+                                "Optional domain override (e.g. LoanApplication)"),
+                        prop("base-package", "string",
+                                "Optional base package override (e.g. com.example.loan)"))));
+
         ObjectNode result = json.createObjectNode();
         result.set("tools", tools);
         return result;
@@ -181,6 +198,7 @@ public class McpServer {
                 case "embabel_plan" -> callPlan(args);
                 case "embabel_init" -> callInit(args, capture);
                 case "embabel_k8s" -> callK8s(args);
+                case "embabel_import_gherkin" -> callImportGherkin(args);
                 default -> throw new IllegalArgumentException("Unknown tool: " + toolName);
             };
         } catch (Exception e) {
@@ -236,6 +254,16 @@ public class McpServer {
         return "Initialized project at " + dir
                 + (log.isBlank() ? "" : "\n\n" + log)
                 + "\n\nNext: run /event-modeling then embabel_generate.";
+    }
+
+    private String callImportGherkin(JsonNode args) {
+        String inputPath = args.path("input").asText("workflow.feature");
+        String outputPath = args.path("output").asText("event-model.yaml");
+        String domain = args.path("domain").asText(null);
+        String basePackage = args.path("base-package").asText(null);
+        gherkinImportService.writeImportedModel(Path.of(inputPath), Path.of(outputPath), domain, basePackage);
+        return "Imported Gherkin from " + inputPath + " and wrote draft event-model.yaml to "
+                + Path.of(outputPath).toAbsolutePath();
     }
 
     // --- builders ---

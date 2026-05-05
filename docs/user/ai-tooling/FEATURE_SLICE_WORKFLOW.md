@@ -3,6 +3,9 @@
 This guide describes the intended developer dialogue for adding one vertical slice with
 `embabel-codegen`.
 
+If the slice starts as a Gherkin feature file, import it into a draft `event-model.yaml` first and
+then review the model before generation.
+
 In normal app development, start from the
 [Crablet app template](../../../templates/crablet-app/README.md) and use this workflow from inside the
 cloned app.
@@ -42,6 +45,16 @@ cp embabel-codegen/target/embabel-codegen.jar ../loan-service/tools/
 ```
 
 > **CLI alternative** (no template): `java -jar embabel-codegen/target/embabel-codegen.jar init --name loan-service --package com.example.loan --dir ../loan-service`
+
+If you have a `.feature` file already, you can draft the model from it:
+
+```bash
+java -jar embabel-codegen/target/embabel-codegen.jar import-gherkin \
+  --input docs/user/examples/submit-loan-application.feature \
+  --output ../loan-service/event-model.yaml \
+  --domain LoanApplication \
+  --base-package com.example.loan
+```
 
 For a brownfield app, skip the template step and point `generate --output` at the existing
 `src/main/java` root.

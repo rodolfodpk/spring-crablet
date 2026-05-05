@@ -55,3 +55,13 @@ views:
 
 automations: []
 outbox: []
+scenarios:
+  - name: Submit a new loan application
+    tags: [loan, vertical-slice]
+    steps:
+      - keyword: Given
+        text: a customer submits a loan application
+      - keyword: When
+        text: the request is accepted
+      - keyword: Then
+        text: the system records LoanApplicationSubmitted

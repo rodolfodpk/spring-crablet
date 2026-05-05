@@ -52,6 +52,12 @@
       "items": { "$ref": "#/$defs/OutboxSpec" },
       "default": []
     },
+    "scenarios": {
+      "type": "array",
+      "description": "Imported behavior scenarios used to draft slices and generate test scaffolding",
+      "items": { "$ref": "#/$defs/ScenarioSpec" },
+      "default": []
+    },
     "deployment": {
       "$ref": "#/$defs/DeploymentSpec",
       "description": "Optional deployment topology for Kubernetes generation"
@@ -274,6 +280,42 @@
         "adapter": {
           "type": "string",
           "description": "Integration adapter type (smtp, kafka, http, etc.)"
+        }
+      }
+    },
+    "ScenarioStepSpec": {
+      "type": "object",
+      "required": ["keyword", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "type": "string",
+          "description": "Gherkin step keyword (Given, When, Then, And, But)"
+        },
+        "text": {
+          "type": "string",
+          "description": "Step text"
+        }
+      }
+    },
+    "ScenarioSpec": {
+      "type": "object",
+      "required": ["name", "steps"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Scenario name"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Optional Gherkin tags"
+        },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ScenarioStepSpec" },
+          "description": "Parsed scenario steps"
         }
       }
     },

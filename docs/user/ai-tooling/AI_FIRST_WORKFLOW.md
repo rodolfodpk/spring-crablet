@@ -32,6 +32,8 @@ example `/crablet-greenfield`, `/event-modeling`, or `/crablet-codegen`; see
    The file is the **single structural source**: docs diagrams are **projected** from it plus thin
    optional `diagram:` metadata (see **Diagram projection** in the format doc)—no parallel canvas to
    maintain for v1.
+   If you start from a Gherkin feature file, import it first and review the draft model before
+   filling the structural details.
 5. Generate the Spring application code.
 6. Compile the generated app.
 7. Repair generation issues until the app builds.
@@ -81,6 +83,7 @@ For the recommended developer dialogue around a single feature, see
 [Feature Slice Workflow](FEATURE_SLICE_WORKFLOW.md). For Event Modeling notation and example
 boards, see [Event Modeling](EVENT_MODELING.md). For a concrete generated-slice input, see
 [loan-submit-feature-slice-event-model.yaml](../examples/loan-submit-feature-slice-event-model.yaml).
+For a Gherkin source example, see [submit-loan-application.feature](../examples/submit-loan-application.feature).
 For a concise map of the Claude Code skills used by this workflow, see [AI Skills](AI_SKILLS.md).
 
 ## Tool Entrypoints
