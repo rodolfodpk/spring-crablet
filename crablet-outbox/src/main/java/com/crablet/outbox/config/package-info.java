@@ -24,6 +24,7 @@
  * <strong>Topic Configuration:</strong>
  * Topics are configured via {@code crablet.outbox.topics.*} properties:
  * <pre>{@code
+ * crablet.outbox.topics.wallet-events.event-types=WalletOpened,DepositMade
  * crablet.outbox.topics.wallet-events.required-tags=wallet_id
  * crablet.outbox.topics.wallet-events.publishers=KafkaPublisher
  * }</pre>

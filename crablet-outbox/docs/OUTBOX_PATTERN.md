@@ -74,7 +74,8 @@ crablet.outbox.polling-interval-ms=5000
 # Leader election retry interval (milliseconds)
 crablet.outbox.leader-election-retry-interval-ms=30000
 
-# Topic routing (matches DCB event tags)
+# Topic routing (matches DCB event types and tags)
+crablet.outbox.topics.wallet-events.event-types=WalletOpened,DepositMade
 crablet.outbox.topics.wallet-events.required-tags=wallet_id
 crablet.outbox.topics.wallet-events.publishers=KafkaPublisher
 

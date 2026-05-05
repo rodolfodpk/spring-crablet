@@ -20,6 +20,7 @@ crablet.automations.enabled=true
 
 # Outbox
 crablet.outbox.enabled=true
+crablet.outbox.topics.topics.my-topic.event-types=WalletOpened,DepositMade
 crablet.outbox.topics.topics.my-topic.publishers=MyPublisher
 ```
 
@@ -140,6 +141,7 @@ resilience4j:
 
 | Property | Type | Default | Description |
 |---|---|---|---|
+| `topics.<name>.event-types` | String | — | Comma-separated event types to include; empty means all event types |
 | `topics.<name>.required-tags` | String | — | Comma-separated tags all events must have |
 | `topics.<name>.any-of-tags` | String | — | Comma-separated tags; events must have at least one |
 | `topics.<name>.exact-tags.<key>` | String | — | Exact tag key-value pair filter |

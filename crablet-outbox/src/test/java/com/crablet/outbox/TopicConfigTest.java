@@ -221,6 +221,77 @@ class TopicConfigTest {
     }
 
     @Test
+    @DisplayName("Should match any event type when event types are empty")
+    void shouldMatchAnyEventTypeWhenEventTypesAreEmpty() {
+        // Given
+        TopicConfig config = TopicConfig.builder("test-topic")
+                .requireTag("wallet")
+                .build();
+
+        Map<String, String> eventTags = Map.of("wallet", "wallet-123");
+
+        // When
+        boolean matches = config.matches("WalletOpened", eventTags);
+
+        // Then
+        assertThat(matches).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should match configured event type with matching tags")
+    void shouldMatchConfiguredEventTypeWithMatchingTags() {
+        // Given
+        TopicConfig config = TopicConfig.builder("test-topic")
+                .eventTypes("WalletOpened", "DepositMade")
+                .requireTag("wallet")
+                .build();
+
+        Map<String, String> eventTags = Map.of("wallet", "wallet-123");
+
+        // When
+        boolean matches = config.matches("WalletOpened", eventTags);
+
+        // Then
+        assertThat(matches).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should reject non matching event type before tag checks")
+    void shouldRejectNonMatchingEventTypeBeforeTagChecks() {
+        // Given
+        TopicConfig config = TopicConfig.builder("test-topic")
+                .eventType("WalletOpened")
+                .requireTag("wallet")
+                .build();
+
+        Map<String, String> eventTags = Map.of("wallet", "wallet-123");
+
+        // When
+        boolean matches = config.matches("DepositMade", eventTags);
+
+        // Then
+        assertThat(matches).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should reject matching event type when tags do not match")
+    void shouldRejectMatchingEventTypeWhenTagsDoNotMatch() {
+        // Given
+        TopicConfig config = TopicConfig.builder("test-topic")
+                .eventType("WalletOpened")
+                .requireTag("wallet")
+                .build();
+
+        Map<String, String> eventTags = Map.of("account", "account-123");
+
+        // When
+        boolean matches = config.matches("WalletOpened", eventTags);
+
+        // Then
+        assertThat(matches).isFalse();
+    }
+
+    @Test
     @SuppressWarnings("NullAway")
     @DisplayName("Should handle null event tags")
     void shouldHandleNullEventTags() {

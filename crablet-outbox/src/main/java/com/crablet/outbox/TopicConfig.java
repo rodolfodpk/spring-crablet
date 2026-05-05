@@ -12,11 +12,12 @@ import java.util.Set;
 
 /**
  * Configuration for an outbox topic.
- * Defines which events belong to this topic based on tag keys.
+ * Defines which events belong to this topic based on event types and tag keys.
  */
 @Stable
 public class TopicConfig implements EventSelection {
     private final String name;
+    private final Set<String> eventTypes;         // Empty means all event types
     private final Set<String> requiredTags;       // ALL must be present
     private final Set<String> anyOfTags;          // At least ONE must be present
     private final Map<String, String> exactTags;  // Optional exact key=value matches
@@ -24,7 +25,13 @@ public class TopicConfig implements EventSelection {
     
     public TopicConfig(String name, Set<String> requiredTags, Set<String> anyOfTags, 
                        Map<String, String> exactTags, Set<String> publishers) {
+        this(name, Set.of(), requiredTags, anyOfTags, exactTags, publishers);
+    }
+
+    public TopicConfig(String name, Set<String> eventTypes, Set<String> requiredTags, Set<String> anyOfTags,
+                       Map<String, String> exactTags, Set<String> publishers) {
         this.name = name;
+        this.eventTypes = eventTypes != null ? eventTypes : Set.of();
         this.requiredTags = requiredTags != null ? requiredTags : Set.of();
         this.anyOfTags = anyOfTags != null ? anyOfTags : Set.of();
         this.exactTags = exactTags != null ? exactTags : Map.of();
@@ -37,6 +44,11 @@ public class TopicConfig implements EventSelection {
     
     public Set<String> getPublishers() {
         return publishers;
+    }
+
+    @Override
+    public Set<String> getEventTypes() {
+        return eventTypes;
     }
     
     @Override
@@ -58,6 +70,17 @@ public class TopicConfig implements EventSelection {
      * Check if event tags match this topic's criteria.
      */
     public boolean matches(Map<String, String> eventTags) {
+        return matches("", eventTags);
+    }
+
+    /**
+     * Check if an event type and tags match this topic's criteria.
+     */
+    public boolean matches(String eventType, Map<String, String> eventTags) {
+        if (!eventTypes.isEmpty() && !eventTypes.contains(eventType)) {
+            return false;
+        }
+
         // Handle null input
         if (eventTags == null) {
             return false;
@@ -89,6 +112,7 @@ public class TopicConfig implements EventSelection {
     
     public static class Builder {
         private final String name;
+        private Set<String> eventTypes = new HashSet<>();
         private Set<String> requiredTags = new HashSet<>();
         private Set<String> anyOfTags = new HashSet<>();
         private Map<String, String> exactTags = new HashMap<>();
@@ -96,6 +120,21 @@ public class TopicConfig implements EventSelection {
         
         public Builder(String name) {
             this.name = name;
+        }
+
+        public Builder eventType(String eventType) {
+            eventTypes.add(eventType);
+            return this;
+        }
+
+        public Builder eventTypes(String... eventTypes) {
+            this.eventTypes.addAll(Arrays.asList(eventTypes));
+            return this;
+        }
+
+        public Builder eventTypes(Set<String> eventTypes) {
+            this.eventTypes.addAll(eventTypes);
+            return this;
         }
         
         public Builder requireTag(String tag) {
@@ -134,7 +173,7 @@ public class TopicConfig implements EventSelection {
         }
         
         public TopicConfig build() {
-            return new TopicConfig(name, requiredTags, anyOfTags, exactTags, publishers);
+            return new TopicConfig(name, eventTypes, requiredTags, anyOfTags, exactTags, publishers);
         }
     }
 }

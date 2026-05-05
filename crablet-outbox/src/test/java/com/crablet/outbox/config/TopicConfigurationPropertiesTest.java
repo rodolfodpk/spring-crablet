@@ -63,6 +63,27 @@ class TopicConfigurationPropertiesTest {
     }
 
     @Test
+    @DisplayName("toTopicConfigs should convert topic with eventTypes")
+    void toTopicConfigs_WithEventTypes_ShouldConvertCorrectly() {
+        // Given
+        TopicConfigurationProperties props = new TopicConfigurationProperties();
+        Map<String, TopicConfigurationProperties.TopicProperties> topics = new HashMap<>();
+        TopicConfigurationProperties.TopicProperties topicProps = new TopicConfigurationProperties.TopicProperties();
+        topicProps.setEventTypes("WalletOpened,DepositMade");
+        topics.put("wallet-events", topicProps);
+        props.setTopics(topics);
+
+        // When
+        Map<String, TopicConfig> configs = props.toTopicConfigs();
+
+        // Then
+        assertThat(configs).hasSize(1);
+        TopicConfig config = configs.get("wallet-events");
+        assertThat(config).isNotNull();
+        assertThat(config.getEventTypes()).containsExactlyInAnyOrder("WalletOpened", "DepositMade");
+    }
+
+    @Test
     @DisplayName("toTopicConfigs should convert topic with requiredTags")
     void toTopicConfigs_WithRequiredTags_ShouldConvertCorrectly() {
         // Given
@@ -157,6 +178,7 @@ class TopicConfigurationPropertiesTest {
         TopicConfigurationProperties props = new TopicConfigurationProperties();
         Map<String, TopicConfigurationProperties.TopicProperties> topics = new HashMap<>();
         TopicConfigurationProperties.TopicProperties topicProps = new TopicConfigurationProperties.TopicProperties();
+        topicProps.setEventTypes(" WalletOpened , DepositMade , MoneyTransferred ");
         topicProps.setRequiredTags(" wallet , user , account ");
         topicProps.setPublishers(" kafka-publisher , rabbit-publisher ");
         topics.put("events", topicProps);
@@ -167,6 +189,8 @@ class TopicConfigurationPropertiesTest {
 
         // Then
         TopicConfig config = configs.get("events");
+        assertThat(config.getEventTypes())
+                .containsExactlyInAnyOrder("WalletOpened", "DepositMade", "MoneyTransferred");
         assertThat(config.getRequiredTags()).containsExactlyInAnyOrder("wallet", "user", "account");
         assertThat(config.getPublishers()).containsExactlyInAnyOrder("kafka-publisher", "rabbit-publisher");
     }
@@ -178,6 +202,7 @@ class TopicConfigurationPropertiesTest {
         TopicConfigurationProperties props = new TopicConfigurationProperties();
         Map<String, TopicConfigurationProperties.TopicProperties> topics = new HashMap<>();
         TopicConfigurationProperties.TopicProperties topicProps = new TopicConfigurationProperties.TopicProperties();
+        topicProps.setEventTypes("WalletOpened,,DepositMade,");
         topicProps.setRequiredTags("wallet,,user,");
         topics.put("events", topicProps);
         props.setTopics(topics);
@@ -187,6 +212,7 @@ class TopicConfigurationPropertiesTest {
 
         // Then - Should skip empty values
         TopicConfig config = configs.get("events");
+        assertThat(config.getEventTypes()).containsExactlyInAnyOrder("WalletOpened", "DepositMade");
         assertThat(config.getRequiredTags()).containsExactlyInAnyOrder("wallet", "user");
     }
 
@@ -259,6 +285,46 @@ class TopicConfigurationPropertiesTest {
     }
 
     @Test
+    @DisplayName("toTopicConfigs should handle null eventTypes")
+    void toTopicConfigs_WithNullEventTypes_ShouldHandleGracefully() {
+        // Given
+        TopicConfigurationProperties props = new TopicConfigurationProperties();
+        Map<String, TopicConfigurationProperties.TopicProperties> topics = new HashMap<>();
+        TopicConfigurationProperties.TopicProperties topicProps = new TopicConfigurationProperties.TopicProperties();
+        topicProps.setEventTypes(null);
+        topics.put("events", topicProps);
+        props.setTopics(topics);
+
+        // When
+        Map<String, TopicConfig> configs = props.toTopicConfigs();
+
+        // Then
+        TopicConfig config = configs.get("events");
+        assertThat(config).isNotNull();
+        assertThat(config.getEventTypes()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("toTopicConfigs should handle empty eventTypes string")
+    void toTopicConfigs_WithEmptyEventTypes_ShouldHandleGracefully() {
+        // Given
+        TopicConfigurationProperties props = new TopicConfigurationProperties();
+        Map<String, TopicConfigurationProperties.TopicProperties> topics = new HashMap<>();
+        TopicConfigurationProperties.TopicProperties topicProps = new TopicConfigurationProperties.TopicProperties();
+        topicProps.setEventTypes("");
+        topics.put("events", topicProps);
+        props.setTopics(topics);
+
+        // When
+        Map<String, TopicConfig> configs = props.toTopicConfigs();
+
+        // Then
+        TopicConfig config = configs.get("events");
+        assertThat(config).isNotNull();
+        assertThat(config.getEventTypes()).isEmpty();
+    }
+
+    @Test
     @DisplayName("toTopicConfigs should handle null anyOfTags")
     void toTopicConfigs_WithNullAnyOfTags_ShouldHandleGracefully() {
         // Given
@@ -325,6 +391,7 @@ class TopicConfigurationPropertiesTest {
         TopicConfigurationProperties props = new TopicConfigurationProperties();
         Map<String, TopicConfigurationProperties.TopicProperties> topics = new HashMap<>();
         TopicConfigurationProperties.TopicProperties topicProps = new TopicConfigurationProperties.TopicProperties();
+        topicProps.setEventTypes("WalletOpened,DepositMade");
         topicProps.setRequiredTags("wallet,user");
         topicProps.setAnyOfTags("priority,urgent");
         topicProps.setExactTags(Map.of("type", "transfer"));
@@ -337,10 +404,24 @@ class TopicConfigurationPropertiesTest {
 
         // Then
         TopicConfig config = configs.get("wallet-events");
+        assertThat(config.getEventTypes()).containsExactlyInAnyOrder("WalletOpened", "DepositMade");
         assertThat(config.getRequiredTags()).containsExactlyInAnyOrder("wallet", "user");
         assertThat(config.getAnyOfTags()).containsExactlyInAnyOrder("priority", "urgent");
         assertThat(config.getExactTags()).containsEntry("type", "transfer");
         assertThat(config.getPublishers()).containsExactlyInAnyOrder("kafka-publisher", "rabbit-publisher");
+    }
+
+    @Test
+    @DisplayName("TopicProperties should set and get eventTypes")
+    void topicProperties_ShouldSetAndGetEventTypes() {
+        // Given
+        TopicConfigurationProperties.TopicProperties props = new TopicConfigurationProperties.TopicProperties();
+
+        // When
+        props.setEventTypes("WalletOpened,DepositMade");
+
+        // Then
+        assertThat(props.getEventTypes()).isEqualTo("WalletOpened,DepositMade");
     }
 
     @Test
@@ -452,4 +533,3 @@ class TopicConfigurationPropertiesTest {
         assertThat(props.getPollingIntervalMs()).isNull();
     }
 }
-

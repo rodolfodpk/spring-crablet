@@ -49,8 +49,9 @@ public class TopicConfigurationProperties {
         
         for (var entry : topics.entrySet()) {
             TopicProperties props = entry.getValue();
-            log.info("  Topic '{}': requiredTags='{}', anyOfTags='{}', exactTags={}, publishers='{}'", 
-                entry.getKey(), props.getRequiredTags(), props.getAnyOfTags(), props.getExactTags(), props.getPublishers());
+            log.info("  Topic '{}': eventTypes='{}', requiredTags='{}', anyOfTags='{}', exactTags={}, publishers='{}'",
+                entry.getKey(), props.getEventTypes(), props.getRequiredTags(), props.getAnyOfTags(),
+                props.getExactTags(), props.getPublishers());
         }
     }
     
@@ -65,10 +66,20 @@ public class TopicConfigurationProperties {
             String topicName = entry.getKey();
             TopicProperties props = entry.getValue();
             
-            log.debug("Processing topic '{}': requiredTags='{}', anyOfTags='{}', exactTags={}", 
-                topicName, props.getRequiredTags(), props.getAnyOfTags(), props.getExactTags());
+            log.debug("Processing topic '{}': eventTypes='{}', requiredTags='{}', anyOfTags='{}', exactTags={}",
+                topicName, props.getEventTypes(), props.getRequiredTags(), props.getAnyOfTags(), props.getExactTags());
             
             TopicConfig.Builder builder = TopicConfig.builder(topicName);
+
+            // Add event types
+            if (props.getEventTypes() != null && !props.getEventTypes().trim().isEmpty()) {
+                String[] eventTypes = COMMA_SEPARATOR.split(props.getEventTypes(), -1);
+                for (String eventType : eventTypes) {
+                    if (!eventType.trim().isEmpty()) {
+                        builder.eventType(eventType.trim());
+                    }
+                }
+            }
             
             // Add required tags
             if (props.getRequiredTags() != null && !props.getRequiredTags().trim().isEmpty()) {
@@ -117,11 +128,20 @@ public class TopicConfigurationProperties {
     }
     
     public static class TopicProperties {
+        private @org.jspecify.annotations.Nullable String eventTypes;
         private @org.jspecify.annotations.Nullable String requiredTags;
         private @org.jspecify.annotations.Nullable String anyOfTags;
         private @org.jspecify.annotations.Nullable Map<String, String> exactTags;
         private @org.jspecify.annotations.Nullable String publishers;
         private List<PublisherProperties> publisherConfigs = new ArrayList<>();
+
+        public @org.jspecify.annotations.Nullable String getEventTypes() {
+            return eventTypes;
+        }
+
+        public void setEventTypes(@org.jspecify.annotations.Nullable String eventTypes) {
+            this.eventTypes = eventTypes;
+        }
         
         public @org.jspecify.annotations.Nullable String getRequiredTags() {
             return requiredTags;

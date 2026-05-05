@@ -60,6 +60,7 @@ Crablet Outbox provides a robust transactional outbox implementation, ensuring t
 # application.properties
 crablet.outbox.enabled=true
 crablet.outbox.polling-interval=PT5S
+crablet.outbox.topics.default.event-types=WalletOpened,DepositMade
 crablet.outbox.topics.default.publishers=LogPublisher,CountDownLatchPublisher
 ```
 
