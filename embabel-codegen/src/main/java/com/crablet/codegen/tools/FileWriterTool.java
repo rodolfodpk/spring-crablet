@@ -25,12 +25,17 @@ public class FileWriterTool {
      * @return list of written file paths (relative to outputDir)
      */
     public List<Path> writeGeneratedFiles(String llmOutput, Path outputDir) {
+        Path safeRoot = outputDir.toAbsolutePath().normalize();
         List<Path> written = new ArrayList<>();
         Matcher m = FILE_BLOCK.matcher(llmOutput);
         while (m.find()) {
             String relativePath = m.group(1).trim();
             String fileContent = m.group(2);
-            Path target = outputDir.resolve(relativePath).normalize();
+            Path target = safeRoot.resolve(relativePath).normalize();
+            if (!target.startsWith(safeRoot)) {
+                throw new IllegalArgumentException(
+                        "Path traversal rejected: '" + relativePath + "' escapes output directory");
+            }
             try {
                 Files.createDirectories(target.getParent());
                 Files.writeString(target, fileContent);
