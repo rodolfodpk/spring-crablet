@@ -1,5 +1,6 @@
 package com.crablet.eventpoller.wakeup;
 
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -21,7 +22,7 @@ public final class PostgresNotifyWakeupSourceFactory implements ProcessorWakeupS
     }
 
     @Override
-    public ProcessorWakeupSource create() {
+    public @NonNull ProcessorWakeupSource create() {
         return new PostgresNotifyWakeupSource(jdbcUrl, username, password, channel);
     }
 }

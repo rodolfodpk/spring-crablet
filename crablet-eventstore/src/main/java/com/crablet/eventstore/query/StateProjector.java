@@ -2,6 +2,7 @@ package com.crablet.eventstore.query;
 
 import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.StoredEvent;
+import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 
@@ -28,12 +29,12 @@ public interface StateProjector<T> {
      * Get the event types this projector handles.
      * Events from the query that don't match these types will be skipped.
      */
-    List<String> getEventTypes();
+    @NonNull List<String> getEventTypes();
 
     /**
      * Get the initial state for this projector.
      */
-    T getInitialState();
+    @NonNull T getInitialState();
 
     /**
      * Transition the state based on an event.
@@ -46,7 +47,7 @@ public interface StateProjector<T> {
      * @param deserializer The event deserializer for converting raw events to typed events
      * @return The new state after applying the event
      */
-    T transition(T currentState, StoredEvent event, EventDeserializer deserializer);
+    @NonNull T transition(@NonNull T currentState, @NonNull StoredEvent event, @NonNull EventDeserializer deserializer);
 
     /**
      * Returns a projector that yields {@code true} if any matching event exists.
@@ -65,13 +66,13 @@ public interface StateProjector<T> {
     static StateProjector<Boolean> exists(String... eventTypes) {
         return new StateProjector<>() {
             @Override
-            public List<String> getEventTypes() { return List.of(eventTypes); }
+            public @NonNull List<String> getEventTypes() { return List.of(eventTypes); }
 
             @Override
-            public Boolean getInitialState() { return false; }
+            public @NonNull Boolean getInitialState() { return false; }
 
             @Override
-            public Boolean transition(Boolean state, StoredEvent event, EventDeserializer deserializer) {
+            public @NonNull Boolean transition(@NonNull Boolean state, @NonNull StoredEvent event, @NonNull EventDeserializer deserializer) {
                 return true;
             }
         };

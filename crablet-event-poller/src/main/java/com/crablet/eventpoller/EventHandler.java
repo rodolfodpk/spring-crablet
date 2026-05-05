@@ -1,6 +1,8 @@
 package com.crablet.eventpoller;
 
 import com.crablet.eventstore.StoredEvent;
+import org.jspecify.annotations.NonNull;
+
 import java.util.List;
 
 /**
@@ -47,5 +49,5 @@ public interface EventHandler<I> {
      * @return Number of events successfully handled
      * @throws Exception if handling fails
      */
-    int handle(I processorId, List<StoredEvent> events) throws Exception;
+    int handle(@NonNull I processorId, @NonNull List<StoredEvent> events) throws Exception;
 }

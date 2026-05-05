@@ -2,6 +2,8 @@ package com.crablet.eventstore.internal;
 
 import com.crablet.eventstore.ClockProvider;
 
+import org.jspecify.annotations.NonNull;
+
 import java.time.Clock;
 import java.time.Instant;
 
@@ -28,7 +30,7 @@ public class ClockProviderImpl implements ClockProvider {
      * @return Current instant
      */
     @Override
-    public Instant now() {
+    public @NonNull Instant now() {
         return Instant.now(clock);
     }
 
@@ -39,7 +41,7 @@ public class ClockProviderImpl implements ClockProvider {
      * @param clock The clock to use
      */
     @Override
-    public void setClock(Clock clock) {
+    public void setClock(@NonNull Clock clock) {
         this.clock = clock;
     }
 
@@ -48,7 +50,7 @@ public class ClockProviderImpl implements ClockProvider {
      *
      * @return The current clock
      */
-    public Clock getClock() {
+    public @NonNull Clock getClock() {
         return clock;
     }
 

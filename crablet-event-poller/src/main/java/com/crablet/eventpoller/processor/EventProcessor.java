@@ -1,6 +1,7 @@
 package com.crablet.eventpoller.processor;
 
 import com.crablet.eventpoller.progress.ProcessorStatus;
+import org.jspecify.annotations.NonNull;
 
 import java.util.Map;
 
@@ -18,36 +19,36 @@ public interface EventProcessor<T extends ProcessorConfig<I>, I> {
      * @param processorId Processor identifier
      * @return Number of events processed
      */
-    int process(I processorId);
-    
+    int process(@NonNull I processorId);
+
     /**
      * Start all processors.
      */
     void start();
-    
+
     /**
      * Stop all processors.
      */
     void stop();
-    
+
     /**
      * Pause a specific processor.
      */
-    void pause(I processorId);
-    
+    void pause(@NonNull I processorId);
+
     /**
      * Resume a specific processor.
      */
-    void resume(I processorId);
-    
+    void resume(@NonNull I processorId);
+
     /**
      * Get status of a processor.
      */
-    ProcessorStatus getStatus(I processorId);
-    
+    @NonNull ProcessorStatus getStatus(@NonNull I processorId);
+
     /**
      * Get all processor statuses.
      */
-    Map<I, ProcessorStatus> getAllStatuses();
+    @NonNull Map<I, ProcessorStatus> getAllStatuses();
 }
 

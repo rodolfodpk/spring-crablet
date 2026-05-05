@@ -1,6 +1,7 @@
 package com.crablet.eventpoller.management;
 
 import com.crablet.eventpoller.progress.ProcessorStatus;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
@@ -19,61 +20,61 @@ public interface ProcessorManagementService<I> {
      * @param processorId Processor identifier
      * @return true if processor was paused, false if not found
      */
-    boolean pause(I processorId);
-    
+    boolean pause(@NonNull I processorId);
+
     /**
      * Resume a processor (starts processing events again).
-     * 
+     *
      * @param processorId Processor identifier
      * @return true if processor was resumed, false if not found
      */
-    boolean resume(I processorId);
-    
+    boolean resume(@NonNull I processorId);
+
     /**
      * Reset a failed processor (clears error count and resumes).
-     * 
+     *
      * @param processorId Processor identifier
      * @return true if processor was reset, false if not found
      */
-    boolean reset(I processorId);
-    
+    boolean reset(@NonNull I processorId);
+
     /**
      * Get status of a specific processor.
-     * 
+     *
      * @param processorId Processor identifier
-     * @return Processor status or null if not found
+     * @return Processor status ({@linkplain ProcessorStatus#ACTIVE} when no row exists yet)
      */
-    ProcessorStatus getStatus(I processorId);
-    
+    @NonNull ProcessorStatus getStatus(@NonNull I processorId);
+
     /**
      * Get status of all processors.
-     * 
+     *
      * @return Map of processor ID to status
      */
-    Map<I, ProcessorStatus> getAllStatuses();
-    
+    @NonNull Map<I, ProcessorStatus> getAllStatuses();
+
     /**
      * Get lag for a processor (how far behind the latest event).
-     * 
+     *
      * @param processorId Processor identifier
      * @return Lag (current max position - last processed position), or null if not found
      */
-    @Nullable Long getLag(I processorId);
-    
+    @Nullable Long getLag(@NonNull I processorId);
+
     /**
      * Get backoff information for a processor.
-     * 
+     *
      * @param processorId Processor identifier
      * @return Backoff information or null if not found or backoff not enabled
      */
-    @Nullable BackoffInfo getBackoffInfo(I processorId);
-    
+    @Nullable BackoffInfo getBackoffInfo(@NonNull I processorId);
+
     /**
      * Get backoff information for all processors.
-     * 
+     *
      * @return Map of processor ID to backoff information
      */
-    Map<I, BackoffInfo> getAllBackoffInfo();
+    @NonNull Map<I, BackoffInfo> getAllBackoffInfo();
     
     /**
      * Backoff information for a processor.

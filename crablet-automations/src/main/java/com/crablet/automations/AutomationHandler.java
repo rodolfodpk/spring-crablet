@@ -3,6 +3,7 @@ package com.crablet.automations;
 import com.crablet.eventstore.Stable;
 import com.crablet.eventpoller.processor.ProcessorRuntimeOverrides;
 import com.crablet.eventstore.StoredEvent;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
@@ -97,5 +98,5 @@ public interface AutomationHandler extends AutomationDefinition, ProcessorRuntim
      * @param event the matching stored event
      * @return decisions to execute in order; an empty list is treated as a successful no-op
      */
-    List<AutomationDecision> decide(StoredEvent event);
+    @NonNull List<AutomationDecision> decide(@NonNull StoredEvent event);
 }

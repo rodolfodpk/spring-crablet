@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * In-memory EventStore implementation for unit testing.
  * <p>
@@ -78,7 +80,7 @@ public class InMemoryEventStore implements EventStore, CommandAuditStore {
     private final EventDeserializer deserializer = new EventDeserializer() {
         @Override
         @SuppressWarnings("unchecked")
-        public <E> E deserialize(StoredEvent event, Class<E> eventType) {
+        public <E> @NonNull E deserialize(@NonNull StoredEvent event, @NonNull Class<E> eventType) {
             // Find original object from our records by position
             EventRecord record = findRecordByPosition(event.position());
             if (record == null) {
@@ -90,22 +92,27 @@ public class InMemoryEventStore implements EventStore, CommandAuditStore {
     };
     
     @Override
-    public String appendCommutative(List<AppendEvent> events) {
+    public @NonNull String appendCommutative(@NonNull List<AppendEvent> events) {
         return doAppend(events);
     }
 
     @Override
-    public String appendNonCommutative(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {
+    public @NonNull String appendNonCommutative(
+            @NonNull List<AppendEvent> events, @NonNull Query decisionModel, @NonNull StreamPosition streamPosition) {
         return doAppend(events);
     }
 
     @Override
-    public String appendIdempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {
+    public @NonNull String appendIdempotent(
+            @NonNull List<AppendEvent> events,
+            @NonNull String eventType,
+            @NonNull String tagKey,
+            @NonNull String tagValue) {
         return doAppend(events);
     }
 
     @Override
-    public String appendIdempotent(List<AppendEvent> events, com.crablet.eventstore.query.Query idempotencyQuery) {
+    public @NonNull String appendIdempotent(@NonNull List<AppendEvent> events, @NonNull Query idempotencyQuery) {
         return doAppend(events);
     }
 
@@ -135,11 +142,11 @@ public class InMemoryEventStore implements EventStore, CommandAuditStore {
     }
     
     @Override
-    public <T> ProjectionResult<T> project(
-            Query query,
-            StreamPosition after,
-            Class<T> stateType,
-            List<StateProjector<T>> projectors) {
+    public <T> @NonNull ProjectionResult<T> project(
+            @NonNull Query query,
+            @NonNull StreamPosition after,
+            @NonNull Class<T> stateType,
+            @NonNull List<StateProjector<T>> projectors) {
         
         if (projectors == null || projectors.isEmpty()) {
             throw new IllegalArgumentException("At least one projector is required");
@@ -182,13 +189,13 @@ public class InMemoryEventStore implements EventStore, CommandAuditStore {
     }
     
     @Override
-    public <T> T executeInTransaction(Function<EventStore, T> operation) {
+    public <T> T executeInTransaction(@NonNull Function<@NonNull EventStore, T> operation) {
         // Simple wrapper - no actual transaction management needed for unit tests
         return operation.apply(this);
     }
     
     @Override
-    public void storeCommand(String commandJson, String commandType, String transactionId) {
+    public void storeCommand(@NonNull String commandJson, @NonNull String commandType, @NonNull String transactionId) {
         // No-op for unit tests - command storage is tested in integration tests
     }
     

@@ -2,6 +2,7 @@ package com.crablet.command;
 
 import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.EventStore;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Specialization of {@link CommandHandler} for <b>non-commutative</b> operations —
@@ -30,10 +31,10 @@ public interface NonCommutativeCommandHandler<C> extends CommandHandler<C> {
      * @param command    the command to handle
      * @return non-commutative decision carrying events, decision model, and stream position
      */
-    CommandDecision.NonCommutative decide(EventStore eventStore, C command);
+    CommandDecision.NonCommutative decide(@NonNull EventStore eventStore, @NonNull C command);
 
     @Override
-    default CommandDecision handle(EventStore eventStore, C command) {
+    default CommandDecision handle(@NonNull EventStore eventStore, @NonNull C command) {
         return decide(eventStore, command);
     }
 }

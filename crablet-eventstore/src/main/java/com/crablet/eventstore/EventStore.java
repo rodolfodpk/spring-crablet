@@ -6,6 +6,8 @@ import com.crablet.eventstore.query.StateProjector;
 import java.util.List;
 import java.util.function.Function;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * EventStore is the core interface for appending and reading events.
  * This is the primary abstraction that users interact with.
@@ -21,7 +23,7 @@ public interface EventStore {
      * @return The transaction ID of the transaction that appended the events
      * @throws IllegalArgumentException if the events list is empty
      */
-    String appendCommutative(List<AppendEvent> events);
+    @NonNull String appendCommutative(@NonNull List<AppendEvent> events);
 
     /**
      * Appends non-commutative events — order-dependent operations with stream-position-based DCB conflict check
@@ -34,7 +36,8 @@ public interface EventStore {
      * @throws IllegalArgumentException if the events list is empty
      * @throws ConcurrencyException if a concurrent modification is detected
      */
-    String appendNonCommutative(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition);
+    @NonNull String appendNonCommutative(
+            @NonNull List<AppendEvent> events, @NonNull Query decisionModel, @NonNull StreamPosition streamPosition);
 
     /**
      * Appends idempotent events — entity creation; fails if an event with the same tag already exists
@@ -48,7 +51,11 @@ public interface EventStore {
      * @throws IllegalArgumentException if the events list is empty
      * @throws ConcurrencyException if a duplicate event with the same tag already exists
      */
-    String appendIdempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue);
+    @NonNull String appendIdempotent(
+            @NonNull List<AppendEvent> events,
+            @NonNull String eventType,
+            @NonNull String tagKey,
+            @NonNull String tagValue);
 
     /**
      * Appends idempotent events using a pre-built idempotency {@link com.crablet.eventstore.query.Query}.
@@ -61,7 +68,7 @@ public interface EventStore {
      * @throws IllegalArgumentException if the events list is empty
      * @throws ConcurrencyException if a duplicate event matching the query already exists
      */
-    String appendIdempotent(List<AppendEvent> events, Query idempotencyQuery);
+    @NonNull String appendIdempotent(@NonNull List<AppendEvent> events, @NonNull Query idempotencyQuery);
 
     /**
      * Project state from events matching the query, together with the stream
@@ -74,12 +81,11 @@ public interface EventStore {
      * @param stateType The type of state to project
      * @param projectors List of projectors to apply to events
      */
-    <T> ProjectionResult<T> project(
-            Query query,
-            StreamPosition after,
-            Class<T> stateType,
-            List<StateProjector<T>> projectors
-    );
+    <T> @NonNull ProjectionResult<T> project(
+            @NonNull Query query,
+            @NonNull StreamPosition after,
+            @NonNull Class<T> stateType,
+            @NonNull List<StateProjector<T>> projectors);
 
     /**
      * Convenience overload for single-projector use. Eliminates the class token and List.of() boilerplate.
@@ -89,7 +95,8 @@ public interface EventStore {
      * @param projector  The single projector to apply
      */
     @SuppressWarnings("unchecked")
-    default <T> ProjectionResult<T> project(Query query, StreamPosition after, StateProjector<T> projector) {
+    default <T> @NonNull ProjectionResult<T> project(
+            @NonNull Query query, @NonNull StreamPosition after, @NonNull StateProjector<T> projector) {
         return project(query, after, (Class<T>) Object.class, List.of(projector));
     }
 
@@ -100,7 +107,7 @@ public interface EventStore {
      * @param query     The query to filter events
      * @param projector The single projector to apply
      */
-    default <T> ProjectionResult<T> project(Query query, StateProjector<T> projector) {
+    default <T> @NonNull ProjectionResult<T> project(@NonNull Query query, @NonNull StateProjector<T> projector) {
         return project(query, StreamPosition.zero(), projector);
     }
 
@@ -112,7 +119,8 @@ public interface EventStore {
      * @param projectors The projectors to apply
      */
     @SuppressWarnings("unchecked")
-    default <T> ProjectionResult<T> project(Query query, List<StateProjector<T>> projectors) {
+    default <T> @NonNull ProjectionResult<T> project(
+            @NonNull Query query, @NonNull List<StateProjector<T>> projectors) {
         return project(query, StreamPosition.zero(), (Class<T>) Object.class, projectors);
     }
 
@@ -126,7 +134,7 @@ public interface EventStore {
      * @param query the query defining which events to check
      * @return {@code true} if any matching event exists, {@code false} otherwise
      */
-    default boolean exists(Query query) {
+    default boolean exists(@NonNull Query query) {
         return project(query, StreamPosition.zero(), StateProjector.exists()).state();
     }
 
@@ -148,9 +156,9 @@ public interface EventStore {
      *
      * @param operation Function that receives a transaction-scoped EventStore
      * @param <T>       Type of result returned by the operation
-     * @return Result of the operation
+     * @return Result of the operation (may be {@code null} if the callback returns {@code null})
      * @throws RuntimeException if transaction fails
      */
-    <T> T executeInTransaction(Function<EventStore, T> operation);
+    <T> T executeInTransaction(@NonNull Function<@NonNull EventStore, T> operation);
 
 }

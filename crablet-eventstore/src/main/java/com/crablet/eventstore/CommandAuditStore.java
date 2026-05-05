@@ -1,5 +1,7 @@
 package com.crablet.eventstore;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * Stores command metadata for audit and query purposes.
  * <p>
@@ -23,5 +25,5 @@ public interface CommandAuditStore {
      * @param commandType   the command type identifier
      * @param transactionId the transaction ID linking this command to its events
      */
-    void storeCommand(String commandJson, String commandType, String transactionId);
+    void storeCommand(@NonNull String commandJson, @NonNull String commandType, @NonNull String transactionId);
 }

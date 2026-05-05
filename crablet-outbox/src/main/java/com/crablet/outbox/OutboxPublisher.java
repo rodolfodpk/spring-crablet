@@ -1,6 +1,8 @@
 package com.crablet.outbox;
 
 import com.crablet.eventstore.Stable;
+import com.crablet.eventstore.StoredEvent;
+import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 
@@ -18,7 +20,7 @@ public interface OutboxPublisher {
     /**
      * Publish a batch of events.
      */
-    void publishBatch(List<com.crablet.eventstore.StoredEvent> events) throws PublishException;
+    void publishBatch(@NonNull List<StoredEvent> events) throws PublishException;
     
     /**
      * Check if publisher is healthy.

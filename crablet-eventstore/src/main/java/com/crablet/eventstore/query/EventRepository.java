@@ -3,6 +3,7 @@ package com.crablet.eventstore.query;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.StreamPosition;
 import com.crablet.eventstore.StoredEvent;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
@@ -36,5 +37,5 @@ public interface EventRepository {
      * @param after StreamPosition to query events after (null for all events)
      * @return List of stored events matching the query
      */
-    List<StoredEvent> query(Query query, @Nullable StreamPosition after);
+    @NonNull List<StoredEvent> query(@NonNull Query query, @Nullable StreamPosition after);
 }

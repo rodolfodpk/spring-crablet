@@ -9,11 +9,13 @@ import com.embabel.common.ai.model.LlmOptions;
 import com.embabel.common.ai.model.PricingModel;
 import com.embabel.common.util.ObjectProviders;
 import io.micrometer.observation.ObservationRegistry;
+import org.jspecify.annotations.NonNull;
 import org.springframework.ai.retry.RetryUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 class EmbabelCodegenLlmClient implements CodegenLlmClient {
@@ -25,16 +27,17 @@ class EmbabelCodegenLlmClient implements CodegenLlmClient {
     }
 
     @Override
-    public String complete(String systemPrompt, String userPrompt) {
+    public @NonNull String complete(@NonNull String systemPrompt, @NonNull String userPrompt) {
         CodegenLlmSelection selection = properties.selection();
         LlmService<?> service = llmService(selection);
         LlmOptions options = LlmOptions.withDefaults().withMaxTokens(selection.maxTokens());
-        return service.createMessageSender(options)
-                .call(
-                        List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt)),
-                        List.of()
-                )
-                .getTextContent();
+        return Objects.requireNonNull(
+                service.createMessageSender(options)
+                        .call(
+                                List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt)),
+                                List.of()
+                        )
+                        .getTextContent());
     }
 
     private LlmService<?> llmService(CodegenLlmSelection selection) {

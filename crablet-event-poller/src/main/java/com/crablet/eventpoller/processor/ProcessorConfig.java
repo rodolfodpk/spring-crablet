@@ -1,5 +1,7 @@
 package com.crablet.eventpoller.processor;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * Configuration for a processor instance.
  * 
@@ -9,7 +11,7 @@ public interface ProcessorConfig<I> {
     /**
      * Unique identifier for this processor instance.
      */
-    I getProcessorId();
+    @NonNull I getProcessorId();
     
     /**
      * Polling interval in milliseconds.

@@ -19,6 +19,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
+import org.jspecify.annotations.NonNull;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("CommandExecutors Factory Tests")
@@ -48,33 +50,43 @@ class CommandExecutorsTest {
 
     private static final class NoOpEventStore implements EventStore {
         @Override
-        public String appendCommutative(List<AppendEvent> events) {
+        public @NonNull String appendCommutative(@NonNull List<AppendEvent> events) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public String appendNonCommutative(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {
+        public @NonNull String appendNonCommutative(
+                @NonNull List<AppendEvent> events,
+                @NonNull Query decisionModel,
+                @NonNull StreamPosition streamPosition) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public String appendIdempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {
+        public @NonNull String appendIdempotent(
+                @NonNull List<AppendEvent> events,
+                @NonNull String eventType,
+                @NonNull String tagKey,
+                @NonNull String tagValue) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public String appendIdempotent(List<AppendEvent> events, Query idempotencyQuery) {
+        public @NonNull String appendIdempotent(@NonNull List<AppendEvent> events, @NonNull Query idempotencyQuery) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public <T> ProjectionResult<T> project(Query query, StreamPosition after, Class<T> stateType,
-                                               List<StateProjector<T>> projectors) {
+        public <T> @NonNull ProjectionResult<T> project(
+                @NonNull Query query,
+                @NonNull StreamPosition after,
+                @NonNull Class<T> stateType,
+                @NonNull List<StateProjector<T>> projectors) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public <T> T executeInTransaction(Function<EventStore, T> operation) {
+        public <T> T executeInTransaction(@NonNull Function<@NonNull EventStore, T> operation) {
             throw new UnsupportedOperationException();
         }
     }

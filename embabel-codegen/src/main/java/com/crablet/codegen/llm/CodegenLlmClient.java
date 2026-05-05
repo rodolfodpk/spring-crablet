@@ -1,6 +1,8 @@
 package com.crablet.codegen.llm;
 
+import org.jspecify.annotations.NonNull;
+
 public interface CodegenLlmClient {
 
-    String complete(String systemPrompt, String userPrompt);
+    @NonNull String complete(@NonNull String systemPrompt, @NonNull String userPrompt);
 }

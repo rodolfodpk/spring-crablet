@@ -1,6 +1,7 @@
 package com.crablet.outbox.publishing;
 
 import com.crablet.eventstore.StoredEvent;
+import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 
@@ -18,5 +19,5 @@ public interface OutboxPublishingService {
      * @return number of events published
      * @throws RuntimeException if publishing fails
      */
-    int publish(String topicName, String publisherName, List<StoredEvent> events);
+    int publish(@NonNull String topicName, @NonNull String publisherName, @NonNull List<StoredEvent> events);
 }

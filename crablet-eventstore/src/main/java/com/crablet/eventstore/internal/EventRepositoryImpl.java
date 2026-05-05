@@ -7,6 +7,7 @@ import com.crablet.eventstore.StreamPosition;
 import com.crablet.eventstore.Tag;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -69,7 +70,7 @@ public class EventRepositoryImpl implements EventRepository {
     }
 
     @Override
-    public List<StoredEvent> query(Query query, @Nullable StreamPosition after) {
+    public @NonNull List<StoredEvent> query(@NonNull Query query, @Nullable StreamPosition after) {
         try {
             // Build SQL query directly instead of using the function
             StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id FROM events");

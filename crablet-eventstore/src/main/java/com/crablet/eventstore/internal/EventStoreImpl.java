@@ -43,11 +43,13 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.UUID;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 /**
@@ -151,9 +153,9 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
      */
     private class EventDeserializerImpl implements EventDeserializer {
         @Override
-        public <E> E deserialize(StoredEvent event, Class<E> eventType) {
+        public <E> @NonNull E deserialize(@NonNull StoredEvent event, @NonNull Class<E> eventType) {
             try {
-                return objectMapper.readValue(event.data(), eventType);
+                return Objects.requireNonNull(objectMapper.readValue(event.data(), eventType));
             } catch (Exception e) {
                 throw new RuntimeException("Failed to deserialize event type=" +
                     event.type() + " to " + eventType.getName(), e);
@@ -280,22 +282,27 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     }
 
     @Override
-    public String appendCommutative(List<AppendEvent> events) {
+    public @NonNull String appendCommutative(@NonNull List<AppendEvent> events) {
         return appendIf(events, AppendCondition.empty());
     }
 
     @Override
-    public String appendNonCommutative(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {
+    public @NonNull String appendNonCommutative(
+            @NonNull List<AppendEvent> events, @NonNull Query decisionModel, @NonNull StreamPosition streamPosition) {
         return appendIf(events, AppendConditionBuilder.of(decisionModel, streamPosition).build());
     }
 
     @Override
-    public String appendIdempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {
+    public @NonNull String appendIdempotent(
+            @NonNull List<AppendEvent> events,
+            @NonNull String eventType,
+            @NonNull String tagKey,
+            @NonNull String tagValue) {
         return appendIf(events, AppendCondition.idempotent(eventType, tagKey, tagValue));
     }
 
     @Override
-    public String appendIdempotent(List<AppendEvent> events, Query idempotencyQuery) {
+    public @NonNull String appendIdempotent(@NonNull List<AppendEvent> events, @NonNull Query idempotencyQuery) {
         return appendIf(events, AppendCondition.idempotent(idempotencyQuery));
     }
 
@@ -397,7 +404,8 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     }
 
     @Override
-    public <T> ProjectionResult<T> project(Query query, StreamPosition after, Class<T> stateType, List<StateProjector<T>> projectors) {
+    public <T> @NonNull ProjectionResult<T> project(
+            @NonNull Query query, @NonNull StreamPosition after, @NonNull Class<T> stateType, @NonNull List<StateProjector<T>> projectors) {
         if (projectors.isEmpty()) {
             throw new IllegalArgumentException("Projectors must not be empty");
         }
@@ -470,7 +478,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     }
 
     @Override
-    public boolean exists(Query query) {
+    public boolean exists(@NonNull Query query) {
         try (Connection connection = readDataSource.getConnection()) {
             connection.setReadOnly(true);
             return existsWithConnection(connection, query);
@@ -573,7 +581,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     }
 
     @Override
-    public <T> T executeInTransaction(Function<EventStore, T> operation) {
+    public <T> T executeInTransaction(@NonNull Function<@NonNull EventStore, T> operation) {
         try (Connection connection = writeDataSource.getConnection()) {
             // Apply configured transaction isolation level
             int isolationLevel = mapIsolationLevel(config.getTransactionIsolation());
@@ -635,7 +643,8 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
      * @param projectors List of projectors to apply
      * @return ProjectionResult with final state and stream position
      */
-    private <T> ProjectionResult<T> projectWithConnection(Connection connection, Query query, StreamPosition after, List<StateProjector<T>> projectors) {
+    private <T> @NonNull ProjectionResult<T> projectWithConnection(
+            Connection connection, @NonNull Query query, @NonNull StreamPosition after, @NonNull List<StateProjector<T>> projectors) {
         try {
             // Build SQL using existing helper
             StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id FROM events");
@@ -917,7 +926,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
 
 
     @Override
-    public void storeCommand(String commandJson, String commandType, String transactionId) {
+    public void storeCommand(@NonNull String commandJson, @NonNull String commandType, @NonNull String transactionId) {
         try (Connection connection = writeDataSource.getConnection()) {
             storeCommandWithConnection(connection, commandJson, commandType, transactionId);
         } catch (SQLException e) {
@@ -974,47 +983,53 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         }
 
         @Override
-        public String appendCommutative(List<AppendEvent> events) {
+        public @NonNull String appendCommutative(@NonNull List<AppendEvent> events) {
             appendedEvents = true;
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.empty());
         }
 
         @Override
-        public String appendNonCommutative(List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {
+        public @NonNull String appendNonCommutative(
+                @NonNull List<AppendEvent> events, @NonNull Query decisionModel, @NonNull StreamPosition streamPosition) {
             appendedEvents = true;
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendConditionBuilder.of(decisionModel, streamPosition).build());
         }
 
         @Override
-        public String appendIdempotent(List<AppendEvent> events, String eventType, String tagKey, String tagValue) {
+        public @NonNull String appendIdempotent(
+                @NonNull List<AppendEvent> events,
+                @NonNull String eventType,
+                @NonNull String tagKey,
+                @NonNull String tagValue) {
             appendedEvents = true;
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.idempotent(eventType, tagKey, tagValue));
         }
 
         @Override
-        public String appendIdempotent(List<AppendEvent> events, Query idempotencyQuery) {
+        public @NonNull String appendIdempotent(@NonNull List<AppendEvent> events, @NonNull Query idempotencyQuery) {
             appendedEvents = true;
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.idempotent(idempotencyQuery));
         }
 
         @Override
-        public <T> ProjectionResult<T> project(Query query, StreamPosition after, Class<T> stateType, List<StateProjector<T>> projectors) {
+        public <T> @NonNull ProjectionResult<T> project(
+                @NonNull Query query, @NonNull StreamPosition after, @NonNull Class<T> stateType, @NonNull List<StateProjector<T>> projectors) {
             return EventStoreImpl.this.projectWithConnection(connection, query, after, projectors);
         }
 
         @Override
-        public boolean exists(Query query) {
+        public boolean exists(@NonNull Query query) {
             return EventStoreImpl.this.existsWithConnection(connection, query);
         }
 
         @Override
-        public <T> T executeInTransaction(Function<EventStore, T> operation) {
+        public <T> T executeInTransaction(@NonNull Function<@NonNull EventStore, T> operation) {
             // Delegate to parent's implementation
             return EventStoreImpl.this.executeInTransaction(operation);
         }
 
         @Override
-        public void storeCommand(String commandJson, String commandType, String transactionId) {
+        public void storeCommand(@NonNull String commandJson, @NonNull String commandType, @NonNull String transactionId) {
             EventStoreImpl.this.storeCommandWithConnection(connection, commandJson, commandType, transactionId);
         }
 
