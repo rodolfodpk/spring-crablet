@@ -34,7 +34,7 @@ The same model can drive:
 Crablet is designed to start from an Event Modeling conversation. During a workshop, the team captures outcomes, commands, events, views, policies, and integration points. The assistant turns that into `event-model.yaml`, plans the generated artifacts, asks for approval, and then generates the Spring code.
 
 ```text
-Describe one feature slice
+Describe one vertical slice
   -> update event-model.yaml
   -> plan generated artifacts
   -> approve
@@ -56,7 +56,7 @@ make verify
 make k8s
 ```
 
-See [AI-first workflow](docs/user/ai-tooling/AI_FIRST_WORKFLOW.md), [AI skills](docs/user/ai-tooling/AI_SKILLS.md), [Feature slice workflow](docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md), [Event Modeling](docs/user/ai-tooling/EVENT_MODELING.md), and [Event model format](docs/user/ai-tooling/EVENT_MODEL_FORMAT.md).
+See [AI-first workflow](docs/user/ai-tooling/AI_FIRST_WORKFLOW.md), [AI skills](docs/user/ai-tooling/AI_SKILLS.md), [Vertical slice workflow](docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md), [Event Modeling](docs/user/ai-tooling/EVENT_MODELING.md), and [Event model format](docs/user/ai-tooling/EVENT_MODEL_FORMAT.md).
 
 ## Java Spring Runtime
 
@@ -89,6 +89,7 @@ It is probably not the right tool when plain CRUD is enough, one aggregate per c
 - [AI tooling docs](docs/user/ai-tooling/AI_FIRST_WORKFLOW.md)
 - [AI skills](docs/user/ai-tooling/AI_SKILLS.md)
 - [Framework development docs](docs/dev/README.md)
+- [GitHub Pages site](https://rodolfodpk.github.io/spring-crablet/)
 - [Interactive concept map](https://rodolfodpk.github.io/spring-crablet/concepts.html)
 
 ## License
