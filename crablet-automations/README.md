@@ -203,6 +203,8 @@ public interface AutomationDefinition {
 
 `AutomationHandler` implements this contract and handles matching events through `decide()`.
 
+Automations use the shared poller [Event Selection](../crablet-event-poller/README.md#event-selection) semantics: event types and tag filters combine with AND, and empty sets mean unrestricted for that dimension.
+
 ### AutomationHandler
 
 ```java
@@ -301,6 +303,8 @@ Each `AutomationHandler` is also the per-automation poller config. A handler can
 ### Shared-Fetch Mode
 
 When `crablet.automations.shared-fetch.enabled=true`, all automations in the module share a single position-only DB fetch per cycle. Events are routed in-memory to each automation using its `AutomationDefinition` matching rules. This reduces DB load on LISTEN/NOTIFY wakeups from N queries (one per automation) to one query per module cycle.
+
+Shared-fetch changes query shape, not which events match an automation. Matching still follows the shared poller [Event Selection](../crablet-event-poller/README.md#event-selection) contract.
 
 Requires two additional tables in your schema migration:
 

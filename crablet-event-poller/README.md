@@ -94,6 +94,28 @@ crablet.automations.shared-fetch.enabled=true
 
 For example, `crablet.views.shared-fetch.enabled=true` changes the views module from one DB query per view processor to one DB query per views module cycle. It does not combine views, outbox, and automations into one global poller. Each module still keeps its own scheduler, leader election, and progress tracking.
 
+## Event Selection
+
+Poller-backed modules share the `EventSelection` matching contract. Views expose it through `ViewSubscription`, automations through `AutomationDefinition`, and outbox topics through `TopicConfig`.
+
+Selection has four dimensions:
+
+| Dimension | Meaning when empty | Meaning when configured |
+|---|---|---|
+| `eventTypes` | all event types match | event type must be one of the configured names |
+| `requiredTags` | no required tag keys | every configured tag key must be present |
+| `anyOfTags` | no any-of constraint | at least one configured tag key must be present |
+| `exactTags` | no exact tag constraints | every configured key/value pair must be present |
+
+The dimensions combine with AND. For example, `eventTypes=WalletOpened,DepositMade` plus `requiredTags=wallet_id` means “only those event types, and only when `wallet_id` is present.”
+
+The same semantics apply in both fetch modes:
+
+- legacy per-processor fetch builds SQL with `EventSelectionSqlBuilder`
+- shared-fetch mode does one module-level scan and routes events in memory with `EventSelectionMatcher`
+
+Shared-fetch changes query shape, not selection meaning. It is still module-scoped: enabling shared-fetch for views does not combine views, automations, and outbox into one global query.
+
 ## Wakeup Notifications (PostgreSQL LISTEN/NOTIFY)
 
 By default the poller uses a fixed schedule. Optionally you can enable PostgreSQL

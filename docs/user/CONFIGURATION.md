@@ -149,6 +149,8 @@ resilience4j:
 | `topics.<name>.publisher-configs[n].name` | String | — | Publisher name |
 | `topics.<name>.publisher-configs[n].polling-interval-ms` | Long | — | Per-publisher polling interval override |
 
+Outbox topic filters use the shared poller [Event Selection](../../crablet-event-poller/README.md#event-selection) semantics. Event-type and tag filters combine with AND; empty `event-types` means all event types.
+
 ### `crablet.outbox.global-statistics`
 
 | Property | Type | Default | Description |

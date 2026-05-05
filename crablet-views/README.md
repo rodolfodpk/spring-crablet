@@ -422,6 +422,8 @@ crablet.views.fetch-batch-size=1000
 
 When `crablet.views.shared-fetch.enabled=true`, all views in the module share a single position-only DB fetch per cycle. Events are routed in-memory to each view using `EventSelectionMatcher`. This reduces DB load on LISTEN/NOTIFY wakeups from N queries (one per view) to one query per module cycle.
 
+Matching uses the shared poller [Event Selection](../crablet-event-poller/README.md#event-selection) semantics. Shared-fetch changes query shape, not which events match a subscription.
+
 Requires two additional tables in your schema migration:
 
 ```sql
@@ -470,6 +472,8 @@ Tags are stored in PostgreSQL as `"key=value"` format. Subscription filters supp
 - **Required Tags**: ALL specified tags must be present
 - **AnyOf Tags**: At least ONE of the specified tags must be present
 - **Event Types**: Filter by event type names
+
+These filters use the shared poller [Event Selection](../crablet-event-poller/README.md#event-selection) contract.
 
 **Example:**
 ```java

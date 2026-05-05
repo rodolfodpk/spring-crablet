@@ -83,6 +83,8 @@ crablet.outbox.topics.payment-events.any-of-tags=payment_id,transfer_id
 crablet.outbox.topics.payment-events.publishers=AnalyticsPublisher
 ```
 
+Outbox topics use the shared poller [Event Selection](../../crablet-event-poller/README.md#event-selection) model: event types and tag filters combine with AND, and empty event types mean all event types. Legacy mode applies the filter in SQL per topic/publisher; shared-fetch mode applies the same selection during in-memory routing.
+
 ## Leader Election
 
 The outbox uses **PostgreSQL advisory locks** for leader election, ensuring only one instance processes each publisher at a time.
