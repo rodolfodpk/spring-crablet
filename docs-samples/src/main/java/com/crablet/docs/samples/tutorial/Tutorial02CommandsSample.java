@@ -8,6 +8,7 @@ import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import org.jspecify.annotations.NonNull;
 
 import static com.crablet.eventstore.EventType.type;
 
@@ -38,7 +39,7 @@ final class Tutorial02CommandsSample {
 
     static final class SubmitTalkCommandHandler implements IdempotentCommandHandler<SubmitTalkCommand> {
         @Override
-        public CommandDecision.Idempotent decide(EventStore eventStore, SubmitTalkCommand command) {
+        public CommandDecision.Idempotent decide(@NonNull EventStore eventStore, @NonNull SubmitTalkCommand command) {
             TalkSubmitted event = new TalkSubmitted(command.talkId(), command.speakerId(), command.title());
 
             AppendEvent appendEvent = AppendEvent.builder(type(TalkSubmitted.class))

@@ -25,6 +25,8 @@ k8s:
 	@java -jar $(CRABLET_CODEGEN_JAR) k8s --model event-model.yaml --output .
 
 diagram-preview:
+	@command -v node >/dev/null 2>&1 || (echo "error: Node.js is required. Install from https://nodejs.org" && exit 1)
+	@[ -d tools/node_modules/js-yaml ] || npm install --prefix tools --silent
 	@node tools/diagram-preview.js
 
 verify:

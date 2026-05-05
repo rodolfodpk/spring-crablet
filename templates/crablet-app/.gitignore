@@ -1,5 +1,6 @@
 target/
 tools/*.jar
+tools/node_modules/
 k8s/
 diagram-preview.html
 .env

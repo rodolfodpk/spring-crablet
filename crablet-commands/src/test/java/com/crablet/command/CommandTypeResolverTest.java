@@ -1,12 +1,12 @@
 package com.crablet.command;
 
-import com.crablet.examples.course.handlers.DefineCourseCommandHandler;
 import com.crablet.command.internal.CommandTypeResolver;
 import com.crablet.examples.wallet.commands.DepositCommandHandler;
 import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -62,7 +62,7 @@ class CommandTypeResolverTest {
         class TestHandler implements CommandHandler<TestCommand> {
             @Override
             @SuppressWarnings("NullAway")
-            public CommandDecision handle(com.crablet.eventstore.EventStore eventStore, TestCommand command) {
+            public CommandDecision handle(com.crablet.eventstore.@NonNull EventStore eventStore, @NonNull TestCommand command) {
                 return null;
             }
         }
@@ -84,7 +84,7 @@ class CommandTypeResolverTest {
         class HandlerWithoutSubType implements CommandHandler<CommandNotInSubTypes> {
             @Override
             @SuppressWarnings("NullAway")
-            public CommandDecision handle(com.crablet.eventstore.EventStore eventStore, CommandNotInSubTypes command) {
+            public CommandDecision handle(com.crablet.eventstore.@NonNull EventStore eventStore, @NonNull CommandNotInSubTypes command) {
                 return null;
             }
         }
@@ -110,7 +110,7 @@ class CommandTypeResolverTest {
         class ConcreteHandler extends AbstractBaseHandler<OpenWalletCommand> {
             @Override
             @SuppressWarnings("NullAway")
-            public CommandDecision handle(com.crablet.eventstore.EventStore eventStore, OpenWalletCommand command) {
+            public CommandDecision handle(com.crablet.eventstore.@NonNull EventStore eventStore, @NonNull OpenWalletCommand command) {
                 return null;
             }
         }
@@ -178,7 +178,7 @@ class CommandTypeResolverTest {
         class MultiInterfaceHandler implements CommandHandler<OpenWalletCommand>, OtherInterface {
             @Override
             @SuppressWarnings("NullAway")
-            public CommandDecision handle(com.crablet.eventstore.EventStore eventStore, OpenWalletCommand command) {
+            public CommandDecision handle(com.crablet.eventstore.@NonNull EventStore eventStore, @NonNull OpenWalletCommand command) {
                 return null;
             }
         }
@@ -206,7 +206,7 @@ class CommandTypeResolverTest {
         class TestHandler implements CommandHandler<TestCommandClass> {
             @Override
             @SuppressWarnings("NullAway")
-            public CommandDecision handle(com.crablet.eventstore.EventStore eventStore, TestCommandClass command) {
+            public CommandDecision handle(com.crablet.eventstore.@NonNull EventStore eventStore, @NonNull TestCommandClass command) {
                 return null;
             }
         }
