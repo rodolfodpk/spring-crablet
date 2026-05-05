@@ -186,14 +186,19 @@ public final class EventProcessorFactory {
             ProcessorWakeupSourceFactory wakeupSourceFactory,
             EventPollerConfig eventPollerConfig) {
 
-        var leaderElector = new LeaderElectorImpl(
-                writeDataSource.dataSource(), processorName, instanceId, lockKey, eventPublisher);
+        var leaderElector = createLeaderElector(
+                writeDataSource, processorName, instanceId, lockKey, eventPublisher);
 
-        return new EventProcessorImpl<>(
-                configs, leaderElector, progressTracker, eventFetcher, eventHandler,
-                taskScheduler, eventPublisher, wakeupSourceFactory.create(),
-                eventPollerConfig.getLeaderRetryCooldownMs(), eventPollerConfig.getStartupDelayMs(),
-                ClockProvider.systemDefault());
+        return createProcessor(
+                configs,
+                leaderElector,
+                progressTracker,
+                eventFetcher,
+                eventHandler,
+                taskScheduler,
+                eventPublisher,
+                wakeupSourceFactory,
+                eventPollerConfig);
     }
 
     /**
