@@ -9,10 +9,6 @@ cloned app.
 
 A slice should be one observable user outcome, not a whole subsystem. For example:
 
-> **BDD scenarios:** Add an optional `scenarios` section to `event-model.yaml` during modeling
-> to describe expected behavior. The generator writes a JUnit 5 test scaffold for each scenario
-> into `src/test/java` on the first `generate` run and never overwrites it again.
-
 - open a wallet
 - deposit money
 - approve a small loan automatically
@@ -356,6 +352,10 @@ Automations:
 Outbox publishers:
 - none
 
+Scenarios:
+- Submit loan application — happy path
+- Duplicate submission is ignored — idempotency edge case
+
 I have enough information to update event-model.yaml for this slice. I will keep existing slices
 intact and avoid adding placeholder adapters or TODOs.
 ```
@@ -420,6 +420,27 @@ views:
 
 automations: []
 outbox: []
+
+scenarios:
+  - name: Submit loan application
+    steps:
+      - keyword: Given
+        text: a loan application does not exist for APP-001
+      - keyword: When
+        text: customer CUST-42 submits application APP-001 for 50000
+      - keyword: Then
+        text: the system records LoanApplicationSubmitted
+      - keyword: And
+        text: APP-001 appears in PendingLoanApplications
+
+  - name: Duplicate submission is ignored
+    steps:
+      - keyword: Given
+        text: application APP-001 was already submitted
+      - keyword: When
+        text: the same command is submitted again
+      - keyword: Then
+        text: no new event is appended
 ```
 
 Before generation, Claude asks the deterministic planner what will be produced:
@@ -467,6 +488,10 @@ View:
 
 No automation artifacts will be generated.
 No outbox publisher artifacts will be generated.
+
+Tests:
+- com.example.loan.test.SubmitLoanApplicationScenarioTest (JUnit 5 test class)
+- com.example.loan.test.DuplicateSubmissionIsIgnoredScenarioTest (JUnit 5 test class)
 
 Please review this before I generate code. The model currently describes only the submit slice.
 ```
@@ -523,6 +548,8 @@ Created or updated:
 - LoanApplicationQueryPatterns
 - PendingLoanApplicationsViewProjector
 - V100__create_pending_loan_applications.sql
+- SubmitLoanApplicationScenarioTest (test scaffold — src/test/java, written once)
+- DuplicateSubmissionIsIgnoredScenarioTest (test scaffold — src/test/java, written once)
 
 The generator did not create automation or outbox code because the model has empty automations and
 outbox sections.
@@ -587,6 +614,7 @@ describe outcome
   -> review generated artifact plan
   -> approve generation
   -> verify the app
+  -> fill in test scaffold assertions
   -> refine the model when behavior is missing
 ```
 
@@ -633,6 +661,14 @@ Expected view artifacts:
 
 No automation or outbox classes should be generated for this slice because the model has
 empty `automations` and `outbox` arrays.
+
+Expected test artifacts:
+
+- `com.example.loan.test.SubmitLoanApplicationScenarioTest`
+- `com.example.loan.test.DuplicateSubmissionIsIgnoredScenarioTest`
+
+Test scaffolds are written to `src/test/java` on the first `generate` run and never overwritten
+again. Fill in the assertions after generation.
 
 The compile-and-repair loop may adjust generated Java details, but it should not invent
 new commands, events, views, automations, or publishers that are absent from the model.
