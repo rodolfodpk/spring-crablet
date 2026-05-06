@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ScenarioScaffoldGeneratorTest {
 
-    private final ScenarioScaffoldGenerator generator = new ScenarioScaffoldGenerator();
+    private final ScenarioScaffoldGenerator agent = new ScenarioScaffoldGenerator();
 
     @TempDir
     Path tempDir;
@@ -42,7 +42,7 @@ class ScenarioScaffoldGeneratorTest {
                 "Loan", "com.example.loan",
                 null, null, null, null, null, null, List.of(), null, null
         );
-        generator.generate(model, mainJavaDir());
+        agent.generate(model, mainJavaDir());
         assertThat(Files.walk(tempDir).filter(Files::isRegularFile)).isEmpty();
     }
 
@@ -55,7 +55,7 @@ class ScenarioScaffoldGeneratorTest {
         );
         EventModel model = modelWithScenario("Submit loan application", steps);
 
-        generator.generate(model, mainJavaDir());
+        agent.generate(model, mainJavaDir());
 
         Path expected = tempDir.resolve(
                 "src/test/java/com/example/loan/test/SubmitLoanApplicationScenarioTest.java");
@@ -78,7 +78,7 @@ class ScenarioScaffoldGeneratorTest {
         Files.writeString(target, "sentinel content");
 
         EventModel model = modelWithScenario("Submit loan application", List.of());
-        generator.generate(model, mainJavaDir());
+        agent.generate(model, mainJavaDir());
 
         assertThat(Files.readString(target)).isEqualTo("sentinel content");
     }
@@ -94,7 +94,7 @@ class ScenarioScaffoldGeneratorTest {
         );
         EventModel model = modelWithScenario("Deposit funds", steps);
 
-        generator.generate(model, mainJavaDir());
+        agent.generate(model, mainJavaDir());
 
         Path generated = tempDir.resolve(
                 "src/test/java/com/example/loan/test/DepositFundsScenarioTest.java");
@@ -110,7 +110,7 @@ class ScenarioScaffoldGeneratorTest {
         Path mainJava = mainJavaDir();
         EventModel model = modelWithScenario("My scenario", List.of());
 
-        generator.generate(model, mainJava);
+        agent.generate(model, mainJava);
 
         Path generated = tempDir.resolve(
                 "src/test/java/com/example/loan/test/MyScenarioScenarioTest.java");
@@ -123,7 +123,7 @@ class ScenarioScaffoldGeneratorTest {
         Files.createDirectories(noMainJava);
         EventModel model = modelWithScenario("Any scenario", List.of());
 
-        assertThatThrownBy(() -> generator.generate(model, noMainJava))
+        assertThatThrownBy(() -> agent.generate(model, noMainJava))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("src/main/java");
     }
@@ -132,7 +132,7 @@ class ScenarioScaffoldGeneratorTest {
     void escapesDisplayNameQuotesAndBackslashes() throws Exception {
         EventModel model = modelWithScenario("Say \"hello\" and \\bye", List.of());
 
-        generator.generate(model, mainJavaDir());
+        agent.generate(model, mainJavaDir());
 
         Path generated = tempDir.resolve(
                 "src/test/java/com/example/loan/test/SayHelloAndByeScenarioTest.java");
@@ -147,7 +147,7 @@ class ScenarioScaffoldGeneratorTest {
         );
         EventModel model = modelWithScenario("Multiline step", steps);
 
-        generator.generate(model, mainJavaDir());
+        agent.generate(model, mainJavaDir());
 
         Path generated = tempDir.resolve(
                 "src/test/java/com/example/loan/test/MultilineStepScenarioTest.java");

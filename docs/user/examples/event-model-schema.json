@@ -253,6 +253,11 @@
           "type": "string",
           "description": "Command type name to emit when the condition passes"
         },
+        "pattern": {
+          "type": "string",
+          "description": "Automation implementation pattern",
+          "default": "todo-list"
+        },
         "condition": {
           "type": "string",
           "description": "Explicit condition expression evaluated against the trigger event and optional view row"

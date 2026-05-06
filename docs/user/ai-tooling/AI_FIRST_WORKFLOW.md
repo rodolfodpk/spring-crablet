@@ -102,8 +102,9 @@ behavior should be captured in the event model rather than left as framework boi
 
 For the recommended developer dialogue around a single feature, see
 [Feature Slice Workflow](FEATURE_SLICE_WORKFLOW.md). For Event Modeling notation and example
-boards, see [Event Modeling](EVENT_MODELING.md). For a concrete generated-slice input, see
-[loan-submit-feature-slice-event-model.yaml](../examples/loan-submit-feature-slice-event-model.yaml).
+boards, see [Event Modeling](EVENT_MODELING.md). For the compact end-to-end showcase, see
+[Course Enrollment Showcase](COURSE_ENROLLMENT_SHOWCASE.md). For a concrete generated-slice input,
+see [loan-submit-feature-slice-event-model.yaml](../examples/loan-submit-feature-slice-event-model.yaml).
 For a concise map of the Claude Code skills used by this workflow, see [AI Skills](AI_SKILLS.md).
 
 ## Tool Entrypoints

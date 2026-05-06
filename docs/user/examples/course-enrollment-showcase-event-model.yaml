@@ -1,0 +1,260 @@
+# yaml-language-server: $schema=./event-model-schema.json
+domain: CourseEnrollment
+basePackage: com.example.course
+
+events:
+  - name: CourseDefined
+    tags: [course_id]
+    fields:
+      - name: courseId
+        type: string
+      - name: title
+        type: string
+      - name: capacity
+        type: integer
+
+  - name: StudentRegistered
+    tags: [student_id]
+    fields:
+      - name: studentId
+        type: string
+      - name: displayName
+        type: string
+
+  - name: CourseCapacityChanged
+    tags: [course_id]
+    fields:
+      - name: courseId
+        type: string
+      - name: newCapacity
+        type: integer
+
+  - name: StudentSubscribedToCourse
+    tags: [course_id, student_id]
+    fields:
+      - name: courseId
+        type: string
+      - name: studentId
+        type: string
+      - name: subscribedAt
+        type: Instant
+
+  - name: StudentSubscriptionNotificationSent
+    tags: [course_id, student_id]
+    fields:
+      - name: courseId
+        type: string
+      - name: studentId
+        type: string
+      - name: sentAt
+        type: Instant
+
+commands:
+  - name: DefineCourse
+    pattern: idempotent
+    produces: [CourseDefined]
+    fields:
+      - name: courseId
+        type: string
+        minLength: 1
+      - name: title
+        type: string
+        minLength: 1
+        maxLength: 120
+      - name: capacity
+        type: integer
+        exclusiveMinimum: 0
+
+  - name: RegisterStudent
+    pattern: idempotent
+    produces: [StudentRegistered]
+    fields:
+      - name: studentId
+        type: string
+        minLength: 1
+      - name: displayName
+        type: string
+        minLength: 1
+        maxLength: 120
+
+  - name: ChangeCourseCapacity
+    pattern: non-commutative
+    guardEvents: [CourseDefined]
+    produces: [CourseCapacityChanged]
+    fields:
+      - name: courseId
+        type: string
+        minLength: 1
+      - name: newCapacity
+        type: integer
+        exclusiveMinimum: 0
+
+  - name: SubscribeStudentToCourse
+    pattern: non-commutative
+    guardEvents: [CourseDefined, StudentRegistered]
+    produces: [StudentSubscribedToCourse]
+    fields:
+      - name: courseId
+        type: string
+        minLength: 1
+      - name: studentId
+        type: string
+        minLength: 1
+      - name: subscribedAt
+        type: Instant
+
+  - name: SendStudentSubscriptionNotification
+    pattern: idempotent
+    guardEvents: [StudentSubscribedToCourse]
+    produces: [StudentSubscriptionNotificationSent]
+    fields:
+      - name: courseId
+        type: string
+        minLength: 1
+      - name: studentId
+        type: string
+        minLength: 1
+      - name: sentAt
+        type: Instant
+
+views:
+  - name: CourseAvailability
+    reads: [CourseDefined, CourseCapacityChanged, StudentSubscribedToCourse]
+    tag: course_id
+    fields:
+      - name: courseId
+        type: string
+      - name: title
+        type: string
+      - name: capacity
+        type: integer
+      - name: enrolledCount
+        type: integer
+      - name: seatsRemaining
+        type: integer
+
+automations:
+  - name: NotifyStudentSubscription
+    triggeredBy: StudentSubscribedToCourse
+    emitsCommand: SendStudentSubscriptionNotification
+    pattern: todo-list
+    condition: "always"
+    readsView: CourseAvailability
+
+outbox:
+  - name: CourseEventsPublisher
+    topic: course-events
+    handles: [StudentSubscribedToCourse]
+    adapter: kafka
+
+scenarios:
+  - name: Student subscribes successfully
+    tags: [course_id, student_id, happy_path]
+    steps:
+      - keyword: Given
+        text: course COURSE_101 exists with capacity 2
+      - keyword: And
+        text: student STUDENT_001 is registered
+      - keyword: When
+        text: subscribe STUDENT_001 to COURSE_101
+      - keyword: Then
+        text: the system records StudentSubscribedToCourse
+      - keyword: And
+        text: CourseAvailability shows 1 seat remaining for COURSE_101
+
+  - name: Course is full
+    tags: [course_id, student_id, capacity]
+    steps:
+      - keyword: Given
+        text: course COURSE_101 exists with capacity 1
+      - keyword: And
+        text: student STUDENT_001 is already subscribed to COURSE_101
+      - keyword: And
+        text: student STUDENT_002 is registered
+      - keyword: When
+        text: subscribe STUDENT_002 to COURSE_101
+      - keyword: Then
+        text: the command is rejected because the course is full
+      - keyword: And
+        text: the system does not record StudentSubscribedToCourse for STUDENT_002
+
+  - name: Student is already subscribed
+    tags: [course_id, student_id, idempotency]
+    steps:
+      - keyword: Given
+        text: course COURSE_101 exists
+      - keyword: And
+        text: student STUDENT_001 is registered
+      - keyword: And
+        text: student STUDENT_001 is already subscribed to COURSE_101
+      - keyword: When
+        text: subscribe STUDENT_001 to COURSE_101
+      - keyword: Then
+        text: the command is rejected because the student is already subscribed
+
+  - name: Course does not exist
+    tags: [course_id, student_id, guard]
+    steps:
+      - keyword: Given
+        text: course COURSE_404 does not exist
+      - keyword: And
+        text: student STUDENT_001 is registered
+      - keyword: When
+        text: subscribe STUDENT_001 to COURSE_404
+      - keyword: Then
+        text: the command is rejected because CourseDefined is missing
+
+  - name: Student is not registered
+    tags: [course_id, student_id, guard]
+    steps:
+      - keyword: Given
+        text: course COURSE_101 exists with available seats
+      - keyword: And
+        text: student STUDENT_404 is not registered
+      - keyword: When
+        text: subscribe STUDENT_404 to COURSE_101
+      - keyword: Then
+        text: the command is rejected because StudentRegistered is missing
+
+diagram:
+  actors:
+    - id: admin
+      label: Admin
+    - id: student
+      label: Student
+  lanes:
+    - id: course
+      label: Course
+    - id: enrollment
+      label: Student enrollment
+  assignments:
+    DefineCourse: course
+    CourseDefined: course
+    ChangeCourseCapacity: course
+    CourseCapacityChanged: course
+    CourseAvailability: course
+    RegisterStudent: enrollment
+    StudentRegistered: enrollment
+    SubscribeStudentToCourse: enrollment
+    StudentSubscribedToCourse: enrollment
+    NotifyStudentSubscription: enrollment
+    SendStudentSubscriptionNotification: enrollment
+    StudentSubscriptionNotificationSent: enrollment
+    CourseEventsPublisher: enrollment
+  triggers:
+    - name: Admin defines course
+      linkedCommand: DefineCourse
+      actor: admin
+    - name: Admin changes capacity
+      linkedCommand: ChangeCourseCapacity
+      actor: admin
+    - name: Student creates profile
+      linkedCommand: RegisterStudent
+      actor: student
+    - name: Student subscribes
+      linkedCommand: SubscribeStudentToCourse
+      actor: student
+  eventBadges:
+    StudentSubscribedToCourse: multi-entity DCB
+  display:
+    publicationEdges: true
