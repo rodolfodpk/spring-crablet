@@ -16,6 +16,9 @@ In Crablet docs, Event Modeling boards are used to explain feature slices before
 `event-model.yaml`. They are a modeling aid, not a replacement for the YAML contract in
 [Event Model Format](EVENT_MODEL_FORMAT.md).
 
+Scenarios captured during the workshop can be written directly into the `scenarios` section of
+`event-model.yaml`. The generator turns each one into a JUnit 5 test scaffold.
+
 ## How To Read The Boards
 
 Read the event row from left to right as the timeline of business facts.

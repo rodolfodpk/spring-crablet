@@ -13,6 +13,7 @@ public record EventModel(
         @JsonProperty("views") List<ViewSpec> views,
         @JsonProperty("automations") List<AutomationSpec> automations,
         @JsonProperty("outbox") List<OutboxSpec> outbox,
+        @JsonProperty("scenarios") List<ScenarioSpec> scenarios,
         @JsonProperty("deployment") DeploymentSpec deployment,
         @JsonProperty("diagram") DiagramSpec diagram
 ) {
@@ -23,6 +24,7 @@ public record EventModel(
         views = (views == null) ? List.of() : views;
         automations = (automations == null) ? List.of() : automations;
         outbox = (outbox == null) ? List.of() : outbox;
+        scenarios = (scenarios == null) ? List.of() : scenarios;
         deployment = (deployment == null) ? DeploymentSpec.defaults() : deployment;
         diagram = (diagram == null) ? DiagramSpec.empty() : diagram;
     }

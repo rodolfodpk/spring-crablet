@@ -62,6 +62,7 @@ implementation classes are not touched by the generator.
 | Command handler interfaces | Empty Java interface | Overwritten; do not hand-edit |
 | Automation handler interfaces | Metadata-only Java interface | Overwritten; do not hand-edit |
 | Outbox publisher interfaces | Metadata-only Java interface | Overwritten; do not hand-edit |
+| Scenario test scaffolds | Plain JUnit 5 class | Written once on first `generate`; never overwritten |
 | `@Component` command handler implementation | User class | Never touched by generator |
 | `@Component` automation implementation | User class | Never touched by generator |
 | `@Component` outbox publisher implementation | User class | Never touched by generator |
@@ -98,6 +99,44 @@ Fails**. `$ref` schema errors are a subcase of YAML/model parse failure.
 | YAML parse error / `$ref` not found | Malformed `event-model.yaml` or missing schema entry | Run `plan` first. It parses without a model call and shows the error immediately |
 | `ANTHROPIC_API_KEY is not set` or similar | Provider not configured | Set the provider-specific env var or switch `CODEGEN_LLM_PROVIDER` |
 | Generated code compiles but behavior is wrong | Business logic missing; generated interfaces have no logic | Create a `@Component` class implementing the generated interface. Never edit the interface |
+
+## Scenario Test Scaffolding
+
+Add a `scenarios` section to `event-model.yaml` during the Event Modeling workshop to describe
+expected behavior. On the first `generate` run the generator writes a JUnit 5 test skeleton for
+each scenario into `src/test/java/{basePackage}/test/`. The file is never overwritten again —
+it is user-owned from that point.
+
+```yaml
+scenarios:
+  - name: Submit loan application
+    steps:
+      - keyword: Given
+        text: a loan application does not exist
+      - keyword: When
+        text: submit loan application for applicant APPLICANT_001
+      - keyword: Then
+        text: the system records LoanApplicationSubmitted
+```
+
+Generated output (`src/test/java/com/example/loan/test/SubmitLoanApplicationScenarioTest.java`):
+
+```java
+class SubmitLoanApplicationScenarioTest {
+
+    @Test
+    @DisplayName("Submit loan application")
+    void submitLoanApplication() {
+        // Given: a loan application does not exist
+
+        // When: submit loan application for applicant APPLICANT_001
+
+        // Then: the system records LoanApplicationSubmitted
+    }
+}
+```
+
+Scenarios are structural model elements authored during the workshop.
 
 ## Source References
 

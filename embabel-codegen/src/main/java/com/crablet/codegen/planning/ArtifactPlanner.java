@@ -5,6 +5,7 @@ import com.crablet.codegen.model.CommandSpec;
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.model.EventSpec;
 import com.crablet.codegen.model.OutboxSpec;
+import com.crablet.codegen.model.ScenarioSpec;
 import com.crablet.codegen.model.ViewSpec;
 import com.crablet.codegen.pipeline.SchemaResolver;
 import org.springframework.stereotype.Component;
@@ -70,6 +71,15 @@ public class ArtifactPlanner {
             ));
         }
 
+        String testPackage = resolved.basePackage() + ".test";
+        for (ScenarioSpec scenario : resolved.scenarios()) {
+            artifacts.add(PlannedArtifact.testClass(
+                    "test",
+                    testPackage,
+                    toJavaIdentifier(scenario.name()) + "ScenarioTest"
+            ));
+        }
+
         return artifacts;
     }
 
@@ -104,6 +114,7 @@ public class ArtifactPlanner {
             case "view" -> "Views";
             case "automation" -> "Automations";
             case "outbox" -> "Outbox";
+            case "test" -> "Tests";
             default -> section;
         };
     }

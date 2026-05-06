@@ -26,6 +26,27 @@ Only `domain`, `basePackage`, `events`, and `commands` are required for the smal
 application. Views, automations, and outbox publishers are added when the model needs generated
 read models or event-driven integrations.
 
+## Scenarios
+
+`scenarios` is an optional section for BDD-style test descriptions authored during the Event
+Modeling workshop. Each scenario produces a JUnit 5 test scaffold under `src/test/java` on the
+first `generate` run. The file is written once and never overwritten — it is user-owned after
+that point.
+
+```yaml
+scenarios:
+  - name: Submit loan application
+    steps:
+      - keyword: Given
+        text: a loan application does not exist
+      - keyword: When
+        text: submit loan application for applicant APPLICANT_001
+      - keyword: Then
+        text: the system records LoanApplicationSubmitted
+```
+
+Scenarios are structural model elements authored during the workshop.
+
 ## Complete Example
 
 ```yaml

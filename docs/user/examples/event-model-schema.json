@@ -52,6 +52,12 @@
       "items": { "$ref": "#/$defs/OutboxSpec" },
       "default": []
     },
+    "scenarios": {
+      "type": "array",
+      "description": "Optional BDD scenarios authored during the Event Modeling workshop. Each scenario produces a JUnit 5 test scaffold on first generate run.",
+      "items": { "$ref": "#/$defs/ScenarioSpec" },
+      "default": []
+    },
     "deployment": {
       "$ref": "#/$defs/DeploymentSpec",
       "description": "Optional deployment topology for Kubernetes generation"
@@ -274,6 +280,43 @@
         "adapter": {
           "type": "string",
           "description": "Integration adapter type (smtp, kafka, http, etc.)"
+        }
+      }
+    },
+    "ScenarioStepSpec": {
+      "type": "object",
+      "required": ["keyword", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "type": "string",
+          "description": "Step keyword: Given, When, Then, And, or But",
+          "enum": ["Given", "When", "Then", "And", "But"]
+        },
+        "text": {
+          "type": "string",
+          "description": "Step description text"
+        }
+      }
+    },
+    "ScenarioSpec": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Scenario name — used as the generated test class and method name"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Optional tags for filtering or grouping scenarios"
+        },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ScenarioStepSpec" },
+          "description": "Ordered list of Given/When/Then steps"
         }
       }
     },

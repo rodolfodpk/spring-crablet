@@ -248,3 +248,35 @@ public class YourViewProjector extends AbstractTypedViewProjector<YourEvent> {
     }
 }
 ```
+
+### Scenario Test Template
+
+Generated for each `scenarios` entry in `event-model.yaml`. Written once to `src/test/java`; never overwritten on subsequent `generate` runs (user-owned after first write).
+
+Contract:
+- Package: `{basePackage}.test`
+- Class name: `{sanitizedBase}ScenarioTest` — `sanitizedBase` is the PascalCase result of sanitizing the scenario name
+- Method name: lowerCamelCase of that same sanitized base (lowercase the first character)
+- Imports: `org.junit.jupiter.api.DisplayName` and `org.junit.jupiter.api.Test` only — no Spring, no Crablet
+- `Given`/`When`/`Then` steps → labeled `// Keyword: text` comment blocks with a blank line between sections
+- `And` steps → `// And: text` continuation; `But` steps → `// But: text` continuation
+
+```java
+package com.example.loan.test;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+class SubmitLoanApplicationScenarioTest {
+
+    @Test
+    @DisplayName("Submit loan application")
+    void submitLoanApplication() {
+        // Given: a loan application does not exist
+
+        // When: submit loan application for applicant APPLICANT_001
+
+        // Then: the system records LoanApplicationSubmitted
+    }
+}
+```
