@@ -98,6 +98,7 @@ class EventProcessorFactoryTest {
                 new EventPollerConfig());
 
         assertThat(processor).isNotNull();
+        assertThat(processor.getAllStatuses()).containsKey("p1");
     }
 
     @Test
