@@ -55,3 +55,13 @@ views:
 
 automations: []
 outbox: []
+
+scenarios:
+  - name: Submit loan application
+    steps:
+      - keyword: Given
+        text: a loan application does not exist
+      - keyword: When
+        text: submit loan application for applicant APPLICANT_001
+      - keyword: Then
+        text: the system records LoanApplicationSubmitted

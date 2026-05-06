@@ -44,6 +44,8 @@ class ArtifactPlannerTest {
         assertThat(plan).contains("V100__create_pending_loan_applications.sql");
         assertThat(plan).doesNotContain("AutomationHandler");
         assertThat(plan).doesNotContain("Outbox:");
+        assertThat(plan).contains("com.example.loan.test.SubmitLoanApplicationScenarioTest");
+        assertThat(plan).contains("com.example.loan.test.SubmitLoanApplicationScenarioTest (JUnit 5 test class)");
     }
 
     @Test
@@ -69,6 +71,7 @@ class ArtifactPlannerTest {
                         List.of("LoanApplicationSubmitted"),
                         "http"
                 )),
+                null,
                 null,
                 null
         );

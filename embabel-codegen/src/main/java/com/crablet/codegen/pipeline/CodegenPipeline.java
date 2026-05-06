@@ -16,6 +16,7 @@ public class CodegenPipeline {
     private final ViewsAgent viewsAgent;
     private final AutomationsAgent automationsAgent;
     private final OutboxAgent outboxAgent;
+    private final ScenariosAgent scenariosAgent;
     private final RepairAgent repairAgent;
     private final MavenTool maven;
 
@@ -26,6 +27,7 @@ public class CodegenPipeline {
             ViewsAgent viewsAgent,
             AutomationsAgent automationsAgent,
             OutboxAgent outboxAgent,
+            ScenariosAgent scenariosAgent,
             RepairAgent repairAgent,
             MavenTool maven) {
         this.schemaResolver = schemaResolver;
@@ -34,6 +36,7 @@ public class CodegenPipeline {
         this.viewsAgent = viewsAgent;
         this.automationsAgent = automationsAgent;
         this.outboxAgent = outboxAgent;
+        this.scenariosAgent = scenariosAgent;
         this.repairAgent = repairAgent;
         this.maven = maven;
     }
@@ -46,6 +49,7 @@ public class CodegenPipeline {
         viewsAgent.generate(resolved, outputDir);
         automationsAgent.generate(resolved, outputDir);
         outboxAgent.generate(resolved, outputDir);
+        scenariosAgent.generate(resolved, outputDir);
 
         for (int attempt = 1; attempt <= 3; attempt++) {
             CompileResult result = maven.compile(outputDir);

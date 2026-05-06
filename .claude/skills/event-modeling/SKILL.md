@@ -218,6 +218,13 @@ Summarize the full model back to the user before writing:
 - events, tags, and fields
 - views, source events, routing tags, and fields
 - automations and outbox publishers, or explicit `none`
+- scenarios: the happy path and key edge cases described during the workshop
+
+Always include a `scenarios` section in the output. Derive it from the conversation — the user
+does not need to ask for it explicitly. Each scenario should have a descriptive `name` and
+`steps` using `Given`/`When`/`Then` (and `And`/`But` for continuations). Aim for one scenario
+per observable outcome discussed. The generator writes a JUnit 5 test scaffold from each
+scenario on the first `generate` run.
 
 Then show a YAML preview and ask for confirmation.
 On confirmation, write the file to `event-model.yaml` (or the path the user specifies).
