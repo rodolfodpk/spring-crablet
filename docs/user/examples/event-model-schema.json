@@ -149,7 +149,7 @@
     },
     "EventSpec": {
       "type": "object",
-      "required": ["name"],
+      "required": ["name", "tags"],
       "additionalProperties": false,
       "properties": {
         "name": {
@@ -158,7 +158,11 @@
         },
         "tags": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"
+          },
+          "minItems": 1,
           "description": "snake_case tag keys used for event-store filtering and DCB boundaries"
         },
         "fields": {

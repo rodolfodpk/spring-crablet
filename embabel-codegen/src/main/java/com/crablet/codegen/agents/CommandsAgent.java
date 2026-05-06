@@ -2,6 +2,7 @@ package com.crablet.codegen.agents;
 
 import com.crablet.codegen.model.CommandSpec;
 import com.crablet.codegen.model.EventModel;
+import com.crablet.codegen.model.EventSpec;
 import com.crablet.codegen.model.FieldSpec;
 import com.crablet.codegen.llm.CodegenLlmClient;
 import com.crablet.codegen.tools.FileWriterTool;
@@ -75,7 +76,7 @@ public class CommandsAgent {
                 Domain: %s
                 Base package: %s
 
-                Events (already generated in package %s):
+                Events (already generated in package %s; tags are event-store consistency/query keys):
                 %s
 
                 Generate in package %s:
@@ -98,7 +99,11 @@ public class CommandsAgent {
                 model.domain(),
                 commandPkg,
                 domainPkg,
-                model.events().stream().map(e -> "  - " + e.name()).collect(Collectors.joining("\n")),
+                model.events().stream()
+                        .map(e -> "  - " + e.name()
+                                + "(tags=" + e.tags()
+                                + ", fields=" + describeFields(e) + ")")
+                        .collect(Collectors.joining("\n")),
                 commandPkg,
                 model.domain(), model.domain(), model.domain(), model.domain(), model.domain(),
                 model.commands().stream()
@@ -118,6 +123,12 @@ public class CommandsAgent {
         return c.fields().stream()
                 .map(f -> f.name() + ":" + f.displayType()
                         + (f.hasConstraints() ? f.yaviConstraints() : ""))
+                .collect(Collectors.joining(", "));
+    }
+
+    private String describeFields(EventSpec e) {
+        return e.fields().stream()
+                .map(f -> f.name() + ":" + f.displayType())
                 .collect(Collectors.joining(", "));
     }
 }
