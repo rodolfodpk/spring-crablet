@@ -1,4 +1,4 @@
-package com.crablet.codegen.agents;
+package com.crablet.codegen.scaffold;
 
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.model.ScenarioSpec;
@@ -13,11 +13,11 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 
 @Component
-public class ScenariosAgent {
+public class ScenarioScaffoldGenerator {
 
     public void generate(EventModel model, Path outputDir) {
         if (model.scenarios().isEmpty()) return;
-        System.out.println("[ScenariosAgent] Generating scenario test scaffolding...");
+        System.out.println("[ScenarioScaffoldGenerator] Generating scenario test scaffolding...");
 
         Path testOutputDir = deriveTestOutputDir(outputDir);
         String testPackage = model.basePackage() + ".test";
@@ -34,7 +34,7 @@ public class ScenariosAgent {
                 Files.writeString(targetFile, content, StandardOpenOption.CREATE_NEW);
                 System.out.println("  wrote " + targetFile);
             } catch (FileAlreadyExistsException e) {
-                System.out.println("[ScenariosAgent] Skipping " + className + " — already exists (user-owned)");
+                System.out.println("[ScenarioScaffoldGenerator] Skipping " + className + " - already exists (user-owned)");
             } catch (IOException e) {
                 throw new RuntimeException("Failed to write " + targetFile, e);
             }
