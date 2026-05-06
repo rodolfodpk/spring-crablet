@@ -9,10 +9,6 @@ cloned app.
 
 A slice should be one observable user outcome, not a whole subsystem. For example:
 
-> **BDD scenarios:** Add an optional `scenarios` section to `event-model.yaml` during modeling
-> to describe expected behavior. The generator writes a JUnit 5 test scaffold for each scenario
-> into `src/test/java` on the first `generate` run and never overwrites it again.
-
 - open a wallet
 - deposit money
 - approve a small loan automatically
