@@ -3,7 +3,6 @@ package com.crablet.codegen.agents;
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.model.ScenarioSpec;
 import com.crablet.codegen.model.ScenarioStepSpec;
-import com.crablet.codegen.tools.TemplateLoader;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -17,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ScenariosAgentTest {
 
-    private final ScenariosAgent agent = new ScenariosAgent(new TemplateLoader("CLAUDE.md"));
+    private final ScenariosAgent agent = new ScenariosAgent();
 
     @TempDir
     Path tempDir;
