@@ -1,14 +1,31 @@
 # AI-First Workflow
 
-Crablet's product direction is to start from an event-modeled domain and generate the structural
-Spring application code around it. The Java runtime APIs remain available, but they are the
-substrate for generated applications and the manual path for teams that want direct control.
+Crablet's AI-first direction is not "generate Java from a prompt" directly. The goal is a two-step
+tooling loop:
+
+1. Use AI tooling to turn Event Modeling workshop output, or a deliberately scoped subset of it,
+   into an explicit `event-model.yaml`.
+2. Use `event-model.yaml` as the source of truth for generating structural Spring application code.
+
+In other words, people first describe the feature through Event Modeling language: outcomes,
+commands, events, views, policies, automations, integrations, and sidecar notes. Those sidecars
+include BDD scenarios for generated test scaffolding and decision/DCB expectations such as command
+stereotypes (`commutative`, `non-commutative`, `idempotent`), guard events, and single- or
+multi-entity consistency-boundary notes. The AI assistant helps translate that workshop material
+into a reviewable YAML model. The code generator then consumes that model. This keeps the durable
+artifact in the repository as structured domain data instead of an unrepeatable conversation
+transcript.
+
+The Java runtime APIs remain available, but they are the substrate for generated applications and
+the manual path for teams that want direct control.
 
 This workflow is currently a preview direction while the generator matures.
 
 For application teams, the intended first-user path is to clone the
-[Crablet app template](../../../templates/crablet-app/README.md), open Claude Code or Cursor, and
-add one vertical slice at a time. Codex and other agents can use the same Makefile/CLI workflow.
+[Crablet app template](../../../templates/crablet-app/README.md), open Claude Code or Cursor,
+describe one vertical slice using Event Modeling workshop language, let the assistant update
+`event-model.yaml`, and then generate code from that file. Codex and other agents can use the same
+Makefile/CLI workflow.
 When using Claude Code, start prompts with the relevant skill name for predictable routing, for
 example `/crablet-greenfield`, `/event-modeling`, or `/crablet-codegen`; see
 [AI Skills](AI_SKILLS.md).
@@ -27,17 +44,22 @@ example `/crablet-greenfield`, `/event-modeling`, or `/crablet-codegen`; see
 
 1. Build the Crablet runtime and `embabel-codegen` tool.
 2. Optionally initialize a new Spring Boot application.
-3. Model one feature slice at a time.
-4. Produce or update `event-model.yaml` using the [Event Model Format](EVENT_MODEL_FORMAT.md).
+3. Run an Event Modeling workshop for one feature slice, or select a small subset from a larger
+   workshop board: the business outcome, command, event, rules, read models, automations,
+   integration outputs, BDD scenarios, and decision/DCB expectations.
+4. Use AI tooling to translate that workshop output into `event-model.yaml` using the
+   [Event Model Format](EVENT_MODEL_FORMAT.md).
    The file is the **single structural source**: docs diagrams are **projected** from it plus thin
    optional `diagram:` metadata (see **Diagram projection** in the format doc)—no parallel canvas to
    maintain for v1. Add optional `scenarios` during modeling to get generated JUnit 5 test
    scaffolding.
-5. Generate the Spring application code.
-6. Compile the generated app.
-7. Repair generation issues until the app builds.
-8. Run the app on the Crablet runtime.
-9. Update the event model when missing behavior is structural, and customize code when behavior is
+5. Review the YAML as the durable domain contract. If the assistant misunderstood the feature,
+   fix the model before generating code.
+6. Generate the Spring application code from `event-model.yaml`.
+7. Compile the generated app.
+8. Repair generation issues until the app builds.
+9. Run the app on the Crablet runtime.
+10. Update the event model when missing behavior is structural, and customize code when behavior is
    genuinely application-specific.
 
 The intended shape when using Claude Code or Cursor through MCP:
@@ -47,7 +69,7 @@ The intended shape when using Claude Code or Cursor through MCP:
 2. cp -r templates/crablet-app ../wallet-service
    cp embabel-codegen/target/embabel-codegen.jar ../wallet-service/tools/
 3. cd ../wallet-service && export ANTHROPIC_API_KEY=sk-ant-... && claude
-4. Describe one outcome → the assistant calls embabel_plan → approve → it calls embabel_generate
+4. Provide one workshop slice/subset → assistant updates event-model.yaml → embabel_plan → approve → embabel_generate
 5. ./mvnw verify
 ```
 
@@ -75,8 +97,8 @@ java -jar embabel-codegen/target/embabel-codegen.jar init \
   --dir ../wallet-service
 ```
 
-The generator should produce compiling, structurally complete code. Missing behavior should be
-captured in the event model rather than left as framework boilerplate TODOs.
+The generator should produce compiling, structurally complete code from `event-model.yaml`. Missing
+behavior should be captured in the event model rather than left as framework boilerplate TODOs.
 
 For the recommended developer dialogue around a single feature, see
 [Feature Slice Workflow](FEATURE_SLICE_WORKFLOW.md). For Event Modeling notation and example
