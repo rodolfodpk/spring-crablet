@@ -10,11 +10,11 @@ tooling loop:
 In other words, people first describe the feature through Event Modeling language: outcomes,
 commands, events, views, policies, automations, integrations, and sidecar notes. Those sidecars
 include BDD scenarios for generated test scaffolding and decision/DCB expectations such as command
-stereotypes (`commutative`, `non-commutative`, `idempotent`), guard events, and single- or
-multi-entity consistency-boundary notes. The AI assistant helps translate that workshop material
-into a reviewable YAML model. The code generator then consumes that model. This keeps the durable
-artifact in the repository as structured domain data instead of an unrepeatable conversation
-transcript.
+stereotypes (`commutative`, `non-commutative`, `idempotent`), guard events, consistency tags, and
+single- or multi-entity consistency-boundary notes. The AI assistant helps translate that workshop
+material into a reviewable YAML model. The code generator then consumes that model. This keeps the
+durable artifact in the repository as structured domain data instead of an unrepeatable
+conversation transcript.
 
 The Java runtime APIs remain available, but they are the substrate for generated applications and
 the manual path for teams that want direct control.
@@ -46,7 +46,7 @@ example `/crablet-greenfield`, `/event-modeling`, or `/crablet-codegen`; see
 2. Optionally initialize a new Spring Boot application.
 3. Run an Event Modeling workshop for one feature slice, or select a small subset from a larger
    workshop board: the business outcome, command, event, rules, read models, automations,
-   integration outputs, BDD scenarios, and decision/DCB expectations.
+   integration outputs, BDD scenarios, and decision/DCB expectations including consistency tags.
 4. Use AI tooling to translate that workshop output into `event-model.yaml` using the
    [Event Model Format](EVENT_MODEL_FORMAT.md).
    The file is the **single structural source**: docs diagrams are **projected** from it plus thin
