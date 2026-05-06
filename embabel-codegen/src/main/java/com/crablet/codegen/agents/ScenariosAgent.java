@@ -3,7 +3,6 @@ package com.crablet.codegen.agents;
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.model.ScenarioSpec;
 import com.crablet.codegen.model.ScenarioStepSpec;
-import com.crablet.codegen.tools.TemplateLoader;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -15,13 +14,6 @@ import java.util.List;
 
 @Component
 public class ScenariosAgent {
-
-    @SuppressWarnings("unused")
-    private final TemplateLoader templates;
-
-    public ScenariosAgent(TemplateLoader templates) {
-        this.templates = templates;
-    }
 
     public void generate(EventModel model, Path outputDir) {
         if (model.scenarios().isEmpty()) return;
