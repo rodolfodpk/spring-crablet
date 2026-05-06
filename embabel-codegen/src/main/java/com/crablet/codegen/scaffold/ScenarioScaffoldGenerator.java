@@ -1,9 +1,8 @@
-package com.crablet.codegen.agents;
+package com.crablet.codegen.scaffold;
 
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.model.ScenarioSpec;
 import com.crablet.codegen.model.ScenarioStepSpec;
-import com.crablet.codegen.tools.TemplateLoader;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -14,18 +13,11 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 
 @Component
-public class ScenariosAgent {
-
-    @SuppressWarnings("unused")
-    private final TemplateLoader templates;
-
-    public ScenariosAgent(TemplateLoader templates) {
-        this.templates = templates;
-    }
+public class ScenarioScaffoldGenerator {
 
     public void generate(EventModel model, Path outputDir) {
         if (model.scenarios().isEmpty()) return;
-        System.out.println("[ScenariosAgent] Generating scenario test scaffolding...");
+        System.out.println("[ScenarioScaffoldGenerator] Generating scenario test scaffolding...");
 
         Path testOutputDir = deriveTestOutputDir(outputDir);
         String testPackage = model.basePackage() + ".test";
@@ -42,7 +34,7 @@ public class ScenariosAgent {
                 Files.writeString(targetFile, content, StandardOpenOption.CREATE_NEW);
                 System.out.println("  wrote " + targetFile);
             } catch (FileAlreadyExistsException e) {
-                System.out.println("[ScenariosAgent] Skipping " + className + " — already exists (user-owned)");
+                System.out.println("[ScenarioScaffoldGenerator] Skipping " + className + " - already exists (user-owned)");
             } catch (IOException e) {
                 throw new RuntimeException("Failed to write " + targetFile, e);
             }

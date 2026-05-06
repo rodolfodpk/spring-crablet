@@ -1,9 +1,8 @@
-package com.crablet.codegen.agents;
+package com.crablet.codegen.scaffold;
 
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.model.ScenarioSpec;
 import com.crablet.codegen.model.ScenarioStepSpec;
-import com.crablet.codegen.tools.TemplateLoader;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -15,9 +14,9 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class ScenariosAgentTest {
+class ScenarioScaffoldGeneratorTest {
 
-    private final ScenariosAgent agent = new ScenariosAgent(new TemplateLoader("CLAUDE.md"));
+    private final ScenarioScaffoldGenerator generator = new ScenarioScaffoldGenerator();
 
     @TempDir
     Path tempDir;
@@ -43,7 +42,7 @@ class ScenariosAgentTest {
                 "Loan", "com.example.loan",
                 null, null, null, null, null, null, List.of(), null, null
         );
-        agent.generate(model, mainJavaDir());
+        generator.generate(model, mainJavaDir());
         assertThat(Files.walk(tempDir).filter(Files::isRegularFile)).isEmpty();
     }
 
@@ -56,7 +55,7 @@ class ScenariosAgentTest {
         );
         EventModel model = modelWithScenario("Submit loan application", steps);
 
-        agent.generate(model, mainJavaDir());
+        generator.generate(model, mainJavaDir());
 
         Path expected = tempDir.resolve(
                 "src/test/java/com/example/loan/test/SubmitLoanApplicationScenarioTest.java");
@@ -79,7 +78,7 @@ class ScenariosAgentTest {
         Files.writeString(target, "sentinel content");
 
         EventModel model = modelWithScenario("Submit loan application", List.of());
-        agent.generate(model, mainJavaDir());
+        generator.generate(model, mainJavaDir());
 
         assertThat(Files.readString(target)).isEqualTo("sentinel content");
     }
@@ -95,7 +94,7 @@ class ScenariosAgentTest {
         );
         EventModel model = modelWithScenario("Deposit funds", steps);
 
-        agent.generate(model, mainJavaDir());
+        generator.generate(model, mainJavaDir());
 
         Path generated = tempDir.resolve(
                 "src/test/java/com/example/loan/test/DepositFundsScenarioTest.java");
@@ -111,7 +110,7 @@ class ScenariosAgentTest {
         Path mainJava = mainJavaDir();
         EventModel model = modelWithScenario("My scenario", List.of());
 
-        agent.generate(model, mainJava);
+        generator.generate(model, mainJava);
 
         Path generated = tempDir.resolve(
                 "src/test/java/com/example/loan/test/MyScenarioScenarioTest.java");
@@ -124,7 +123,7 @@ class ScenariosAgentTest {
         Files.createDirectories(noMainJava);
         EventModel model = modelWithScenario("Any scenario", List.of());
 
-        assertThatThrownBy(() -> agent.generate(model, noMainJava))
+        assertThatThrownBy(() -> generator.generate(model, noMainJava))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("src/main/java");
     }
@@ -133,7 +132,7 @@ class ScenariosAgentTest {
     void escapesDisplayNameQuotesAndBackslashes() throws Exception {
         EventModel model = modelWithScenario("Say \"hello\" and \\bye", List.of());
 
-        agent.generate(model, mainJavaDir());
+        generator.generate(model, mainJavaDir());
 
         Path generated = tempDir.resolve(
                 "src/test/java/com/example/loan/test/SayHelloAndByeScenarioTest.java");
@@ -148,7 +147,7 @@ class ScenariosAgentTest {
         );
         EventModel model = modelWithScenario("Multiline step", steps);
 
-        agent.generate(model, mainJavaDir());
+        generator.generate(model, mainJavaDir());
 
         Path generated = tempDir.resolve(
                 "src/test/java/com/example/loan/test/MultilineStepScenarioTest.java");
