@@ -15,16 +15,39 @@ public record SubscriptionState(
         boolean studentAlreadySubscribed
 ) {
 
-    /**
-     * Check if course is at capacity.
-     */
+    public static SubscriptionState initial() {
+        return new SubscriptionState(false, false, 0, 0, 0, false);
+    }
+
+    public SubscriptionState withCourse(int capacity) {
+        return new SubscriptionState(true, studentExists, capacity,
+                courseSubscriptionsCount, studentSubscriptionsCount, studentAlreadySubscribed);
+    }
+
+    public SubscriptionState withCapacity(int capacity) {
+        return new SubscriptionState(courseExists, studentExists, capacity,
+                courseSubscriptionsCount, studentSubscriptionsCount, studentAlreadySubscribed);
+    }
+
+    public SubscriptionState withStudentExists() {
+        return new SubscriptionState(courseExists, true, courseCapacity,
+                courseSubscriptionsCount, studentSubscriptionsCount, studentAlreadySubscribed);
+    }
+
+    public SubscriptionState applySubscription(boolean affectsCourse, boolean affectsStudent) {
+        return new SubscriptionState(
+                courseExists,
+                studentExists,
+                courseCapacity,
+                affectsCourse ? courseSubscriptionsCount + 1 : courseSubscriptionsCount,
+                affectsStudent ? studentSubscriptionsCount + 1 : studentSubscriptionsCount,
+                studentAlreadySubscribed || (affectsCourse && affectsStudent));
+    }
+
     public boolean isCourseFull() {
         return courseSubscriptionsCount >= courseCapacity;
     }
 
-    /**
-     * Check if student has reached subscription limit.
-     */
     public boolean hasReachedSubscriptionLimit(int maxSubscriptions) {
         return studentSubscriptionsCount >= maxSubscriptions;
     }

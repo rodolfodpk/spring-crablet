@@ -2,7 +2,9 @@ package com.crablet.codegen.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 public record EventModel(
         @JsonProperty("domain") String domain,
@@ -40,10 +42,27 @@ public record EventModel(
                 .orElseThrow(() -> new IllegalArgumentException("View not found: " + name));
     }
 
+    public List<String> automationWakeEvents(AutomationSpec automation) {
+        Set<String> wakeEvents = new LinkedHashSet<>();
+        addIfPresent(wakeEvents, automation.triggeredBy());
+        for (String viewName : automation.readsViews()) {
+            wakeEvents.addAll(viewNamed(viewName).reads());
+        }
+        automation.wakeEventsExtra().forEach(event -> addIfPresent(wakeEvents, event));
+        automation.wakeEventsExclude().forEach(wakeEvents::remove);
+        return List.copyOf(wakeEvents);
+    }
+
     public SchemaSpec schemaNamed(String name) {
         return schemas.stream()
                 .filter(s -> s.name().equals(name))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Schema not found: " + name));
+    }
+
+    private static void addIfPresent(Set<String> values, String value) {
+        if (value != null && !value.isBlank()) {
+            values.add(value.trim());
+        }
     }
 }

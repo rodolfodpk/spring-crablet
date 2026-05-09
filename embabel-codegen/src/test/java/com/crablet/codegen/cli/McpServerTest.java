@@ -3,6 +3,7 @@ package com.crablet.codegen.cli;
 import com.crablet.codegen.k8s.K8sGenerator;
 import com.crablet.codegen.pipeline.SchemaResolver;
 import com.crablet.codegen.planning.ArtifactPlanner;
+import com.crablet.codegen.scaffold.ScenarioScaffoldGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,8 @@ class McpServerTest {
             null,
             null,
             new ArtifactPlanner(new SchemaResolver()),
-            new K8sGenerator()
+            new K8sGenerator(),
+            new ScenarioScaffoldGenerator()
     );
 
     @Test
@@ -30,9 +32,10 @@ class McpServerTest {
         JsonNode root = json.readTree(response);
         JsonNode tools = root.path("result").path("tools");
 
-        assertThat(tools).hasSize(4);
+        assertThat(tools).hasSize(5);
         assertThat(tools.findValuesAsText("name"))
-                .contains("embabel_init", "embabel_plan", "embabel_generate", "embabel_k8s");
+                .contains("embabel_init", "embabel_plan", "embabel_generate", "embabel_k8s",
+                          "embabel_sync_scenarios");
     }
 
     @Test

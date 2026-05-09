@@ -55,8 +55,7 @@ If a test hangs on startup, check `docker ps` for stale containers from a prior 
 3. `make generate`
 4. `make verify`
 
-Never generate before reviewing the plan. The MCP default `output` is `.` — always
-override with `src/main/java` in the starter template, or point to your app's source root.
+Never generate before reviewing the plan.
 
 ## LISTEN/NOTIFY Local Constraint
 
@@ -73,7 +72,7 @@ needed for tests.
 |---|---|---|
 | `UnsatisfiedDependencyException` on startup | Module dependency not built | Run `make install` |
 | Integration test hangs at startup | Docker not running | Start Docker |
-| `embabel_generate` writes to wrong directory | Default `output` is `.` | Pass `src/main/java` explicitly |
+| `embabel_generate` writes to wrong directory | Custom `output` arg pointing at wrong path | Omit `output` to use the default (`src/main/java`) or pass the correct path explicitly |
 | `ConcurrencyException` in tests | Expected for non-commutative commands under parallel load | Serialize test execution or use `@DirtiesContext` |
 | LISTEN/NOTIFY not waking poller | Proxy URL instead of direct Postgres | Set `crablet.event-poller.notifications.jdbc-url` to direct JDBC URL |
 | Example app not in reactor build | `examples/` excluded from Maven reactor | Use `make start` / `make course-start` |

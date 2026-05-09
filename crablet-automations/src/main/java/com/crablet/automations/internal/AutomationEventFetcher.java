@@ -1,7 +1,6 @@
 package com.crablet.automations.internal;
 
 import com.crablet.automations.AutomationDefinition;
-import com.crablet.automations.AutomationHandler;
 import com.crablet.eventpoller.AbstractJdbcEventFetcher;
 import com.crablet.eventpoller.EventSelectionSqlBuilder;
 
@@ -17,30 +16,22 @@ import java.util.Set;
  */
 public class AutomationEventFetcher extends AbstractJdbcEventFetcher<String> {
 
-    private final Map<String, AutomationHandler> handlers;
+    private final Map<String, AutomationDefinition> definitions;
 
-    public AutomationEventFetcher(DataSource readDataSource, Map<String, AutomationHandler> handlers) {
+    public AutomationEventFetcher(DataSource readDataSource, Map<String, AutomationDefinition> definitions) {
         super(readDataSource);
-        this.handlers = handlers;
+        this.definitions = definitions;
     }
 
     @Override
     protected @Nullable String buildSqlFilter(String automationName) {
-        AutomationDefinition definition = resolveDefinition(automationName);
-        if (definition == null) {
-            return null;
-        }
-        return EventSelectionSqlBuilder.buildWhereClause(definition);
-    }
-
-    private @Nullable AutomationDefinition resolveDefinition(String automationName) {
-        AutomationHandler handler = handlers.get(automationName);
-        if (handler != null) {
-            return handler;
+        AutomationDefinition definition = definitions.get(automationName);
+        if (definition != null) {
+            return EventSelectionSqlBuilder.buildWhereClause(definition);
         }
 
-        Set<String> available = new HashSet<>(handlers.keySet());
-        log.warn("No handler found for automation: {} (available: {})", automationName, available);
+        Set<String> available = new HashSet<>(definitions.keySet());
+        log.warn("No definition found for automation: {} (available: {})", automationName, available);
         return null;
     }
 }

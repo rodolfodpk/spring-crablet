@@ -1,6 +1,7 @@
 package com.crablet.automations.config;
 
 import com.crablet.automations.AutomationDecision;
+import com.crablet.automations.AutomationDefinition;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.internal.AutomationProcessorConfig;
 import com.crablet.command.CommandExecutor;
@@ -23,6 +24,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.TaskScheduler;
 
 import javax.sql.DataSource;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -121,6 +123,7 @@ class AutomationsAutoConfigurationTest {
         config.setFetchBatchSize(25);
         AutomationHandler handler = handler("automation");
         Map<String, AutomationHandler> handlers = Map.of("automation", handler);
+        Map<String, AutomationDefinition> resolvedDefinitions = new HashMap<>(handlers);
         Map<String, AutomationProcessorConfig> processorConfigs = Map.of(
                 "automation", new AutomationProcessorConfig("automation", config, handler));
         InstanceIdProvider instanceIdProvider = mock(InstanceIdProvider.class);
@@ -128,7 +131,7 @@ class AutomationsAutoConfigurationTest {
 
         EventProcessor<AutomationProcessorConfig, String> processor = autoConfiguration.automationsEventProcessorSharedFetch(
                 processorConfigs,
-                handlers,
+                resolvedDefinitions,
                 mock(ProgressTracker.class),
                 (processorId, events) -> 0,
                 instanceIdProvider,

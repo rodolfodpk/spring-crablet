@@ -1,6 +1,7 @@
 package com.crablet.automations.integration;
 
 import com.crablet.automations.AutomationDecision;
+import com.crablet.automations.AutomationDefinition;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.config.AutomationsConfig;
 import com.crablet.automations.internal.AutomationDispatcher;
@@ -41,6 +42,7 @@ import tools.jackson.databind.cfg.DateTimeFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 import javax.sql.DataSource;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -200,8 +202,9 @@ class AutomationProcessingLoopIntegrationTest extends AbstractAutomationsTest {
         };
 
         Map<String, AutomationHandler> handlers = Map.of("executing-handler-loop", executingHandler);
+        Map<String, AutomationDefinition> definitions = new HashMap<>(handlers);
         SynchronousAutomationProcessor cmdProcessor = new SynchronousAutomationProcessor(
-                new AutomationEventFetcher(dataSource, handlers),
+                new AutomationEventFetcher(dataSource, definitions),
                 new AutomationDispatcher(handlers, commandExecutor, e -> {}),
                 new AutomationProgressTracker(dataSource),
                 AutomationProcessorConfig.createConfigMap(new AutomationsConfig(), handlers));
@@ -363,7 +366,7 @@ class AutomationProcessingLoopIntegrationTest extends AbstractAutomationsTest {
             Map<String, AutomationHandler> handlers =
                     Map.of(recordingHandler.getAutomationName(), recordingHandler);
 
-            EventFetcher<String> fetcher = new AutomationEventFetcher(dataSource, handlers);
+            EventFetcher<String> fetcher = new AutomationEventFetcher(dataSource, new HashMap<>(handlers));
             EventHandler<String> dispatcher = new AutomationDispatcher(
                     handlers, commandExecutor, eventPublisher);
             AutomationProgressTracker progressTracker = new AutomationProgressTracker(dataSource);

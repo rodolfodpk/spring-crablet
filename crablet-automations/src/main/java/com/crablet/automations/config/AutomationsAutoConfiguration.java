@@ -1,10 +1,13 @@
 package com.crablet.automations.config;
 
+import com.crablet.automations.AutomationDefinition;
 import com.crablet.automations.AutomationHandler;
+import com.crablet.automations.internal.AutomationDefinitionResolver;
 import com.crablet.automations.internal.AutomationDispatcher;
 import com.crablet.automations.internal.AutomationEventFetcher;
 import com.crablet.automations.internal.AutomationProcessorConfig;
 import com.crablet.automations.internal.AutomationProgressTracker;
+import com.crablet.automations.internal.ViewSubscriptionLookup;
 import com.crablet.automations.management.AutomationManagementService;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventFetcher;
@@ -25,6 +28,7 @@ import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSource;
 import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
 import com.crablet.eventstore.ClockProvider;
+import com.crablet.views.ViewSubscription;
 import com.crablet.eventstore.Internal;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
@@ -32,11 +36,13 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
 
 import java.util.HashMap;
@@ -85,10 +91,18 @@ public class AutomationsAutoConfiguration {
     }
 
     @Bean
+    public Map<String, AutomationDefinition> resolvedAutomationDefinitions(
+            @Qualifier("automationHandlers") Map<String, AutomationHandler> handlers,
+            ObjectProvider<ViewSubscriptionLookup> viewLookupProvider) {
+        Optional<ViewSubscriptionLookup> viewLookup = Optional.ofNullable(viewLookupProvider.getIfAvailable());
+        return new AutomationDefinitionResolver(handlers, viewLookup).resolve();
+    }
+
+    @Bean
     public EventFetcher<String> automationEventFetcher(
             ReadDataSource readDataSource,
-            @Qualifier("automationHandlers") Map<String, AutomationHandler> handlers) {
-        return new AutomationEventFetcher(readDataSource.dataSource(), handlers);
+            @Qualifier("resolvedAutomationDefinitions") Map<String, AutomationDefinition> definitions) {
+        return new AutomationEventFetcher(readDataSource.dataSource(), definitions);
     }
 
     @Bean
@@ -150,7 +164,7 @@ public class AutomationsAutoConfiguration {
     @ConditionalOnProperty(name = "crablet.automations.shared-fetch.enabled", havingValue = "true")
     public EventProcessor<AutomationProcessorConfig, String> automationsEventProcessorSharedFetch(
             @Qualifier("automationProcessorConfigs") Map<String, AutomationProcessorConfig> automationProcessorConfigs,
-            @Qualifier("automationHandlers") Map<String, AutomationHandler> automationHandlers,
+            @Qualifier("resolvedAutomationDefinitions") Map<String, AutomationDefinition> resolvedDefinitions,
             @Qualifier("automationProgressTracker") ProgressTracker<String> automationProgressTracker,
             @Qualifier("automationEventHandler") EventHandler<String> automationEventHandler,
             InstanceIdProvider instanceIdProvider,
@@ -164,7 +178,7 @@ public class AutomationsAutoConfiguration {
         LeaderElector leaderElector = EventProcessorFactory.createLeaderElector(
                 writeDataSource, "automations", instanceIdProvider.getInstanceId(), AUTOMATIONS_LOCK_KEY, eventPublisher);
 
-        Map<String, EventSelection> selections = new HashMap<>(automationHandlers);
+        Map<String, EventSelection> selections = new HashMap<>(resolvedDefinitions);
 
         return new SharedFetchModuleProcessor<>(
                 automationProcessorConfigs,
@@ -213,6 +227,25 @@ public class AutomationsAutoConfiguration {
             throw new IllegalStateException(
                     "Duplicate AutomationHandler names found: " + duplicates +
                     ". Each automation name must be unique.");
+        }
+    }
+
+    /**
+     * Activated only when crablet-views is on the classpath. Adapts the canonical
+     * {@code viewSubscriptions} map into the {@link ViewSubscriptionLookup} abstraction
+     * used by {@link AutomationDefinitionResolver}.
+     */
+    @Configuration
+    @ConditionalOnClass(name = "com.crablet.views.ViewSubscription")
+    static class ViewSubscriptionLookupConfiguration {
+
+        @Bean
+        ViewSubscriptionLookup viewSubscriptionLookup(
+                @Qualifier("viewSubscriptions")
+                ObjectProvider<Map<String, ViewSubscription>> subscriptionsProvider) {
+            Map<String, ViewSubscription> subs = subscriptionsProvider.getIfAvailable(Map::of);
+            return viewName -> Optional.ofNullable(subs.get(viewName))
+                    .map(ViewSubscription::getEventTypes);
         }
     }
 

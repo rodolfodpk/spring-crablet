@@ -1,6 +1,7 @@
 package com.crablet.automations.integration;
 
 import com.crablet.automations.AutomationDecision;
+import com.crablet.automations.AutomationDefinition;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.internal.AutomationEventFetcher;
 import com.crablet.eventstore.AppendEvent;
@@ -24,6 +25,7 @@ import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 
 import javax.sql.DataSource;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -230,7 +232,8 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
         public AutomationEventFetcher automationEventFetcher(
                 ReadDataSource readDataSource,
                 Map<String, AutomationHandler> automationHandlers) {
-            return new AutomationEventFetcher(readDataSource.dataSource(), automationHandlers);
+            Map<String, AutomationDefinition> definitions = new HashMap<>(automationHandlers);
+            return new AutomationEventFetcher(readDataSource.dataSource(), definitions);
         }
     }
 

@@ -21,7 +21,7 @@ A ready-to-use Spring Boot application skeleton configured for the AI-first Crab
 Open Claude Code or Cursor at the template root, describe one vertical slice
   → update event-model.yaml
   → embabel_plan — review planned artifacts
-  → embabel_generate with output: src/main/java  (same as make generate; MCP default . is wrong for this template)
+  → embabel_generate with output: src/main/java  (same as make generate)
   → ./mvnw verify
 ```
 

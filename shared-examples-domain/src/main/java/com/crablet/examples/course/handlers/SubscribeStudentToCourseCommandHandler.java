@@ -4,9 +4,7 @@ import com.crablet.command.CommandDecision;
 import com.crablet.command.NonCommutativeCommandHandler;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
-import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.StreamPosition;
-import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.StateProjector;
@@ -56,12 +54,9 @@ public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCom
                 command.studentId()
         );
 
-        SubscriptionStateProjector projector = new SubscriptionStateProjector(
-                command.courseId(),
-                command.studentId()
-        );
         ProjectionResult<SubscriptionState> projection = eventStore.project(
-                decisionModel, StreamPosition.zero(), SubscriptionState.class, List.of(projector));
+                decisionModel, StreamPosition.zero(), SubscriptionState.class,
+                List.of(subscriptionStateProjector(command.courseId(), command.studentId())));
         SubscriptionState state = projection.state();
 
         if (!state.courseExists()) {
@@ -110,102 +105,21 @@ public class SubscribeStudentToCourseCommandHandler implements NonCommutativeCom
         return CommandDecision.NonCommutative.of(event, decisionModel, projection.streamPosition());
     }
 
-    static class SubscriptionStateProjector implements StateProjector<SubscriptionState> {
-        private final String courseId;
-        private final String studentId;
-
-        public SubscriptionStateProjector(String courseId, String studentId) {
-            this.courseId = courseId;
-            this.studentId = studentId;
-        }
-
-        @Override
-        public String getId() {
-            return "subscription-state-projector-" + courseId + "-" + studentId;
-        }
-
-        @Override
-        public List<String> getEventTypes() {
-            return List.of(
-                    type(CourseDefined.class),
-                    type(CourseCapacityChanged.class),
-                    type(StudentRegistered.class),
-                    type(StudentSubscribedToCourse.class)
-            );
-        }
-
-        @Override
-        public SubscriptionState getInitialState() {
-            return new SubscriptionState(false, false, 0, 0, 0, false);
-        }
-
-        @Override
-        public SubscriptionState transition(SubscriptionState current, StoredEvent event, EventDeserializer context) {
-            return switch (event.type()) {
-                case String s when s.equals(type(CourseDefined.class)) -> {
-                    CourseDefined courseDefined = context.deserialize(event, CourseDefined.class);
-                    if (courseDefined.courseId().equals(courseId)) {
-                        yield new SubscriptionState(
-                                true,
-                                current.studentExists(),
-                                courseDefined.capacity(),
-                                current.courseSubscriptionsCount(),
-                                current.studentSubscriptionsCount(),
-                                current.studentAlreadySubscribed()
-                        );
-                    }
-                    yield current;
-                }
-                case String s when s.equals(type(CourseCapacityChanged.class)) -> {
-                    CourseCapacityChanged capacityChanged = context.deserialize(event, CourseCapacityChanged.class);
-                    if (capacityChanged.courseId().equals(courseId)) {
-                        yield new SubscriptionState(
-                                current.courseExists(),
-                                current.studentExists(),
-                                capacityChanged.newCapacity(),
-                                current.courseSubscriptionsCount(),
-                                current.studentSubscriptionsCount(),
-                                current.studentAlreadySubscribed()
-                        );
-                    }
-                    yield current;
-                }
-                case String s when s.equals(type(StudentRegistered.class)) -> {
-                    StudentRegistered registered = context.deserialize(event, StudentRegistered.class);
-                    if (registered.studentId().equals(studentId)) {
-                        yield new SubscriptionState(
-                                current.courseExists(),
-                                true,
-                                current.courseCapacity(),
-                                current.courseSubscriptionsCount(),
-                                current.studentSubscriptionsCount(),
-                                current.studentAlreadySubscribed()
-                        );
-                    }
-                    yield current;
-                }
-                case String s when s.equals(type(StudentSubscribedToCourse.class)) -> {
-                    StudentSubscribedToCourse subscription =
-                            context.deserialize(event, StudentSubscribedToCourse.class);
-                    boolean affectsCourse = subscription.courseId().equals(courseId);
-                    boolean affectsStudent = subscription.studentId().equals(studentId);
-                    int newCourseSubscriptions = affectsCourse ?
-                            current.courseSubscriptionsCount() + 1 : current.courseSubscriptionsCount();
-                    int newStudentSubscriptions = affectsStudent ?
-                            current.studentSubscriptionsCount() + 1 : current.studentSubscriptionsCount();
-                    boolean newAlreadySubscribed = current.studentAlreadySubscribed() ||
-                            (affectsCourse && affectsStudent);
-                    yield new SubscriptionState(
-                            current.courseExists(),
-                            current.studentExists(),
-                            current.courseCapacity(),
-                            newCourseSubscriptions,
-                            newStudentSubscriptions,
-                            newAlreadySubscribed
-                    );
-                }
-                default -> current;
-            };
-        }
+    private static StateProjector<SubscriptionState> subscriptionStateProjector(
+            String courseId, String studentId) {
+        return StateProjector.<SubscriptionState>builder(
+                        "subscription-state-projector-" + courseId + "-" + studentId,
+                        SubscriptionState.initial())
+                .on(CourseDefined.class, (state, event) ->
+                        event.courseId().equals(courseId) ? state.withCourse(event.capacity()) : state)
+                .on(CourseCapacityChanged.class, (state, event) ->
+                        event.courseId().equals(courseId) ? state.withCapacity(event.newCapacity()) : state)
+                .on(StudentRegistered.class, (state, event) ->
+                        event.studentId().equals(studentId) ? state.withStudentExists() : state)
+                .on(StudentSubscribedToCourse.class, (state, event) ->
+                        state.applySubscription(
+                                event.courseId().equals(courseId),
+                                event.studentId().equals(studentId)))
+                .build();
     }
 }

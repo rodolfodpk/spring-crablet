@@ -155,4 +155,94 @@ class ScenarioScaffoldGeneratorTest {
         assertThat(content).contains("// Given: line one line two");
         assertThat(content).doesNotContain("// Given: line one\nline two");
     }
+
+    // --- syncReport tests ---
+
+    @Test
+    void syncReportIsCleanWhenAllPresent() throws Exception {
+        Path target = tempDir.resolve(
+                "src/test/java/com/example/loan/test/SubmitLoanApplicationScenarioTest.java");
+        Files.createDirectories(target.getParent());
+        Files.writeString(target, "sentinel");
+
+        EventModel model = modelWithScenario("Submit loan application", List.of());
+        ScenarioSyncReport report = agent.syncReport(model, mainJavaDir());
+
+        assertThat(report.isClean()).isTrue();
+        assertThat(report.inModelNotOnDisk()).isEmpty();
+        assertThat(report.onDiskNotInModel()).isEmpty();
+    }
+
+    @Test
+    void syncReportDetectsInModelNotOnDisk() throws Exception {
+        EventModel model = modelWithScenario("Reject application", List.of());
+        ScenarioSyncReport report = agent.syncReport(model, mainJavaDir());
+
+        assertThat(report.isClean()).isFalse();
+        assertThat(report.inModelNotOnDisk()).hasSize(1);
+        MissingScenario missing = report.inModelNotOnDisk().get(0);
+        assertThat(missing.scenarioName()).isEqualTo("Reject application");
+        assertThat(missing.expectedFileName()).isEqualTo("RejectApplicationScenarioTest.java");
+        assertThat(report.onDiskNotInModel()).isEmpty();
+    }
+
+    @Test
+    void syncReportDetectsOnDiskNotInModel() throws Exception {
+        Path stale = tempDir.resolve(
+                "src/test/java/com/example/loan/test/ApproveApplicationScenarioTest.java");
+        Files.createDirectories(stale.getParent());
+        Files.writeString(stale, "stale");
+
+        EventModel model = new EventModel(
+                "Loan", "com.example.loan",
+                null, null, null, null, null, null, List.of(), null, null
+        );
+        ScenarioSyncReport report = agent.syncReport(model, mainJavaDir());
+
+        assertThat(report.isClean()).isFalse();
+        assertThat(report.inModelNotOnDisk()).isEmpty();
+        assertThat(report.onDiskNotInModel()).containsExactly("ApproveApplicationScenarioTest");
+    }
+
+    @Test
+    void syncReportCleanWhenNeitherModelNorDisk() throws Exception {
+        EventModel model = new EventModel(
+                "Loan", "com.example.loan",
+                null, null, null, null, null, null, List.of(), null, null
+        );
+        ScenarioSyncReport report = agent.syncReport(model, mainJavaDir());
+
+        assertThat(report.isClean()).isTrue();
+    }
+
+    // --- ScenarioSyncReport.render() tests ---
+
+    @Test
+    void renderCleanReport() {
+        ScenarioSyncReport report = new ScenarioSyncReport(
+                "com.example.loan.test", List.of(), List.of());
+
+        String rendered = report.render();
+
+        assertThat(rendered).contains("in sync");
+        assertThat(rendered).contains("com.example.loan.test");
+    }
+
+    @Test
+    void renderDriftReport() {
+        ScenarioSyncReport report = new ScenarioSyncReport(
+                "com.example.loan.test",
+                List.of(new MissingScenario("Reject application", "RejectApplicationScenarioTest.java")),
+                List.of("ApproveApplicationScenarioTest")
+        );
+
+        String rendered = report.render();
+
+        assertThat(rendered).contains("drift detected");
+        assertThat(rendered).contains("Reject application");
+        assertThat(rendered).contains("→");
+        assertThat(rendered).contains("RejectApplicationScenarioTest.java");
+        assertThat(rendered).contains("ApproveApplicationScenarioTest.java");
+        assertThat(rendered).contains("Delete stale");
+    }
 }

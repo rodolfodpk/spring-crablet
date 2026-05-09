@@ -111,9 +111,8 @@ For the DCB pattern that protects the emitted command, use `dcb`.
 
 ## App Gotchas
 
-- The MCP tool defaults `output` to `.`, which is wrong for the starter template. Use `src/main/java`.
+- Do not skip `event-model.yaml`; it is the structural source for generated app code.
 - If MCP is unavailable, prefer the Makefile targets over hand-running long `java -jar` commands.
 - Do not generate code until the artifact plan has been reviewed.
-- Do not skip `event-model.yaml`; it is the structural source for generated app code.
 - Do not put external HTTP/webhook publishing inside automations; use outbox for reliable publication.
 - LISTEN/NOTIFY wakeup requires a direct Postgres JDBC URL, not PgBouncer transaction mode, PgCat, or RDS Proxy.

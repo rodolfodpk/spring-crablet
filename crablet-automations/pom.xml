@@ -32,6 +32,13 @@
             <artifactId>crablet-commands</artifactId>
         </dependency>
 
+        <!-- Crablet Views (optional — enables view-backed automation wake-event inference) -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-views</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Resilience4j Circuit Breaker -->
         <dependency>
             <groupId>io.github.resilience4j</groupId>

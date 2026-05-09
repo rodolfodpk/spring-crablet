@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -109,7 +110,7 @@ class AutomationDefinitionConsistencyTest {
 
     private static final class TestAutomationEventFetcher extends AutomationEventFetcher {
         TestAutomationEventFetcher(Map<String, AutomationHandler> handlers) {
-            super(new NoOpDataSource(), handlers);
+            super(new NoOpDataSource(), new HashMap<>(handlers));
         }
 
         String sqlFilterFor(String automationName) {

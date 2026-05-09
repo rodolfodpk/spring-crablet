@@ -10,7 +10,10 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class ScenarioScaffoldGenerator {
@@ -39,6 +42,50 @@ public class ScenarioScaffoldGenerator {
                 throw new RuntimeException("Failed to write " + targetFile, e);
             }
         }
+    }
+
+    public ScenarioSyncReport syncReport(EventModel model, Path outputDir) {
+        String testPackage = model.basePackage() + ".test";
+
+        Map<String, MissingScenario> expectedByStem = new LinkedHashMap<>();
+        for (ScenarioSpec scenario : model.scenarios()) {
+            String stem = toJavaIdentifier(scenario.name()) + "ScenarioTest";
+            expectedByStem.put(stem, new MissingScenario(scenario.name(), stem + ".java"));
+        }
+
+        Path testOutputDir = deriveTestOutputDir(outputDir);
+        Path testPkgDir = testOutputDir;
+        for (String segment : testPackage.split("\\.")) {
+            testPkgDir = testPkgDir.resolve(segment);
+        }
+
+        List<MissingScenario> inModelNotOnDisk = new ArrayList<>();
+        List<String> onDiskNotInModel = new ArrayList<>();
+
+        if (!Files.exists(testPkgDir)) {
+            inModelNotOnDisk.addAll(expectedByStem.values());
+            return new ScenarioSyncReport(testPackage, inModelNotOnDisk, onDiskNotInModel);
+        }
+
+        try (var stream = Files.newDirectoryStream(testPkgDir, "*ScenarioTest.java")) {
+            for (Path p : stream) {
+                String fileName = p.getFileName().toString();
+                String stem = fileName.substring(0, fileName.length() - ".java".length());
+                if (!expectedByStem.containsKey(stem)) {
+                    onDiskNotInModel.add(stem);
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to scan " + testPkgDir, e);
+        }
+
+        for (Map.Entry<String, MissingScenario> entry : expectedByStem.entrySet()) {
+            if (!Files.exists(testPkgDir.resolve(entry.getKey() + ".java"))) {
+                inModelNotOnDisk.add(entry.getValue());
+            }
+        }
+
+        return new ScenarioSyncReport(testPackage, inModelNotOnDisk, onDiskNotInModel);
     }
 
     Path deriveTestOutputDir(Path outputDir) {

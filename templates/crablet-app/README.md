@@ -150,14 +150,11 @@ That exposes these MCP tools without you running `java -jar` by hand: **`embabel
 **Kubernetes:** **`make k8s`** is the Makefile entry point for the same **`embabel_k8s`** MCP tool
 (no model calls; writes `k8s/base` from `event-model.yaml`).
 
-**Output directory:** the **`embabel_generate`** tool defaults **`output` to `.` (project root)**.
-For this template, always pass **`output: "src/main/java"`** — the same directory as
-`make generate` (`java -jar … generate --output src/main/java`). Otherwise generated sources
-are written next to `pom.xml` instead of under `src/main/java`.
+**Output directory:** **`embabel_generate`** defaults `output` to `src/main/java`, matching
+`make generate`. Omit the parameter when using this template.
 
 **Primary workflow:** describe a slice in Claude Code or Cursor → update `event-model.yaml` →
-`make diagram-preview` → `embabel_plan` → review → **`embabel_generate` with
-`output: "src/main/java"`** → `./mvnw verify`.
+`make diagram-preview` → `embabel_plan` → review → **`embabel_generate`** → `./mvnw verify`.
 
 **Local commands** (below) are for Codex, other agents, terminal use, scripting, and debugging —
 see each command’s description.

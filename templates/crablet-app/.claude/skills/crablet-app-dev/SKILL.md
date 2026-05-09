@@ -110,7 +110,6 @@ decision state across events, model it as an explicit TODO/read model that the a
 
 ## App Gotchas
 
-- The MCP tool defaults `output` to `.`, which is wrong for this template. Use `src/main/java`.
 - If MCP is unavailable, prefer the Makefile targets over hand-running long `java -jar` commands.
 - Do not generate code until the artifact plan has been reviewed.
 - Do not skip `event-model.yaml`; it is the structural source for generated app code.

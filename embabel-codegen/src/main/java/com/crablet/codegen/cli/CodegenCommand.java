@@ -6,6 +6,8 @@ import com.crablet.codegen.k8s.K8sGenerator;
 import com.crablet.codegen.k8s.K8sTopology;
 import com.crablet.codegen.pipeline.CodegenPipeline;
 import com.crablet.codegen.planning.ArtifactPlanner;
+import com.crablet.codegen.scaffold.ScenarioScaffoldGenerator;
+import com.crablet.codegen.scaffold.ScenarioSyncReport;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.springframework.stereotype.Component;
@@ -24,18 +26,21 @@ public class CodegenCommand {
     private final McpServer mcpServer;
     private final ArtifactPlanner artifactPlanner;
     private final K8sGenerator k8sGenerator;
+    private final ScenarioScaffoldGenerator scenarioScaffoldGenerator;
 
     public CodegenCommand(
             CodegenPipeline pipeline,
             InitService initService,
             McpServer mcpServer,
             ArtifactPlanner artifactPlanner,
-            K8sGenerator k8sGenerator) {
+            K8sGenerator k8sGenerator,
+            ScenarioScaffoldGenerator scenarioScaffoldGenerator) {
         this.pipeline = pipeline;
         this.initService = initService;
         this.mcpServer = mcpServer;
         this.artifactPlanner = artifactPlanner;
         this.k8sGenerator = k8sGenerator;
+        this.scenarioScaffoldGenerator = scenarioScaffoldGenerator;
     }
 
     public void run(String[] args) throws Exception {
@@ -46,6 +51,7 @@ public class CodegenCommand {
         switch (args[0]) {
             case "plan" -> runPlan(parseFlags(args, 1));
             case "generate" -> runGenerate(parseFlags(args, 1));
+            case "sync-scenarios" -> runSyncScenarios(parseFlags(args, 1));
             case "init" -> runInit(parseFlags(args, 1));
             case "k8s" -> runK8s(parseFlags(args, 1));
             case "--mcp", "mcp" -> mcpServer.run();
@@ -77,6 +83,21 @@ public class CodegenCommand {
 
         pipeline.run(model, outputDir);
         System.out.println("Done. Build the application module (e.g. ./mvnw verify).");
+    }
+
+    private void runSyncScenarios(Map<String, String> flags) throws Exception {
+        String modelPath = flags.getOrDefault("--model", "event-model.yaml");
+        String outputPath = flags.getOrDefault("--output", "src/main/java");
+
+        ObjectMapper yaml = new ObjectMapper(new YAMLFactory());
+        EventModel model = yaml.readValue(new File(modelPath), EventModel.class);
+        Path outputDir = Path.of(outputPath).toAbsolutePath();
+
+        ScenarioSyncReport report = scenarioScaffoldGenerator.syncReport(model, outputDir);
+        System.out.println(report.render());
+        if (!report.isClean()) {
+            System.exit(1);
+        }
     }
 
     private void runInit(Map<String, String> flags) {
@@ -131,6 +152,11 @@ public class CodegenCommand {
 
                   plan       Print planned artifacts without calling a model or writing files
                              --model event-model.yaml   (default: event-model.yaml)
+
+                  sync-scenarios  Report drift between event-model.yaml scenarios and test scaffolds
+                             --model event-model.yaml   (default: event-model.yaml)
+                             --output src/main/java      (default: src/main/java)
+                             Exits 1 if drift is detected (CI-friendly).
 
                   k8s        Generate Kubernetes manifests (k8s/base) from event-model.yaml
                              --model event-model.yaml   (default: event-model.yaml)

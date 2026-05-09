@@ -6,6 +6,8 @@ import com.crablet.codegen.k8s.K8sTopology;
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.pipeline.CodegenPipeline;
 import com.crablet.codegen.planning.ArtifactPlanner;
+import com.crablet.codegen.scaffold.ScenarioScaffoldGenerator;
+import com.crablet.codegen.scaffold.ScenarioSyncReport;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -22,7 +24,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
 /**
- * Stdio MCP server exposing embabel_init, embabel_plan, embabel_generate, and embabel_k8s as tools.
+ * Stdio MCP server exposing embabel_init, embabel_plan, embabel_generate, embabel_k8s,
+ * and embabel_sync_scenarios as tools.
  * Activated with the --mcp flag; Claude Code discovers it via .claude/settings.json.
  *
  * Protocol: MCP 2024-11-05 over newline-delimited JSON-RPC on stdin/stdout.
@@ -36,6 +39,7 @@ public class McpServer {
     private final InitService initService;
     private final ArtifactPlanner artifactPlanner;
     private final K8sGenerator k8sGenerator;
+    private final ScenarioScaffoldGenerator scenarioScaffoldGenerator;
     private final ObjectMapper json = new ObjectMapper();
     private final ObjectMapper yaml = new ObjectMapper(new YAMLFactory());
 
@@ -43,11 +47,13 @@ public class McpServer {
             CodegenPipeline pipeline,
             InitService initService,
             ArtifactPlanner artifactPlanner,
-            K8sGenerator k8sGenerator) {
+            K8sGenerator k8sGenerator,
+            ScenarioScaffoldGenerator scenarioScaffoldGenerator) {
         this.pipeline = pipeline;
         this.initService = initService;
         this.artifactPlanner = artifactPlanner;
         this.k8sGenerator = k8sGenerator;
+        this.scenarioScaffoldGenerator = scenarioScaffoldGenerator;
     }
 
     public void run() throws Exception {
@@ -136,7 +142,7 @@ public class McpServer {
                         prop("model", "string",
                                 "Path to event-model.yaml (default: event-model.yaml)"),
                         prop("output", "string",
-                                "Output directory for generated source files (default: .)"))));
+                                "Output directory for generated source files (default: src/main/java)"))));
 
         tools.add(tool("embabel_plan",
                 "Print the planned spring-crablet artifacts for an event-model.yaml without " +
@@ -165,6 +171,16 @@ public class McpServer {
                         prop("output", "string",
                                 "Output directory; k8s/base is created under it (default: .)"))));
 
+        tools.add(tool("embabel_sync_scenarios",
+                "Compare event-model.yaml scenarios against generated test scaffolds on disk. " +
+                "Reports scenarios in the model with no test file and test files with no matching " +
+                "model scenario. Read-only — never writes files.",
+                schema(
+                        prop("model", "string",
+                                "Path to event-model.yaml (default: event-model.yaml)"),
+                        prop("output", "string",
+                                "Output directory used to locate src/test/java (default: src/main/java)"))));
+
         ObjectNode result = json.createObjectNode();
         result.set("tools", tools);
         return result;
@@ -181,6 +197,11 @@ public class McpServer {
                 case "embabel_plan" -> callPlan(args);
                 case "embabel_init" -> callInit(args, capture);
                 case "embabel_k8s" -> callK8s(args);
+                case "embabel_sync_scenarios" -> {
+                    ScenarioSyncReport report = callSyncScenarios(args);
+                    isError = !report.isClean();
+                    yield report.render();
+                }
                 default -> throw new IllegalArgumentException("Unknown tool: " + toolName);
             };
         } catch (Exception e) {
@@ -190,6 +211,10 @@ public class McpServer {
             isError = true;
         }
 
+        return buildResponse(output, isError);
+    }
+
+    private ObjectNode buildResponse(String output, boolean isError) {
         ObjectNode result = json.createObjectNode();
         ArrayNode content = json.createArrayNode();
         ObjectNode text = json.createObjectNode();
@@ -203,7 +228,7 @@ public class McpServer {
 
     private String callGenerate(JsonNode args, ByteArrayOutputStream capture) throws Exception {
         String modelPath = args.path("model").asText("event-model.yaml");
-        String outputPath = args.path("output").asText(".");
+        String outputPath = args.path("output").asText("src/main/java");
         EventModel model = yaml.readValue(new File(modelPath), EventModel.class);
         Path outputDir = Path.of(outputPath).toAbsolutePath();
         pipeline.run(model, outputDir);
@@ -236,6 +261,14 @@ public class McpServer {
         return "Initialized project at " + dir
                 + (log.isBlank() ? "" : "\n\n" + log)
                 + "\n\nNext: run /event-modeling then embabel_generate.";
+    }
+
+    private ScenarioSyncReport callSyncScenarios(JsonNode args) throws Exception {
+        String modelPath = args.path("model").asText("event-model.yaml");
+        String outputPath = args.path("output").asText("src/main/java");
+        EventModel model = yaml.readValue(new File(modelPath), EventModel.class);
+        Path outputDir = Path.of(outputPath).toAbsolutePath();
+        return scenarioScaffoldGenerator.syncReport(model, outputDir);
     }
 
     // --- builders ---
