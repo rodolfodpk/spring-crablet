@@ -54,7 +54,9 @@ Do not introduce hidden generic saga state. If a process needs shared decision s
 an explicit TODO/read model and keep the automation logic simple.
 
 **Policies in Crablet** — Event Storming uses "policies" (when X happens, do Y) as a single
-concept. In Crablet, the right construct depends on who or what reacts:
+concept. Crablet uses an Event Modeling approach instead: TODO/read models hold decision state,
+automations read those views when the system should react, and commands record the next fact. The
+right construct depends on who or what reacts:
 
 | Policy type | Trigger | Crablet model |
 |---|---|---|

@@ -16,7 +16,7 @@ It should come after the command side, not before it. For learning, one applicat
 
 ## Overview
 
-Crablet Automations implements the "when X happens, do Y" pattern from event storming — also known as policies or process managers. When a domain event is stored, an automation can listen for it and automatically execute one or more commands.
+Crablet Automations implements an Event Modeling-style reaction pattern: when a domain event is stored, an automation can read modeled decision state and automatically execute one or more commands.
 
 ## Deployment Recommendation
 
