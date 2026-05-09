@@ -72,6 +72,7 @@ This separation keeps transactional consistency concerns in command handling and
 - crablet-eventstore (required)
 - crablet-event-poller (required)
 - crablet-commands (required — automations execute commands)
+- crablet-views (optional — enables view-backed wake-event inference; see [ViewBackedAutomationHandler](#viewbackedautomationhandler))
 - Spring Boot JDBC
 
 ## Quick Start
@@ -237,6 +238,48 @@ Recommended automation flow:
 5. The outcome is recorded through the normal command/event flow
 
 This keeps automations aligned with Event Modeling: events are triggers, while the decision is based on current state.
+
+### ViewBackedAutomationHandler
+
+`ViewBackedAutomationHandler` is an optional extension for automations whose wake-event set should match exactly the events a view already reads. Instead of declaring `getEventTypes()` manually, the framework infers it from the referenced view's `ViewSubscription` at startup.
+
+Use it when your automation reacts to any state change tracked by a view and you want to avoid keeping two event-type lists in sync.
+
+**Requirements:** `crablet-views` must be on the classpath (declared as an optional dependency in `pom.xml`) and views must be enabled.
+
+```java
+// 1. Declare the interface (codegen-generated)
+public interface EnrollmentAutomationHandler extends ViewBackedAutomationHandler {
+
+    @Override
+    default String getAutomationName() { return "enrollment-automation"; }
+
+    @Override
+    default Set<String> getReadViewNames() { return Set.of("enrollment_todo"); }
+}
+
+// 2. Implement it
+@Component
+public class EnrollmentAutomation implements EnrollmentAutomationHandler {
+
+    @Override
+    public List<AutomationDecision> decide(StoredEvent event) {
+        // load enrollment_todo view, decide from state
+        return List.of(new AutomationDecision.ExecuteCommand(enrollCommand));
+    }
+}
+```
+
+For fine-grained control, two optional overrides are available:
+
+| Method | Purpose |
+|--------|---------|
+| `getWakeEventsExtra()` | Additional event types to wake on, beyond those inferred from views |
+| `getWakeEventsExclude()` | Event types to remove from the inferred set |
+
+Do not override `getEventTypes()` on a `ViewBackedAutomationHandler` — it throws `UnsupportedOperationException` intentionally.
+
+**Codegen (`event-model.yaml`):** Use `readsViews` (list), `wakeEventsExtra`, and `wakeEventsExclude` in an automation spec to generate `ViewBackedAutomationHandler` interfaces. The single-view `readsView` field is still accepted and treated as a one-element `readsViews`.
 
 ### Idempotency
 

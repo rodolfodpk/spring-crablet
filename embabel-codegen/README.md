@@ -101,6 +101,16 @@ java -jar embabel-codegen.jar k8s \
 
 Writes `k8s/base` with Namespace, Deployments, Service, optional KEDA ScaledObjects, Secret template, and `README-k8s.md`. See [Deployment Topology](../docs/user/DEPLOYMENT_TOPOLOGY.md#kubernetes-optional) for how this maps to Crablet’s poller rules.
 
+**`sync-scenarios`** — compare `event-model.yaml` scenarios against generated test scaffolds on disk (read-only)
+
+```bash
+java -jar embabel-codegen.jar sync-scenarios \
+  --model event-model.yaml \
+  --output src/main/java
+```
+
+Reports scenarios in the model with no test file on disk and test files with no matching model scenario. Exits 1 when drift is detected, making it CI-friendly. Use after renaming or adding scenarios to confirm test scaffolds are in sync.
+
 **`--mcp`** — start as an MCP server (used by Claude Code, Cursor, and other MCP-capable clients)
 
 ```bash
@@ -114,9 +124,10 @@ When started with `--mcp`, the JAR exposes tools over stdio JSON-RPC:
 | Tool | Description |
 |---|---|
 | `embabel_plan` | Print planned artifacts without writing files |
-| `embabel_generate` | Generate code from event-model.yaml |
+| `embabel_generate` | Generate code from event-model.yaml (default output: `src/main/java`) |
 | `embabel_init` | Bootstrap a new Crablet project |
 | `embabel_k8s` | Write `k8s/base` from event-model (same as CLI `k8s`) |
+| `embabel_sync_scenarios` | Report drift between model scenarios and test scaffolds (read-only; sets `isError` on drift) |
 
 Claude Code discovers the server via `.claude/settings.json` in the application project. Cursor can
 use the same server via `.cursor/mcp.json`. The `templates/crablet-app` starter ships with both

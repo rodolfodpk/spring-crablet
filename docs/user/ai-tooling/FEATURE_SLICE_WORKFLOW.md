@@ -523,8 +523,11 @@ Claude Code MCP path:
 
 ```text
 Tool:
-embabel_generate model=event-model.yaml output=src/main/java
+embabel_generate model=event-model.yaml
 ```
+
+> The `output` parameter defaults to `src/main/java` — omit it when using the starter template.
+> Pass it explicitly only when pointing at a different source root (e.g., `output=../loan-service/src/main/java`).
 
 CLI shortcut:
 
@@ -669,6 +672,17 @@ Expected test artifacts:
 
 Test scaffolds are written to `src/test/java` on the first `generate` run and never overwritten
 again. Fill in the assertions after generation.
+
+After renaming or adding scenarios in `event-model.yaml`, use `embabel_sync_scenarios` (or `make sync-scenarios`) to detect drift between the model and on-disk test files:
+
+```text
+Tool:
+embabel_sync_scenarios model=event-model.yaml
+```
+
+```bash
+make sync-scenarios   # exits 1 if drift is detected (CI-friendly)
+```
 
 The compile-and-repair loop may adjust generated Java details, but it should not invent
 new commands, events, views, automations, or publishers that are absent from the model.

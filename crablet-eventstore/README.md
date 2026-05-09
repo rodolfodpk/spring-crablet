@@ -268,6 +268,36 @@ public CommandDecision.NonCommutative decide(EventStore eventStore, WithdrawComm
 - Business validation: checks sufficient funds before creating event
 - No explicit idempotency check (streamPosition advancement detects duplicates)
 
+## StateProjector Builder
+
+For new projectors, prefer the fluent `StateProjector.builder()` factory over hand-writing `getEventTypes()` plus a string-based `switch` in `transition()`. Existing hand-written implementations remain fully supported.
+
+```java
+StateProjector<SubscriptionState> projector =
+    StateProjector.<SubscriptionState>builder(
+            "subscription-state-projector-" + courseId + "-" + studentId,
+            SubscriptionState.initial())
+        .on(CourseDefined.class, (state, event) ->
+            event.courseId().equals(courseId) ? state.withCourse(event.capacity()) : state)
+        .on(CourseCapacityChanged.class, (state, event) ->
+            event.courseId().equals(courseId) ? state.withCapacity(event.newCapacity()) : state)
+        .on(StudentRegistered.class, (state, event) ->
+            event.studentId().equals(studentId) ? state.withStudentExists() : state)
+        .on(StudentSubscribedToCourse.class, (state, event) ->
+            state.applySubscription(
+                    event.courseId().equals(courseId),
+                    event.studentId().equals(studentId)))
+        .build();
+```
+
+Builder rules:
+- `.on(Class<E>, EventTransition<T, E>)` derives the event type string via `EventType.type(Class)`.
+- Duplicate event class registrations throw `IllegalArgumentException` immediately.
+- Calling `.on()` after `.build()` throws `IllegalStateException`.
+- Unregistered event types return the current state unchanged.
+
+The built projector's `getEventTypes()` returns types in declaration order, matching the order they appear in the `on()` calls.
+
 ## Learn More
 
 - **[Getting Started](GETTING_STARTED.md)** - Complete integration guide
