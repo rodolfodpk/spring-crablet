@@ -59,6 +59,16 @@ component_management:
           target: auto
         - type: patch
           target: auto
+
+    - component_id: module_commands_web
+      name: Commands Web
+      paths:
+        - "crablet-commands-web/src/main/**"
+      statuses:
+        - type: project
+          target: auto
+        - type: patch
+          target: auto
     
     - component_id: module_outbox
       name: Outbox

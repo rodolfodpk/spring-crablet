@@ -1,5 +1,7 @@
 # Crablet Automations
 
+[![codecov](https://codecov.io/gh/rodolfodpk/spring-crablet/branch/main/graph/badge.svg?component=module_automations)](https://codecov.io/gh/rodolfodpk/spring-crablet)
+
 Light framework component for event-driven automations (policies) with Spring Boot integration.
 
 ## Positioning

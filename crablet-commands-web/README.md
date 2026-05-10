@@ -1,5 +1,7 @@
 # Crablet Commands Web
 
+[![codecov](https://codecov.io/gh/rodolfodpk/spring-crablet/branch/main/graph/badge.svg?component=module_commands_web)](https://codecov.io/gh/rodolfodpk/spring-crablet)
+
 Generic HTTP command API adapter for the Crablet command framework.
 Exposes selected commands as a `POST /api/commands` endpoint backed by the existing `CommandExecutor`.
 
