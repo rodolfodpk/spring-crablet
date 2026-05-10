@@ -137,7 +137,7 @@ After this part, you should understand how Crablet separates transactional facts
 Expected result:
 
 - a stored `WalletOpened` event can wake an automation
-- the automation can read a view model to decide whether work is needed
+- the automation can read modeled decision state to decide whether work is needed
 - the automation can return a follow-up command decision for the dispatcher to execute through `CommandExecutor`
 
 Use `crablet-outbox` when stored events need to be published outside the application boundary.

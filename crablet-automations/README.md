@@ -36,7 +36,7 @@ The poller elects one active leader for the automation processors, so additional
 Crablet automations should follow an Event Modeling-style automation pattern:
 
 - **Command handlers persist facts**. They should not perform external publication or other non-transactional side effects.
-- **Views model decision state**. The automation decision should be based on the current view model, not on raw event occurrence alone.
+- **Modeled state drives decisions**. The automation decision should be based on current TODO/read-model state, not on raw event occurrence alone.
 - **Automations perform application reactions**. An automation may be triggered by events, but it should evaluate modeled state, call injected application services/gateways when needed, and then usually record the outcome by executing a command.
 - **Outbox publishes externally**. Use `crablet-outbox` when stored events need to leave the application boundary through application-provided publisher implementations.
 
@@ -112,7 +112,7 @@ Use `AutomationHandler` when the automation should describe follow-up commands t
 
 ### 3. Implement AutomationHandler
 
-Treat the incoming event as a trigger, not as the decision source. The automation should load the current view-model state, decide from that state whether work is needed, and then return the next command as a decision.
+Treat the incoming event as a trigger, not as the decision source. The automation should load current modeled decision state, decide whether work is needed, and then return the next command as a decision.
 
 ```java
 @Component
@@ -158,6 +158,8 @@ public class WelcomeNotificationAutomation implements AutomationHandler {
     }
 }
 ```
+
+`WelcomeNotificationViewRepository` is an application abstraction. It can be backed by `crablet-views`, a custom projection, or any application data source that represents the modeled decision state.
 
 ### 4. Registration Rules
 
@@ -212,7 +214,7 @@ public interface AutomationHandler extends AutomationDefinition {
 }
 ```
 
-The event tells the automation that something changed. The automation should then read the relevant view model and decide from that modeled state whether it should act.
+The event tells the automation that something changed. The automation should then read modeled decision state and decide from that state whether it should act.
 
 `AutomationDecision` currently supports:
 
@@ -221,12 +223,12 @@ The event tells the automation that something changed. The automation should the
 
 For event publication outside the application boundary, use `crablet-outbox`.
 
-### View-Model-Driven Decisions
+### Modeled-State Decisions
 
 Recommended automation flow:
 
 1. A matching event wakes up the automation
-2. The automation loads the relevant view model
+2. The automation loads current TODO/read-model state from a Crablet view, custom projection, or application repository
 3. The automation decides from the current modeled state whether action is needed
 4. The automation returns `ExecuteCommand` or `NoOp`
 5. The outcome is recorded through the normal command/event flow
@@ -369,7 +371,7 @@ The repository contains a complete working example:
 - **`WalletOpenedAutomation`** (in `wallet-example-app`) — in-process `AutomationHandler` for `WalletOpened`
 - **`SendWelcomeNotificationCommandHandler`** — records a `WelcomeNotificationSent` event with an idempotency check
 
-The recommended pattern is to keep the decision in a view model and use the automation to bridge from trigger to side effect or follow-up command.
+The recommended pattern is to keep the decision in modeled TODO/read state and use the automation to bridge from trigger to side effect or follow-up command.
 
 ## See Also
 
