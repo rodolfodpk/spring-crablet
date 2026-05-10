@@ -23,9 +23,7 @@ You will learn:
 - why events should be treated as triggers, not full decision state
 - how to execute follow-up application work from an automation
 
-Use `crablet-outbox` instead when stored events need to be exported to external systems such as HTTP webhooks, Kafka, analytics, or CRM integrations.
-
-Automation webhook mode has been removed. If you previously used an automation webhook to call local application code, move that behavior into `decide()` and return an `AutomationDecision.ExecuteCommand`. If you used it to call an external HTTP endpoint, implement an `OutboxPublisher` instead.
+Use `crablet-outbox` instead when stored events need to be published outside the application boundary.
 
 Assume this import in the snippets below:
 
@@ -142,7 +140,7 @@ Expected result:
 - the automation can read a view model to decide whether work is needed
 - the automation can return a follow-up command decision for the dispatcher to execute through `CommandExecutor`
 
-Use `crablet-outbox` when stored events need to be published to external systems such as HTTP webhooks, Kafka, analytics, or CRM integrations.
+Use `crablet-outbox` when stored events need to be published outside the application boundary.
 
 ## Next
 

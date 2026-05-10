@@ -61,30 +61,35 @@ Crablet Outbox provides a robust transactional outbox implementation, ensuring t
 crablet.outbox.enabled=true
 crablet.outbox.polling-interval=PT5S
 crablet.outbox.topics.default.event-types=WalletOpened,DepositMade
-crablet.outbox.topics.default.publishers=LogPublisher,CountDownLatchPublisher
+crablet.outbox.topics.default.publishers=LogPublisher,StatisticsPublisher
 ```
 
 ### 2. Implement a Publisher
 
 ```java
 @Component
-public class KafkaPublisher implements OutboxPublisher {
+public class ExamplePublisher implements OutboxPublisher {
+    private final PublicationSink publicationSink;
+
+    public ExamplePublisher(PublicationSink publicationSink) {
+        this.publicationSink = publicationSink;
+    }
+
     @Override
     public void publishBatch(List<StoredEvent> events) throws PublishException {
-        // Publish events to Kafka in one batch
         for (StoredEvent event : events) {
-            kafkaTemplate.send("default", event);
+            publicationSink.publish(event);
         }
     }
     
     @Override
     public String getName() {
-        return "KafkaPublisher";
+        return "ExamplePublisher";
     }
 
     @Override
     public boolean isHealthy() {
-        return kafkaTemplate.isHealthy();
+        return publicationSink.isHealthy();
     }
 }
 ```
@@ -163,12 +168,12 @@ crablet.outbox.backoff.multiplier=2             # Exponential factor (2^n)
 crablet.outbox.backoff.max-seconds=60           # Max backoff duration
 
 # Topic configuration with per-publisher polling
-crablet.outbox.topics.default.publishers=KafkaPublisher,LogPublisher
+crablet.outbox.topics.default.publishers=LogPublisher,StatisticsPublisher
 
 # Optional: Per-publisher configuration
-crablet.outbox.topics.default.publisher-configs[0].name=KafkaPublisher
+crablet.outbox.topics.default.publisher-configs[0].name=LogPublisher
 crablet.outbox.topics.default.publisher-configs[0].polling-interval-ms=500
-crablet.outbox.topics.default.publisher-configs[1].name=LogPublisher
+crablet.outbox.topics.default.publisher-configs[1].name=StatisticsPublisher
 crablet.outbox.topics.default.publisher-configs[1].polling-interval-ms=2000
 ```
 

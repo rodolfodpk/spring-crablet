@@ -70,4 +70,4 @@ See `crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md`.
 - Automations react asynchronously and own follow-up application behavior
 - Outbox publishes stored events to external systems
 
-If stored events need to be sent to an external HTTP API, Kafka, analytics, or CRM system, use an `OutboxPublisher`. If an event should trigger application behavior, implement that behavior by returning `AutomationDecision.ExecuteCommand` from `AutomationHandler.decide()` and use commands/events to record the outcome.
+If stored events need to be published outside the application boundary, use an `OutboxPublisher`. If an event should trigger application behavior, implement that behavior by returning `AutomationDecision.ExecuteCommand` from `AutomationHandler.decide()` and use commands/events to record the outcome.

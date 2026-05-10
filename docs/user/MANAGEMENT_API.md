@@ -98,22 +98,22 @@ Those endpoints are part of the example application, not part of Crablet's built
 
 ---
 
-## Webhook publisher convention — tags as HTTP headers
+## Custom publisher convention — preserve event metadata
 
-When implementing an `OutboxPublisher` that posts events to an HTTP webhook,
-the recommended convention is to forward event tags and metadata as HTTP headers
-so consumers can route or filter without parsing the body:
+When implementing an `OutboxPublisher`, preserve event tags and metadata in the
+outbound payload or metadata so consumers can route or filter without parsing the body:
 
 ```
-POST /your-webhook
-X-Crablet-Event-Type:   DepositMade
-X-Crablet-Position:     4521
-X-Crablet-Occurred-At:  2026-04-06T15:00:00Z
-X-Crablet-Tag-Wallet-Id: alice
-X-Crablet-Tag-Deposit-Id: dep-123
-
-{ "depositId": "dep-123", "walletId": "alice", "amount": 100 }
+eventType: DepositMade
+position: 4521
+occurredAt: 2026-04-06T15:00:00Z
+tags:
+  wallet_id: alice
+  deposit_id: dep-123
+payload:
+  depositId: dep-123
+  walletId: alice
+  amount: 100
 ```
 
-Header naming: `X-Crablet-Tag-{Tag-Key-In-Train-Case}`.
-`StoredEvent.tags()` is available in `publishBatch()` to build these headers.
+`StoredEvent.tags()` is available in `publishBatch()` to build destination-specific metadata.

@@ -62,14 +62,14 @@ Recovery:
 3. Resume the publisher:
 
 ```bash
-curl -X POST http://localhost:8080/api/outbox/wallet-events/publishers/wallet-webhook/resume
+curl -X POST http://localhost:8080/api/outbox/wallet-events/publishers/LogPublisher/resume
 ```
 
 If the publisher reached `FAILED`, reset only after confirming the downstream system can tolerate
 redelivery from the stored `last_position`:
 
 ```bash
-curl -X POST http://localhost:8080/api/outbox/wallet-events/publishers/wallet-webhook/reset
+curl -X POST http://localhost:8080/api/outbox/wallet-events/publishers/LogPublisher/reset
 ```
 
 Publisher implementation rule:
@@ -128,7 +128,7 @@ Use reset for:
 Avoid reset for:
 
 - A transient database outage.
-- A downstream HTTP/Kafka outage that can recover with retry.
+- A downstream outage that can recover with retry.
 - A bug you have not fixed yet.
 
 Reset replays historical events. That is safe for deterministic projections and idempotent
@@ -142,6 +142,6 @@ The wallet app exposes friendly management endpoints for all three poller-backed
 - `GET /api/automations/status`
 - `GET /api/outbox/status`
 
-The included `WalletWebhookPublisher` demonstrates the outbox recovery contract: 5xx and transport
-failures throw `PublishException` so the event remains pending, while 4xx responses are logged as
-non-retriable payload/configuration failures.
+An `OutboxPublisher` should throw `PublishException` for retriable failures so the event remains
+pending. Non-retriable payload or configuration failures should be handled intentionally and
+documented by the application.

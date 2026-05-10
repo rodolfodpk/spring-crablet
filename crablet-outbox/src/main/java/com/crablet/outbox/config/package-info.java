@@ -26,7 +26,7 @@
  * <pre>{@code
  * crablet.outbox.topics.wallet-events.event-types=WalletOpened,DepositMade
  * crablet.outbox.topics.wallet-events.required-tags=wallet_id
- * crablet.outbox.topics.wallet-events.publishers=KafkaPublisher
+ * crablet.outbox.topics.wallet-events.publishers=LogPublisher
  * }</pre>
  * <p>
  * <strong>Spring Integration:</strong>

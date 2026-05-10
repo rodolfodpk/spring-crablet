@@ -33,10 +33,10 @@ The poller elects one active leader for the automation processors, so additional
 
 Crablet automations should follow an Event Modeling-style automation pattern:
 
-- **Command handlers persist facts**. They should not perform external side effects such as HTTP calls, email delivery, or message publication.
+- **Command handlers persist facts**. They should not perform external publication or other non-transactional side effects.
 - **Views model decision state**. The automation decision should be based on the current view model, not on raw event occurrence alone.
 - **Automations perform application reactions**. An automation may be triggered by events, but it should evaluate modeled state, call injected application services/gateways when needed, and then usually record the outcome by executing a command.
-- **Outbox publishes externally**. Use `crablet-outbox` when stored events need to leave the application boundary, including external HTTP webhooks, Kafka, analytics, or CRM integrations.
+- **Outbox publishes externally**. Use `crablet-outbox` when stored events need to leave the application boundary through application-provided publisher implementations.
 
 Short version:
 
@@ -95,9 +95,9 @@ Use automations when an event should trigger application behavior. Use outbox wh
 | Send welcome notification command after `WalletOpened` | Automation |
 | Close monthly statement when `StatementPeriodEnded` | Automation |
 | Check balance and issue `FlagLargeDepositCommand` | Automation |
-| Publish `WalletOpened` to customer.io | Outbox |
-| Send all payment events to Kafka | Outbox |
-| Send `DepositMade` to analytics API | Outbox |
+| Publish stored events outside the application boundary | Outbox |
+| Fan out a topic to multiple publisher implementations | Outbox |
+| Track publication progress independently from automations | Outbox |
 
 Crablet automations use a single public definition type, `AutomationHandler`, which shares matching rules through `AutomationDefinition`:
 
@@ -106,15 +106,7 @@ Crablet automations use a single public definition type, `AutomationHandler`, wh
 - `getRequiredTags()`
 - `getAnyOfTags()`
 
-Use `AutomationHandler` when the automation should describe follow-up commands to run in-process. For external HTTP webhooks or event publication, implement an `OutboxPublisher`.
-
-### Migration Note: Webhook Mode Removed
-
-`AutomationHandler` no longer supports webhook delivery methods such as `getWebhookUrl()`, `getWebhookHeaders()`, or `getWebhookTimeoutMs()`. Automations now have one execution path: implement `decide(StoredEvent)` and return `AutomationDecision` values.
-
-If an old automation webhook called back into the same application, replace it with a normal `decide()` implementation and return an `AutomationDecision.ExecuteCommand` for the equivalent command.
-
-If an old automation webhook published an event to an external HTTP endpoint, replace it with an `OutboxPublisher`. Use `PublishMode.INDIVIDUAL` when the external endpoint expects one event per request.
+Use `AutomationHandler` when the automation should describe follow-up commands to run in-process. For event publication outside the application boundary, implement an `OutboxPublisher`.
 
 ### 3. Implement AutomationHandler
 
@@ -225,7 +217,7 @@ The event tells the automation that something changed. The automation should the
 - `ExecuteCommand(Object command)` — dispatch a follow-up command through `CommandExecutor`
 - `NoOp(String reason)` — explicitly record that no action is needed
 
-For external HTTP delivery, Kafka, analytics, CRM, or other event publication, use `crablet-outbox`.
+For event publication outside the application boundary, use `crablet-outbox`.
 
 ### View-Model-Driven Decisions
 

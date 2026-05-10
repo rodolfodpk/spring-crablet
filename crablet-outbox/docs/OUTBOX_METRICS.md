@@ -78,5 +78,5 @@ management.metrics.distribution.percentiles-histogram.outbox.publishing.duration
 
 ### Publishing Errors
 - Check publisher-specific error logs
-- Verify external system connectivity (Kafka, webhooks, etc.)
+- Verify publisher destination connectivity
 - Monitor circuit breaker states

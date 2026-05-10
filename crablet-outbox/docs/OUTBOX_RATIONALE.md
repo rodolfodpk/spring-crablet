@@ -12,8 +12,8 @@ public ExecutionResult handleTransfer(TransferCommand command) {
     
     // External publishing - what if this fails?
     // Events are already stored, but external publishing can fail independently
-    kafkaPublisher.publish(result.events());
-    webhookPublisher.notify(result.events());
+    firstPublisher.publish(result.events());
+    secondPublisher.publish(result.events());
 }
 ```
 
@@ -26,8 +26,7 @@ The outbox pattern extends DCB's transactional guarantees to external publishing
 ```java
 // ✅ Correct - atomic with DCB
 public ExecutionResult handleTransfer(TransferCommand command) {
-    // DCB: Store multiple events atomically — outbox picks up events automatically
-    // (Kafka, webhooks, analytics) with same transactional guarantees
+    // DCB: Store multiple events atomically; outbox picks them up automatically.
     return commandExecutor.execute(command);
 }
 ```
@@ -43,7 +42,7 @@ Events are published atomically with DCB operations - no dual-write problem.
 - Maintains DCB's concurrency control guarantees
 
 ### 3. **Independent Publishers**
-Each publisher tracks its own progress independently. Multiple publishers per topic enable fan-out scenarios (e.g., same events to Kafka AND analytics), but one publisher per topic is typical.
+Each publisher tracks its own progress independently. Multiple publishers per topic enable fan-out scenarios, but one publisher per topic is typical.
 
 ### 4. **Operational Control**
 - Pause/resume publishers independently
@@ -54,7 +53,7 @@ Each publisher tracks its own progress independently. Multiple publishers per to
 ## When to Use
 
 ### ✅ **Use Outbox When:**
-- Publishing to external systems (Kafka, webhooks, analytics)
+- Publishing stored events outside the application boundary
 - Event-driven microservices architecture
 - CQRS read model updates
 - Integration with external APIs

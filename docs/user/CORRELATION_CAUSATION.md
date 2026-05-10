@@ -127,7 +127,7 @@ UUID correlationId = event.correlationId();
 Long causationId = event.causationId();
 ```
 
-The built-in `LogPublisher` includes both values in its event log lines. Webhook or broker publishers should include them in message metadata or payloads when downstream systems need traceability.
+The built-in `LogPublisher` includes both values in its event log lines. Custom publishers should include them in outbound metadata or payloads when downstream systems need traceability.
 
 ## Reading the Values
 

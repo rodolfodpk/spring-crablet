@@ -26,7 +26,7 @@ stack at once.
 | Poller infrastructure | `crablet-event-poller` | Shared scheduling, leader election, progress tracking, backoff, wakeup handling, pause/resume/reset support | Usually pulled transitively by views, automations, or outbox. Depend on it directly only for custom poller-backed modules. |
 | Read models | `crablet-views` | Asynchronous view projection from stored events into query-optimized tables, with per-view subscriptions and management operations | Add after the write side works and users need fast reads, dashboards, or query APIs. |
 | Internal follow-up behavior | `crablet-automations` | Event-triggered policies that return `AutomationDecision`s, usually executing commands through `CommandExecutor` | Add when one stored event should cause application behavior inside the same bounded context. |
-| External publication | `crablet-outbox` | Reliable event publication to external systems through `OutboxPublisher` implementations, with per-topic/per-publisher progress | Add when events must leave the application boundary: HTTP webhooks, Kafka, analytics, CRM, email, or integrations. |
+| External publication | `crablet-outbox` | Reliable event publication outside the application boundary through `OutboxPublisher` implementations, with per-topic/per-publisher progress | Add when stored events must leave the application boundary. |
 | Metrics | `crablet-metrics-micrometer` | Micrometer listeners for command, view, automation, outbox, and processor metrics | Add when operating Crablet in environments with Prometheus, Grafana, or other Micrometer backends. |
 
 The **write model** is synchronous: a command handler decides, `CommandExecutor` checks consistency,

@@ -99,7 +99,7 @@ This board maps to the wallet sample’s documented flow:
 - `WalletOpened` updates a query view
 - `WalletOpenedAutomation` emits a follow-up welcome-notification command
 - `WelcomeNotificationSent` records the follow-up fact
-- the outbox publishes committed wallet events through `LogPublisher` or `wallet-webhook`
+- the outbox publishes committed wallet events through a configured `OutboxPublisher`
 
 For code references and runtime behavior, see [examples/wallet-example-app/README.md](../../../examples/wallet-example-app/README.md).
 

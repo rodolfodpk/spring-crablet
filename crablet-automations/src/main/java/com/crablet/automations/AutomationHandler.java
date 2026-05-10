@@ -14,8 +14,8 @@ import java.util.Set;
  * <p>Use this interface when the handler lives in the same JVM as the event poller.
  * Automations are for application reaction and orchestration: handlers return
  * {@link AutomationDecision decisions}, and the dispatcher executes them. Use
- * {@code OutboxPublisher} when stored events need to be published to external systems
- * such as HTTP webhooks, Kafka, analytics, or CRM integrations.
+ * {@code OutboxPublisher} when stored events need to be published outside the
+ * application boundary.
  *
  * <pre>{@code
  * @Component

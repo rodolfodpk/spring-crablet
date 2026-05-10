@@ -15,20 +15,20 @@
  * To create a custom publisher, implement {@link com.crablet.outbox.OutboxPublisher}:
  * <pre>{@code
  * @Component
- * public class KafkaPublisher implements OutboxPublisher {
+ * public class ExamplePublisher implements OutboxPublisher {
  *     @Override
  *     public void publishBatch(List<StoredEvent> events) throws PublishException {
- *         // Publish to Kafka
+ *         // Publish to the application-specific destination.
  *     }
  *     
  *     @Override
  *     public String getName() {
- *         return "KafkaPublisher";
+ *         return "ExamplePublisher";
  *     }
  *     
  *     @Override
  *     public boolean isHealthy() {
- *         return kafkaProducer.isHealthy();
+ *         return true;
  *     }
  * }
  * }</pre>
@@ -50,4 +50,3 @@
  */
 @org.jspecify.annotations.NullMarked
 package com.crablet.outbox.publishers;
-

@@ -4,7 +4,7 @@
 
 **Outbox pattern in 60 seconds:**
 
-The outbox provides **reliable event publishing** for DCB-based event sourcing. It ensures events are published to external systems (Kafka, webhooks, analytics) with the same transactional guarantees as your DCB operations.
+The outbox provides **reliable event publishing** for DCB-based event sourcing. It ensures stored events are handed to configured `OutboxPublisher` implementations without creating a dual-write path in command handlers.
 
 **How it works:**
 1. Handler returns `CommandDecision` (Commutative / NonCommutative / Idempotent)
@@ -23,7 +23,7 @@ The outbox provides **reliable event publishing** for DCB-based event sourcing. 
 
 ## Overview
 
-The outbox pattern provides **reliable event publishing** for DCB-based event sourcing. It ensures events are published to external systems (Kafka, webhooks, analytics) with the same transactional guarantees as your DCB operations.
+The outbox pattern provides **reliable event publishing** for DCB-based event sourcing. It ensures stored events are handed to configured `OutboxPublisher` implementations without creating a dual-write path in command handlers.
 
 ## DCB Integration
 
@@ -47,19 +47,19 @@ public CommandDecision.NonCommutative decide(EventStore eventStore, TransferComm
         .data(transfer)
         .build();
     
-    // 4. All events stored atomically; outbox publishes them to external systems
+    // 4. All events stored atomically; outbox publishers handle them asynchronously
     return CommandDecision.NonCommutative.of(event, decisionModel, projection.streamPosition());
 }
 ```
 
-**Key Point**: The events in the `CommandDecision` (can be 1 or N events) are stored with DCB transactional guarantees, then outbox publishes all these events reliably to external systems.
+**Key Point**: The events in the `CommandDecision` (can be 1 or N events) are stored with DCB transactional guarantees, then configured outbox publishers handle them asynchronously.
 
 ## How It Works
 
 1. **Handler** returns `CommandDecision` (Commutative / NonCommutative / Idempotent)
 2. **CommandExecutor** calls the appropriate EventStore append method → stores events in `events` table
 3. **Outbox processor** polls `events` table (`WHERE position > last_position`)
-4. **Publishers** send events to external systems (Kafka, webhooks, etc.)
+4. **Publishers** receive matching stored events
 5. **Progress tracking** updates `outbox_topic_progress` with new position
 
 ## Configuration
@@ -77,10 +77,10 @@ crablet.outbox.leader-election-retry-interval-ms=30000
 # Topic routing (matches DCB event types and tags)
 crablet.outbox.topics.wallet-events.event-types=WalletOpened,DepositMade
 crablet.outbox.topics.wallet-events.required-tags=wallet_id
-crablet.outbox.topics.wallet-events.publishers=KafkaPublisher
+crablet.outbox.topics.wallet-events.publishers=LogPublisher
 
 crablet.outbox.topics.payment-events.any-of-tags=payment_id,transfer_id
-crablet.outbox.topics.payment-events.publishers=AnalyticsPublisher
+crablet.outbox.topics.payment-events.publishers=StatisticsPublisher
 ```
 
 Outbox topics use the shared poller [Event Selection](../../crablet-event-poller/README.md#event-selection) model: event types and tag filters combine with AND, and empty event types mean all event types. Legacy mode applies the filter in SQL per topic/publisher; shared-fetch mode applies the same selection during in-memory routing.
@@ -138,7 +138,6 @@ crablet.outbox.backoff.max-seconds=60
 
 ### Available Publishers
 - `LogPublisher` - Development/testing
-- `CountDownLatchPublisher` - Integration tests (test-scope only)
 - `StatisticsPublisher` - Monitoring
 - `GlobalStatisticsPublisher` - Always-on stats
 
@@ -146,65 +145,25 @@ crablet.outbox.backoff.max-seconds=60
 
 ```java
 @Component
-public class KafkaPublisher implements OutboxPublisher {
+public class ExamplePublisher implements OutboxPublisher {
     @Override
     public void publishBatch(List<StoredEvent> events) throws PublishException {
-        // Publish to Kafka
+        // Publish events to your destination.
     }
     
     @Override
     public String getName() {
-        return "KafkaPublisher";
+        return "ExamplePublisher";
     }
     
-    @Override
-    public boolean isHealthy() {
-        return kafkaTemplate.isHealthy();
-    }
-}
-```
-
-### External HTTP Webhook Publisher
-
-Use `PublishMode.INDIVIDUAL` when the downstream HTTP API expects one event per request:
-
-```java
-@Component
-public class CustomerWebhookPublisher implements OutboxPublisher {
-    private final RestClient restClient;
-
-    public CustomerWebhookPublisher(RestClient.Builder restClientBuilder) {
-        this.restClient = restClientBuilder
-            .baseUrl("https://customer.example")
-            .build();
-    }
-
-    @Override
-    public String getName() {
-        return "CustomerWebhookPublisher";
-    }
-
-    @Override
-    public PublishMode getPreferredMode() {
-        return PublishMode.INDIVIDUAL;
-    }
-
-    @Override
-    public void publishBatch(List<StoredEvent> events) throws PublishException {
-        StoredEvent event = events.get(0);
-        restClient.post()
-            .uri("/webhooks/events")
-            .body(event)
-            .retrieve()
-            .toBodilessEntity();
-    }
-
     @Override
     public boolean isHealthy() {
         return true;
     }
 }
 ```
+
+### Individual Publish Mode
 
 `INDIVIDUAL` mode calls `publishBatch(List.of(event))` once per event while keeping the outbox progress, retry, and circuit-breaker boundary on the publisher.
 
@@ -213,12 +172,12 @@ public class CustomerWebhookPublisher implements OutboxPublisher {
 ### REST API
 ```bash
 # Pause/resume publishers
-curl -X POST http://localhost:8080/api/outbox/default/publishers/KafkaPublisher/pause
-curl -X POST http://localhost:8080/api/outbox/default/publishers/KafkaPublisher/resume
+curl -X POST http://localhost:8080/api/outbox/default/publishers/LogPublisher/pause
+curl -X POST http://localhost:8080/api/outbox/default/publishers/LogPublisher/resume
 
 # Check publisher status
-curl http://localhost:8080/api/outbox/default/publishers/KafkaPublisher/status
-curl http://localhost:8080/api/outbox/default/publishers/KafkaPublisher/lag
+curl http://localhost:8080/api/outbox/default/publishers/LogPublisher/status
+curl http://localhost:8080/api/outbox/default/publishers/LogPublisher/lag
 ```
 
 ### SQL Management
@@ -226,12 +185,12 @@ curl http://localhost:8080/api/outbox/default/publishers/KafkaPublisher/lag
 -- Pause publisher
 UPDATE outbox_topic_progress 
 SET status = 'PAUSED' 
-WHERE publisher = 'KafkaPublisher';
+WHERE publisher = 'LogPublisher';
 
 -- Reset failed publisher
 UPDATE outbox_topic_progress 
 SET status = 'ACTIVE', error_count = 0, last_error = NULL 
-WHERE publisher = 'KafkaPublisher';
+WHERE publisher = 'LogPublisher';
 ```
 
 ## Guarantees
@@ -264,7 +223,6 @@ Events may be published multiple times in the following scenarios:
 
 ✅ **Use when you need external event publishing:**
 - Event-driven microservices
-- Analytics and reporting
 - Integration with external systems
 - CQRS read model updates
 
@@ -341,9 +299,9 @@ Events may be published multiple times in the following scenarios:
                               │                        │
                               ▼                        ▼
                      ┌──────────────────┐    ┌─────────────────┐
-                     │   State Queries  │    │ External Systems│
-                     │  (Projections)   │    │ Kafka + Webhooks│
-                     └──────────────────┘    │ + Analytics     │
+                     │   State Queries  │    │ Configured      │
+                     │  (Projections)   │    │ Publishers      │
+                     └──────────────────┘    │                 │
                                           └─────────────────┘
 
 ┌─────────────────────────────┐         ┌─────────────────────────────┐
@@ -387,7 +345,7 @@ For complete details on crash detection, failover mechanism, and deployment patt
 - Leader instance down or unhealthy
 - Publisher paused or in FAILED state
 - Database connectivity issues
-- External system (Kafka, webhooks) unavailable
+- Publisher destination unavailable
 
 **Resolution:**
 ```sql
@@ -398,12 +356,12 @@ FROM outbox_topic_progress;
 -- Resume paused publisher
 UPDATE outbox_topic_progress 
 SET status = 'ACTIVE' 
-WHERE publisher = 'KafkaPublisher';
+WHERE publisher = 'LogPublisher';
 
 -- Reset failed publisher
 UPDATE outbox_topic_progress 
 SET status = 'ACTIVE', error_count = 0, last_error = NULL 
-WHERE publisher = 'KafkaPublisher';
+WHERE publisher = 'LogPublisher';
 ```
 
 ### Frequent Leader Changes

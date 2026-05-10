@@ -216,7 +216,7 @@ eventStore.appendIdempotent(events,
 
 ### What changed
 
-`AutomationHandler.react(StoredEvent)` was replaced by `AutomationHandler.decide(StoredEvent)` which returns `List<AutomationDecision>` instead of `void`. Automation webhook mode (calling an external HTTP endpoint directly from the handler) has been removed.
+`AutomationHandler.react(StoredEvent)` was replaced by `AutomationHandler.decide(StoredEvent)` which returns `List<AutomationDecision>` instead of `void`.
 
 ### Migration
 
@@ -235,21 +235,6 @@ public void react(StoredEvent stored) {
 public List<AutomationDecision> decide(StoredEvent stored) {
     // return a decision — CommandExecutor executes it
     return List.of(new AutomationDecision.ExecuteCommand(new MyCommand(...)));
-}
-```
-
-If you previously used an automation webhook to call an external HTTP endpoint, move that behavior to `crablet-outbox` instead:
-
-```java
-// In decide(): return NoOp — the event is already in the store
-return List.of(new AutomationDecision.NoOp("handled by outbox"));
-
-// In an OutboxPublisher: publish to the external endpoint
-@Override
-public void publishBatch(List<StoredEvent> events) throws PublishException {
-    for (StoredEvent e : events) {
-        httpClient.post(webhookUrl, e.data());
-    }
 }
 ```
 

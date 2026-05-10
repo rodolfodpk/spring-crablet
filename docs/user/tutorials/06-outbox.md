@@ -28,7 +28,7 @@ You will learn:
 crablet.outbox.enabled=true
 crablet.outbox.polling-interval-ms=1000
 crablet.outbox.batch-size=100
-crablet.outbox.topics.default.publishers=KafkaPublisher,LogPublisher
+crablet.outbox.topics.default.publishers=LogPublisher,ExamplePublisher
 ```
 
 `crablet.outbox.*` is the global module config. These values are defaults for the outbox module as a whole.
@@ -50,24 +50,24 @@ Shared-fetch requires the scan-progress tables from the V14-style migration used
 
 ```java
 @Component
-public class KafkaPublisher implements OutboxPublisher {
+public class ExamplePublisher implements OutboxPublisher {
 
-    private final KafkaTemplate<String, StoredEvent> kafkaTemplate;
+    private final PublicationSink publicationSink;
 
-    public KafkaPublisher(KafkaTemplate<String, StoredEvent> kafkaTemplate) {
-        this.kafkaTemplate = kafkaTemplate;
+    public ExamplePublisher(PublicationSink publicationSink) {
+        this.publicationSink = publicationSink;
     }
 
     @Override
     public void publishBatch(List<StoredEvent> events) {
         for (StoredEvent event : events) {
-            kafkaTemplate.send("default", event);
+            publicationSink.publish(event);
         }
     }
 
     @Override
     public String getName() {
-        return "KafkaPublisher";
+        return "ExamplePublisher";
     }
 
     @Override

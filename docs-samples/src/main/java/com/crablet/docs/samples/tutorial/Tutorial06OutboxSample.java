@@ -8,27 +8,27 @@ import java.util.List;
 final class Tutorial06OutboxSample {
 
     // docs:begin tutorial06-main
-    interface KafkaTemplate<K, V> {
-        void send(String topic, V value);
+    interface PublicationSink {
+        void publish(StoredEvent event);
     }
 
-    static final class KafkaPublisher implements OutboxPublisher {
-        private final KafkaTemplate<String, StoredEvent> kafkaTemplate;
+    static final class ExamplePublisher implements OutboxPublisher {
+        private final PublicationSink publicationSink;
 
-        KafkaPublisher(KafkaTemplate<String, StoredEvent> kafkaTemplate) {
-            this.kafkaTemplate = kafkaTemplate;
+        ExamplePublisher(PublicationSink publicationSink) {
+            this.publicationSink = publicationSink;
         }
 
         @Override
         public void publishBatch(List<StoredEvent> events) {
             for (StoredEvent event : events) {
-                kafkaTemplate.send("default", event);
+                publicationSink.publish(event);
             }
         }
 
         @Override
         public String getName() {
-            return "KafkaPublisher";
+            return "ExamplePublisher";
         }
 
         @Override
