@@ -49,6 +49,7 @@ Treat these as current repository policy unless the change explicitly revises th
 - LISTEN wakeup uses `crablet.event-poller.notifications.jdbc-url` and must be a direct Postgres connection.
 - The eventstore sends NOTIFY after every append; there is no separate eventstore flag.
 - `crablet-commands-web` is server-agnostic at runtime and depends only on `jakarta.servlet-api`.
+- Do not add framework-owned circuit breakers, retries, or time limits to Crablet modules by default. Applications can wrap their own projectors, automation handlers, and outbox publishers when they need those policies.
 - The root tutorial is a tutorial series under `docs/user/tutorials/`.
 
 ## DataSource Rules

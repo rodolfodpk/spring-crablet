@@ -32,12 +32,10 @@ import com.crablet.views.ViewSubscription;
 import com.crablet.eventstore.Internal;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
@@ -65,12 +63,6 @@ public class AutomationsAutoConfiguration {
 
     // Advisory lock key for automations (distinct from views and outbox)
     private static final long AUTOMATIONS_LOCK_KEY = 4856221667890123458L;
-
-    @Bean
-    @ConditionalOnMissingBean(CircuitBreakerRegistry.class)
-    public CircuitBreakerRegistry circuitBreakerRegistry() {
-        return CircuitBreakerRegistry.ofDefaults();
-    }
 
     @Bean
     public ProgressTracker<String> automationProgressTracker(
@@ -110,8 +102,7 @@ public class AutomationsAutoConfiguration {
             @Qualifier("automationHandlers") Map<String, AutomationHandler> handlers,
             ObjectProvider<CommandExecutor> commandExecutorProvider,
             ApplicationEventPublisher eventPublisher,
-            ClockProvider clockProvider,
-            CircuitBreakerRegistry circuitBreakerRegistry) {
+            ClockProvider clockProvider) {
 
         CommandExecutor commandExecutor = commandExecutorProvider.getIfAvailable();
         if (!handlers.isEmpty() && commandExecutor == null) {
@@ -121,7 +112,7 @@ public class AutomationsAutoConfiguration {
                     "Ensure crablet-commands is on the classpath and a CommandExecutor bean is defined.");
         }
 
-        return new AutomationDispatcher(handlers, commandExecutor, eventPublisher, clockProvider, circuitBreakerRegistry);
+        return new AutomationDispatcher(handlers, commandExecutor, eventPublisher, clockProvider);
     }
 
     @Bean

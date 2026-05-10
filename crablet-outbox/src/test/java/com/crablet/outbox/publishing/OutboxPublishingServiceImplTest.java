@@ -5,7 +5,6 @@ import com.crablet.eventstore.StoredEvent;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.PublishException;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -73,7 +72,6 @@ class OutboxPublishingServiceImplTest {
         return new OutboxPublishingServiceImpl(
                 Map.of(publisher.getName(), publisher),
                 ClockProvider.systemDefault(),
-                CircuitBreakerRegistry.ofDefaults(),
                 mock(GlobalStatisticsPublisher.class),
                 mock(ApplicationEventPublisher.class));
     }

@@ -42,7 +42,6 @@
         <junit.version>6.0.2</junit.version>
         <archunit.version>1.4.1</archunit.version>
         <yavi.version>0.16.0</yavi.version>
-        <resilience4j.version>2.3.0</resilience4j.version>
         <springdoc.version>3.0.2</springdoc.version>
         <logstash.version>9.0</logstash.version>
     </properties>
@@ -156,28 +155,6 @@
                 <groupId>am.ik.yavi</groupId>
                 <artifactId>yavi</artifactId>
                 <version>${yavi.version}</version>
-            </dependency>
-            
-            <!-- Resilience4j -->
-            <dependency>
-                <groupId>io.github.resilience4j</groupId>
-                <artifactId>resilience4j-spring-boot3</artifactId>
-                <version>${resilience4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.resilience4j</groupId>
-                <artifactId>resilience4j-circuitbreaker</artifactId>
-                <version>${resilience4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.resilience4j</groupId>
-                <artifactId>resilience4j-retry</artifactId>
-                <version>${resilience4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.resilience4j</groupId>
-                <artifactId>resilience4j-timelimiter</artifactId>
-                <version>${resilience4j.version}</version>
             </dependency>
             
             <!-- SpringDoc OpenAPI -->

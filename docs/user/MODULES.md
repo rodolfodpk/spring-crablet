@@ -42,4 +42,22 @@ Use **views** for query state, **automations** for internal follow-up decisions,
 external delivery. Automations should not call external systems directly; publish externally through
 outbox so retries, progress, and deduplication are explicit.
 
+## Resilience boundaries
+
+Crablet keeps framework-level resilience focused on durable progress and explicit retries:
+
+- `crablet-event-poller` owns polling cadence, idle backoff, leader retry, progress tracking, and
+  processor `FAILED` state.
+- Poller backoff is idle-load control. Handler failures do not advance progress; they are retried by
+  redelivery until the processor reaches its configured error limit.
+- `crablet-eventstore` owns database append and query operations. Database failures surface to the
+  caller instead of being hidden by framework-level retries.
+- `crablet-commands` is the synchronous write path. Validation failures, DCB conflicts, and handler
+  failures surface directly to the caller. Safe retries are modeled explicitly through idempotent
+  commands.
+
+Crablet modules do not ship a built-in circuit breaker, retry, or time-limit library. Applications
+that need circuit breakers should add them around their own `ViewProjector`, `AutomationHandler`, or
+`OutboxPublisher` beans.
+
 Those modules do not contain or depend at runtime on the example application code. Example-only code lives in `shared-examples-domain`, `examples/wallet-example-app`, `examples/course-example-app`, and `docs-samples`. Some Crablet modules use `shared-examples-domain` as a test-scoped dependency only; it is not part of the runtime dependency graph for users.

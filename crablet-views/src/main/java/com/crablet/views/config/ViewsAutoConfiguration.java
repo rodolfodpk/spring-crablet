@@ -28,10 +28,8 @@ import com.crablet.views.internal.ViewEventHandler;
 import com.crablet.views.internal.ViewProcessorConfig;
 import com.crablet.views.internal.ViewProgressTracker;
 import com.crablet.views.service.ViewManagementService;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
@@ -62,12 +60,6 @@ public class ViewsAutoConfiguration {
     private static final long VIEWS_LOCK_KEY = 4856221667890123457L;
 
     @Bean
-    @ConditionalOnMissingBean(CircuitBreakerRegistry.class)
-    public CircuitBreakerRegistry circuitBreakerRegistry() {
-        return CircuitBreakerRegistry.ofDefaults();
-    }
-
-    @Bean
     public ProgressTracker<String> viewProgressTracker(
             WriteDataSource writeDataSource) {
         return new ViewProgressTracker(writeDataSource.dataSource());
@@ -84,9 +76,8 @@ public class ViewsAutoConfiguration {
     public EventHandler<String> viewEventHandler(
             List<ViewProjector> projectors,
             ApplicationEventPublisher eventPublisher,
-            ClockProvider clockProvider,
-            CircuitBreakerRegistry circuitBreakerRegistry) {
-        return new ViewEventHandler(projectors, eventPublisher, clockProvider, circuitBreakerRegistry);
+            ClockProvider clockProvider) {
+        return new ViewEventHandler(projectors, eventPublisher, clockProvider);
     }
 
     @Bean

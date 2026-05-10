@@ -83,7 +83,6 @@ public void myOperation() {
 - Spring Boot Web (test scope only - for integration tests)
 - PostgreSQL JDBC Driver
 - Jackson (for JSON serialization)
-- Resilience4j (for circuit breakers and retries)
 - SLF4J (for logging)
 
 ## Metrics

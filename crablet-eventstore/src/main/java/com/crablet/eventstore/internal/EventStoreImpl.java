@@ -23,9 +23,6 @@ import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.StateProjector;
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import io.github.resilience4j.retry.annotation.Retry;
-import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,9 +94,6 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
      * SQL statements for PostgreSQL functions and queries.
      * Extracted as constants for maintainability and readability.
      */
-    private static final String APPEND_EVENTS_BATCH_SQL =
-        "SELECT append_events_batch(?, ?, ?::jsonb[], ?::TIMESTAMP WITH TIME ZONE, ?::uuid, ?)";
-
     private static final String APPEND_EVENTS_IF_SQL =
         "SELECT append_events_if(?, ?, ?::jsonb[], ?, ?, ?, ?, ?, ?::TIMESTAMP WITH TIME ZONE, ?::uuid, ?)";
 
@@ -220,63 +214,6 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         this.eventPublisher = eventPublisher;
         this.eventAppendNotifier = eventAppendNotifier;
         this.sqlBuilder = new QuerySqlBuilderImpl();
-    }
-
-    /**
-     * Package-private method for appending events without concurrency checks.
-     * Used internally by appendCommutative and by tests in the same package.
-     */
-    @CircuitBreaker(name = "database")
-    @Retry(name = "database")
-    @TimeLimiter(name = "database")
-    void append(List<AppendEvent> events) {
-        if (events.isEmpty()) {
-            return;
-        }
-
-        try {
-            // Prepare arrays for append_events_batch function
-            String[] types = events.stream().map(AppendEvent::type).toArray(String[]::new);
-            String[] tagArrays = events.stream()
-                    .map(event -> convertTagsToPostgresArray(event.tags()))
-                    .toArray(String[]::new);
-            String[] dataStrings = events.stream()
-                    .map(event -> serializeEventData(event.eventData()))
-                    .toArray(String[]::new);
-
-            // Call append_events_batch function with JSONB[] cast using raw JDBC
-            try (Connection connection = writeDataSource.getConnection();
-                 PreparedStatement stmt = connection.prepareStatement(APPEND_EVENTS_BATCH_SQL)) {
-
-                stmt.setArray(1, connection.createArrayOf("varchar", types));
-                stmt.setArray(2, connection.createArrayOf("varchar", tagArrays));
-                stmt.setArray(3, connection.createArrayOf("jsonb", dataStrings));
-                stmt.setTimestamp(4, Timestamp.from(clock.now()));
-                stmt.setObject(5, CorrelationContext.correlationId());
-                stmt.setObject(6, CorrelationContext.causationId());
-
-                stmt.execute();
-            }
-
-            // Publish metrics events
-            eventPublisher.publishEvent(new EventsAppendedMetric(events.size()));
-            for (AppendEvent event : events) {
-                eventPublisher.publishEvent(new EventTypeMetric(event.type()));
-            }
-            publishAppendNotification();
-        } catch (SQLException e) {
-            // Handle PostgreSQL function errors like go-crablet does
-            String sqlState = e.getSQLState();
-
-            // Handle PostgreSQL procedural errors (P0001, etc.)
-            if (sqlState != null && sqlState.startsWith("P")) {
-                throw new EventStoreException("PostgreSQL procedural error (" + sqlState + "): " + e.getMessage(), e);
-            }
-
-            throw new EventStoreException("Failed to append events", e);
-        } catch (Exception e) {
-            throw new EventStoreException("Failed to append events", e);
-        }
     }
 
     @Override

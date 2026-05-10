@@ -48,7 +48,6 @@ Crablet Outbox provides a robust transactional outbox implementation, ensuring t
 - crablet-event-poller (required) - generic poller infrastructure
 - Spring Boot Web
 - Spring Boot JDBC
-- Resilience4j (for circuit breakers and retries)
 - Micrometer (for metrics)
 - PostgreSQL JDBC Driver
 

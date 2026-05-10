@@ -56,15 +56,15 @@ Do not use a transaction-pooled PgBouncer connection for `LISTEN`.
 
 Normal event fetching can still go through `ReadDataSource`.
 
-## Why Not Delegate Polling Backpressure to Resilience4j
+## Why Not Delegate Polling Backpressure to App Resilience Libraries
 
-Resilience4j is useful for protection, not scheduling.
+Circuit breakers, retries, and timeouts are useful for application-owned downstream calls, not
+poll scheduling.
 
-Use Resilience4j for:
-- retry
-- timeout
-- circuit breaker
-- bulkhead / rate limit where needed
+Use application resilience policies for:
+- remote API calls from an `OutboxPublisher`
+- external dependencies used by a `ViewProjector`
+- external dependencies used by an `AutomationHandler`
 
 Do not use it for:
 - deciding the next poll time
@@ -72,7 +72,7 @@ Do not use it for:
 
 Split of responsibility:
 - poller control loop decides when to try next
-- Resilience4j guards what happens when a try occurs
+- application code owns any circuit breaker, retry, timeout, bulkhead, or rate limit around its own dependencies
 
 ## Proposed Types
 
@@ -215,9 +215,9 @@ Recommended implementation order:
 3. Replica catchup retry
 - one quick retry after wakeup if replica is behind
 
-4. Resilience4j integration
-- wrap fetch with retry / timeout / circuit breaker
-- keep scheduling logic in the poller
+4. Application-owned resilience
+- keep fetch and scheduling logic in the poller
+- let application beans wrap their own external dependencies
 
 ## Suggested Test Coverage
 
@@ -225,7 +225,6 @@ Recommended implementation order:
 
 - resets to minimum delay after events are found
 - backs off after repeated empty polls
-- backs off after repeated failures
 - jitter stays within configured range
 - wakeup makes processor due immediately
 - replica catchup retry runs once after wakeup
@@ -243,6 +242,6 @@ Best near-term path:
 1. implement adaptive polling first
 2. add optional PostgreSQL wakeups second
 3. keep DB polling as the correctness path
-4. use Resilience4j as a protective layer, not the poll scheduler
+4. keep circuit breakers, retries, and timeouts in application-owned boundary code
 
 This gives lower idle DB load and lower latency without introducing a second source of truth.

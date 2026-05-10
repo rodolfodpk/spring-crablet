@@ -32,7 +32,6 @@ import com.crablet.outbox.management.OutboxManagementService;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
 import com.crablet.outbox.publishing.OutboxPublishingService;
 import com.crablet.outbox.publishing.OutboxPublishingServiceImpl;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
@@ -104,7 +103,6 @@ public class OutboxAutoConfiguration {
     public OutboxPublishingService outboxPublishingService(
             List<OutboxPublisher> publishers,
             ClockProvider clock,
-            CircuitBreakerRegistry circuitBreakerRegistry,
             GlobalStatisticsPublisher globalStatistics,
             ApplicationEventPublisher eventPublisher) {
         
@@ -117,7 +115,6 @@ public class OutboxAutoConfiguration {
         return new OutboxPublishingServiceImpl(
             publisherByName,
             clock,
-            circuitBreakerRegistry,
             globalStatistics,
             eventPublisher
         );

@@ -576,23 +576,15 @@ Each view tracks its own progress independently in the `view_progress` table:
 
 ## Error Handling
 
-Views use exponential backoff for error recovery:
+Views use poller progress for error recovery:
 
 1. On error, the view records the error in `view_progress`
-2. After `backoff-threshold` consecutive errors, backoff starts
-3. Polling interval increases exponentially (up to `max-backoff-seconds`)
-4. After successful processing, backoff resets
+2. Progress is not advanced, so the same event is redelivered on a later cycle
+3. After `max-errors` consecutive errors, the view is marked `FAILED`
+4. After successful processing, the error count resets
 
-**Circuit breaker** — each view also has its own Resilience4j circuit breaker (named `"view-<viewName>"`). After enough consecutive failures the circuit opens, the view is skipped with a WARN log (`Circuit breaker OPEN for view <name>`), and the poller's backoff continues. The circuit closes automatically once the downstream recovers. Configure thresholds per view in `application.yml`:
-
-```yaml
-resilience4j:
-  circuitbreaker:
-    instances:
-      view-wallet_statements:
-        failure-rate-threshold: 50
-        wait-duration-in-open-state: 30s
-```
+Crablet does not ship a built-in circuit breaker for views. If a projection calls an unreliable
+external dependency, add that policy in the application-owned `ViewProjector` bean.
 
 Failed views can be reset through your application's operational API, through the generic `/api/processors` framework API, or by clearing the error count in the database.
 
@@ -602,7 +594,7 @@ Failed views can be reset through your application's operational API, through th
 2. **Batch Processing**: Process events in batches for better performance
 3. **Read Replicas**: Use read replicas for event fetching (configured automatically)
 4. **Monitoring**: Monitor view lag and error counts via `ViewManagementService` or the generic processor API
-5. **Error Recovery**: Implement retry logic for transient failures
+5. **Error Recovery**: Keep projection writes idempotent; add app-owned resilience around external dependencies
 6. **View Naming**: Use descriptive, unique view names
 
 ## Examples

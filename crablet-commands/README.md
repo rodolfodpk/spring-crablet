@@ -17,6 +17,10 @@ Add `views`, `outbox`, and `automations` later, after the write path is working 
 
 This module is also the natural foundation for a future command-side starter. The goal of that starter should be narrow: command execution, handler discovery, and default wiring. It should not hide the deployment implications of poller-backed modules.
 
+`crablet-commands` intentionally does not wrap command execution in circuit breakers, retries, or
+time limits. Command failures surface to the caller. See
+[Resilience boundaries](../docs/user/MODULES.md#resilience-boundaries).
+
 ## Start Here
 
 - If you are new to Crablet, read `Quick Start` first
@@ -81,7 +85,6 @@ include it in your `pom.xml` and declare a `CommandApiExposedCommands` bean.
 - Spring Boot JDBC
 - Spring Boot Web (test scope only - for integration tests)
 - Jackson (for JSON serialization)
-- Resilience4j (for circuit breakers and retries)
 - SLF4J (for logging)
 
 ### Test Dependencies

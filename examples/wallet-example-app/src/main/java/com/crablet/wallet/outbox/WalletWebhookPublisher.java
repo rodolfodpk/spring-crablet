@@ -3,6 +3,7 @@ package com.crablet.wallet.outbox;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.outbox.OutboxPublisher;
 import com.crablet.outbox.PublishException;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,7 @@ import java.util.Map;
  * Copy and adapt this class for real integrations (Kafka, SNS, Slack, etc.).
  * The key patterns to keep:
  *  - getPreferredMode() INDIVIDUAL — each event gets its own publishBatch call
+ *  - @CircuitBreaker is application-owned; Crablet calls this bean and Spring AOP applies the policy
  *  - throw PublishException on non-retriable errors so the outbox stops retrying
  *  - isHealthy() probes the downstream system; false pauses publishing
  */
@@ -64,6 +66,7 @@ public class WalletWebhookPublisher implements OutboxPublisher {
     }
 
     @Override
+    @CircuitBreaker(name = "wallet-webhook")
     public void publishBatch(List<StoredEvent> events) throws PublishException {
         if (webhookUrl == null || webhookUrl.isBlank()) {
             log.warn("[WalletWebhookPublisher] crablet.wallet.webhook.url not set — skipping delivery of {} event(s)", events.size());

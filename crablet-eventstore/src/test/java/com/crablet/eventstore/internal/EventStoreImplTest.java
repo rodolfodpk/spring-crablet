@@ -208,11 +208,6 @@ class EventStoreImplTest {
     }
 
     @Test
-    void packagePrivateAppendShouldIgnoreEmptyInput() {
-        eventStoreImpl.append(List.of());
-    }
-
-    @Test
     void shouldCheckWhetherEventsExist() {
         String testId = UUID.randomUUID().toString();
         Query query = Query.forEventAndTag("TestEvent", "test_id", testId);

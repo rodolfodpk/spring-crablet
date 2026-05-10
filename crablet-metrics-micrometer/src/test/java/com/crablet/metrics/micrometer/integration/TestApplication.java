@@ -199,7 +199,6 @@ public class TestApplication {
     public OutboxPublishingService outboxPublishingService(
             List<com.crablet.outbox.OutboxPublisher> publishers,
             ClockProvider clock,
-            io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitBreakerRegistry,
             GlobalStatisticsPublisher globalStatistics,
             ApplicationEventPublisher eventPublisher) {
         
@@ -210,7 +209,7 @@ public class TestApplication {
         }
         
         return new OutboxPublishingServiceImpl(
-            publisherByName, clock, circuitBreakerRegistry, globalStatistics, eventPublisher
+            publisherByName, clock, globalStatistics, eventPublisher
         );
     }
     

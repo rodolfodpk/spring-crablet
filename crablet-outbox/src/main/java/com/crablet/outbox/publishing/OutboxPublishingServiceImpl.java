@@ -8,9 +8,6 @@ import com.crablet.outbox.metrics.EventsPublishedMetric;
 import com.crablet.outbox.metrics.OutboxErrorMetric;
 import com.crablet.outbox.metrics.PublishingDurationMetric;
 import com.crablet.outbox.publishers.GlobalStatisticsPublisher;
-import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -19,7 +16,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 
 /**
  * Implementation of OutboxPublishingService.
@@ -31,7 +27,6 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
     
     private final Map<String, OutboxPublisher> publisherByName;
     private final ClockProvider clock;
-    private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final GlobalStatisticsPublisher globalStatistics;
     private final ApplicationEventPublisher eventPublisher;
     
@@ -40,7 +35,6 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
      *
      * @param publisherByName map of publisher names to publisher implementations
      * @param clock clock provider for timestamps
-     * @param circuitBreakerRegistry circuit breaker registry for resilience
      * @param globalStatistics global statistics publisher (required)
      * @param eventPublisher event publisher for metrics (required).
      *                       Spring Boot automatically provides an ApplicationEventPublisher bean.
@@ -49,7 +43,6 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
     public OutboxPublishingServiceImpl(
             Map<String, OutboxPublisher> publisherByName,
             ClockProvider clock,
-            CircuitBreakerRegistry circuitBreakerRegistry,
             GlobalStatisticsPublisher globalStatistics,
             ApplicationEventPublisher eventPublisher) {
         if (publisherByName == null) {
@@ -57,9 +50,6 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
         }
         if (clock == null) {
             throw new IllegalArgumentException("clock must not be null");
-        }
-        if (circuitBreakerRegistry == null) {
-            throw new IllegalArgumentException("circuitBreakerRegistry must not be null");
         }
         if (globalStatistics == null) {
             throw new IllegalArgumentException("globalStatistics must not be null");
@@ -69,7 +59,6 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
         }
         this.publisherByName = publisherByName;
         this.clock = clock;
-        this.circuitBreakerRegistry = circuitBreakerRegistry;
         this.globalStatistics = globalStatistics;
         this.eventPublisher = eventPublisher;
     }
@@ -87,10 +76,9 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
             return 0;
         }
         
-        // Publish with resilience
         Instant startTime = clock.now();
         try {
-            publishWithResilience(publisher, events);
+            publishWithMode(publisher, events);
             
             Duration duration = Duration.between(startTime, clock.now());
             eventPublisher.publishEvent(new EventsPublishedMetric(publisherName, events.size()));
@@ -106,37 +94,23 @@ public class OutboxPublishingServiceImpl implements OutboxPublishingService {
             throw new RuntimeException("Failed to publish events for pair (" + topicName + ", " + publisherName + ")", e);
         }
     }
-    
-    private void publishWithResilience(OutboxPublisher publisher, List<StoredEvent> events)
+
+    private void publishWithMode(OutboxPublisher publisher, List<StoredEvent> events)
             throws PublishException {
-        
-        CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("outbox-" + publisher.getName());
 
         if (publisher.getPreferredMode() == OutboxPublisher.PublishMode.INDIVIDUAL) {
             for (StoredEvent event : events) {
-                publishWithCircuitBreaker(cb, publisher, List.of(event));
+                publish(publisher, List.of(event));
             }
             return;
         }
 
-        publishWithCircuitBreaker(cb, publisher, events);
+        publish(publisher, events);
     }
 
-    private void publishWithCircuitBreaker(
-            CircuitBreaker cb,
-            OutboxPublisher publisher,
-            List<StoredEvent> events) throws PublishException {
+    private void publish(OutboxPublisher publisher, List<StoredEvent> events) throws PublishException {
         try {
-            Callable<Void> call = CircuitBreaker.decorateCallable(cb, () -> {
-                publisher.publishBatch(events);
-                return null;
-            });
-            
-            call.call();
-            
-        } catch (CallNotPermittedException e) {
-            log.warn("Circuit breaker OPEN for {}", publisher.getName());
-            throw new PublishException("Circuit breaker open", e);
+            publisher.publishBatch(events);
         } catch (Exception e) {
             throw new PublishException("Publish failed", e);
         }
