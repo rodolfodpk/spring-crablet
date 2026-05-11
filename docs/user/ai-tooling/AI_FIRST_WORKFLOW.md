@@ -166,6 +166,8 @@ A sufficiently rich event model should drive:
 - automations that react to events and emit commands
 - outbox publishers for integration events
 - focused test scaffolding from model scenarios
+- Kubernetes manifests (`k8s/base/`) from the `deployment:` block — topology and which modules
+  exist determine which worker Deployments and KEDA ScaledObjects are generated
 
 The model must be explicit about types, tags, command patterns, validations, views, automation
 conditions, and external adapters. The generator should fail early when the model is ambiguous

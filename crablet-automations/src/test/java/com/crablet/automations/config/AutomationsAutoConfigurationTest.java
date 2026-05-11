@@ -4,6 +4,7 @@ import com.crablet.automations.AutomationDecision;
 import com.crablet.automations.AutomationDefinition;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.internal.AutomationProcessorConfig;
+import com.crablet.automations.internal.ViewSubscriptionLookup;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.InstanceIdProvider;
@@ -14,6 +15,7 @@ import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.WriteDataSource;
+import com.crablet.views.ViewSubscription;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -140,6 +142,24 @@ class AutomationsAutoConfigurationTest {
                 mock(ApplicationEventPublisher.class));
 
         assertThat(processor).isInstanceOf(SharedFetchModuleProcessor.class);
+    }
+
+    @Test
+    @DisplayName("Should build view subscription lookup from subscription beans without views processor")
+    void shouldBuildViewSubscriptionLookupFromSubscriptionBeansWithoutViewsProcessor() {
+        AutomationsAutoConfiguration.ViewSubscriptionLookupConfiguration lookupConfiguration =
+                new AutomationsAutoConfiguration.ViewSubscriptionLookupConfiguration();
+        ViewSubscription subscription = ViewSubscription.builder("notification-todo")
+                .eventTypes("WalletOpened", "WelcomeNotificationSent")
+                .build();
+
+        ViewSubscriptionLookup lookup = lookupConfiguration.viewSubscriptionLookup(
+                providerOf(List.of(subscription)));
+
+        assertThat(lookup.eventTypesForView("notification-todo"))
+                .hasValueSatisfying(types ->
+                        assertThat(types).containsExactlyInAnyOrder("WalletOpened", "WelcomeNotificationSent"));
+        assertThat(lookup.eventTypesForView("missing-view")).isEmpty();
     }
 
     private static AutomationHandler handler(String name) {

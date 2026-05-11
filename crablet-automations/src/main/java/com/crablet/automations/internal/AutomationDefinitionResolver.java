@@ -60,7 +60,7 @@ public class AutomationDefinitionResolver {
                 new IllegalStateException(
                         "View-backed automation '" + automationName + "' requires crablet-views on the classpath, " +
                         "but no ViewSubscriptionLookup bean was found. " +
-                        "Ensure crablet-views is on the classpath and views are enabled."));
+                        "Ensure crablet-views is on the classpath."));
 
         Set<String> wakeEvents = new LinkedHashSet<>();
 
@@ -69,8 +69,7 @@ public class AutomationDefinitionResolver {
                     .orElseThrow(() -> new IllegalStateException(
                             "View-backed automation '" + automationName + "' references view '" + viewName + "', " +
                             "but no ViewSubscription was found with that name. " +
-                            "Ensure crablet-views is on the classpath, views are enabled, " +
-                            "and the view subscription bean is registered."));
+                            "Ensure the view subscription bean is registered."));
 
             if (viewEventTypes.isEmpty()) {
                 throw new IllegalStateException(

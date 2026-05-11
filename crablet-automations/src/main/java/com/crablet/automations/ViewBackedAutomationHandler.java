@@ -15,7 +15,7 @@ import java.util.Set;
  *
  * <p>Requirements:
  * <ul>
- *   <li>{@code crablet-views} must be on the classpath and views must be enabled.</li>
+ *   <li>{@code crablet-views} must be on the classpath.</li>
  *   <li>Every name returned by {@link #getReadViewNames()} must match a registered
  *       {@code ViewSubscription} bean (by view name).</li>
  *   <li>Each referenced view must have at least one event type declared.</li>

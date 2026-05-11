@@ -6,6 +6,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class K8sTopologyTest {
 
@@ -100,5 +101,48 @@ class K8sTopologyTest {
         K8sTopology t = K8sTopology.from(m);
         assertThat(t.viewEventTypes())
                 .containsExactly("A", "B", "C");
+    }
+
+    @Test
+    void automationEventTypesUseEffectiveWakeEventsFromReadViews() throws Exception {
+        EventModel m = yaml.readValue("""
+                domain: X
+                basePackage: p
+                events: []
+                commands: []
+                views:
+                  - name: Todo
+                    reads: [WalletOpened, WelcomeNotificationSent]
+                    tag: wallet_id
+                    fields: []
+                automations:
+                  - name: WelcomeAutomation
+                    readsViews: [Todo]
+                    emitsCommand: SendWelcomeNotification
+                    wakeEventsExtra: [ManualWake]
+                    wakeEventsExclude: [WelcomeNotificationSent]
+                """, EventModel.class);
+
+        K8sTopology t = K8sTopology.from(m);
+
+        assertThat(t.automationEventTypes())
+                .containsExactly("ManualWake", "WalletOpened");
+    }
+
+    @Test
+    void automationWithEmptyEffectiveWakeEventsFailsTopologyBuild() throws Exception {
+        EventModel m = yaml.readValue("""
+                domain: X
+                basePackage: p
+                events: []
+                commands: []
+                automations:
+                  - name: EmptyAutomation
+                    emitsCommand: C
+                """, EventModel.class);
+
+        assertThatThrownBy(() -> K8sTopology.from(m))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Automation has no wake events: EmptyAutomation");
     }
 }

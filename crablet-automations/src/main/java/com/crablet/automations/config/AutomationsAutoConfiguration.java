@@ -222,9 +222,12 @@ public class AutomationsAutoConfiguration {
     }
 
     /**
-     * Activated only when crablet-views is on the classpath. Adapts the canonical
-     * {@code viewSubscriptions} map into the {@link ViewSubscriptionLookup} abstraction
+     * Activated only when crablet-views is on the classpath. Adapts registered
+     * {@link ViewSubscription} beans into the {@link ViewSubscriptionLookup} abstraction
      * used by {@link AutomationDefinitionResolver}.
+     *
+     * <p>This intentionally does not depend on {@code crablet.views.enabled=true}. View-backed
+     * automations need view subscription metadata, not a running views processor.
      */
     @Configuration
     @ConditionalOnClass(name = "com.crablet.views.ViewSubscription")
@@ -232,9 +235,12 @@ public class AutomationsAutoConfiguration {
 
         @Bean
         ViewSubscriptionLookup viewSubscriptionLookup(
-                @Qualifier("viewSubscriptions")
-                ObjectProvider<Map<String, ViewSubscription>> subscriptionsProvider) {
-            Map<String, ViewSubscription> subs = subscriptionsProvider.getIfAvailable(Map::of);
+                ObjectProvider<List<ViewSubscription>> subscriptionsProvider) {
+            List<ViewSubscription> subscriptionBeans = subscriptionsProvider.getIfAvailable(List::of);
+            Map<String, ViewSubscription> subs = new HashMap<>();
+            for (ViewSubscription subscription : subscriptionBeans) {
+                subs.put(subscription.getViewName(), subscription);
+            }
             return viewName -> Optional.ofNullable(subs.get(viewName))
                     .map(ViewSubscription::getEventTypes);
         }

@@ -119,6 +119,46 @@ class K8sGeneratorTest {
     }
 
     @Test
+    void distributedViewBackedAutomationKeepsViewsDisabledAndUsesInferredTrigger(@TempDir Path out) throws Exception {
+        EventModel model = yaml.readValue("""
+                domain: Auto
+                basePackage: p
+                events: []
+                commands: []
+                views:
+                  - name: PendingNotifications
+                    reads: [WalletOpened, WelcomeNotificationSent]
+                    tag: wallet_id
+                    fields: []
+                automations:
+                  - name: WelcomeAutomation
+                    readsViews: [PendingNotifications]
+                    emitsCommand: SendWelcomeNotification
+                    wakeEventsExclude: [WelcomeNotificationSent]
+                deployment:
+                  topology: distributed
+                  keda:
+                    enabled: true
+                    minReplicas: 1
+                """, EventModel.class);
+
+        generator.generate(K8sTopology.from(model), out);
+        Path base = out.resolve("k8s").resolve("base");
+
+        String worker = Files.readString(base.resolve("deployment-automations-worker.yaml"));
+        assertThat(worker)
+                .containsPattern("name: \"CRABLET_AUTOMATIONS_ENABLED\"\\s+value: \"true\"")
+                .containsPattern("name: \"CRABLET_VIEWS_ENABLED\"\\s+value: \"false\"");
+
+        String scaledObject = Files.readString(base.resolve("scaled-object-automations-worker.yaml"));
+        assertThat(scaledObject)
+                .contains("automation_progress")
+                .contains("AND type = ANY(ARRAY['WalletOpened']::text[])")
+                .doesNotContain("WelcomeNotificationSent")
+                .doesNotContain("ARRAY[]::text[]");
+    }
+
+    @Test
     void secretTemplateHasReplaceComment(@TempDir Path out) throws Exception {
         EventModel model = yaml.readValue("""
                 domain: S

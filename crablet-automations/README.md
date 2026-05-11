@@ -241,7 +241,7 @@ This keeps automations aligned with Event Modeling: events are triggers, while t
 
 Use it when your automation reacts to any state change tracked by a view and you want to avoid keeping two event-type lists in sync.
 
-**Requirements:** `crablet-views` must be on the classpath (declared as an optional dependency in `pom.xml`) and views must be enabled.
+**Requirements:** `crablet-views` must be on the classpath (declared as an optional dependency in `pom.xml`) and the referenced `ViewSubscription` beans must be registered. The views processor does not need to be enabled in the same process; this supports distributed deployments where a views worker projects read models and an automations worker only runs automations.
 
 ```java
 // 1. Declare the interface (codegen-generated)

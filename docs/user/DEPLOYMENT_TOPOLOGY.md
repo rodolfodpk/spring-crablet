@@ -33,6 +33,8 @@ If you want operational isolation, use singleton worker services per module:
 
 Different pods or VMs may hold leadership for different modules at the same time. Extra replicas of the same singleton worker service mainly provide standby failover; they do not make that module's same processors run faster.
 
+View-backed automations do not change this topology. An automations worker may use `ViewSubscription` metadata to infer wake events and may read application view tables when deciding, but it does not need to run the views processor. In a split deployment, keep the views worker responsible for projection and the automations worker responsible for automation handling.
+
 ## Recommended Positioning
 
 Do not present poller-backed modules as part of the first adoption promise.

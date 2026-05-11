@@ -42,6 +42,57 @@ Use **views** for query state, **automations** for internal follow-up decisions,
 external delivery. Automations should not call external systems directly; publish externally through
 outbox so retries, progress, and deduplication are explicit.
 
+## Recommended Application Layout
+
+Crablet does not prescribe how you structure your application code, but the following layout
+works well across small-to-large applications. In small apps, all of these can live in a single
+Maven/Gradle module. In larger systems, split them to control classpath visibility across
+deployment workers.
+
+| Layer | Contents | When to split it out |
+|-------|----------|----------------------|
+| `domain` | Events, commands, tag constants, shared query pattern helpers | When shared by multiple application modules or workers |
+| `view-contracts` | `ViewSubscription` beans and read-model row contracts | When the automations worker must infer wake events or query view tables without running the views processor |
+| `views` | `ViewProjector` implementations, view table DDL | When running views in a dedicated worker |
+| `automations` | `AutomationHandler` / `ViewBackedAutomationHandler` implementations | When running automations in a dedicated worker |
+| `outbox` | `OutboxPublisher` implementations, external integration | When running outbox in a dedicated worker |
+
+**Java APIs are the source of truth.** `event-model.yaml` is tooling input for AI workflow,
+codegen, diagrams, and Kubernetes generation. It must produce the same Java shape a user could
+write manually. Pure Java consumers do not need `event-model.yaml` at runtime.
+
+### The `view-contracts` Module in Split Deployments
+
+In a distributed deployment, the automations worker needs `ViewSubscription` beans on its
+classpath to infer automation wake events — but it should not run the views processor.
+
+Placing `ViewSubscription` beans and read-model row contracts in a shared `view-contracts` module
+(or equivalent name) makes this classpath split explicit:
+
+```
+views worker classpath:      domain + view-contracts + views
+automations worker classpath: domain + view-contracts + automations
+```
+
+With `crablet.views.enabled=false` in the automations worker, the framework picks up
+`ViewSubscription` beans for wake-event inference without starting any view processing.
+See [Deployment Topology](DEPLOYMENT_TOPOLOGY.md) for the full topology rules.
+
+### Generated Kubernetes Topology
+
+When you run `make k8s` (or `embabel k8s`), the `deployment:` block in `event-model.yaml` selects
+the deployment shape; the modules that exist in the model control which workers are generated.
+All workers use the same container image — `CRABLET_*_ENABLED` env flags control which processors start.
+
+| `deployment.topology` | Generated workers |
+|-----------------------|-------------------|
+| `monolith` (default) | One `command-api`; `CRABLET_VIEWS_ENABLED`, `CRABLET_AUTOMATIONS_ENABLED`, `CRABLET_OUTBOX_ENABLED` reflect which modules are present |
+| `distributed` | `command-api` with all poller flags `false`; plus `views-worker`, `automations-worker`, and `outbox-worker` for each module present in the model |
+
+Topology is an explicit choice, not inferred. Start with `monolith` and switch to `distributed` when
+you need operational isolation for individual workers. See [Deployment Topology](DEPLOYMENT_TOPOLOGY.md)
+for singleton-worker rules and KEDA scale-to-zero behavior.
+
 ## Resilience boundaries
 
 Crablet keeps framework-level resilience focused on durable progress and explicit retries:

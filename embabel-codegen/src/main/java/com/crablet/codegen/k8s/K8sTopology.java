@@ -61,9 +61,13 @@ public record K8sTopology(
 
         Set<String> autoTypes = new HashSet<>();
         for (AutomationSpec a : model.automations()) {
-            if (a.triggeredBy() != null && !a.triggeredBy().isBlank()) {
-                autoTypes.add(a.triggeredBy().trim());
+            List<String> wakeEvents = model.automationWakeEvents(a);
+            if (wakeEvents.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Automation has no wake events: " + a.name() +
+                        ". Configure triggeredBy, readsViews, or wakeEventsExtra.");
             }
+            autoTypes.addAll(wakeEvents);
         }
         List<String> automationEventTypes = autoTypes.stream()
                 .sorted(naturalOrder())

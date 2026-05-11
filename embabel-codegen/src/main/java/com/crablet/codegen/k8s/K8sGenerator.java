@@ -195,7 +195,10 @@ public class K8sGenerator {
     }
 
     private static Map<String, Object> envVar(String name, String value) {
-        return Map.of("name", name, "value", value);
+        Map<String, Object> root = new LinkedHashMap<>();
+        root.put("name", name);
+        root.put("value", value);
+        return root;
     }
 
     private Map<String, Object> serviceApi(K8sTopology t) {
@@ -408,6 +411,7 @@ public class K8sGenerator {
 
                 - **Monolith:** one `command-api` Deployment; module flags follow which slices exist in the model. With KEDA and poller modules, a single `scaled-object-monolith.yaml` carries all PostgreSQL triggers.
                 - **Distributed:** `command-api` has writers disabled; separate worker Deployments per enabled module, each with the appropriate `CRABLET_*_ENABLED` flags.
+                - View-backed automations stay in the automations worker. That worker keeps `CRABLET_VIEWS_ENABLED=false`; it uses registered `ViewSubscription` metadata for wake-event inference while the views worker remains responsible for projection.
 
                 ## Empty progress tables
 
