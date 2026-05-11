@@ -78,7 +78,7 @@ markmap:
 ### Automation path — AutomationHandler reacts to committed events and emits commands
 ### Translation path — outbox publishes committed events to external systems
 ### Event selection — shared eventTypes + required/any-of/exact tag filters
-#### Views expose it through ViewSubscription
+#### Views expose it through ViewSubscription — application metadata; independent of crablet.views.enabled
 #### Automations expose it through AutomationDefinition / AutomationHandler
 #### Outbox exposes it through TopicConfig
 #### Empty dimensions mean unrestricted; configured dimensions combine with AND
@@ -93,6 +93,13 @@ markmap:
 ### Postgres advisory locks — idempotent append semantics + session-scoped poller leader election
 ### NOTIFY + optional LISTEN — wake async processors after writes (Postgres; LISTEN needs a direct JDBC URL, not a pooler)
 ### Crablet DCB interpretation — inspired by DCB, not strict spec vocabulary
+### Application module layout — recommended layers for split deployments
+#### domain — events, commands, tag constants, shared query helpers
+#### view-contracts — ViewSubscription beans and read-model contracts; present on both views and automations worker classpaths
+#### views — ViewProjector implementations
+#### automations — AutomationHandler / ViewBackedAutomationHandler implementations
+#### outbox — OutboxPublisher implementations
+#### Small apps — all layers in one module; split when deploying workers separately
 
 ## Framework Modules
 ### crablet-eventstore
@@ -119,6 +126,7 @@ markmap:
 #### Per-(topic, publisher) processor
 ### crablet-automations
 #### AutomationHandler — event-driven command emission
+#### ViewBackedAutomationHandler — wake events inferred from ViewSubscription; views processor not required in the same process
 #### AutomationDefinition — event selection for automation wakeups
 #### AutomationDecision — decide what command to emit
 #### Leader election per processor
@@ -147,7 +155,8 @@ markmap:
 
 ## AI Tooling
 ### embabel-codegen
-#### CLI — init / plan / generate
+#### CLI — init / plan / generate / k8s
+#### k8s command — generates k8s/base Deployments, optional KEDA ScaledObjects, and README from deployment block
 #### MCP server — exposes embabel_init, embabel_plan, embabel_generate
 #### Agent pipeline — events → commands → views → automations → outbox
 #### Auto-repair on compile errors
@@ -158,6 +167,7 @@ markmap:
 #### Diagram metadata — optional diagram.* layout hints ignored by Java codegen
 #### Diagram sidecar — docs-only triggers, synthetic nodes, eventBadges, overlays
 #### Shared schemas ($ref composition)
+#### deployment block — topology (monolith/distributed), commandReplicas, KEDA config
 ### Starter template
 #### templates/crablet-app — pre-wired pom.xml + Flyway migration
 #### event-model.yaml skeleton
@@ -190,9 +200,15 @@ markmap:
 #### Per-processor metrics
 ### Deployment
 #### Spring Boot fat JAR — standard packaging
-#### Docker container — one image per app
-#### Kubernetes — Deployment + Service
-#### KEDA — event-driven autoscaling (optional)
-#### Poller instances — prefer 1, max 2 for active/failover
+#### Single container image — CRABLET_*_ENABLED env flags control which processors start per worker
+#### Topology — monolith (all processors in one process) or distributed (separate singleton workers per module)
+#### Monolith — one command-api; module flags reflect which slices exist
+#### Distributed workers — generated for modules present in the model (from event-model.yaml deployment block)
+##### command-api — all poller flags false
+##### views-worker — CRABLET_VIEWS_ENABLED=true
+##### automations-worker — CRABLET_AUTOMATIONS_ENABLED=true; CRABLET_VIEWS_ENABLED=false
+##### outbox-worker — CRABLET_OUTBOX_ENABLED=true
+#### KEDA — event-driven autoscaling via generated PostgreSQL progress-table queries (optional)
+#### Singleton workers — one active poller per module; extra replicas are standby, not throughput
 #### Connection pooling — PgBouncer safe for commands/views
 #### LISTEN connections — must be direct Postgres (no pooler)
