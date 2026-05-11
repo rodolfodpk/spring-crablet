@@ -65,35 +65,39 @@ markmap:
 ##### 8. Define boundaries — tag decision scopes, name consistency scopes
 
 ## Crablet Architecture Model
-### Grounded in Core Concepts
+### Foundations
 #### Event Sourcing — immutable log; projections on command path and in async read models
 #### CQRS — write path vs materialized read paths below
-#### DCB Pattern — criteria boundary; see consistency boundary + Crablet DCB interpretation
-#### Event Modeling — triggers, commands, events, views, automations, translations map to paths below
+#### DCB Pattern — criteria boundary; see consistency boundary + append semantics below
+#### Event Modeling — triggers, commands, events, views, automations, translations map to runtime paths below
 #### Vertical Slice Architecture — CommandHandler + domain events + ViewProjector per feature slice
-### Write path — CommandExecutor + CommandHandler + EventStore
-### Decision projection — command handlers project state from events inside the write transaction
-### Consistency boundary — DecisionModel + AppendCondition + StreamPosition
-### Read path — ViewProjector + async poller + materialized views
-### Automation path — AutomationHandler reacts to committed events and emits commands
-### Translation path — outbox publishes committed events to external systems
-### Event selection — shared eventTypes + required/any-of/exact tag filters
+#### Event spine — immutable events connect commands, views, automations, and outbox
+### Runtime paths
+#### Write path — CommandExecutor + CommandHandler + EventStore
+#### Decision projection — command handlers project state from events inside the write transaction
+#### Consistency boundary — DecisionModel + AppendCondition + StreamPosition
+#### Read path — ViewProjector + async poller + materialized views
+#### Automation path — AutomationHandler reacts to committed events and emits commands
+#### Translation path — outbox publishes committed events to external systems
+### Event selection
+#### Shared eventTypes + required/any-of/exact tag filters
 #### Views expose it through ViewSubscription — application metadata; independent of crablet.views.enabled
 #### Automations expose it through AutomationDefinition / AutomationHandler
 #### Outbox exposes it through TopicConfig
 #### Empty dimensions mean unrestricted; configured dimensions combine with AND
 #### Legacy fetch applies selection in SQL; shared-fetch applies the same selection during in-memory routing
-### Event spine — immutable events connect commands, views, automations, and outbox
-### Slice shape — trigger + command + event + view
-### event-model.yaml — structural source of truth for code generation
-### Diagram projection — derived from commands, events, views, automations, and outbox
-### Diagram metadata — optional diagram.* layout hints; Java codegen ignores them
-### Sidecar overlays — docs-only triggers, badges, synthetic nodes, and illustrative automations
-### Crablet append taxonomy — idempotent / commutative / commutative + guard / non-commutative
-### Composable idempotency — Commutative and CommutativeGuarded carry an optional IdempotencyKey; idempotency is orthogonal to the consistency strategy
-### Postgres advisory locks — idempotent append semantics + session-scoped poller leader election
-### NOTIFY + optional LISTEN — wake async processors after writes (Postgres; LISTEN needs a direct JDBC URL, not a pooler)
-### Crablet DCB interpretation — inspired by DCB, not strict spec vocabulary
+### Slice and model
+#### Slice shape — trigger + command + event + view
+#### event-model.yaml — structural source of truth for code generation
+#### Diagram projection — derived from commands, events, views, automations, and outbox
+#### Diagram metadata — optional diagram.* layout hints; Java codegen ignores them
+#### Sidecar overlays — docs-only triggers, badges, synthetic nodes, and illustrative automations
+### Append semantics
+#### Crablet append taxonomy — idempotent / commutative / commutative + guard / non-commutative
+#### Composable idempotency — Commutative and CommutativeGuarded carry an optional IdempotencyKey; idempotency is orthogonal to the consistency strategy
+#### Postgres advisory locks — idempotent append semantics + session-scoped poller leader election
+#### NOTIFY + optional LISTEN — wake async processors after writes (Postgres; LISTEN needs a direct JDBC URL, not a pooler)
+#### Crablet DCB interpretation — inspired by DCB, not strict spec vocabulary
 ### Application module layout — recommended layers for split deployments
 #### domain — events, commands, tag constants, shared query helpers
 #### view-contracts — ViewSubscription beans and read-model contracts; present on both views and automations worker classpaths
