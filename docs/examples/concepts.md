@@ -90,6 +90,7 @@ markmap:
 ### Diagram metadata — optional diagram.* layout hints; Java codegen ignores them
 ### Sidecar overlays — docs-only triggers, badges, synthetic nodes, and illustrative automations
 ### Crablet append taxonomy — idempotent / commutative / commutative + guard / non-commutative
+### Composable idempotency — Commutative and CommutativeGuarded carry an optional IdempotencyKey; idempotency is orthogonal to the consistency strategy
 ### Postgres advisory locks — idempotent append semantics + session-scoped poller leader election
 ### NOTIFY + optional LISTEN — wake async processors after writes (Postgres; LISTEN needs a direct JDBC URL, not a pooler)
 ### Crablet DCB interpretation — inspired by DCB, not strict spec vocabulary
@@ -111,6 +112,10 @@ markmap:
 #### CommandHandler interface
 #### CommandExecutor — discovers handlers, runs transactions
 #### CommandDecision — idempotent / commutative / nonCommutative
+#### .idempotent(eventType, tagKey, tagValue) — wither on Commutative and CommutativeGuarded; adds duplicate check orthogonal to concurrency strategy
+#### IdempotencyKey — eventType + tagKey + tagValue + OnDuplicate policy; validated in compact constructor
+#### OnDuplicate — RETURN_IDEMPOTENT (default, silent replay) or THROW (raises ConcurrencyException)
+#### NoOp pre-check — non-commutative retry safety: check for duplicate event before business guards; .idempotent() not available on NonCommutative
 ### crablet-commands-web
 #### Generic HTTP POST /api/commands
 #### CommandApiExposedCommands — allowlist
