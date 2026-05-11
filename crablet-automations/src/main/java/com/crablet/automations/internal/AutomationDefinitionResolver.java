@@ -50,6 +50,12 @@ public class AutomationDefinitionResolver {
     private ResolvedAutomationDefinition resolveViewBacked(
             String automationName, ViewBackedAutomationHandler handler) {
 
+        if (handler.getReadViewNames().isEmpty()) {
+            throw new IllegalStateException(
+                    "View-backed automation '" + automationName + "' declares no read view names. " +
+                    "Implement getReadViewNames() to return at least one view name.");
+        }
+
         ViewSubscriptionLookup lookup = viewLookup.orElseThrow(() ->
                 new IllegalStateException(
                         "View-backed automation '" + automationName + "' requires crablet-views on the classpath, " +
@@ -78,6 +84,14 @@ public class AutomationDefinitionResolver {
 
         handler.getWakeEventsExtra().forEach(wakeEvents::add);
         handler.getWakeEventsExclude().forEach(wakeEvents::remove);
+
+        if (wakeEvents.isEmpty()) {
+            throw new IllegalStateException(
+                    "View-backed automation '" + automationName + "' has no wake events after applying " +
+                    "view subscriptions, wakeEventsExtra, and wakeEventsExclude. " +
+                    "An empty wake-event set would match all events. " +
+                    "Check that wakeEventsExclude does not remove all inferred events.");
+        }
 
         return new ResolvedAutomationDefinition(handler, Set.copyOf(wakeEvents));
     }

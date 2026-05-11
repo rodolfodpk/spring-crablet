@@ -93,6 +93,10 @@ commands:
     pattern: non-commutative
     guardEvents: [CourseDefined, StudentRegistered]
     produces: [StudentSubscribedToCourse]
+    noopIfDuplicate:
+      event: StudentSubscribedToCourse
+      tag: student_id
+      valueFrom: studentId
     fields:
       - name: courseId
         type: string
@@ -107,6 +111,11 @@ commands:
     pattern: idempotent
     guardEvents: [StudentSubscribedToCourse]
     produces: [StudentSubscriptionNotificationSent]
+    idempotency:
+      event: StudentSubscriptionNotificationSent
+      tag: student_id
+      valueFrom: studentId
+      onDuplicate: return-idempotent
     fields:
       - name: courseId
         type: string
@@ -139,7 +148,7 @@ automations:
     emitsCommand: SendStudentSubscriptionNotification
     pattern: todo-list
     condition: "always"
-    readsView: CourseAvailability
+    readsViews: [CourseAvailability]
 
 outbox:
   - name: CourseEventsPublisher

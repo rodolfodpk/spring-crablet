@@ -275,18 +275,68 @@ For fine-grained control, two optional overrides are available:
 
 Do not override `getEventTypes()` on a `ViewBackedAutomationHandler` — it throws `UnsupportedOperationException` intentionally.
 
-**Codegen (`event-model.yaml`):** Use `readsViews` (list), `wakeEventsExtra`, and `wakeEventsExclude` in an automation spec to generate `ViewBackedAutomationHandler` interfaces. The single-view `readsView` field is still accepted and treated as a one-element `readsViews`.
+**Codegen (`event-model.yaml`):** Use `readsViews` (list), `wakeEventsExtra`, and `wakeEventsExclude` in an automation spec to generate `ViewBackedAutomationHandler` interfaces. The preferred form is `readsViews` (plural). The single-view `readsView` field is still accepted for backward compatibility and treated as a one-element `readsViews`; new models and generated output should prefer `readsViews`.
 
-### Idempotency
+**Pure Java users do not need `event-model.yaml`.** The `ViewBackedAutomationHandler` interface is used directly in Java code as shown above.
 
-Automations run with at-least-once semantics — the same event may trigger `decide()` more than once (e.g., after a crash). Decisions are executed sequentially; if a later decision fails, earlier decisions may already have completed and the event may be retried. Protect against duplicate work by making downstream commands idempotent:
+### Retry Safety and Failure Semantics
 
-```java
-// In the downstream command handler:
-AppendCondition condition = AppendCondition.idempotent(type(WelcomeNotificationSent.class), WALLET_ID, walletId);
+**Independent progress.** Views, automations, and outbox each track their own position. A view can successfully project an event while the automation that handles the same event fails. View projection does not block or wait for automations. Each consumer retries from its own last known position:
+
+```text
+events table
+  → view processor updates read model and advances view_progress
+  → automation processor sees matching event and calls decide()
+  → automation reads read model
+  → automation emits command or no-ops
+  → automation_progress advances only after all decisions succeed
 ```
 
-This ensures the downstream event is recorded at most once regardless of how many times the automation fires.
+**At-least-once delivery.** The automation retries an event if `decide()` or any of its decisions fail. Progress only advances after every decision in a batch succeeds.
+
+**Known hazard: crash after command success.** There is a window between a command executing successfully and the automation progress being committed:
+
+```text
+Automation executes command successfully.
+Process crashes before automation_progress advances.
+Automation retries the same event on restart.
+The emitted command must detect the duplicate and return idempotent or throw according to policy.
+```
+
+**Automation commands must be duplicate-safe.** Use a stable business key (not a random ID) as the idempotency tag. The new `.idempotent(...)` method on `CommandDecision` variants makes this explicit:
+
+```java
+// Commutative command with duplicate protection — safe for automation retry
+AppendEvent event = AppendEvent.builder(type(WelcomeNotificationSent.class))
+        .tag(WALLET_ID, command.walletId())
+        .data(notification)
+        .build();
+
+return CommandDecision.Commutative.of(event)
+        .idempotent(type(WelcomeNotificationSent.class), WALLET_ID, command.walletId());
+```
+
+The idempotency key uses the `wallet_id` tag — a stable business key that is the same on every retry. The second execution returns `ExecutionResult.idempotent(...)` silently instead of appending a duplicate event.
+
+For creation-style commands that should fail on a duplicate:
+
+```java
+return CommandDecision.Commutative.of(event)
+        .idempotent(type(WelcomeNotificationSent.class), WALLET_ID, command.walletId(),
+                OnDuplicate.THROW);
+```
+
+Pure Java users do not need `event-model.yaml` — the `.idempotent(...)` API is available directly on `Commutative` and `CommutativeGuarded` decisions.
+
+**Non-commutative commands need a different pattern.** `.idempotent(...)` does not exist on `NonCommutative` and would not work reliably if it did: non-commutative handlers have business pre-condition guards (balance checks, capacity checks) that run before the handler returns any decision. On retry, those guards often fail for legitimate reasons (e.g., a withdrawal handler that sees an already-reduced balance throws `InsufficientFundsException`), so the store-level check is never reached. Use the `NoOp` pre-check pattern instead:
+
+```java
+// Non-commutative handler — check for duplicate FIRST, before business guards
+if (eventStore.exists(Query.forEventAndTag(type(WithdrawalMade.class), WITHDRAWAL_ID, command.withdrawalId()))) {
+    return CommandDecision.NoOp.empty();
+}
+// ... project state, validate balance, build event, return NonCommutative ...
+```
 
 ## Architecture
 

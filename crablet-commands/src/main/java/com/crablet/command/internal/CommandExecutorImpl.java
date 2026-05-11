@@ -242,7 +242,10 @@ public class CommandExecutorImpl implements CommandExecutor {
                     transactionId = switch (result) {
                         case CommandDecision.Commutative c -> {
                             operationType.set("commutative");
-                            yield txStore.appendCommutative(c.events());
+                            yield c.idempotencyKey() != null
+                                    ? txStore.appendIdempotent(c.events(), c.idempotencyKey().eventType(),
+                                            c.idempotencyKey().tagKey(), c.idempotencyKey().tagValue())
+                                    : txStore.appendCommutative(c.events());
                         }
                         case CommandDecision.CommutativeGuarded cg -> {
                             operationType.set("commutative_guarded");
@@ -255,7 +258,10 @@ public class CommandExecutorImpl implements CommandExecutor {
                                     new DCBViolation(
                                         "GUARD_VIOLATION", "Concurrent lifecycle event detected", 1));
                             }
-                            yield txStore.appendCommutative(cg.events());
+                            yield cg.idempotencyKey() != null
+                                    ? txStore.appendIdempotent(cg.events(), cg.idempotencyKey().eventType(),
+                                            cg.idempotencyKey().tagKey(), cg.idempotencyKey().tagValue())
+                                    : txStore.appendCommutative(cg.events());
                         }
                         case CommandDecision.NonCommutative nc -> {
                             operationType.set("non_commutative");
@@ -405,13 +411,21 @@ public class CommandExecutorImpl implements CommandExecutor {
             throw new ConcurrencyException(message, command, e);
         }
 
-        // Respect the domain's declared policy: THROW or RETURN_IDEMPOTENT
-        if (result instanceof CommandDecision.Idempotent i && i.onDuplicate() == OnDuplicate.THROW) {
+        if (duplicatePolicyFor(result) == OnDuplicate.THROW) {
             throw new ConcurrencyException(message, command, e);
         }
 
         log.debug("Transaction committed successfully for command: {} (idempotent - duplicate detected)", commandType);
         return ExecutionResult.idempotent("DUPLICATE_OPERATION");
+    }
+
+    private static OnDuplicate duplicatePolicyFor(CommandDecision result) {
+        return switch (result) {
+            case CommandDecision.Idempotent i -> i.onDuplicate();
+            case CommandDecision.Commutative c when c.idempotencyKey() != null -> c.idempotencyKey().onDuplicate();
+            case CommandDecision.CommutativeGuarded cg when cg.idempotencyKey() != null -> cg.idempotencyKey().onDuplicate();
+            default -> OnDuplicate.RETURN_IDEMPOTENT;
+        };
     }
 
     /**

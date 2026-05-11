@@ -115,6 +115,33 @@ class AutomationDefinitionResolverTest {
     }
 
     @Test
+    @DisplayName("view-backed automation with empty getReadViewNames fails startup")
+    void emptyReadViewNames_FailsStartup() {
+        ViewBackedAutomationHandler handler = viewBackedHandler("my-automation", Set.of());
+        ViewSubscriptionLookup vl = lookup(Map.of("some_view", Set.of("SomeEvent")));
+
+        assertThatThrownBy(() -> new AutomationDefinitionResolver(
+                Map.of("my-automation", handler), Optional.of(vl)).resolve())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("my-automation")
+                .hasMessageContaining("getReadViewNames");
+    }
+
+    @Test
+    @DisplayName("view-backed automation whose exclusions remove all inferred wake events fails startup")
+    void wakeEventsExclude_RemovesAllEvents_FailsStartup() {
+        ViewBackedAutomationHandler handler = viewBackedHandler("my-automation",
+                Set.of("todo_view"), Set.of(), Set.of("EventA", "EventB"));
+        ViewSubscriptionLookup vl = lookup(Map.of("todo_view", Set.of("EventA", "EventB")));
+
+        assertThatThrownBy(() -> new AutomationDefinitionResolver(
+                Map.of("my-automation", handler), Optional.of(vl)).resolve())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("my-automation")
+                .hasMessageContaining("wakeEventsExclude");
+    }
+
+    @Test
     @DisplayName("missing ViewSubscriptionLookup with view-backed handler fails startup")
     void missingLookup_WithViewBackedHandler_FailsStartup() {
         ViewBackedAutomationHandler handler = viewBackedHandler("my-automation", Set.of("some_view"));

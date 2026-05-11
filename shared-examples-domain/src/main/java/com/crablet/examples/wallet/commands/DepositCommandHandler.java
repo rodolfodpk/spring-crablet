@@ -67,7 +67,11 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
 
         // Lifecycle guard: detect if wallet state changed (e.g., WalletClosed) between projection
         // and append, without blocking concurrent deposits (DepositMade is not in the guard query).
+        // Idempotency key: a second deposit with the same deposit_id returns idempotent silently,
+        // making this command safe to re-execute from a retrying automation.
         Query lifecycleGuard = WalletQueryPatterns.walletLifecycleModel(command.walletId());
-        return CommandDecision.CommutativeGuarded.withLifecycleGuard(event, lifecycleGuard, periodResult.projection().streamPosition());
+        return CommandDecision.CommutativeGuarded
+                .withLifecycleGuard(event, lifecycleGuard, periodResult.projection().streamPosition())
+                .idempotent(type(DepositMade.class), DEPOSIT_ID, command.depositId());
     }
 }

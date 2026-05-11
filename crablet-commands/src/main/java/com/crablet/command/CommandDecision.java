@@ -22,7 +22,9 @@ import java.util.List;
  * <ul>
  *   <li>{@link Commutative}        — order-independent (deposits, credits)</li>
  *   <li>{@link CommutativeGuarded} — order-independent with lifecycle guard</li>
- *   <li>{@link NonCommutative}     — stream-position-based DCB check (withdrawals, transfers)</li>
+ *   <li>{@link NonCommutative}     — stream-position-based DCB check (withdrawals, transfers);
+ *       for automation retry safety use the {@link NoOp} pre-check pattern, not store-level
+ *       idempotency, because business guards in the handler can throw before a decision is returned</li>
  *   <li>{@link Idempotent}         — entity creation; fails on duplicate (OpenWallet)</li>
  *   <li>{@link NoOp}               — no operation needed (already applied)</li>
  * </ul>
@@ -41,14 +43,27 @@ public sealed interface CommandDecision
             permits CommandDecision.Commutative, CommandDecision.CommutativeGuarded {}
 
     /** Commutative — order-independent; no conflict detection needed. */
-    record Commutative(List<AppendEvent> events) implements CommandDecision.CommutativeDecision {
+    record Commutative(List<AppendEvent> events, @Nullable IdempotencyKey idempotencyKey)
+            implements CommandDecision.CommutativeDecision {
+        /** Backward-compatible constructor — idempotencyKey defaults to null. */
+        public Commutative(List<AppendEvent> events) {
+            this(events, null);
+        }
         /** Single-event factory — the common case. */
         public static Commutative of(AppendEvent event) {
-            return new Commutative(List.of(event));
+            return new Commutative(List.of(event), null);
         }
         /** Multi-event factory. */
         public static Commutative of(AppendEvent... events) {
-            return new Commutative(List.of(events));
+            return new Commutative(List.of(events), null);
+        }
+        /** Returns a copy carrying an idempotency key (defaults to {@link OnDuplicate#RETURN_IDEMPOTENT}). */
+        public Commutative idempotent(String eventType, String tagKey, String tagValue) {
+            return new Commutative(this.events(), IdempotencyKey.of(eventType, tagKey, tagValue));
+        }
+        /** Returns a copy carrying an idempotency key with an explicit duplicate policy. */
+        public Commutative idempotent(String eventType, String tagKey, String tagValue, OnDuplicate onDuplicate) {
+            return new Commutative(this.events(), IdempotencyKey.of(eventType, tagKey, tagValue, onDuplicate));
         }
     }
 
@@ -71,7 +86,8 @@ public sealed interface CommandDecision
     record CommutativeGuarded(
             List<AppendEvent> events,
             Query guardQuery,
-            StreamPosition guardPosition
+            StreamPosition guardPosition,
+            @Nullable IdempotencyKey idempotencyKey
     ) implements CommandDecision.CommutativeDecision {
         public CommutativeGuarded {
             var appendedEventTypes = events.stream()
@@ -105,7 +121,19 @@ public sealed interface CommandDecision
          */
         public static CommutativeGuarded withLifecycleGuard(
                 AppendEvent event, Query lifecycleQuery, StreamPosition guardPosition) {
-            return new CommutativeGuarded(List.of(event), lifecycleQuery, guardPosition);
+            return new CommutativeGuarded(List.of(event), lifecycleQuery, guardPosition, null);
+        }
+
+        /** Returns a copy carrying an idempotency key (defaults to {@link OnDuplicate#RETURN_IDEMPOTENT}). */
+        public CommutativeGuarded idempotent(String eventType, String tagKey, String tagValue) {
+            return new CommutativeGuarded(this.events(), this.guardQuery(), this.guardPosition(),
+                    IdempotencyKey.of(eventType, tagKey, tagValue));
+        }
+
+        /** Returns a copy carrying an idempotency key with an explicit duplicate policy. */
+        public CommutativeGuarded idempotent(String eventType, String tagKey, String tagValue, OnDuplicate onDuplicate) {
+            return new CommutativeGuarded(this.events(), this.guardQuery(), this.guardPosition(),
+                    IdempotencyKey.of(eventType, tagKey, tagValue, onDuplicate));
         }
     }
 

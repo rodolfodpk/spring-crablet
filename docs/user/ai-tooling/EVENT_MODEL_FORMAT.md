@@ -3,6 +3,10 @@
 The event model is the input contract for Crablet's AI-assisted app generation workflow. It should
 be explicit enough for the generator to produce structurally complete code without guessing.
 
+`event-model.yaml` is **optional tooling input** for AI workflows, code generation, diagrams, and
+validation. It is **not** runtime configuration. Pure Java applications do not require it — the
+framework Java APIs are the source of truth.
+
 This format is still a preview contract while the generator matures.
 
 ## Top-Level Shape
@@ -423,6 +427,71 @@ When a command references the same lifecycle entity more than once, one guard ev
 multiple required instances. For example, `TransferMoney` can use `guardEvents: [WalletOpened]`
 while validating both `fromWalletId` and `toWalletId`.
 
+### Command Idempotency Metadata
+
+Commands emitted by automations should declare a stable duplicate key so retries are safe.
+
+**Commutative commands** use the `idempotency` block — the store-level check is reliably reached
+because commutative handlers have no business pre-condition guards that throw on retry:
+
+```yaml
+commands:
+  - name: DepositMoney
+    pattern: commutative
+    produces: [DepositMade]
+    guardEvents: [WalletOpened, WalletClosed]
+    idempotency:
+      event: DepositMade
+      tag: deposit_id
+      valueFrom: depositId
+      onDuplicate: return-idempotent   # or: throw
+
+  - name: OpenWallet
+    pattern: idempotent
+    produces: [WalletOpened]
+    idempotency:
+      event: WalletOpened
+      tag: wallet_id
+      valueFrom: walletId
+      onDuplicate: throw
+```
+
+**Non-commutative commands** must NOT use the `idempotency` block. Their handlers contain business
+pre-condition guards (balance checks, capacity checks) that run before the handler returns any
+decision. On a retry after a crash those guards throw for legitimate business reasons (e.g.,
+`InsufficientFundsException` when the balance is already reduced), so a store-level idempotency
+check is never reached. Use the `noopIfDuplicate` flag instead to generate a `handle()` pre-check:
+
+```yaml
+  - name: WithdrawMoney
+    pattern: non-commutative
+    produces: [WithdrawalMade]
+    guardEvents: [WalletOpened, WalletClosed]
+    noopIfDuplicate:
+      event: WithdrawalMade
+      tag: withdrawal_id
+      valueFrom: withdrawalId
+```
+
+**Generation rules for `idempotency` and `noopIfDuplicate`:**
+
+- `pattern: idempotent` + `idempotency:` — generate/sketch `CommandDecision.Idempotent.of(event,
+  type(Event.class), TAG_KEY, command.field())` with the specified `onDuplicate` policy.
+- `pattern: commutative` + `idempotency:` — generate/sketch the `.idempotent(type(Event.class),
+  TAG_KEY, command.field())` wither on the commutative decision. `onDuplicate: return-idempotent`
+  uses the default; `onDuplicate: throw` passes `OnDuplicate.THROW`.
+- `pattern: non-commutative` + `noopIfDuplicate:` — generate/sketch a `handle()` override that
+  calls `eventStore.exists(Query.forEventAndTag(...))` before any business logic, returning
+  `CommandDecision.NoOp.empty()` on a match. The `decide()` method is unchanged.
+- `pattern: non-commutative` + `idempotency:` — this combination is invalid; the generator must
+  emit a blocking diagnostic explaining that non-commutative retry safety requires `noopIfDuplicate`
+  (a `handle()` pre-check), not a store-level idempotency key.
+- Commands emitted by automations (`emitsCommand`) without an `idempotency` or `noopIfDuplicate`
+  block should produce a blocking diagnostic or an explicit
+  `// TODO: add duplicate protection for automation retry safety` comment in the generated handler
+  sketch, not silently generate unsafe guidance.
+- Use stable business keys (`deposit_id`, `wallet_id`) as `tag` values — not random transaction IDs.
+
 ## Views
 
 Views describe materialized read models.
@@ -453,11 +522,39 @@ Automations describe event-driven policies that may emit commands.
 Each automation needs:
 
 - `name`: generated automation handler name
-- `triggeredBy`: event type that starts the automation decision
+- `triggeredBy`: event type that starts the automation decision (for plain `AutomationHandler`)
 - `emitsCommand`: command emitted when the condition passes
 - `pattern`: processing pattern
 - `condition`: expression evaluated against the trigger event and optional view row
-- `readsView`: view used when the condition depends on accumulated state
+- `readsViews`: list of views whose event subscriptions define this automation's wake events
+- `readsView`: single-view legacy sugar (still accepted, treated as a one-element `readsViews`)
+- `wakeEventsExtra`: additional event types to wake on, beyond those inferred from views
+- `wakeEventsExclude`: event types to exclude from the inferred wake-event set
+
+**`readsViews` (plural) is the preferred form.** Generated output and new models should use
+`readsViews`. The single-view `readsView` field remains valid indefinitely for backward
+compatibility; validation tooling may emit a non-blocking advisory for it.
+
+**Generation rules for automations:**
+
+- `readsViews` present → generate an interface extending `ViewBackedAutomationHandler`; do **not**
+  generate `getEventTypes()` — wake events are inferred at startup from the referenced views'
+  `ViewSubscription` beans.
+- No `readsViews` (plain `triggeredBy`) → generate an interface extending `AutomationHandler`.
+- `wakeEventsExtra` and `wakeEventsExclude` are codegen/model metadata; map them to the matching
+  default methods on `ViewBackedAutomationHandler`.
+
+```yaml
+automations:
+  - name: WelcomeNotificationAutomation
+    readsViews: [PendingWelcomeNotifications]
+    emitsCommand: SendWelcomeNotification
+
+  - name: FraudCheckAutomation
+    triggeredBy: DepositMade
+    emitsCommand: FlagLargeDeposit
+    condition: "event.amount > 10000"
+```
 
 Conditions must be explicit. The generator should translate them into Java condition checks, not
 invent policy.

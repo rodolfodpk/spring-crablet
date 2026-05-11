@@ -300,6 +300,51 @@ Crablet Command supports three DCB patterns via typed sub-interfaces:
 
 See [Command Patterns Guide](../crablet-eventstore/docs/COMMAND_PATTERNS.md) for complete examples.
 
+### Composable Idempotency (Commutative)
+
+`Commutative` and `CommutativeGuarded` decisions can carry an idempotency key using the `.idempotent(...)` wither method. Idempotency is orthogonal to the commutative concurrency strategy — a deposit can be both order-independent AND duplicate-safe by `deposit_id`.
+
+```java
+// Duplicate-safe commutative deposit:
+return CommandDecision.CommutativeGuarded
+        .withLifecycleGuard(event, lifecycleGuard, projection.streamPosition())
+        .idempotent(type(DepositMade.class), DEPOSIT_ID, command.depositId());
+```
+
+On a retry, the second execution detects the existing `DepositMade` tagged `deposit_id=<value>` and returns `ExecutionResult.idempotent(...)` without appending a duplicate.
+
+**Duplicate policy:**
+
+| Method | Policy | Behavior on duplicate |
+|--------|--------|----------------------|
+| `.idempotent(eventType, tagKey, tagValue)` | `RETURN_IDEMPOTENT` (default) | Returns `ExecutionResult.idempotent(...)` silently |
+| `.idempotent(eventType, tagKey, tagValue, OnDuplicate.THROW)` | `THROW` | Raises `ConcurrencyException` |
+
+Use stable business keys (`deposit_id`, `wallet_id`) as idempotency tag values — not random transaction IDs.
+
+### Retry Safety for Non-commutative Commands
+
+`.idempotent(...)` is **not available on `NonCommutative`** and would not work reliably if it were. Non-commutative handlers contain business pre-condition guards (balance checks, capacity checks) that run before the handler returns any `CommandDecision`. On a retry after a crash, those guards often fail for legitimate business reasons — a withdrawal handler that sees an already-reduced balance throws `InsufficientFundsException` before the store-level idempotency check can run.
+
+For non-commutative commands that must be safe to re-execute (e.g., emitted by a retrying automation), use the **`NoOp` pre-check pattern** in the handler:
+
+```java
+@Override
+public CommandDecision.NonCommutative decide(EventStore eventStore, WithdrawCommand command) {
+    // Check for the duplicate FIRST, before any business logic that could throw.
+    if (eventStore.exists(Query.forEventAndTag(type(WithdrawalMade.class), WITHDRAWAL_ID, command.withdrawalId()))) {
+        return CommandDecision.NoOp.empty(); // already processed — return silently
+    }
+
+    // ... project state, validate, build event ...
+    return CommandDecision.NonCommutative.of(event, decisionModel, projection.streamPosition());
+}
+```
+
+The `exists()` check happens inside the same transaction as the append, so there is no TOCTOU gap for the automation retry scenario.
+
+**For creation-style commands**, continue using `IdempotentCommandHandler` and `CommandDecision.Idempotent` — that pattern remains unchanged.
+
 ## Closing the Books Pattern with @PeriodConfig
 
 The closing the books pattern segments events by time periods (monthly, daily, hourly, yearly) to improve query performance for large event histories. Use the `@PeriodConfig` annotation on command interfaces to enable automatic period segmentation:

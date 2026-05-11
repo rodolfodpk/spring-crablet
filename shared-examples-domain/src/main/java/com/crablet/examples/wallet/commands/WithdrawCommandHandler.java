@@ -23,6 +23,13 @@ import static com.crablet.examples.wallet.WalletTags.WITHDRAWAL_ID;
  * <p>
  * DCB Principle: Non-commutative operation — order matters for balance validation.
  * StreamPosition-based DCB check prevents concurrent withdrawals from exceeding the balance.
+ * <p>
+ * Retry safety: the {@link #handle} override checks for a duplicate withdrawal_id before
+ * any business guards run. This is necessary because balance checks throw
+ * {@link com.crablet.examples.wallet.exceptions.InsufficientFundsException} on retry
+ * (the balance is already reduced), which would happen before the store-level append and
+ * prevent idempotent detection. The pre-check returns {@link CommandDecision.NoOp} early,
+ * short-circuiting {@link #decide} entirely.
  */
 @Component
 public class WithdrawCommandHandler implements NonCommutativeCommandHandler<WithdrawCommand> {
@@ -32,6 +39,19 @@ public class WithdrawCommandHandler implements NonCommutativeCommandHandler<With
 
     public WithdrawCommandHandler(WalletPeriodHelper periodHelper) {
         this.periodHelper = periodHelper;
+    }
+
+    /**
+     * Overrides the default handle() to perform a duplicate pre-check before business logic.
+     * Must be done here, not in decide(), because business guards further down throw on retry.
+     */
+    @Override
+    public CommandDecision handle(EventStore eventStore, WithdrawCommand command) {
+        if (eventStore.exists(Query.forEventAndTag(type(WithdrawalMade.class), WITHDRAWAL_ID, command.withdrawalId()))) {
+            log.debug("Duplicate withdrawal detected — returning idempotent: withdrawalId={}", command.withdrawalId());
+            return CommandDecision.NoOp.empty();
+        }
+        return decide(eventStore, command);
     }
 
     @Override

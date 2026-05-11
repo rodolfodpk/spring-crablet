@@ -130,8 +130,12 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
         
         // Lifecycle guard: detect if wallet state changed (e.g., WalletClosed) since projection.
         // The guard query excludes DepositMade so concurrent deposits are still allowed.
+        // .idempotent() adds store-level duplicate detection: a second deposit with the same
+        // deposit_id returns ExecutionResult.idempotent() silently — safe for automation retries.
         Query lifecycleGuard = WalletQueryPatterns.walletLifecycleModel(command.walletId());
-        return CommandDecision.CommutativeGuarded.withLifecycleGuard(event, lifecycleGuard, projection.streamPosition());
+        return CommandDecision.CommutativeGuarded
+                .withLifecycleGuard(event, lifecycleGuard, projection.streamPosition())
+                .idempotent(type(DepositMade.class), DEPOSIT_ID, command.depositId());
     }
 }
 ```
@@ -140,7 +144,7 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
 - ✅ Commutative: +$10 then +$20 = +$20 then +$10
 - ✅ No full streamPosition check: parallel deposits don't conflict
 - ✅ Lifecycle guard: detects WalletClosed (or similar) between projection and append
-- ✅ Optional `deposit_id` tag for application-level idempotency
+- ✅ `.idempotent(type(DepositMade.class), DEPOSIT_ID, command.depositId())` — store-level duplicate protection by stable `deposit_id` business key; safe for automation retry
 
 **Guard vs NonCommutative:**
 
@@ -161,6 +165,20 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
 ```java
 @Component
 public class WithdrawCommandHandler implements NonCommutativeCommandHandler<WithdrawCommand> {
+
+    // Override handle() to add a duplicate pre-check BEFORE any business guards.
+    // This is necessary for automation retry safety: the balance check below throws
+    // InsufficientFundsException on retry (balance is already reduced), which would
+    // prevent the store-level append from ever running. The pre-check short-circuits
+    // decide() entirely when the withdrawal_id is already recorded.
+    @Override
+    public CommandDecision handle(EventStore eventStore, WithdrawCommand command) {
+        if (eventStore.exists(Query.forEventAndTag(type(WithdrawalMade.class), WITHDRAWAL_ID, command.withdrawalId()))) {
+            return CommandDecision.NoOp.empty();
+        }
+        return decide(eventStore, command);
+    }
+
     @Override
     public CommandDecision.NonCommutative decide(EventStore eventStore, WithdrawCommand command) {
         Query decisionModel = WalletQueryPatterns.singleWalletDecisionModel(command.walletId());
