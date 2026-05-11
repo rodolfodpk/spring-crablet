@@ -56,6 +56,18 @@ Important:
 
 If you need more throughput, split processor responsibilities, isolate modules into singleton worker services, tune batch sizes, or reduce polling cost; do not assume many replicas of the same module worker will help.
 
+### Virtual threads
+
+The default poller scheduler follows Spring Boot's virtual-thread setting. When
+`spring.threads.virtual.enabled=true`, Crablet uses a virtual-thread scheduler for poller tasks.
+When the property is absent or false, Crablet uses the platform-thread scheduler configured by
+`crablet.event-poller.scheduler.pool-size`.
+
+Virtual threads do not change the processing contract: each processor still has one active run,
+handles its batch synchronously, and advances progress only after the handler succeeds. Throughput
+is still bounded by processor ownership, batch sizes, and database connection pools. To replace the
+default behavior entirely, declare your own Spring bean named `taskScheduler`.
+
 ### Module-level pollers
 
 The built-in poller-backed modules wire the infrastructure independently:

@@ -11,7 +11,10 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.concurrent.SimpleAsyncTaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Auto-configuration for Crablet event-poller infrastructure.
@@ -21,7 +24,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
  * <ul>
  *   <li>{@link InstanceIdProvider} — resolved from {@code HOSTNAME},
  *       {@code crablet.instance.id}, or the host name</li>
- *   <li>{@link TaskScheduler} — thread-pool scheduler named {@code taskScheduler}</li>
+ *   <li>{@link TaskScheduler} — scheduler named {@code taskScheduler}</li>
  *   <li>{@link EventPollerConfig} — tunable infrastructure defaults</li>
  * </ul>
  * <p>
@@ -48,7 +51,16 @@ public class EventPollerAutoConfiguration {
 
     @Bean(name = "taskScheduler")
     @ConditionalOnMissingBean(name = "taskScheduler")
-    public TaskScheduler taskScheduler(EventPollerConfig eventPollerConfig) {
+    public TaskScheduler taskScheduler(EventPollerConfig eventPollerConfig, Environment environment) {
+        if (environment.getProperty("spring.threads.virtual.enabled", Boolean.class, false)) {
+            SimpleAsyncTaskScheduler scheduler = new SimpleAsyncTaskScheduler();
+            scheduler.setVirtualThreads(true);
+            scheduler.setThreadNamePrefix("crablet-scheduler-");
+            scheduler.setTaskTerminationTimeout(
+                    TimeUnit.SECONDS.toMillis(eventPollerConfig.getScheduler().getAwaitTerminationSeconds()));
+            return scheduler;
+        }
+
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
         scheduler.setPoolSize(eventPollerConfig.getScheduler().getPoolSize());
         scheduler.setThreadNamePrefix("crablet-scheduler-");

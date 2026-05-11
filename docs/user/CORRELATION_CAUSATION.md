@@ -94,13 +94,15 @@ Copy this filter into your application and annotate it with `@Component` — Spr
 
 ## Automation Chains
 
-`AutomationDispatcher` propagates correlation and sets causation automatically for each event it processes. No additional configuration is needed:
+`AutomationDispatcher` propagates correlation and sets causation automatically for each event it processes. No additional configuration is needed when automations return `AutomationDecision.ExecuteCommand` or `AutomationDecision.NoOp` from `decide(...)`:
 
 ```java
 // Internally, for each event the automation handles:
-ScopedValue.where(CorrelationContext.CORRELATION_ID, event.correlationId())
-           .where(CorrelationContext.CAUSATION_ID,   event.position())
-           .run(() -> dispatcher.execute(handler.decide(event)));
+var scope = ScopedValue.where(CorrelationContext.CAUSATION_ID, event.position());
+if (event.correlationId() != null) {
+    scope = scope.where(CorrelationContext.CORRELATION_ID, event.correlationId());
+}
+scope.run(() -> dispatcher.execute(handler.decide(event)));
 ```
 
 This means:
@@ -108,6 +110,13 @@ This means:
 - All events produced by an automation handler share the same `correlationId` as the triggering event.
 - The `causationId` of each produced event is set to the `position` of the event that triggered the automation.
 - Chains (automation A triggers command → event → automation B) propagate correlation end-to-end with accurate causation at every step.
+
+This guarantee applies to work executed inside the dispatcher-owned scope. Prefer returning
+`ExecuteCommand` decisions for internal follow-up behavior; the dispatcher executes those commands
+synchronously while the triggering event's IDs are still bound. If an automation starts a new
+thread, submits work to a custom executor, schedules work for later, or appends events directly
+after `decide(...)` returns, the application owns correlation/causation propagation for that work.
+Use outbox for external asynchronous publication.
 
 ## View Projectors
 

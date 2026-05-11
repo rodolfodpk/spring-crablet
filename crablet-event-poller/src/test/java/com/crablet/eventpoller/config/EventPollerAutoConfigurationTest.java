@@ -6,7 +6,14 @@ import com.crablet.eventpoller.wakeup.PostgresNotifyWakeupSourceFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.concurrent.SimpleAsyncTaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+
+import java.time.Instant;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,16 +45,66 @@ class EventPollerAutoConfigurationTest {
     }
 
     @Test
-    @DisplayName("Should create task scheduler from config")
-    void shouldCreateTaskSchedulerFromConfig() {
+    @DisplayName("Should create platform thread scheduler from config by default")
+    void shouldCreatePlatformThreadSchedulerFromConfigByDefault() {
         EventPollerConfig config = new EventPollerConfig();
         config.getScheduler().setPoolSize(2);
         config.getScheduler().setAwaitTerminationSeconds(7);
+        MockEnvironment environment = new MockEnvironment();
 
-        ThreadPoolTaskScheduler scheduler = (ThreadPoolTaskScheduler) autoConfiguration.taskScheduler(config);
+        ThreadPoolTaskScheduler scheduler =
+                (ThreadPoolTaskScheduler) autoConfiguration.taskScheduler(config, environment);
 
         assertThat(scheduler.getScheduledThreadPoolExecutor().getCorePoolSize()).isEqualTo(2);
         scheduler.shutdown();
+    }
+
+    @Test
+    @DisplayName("Should create platform thread scheduler when Spring virtual threads are disabled")
+    void shouldCreatePlatformThreadSchedulerWhenSpringVirtualThreadsAreDisabled() {
+        EventPollerConfig config = new EventPollerConfig();
+        MockEnvironment environment = new MockEnvironment()
+                .withProperty("spring.threads.virtual.enabled", "false");
+
+        TaskScheduler scheduler = autoConfiguration.taskScheduler(config, environment);
+
+        assertThat(scheduler).isInstanceOf(ThreadPoolTaskScheduler.class);
+        ((ThreadPoolTaskScheduler) scheduler).shutdown();
+    }
+
+    @Test
+    @DisplayName("Should create virtual thread scheduler when Spring virtual threads are enabled")
+    void shouldCreateVirtualThreadSchedulerWhenSpringVirtualThreadsAreEnabled() {
+        EventPollerConfig config = new EventPollerConfig();
+        MockEnvironment environment = new MockEnvironment()
+                .withProperty("spring.threads.virtual.enabled", "true");
+
+        TaskScheduler scheduler = autoConfiguration.taskScheduler(config, environment);
+
+        assertThat(scheduler).isInstanceOf(SimpleAsyncTaskScheduler.class);
+        ((SimpleAsyncTaskScheduler) scheduler).close();
+    }
+
+    @Test
+    @DisplayName("Should run scheduled tasks on virtual threads when Spring virtual threads are enabled")
+    void shouldRunScheduledTasksOnVirtualThreadsWhenSpringVirtualThreadsAreEnabled() throws Exception {
+        EventPollerConfig config = new EventPollerConfig();
+        MockEnvironment environment = new MockEnvironment()
+                .withProperty("spring.threads.virtual.enabled", "true");
+        SimpleAsyncTaskScheduler scheduler =
+                (SimpleAsyncTaskScheduler) autoConfiguration.taskScheduler(config, environment);
+        AtomicReference<Thread> executingThread = new AtomicReference<>();
+
+        scheduler.start();
+        ScheduledFuture<?> future = scheduler.schedule(() -> {
+            executingThread.set(Thread.currentThread());
+        }, Instant.now());
+
+        assertThat(future.get(5, TimeUnit.SECONDS)).isNull();
+        assertThat(future.isDone()).isTrue();
+        assertThat(executingThread.get()).isNotNull();
+        assertThat(executingThread.get().isVirtual()).isTrue();
+        scheduler.close();
     }
 
     @Test

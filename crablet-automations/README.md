@@ -221,7 +221,12 @@ The event tells the automation that something changed. The automation should the
 - `ExecuteCommand(Object command)` — dispatch a follow-up command through `CommandExecutor`
 - `NoOp(String reason)` — explicitly record that no action is needed
 
-For event publication outside the application boundary, use `crablet-outbox`.
+Prefer returning `ExecuteCommand` for internal follow-up behavior instead of launching background
+work from the handler. The dispatcher executes decisions synchronously inside the triggering
+event's correlation/causation scope, so events emitted by the follow-up command keep the trace.
+If an application deliberately submits custom async work or appends events outside the dispatcher
+scope, it owns correlation/causation propagation for that work. For event publication outside the
+application boundary, use `crablet-outbox`.
 
 ### Modeled-State Decisions
 
@@ -359,6 +364,7 @@ automation_progress   — schema table that stores per-automation progress
 - **Leader election**: PostgreSQL advisory locks ensure only one instance processes each automation at a time
 - **Progress tracking**: Each automation independently tracks its last processed event position
 - **Failure handling**: Failed decisions do not advance progress, so the event is redelivered until `max-errors` marks the automation `FAILED`
+- **Trace propagation**: `ExecuteCommand` decisions run inside the triggering event's correlation/causation scope; custom async work must carry that context explicitly
 - **App-owned resilience**: Crablet does not ship a built-in circuit breaker; add one in the application-owned `AutomationHandler` when a policy calls unreliable external dependencies
 
 ## Configuration

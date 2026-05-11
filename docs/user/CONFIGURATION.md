@@ -66,10 +66,16 @@ Controls the NOTIFY side — fires `pg_notify` on every successful append. Alway
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `scheduler.pool-size` | int | `5` | Scheduler thread pool size shared across all processors |
-| `scheduler.await-termination-seconds` | int | `60` | Seconds to wait for thread pool shutdown |
+| `scheduler.pool-size` | int | `5` | Scheduler thread pool size shared across all processors when platform threads are used. Ignored when `spring.threads.virtual.enabled=true` |
+| `scheduler.await-termination-seconds` | int | `60` | Seconds to wait for scheduler task shutdown |
 | `leader-retry-cooldown-ms` | long | `5000` | Cooldown before retrying leader election after a failure |
 | `startup-delay-ms` | long | `500` | Initial delay before pollers start after application ready |
+
+When `spring.threads.virtual.enabled=true`, the default Crablet poller scheduler uses virtual
+threads. This reduces scheduler thread pressure for blocking JDBC work, but it does not change
+processor ordering, singleton leadership, batch size, progress tracking, or database connection
+pool limits. Applications can still override the default by declaring their own `taskScheduler`
+bean.
 
 ### `crablet.event-poller.notifications`
 

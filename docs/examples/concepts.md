@@ -203,6 +203,7 @@ markmap:
 #### Read/write DataSource separation
 #### Closing the books (period segmentation)
 #### Shared-fetch mode for many processors
+#### Virtual threads — Spring setting controls HTTP and poller scheduler; ordering/progress unchanged
 ### Observability
 #### crablet-metrics-micrometer
 #### Prometheus + Grafana stack
