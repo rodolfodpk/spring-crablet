@@ -9,9 +9,9 @@ Crablet is a Java 25 / Spring Boot stack for building event-sourced applications
 
 The project has three goals:
 
-1. Provide a small Spring-native runtime for commands, events, consistency checks, views, automations, outbox publishing, and tests.
-2. Use AI tooling to turn Event Modeling workshop conversations into `event-model.yaml`, keep that file as the structural source of truth, and generate Spring application code from it.
-3. Generate small local Kubernetes deployments so teams can test a modeled service outside the IDE without designing production infrastructure first.
+1. Provide a small Spring-native runtime for commands, events, consistency checks, views, automations, outbox publishing, and tests. *(near complete)*
+2. Use AI tooling to turn Event Modeling workshop conversations into `event-model.yaml`, keep that file as the structural source of truth, and generate Spring application code from it. *(in progress)*
+3. Generate small local Kubernetes deployments so teams can test a modeled service outside the IDE without designing production infrastructure first. *(early / planned)*
 
 The AI tooling is optional. The Java runtime APIs work directly when a team wants to build by hand, customize generated code, or adopt Crablet one module at a time.
 
