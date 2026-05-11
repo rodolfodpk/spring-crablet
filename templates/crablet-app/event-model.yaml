@@ -58,6 +58,7 @@ outbox: []
 # Optional — used by `make k8s` for Kubernetes / KEDA generation (defaults apply if omitted)
 # deployment:
 #   topology: monolith        # monolith | distributed
+#   commandReplicas: 2
 #   keda:
 #     enabled: false
 #     minReplicas: 0

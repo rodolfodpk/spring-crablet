@@ -239,7 +239,8 @@ Then:
 
 The starter POM includes the command, command-web, event store, and views modules. Add
 `crablet-automations` or `crablet-outbox` when `event-model.yaml` starts using `automations` or
-`outbox` entries.
+`outbox` entries. If automations use `ViewBackedAutomationHandler`, keep `crablet-views` on the
+classpath — the views processor does not need to be enabled in the same process.
 
 ## Rules Of Thumb
 
