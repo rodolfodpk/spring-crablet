@@ -18,7 +18,7 @@ A ready-to-use Spring Boot application skeleton configured for the AI-first Crab
 **Workflow (MCP — Claude Code or Cursor):**
 
 ```
-Open Claude Code or Cursor at the template root, describe one vertical slice
+Open Claude Code or Cursor from your copied app directory, describe one vertical slice
   → update event-model.yaml
   → embabel_plan — review planned artifacts
   → embabel_generate with output: src/main/java  (same as make generate)
@@ -41,11 +41,12 @@ make check     # plan + verify
 # 1. Build the codegen tool (from spring-crablet root)
 make install && make codegen-build
 
-# 2. Copy the JAR into the template tools directory
-cp embabel-codegen/target/embabel-codegen.jar templates/crablet-app/tools/
+# 2. Copy the template and the JAR into a sibling app directory
+cp -r templates/crablet-app ../my-service
+cp embabel-codegen/target/embabel-codegen.jar ../my-service/tools/
 
-# 3. Configure a generator provider and open your frontend
-cd templates/crablet-app
+# 3. Configure a generator provider and open your frontend from the app directory
+cd ../my-service
 export ANTHROPIC_API_KEY=sk-ant-...
 claude
 ```

@@ -626,7 +626,7 @@ describe outcome
 Claude Code MCP path:
 
 ```text
-Run embabel_generate with model=event-model.yaml and output=../loan-service/src/main/java.
+Run embabel_generate with model=event-model.yaml.
 ```
 
 CLI shortcut:

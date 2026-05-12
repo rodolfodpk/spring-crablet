@@ -106,6 +106,11 @@ Use the reference application as the concrete guide for your first integration:
 - Tutorial path: [Tutorial](TUTORIAL.md)
 - Command-side-first adoption: [Commands-First Adoption](COMMANDS_FIRST_ADOPTION.md)
 
+`spring-crablet` is the framework checkout — use it to build runtime artifacts, run
+the wallet reference app, and build `embabel-codegen`. Your application lives in a
+separate Spring Boot project outside this repo (for example, a sibling `../my-service`
+created by copying `templates/crablet-app` or by running `embabel-codegen init`).
+
 ## Next Step
 
 Once the single-instance flow makes sense, decide which adoption path you want:

@@ -69,7 +69,7 @@ model quality varies; use a model that can reliably follow strict file-block out
 
 ## First Slice
 
-Open Claude Code from the template root:
+Open Claude Code from your app directory (not from inside spring-crablet):
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
