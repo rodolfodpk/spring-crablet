@@ -149,24 +149,6 @@ plus the command-specific payload. See
 [crablet-commands-web](../../crablet-commands-web/README.md) for the full request
 contract.
 
-## Generator Reference
-
-`embabel-codegen` is a fat JAR CLI that generates all structural Crablet artifacts
-from `event-model.yaml`. It is built as part of this repository and exposed as an
-MCP tool via `.claude/settings.json`.
-
-Supported artifacts:
-
-- sealed event interface + records
-- command records with YAVI validation
-- state projectors and command handlers (DCB pattern)
-- `AbstractTypedViewProjector` + Flyway SQL migration per view
-- `AutomationHandler` per automation
-- `OutboxPublisher` per outbox spec
-
-After generation, only business rules not captured in the model require manual editing.
-Prefer improving `event-model.yaml` over editing generated structural code by hand.
-
 ## Next Reading
 
 - [AI-First Workflow](ai-tooling/AI_FIRST_WORKFLOW.md)
@@ -175,3 +157,6 @@ Prefer improving `event-model.yaml` over editing generated structural code by ha
 - [Tutorial](TUTORIAL.md)
 - [Quickstart](QUICKSTART.md)
 - [Wallet Example App](../../examples/wallet-example-app/README.md)
+
+For the AI-first path (generating code from `event-model.yaml`), see
+[AI-First Workflow](ai-tooling/AI_FIRST_WORKFLOW.md).
