@@ -121,6 +121,19 @@ Ask: which read models does this domain need? For each view:
 For outcome-oriented slices, ask which read model proves that the outcome is observable. For
 example: "Which fields should reviewers see in the pending applications view?"
 
+**View discovery when the user's prompt omits views** — if the user described only
+commands, events, and BDD scenarios with no mention of a read model, prompt before writing
+the YAML:
+
+1. What does someone need to see after this event is recorded?
+2. Who reads it — a person reviewing a queue, a system making a decision, or an external API?
+3. Which fields should it expose?
+4. Which event or events update it?
+5. What tag or key identifies one row?
+
+A command/event-only slice is valid when the answer is genuinely "nothing needs to be queried
+yet." Accept that answer and omit `views:` rather than inventing a placeholder.
+
 ### Sealed Event Handling
 
 Crablet generated domains use a sealed event root by default. Keep sealed events for multi-entity
