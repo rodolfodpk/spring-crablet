@@ -1,7 +1,10 @@
 package com.crablet.codegen.planning;
 
 import com.crablet.codegen.model.AutomationSpec;
+import com.crablet.codegen.model.CommandSpec;
 import com.crablet.codegen.model.EventModel;
+import com.crablet.codegen.model.EventSpec;
+import com.crablet.codegen.model.FieldSpec;
 import com.crablet.codegen.model.OutboxSpec;
 import com.crablet.codegen.model.ViewSpec;
 import com.crablet.codegen.pipeline.SchemaResolver;
@@ -54,9 +57,33 @@ class ArtifactPlannerTest {
                 "LoanApplication",
                 "com.example.loan",
                 null,
-                null,
-                null,
-                List.of(new ViewSpec("PendingLoanApplications", List.of("LoanApplicationSubmitted"), "application_id", List.of())),
+                List.of(new EventSpec(
+                        "LoanApplicationSubmitted",
+                        List.of("application_id"),
+                        null,
+                        List.of(new FieldSpec("applicationId", "string", null, null, null, null, null, null, null, null, null, null)))),
+                List.of(
+                        new CommandSpec(
+                                "SubmitLoanApplication",
+                                "idempotent",
+                                List.of("LoanApplicationSubmitted"),
+                                null,
+                                null,
+                                List.of(new FieldSpec("applicationId", "string", null, null, null, null, 1, null, null, null, null, null)),
+                                null),
+                        new CommandSpec(
+                                "SendWelcomeEmail",
+                                "idempotent",
+                                List.of("LoanApplicationSubmitted"),
+                                null,
+                                null,
+                                List.of(new FieldSpec("applicationId", "string", null, null, null, null, 1, null, null, null, null, null)),
+                                null)),
+                List.of(new ViewSpec(
+                        "PendingLoanApplications",
+                        List.of("LoanApplicationSubmitted"),
+                        "application_id",
+                        List.of(new FieldSpec("applicationId", "string", null, null, null, null, null, null, null, null, null, null)))),
                 List.of(new AutomationSpec(
                         "welcome-email",
                         "LoanApplicationSubmitted",

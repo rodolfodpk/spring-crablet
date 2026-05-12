@@ -1,0 +1,152 @@
+domain: CourseEnrollment
+basePackage: com.example.course
+
+events:
+  - name: CourseDefined
+    tags: [course_id]
+    fields:
+      - name: courseId
+        type: string
+      - name: title
+        type: string
+      - name: capacity
+        type: integer
+
+  - name: StudentRegistered
+    tags: [student_id]
+    fields:
+      - name: studentId
+        type: string
+      - name: displayName
+        type: string
+
+  - name: StudentSubscribedToCourse
+    tags: [course_id, student_id]
+    fields:
+      - name: courseId
+        type: string
+      - name: studentId
+        type: string
+
+commands:
+  - name: DefineCourse
+    pattern: idempotent
+    produces: [CourseDefined]
+    fields:
+      - name: courseId
+        type: string
+        minLength: 1
+      - name: title
+        type: string
+        minLength: 1
+        maxLength: 120
+      - name: capacity
+        type: integer
+        exclusiveMinimum: 0
+
+  - name: RegisterStudent
+    pattern: idempotent
+    produces: [StudentRegistered]
+    fields:
+      - name: studentId
+        type: string
+        minLength: 1
+      - name: displayName
+        type: string
+        minLength: 1
+        maxLength: 120
+
+  - name: SubscribeStudentToCourse
+    pattern: non-commutative
+    guardEvents: [CourseDefined, StudentRegistered]
+    produces: [StudentSubscribedToCourse]
+    fields:
+      - name: courseId
+        type: string
+        minLength: 1
+      - name: studentId
+        type: string
+        minLength: 1
+
+views:
+  - name: CourseAvailability
+    reads: [CourseDefined, StudentSubscribedToCourse]
+    tag: course_id
+    fields:
+      - name: courseId
+        type: string
+      - name: title
+        type: string
+      - name: capacity
+        type: integer
+      - name: enrolledCount
+        type: integer
+      - name: seatsRemaining
+        type: integer
+
+scenarios:
+  - name: Student subscribes successfully
+    tags: [course_id, student_id, happy_path]
+    steps:
+      - keyword: Given
+        text: course COURSE_101 exists with capacity 2
+      - keyword: And
+        text: student STUDENT_001 is registered
+      - keyword: When
+        text: subscribe STUDENT_001 to COURSE_101
+      - keyword: Then
+        text: the system records StudentSubscribedToCourse
+      - keyword: And
+        text: CourseAvailability shows 1 seat remaining for COURSE_101
+
+  - name: Course is full
+    tags: [course_id, student_id, capacity]
+    steps:
+      - keyword: Given
+        text: course COURSE_101 exists with capacity 1
+      - keyword: And
+        text: student STUDENT_001 is already subscribed to COURSE_101
+      - keyword: And
+        text: student STUDENT_002 is registered
+      - keyword: When
+        text: subscribe STUDENT_002 to COURSE_101
+      - keyword: Then
+        text: the command is rejected because the course is full
+
+  - name: Student is already subscribed
+    tags: [course_id, student_id, duplicate]
+    steps:
+      - keyword: Given
+        text: course COURSE_101 exists
+      - keyword: And
+        text: student STUDENT_001 is registered
+      - keyword: And
+        text: student STUDENT_001 is already subscribed to COURSE_101
+      - keyword: When
+        text: subscribe STUDENT_001 to COURSE_101
+      - keyword: Then
+        text: the command is rejected because the student is already subscribed
+
+  - name: Course does not exist
+    tags: [course_id, student_id, guard]
+    steps:
+      - keyword: Given
+        text: course COURSE_404 does not exist
+      - keyword: And
+        text: student STUDENT_001 is registered
+      - keyword: When
+        text: subscribe STUDENT_001 to COURSE_404
+      - keyword: Then
+        text: the command is rejected because CourseDefined is missing
+
+  - name: Student is not registered
+    tags: [course_id, student_id, guard]
+    steps:
+      - keyword: Given
+        text: course COURSE_101 exists with available seats
+      - keyword: And
+        text: student STUDENT_404 is not registered
+      - keyword: When
+        text: subscribe STUDENT_404 to COURSE_101
+      - keyword: Then
+        text: the command is rejected because StudentRegistered is missing

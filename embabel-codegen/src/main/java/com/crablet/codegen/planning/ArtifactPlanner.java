@@ -8,6 +8,7 @@ import com.crablet.codegen.model.OutboxSpec;
 import com.crablet.codegen.model.ScenarioSpec;
 import com.crablet.codegen.model.ViewSpec;
 import com.crablet.codegen.pipeline.SchemaResolver;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -17,13 +18,21 @@ import java.util.List;
 public class ArtifactPlanner {
 
     private final SchemaResolver schemaResolver;
+    private final ModelValidator modelValidator;
 
     public ArtifactPlanner(SchemaResolver schemaResolver) {
+        this(schemaResolver, new ModelValidator());
+    }
+
+    @Autowired
+    public ArtifactPlanner(SchemaResolver schemaResolver, ModelValidator modelValidator) {
         this.schemaResolver = schemaResolver;
+        this.modelValidator = modelValidator;
     }
 
     public List<PlannedArtifact> plan(EventModel model) {
         EventModel resolved = schemaResolver.resolve(model);
+        modelValidator.validate(resolved);
         List<PlannedArtifact> artifacts = new ArrayList<>();
 
         String domainPackage = resolved.basePackage() + ".domain";
