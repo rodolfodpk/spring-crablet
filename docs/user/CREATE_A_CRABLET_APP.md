@@ -151,8 +151,6 @@ contract.
 
 ## Next Reading
 
-- [AI-First Workflow](ai-tooling/AI_FIRST_WORKFLOW.md)
-- [Event Model Format](ai-tooling/EVENT_MODEL_FORMAT.md)
 - [Commands-First Adoption](COMMANDS_FIRST_ADOPTION.md)
 - [Tutorial](TUTORIAL.md)
 - [Quickstart](QUICKSTART.md)
