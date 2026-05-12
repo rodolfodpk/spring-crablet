@@ -19,6 +19,7 @@ Everything here is for **people building or operating applications** on Crablet 
 | Path | Contents |
 |------|----------|
 | [ai-tooling/AI_FIRST_WORKFLOW.md](ai-tooling/AI_FIRST_WORKFLOW.md) | End-to-end codegen workflow |
+| [ai-tooling/COURSE_CORE_WORKFLOW.md](ai-tooling/COURSE_CORE_WORKFLOW.md) | First Course-domain AI workflow target |
 | [ai-tooling/FEATURE_SLICE_WORKFLOW.md](ai-tooling/FEATURE_SLICE_WORKFLOW.md) | Adding one vertical slice |
 | [ai-tooling/EVENT_MODEL_FORMAT.md](ai-tooling/EVENT_MODEL_FORMAT.md) | event-model.yaml contract |
 | [ai-tooling/EVENT_MODELING.md](ai-tooling/EVENT_MODELING.md) | Event Modeling notation |
