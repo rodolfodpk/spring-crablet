@@ -71,16 +71,25 @@ public interface CommandExecutor {
      * the HTTP {@code Idempotency-Key} header or any stable caller-assigned request ID.
      * The key must be unique per logical operation — use business keys, not random IDs.
      *
+     * <p>The default implementation ignores the idempotency key and delegates to
+     * {@link #execute(Object)}. Override in production implementations to enable
+     * command-level duplicate detection.
+     *
      * @param <T>            the command type (inferred from parameter)
      * @param command        the command to execute
      * @param idempotencyKey caller-provided key unique to this command execution,
      *                       or {@code null} to skip command-level idempotency
      * @return ExecutionResult indicating whether the operation was new or idempotent
      */
-    <T> ExecutionResult execute(T command, @Nullable String idempotencyKey);
+    default <T> ExecutionResult execute(T command, @Nullable String idempotencyKey) {
+        return execute(command);
+    }
 
     /**
      * Execute a command with an explicit correlation ID and idempotency key.
+     *
+     * <p>The default implementation ignores the idempotency key and delegates to
+     * {@link #execute(Object, UUID)}.
      *
      * @param <T>            the command type (inferred from parameter)
      * @param command        the command to execute
@@ -88,5 +97,7 @@ public interface CommandExecutor {
      * @param idempotencyKey caller-provided key, or {@code null} to skip command-level idempotency
      * @return ExecutionResult indicating whether the operation was new or idempotent
      */
-    <T> ExecutionResult execute(T command, @Nullable UUID correlationId, @Nullable String idempotencyKey);
+    default <T> ExecutionResult execute(T command, @Nullable UUID correlationId, @Nullable String idempotencyKey) {
+        return execute(command, correlationId);
+    }
 }
