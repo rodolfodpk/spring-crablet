@@ -1,5 +1,11 @@
 # Command-Level Idempotency Plan
 
+> **Status: Implemented** — V10 migration, `CommandAuditStore.reserveCommand`,
+> `CommandExecutor.execute(T, String)` / `execute(T, UUID, String)`, and
+> `CommandExecutorImpl` pre-handler check landed on `feat/event-tags-derived-index`.
+> Advisory lock remains for direct `EventStore.appendIdempotent` (event-level path).
+> No separate table. No command interface. Idempotency key is caller-provided.
+
 ## Context
 
 Crablet has two idempotency mechanisms today:

@@ -105,6 +105,12 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         VALUES (?::xid8, ?, ?::jsonb, ?::jsonb, ?::TIMESTAMP WITH TIME ZONE)
         """;
 
+    private static final String RESERVE_COMMAND_SQL = """
+        INSERT INTO commands (transaction_id, type, data, metadata, occurred_at, idempotency_key)
+        VALUES (pg_current_xact_id(), ?, ?::jsonb, ?::jsonb, ?::TIMESTAMP WITH TIME ZONE, ?)
+        ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING
+        """;
+
     private final DataSource writeDataSource;
     private final DataSource readDataSource;
     private final ObjectMapper objectMapper;
@@ -870,6 +876,21 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         }
     }
 
+    private boolean reserveCommandWithConnection(Connection connection, String commandJson,
+                                                  String commandType, String idempotencyKey,
+                                                  Instant occurredAt) {
+        try (PreparedStatement stmt = connection.prepareStatement(RESERVE_COMMAND_SQL)) {
+            stmt.setString(1, commandType);
+            stmt.setString(2, commandJson);
+            stmt.setString(3, createCommandMetadata(commandType));
+            stmt.setTimestamp(4, Timestamp.from(occurredAt));
+            stmt.setString(5, idempotencyKey);
+            return stmt.executeUpdate() == 1;
+        } catch (SQLException e) {
+            throw new EventStoreException("Failed to reserve command", e);
+        }
+    }
+
     /**
      * Store a command using a provided connection.
      * Used internally by ConnectionScopedEventStore.
@@ -967,6 +988,13 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         @Override
         public void storeCommand(String commandJson, String commandType, String transactionId) {
             EventStoreImpl.this.storeCommandWithConnection(connection, commandJson, commandType, transactionId);
+        }
+
+        @Override
+        public boolean reserveCommand(String commandJson, String commandType,
+                                      String idempotencyKey, java.time.Instant occurredAt) {
+            return EventStoreImpl.this.reserveCommandWithConnection(
+                    connection, commandJson, commandType, idempotencyKey, occurredAt);
         }
 
         private boolean hasAppendedEvents() {

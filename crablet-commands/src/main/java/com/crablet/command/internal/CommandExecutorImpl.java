@@ -135,8 +135,7 @@ public class CommandExecutorImpl implements CommandExecutor {
 
     @Override
     public <T> ExecutionResult execute(T command) {
-        CommandHandler<T> handler = getHandlerForCommand(command);
-        return execute(command, handler);
+        return executeCore(command, getHandlerForCommand(command), null);
     }
 
     @Override
@@ -155,7 +154,31 @@ public class CommandExecutorImpl implements CommandExecutor {
     }
 
     @Override
+    public <T> ExecutionResult execute(T command, @Nullable String idempotencyKey) {
+        return executeCore(command, getHandlerForCommand(command), idempotencyKey);
+    }
+
+    @Override
+    public <T> ExecutionResult execute(T command, @Nullable UUID correlationId, @Nullable String idempotencyKey) {
+        if (correlationId == null) {
+            return execute(command, idempotencyKey);
+        }
+        try {
+            return ScopedValue.where(CorrelationContext.CORRELATION_ID, correlationId)
+                              .call(() -> execute(command, idempotencyKey));
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Unexpected checked exception during command execution", e);
+        }
+    }
+
+    @Override
     public <T> ExecutionResult execute(T command, CommandHandler<T> handler) {
+        return executeCore(command, handler, null);
+    }
+
+    private <T> ExecutionResult executeCore(T command, CommandHandler<T> handler, @Nullable String idempotencyKey) {
         // Validate command
         if (command == null) {
             throw new InvalidCommandException("Command cannot be null", "NULL_COMMAND");
@@ -213,6 +236,11 @@ public class CommandExecutorImpl implements CommandExecutor {
             );
         }
 
+        if (idempotencyKey != null && !config.isPersistCommands()) {
+            throw new InvalidCommandException(
+                "Command-level idempotency requires persist-commands=true", command);
+        }
+
         log.debug("Starting transaction for command: {}", commandType);
 
         // Start timing with ClockProvider
@@ -220,9 +248,23 @@ public class CommandExecutorImpl implements CommandExecutor {
         eventPublisher.publishEvent(new CommandStartedMetric(commandType, startTime));
 
         AtomicReference<String> operationType = new AtomicReference<>("unknown");
+        AtomicReference<Boolean> commandReserved = new AtomicReference<>(false);
 
         try {
             ExecutionResult executionResult = eventStore.executeInTransaction(txStore -> {
+                // Pre-handler command-level idempotency check.
+                // Inserts the command record using pg_current_xact_id() so the same
+                // transaction_id is shared with any subsequent event append.
+                // ON CONFLICT DO NOTHING returns 0 rows when the key already exists.
+                if (idempotencyKey != null && commandJson != null
+                        && txStore instanceof CommandAuditStore auditStore) {
+                    if (!auditStore.reserveCommand(commandJson, commandType, idempotencyKey, startTime)) {
+                        operationType.set("command_idempotent");
+                        return ExecutionResult.idempotent("COMMAND_DUPLICATE");
+                    }
+                    commandReserved.set(true);
+                }
+
                 // Handle command and generate events
                 // Type-safe invocation: handler is CommandHandler<T>, command is T
                 CommandDecision result = handler.handle(txStore, command);
@@ -279,8 +321,10 @@ public class CommandExecutorImpl implements CommandExecutor {
                     return handleConcurrencyException(e, commandType, command, result);
                 }
 
-                // Store command for audit and query purposes (if enabled)
+                // Store command for audit and query purposes (if enabled).
+                // Skip if reserveCommand already wrote the record at the start of the transaction.
                 if (config.isPersistCommands() && commandJson != null && transactionId != null
+                        && !commandReserved.get()
                         && txStore instanceof CommandAuditStore auditStore) {
                     auditStore.storeCommand(commandJson, commandType, transactionId);
                 }
