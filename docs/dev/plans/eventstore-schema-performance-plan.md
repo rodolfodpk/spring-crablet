@@ -1,5 +1,10 @@
 # EventStore Schema Performance Plan
 
+> **Status: Implemented** — V7–V9 migrations and query path switch landed on
+> `feat/event-tags-derived-index`. Benchmarks recorded in commit `c0380ef3`.
+> Deferred items (command-level idempotency, shared-fetch indexed_selection,
+> consistency boundaries) remain open as separate initiatives.
+
 ## Context
 
 Crablet currently uses a compact event store schema:

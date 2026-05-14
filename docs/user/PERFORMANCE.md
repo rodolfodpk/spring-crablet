@@ -25,13 +25,30 @@ See `crablet-eventstore/docs/READ_REPLICAS.md` for full configuration.
 
 ## Database Indexes
 
-The framework relies heavily on PostgreSQL indexes for performance:
+The framework relies on several PostgreSQL indexes for performance:
 
-- **GIN index on tags** — fast tag-based filtering (`WHERE tags @> '{wallet_id:alice}'`)
-- **Composite index (type, position)** — optimized for DCB query pattern
-- **Composite GIN index (type, tags)** — optimized for idempotency checks
+- **GIN index on `events.tags`** — covers multi-tag containment checks (`@>`) used in the DCB
+  conflict and idempotency fallback paths.
+- **Composite B-tree index (type, position)** — optimized for the DCB query pattern.
+- **`event_tags` derived table** — a normalized B-tree-indexed projection of `events.tags`,
+  maintained atomically on every append. Replaces `unnest(tags)` array scans for the per-processor
+  poller and for the common single-tag idempotency and conflict check paths.
 
-Tag-based filtering is O(log n) with GIN indexes, making it efficient even with millions of events.
+### `event_tags` derived table
+
+`event_tags` is the primary performance mechanism for tag-based filtering at scale. Each row
+represents one `key=value` pair from one event, indexed on `(key, value, position)`. Queries
+that previously scanned `unnest(events.tags)` per row now do a B-tree lookup.
+
+**Tradeoff:** every append writes additional rows to `event_tags` (one per tag per event). Events
+with many tags increase write amplification proportionally. The table is derived data — `events`
+remains the canonical source of truth. If `event_tags` ever drifts from `events`, run the drift
+check queries in `docs/dev/plans/eventstore-schema-performance-plan.md`.
+
+**Multi-tag paths** (idempotency queries with more than one tag, DCB conflict checks with more
+than one condition tag) fall back to the GIN index on `events.tags` to avoid the complexity of
+matching all pairs across `event_tags` rows. Single-tag paths — which cover the vast majority of
+real-world usage — use `event_tags` exclusively.
 
 ## Batch Processing
 
