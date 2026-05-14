@@ -11,6 +11,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("Command-level idempotency tests")
 class CommandExecutorImplCommandIdempotencyTest extends AbstractCommandTest {
@@ -92,5 +93,29 @@ class CommandExecutorImplCommandIdempotencyTest extends AbstractCommandTest {
 
         assertThat(first.wasIdempotent()).isFalse();
         assertThat(second.wasIdempotent()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Rollback releases the key so the next attempt proceeds as new")
+    void rollbackReleasesKey() {
+        String key = "test-op:" + UUID.randomUUID();
+
+        TestCommandHandler.setHandlerLogic(cmd -> { throw new RuntimeException("simulated failure"); });
+
+        assertThatThrownBy(() -> commandExecutor.execute(new TestCommand("test_command", "e-1"), key))
+            .isInstanceOf(RuntimeException.class)
+            .hasMessageContaining("simulated failure");
+
+        TestCommandHandler.setHandlerLogic(cmd ->
+            CommandDecision.Commutative.of(
+                AppendEvent.builder("TestEventHappened")
+                    .tag("entity_id", "e-1")
+                    .data("{}")
+                    .build()));
+
+        ExecutionResult retry = commandExecutor.execute(new TestCommand("test_command", "e-1"), key);
+        assertThat(retry.wasIdempotent())
+            .as("key must be released by rollback so retry is treated as new")
+            .isFalse();
     }
 }

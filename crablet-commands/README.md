@@ -203,6 +203,13 @@ public class WalletService {
         DepositCommand command = DepositCommand.of(depositId, walletId, amount, "Salary");
         return commandExecutor.execute(command);
     }
+
+    // With an HTTP Idempotency-Key header for safe retries:
+    public ExecutionResult deposit(String walletId, String depositId, int amount,
+                                   String idempotencyKey) {
+        DepositCommand command = DepositCommand.of(depositId, walletId, amount, "Salary");
+        return commandExecutor.execute(command, idempotencyKey);
+    }
 }
 ```
 
@@ -287,6 +294,64 @@ This ensures that:
 - Queries and appends are consistent (no race conditions between read and write)
 - Command and events are stored together (no orphaned commands)
 - DCB concurrency checks work correctly (stream position is consistent with appended events)
+
+## Command-Level Idempotency
+
+`CommandExecutor` supports a caller-provided idempotency key that detects duplicates
+**before the handler runs** — no event projections, no advisory locks:
+
+```java
+// controller / application service
+String key = request.getHeader("Idempotency-Key"); // HTTP header or message ID
+ExecutionResult result = commandExecutor.execute(command, key);
+
+if (result.wasIdempotent()) {
+    // duplicate submission — return the same response as the first execution
+}
+```
+
+**How it works:**
+
+The executor inserts the command record at the start of the transaction using
+`pg_current_xact_id()` and `ON CONFLICT (idempotency_key) DO NOTHING`. If the key
+already exists in a committed row, `rows_affected == 0` and the handler is not invoked.
+If the transaction rolls back (handler exception, concurrency violation), the inserted
+row is rolled back atomically — the key is released and the next attempt proceeds as new.
+
+**Key rules:**
+
+- Pass the HTTP `Idempotency-Key` header value, a message ID, or any stable caller-assigned
+  request ID. Do not generate the key inside the command — it must survive across retries.
+- Requires `crablet.eventstore.persist-commands=true` (the default). An
+  `InvalidCommandException` is thrown if persistence is disabled.
+- Passing `null` disables the command-level check and falls through to normal execution.
+
+**Overloads:**
+
+```java
+// idempotency key only
+commandExecutor.execute(command, idempotencyKey);
+
+// with explicit correlation ID
+commandExecutor.execute(command, correlationId, idempotencyKey);
+```
+
+**Command-level vs event-level idempotency:**
+
+| | Command-level (`execute(cmd, key)`) | Event-level (`.idempotent(...)` on `CommandDecision`) |
+|---|---|---|
+| When checked | Before handler runs | After handler runs, inside append |
+| Serialization | UNIQUE constraint on `commands` | Advisory lock in `append_events_if` |
+| Key source | Caller (HTTP header, message ID) | Handler (business key on output event) |
+| Handler invoked on duplicate? | No | Yes |
+| Advisory lock on duplicate path? | No | Yes |
+
+Use command-level for HTTP APIs, message consumers, and any scenario where the caller
+controls the idempotency key. Use event-level (`.idempotent(...)`) when the key lives
+inside the domain model (e.g. `deposit_id` on a `DepositMade` event) and the handler
+should always run to produce the key.
+
+The two can coexist — command-level catches duplicates fast; event-level is defense-in-depth.
 
 ## Command Patterns
 
@@ -445,8 +510,12 @@ When `crablet.eventstore.persist-commands=true` (the default), every command exe
 | `data` | `jsonb` | Full command serialized as JSON |
 | `metadata` | `jsonb` | `{"command_type": "..."}` — reserved for future enrichment |
 | `occurred_at` | `timestamptz` | Wall-clock time at execution |
+| `idempotency_key` | `text` (nullable) | Caller-provided key when using `execute(command, key)`. Unique constraint prevents duplicate rows for the same key. `NULL` for executions without a key. |
 
-The `transaction_id` primary key means one row per command execution — duplicate executions (idempotent replays) do not produce a second row.
+When using command-level idempotency (`execute(command, key)`), the row is written at the
+**start** of the transaction using `pg_current_xact_id()` — before the handler runs.
+For normal executions (`execute(command)`), the row is written after the append as before.
+Duplicate submissions detected via `idempotency_key` do not produce a new row.
 
 ### Atomicity
 
