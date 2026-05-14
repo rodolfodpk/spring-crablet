@@ -161,6 +161,17 @@ class AutomationDefinitionConsistencyTest {
             }
 
             @Override public <T> ExecutionResult execute(T command, CommandHandler<T> handler) { return null; }
+
+            @Override
+            public <T> ExecutionResult execute(T command, @Nullable String idempotencyKey) {
+                return execute(command);
+            }
+
+            @Override
+            public <T> ExecutionResult execute(T command, @Nullable UUID correlationId,
+                                               @Nullable String idempotencyKey) {
+                return execute(command, correlationId);
+            }
         };
     }
 
