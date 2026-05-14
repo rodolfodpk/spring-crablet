@@ -143,4 +143,14 @@ class CommandExecutorImplPersistenceTest {
         assertNotNull(result);
         assertThat(result.wasCreated()).isTrue();
     }
+
+    @Test
+    @DisplayName("execute() with idempotency key and persistence disabled throws InvalidCommandException")
+    void executeWithIdempotencyKey_PersistenceDisabled_ShouldThrow() {
+        TestCommand command = new TestCommand("test_command", "entity-123");
+
+        assertThatThrownBy(() -> commandExecutor.execute(command, "some-idempotency-key"))
+                .isInstanceOf(InvalidCommandException.class)
+                .hasMessageContaining("persist-commands");
+    }
 }
