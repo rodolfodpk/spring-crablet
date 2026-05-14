@@ -57,8 +57,10 @@ class AutomationDefinitionConsistencyTest {
         int count = dispatcher.handle(handler.getAutomationName(), List.of(testEvent("WalletOpened")));
 
         assertThat(fetcher.sqlFilterFor(handler.getAutomationName()))
-                .isEqualTo("type IN ('WalletOpened') AND EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'wallet_id=%') " +
-                        "AND EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'owner_id=%')");
+                .contains("type IN ('WalletOpened')")
+                .contains("t.key = 'wallet_id'")
+                .contains("t.key IN ('owner_id')")
+                .contains("t.position = events.position");
         assertThat(configs.get(handler.getAutomationName()).getPollingIntervalMs()).isEqualTo(1500L);
         assertThat(configs.get(handler.getAutomationName()).getBatchSize()).isEqualTo(25);
         assertThat(count).isEqualTo(1);
@@ -84,8 +86,10 @@ class AutomationDefinitionConsistencyTest {
                 AutomationProcessorConfig.createConfigMap(configWithDefaults(), handlers);
 
         assertThat(fetcher.sqlFilterFor(handler.getAutomationName()))
-                .isEqualTo("type IN ('WalletOpened') AND EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'wallet_id=%') " +
-                        "AND EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'owner_id=%')");
+                .contains("type IN ('WalletOpened')")
+                .contains("t.key = 'wallet_id'")
+                .contains("t.key IN ('owner_id')")
+                .contains("t.position = events.position");
         assertThat(configs.get(handler.getAutomationName()).getPollingIntervalMs()).isEqualTo(5000L);
         assertThat(configs.get(handler.getAutomationName()).getBatchSize()).isEqualTo(7);
     }

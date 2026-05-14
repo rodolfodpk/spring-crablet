@@ -41,6 +41,7 @@ public final class IntegrationTestDbCleanup {
     }
 
     public static void truncateAutomationsIntegrationTables(JdbcTemplate jdbc) {
+        jdbc.execute("TRUNCATE TABLE event_tags");
         jdbc.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
         jdbc.execute("TRUNCATE TABLE commands CASCADE");
         jdbc.execute("TRUNCATE TABLE automation_progress CASCADE");
