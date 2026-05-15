@@ -264,9 +264,9 @@ LIMIT ?;
 For the initial implementation, cover the three single-clause cases. Multi-clause
 combinations can be added incrementally.
 
-### 3b — Idempotency check inside `append_events_if`
+### 3b — Idempotency check inside `append_events_if` — rejected
 
-Current check (inside the existing `pg_advisory_xact_lock` block):
+Keep the current check (inside the existing `pg_advisory_xact_lock` block):
 
 ```sql
 EXISTS (
@@ -277,53 +277,14 @@ EXISTS (
 )
 ```
 
-Replace with `event_tags` for the common single-tag case. The advisory lock block is
-unchanged — do not remove it. The lock prevents TOCTOU races; only the query target changes.
+Decision: do not switch this path to `event_tags`. Real decision models commonly use
+2+ tags per criterion, so `events.tags @>` with the existing GIN index is the uniform path.
+A single-tag B-tree fast path would add write amplification for all appends while helping
+only a minority of command checks.
 
-**Single tag pair** (covers the vast majority of `appendIdempotent` call sites):
+### 3c — DCB conflict check inside `append_events_if` — rejected
 
-```sql
-EXISTS (
-    SELECT 1
-    FROM event_tags t
-    JOIN events e ON e.position = t.position
-    WHERE e.type = ANY(p_idempotency_types)
-      AND t.key   = split_part(p_idempotency_tags[1], '=', 1)
-      AND t.value = substring(p_idempotency_tags[1] FROM position('=' IN p_idempotency_tags[1]) + 1)
-    LIMIT 1
-)
-```
-
-**Multi-tag case** — keep the existing `events.tags @>` check as a fallback when
-`array_length(p_idempotency_tags, 1) > 1`. This avoids the GROUP BY/HAVING complexity
-and keeps the common path fast.
-
-```sql
-CASE
-    WHEN array_length(p_idempotency_tags, 1) = 1 THEN
-        EXISTS (
-            SELECT 1
-            FROM event_tags t
-            JOIN events e ON e.position = t.position
-            WHERE e.type  = ANY(p_idempotency_types)
-              AND t.key   = split_part(p_idempotency_tags[1], '=', 1)
-              AND t.value = substring(p_idempotency_tags[1]
-                              FROM position('=' IN p_idempotency_tags[1]) + 1)
-            LIMIT 1
-        )
-    ELSE
-        EXISTS (
-            SELECT 1 FROM events e
-            WHERE e.type = ANY(p_idempotency_types)
-              AND e.tags @> p_idempotency_tags
-            LIMIT 1
-        )
-END
-```
-
-### 3c — DCB conflict check inside `append_events_if`
-
-Current check:
+Keep the current check:
 
 ```sql
 EXISTS (
@@ -336,27 +297,10 @@ EXISTS (
 )
 ```
 
-Replace with `event_tags` for the single-tag-pair case (same CASE pattern as idempotency).
-The snapshot visibility filter `e.transaction_id < pg_snapshot_xmin(pg_current_snapshot())`
-must be preserved. Join `event_tags` back to `events` to apply it:
-
-```sql
-EXISTS (
-    SELECT 1
-    FROM event_tags t
-    JOIN events e ON e.position = t.position
-    WHERE t.position > p_after_cursor_position
-      AND e.type  = ANY(p_event_types)
-      AND t.key   = split_part(p_condition_tags[1], '=', 1)
-      AND t.value = substring(p_condition_tags[1]
-                      FROM position('=' IN p_condition_tags[1]) + 1)
-      AND e.transaction_id < pg_snapshot_xmin(pg_current_snapshot())
-    LIMIT 1
-)
-```
-
-Fall back to the original `events.tags @>` check when `p_condition_tags` has more than
-one element.
+Decision: do not switch this path to `event_tags`. The conflict check needs the same
+multi-tag semantics as command projections and must preserve snapshot visibility through
+`events.transaction_id`, so the existing `events.tags @>` GIN path remains the intended
+implementation.
 
 ### 3d — Drift tests
 

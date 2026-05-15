@@ -28,9 +28,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * and success/contention counts under 20 concurrent writers sharing the same tag.
  */
 @Tag("benchmark")
-@DisplayName("event_tags idempotency benchmark")
+@DisplayName("events.tags GIN idempotency benchmark")
 @SpringBootTest(classes = TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
-class EventTagsIdempotencyBenchmarkTest extends AbstractCrabletTest {
+class EventsTagsIdempotencyBenchmarkTest extends AbstractCrabletTest {
 
     private static final int SEED_EVENTS    = 10_000;
     private static final int SAMPLE_COUNT   = 100;
