@@ -160,14 +160,10 @@ public class CommandExecutorImpl implements CommandExecutor {
         if (correlationId == null) {
             return executeCore(command, getHandlerForCommand(command), options.commandId());
         }
-        try {
-            return ScopedValue.where(CorrelationContext.CORRELATION_ID, correlationId)
-                              .call(() -> executeCore(command, getHandlerForCommand(command), options.commandId()));
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Unexpected checked exception during command execution", e);
-        }
+        AtomicReference<ExecutionResult> result = new AtomicReference<>();
+        ScopedValue.where(CorrelationContext.CORRELATION_ID, correlationId)
+                   .run(() -> result.set(executeCore(command, getHandlerForCommand(command), options.commandId())));
+        return result.get();
     }
 
     @Override

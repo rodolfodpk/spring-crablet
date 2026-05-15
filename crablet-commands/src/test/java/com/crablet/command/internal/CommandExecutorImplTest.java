@@ -1,6 +1,7 @@
 package com.crablet.command.internal;
 
 import com.crablet.command.CommandDecision;
+import com.crablet.command.CommandHandler;
 import com.crablet.command.ExecutionResult;
 import com.crablet.command.InvalidCommandException;
 import com.crablet.command.integration.AbstractCommandTest;
@@ -102,6 +103,25 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         assertFalse(result.wasIdempotent());
 
         // Verify event persisted in database
+        Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
+        List<StoredEvent> events = eventRepository.query(query, null);
+        assertThat(events).hasSize(1);
+        assertThat(events.get(0).type()).isEqualTo("test_event");
+    }
+
+    @Test
+    void executeCommand_WithExplicitHandler_ShouldExecuteSuccessfully() {
+        TestCommand command = new TestCommand("test_command", "entity-explicit-handler");
+        AppendEvent event = AppendEvent.builder("test_event")
+                .tag("entityId", "entity-explicit-handler")
+                .data("{}")
+                .build();
+        CommandHandler<TestCommand> handler = (eventStore, handledCommand) ->
+                CommandDecision.Commutative.of(event);
+
+        ExecutionResult result = commandExecutor.execute(command, handler);
+
+        assertTrue(result.wasCreated());
         Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
         List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(1);
