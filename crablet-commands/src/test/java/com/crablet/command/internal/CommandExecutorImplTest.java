@@ -590,6 +590,24 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     }
 
     @Test
+    void executeWithDefaultOptions_BehavesLikeExecuteWithoutOptions() {
+        TestCommand command = new TestCommand("test_command", "entity-default-options");
+        AppendEvent event = AppendEvent.builder("test_event")
+                .tag("entityId", "entity-default-options")
+                .data("{}")
+                .build();
+        TestCommandHandler.setHandlerLogic(cmd -> CommandDecision.Commutative.of(event));
+
+        ExecutionResult result = commandExecutor.execute(command, CommandExecutionOptions.defaults());
+
+        assertTrue(result.wasCreated());
+        Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
+        List<StoredEvent> events = eventRepository.query(query, null);
+        assertThat(events).hasSize(1);
+        assertThat(events.get(0).correlationId()).isNull();
+    }
+
+    @Test
     void executeWithCorrelationId_NonNullCorrelationId_IsStoredOnEvent() {
         java.util.UUID correlationId = java.util.UUID.randomUUID();
         TestCommand command = new TestCommand("test_command", "entity-with-corr");

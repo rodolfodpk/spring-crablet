@@ -159,4 +159,71 @@ class CommandExecutorImplPersistenceTest {
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("persist-commands");
     }
+
+    @Test
+    @DisplayName("execute() with persistence enabled tolerates transaction store without command audit support")
+    void executeWithPersistenceEnabledAndNoCommandAuditStore_ShouldExecute() {
+        config.setPersistCommands(true);
+        commandExecutor = new CommandExecutorImpl(
+                eventStore,
+                List.of(handler),
+                config,
+                clock,
+                objectMapper,
+                eventPublisher);
+        TestCommand command = new TestCommand("test_command", "entity-123");
+        AppendEvent event = AppendEvent.builder("test_event")
+                .tag("entityId", "entity-123")
+                .data("{}")
+                .build();
+        TestCommandHandler.setHandlerLogic(cmd -> CommandDecision.Commutative.of(event));
+        when(eventStore.appendCommutative(Mockito.anyList()))
+                .thenReturn("tx-123");
+        when(eventStore.executeInTransaction(Mockito.any()))
+                .thenAnswer(invocation -> {
+                    @SuppressWarnings("unchecked")
+                    java.util.function.Function<EventStore, ExecutionResult> fn =
+                            (java.util.function.Function<EventStore, ExecutionResult>) invocation.getArgument(0);
+                    return fn.apply(eventStore);
+                });
+
+        ExecutionResult result = commandExecutor.execute(command);
+
+        assertThat(result.wasCreated()).isTrue();
+    }
+
+    @Test
+    @DisplayName("execute() with command ID tolerates transaction store without command audit support")
+    void executeWithCommandIdAndNoCommandAuditStore_ShouldExecute() {
+        config.setPersistCommands(true);
+        commandExecutor = new CommandExecutorImpl(
+                eventStore,
+                List.of(handler),
+                config,
+                clock,
+                objectMapper,
+                eventPublisher);
+        TestCommand command = new TestCommand("test_command", "entity-123");
+        CommandExecutionOptions options = CommandExecutionOptions.builder()
+                .commandId(UUID.randomUUID())
+                .build();
+        AppendEvent event = AppendEvent.builder("test_event")
+                .tag("entityId", "entity-123")
+                .data("{}")
+                .build();
+        TestCommandHandler.setHandlerLogic(cmd -> CommandDecision.Commutative.of(event));
+        when(eventStore.appendCommutative(Mockito.anyList()))
+                .thenReturn("tx-123");
+        when(eventStore.executeInTransaction(Mockito.any()))
+                .thenAnswer(invocation -> {
+                    @SuppressWarnings("unchecked")
+                    java.util.function.Function<EventStore, ExecutionResult> fn =
+                            (java.util.function.Function<EventStore, ExecutionResult>) invocation.getArgument(0);
+                    return fn.apply(eventStore);
+                });
+
+        ExecutionResult result = commandExecutor.execute(command, options);
+
+        assertThat(result.wasCreated()).isTrue();
+    }
 }

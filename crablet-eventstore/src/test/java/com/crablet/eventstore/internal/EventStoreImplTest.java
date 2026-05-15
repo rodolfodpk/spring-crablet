@@ -311,6 +311,59 @@ class EventStoreImplTest {
     }
 
     @Test
+    void shouldStoreCommandAuditRecordThroughTransactionScopedStoreIfAbsent() throws Exception {
+        UUID commandId = UUID.randomUUID();
+        String testId = UUID.randomUUID().toString();
+
+        boolean inserted = eventStore.executeInTransaction(txStore ->
+                ((CommandAuditStore) txStore).storeCommandIfAbsent(
+                        "{\"id\":\"" + testId + "\"}",
+                        "ScopedIdempotentCommand",
+                        commandId,
+                        Instant.parse("2026-01-02T03:04:05Z")));
+
+        assertThat(inserted).isTrue();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(
+                     "SELECT type, data, occurred_at FROM commands WHERE command_id = ?")) {
+            stmt.setObject(1, commandId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals("ScopedIdempotentCommand", rs.getString("type"));
+                assertTrue(rs.getString("data").contains(testId));
+                assertEquals(Instant.parse("2026-01-02T03:04:05Z"), rs.getTimestamp("occurred_at").toInstant());
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    void shouldStoreCommandAuditRecordThroughPublicAuditStore() throws Exception {
+        String testId = UUID.randomUUID().toString();
+        Instant occurredAt = Instant.parse("2026-01-02T03:04:05Z");
+
+        boolean inserted = ((CommandAuditStore) eventStoreImpl).storeCommand(
+                "{\"id\":\"" + testId + "\"}",
+                "PublicAuditCommand",
+                occurredAt);
+
+        assertThat(inserted).isTrue();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(
+                     "SELECT type, data, occurred_at FROM commands WHERE type = ? AND data @> ?::jsonb")) {
+            stmt.setString(1, "PublicAuditCommand");
+            stmt.setString(2, "{\"id\":\"" + testId + "\"}");
+            try (ResultSet rs = stmt.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals("PublicAuditCommand", rs.getString("type"));
+                assertTrue(rs.getString("data").contains(testId));
+                assertEquals(occurredAt, rs.getTimestamp("occurred_at").toInstant());
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
     void shouldWrapConnectionFailureWhenStoringCommandAuditRecord() throws Exception {
         DataSource failingWriteDataSource = mock(DataSource.class);
         Mockito.when(failingWriteDataSource.getConnection()).thenThrow(new SQLException("connection down"));
@@ -321,6 +374,22 @@ class EventStoreImplTest {
         EventStoreException ex = assertThrows(EventStoreException.class,
                 () -> ((CommandAuditStore) failingStore).storeCommandIfAbsent(
                         "{}", "FailingCommand", UUID.randomUUID(), clockProvider.now()));
+
+        assertThat(ex).hasMessage("Failed to store command")
+                .hasCauseInstanceOf(SQLException.class);
+    }
+
+    @Test
+    void shouldWrapConnectionFailureWhenStoringAuditOnlyCommandRecord() throws Exception {
+        DataSource failingWriteDataSource = mock(DataSource.class);
+        Mockito.when(failingWriteDataSource.getConnection()).thenThrow(new SQLException("connection down"));
+        EventStoreImpl failingStore = new EventStoreImpl(
+                failingWriteDataSource, dataSource, objectMapper, newConfig(),
+                clockProvider, mock(ApplicationEventPublisher.class));
+
+        EventStoreException ex = assertThrows(EventStoreException.class,
+                () -> ((CommandAuditStore) failingStore).storeCommand(
+                        "{}", "FailingCommand", clockProvider.now()));
 
         assertThat(ex).hasMessage("Failed to store command")
                 .hasCauseInstanceOf(SQLException.class);

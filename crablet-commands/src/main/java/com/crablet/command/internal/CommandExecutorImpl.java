@@ -34,6 +34,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -260,9 +261,10 @@ public class CommandExecutorImpl implements CommandExecutor {
                 // Inserts the command record using pg_current_xact_id() so the same
                 // transaction_id is shared with any subsequent event append.
                 // ON CONFLICT DO NOTHING returns 0 rows when the command_id already exists.
-                if (commandId != null && commandJson != null
-                        && txStore instanceof CommandAuditStore auditStore) {
-                    if (!auditStore.storeCommandIfAbsent(commandJson, commandType, commandId, startTime)) {
+                if (commandId != null && txStore instanceof CommandAuditStore auditStore) {
+                    String commandJsonForIdempotency = Objects.requireNonNull(commandJson);
+                    if (!auditStore.storeCommandIfAbsent(
+                            commandJsonForIdempotency, commandType, commandId, startTime)) {
                         operationType.set("command_idempotent");
                         return ExecutionResult.idempotent("COMMAND_DUPLICATE");
                     }
@@ -326,7 +328,7 @@ public class CommandExecutorImpl implements CommandExecutor {
 
                 // Store command for audit (non-idempotent path: commandId == null).
                 // When commandId is non-null, the record was already written pre-handler.
-                if (commandId == null && config.isPersistCommands() && commandJson != null
+                if (commandId == null && commandJson != null
                         && txStore instanceof CommandAuditStore auditStore) {
                     auditStore.storeCommand(commandJson, commandType, startTime);
                 }
