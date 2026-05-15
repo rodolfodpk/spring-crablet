@@ -194,8 +194,9 @@ public class InMemoryEventStore implements EventStore, CommandAuditStore {
     }
     
     @Override
-    public void storeCommand(String commandJson, String commandType, String transactionId) {
-        // No-op for unit tests - command storage is tested in integration tests
+    public boolean storeCommand(String commandJson, String commandType,
+                                java.util.UUID commandId, java.time.Instant occurredAt) {
+        return true;
     }
     
     /**

@@ -1,5 +1,9 @@
 package com.crablet.eventstore;
 
+import org.jspecify.annotations.Nullable;
+
+import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Stores command metadata for audit and query purposes.
@@ -16,37 +20,31 @@ package com.crablet.eventstore;
 public interface CommandAuditStore {
 
     /**
-     * Store a command for audit and query purposes.
-     * Must be called within the same transaction as the event append.
+     * Write a command record within the current transaction using a single SQL path.
      *
-     * @param commandJson   the command serialized as JSON
-     * @param commandType   the command type identifier
-     * @param transactionId the transaction ID linking this command to its events
+     * <p>Executes:
+     * <pre>{@code
+     * INSERT INTO commands (command_id, transaction_id, type, data, metadata, occurred_at)
+     * VALUES (COALESCE(?::uuid, gen_random_uuid()), pg_current_xact_id(), ...)
+     * ON CONFLICT (command_id) DO NOTHING
+     * }</pre>
+     *
+     * <p>If {@code commandId} is non-null (client-provided), it is used as the primary key
+     * and this returns {@code false} when a committed command with that ID already exists.
+     *
+     * <p>If {@code commandId} is null, {@code gen_random_uuid()} fills it; {@code ON CONFLICT}
+     * never fires and this always returns {@code true}.
+     *
+     * <p>{@code transaction_id} is always {@code pg_current_xact_id()}, so this must be called
+     * inside the active transaction when event-to-command linkage matters.
+     *
+     * @param commandJson  the command serialized as JSON
+     * @param commandType  the command type identifier
+     * @param commandId    caller-provided UUID used as PK (UUID v7 recommended), or {@code null}
+     *                     for the non-idempotent audit path
+     * @param occurredAt   timestamp for the command record
+     * @return {@code true} if newly inserted (proceed with handler),
+     *         {@code false} if {@code commandId} already committed (short-circuit to idempotent result)
      */
-    void storeCommand(String commandJson, String commandType, String transactionId);
-
-    /**
-     * Attempt to reserve a command slot using the given idempotency key.
-     *
-     * <p>Inserts a command record at the start of the transaction using
-     * {@code pg_current_xact_id()} so the same transaction ID is shared with
-     * any subsequent event append. Must be called before the command handler runs.
-     *
-     * <p>If the idempotency key already exists in a committed row, returns
-     * {@code false} — the caller should short-circuit and return an idempotent result
-     * without executing the handler.
-     *
-     * <p>If the transaction rolls back, the inserted row is rolled back atomically —
-     * the key is released and the next attempt will proceed as a new execution.
-     *
-     * @param commandJson    the command serialized as JSON
-     * @param commandType    the command type identifier
-     * @param idempotencyKey caller-provided key unique to this command execution
-     * @param occurredAt     timestamp for the command record
-     * @return {@code true} if newly reserved (proceed), {@code false} if duplicate (short-circuit)
-     */
-    default boolean reserveCommand(String commandJson, String commandType,
-                                   String idempotencyKey, java.time.Instant occurredAt) {
-        throw new UnsupportedOperationException("reserveCommand not supported by this CommandAuditStore");
-    }
+    boolean storeCommand(String commandJson, String commandType, @Nullable UUID commandId, Instant occurredAt);
 }

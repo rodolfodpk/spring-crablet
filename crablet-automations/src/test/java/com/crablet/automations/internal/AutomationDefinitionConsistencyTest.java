@@ -3,6 +3,7 @@ package com.crablet.automations.internal;
 import com.crablet.automations.AutomationDecision;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.config.AutomationsConfig;
+import com.crablet.command.CommandExecutionOptions;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.ExecutionResult;
@@ -163,14 +164,8 @@ class AutomationDefinitionConsistencyTest {
             @Override public <T> ExecutionResult execute(T command, CommandHandler<T> handler) { return null; }
 
             @Override
-            public <T> ExecutionResult execute(T command, @Nullable String idempotencyKey) {
-                return execute(command);
-            }
-
-            @Override
-            public <T> ExecutionResult execute(T command, @Nullable UUID correlationId,
-                                               @Nullable String idempotencyKey) {
-                return execute(command, correlationId);
+            public <T> ExecutionResult execute(T command, CommandExecutionOptions options) {
+                return execute(command, options.correlationId());
             }
         };
     }

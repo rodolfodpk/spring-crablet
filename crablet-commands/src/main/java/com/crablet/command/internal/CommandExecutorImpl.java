@@ -1,6 +1,7 @@
 package com.crablet.command.internal;
 
 import com.crablet.command.CommandDecision;
+import com.crablet.command.CommandExecutionOptions;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.DiscoveredCommandRegistry;
@@ -154,18 +155,14 @@ public class CommandExecutorImpl implements CommandExecutor {
     }
 
     @Override
-    public <T> ExecutionResult execute(T command, @Nullable String idempotencyKey) {
-        return executeCore(command, getHandlerForCommand(command), idempotencyKey);
-    }
-
-    @Override
-    public <T> ExecutionResult execute(T command, @Nullable UUID correlationId, @Nullable String idempotencyKey) {
+    public <T> ExecutionResult execute(T command, CommandExecutionOptions options) {
+        UUID correlationId = options.correlationId();
         if (correlationId == null) {
-            return execute(command, idempotencyKey);
+            return executeCore(command, getHandlerForCommand(command), options.commandId());
         }
         try {
             return ScopedValue.where(CorrelationContext.CORRELATION_ID, correlationId)
-                              .call(() -> execute(command, idempotencyKey));
+                              .call(() -> executeCore(command, getHandlerForCommand(command), options.commandId()));
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
@@ -178,7 +175,7 @@ public class CommandExecutorImpl implements CommandExecutor {
         return executeCore(command, handler, null);
     }
 
-    private <T> ExecutionResult executeCore(T command, CommandHandler<T> handler, @Nullable String idempotencyKey) {
+    private <T> ExecutionResult executeCore(T command, CommandHandler<T> handler, @Nullable UUID commandId) {
         // Validate command
         if (command == null) {
             throw new InvalidCommandException("Command cannot be null", "NULL_COMMAND");
@@ -236,7 +233,7 @@ public class CommandExecutorImpl implements CommandExecutor {
             );
         }
 
-        if (idempotencyKey != null && !config.isPersistCommands()) {
+        if (commandId != null && !config.isPersistCommands()) {
             throw new InvalidCommandException(
                 "Command-level idempotency requires persist-commands=true", command);
         }
@@ -248,21 +245,19 @@ public class CommandExecutorImpl implements CommandExecutor {
         eventPublisher.publishEvent(new CommandStartedMetric(commandType, startTime));
 
         AtomicReference<String> operationType = new AtomicReference<>("unknown");
-        AtomicReference<Boolean> commandReserved = new AtomicReference<>(false);
 
         try {
             ExecutionResult executionResult = eventStore.executeInTransaction(txStore -> {
                 // Pre-handler command-level idempotency check.
                 // Inserts the command record using pg_current_xact_id() so the same
                 // transaction_id is shared with any subsequent event append.
-                // ON CONFLICT DO NOTHING returns 0 rows when the key already exists.
-                if (idempotencyKey != null && commandJson != null
+                // ON CONFLICT DO NOTHING returns 0 rows when the command_id already exists.
+                if (commandId != null && commandJson != null
                         && txStore instanceof CommandAuditStore auditStore) {
-                    if (!auditStore.reserveCommand(commandJson, commandType, idempotencyKey, startTime)) {
+                    if (!auditStore.storeCommand(commandJson, commandType, commandId, startTime)) {
                         operationType.set("command_idempotent");
                         return ExecutionResult.idempotent("COMMAND_DUPLICATE");
                     }
-                    commandReserved.set(true);
                 }
 
                 // Handle command and generate events
@@ -321,12 +316,11 @@ public class CommandExecutorImpl implements CommandExecutor {
                     return handleConcurrencyException(e, commandType, command, result);
                 }
 
-                // Store command for audit and query purposes (if enabled).
-                // Skip if reserveCommand already wrote the record at the start of the transaction.
-                if (config.isPersistCommands() && commandJson != null && transactionId != null
-                        && !commandReserved.get()
+                // Store command for audit (non-idempotent path: commandId == null).
+                // When commandId is non-null, the record was already written pre-handler.
+                if (commandId == null && config.isPersistCommands() && commandJson != null
                         && txStore instanceof CommandAuditStore auditStore) {
-                    auditStore.storeCommand(commandJson, commandType, transactionId);
+                    auditStore.storeCommand(commandJson, commandType, null, startTime);
                 }
 
                 // Return success result

@@ -100,15 +100,10 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     private static final String APPEND_EVENTS_IF_CONNECTION_SQL =
         "SELECT append_events_if(?::text[], ?::text[], ?::jsonb[], ?::text[], ?::text[], ?, ?::text[], ?::text[], ?::TIMESTAMP WITH TIME ZONE, ?::uuid, ?)";
 
-    private static final String INSERT_COMMAND_SQL = """
-        INSERT INTO commands (transaction_id, type, data, metadata, occurred_at)
-        VALUES (?::xid8, ?, ?::jsonb, ?::jsonb, ?::TIMESTAMP WITH TIME ZONE)
-        """;
-
-    private static final String RESERVE_COMMAND_SQL = """
-        INSERT INTO commands (transaction_id, type, data, metadata, occurred_at, idempotency_key)
-        VALUES (pg_current_xact_id(), ?, ?::jsonb, ?::jsonb, ?::TIMESTAMP WITH TIME ZONE, ?)
-        ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING
+    private static final String STORE_COMMAND_SQL = """
+        INSERT INTO commands (command_id, transaction_id, type, data, metadata, occurred_at)
+        VALUES (COALESCE(?::uuid, gen_random_uuid()), pg_current_xact_id(), ?, ?::jsonb, ?::jsonb, ?::TIMESTAMP WITH TIME ZONE)
+        ON CONFLICT (command_id) DO NOTHING
         """;
 
     private final DataSource writeDataSource;
@@ -868,49 +863,26 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
 
 
     @Override
-    public void storeCommand(String commandJson, String commandType, String transactionId) {
+    public boolean storeCommand(String commandJson, String commandType, @Nullable UUID commandId, Instant occurredAt) {
         try (Connection connection = writeDataSource.getConnection()) {
-            storeCommandWithConnection(connection, commandJson, commandType, transactionId);
+            return storeCommandWithConnection(connection, commandJson, commandType, commandId, occurredAt);
         } catch (SQLException e) {
             throw new EventStoreException("Failed to store command", e);
         }
     }
 
-    private boolean reserveCommandWithConnection(Connection connection, String commandJson,
-                                                  String commandType, String idempotencyKey,
-                                                  Instant occurredAt) {
-        try (PreparedStatement stmt = connection.prepareStatement(RESERVE_COMMAND_SQL)) {
-            stmt.setString(1, commandType);
-            stmt.setString(2, commandJson);
-            stmt.setString(3, createCommandMetadata(commandType));
-            stmt.setTimestamp(4, Timestamp.from(occurredAt));
-            stmt.setString(5, idempotencyKey);
+    private boolean storeCommandWithConnection(Connection connection, String commandJson,
+                                               String commandType, @Nullable UUID commandId,
+                                               Instant occurredAt) {
+        try (PreparedStatement stmt = connection.prepareStatement(STORE_COMMAND_SQL)) {
+            stmt.setObject(1, commandId);
+            stmt.setString(2, commandType);
+            stmt.setString(3, commandJson);
+            stmt.setString(4, createCommandMetadata(commandType));
+            stmt.setTimestamp(5, Timestamp.from(occurredAt));
             return stmt.executeUpdate() == 1;
         } catch (SQLException e) {
-            throw new EventStoreException("Failed to reserve command", e);
-        }
-    }
-
-    /**
-     * Store a command using a provided connection.
-     * Used internally by ConnectionScopedEventStore.
-     */
-    private void storeCommandWithConnection(Connection connection, String commandJson, String commandType, String transactionId) {
-        try {
-            try (PreparedStatement stmt = connection.prepareStatement(INSERT_COMMAND_SQL)) {
-                stmt.setString(1, transactionId);
-                stmt.setString(2, commandType);
-                stmt.setString(3, commandJson);
-
-                // Create metadata JSON with command type
-                String metadataJson = createCommandMetadata(commandType);
-                stmt.setString(4, metadataJson);
-                stmt.setTimestamp(5, Timestamp.from(clock.now()));
-
-                stmt.executeUpdate();
-            }
-        } catch (SQLException e) {
-            throw new EventStoreException("Failed to store command with connection", e);
+            throw new EventStoreException("Failed to store command", e);
         }
     }
 
@@ -986,15 +958,10 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         }
 
         @Override
-        public void storeCommand(String commandJson, String commandType, String transactionId) {
-            EventStoreImpl.this.storeCommandWithConnection(connection, commandJson, commandType, transactionId);
-        }
-
-        @Override
-        public boolean reserveCommand(String commandJson, String commandType,
-                                      String idempotencyKey, java.time.Instant occurredAt) {
-            return EventStoreImpl.this.reserveCommandWithConnection(
-                    connection, commandJson, commandType, idempotencyKey, occurredAt);
+        public boolean storeCommand(String commandJson, String commandType,
+                                    @Nullable UUID commandId, java.time.Instant occurredAt) {
+            return EventStoreImpl.this.storeCommandWithConnection(
+                    connection, commandJson, commandType, commandId, occurredAt);
         }
 
         private boolean hasAppendedEvents() {

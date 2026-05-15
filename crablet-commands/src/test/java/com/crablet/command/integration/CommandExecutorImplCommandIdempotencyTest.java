@@ -1,6 +1,7 @@
 package com.crablet.command.integration;
 
 import com.crablet.command.CommandDecision;
+import com.crablet.command.CommandExecutionOptions;
 import com.crablet.command.ExecutionResult;
 import com.crablet.eventstore.AppendEvent;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,18 +29,21 @@ class CommandExecutorImplCommandIdempotencyTest extends AbstractCommandTest {
     }
 
     @Test
-    @DisplayName("First execution with idempotency key succeeds and is not idempotent")
+    @DisplayName("First execution with command ID succeeds and is not idempotent")
     void firstExecutionSucceeds() {
-        String key = "test-op:" + UUID.randomUUID();
-        ExecutionResult result = commandExecutor.execute(new TestCommand("test_command", "e-1"), key);
+        UUID commandId = UUID.randomUUID();
+        ExecutionResult result = commandExecutor.execute(
+            new TestCommand("test_command", "e-1"),
+            CommandExecutionOptions.builder().commandId(commandId).build());
 
         assertThat(result.wasIdempotent()).isFalse();
     }
 
     @Test
-    @DisplayName("Duplicate submission with same key is detected pre-handler and returns idempotent")
-    void duplicateKeyIsDetectedPreHandler() {
-        String key = "test-op:" + UUID.randomUUID();
+    @DisplayName("Duplicate submission with same command ID is detected pre-handler and returns idempotent")
+    void duplicateCommandIdIsDetectedPreHandler() {
+        UUID commandId = UUID.randomUUID();
+        CommandExecutionOptions options = CommandExecutionOptions.builder().commandId(commandId).build();
         AtomicInteger handlerCallCount = new AtomicInteger(0);
         TestCommandHandler.setHandlerLogic(cmd -> {
             handlerCallCount.incrementAndGet();
@@ -50,8 +54,8 @@ class CommandExecutorImplCommandIdempotencyTest extends AbstractCommandTest {
                     .build());
         });
 
-        commandExecutor.execute(new TestCommand("test_command", "e-1"), key);
-        ExecutionResult second = commandExecutor.execute(new TestCommand("test_command", "e-1"), key);
+        commandExecutor.execute(new TestCommand("test_command", "e-1"), options);
+        ExecutionResult second = commandExecutor.execute(new TestCommand("test_command", "e-1"), options);
 
         assertThat(second.wasIdempotent()).isTrue();
         assertThat(second.reason()).isEqualTo("COMMAND_DUPLICATE");
@@ -59,50 +63,45 @@ class CommandExecutorImplCommandIdempotencyTest extends AbstractCommandTest {
     }
 
     @Test
-    @DisplayName("Different keys on the same command type do not interfere")
-    void differentKeysDoNotInterfere() {
-        String key1 = "test-op:" + UUID.randomUUID();
-        String key2 = "test-op:" + UUID.randomUUID();
-
-        ExecutionResult r1 = commandExecutor.execute(new TestCommand("test_command", "e-1"), key1);
-        ExecutionResult r2 = commandExecutor.execute(new TestCommand("test_command", "e-2"), key2);
+    @DisplayName("Different command IDs on the same command type do not interfere")
+    void differentCommandIdsDoNotInterfere() {
+        ExecutionResult r1 = commandExecutor.execute(
+            new TestCommand("test_command", "e-1"),
+            CommandExecutionOptions.builder().commandId(UUID.randomUUID()).build());
+        ExecutionResult r2 = commandExecutor.execute(
+            new TestCommand("test_command", "e-2"),
+            CommandExecutionOptions.builder().commandId(UUID.randomUUID()).build());
 
         assertThat(r1.wasIdempotent()).isFalse();
         assertThat(r2.wasIdempotent()).isFalse();
     }
 
     @Test
-    @DisplayName("Null idempotency key falls through to normal execution")
-    void nullKeyExecutesNormally() {
-        ExecutionResult result = commandExecutor.execute(
-            new TestCommand("test_command", "e-1"), (String) null);
-
-        assertThat(result.wasIdempotent()).isFalse();
-    }
-
-    @Test
-    @DisplayName("Idempotency key is independent of correlation ID")
-    void idempotencyKeyWithCorrelationId() {
-        String key = "test-op:" + UUID.randomUUID();
+    @DisplayName("Command ID is independent of correlation ID")
+    void commandIdWithCorrelationId() {
+        UUID commandId = UUID.randomUUID();
         UUID correlationId = UUID.randomUUID();
+        CommandExecutionOptions options = CommandExecutionOptions.builder()
+            .correlationId(correlationId)
+            .commandId(commandId)
+            .build();
 
-        ExecutionResult first = commandExecutor.execute(
-            new TestCommand("test_command", "e-1"), correlationId, key);
-        ExecutionResult second = commandExecutor.execute(
-            new TestCommand("test_command", "e-1"), correlationId, key);
+        ExecutionResult first = commandExecutor.execute(new TestCommand("test_command", "e-1"), options);
+        ExecutionResult second = commandExecutor.execute(new TestCommand("test_command", "e-1"), options);
 
         assertThat(first.wasIdempotent()).isFalse();
         assertThat(second.wasIdempotent()).isTrue();
     }
 
     @Test
-    @DisplayName("Rollback releases the key so the next attempt proceeds as new")
-    void rollbackReleasesKey() {
-        String key = "test-op:" + UUID.randomUUID();
+    @DisplayName("Rollback releases the command ID so the next attempt proceeds as new")
+    void rollbackReleasesCommandId() {
+        UUID commandId = UUID.randomUUID();
+        CommandExecutionOptions options = CommandExecutionOptions.builder().commandId(commandId).build();
 
         TestCommandHandler.setHandlerLogic(cmd -> { throw new RuntimeException("simulated failure"); });
 
-        assertThatThrownBy(() -> commandExecutor.execute(new TestCommand("test_command", "e-1"), key))
+        assertThatThrownBy(() -> commandExecutor.execute(new TestCommand("test_command", "e-1"), options))
             .isInstanceOf(RuntimeException.class)
             .hasMessageContaining("simulated failure");
 
@@ -113,9 +112,9 @@ class CommandExecutorImplCommandIdempotencyTest extends AbstractCommandTest {
                     .data("{}")
                     .build()));
 
-        ExecutionResult retry = commandExecutor.execute(new TestCommand("test_command", "e-1"), key);
+        ExecutionResult retry = commandExecutor.execute(new TestCommand("test_command", "e-1"), options);
         assertThat(retry.wasIdempotent())
-            .as("key must be released by rollback so retry is treated as new")
+            .as("command ID must be released by rollback so retry is treated as new")
             .isFalse();
     }
 }

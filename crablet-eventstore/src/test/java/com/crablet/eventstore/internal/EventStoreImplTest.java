@@ -257,9 +257,12 @@ class EventStoreImplTest {
     @Test
     void shouldStoreCommandAuditRecord() throws Exception {
         String testId = UUID.randomUUID().toString();
-        String transactionId = eventStore.appendCommutative(List.of(appendEvent(testId, "Command Audit")));
-
-        ((CommandAuditStore) eventStore).storeCommand("{\"id\":\"" + testId + "\"}", "TestCommand", transactionId);
+        String transactionId = eventStore.executeInTransaction(txStore -> {
+            String txId = txStore.appendCommutative(List.of(appendEvent(testId, "Command Audit")));
+            ((CommandAuditStore) txStore).storeCommand(
+                    "{\"id\":\"" + testId + "\"}", "TestCommand", null, Instant.now());
+            return txId;
+        });
 
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(

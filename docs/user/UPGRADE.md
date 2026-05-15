@@ -8,6 +8,50 @@ here, and should use deprecation first when that is practical.
 
 ---
 
+## `event_tags` derived index (V7–V9) and command-level idempotency (V10)
+
+**Affects:** All deployments (schema change); users of `CommandExecutor` who want idempotency (API addition, non-breaking)
+
+### What changed
+
+**V7–V9 — `event_tags` derived table**
+
+A normalized `event_tags` table is added alongside `events`. Each row represents one `key=value` tag pair from one event, indexed on `(key, value, position)`. Flyway applies V7 (schema + backfill), V8 (append maintenance), and V9 (query path switch) automatically on startup.
+
+- Per-processor poller tag filtering and single-tag idempotency/DCB conflict checks now use `event_tags` B-tree lookups instead of `unnest(events.tags)` array scans.
+- Multi-tag paths (more than one condition tag) still use `events.tags @>` with the GIN index.
+- `events` remains the canonical source of truth; `event_tags` is derived and kept in sync atomically.
+- **Write amplification:** every append writes one `event_tags` row per tag per event. Events with many tags increase write load proportionally. See `docs/user/PERFORMANCE.md` for the tradeoff details and drift-check queries.
+
+No application code changes required.
+
+**V10 — `command_id UUID` primary key on `commands`**
+
+`commands` gains a `command_id UUID PRIMARY KEY`. `transaction_id` is demoted from primary key to a regular indexed column (still stored for event-to-command linkage). No `idempotency_key` column is added. Flyway applies V10 automatically.
+
+A new `CommandExecutor` overload is available for client-controlled idempotency:
+
+```java
+// use CommandExecutionOptions.builder() to set correlationId, commandId, or both
+executor.execute(command, CommandExecutionOptions.builder()
+        .commandId(commandId)   // UUID v7 recommended for time-ordered B-tree keys
+        .build());
+
+// combine with correlation ID
+executor.execute(command, CommandExecutionOptions.builder()
+        .correlationId(correlationId)
+        .commandId(commandId)
+        .build());
+```
+
+When `commandId` is supplied, the executor inserts the command record using that UUID as the primary key **before the handler runs**. If a committed record with that ID already exists, the handler is not re-run and `ExecutionResult.wasIdempotent()` returns `true`. On rollback the row rolls back atomically — the ID is released and the next attempt proceeds as new.
+
+Requires `crablet.eventstore.persist-commands=true`. An `InvalidCommandException` is thrown if persistence is disabled and a `commandId` is supplied.
+
+No action required if you do not use the new overload. Existing `execute(T)` and `execute(T, @Nullable UUID correlationId)` calls are unchanged.
+
+---
+
 ## `TopicPublisherPair` — moved from `.internal` to public package
 
 **Affects:** Any code that imports `com.crablet.outbox.internal.TopicPublisherPair`

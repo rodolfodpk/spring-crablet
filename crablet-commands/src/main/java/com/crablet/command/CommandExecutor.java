@@ -61,32 +61,20 @@ public interface CommandExecutor {
     <T> ExecutionResult execute(T command, CommandHandler<T> handler);
 
     /**
-     * Execute a command with a caller-provided idempotency key.
+     * Execute a command with explicit options (correlation ID, command ID, or both).
      *
-     * <p>The executor inserts a command record before running the handler. If the key
-     * already exists in a committed row, the handler is not executed and
-     * {@link ExecutionResult#wasIdempotent()} returns {@code true}.
+     * <p>When {@code options.commandId()} is set, the executor inserts a command record using
+     * that UUID as the primary key before running the handler. If a committed record with that
+     * ID already exists, the handler is not executed and {@link ExecutionResult#wasIdempotent()}
+     * returns {@code true}. Requires {@code crablet.eventstore.persist-commands=true}.
+     * UUID v7 is recommended. Rollback releases the ID atomically.
      *
-     * <p>Requires {@code crablet.eventstore.persist-commands=true}. Pass the value of
-     * the HTTP {@code Idempotency-Key} header or any stable caller-assigned request ID.
-     * The key must be unique per logical operation — use business keys, not random IDs.
+     * <p>When {@code options.correlationId()} is set, it is stored on every appended event.
      *
-     * @param <T>            the command type (inferred from parameter)
-     * @param command        the command to execute
-     * @param idempotencyKey caller-provided key unique to this command execution,
-     *                       or {@code null} to skip command-level idempotency
+     * @param <T>     the command type (inferred from parameter)
+     * @param command the command to execute
+     * @param options execution options built via {@link CommandExecutionOptions#builder()}
      * @return ExecutionResult indicating whether the operation was new or idempotent
      */
-    <T> ExecutionResult execute(T command, @Nullable String idempotencyKey);
-
-    /**
-     * Execute a command with an explicit correlation ID and idempotency key.
-     *
-     * @param <T>            the command type (inferred from parameter)
-     * @param command        the command to execute
-     * @param correlationId  correlation ID to attach to all appended events, or {@code null}
-     * @param idempotencyKey caller-provided key, or {@code null} to skip command-level idempotency
-     * @return ExecutionResult indicating whether the operation was new or idempotent
-     */
-    <T> ExecutionResult execute(T command, @Nullable UUID correlationId, @Nullable String idempotencyKey);
+    <T> ExecutionResult execute(T command, CommandExecutionOptions options);
 }

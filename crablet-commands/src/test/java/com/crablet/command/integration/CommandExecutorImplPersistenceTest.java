@@ -17,7 +17,10 @@ import org.springframework.context.ApplicationEventPublisher;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import com.crablet.command.CommandExecutionOptions;
+
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -145,11 +148,14 @@ class CommandExecutorImplPersistenceTest {
     }
 
     @Test
-    @DisplayName("execute() with idempotency key and persistence disabled throws InvalidCommandException")
-    void executeWithIdempotencyKey_PersistenceDisabled_ShouldThrow() {
+    @DisplayName("execute() with command ID and persistence disabled throws InvalidCommandException")
+    void executeWithCommandId_PersistenceDisabled_ShouldThrow() {
         TestCommand command = new TestCommand("test_command", "entity-123");
+        CommandExecutionOptions options = CommandExecutionOptions.builder()
+                .commandId(UUID.randomUUID())
+                .build();
 
-        assertThatThrownBy(() -> commandExecutor.execute(command, "some-idempotency-key"))
+        assertThatThrownBy(() -> commandExecutor.execute(command, options))
                 .isInstanceOf(InvalidCommandException.class)
                 .hasMessageContaining("persist-commands");
     }

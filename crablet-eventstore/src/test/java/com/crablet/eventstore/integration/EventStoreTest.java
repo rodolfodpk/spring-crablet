@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
@@ -297,7 +298,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                 tools.jackson.databind.JsonNode commandTypeNode = jsonNode.get("commandType");
                 String commandType = commandTypeNode != null ? commandTypeNode.asText() : null;
                 if (txEventStore instanceof CommandAuditStore auditStore) {
-                    auditStore.storeCommand(commandJson, commandType != null ? commandType : "unknown", transactionId);
+                    auditStore.storeCommand(commandJson, commandType != null ? commandType : "unknown", null, Instant.now());
                 }
             } catch (tools.jackson.core.JacksonException e) {
                 throw new RuntimeException("Failed to serialize command", e);
