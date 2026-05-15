@@ -1,7 +1,9 @@
 package com.crablet.eventpoller;
 
 import com.crablet.eventstore.StoredEvent;
+import org.flywaydb.core.Flyway;
 import org.jspecify.annotations.Nullable;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,15 @@ class AbstractJdbcEventFetcherTest {
 
     private DataSource dataSource;
 
+    @BeforeAll
+    static void migrateSchema() {
+        Flyway.configure()
+                .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+                .locations("classpath:db/migration")
+                .load()
+                .migrate();
+    }
+
     @BeforeEach
     void setUp() throws Exception {
         PGSimpleDataSource ds = new PGSimpleDataSource();
@@ -40,18 +51,7 @@ class AbstractJdbcEventFetcherTest {
         dataSource = ds;
 
         try (Connection connection = dataSource.getConnection()) {
-            connection.createStatement().execute("""
-                CREATE TABLE IF NOT EXISTS events (
-                    type VARCHAR(64) NOT NULL,
-                    tags TEXT[] NOT NULL DEFAULT '{}',
-                    data JSON NOT NULL,
-                    transaction_id xid8 NOT NULL,
-                    position BIGSERIAL NOT NULL PRIMARY KEY,
-                    occurred_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    correlation_id UUID NULL,
-                    causation_id BIGINT NULL
-                )
-                """);
+            connection.createStatement().execute("TRUNCATE TABLE event_tags");
             connection.createStatement().execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
         }
     }

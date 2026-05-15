@@ -20,6 +20,7 @@ public final class WalletIntegrationTestDbCleanup {
 
     /** Default {@link com.crablet.wallet.AbstractWalletTest} cleanup: events, commands, wallet views, then view_progress seed. */
     public static void cleanDefaultWalletIntegrationTest(JdbcTemplate jdbc) {
+        jdbc.execute("TRUNCATE TABLE event_tags");
         jdbc.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
         jdbc.execute("TRUNCATE TABLE commands CASCADE");
         truncateWalletMaterializedViews(jdbc);
@@ -28,6 +29,7 @@ public final class WalletIntegrationTestDbCleanup {
 
     /** View lifecycle E2E: events, commands, view_progress, wallet projection tables (no outbox). */
     public static void truncateForWalletViewLifecycleE2e(JdbcTemplate jdbc) {
+        jdbc.execute("TRUNCATE TABLE event_tags");
         jdbc.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
         jdbc.execute("TRUNCATE TABLE commands CASCADE");
         jdbc.execute("TRUNCATE TABLE view_progress CASCADE");
@@ -46,7 +48,7 @@ public final class WalletIntegrationTestDbCleanup {
         try {
             IntegrationTestDbCleanup.truncateSharedFetchScanProgress(jdbc);
         } catch (Exception ignored) {
-            // Schema variants without V14 tables
+            // Schema variants without shared-fetch scan-progress tables
         }
     }
 }

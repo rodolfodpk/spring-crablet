@@ -1,7 +1,9 @@
 package com.crablet.eventpoller;
 
 import com.crablet.eventstore.StoredEvent;
+import org.flywaydb.core.Flyway;
 import org.jspecify.annotations.Nullable;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -51,6 +53,15 @@ class EventTagsPollerFetchBenchmarkTest {
 
     private DataSource dataSource;
 
+    @BeforeAll
+    static void migrateSchema() {
+        Flyway.configure()
+                .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+                .locations("classpath:db/migration")
+                .load()
+                .migrate();
+    }
+
     @BeforeEach
     void setUp() throws Exception {
         PGSimpleDataSource ds = new PGSimpleDataSource();
@@ -60,36 +71,6 @@ class EventTagsPollerFetchBenchmarkTest {
         dataSource = ds;
 
         try (Connection conn = dataSource.getConnection()) {
-            conn.createStatement().execute("""
-                CREATE TABLE IF NOT EXISTS events (
-                    type           VARCHAR(64)              NOT NULL,
-                    tags           TEXT[]                   NOT NULL DEFAULT '{}',
-                    data           JSON                     NOT NULL,
-                    transaction_id xid8                     NOT NULL,
-                    position       BIGSERIAL                NOT NULL PRIMARY KEY,
-                    occurred_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    correlation_id UUID,
-                    causation_id   BIGINT
-                )
-                """);
-            conn.createStatement().execute("""
-                CREATE TABLE IF NOT EXISTS event_tags (
-                    position       BIGINT      NOT NULL,
-                    transaction_id xid8        NOT NULL,
-                    type           VARCHAR(64) NOT NULL,
-                    key            TEXT        NOT NULL,
-                    value          TEXT        NOT NULL,
-                    PRIMARY KEY (key, value, position)
-                )
-                """);
-            conn.createStatement().execute("""
-                CREATE INDEX IF NOT EXISTS idx_event_tags_position
-                    ON event_tags (position)
-                """);
-            conn.createStatement().execute("""
-                CREATE INDEX IF NOT EXISTS idx_event_tags_type_key_value_position
-                    ON event_tags (type, key, value, position)
-                """);
             conn.createStatement().execute("TRUNCATE TABLE event_tags");
             conn.createStatement().execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
         }

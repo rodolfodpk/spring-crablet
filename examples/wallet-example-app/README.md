@@ -446,14 +446,14 @@ View subscriptions are configured in `ViewConfiguration.java`:
 - `events` - Event store (from V1__eventstore_schema.sql)
 - `commands` - Command audit trail
 - `view_progress` - View processing progress (from V3__view_progress_schema.sql)
-- `outbox_topic_progress` - Outbox per-publisher progress tracking (from V13)
+- `outbox_topic_progress` - Outbox per-publisher progress tracking (from V2__outbox_schema.sql)
 
 ### Application View Tables
-- `wallet_balance_view` - Wallet balances (V4)
-- `wallet_transaction_view` - Transaction history (V5)
-- `wallet_summary_view` - Aggregated statistics (V6)
-- `wallet_statement_view` - Statement periods with period totals (V8)
-- `statement_transactions` - Junction table for idempotent event tracking (V8)
+- `wallet_balance_view` - Wallet balances (V100)
+- `wallet_transaction_view` - Transaction history (V101)
+- `wallet_summary_view` - Aggregated statistics (V102)
+- `wallet_statement_view` - Statement periods with period totals (V104)
+- `statement_transactions` - Junction table for idempotent event tracking (V104)
 
 ## Leader Election
 
@@ -543,7 +543,7 @@ Integration tests use **Testcontainers** (PostgreSQL in Docker). Ensure Docker i
 
 Test wiring in this module:
 
-- **`TestApplication`** (test scope) imports **`CrabletFlywayConfiguration`** from `crablet-test-support`, so the same **V1–V6** framework migrations as other modules apply on the test classpath, alongside this app’s own scripts under `src/main/resources/db/migration/`.
+- **`TestApplication`** (test scope) imports **`CrabletFlywayConfiguration`** from `crablet-test-support`, so the same **V1–V9** framework migrations as other modules apply on the test classpath, alongside this app’s own scripts under `src/main/resources/db/migration/app/`.
 - **`AbstractWalletTest`** resets data between tests and seeds default view-processor rows via **`WalletIntegrationTestDbCleanup`** and **`WalletViewProgressFixtures`** (`src/test/java/com/crablet/wallet/cleanup/`). E2E tests call the same helpers for consistent `TRUNCATE` sets (events, commands, views, outbox, automations, shared-fetch tables as needed).
 
 For the general testing story and `IntegrationTestDbCleanup`, see **[EventStore testing guide](../../crablet-eventstore/TESTING.md)** and **[Build guide](../../docs/user/BUILD.md)**.

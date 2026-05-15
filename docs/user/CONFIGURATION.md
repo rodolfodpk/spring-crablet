@@ -105,7 +105,7 @@ Controls the LISTEN side — opt-in wakeup that cancels the current scheduled de
 | `backoff-threshold` | int | `3` | Errors before exponential backoff activates |
 | `backoff-multiplier` | int | `2` | Exponential backoff multiplier |
 | `max-backoff-seconds` | int | `120` | Maximum backoff delay (seconds) |
-| `shared-fetch.enabled` | boolean | `false` | One DB query per cycle serves all views. Requires schema migration V14. Reduces DB load when many views share the same event stream |
+| `shared-fetch.enabled` | boolean | `false` | One DB query per cycle serves all views. Requires framework migration `V6__shared_fetch_scan_progress.sql`. Reduces DB load when many views share the same event stream |
 
 ---
 
@@ -244,7 +244,7 @@ When `crablet.eventstore.read-replicas.enabled=false` (default), both roles use 
 
 ## Tuning Tips
 
-**shared-fetch mode** — enables one DB query per poll cycle that serves all views (or all automations) instead of one query per processor. Enable when you have many views or automations sharing the same event stream. Requires running schema migration V14.
+**shared-fetch mode** — enables one DB query per poll cycle that serves all views (or all automations) instead of one query per processor. Enable when you have many views or automations sharing the same event stream. Requires running framework migration `V6__shared_fetch_scan_progress.sql`.
 
 **fetch-batch-size vs batch-size** — `fetch-batch-size` controls how many events are loaded from the DB per query; `batch-size` controls how many are handed to each processor per cycle. In shared-fetch mode, `fetch-batch-size` is the dominant knob.
 

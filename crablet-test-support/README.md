@@ -16,7 +16,7 @@ Optional test support for applications built on Crablet. Provides fast in-memory
 It solves two problems:
 
 1. **Test utilities** — `InMemoryEventStore`, `AbstractCrabletTest`, `AbstractHandlerUnitTest`, and `DCBTestHelpers` are available from a single dependency instead of being reimplemented per application
-2. **Database migrations** — All framework migrations (V1–V6) live here so every module gets them automatically through a single test-scope dependency
+2. **Database migrations** — All framework migrations (V1–V9) live here so every module gets them automatically through a single test-scope dependency
 
 ## Maven Coordinates
 
@@ -127,6 +127,9 @@ All framework migrations live in `src/main/resources/db/migration/` — main res
 | `V4__automation_progress_schema.sql` | `automation_progress` table |
 | `V5__correlation_causation.sql` | Correlation / causation columns on `events` |
 | `V6__shared_fetch_scan_progress.sql` | `crablet_module_scan_progress`, `crablet_processor_scan_progress` |
+| `V7__event_tags_schema.sql` | `event_tags` table + backfill |
+| `V8__event_tags_append_maintenance.sql` | append-path event tag maintenance |
+| `V9__event_tags_query_switch.sql` | tag-query path migration |
 
 Flyway picks these up automatically in every module that declares `crablet-test-support` as a test-scope dependency — no per-module migration copies needed.
 

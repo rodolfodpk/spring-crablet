@@ -384,8 +384,8 @@ StreamPosition streamPosition = result.streamPosition(); // Use for DCB concurre
 DCB leverages PostgreSQL features:
 
 1. **Snapshot isolation**: `pg_snapshot_xmin()` filters uncommitted transactions
-2. **Array operators**: `@>` for O(1) tag containment checks
-3. **GIN indexes**: Fast multi-value tag queries
+2. **`event_tags` B-tree index**: single-tag idempotency and DCB conflict checks use correlated EXISTS subqueries against the derived `event_tags` table (one row per `key=value` pair per event)
+3. **GIN index on `events.tags`**: fallback for multi-tag containment checks (`@>`) where more than one condition tag is required
 4. **ACID guarantees**: Transactional consistency
 
 Function signature:
