@@ -261,7 +261,7 @@ class EventStoreImplTest {
         String transactionId = eventStore.executeInTransaction(txStore -> {
             String txId = txStore.appendCommutative(List.of(appendEvent(testId, "Command Audit")));
             ((CommandAuditStore) txStore).storeCommand(
-                    "{\"id\":\"" + testId + "\"}", "TestCommand", null, Instant.now());
+                    "{\"id\":\"" + testId + "\"}", "TestCommand", Instant.now());
             return txId;
         });
 
@@ -283,12 +283,12 @@ class EventStoreImplTest {
         UUID commandId = UUID.randomUUID();
         String testId = UUID.randomUUID().toString();
 
-        boolean inserted = ((CommandAuditStore) eventStoreImpl).storeCommand(
+        boolean inserted = ((CommandAuditStore) eventStoreImpl).storeCommandIfAbsent(
                 "{\"id\":\"" + testId + "\"}",
                 "PublicStoreCommand",
                 commandId,
                 Instant.parse("2026-01-02T03:04:05Z"));
-        boolean duplicate = ((CommandAuditStore) eventStoreImpl).storeCommand(
+        boolean duplicate = ((CommandAuditStore) eventStoreImpl).storeCommandIfAbsent(
                 "{\"id\":\"" + testId + "\"}",
                 "PublicStoreCommand",
                 commandId,
@@ -319,7 +319,7 @@ class EventStoreImplTest {
                 clockProvider, mock(ApplicationEventPublisher.class));
 
         EventStoreException ex = assertThrows(EventStoreException.class,
-                () -> ((CommandAuditStore) failingStore).storeCommand(
+                () -> ((CommandAuditStore) failingStore).storeCommandIfAbsent(
                         "{}", "FailingCommand", UUID.randomUUID(), clockProvider.now()));
 
         assertThat(ex).hasMessage("Failed to store command")
@@ -338,7 +338,7 @@ class EventStoreImplTest {
                 clockProvider, mock(ApplicationEventPublisher.class));
 
         EventStoreException ex = assertThrows(EventStoreException.class,
-                () -> ((CommandAuditStore) failingStore).storeCommand(
+                () -> ((CommandAuditStore) failingStore).storeCommandIfAbsent(
                         "{}", "FailingCommand", UUID.randomUUID(), clockProvider.now()));
 
         assertThat(ex).hasMessage("Failed to store command")

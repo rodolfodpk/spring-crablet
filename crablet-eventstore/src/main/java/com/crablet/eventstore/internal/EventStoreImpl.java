@@ -55,7 +55,7 @@ import java.util.function.Function;
  * <ul>
  *   <li>Read operations (project) use read-only connections</li>
  *   <li>Write operations (appendCommutative, appendNonCommutative, appendIdempotent) use write connections</li>
- *   <li>Command audit writes ({@link com.crablet.eventstore.CommandAuditStore#storeCommand}) use the transaction-scoped write connection</li>
+ *   <li>Command audit writes use the transaction-scoped write connection</li>
  *   <li>Transactions (executeInTransaction) use write connections as they may include writes</li>
  * </ul>
  *
@@ -863,7 +863,16 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
 
 
     @Override
-    public boolean storeCommand(String commandJson, String commandType, @Nullable UUID commandId, Instant occurredAt) {
+    public boolean storeCommand(String commandJson, String commandType, Instant occurredAt) {
+        try (Connection connection = writeDataSource.getConnection()) {
+            return storeCommandWithConnection(connection, commandJson, commandType, null, occurredAt);
+        } catch (SQLException e) {
+            throw new EventStoreException("Failed to store command", e);
+        }
+    }
+
+    @Override
+    public boolean storeCommandIfAbsent(String commandJson, String commandType, UUID commandId, Instant occurredAt) {
         try (Connection connection = writeDataSource.getConnection()) {
             return storeCommandWithConnection(connection, commandJson, commandType, commandId, occurredAt);
         } catch (SQLException e) {
@@ -958,8 +967,14 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         }
 
         @Override
-        public boolean storeCommand(String commandJson, String commandType,
-                                    @Nullable UUID commandId, java.time.Instant occurredAt) {
+        public boolean storeCommand(String commandJson, String commandType, java.time.Instant occurredAt) {
+            return EventStoreImpl.this.storeCommandWithConnection(
+                    connection, commandJson, commandType, null, occurredAt);
+        }
+
+        @Override
+        public boolean storeCommandIfAbsent(String commandJson, String commandType,
+                                            UUID commandId, java.time.Instant occurredAt) {
             return EventStoreImpl.this.storeCommandWithConnection(
                     connection, commandJson, commandType, commandId, occurredAt);
         }

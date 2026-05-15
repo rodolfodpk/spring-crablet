@@ -298,7 +298,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
                 tools.jackson.databind.JsonNode commandTypeNode = jsonNode.get("commandType");
                 String commandType = commandTypeNode != null ? commandTypeNode.asText() : null;
                 if (txEventStore instanceof CommandAuditStore auditStore) {
-                    auditStore.storeCommand(commandJson, commandType != null ? commandType : "unknown", null, Instant.now());
+                    auditStore.storeCommand(commandJson, commandType != null ? commandType : "unknown", Instant.now());
                 }
             } catch (tools.jackson.core.JacksonException e) {
                 throw new RuntimeException("Failed to serialize command", e);

@@ -72,6 +72,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class CommandExecutorImpl implements CommandExecutor {
 
     private static final Logger log = LoggerFactory.getLogger(CommandExecutorImpl.class);
+    private static final ScopedValue<UUID> COMMAND_ID = ScopedValue.newInstance();
 
     private final EventStore eventStore;
     private final Map<String, CommandHandler<?>> handlers;
@@ -136,10 +137,12 @@ public class CommandExecutorImpl implements CommandExecutor {
 
     @Override
     public <T> ExecutionResult execute(T command) {
-        return executeCore(command, getHandlerForCommand(command), null);
+        CommandHandler<T> handler = getHandlerForCommand(command);
+        return execute(command, handler);
     }
 
     @Override
+    @Deprecated(forRemoval = false)
     public <T> ExecutionResult execute(T command, @Nullable UUID correlationId) {
         if (correlationId == null) {
             return execute(command);
@@ -157,21 +160,29 @@ public class CommandExecutorImpl implements CommandExecutor {
     @Override
     public <T> ExecutionResult execute(T command, CommandExecutionOptions options) {
         UUID correlationId = options.correlationId();
-        if (correlationId == null) {
-            return executeCore(command, getHandlerForCommand(command), options.commandId());
-        }
+        UUID commandId = options.commandId();
         AtomicReference<ExecutionResult> result = new AtomicReference<>();
+        if (correlationId == null && commandId == null) {
+            return execute(command);
+        }
+        if (correlationId == null) {
+            ScopedValue.where(COMMAND_ID, commandId)
+                       .run(() -> result.set(execute(command)));
+            return result.get();
+        }
+        if (commandId == null) {
+            ScopedValue.where(CorrelationContext.CORRELATION_ID, correlationId)
+                       .run(() -> result.set(execute(command)));
+            return result.get();
+        }
         ScopedValue.where(CorrelationContext.CORRELATION_ID, correlationId)
-                   .run(() -> result.set(executeCore(command, getHandlerForCommand(command), options.commandId())));
+                   .where(COMMAND_ID, commandId)
+                   .run(() -> result.set(execute(command)));
         return result.get();
     }
 
     @Override
     public <T> ExecutionResult execute(T command, CommandHandler<T> handler) {
-        return executeCore(command, handler, null);
-    }
-
-    private <T> ExecutionResult executeCore(T command, CommandHandler<T> handler, @Nullable UUID commandId) {
         // Validate command
         if (command == null) {
             throw new InvalidCommandException("Command cannot be null", "NULL_COMMAND");
@@ -229,6 +240,7 @@ public class CommandExecutorImpl implements CommandExecutor {
             );
         }
 
+        @Nullable UUID commandId = COMMAND_ID.isBound() ? COMMAND_ID.get() : null;
         if (commandId != null && !config.isPersistCommands()) {
             throw new InvalidCommandException(
                 "Command-level idempotency requires persist-commands=true", command);
@@ -250,7 +262,7 @@ public class CommandExecutorImpl implements CommandExecutor {
                 // ON CONFLICT DO NOTHING returns 0 rows when the command_id already exists.
                 if (commandId != null && commandJson != null
                         && txStore instanceof CommandAuditStore auditStore) {
-                    if (!auditStore.storeCommand(commandJson, commandType, commandId, startTime)) {
+                    if (!auditStore.storeCommandIfAbsent(commandJson, commandType, commandId, startTime)) {
                         operationType.set("command_idempotent");
                         return ExecutionResult.idempotent("COMMAND_DUPLICATE");
                     }
@@ -316,7 +328,7 @@ public class CommandExecutorImpl implements CommandExecutor {
                 // When commandId is non-null, the record was already written pre-handler.
                 if (commandId == null && config.isPersistCommands() && commandJson != null
                         && txStore instanceof CommandAuditStore auditStore) {
-                    auditStore.storeCommand(commandJson, commandType, null, startTime);
+                    auditStore.storeCommand(commandJson, commandType, startTime);
                 }
 
                 // Return success result

@@ -194,8 +194,13 @@ public class InMemoryEventStore implements EventStore, CommandAuditStore {
     }
     
     @Override
-    public boolean storeCommand(String commandJson, String commandType,
-                                java.util.UUID commandId, java.time.Instant occurredAt) {
+    public boolean storeCommand(String commandJson, String commandType, java.time.Instant occurredAt) {
+        return true;
+    }
+
+    @Override
+    public boolean storeCommandIfAbsent(String commandJson, String commandType,
+                                        java.util.UUID commandId, java.time.Instant occurredAt) {
         return true;
     }
     
@@ -240,4 +245,3 @@ public class InMemoryEventStore implements EventStore, CommandAuditStore {
         return false;
     }
 }
-
