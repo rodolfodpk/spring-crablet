@@ -9,7 +9,6 @@ import com.crablet.command.CommandHandler;
 import com.crablet.command.ExecutionResult;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
-import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -25,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -155,18 +153,8 @@ class AutomationDefinitionConsistencyTest {
     private static CommandExecutor noOpExecutor() {
         return new CommandExecutor() {
             @Override public <T> ExecutionResult execute(T command) { return null; }
-
-            @Override
-            public <T> ExecutionResult execute(T command, @Nullable UUID correlationId) {
-                return execute(command);
-            }
-
             @Override public <T> ExecutionResult execute(T command, CommandHandler<T> handler) { return null; }
-
-            @Override
-            public <T> ExecutionResult execute(T command, CommandExecutionOptions options) {
-                return execute(command, options.correlationId());
-            }
+            @Override public <T> ExecutionResult execute(T command, CommandExecutionOptions options) { return null; }
         };
     }
 

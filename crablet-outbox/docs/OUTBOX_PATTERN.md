@@ -9,7 +9,7 @@ The outbox provides **reliable event publishing** for DCB-based event sourcing. 
 **How it works:**
 1. Handler returns `CommandDecision` (Commutative / NonCommutative / Idempotent)
 2. `CommandExecutor` calls the appropriate `EventStore` append method → stores events in `events` table
-3. Outbox processor polls `events` table (`WHERE position > last_position`)
+3. Outbox processor polls transaction-safe events (`WHERE position > last_position` plus PostgreSQL's transaction safe horizon)
 4. Publishers send events to external systems
 5. Progress tracking updates `outbox_topic_progress` with new position
 
@@ -58,9 +58,24 @@ public CommandDecision.NonCommutative decide(EventStore eventStore, TransferComm
 
 1. **Handler** returns `CommandDecision` (Commutative / NonCommutative / Idempotent)
 2. **CommandExecutor** calls the appropriate EventStore append method → stores events in `events` table
-3. **Outbox processor** polls `events` table (`WHERE position > last_position`)
+3. **Outbox processor** polls transaction-safe events after `last_position`
 4. **Publishers** receive matching stored events
 5. **Progress tracking** updates `outbox_topic_progress` with new position
+
+### Ordering and Transaction Safety
+
+Stored events carry PostgreSQL's `transaction_id`. The outbox keeps its operational cursor as
+`outbox_topic_progress.last_position`, but it only fetches events below PostgreSQL's safe snapshot
+horizon:
+
+```sql
+transaction_id < pg_snapshot_xmin(pg_current_snapshot())
+```
+
+This is the transaction-id guard from the PostgreSQL outbox ordering pattern. It prevents the outbox
+from publishing a later committed event and advancing `last_position` while an earlier transaction
+can still commit and reveal a lower-position event. The cost is head-of-line waiting behind
+long-running write transactions; that is preferred over skipping events.
 
 ## Configuration
 
@@ -215,7 +230,7 @@ Events may be published multiple times in the following scenarios:
 ### Other Guarantees
 
 - **Transactional Consistency**: Events published atomically with DCB operations
-- **Global Ordering**: Events published in exact position order within each publisher
+- **Position Ordering with Safe Horizon**: Events are published in position order within each publisher, after filtering out transactions that are not yet safe to poll
 - **Independent Publishers**: Each publisher tracks its own progress per topic
 - **Automatic Failover**: Publishing continues seamlessly if leader crashes
 

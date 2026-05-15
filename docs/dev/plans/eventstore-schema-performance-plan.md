@@ -1,9 +1,13 @@
 # EventStore Schema Performance Plan
 
-> **Status: Implemented** — V7–V9 migrations and query path switch landed on
-> `feat/event-tags-derived-index`. Benchmarks recorded in commit `c0380ef3`.
-> Deferred items (command-level idempotency, shared-fetch indexed_selection,
-> consistency boundaries) remain open as separate initiatives.
+> **Status: Partially implemented** — V7 (schema + FK + backfill) and V8 (append maintenance)
+> landed on `feat/event-tags-derived-index`. V9 is a no-op: the idempotency/DCB query path
+> switch was evaluated and intentionally not implemented — real decision models use 2+ tags per
+> criterion (e.g. `wallet_id + year + month`), so the GIN path on `events.tags` handles the
+> common case directly; a single-tag B-tree fast path would add write amplification for all
+> appends while benefiting only a minority of commands. `event_tags` is consumed exclusively
+> by the per-processor poller (`EventSelectionSqlBuilder`).
+> Deferred items (shared-fetch indexed_selection, consistency boundaries) remain open.
 
 ## Context
 
@@ -63,36 +67,25 @@ Three steps, each independently deployable and independently reversible:
 
 ```sql
 CREATE TABLE event_tags (
-    position       BIGINT       NOT NULL,
-    transaction_id xid8         NOT NULL,
-    type           VARCHAR(64)  NOT NULL,
-    key            TEXT         NOT NULL,
-    value          TEXT         NOT NULL,
+    position       BIGINT NOT NULL,
+    key            TEXT   NOT NULL,
+    value          TEXT   NOT NULL,
     PRIMARY KEY (key, value, position)
 );
 
 CREATE INDEX idx_event_tags_position
     ON event_tags (position);
-
-CREATE INDEX idx_event_tags_type_key_value_position
-    ON event_tags (type, key, value, position);
-
-CREATE INDEX idx_event_tags_transaction_id
-    ON event_tags (transaction_id);
 ```
 
-Primary key `(key, value, position)` clusters the table for key/value lookups. The
-`idx_event_tags_type_key_value_position` index covers queries that also filter by event type.
-Both are required — neither is optional.
+Primary key `(key, value, position)` clusters the table for key/value lookups.
+Event type and transaction visibility remain available from `events` through `position`.
 
 ### Backfill
 
 ```sql
-INSERT INTO event_tags (position, transaction_id, type, key, value)
+INSERT INTO event_tags (position, key, value)
 SELECT
     e.position,
-    e.transaction_id,
-    e.type,
     split_part(tag, '=', 1)                              AS key,
     substring(tag FROM position('=' IN tag) + 1)         AS value
 FROM events e,
@@ -156,13 +149,11 @@ BEGIN
             pg_current_xact_id(),
             p_occurred_at
         FROM UNNEST($1, $2, $3) AS t(type, tag_string, data)
-        RETURNING position, transaction_id, type, tags
+        RETURNING position, tags
     )
-    INSERT INTO event_tags (position, transaction_id, type, key, value)
+    INSERT INTO event_tags (position, key, value)
     SELECT
         i.position,
-        i.transaction_id,
-        i.type,
         split_part(tag, '=', 1),
         substring(tag FROM position('=' IN tag) + 1)
     FROM inserted i,
@@ -293,8 +284,10 @@ unchanged — do not remove it. The lock prevents TOCTOU races; only the query t
 
 ```sql
 EXISTS (
-    SELECT 1 FROM event_tags t
-    WHERE t.type = ANY(p_idempotency_types)
+    SELECT 1
+    FROM event_tags t
+    JOIN events e ON e.position = t.position
+    WHERE e.type = ANY(p_idempotency_types)
       AND t.key   = split_part(p_idempotency_tags[1], '=', 1)
       AND t.value = substring(p_idempotency_tags[1] FROM position('=' IN p_idempotency_tags[1]) + 1)
     LIMIT 1
@@ -309,8 +302,10 @@ and keeps the common path fast.
 CASE
     WHEN array_length(p_idempotency_tags, 1) = 1 THEN
         EXISTS (
-            SELECT 1 FROM event_tags t
-            WHERE t.type  = ANY(p_idempotency_types)
+            SELECT 1
+            FROM event_tags t
+            JOIN events e ON e.position = t.position
+            WHERE e.type  = ANY(p_idempotency_types)
               AND t.key   = split_part(p_idempotency_tags[1], '=', 1)
               AND t.value = substring(p_idempotency_tags[1]
                               FROM position('=' IN p_idempotency_tags[1]) + 1)
@@ -351,7 +346,7 @@ EXISTS (
     FROM event_tags t
     JOIN events e ON e.position = t.position
     WHERE t.position > p_after_cursor_position
-      AND t.type  = ANY(p_event_types)
+      AND e.type  = ANY(p_event_types)
       AND t.key   = split_part(p_condition_tags[1], '=', 1)
       AND t.value = substring(p_condition_tags[1]
                       FROM position('=' IN p_condition_tags[1]) + 1)

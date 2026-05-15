@@ -95,6 +95,7 @@ markmap:
 ### Append semantics
 #### Crablet append taxonomy — idempotent / commutative / commutative + guard / non-commutative
 #### Composable idempotency — Commutative and CommutativeGuarded carry an optional IdempotencyKey; idempotency is orthogonal to the consistency strategy
+#### Transaction ordering — events store `transaction_id`; DCB checks and pollers use PostgreSQL's safe snapshot horizon
 #### Postgres advisory locks — idempotent append semantics + session-scoped poller leader election
 #### NOTIFY + optional LISTEN — wake async processors after writes (Postgres; LISTEN needs a direct JDBC URL, not a pooler)
 #### Crablet DCB interpretation — inspired by DCB, not strict spec vocabulary
@@ -196,6 +197,7 @@ markmap:
 ## Operations
 ### PostgreSQL 17+
 #### MVCC for concurrency
+#### `transaction_id < pg_snapshot_xmin(pg_current_snapshot())` safe horizon for pollers/outbox
 #### GIN indexes on event tags
 #### Advisory locks for leader election
 #### pg_notify for LISTEN/NOTIFY wakeup

@@ -1,9 +1,6 @@
 package com.crablet.command;
 
 import com.crablet.eventstore.Stable;
-import org.jspecify.annotations.Nullable;
-
-import java.util.UUID;
 
 /**
  * Interface for executing commands and generating events within a single transaction.
@@ -26,27 +23,6 @@ public interface CommandExecutor {
      * @return ExecutionResult indicating whether the operation was new or idempotent
      */
     <T> ExecutionResult execute(T command);
-
-    /**
-     * Execute a command within a single transaction, binding an explicit correlation ID.
-     * <p>
-     * The {@code correlationId} is stored on every event appended during this execution and
-     * can be read back via {@code StoredEvent.correlationId()}.
-     * <p>
-     * Use this overload for programmatic callers (batch jobs, internal services, tests) that
-     * want explicit control over the correlation ID without relying on a servlet filter or
-     * any ambient {@code ScopedValue} scope.
-     * <p>
-     * Prefer {@link #execute(Object, CommandExecutionOptions)} for new code. Use
-     * {@link #execute(Object)} when no correlation context is available.
-     *
-     * @param <T>           the command type (inferred from parameter)
-     * @param command       the command to execute
-     * @param correlationId the correlation ID to attach to all appended events
-     * @return ExecutionResult indicating whether the operation was new or idempotent
-     */
-    @Deprecated(forRemoval = false)
-    <T> ExecutionResult execute(T command, @Nullable UUID correlationId);
 
     /**
      * Execute a command within a single transaction using an explicit handler.

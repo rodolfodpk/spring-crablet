@@ -37,6 +37,8 @@ import org.springframework.scheduling.Trigger;
 
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -331,6 +333,35 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
     }
 
     @Test
+    @DisplayName("Shared fetch does not advance past an unsafe open transaction")
+    void sharedFetchDoesNotAdvancePastUnsafeOpenTransaction() throws Exception {
+        try (Connection openTransaction = dataSource.getConnection()) {
+            openTransaction.setAutoCommit(false);
+            insertEvent(openTransaction, "TypeA");
+
+            try (Connection committedTransaction = dataSource.getConnection()) {
+                insertEvent(committedTransaction, "TypeB");
+            }
+
+            processor.runSharedCycle();
+
+            assertThat(moduleScanRepo.getScanPosition(MODULE))
+                    .as("Module cursor should not advance into a window blocked by an earlier open xid")
+                    .isEqualTo(0L);
+            assertThat(handlerA.getHandledCount()).isZero();
+            assertThat(handlerB.getHandledCount()).isZero();
+
+            openTransaction.commit();
+        }
+
+        processor.runSharedCycle();
+
+        assertThat(handlerA.getHandled()).extracting(StoredEvent::type).containsExactly("TypeA");
+        assertThat(handlerB.getHandled()).extracting(StoredEvent::type).containsExactly("TypeB");
+        assertThat(moduleScanRepo.getScanPosition(MODULE)).isEqualTo(maxPosition(jdbcTemplate));
+    }
+
+    @Test
     @DisplayName("No selection routes all fetched events to processor")
     void noSelection_routesAllFetchedEventsToProcessor() {
         SharedFetchModuleProcessor<TestProcessorConfig, String> localProcessor = newProcessor(
@@ -485,6 +516,16 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
                     .build());
         }
         eventStore.appendCommutative(events);
+    }
+
+    private void insertEvent(Connection connection, String type) throws Exception {
+        try (PreparedStatement stmt = connection.prepareStatement("""
+                INSERT INTO events (type, tags, data, transaction_id, occurred_at)
+                VALUES (?, ARRAY[]::text[], '{}'::jsonb, pg_current_xact_id(), CURRENT_TIMESTAMP)
+                """)) {
+            stmt.setString(1, type);
+            stmt.executeUpdate();
+        }
     }
 
     private SharedFetchModuleProcessor<TestProcessorConfig, String> newProcessor(

@@ -129,7 +129,7 @@ All framework migrations live in `src/main/resources/db/migration/` — main res
 | `V6__shared_fetch_scan_progress.sql` | `crablet_module_scan_progress`, `crablet_processor_scan_progress` |
 | `V7__event_tags_schema.sql` | `event_tags` table + backfill |
 | `V8__event_tags_append_maintenance.sql` | append-path event tag maintenance |
-| `V9__event_tags_query_switch.sql` | tag-query path migration |
+| `V9__event_tags_query_switch.sql` | design record — no SQL changes (poller-only scope) |
 
 Flyway picks these up automatically in every module that declares `crablet-test-support` as a test-scope dependency — no per-module migration copies needed.
 

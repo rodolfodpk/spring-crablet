@@ -192,7 +192,7 @@ crablet-test-support/src/main/resources/db/migration/
   V6__shared_fetch_scan_progress.sql  module + processor scan progress (shared-fetch)
   V7__event_tags_schema.sql        event_tags table + backfill
   V8__event_tags_append_maintenance.sql append-path event tag maintenance
-  V9__event_tags_query_switch.sql  tag-query path migration
+  V9__event_tags_query_switch.sql  design record — no SQL changes (poller-only scope)
 ```
 
 Flyway picks these up automatically on the test classpath because every module

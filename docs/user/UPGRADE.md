@@ -16,12 +16,12 @@ here, and should use deprecation first when that is practical.
 
 **V7–V9 — `event_tags` derived table**
 
-A normalized `event_tags` table is added alongside `events`. Each row represents one `key=value` tag pair from one event, indexed on `(key, value, position)`. Flyway applies V7 (schema + backfill), V8 (append maintenance), and V9 (query path switch) automatically on startup.
+A normalized `event_tags` table is added alongside `events`. Each row represents one `key=value` tag pair from one event. Flyway applies V7 (schema + backfill), V8 (append maintenance), and V9 (no-op design record) automatically on startup.
 
-- Per-processor poller tag filtering and single-tag idempotency/DCB conflict checks now use `event_tags` B-tree lookups instead of `unnest(events.tags)` array scans.
-- Multi-tag paths (more than one condition tag) still use `events.tags @>` with the GIN index.
-- `events` remains the canonical source of truth; `event_tags` is derived and kept in sync atomically.
-- **Write amplification:** every append writes one `event_tags` row per tag per event. Events with many tags increase write load proportionally. See `docs/user/PERFORMANCE.md` for the tradeoff details and drift-check queries.
+- Per-processor poller tag filtering now uses indexed `event_tags` EXISTS subqueries instead of `unnest(events.tags)` array scans.
+- Idempotency and DCB conflict checks inside `append_events_if` continue to use `events.tags @>` with the GIN index — real decision models use 2+ tags per criterion, so the GIN path handles the common case directly.
+- `events` remains the canonical source of truth; `event_tags` is derived and kept in sync atomically via the same CTE that inserts into `events`.
+- **Write amplification:** every append writes one `event_tags` row per tag per event. See `docs/user/PERFORMANCE.md` for tradeoff details and drift-check queries.
 
 No application code changes required.
 
@@ -48,7 +48,7 @@ When `commandId` is supplied, the executor inserts the command record using that
 
 Requires `crablet.eventstore.persist-commands=true`. An `InvalidCommandException` is thrown if persistence is disabled and a `commandId` is supplied.
 
-No action required if you do not use the new overload. Existing `execute(T)` and `execute(T, @Nullable UUID correlationId)` calls are unchanged.
+No action required if you do not use the new overload. Existing `execute(T)` and `execute(T, CommandHandler<T>)` calls are unchanged. The previously deprecated `execute(T, @Nullable UUID correlationId)` overload has been removed — migrate to `execute(T, CommandExecutionOptions.builder().correlationId(id).build())` if you were using it.
 
 ---
 

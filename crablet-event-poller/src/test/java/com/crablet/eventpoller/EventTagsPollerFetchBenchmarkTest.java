@@ -115,11 +115,11 @@ class EventTagsPollerFetchBenchmarkTest {
             String insertEvent = """
                 INSERT INTO events (type, tags, data, transaction_id, occurred_at)
                 VALUES (?, ?, ?::json, pg_current_xact_id(), CURRENT_TIMESTAMP)
-                RETURNING position, transaction_id
+                RETURNING position
                 """;
             String insertTag = """
-                INSERT INTO event_tags (position, transaction_id, type, key, value)
-                VALUES (?, ?::xid8, ?, ?, ?)
+                INSERT INTO event_tags (position, key, value)
+                VALUES (?, ?, ?)
                 """;
 
             for (int i = 0; i < SEED_EVENTS; i++) {
@@ -136,15 +136,12 @@ class EventTagsPollerFetchBenchmarkTest {
                     var rs = stmt.executeQuery();
                     if (rs.next()) {
                         long position = rs.getLong(1);
-                        String txId = rs.getString(2);
                         try (PreparedStatement tagStmt = conn.prepareStatement(insertTag)) {
                             for (String tag : tags) {
                                 int eq = tag.indexOf('=');
                                 tagStmt.setLong(1, position);
-                                tagStmt.setString(2, txId);
-                                tagStmt.setString(3, type);
-                                tagStmt.setString(4, tag.substring(0, eq));
-                                tagStmt.setString(5, tag.substring(eq + 1));
+                                tagStmt.setString(2, tag.substring(0, eq));
+                                tagStmt.setString(3, tag.substring(eq + 1));
                                 tagStmt.addBatch();
                             }
                             tagStmt.executeBatch();

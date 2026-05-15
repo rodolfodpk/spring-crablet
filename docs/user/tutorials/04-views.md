@@ -126,7 +126,7 @@ crablet.views.shared-fetch.enabled=true
 crablet.views.fetch-batch-size=1000
 ```
 
-In this mode a single position-only query fetches events for the entire views module and routes them in-memory to each view using `EventSelectionMatcher`. The legacy path (one query per view) remains the default.
+In this mode a single position-ordered, transaction-safe query fetches events for the entire views module and routes them in-memory to each view using `EventSelectionMatcher`. The legacy path (one query per view) remains the default.
 
 The required schema tables are added by a Flyway migration you add to your application:
 

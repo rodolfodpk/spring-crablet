@@ -45,6 +45,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
+import static com.crablet.eventpoller.AbstractJdbcEventFetcher.SAFE_TRANSACTION_HORIZON;
+
 /**
  * Shared-fetch implementation of {@link EventProcessor}.
  *
@@ -480,9 +482,10 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
                 SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id
                 FROM events
                 WHERE position > ?
+                  AND %s
                 ORDER BY position ASC
                 LIMIT ?
-                """;
+                """.formatted(SAFE_TRANSACTION_HORIZON);
         try (Connection conn = readDataSource.getConnection()) {
             conn.setReadOnly(true);
             conn.setAutoCommit(false);
@@ -505,9 +508,10 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
                 SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id
                 FROM events
                 WHERE position > ? AND position <= ?
+                  AND %s
                 ORDER BY position ASC
                 LIMIT ?
-                """;
+                """.formatted(SAFE_TRANSACTION_HORIZON);
         try (Connection conn = readDataSource.getConnection()) {
             conn.setReadOnly(true);
             conn.setAutoCommit(false);

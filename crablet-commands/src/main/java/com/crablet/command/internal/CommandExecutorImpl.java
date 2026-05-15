@@ -143,22 +143,6 @@ public class CommandExecutorImpl implements CommandExecutor {
     }
 
     @Override
-    @Deprecated(forRemoval = false)
-    public <T> ExecutionResult execute(T command, @Nullable UUID correlationId) {
-        if (correlationId == null) {
-            return execute(command);
-        }
-        try {
-            return ScopedValue.where(CorrelationContext.CORRELATION_ID, correlationId)
-                              .call(() -> execute(command));
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Unexpected checked exception during command execution", e);
-        }
-    }
-
-    @Override
     public <T> ExecutionResult execute(T command, CommandExecutionOptions options) {
         UUID correlationId = options.correlationId();
         UUID commandId = options.commandId();

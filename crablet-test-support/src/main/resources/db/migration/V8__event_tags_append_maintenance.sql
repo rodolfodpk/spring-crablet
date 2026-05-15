@@ -30,12 +30,10 @@ BEGIN
                p_correlation_id,
                p_causation_id
         FROM UNNEST($1, $2, $3) AS t(type, tag_string, data)
-        RETURNING position, transaction_id, type, tags
+        RETURNING position, tags
     )
-    INSERT INTO event_tags (position, transaction_id, type, key, value)
+    INSERT INTO event_tags (position, key, value)
     SELECT i.position,
-           i.transaction_id,
-           i.type,
            split_part(tag, '=', 1)                      AS key,
            substring(tag FROM position('=' IN tag) + 1) AS value
     FROM inserted i,

@@ -47,17 +47,20 @@ processor.handledPosition    per processor  last matching event successfully pro
 
 **Why `scannedPosition → last dispatched` on partial dispatch:** if the window contains 600 matching events and `processor.batchSize = 100`, the processor has only safely considered through the 100th matched event. It has not evaluated the rest. Set `scannedPosition` to the last dispatched matched position and mark `CATCHING_UP` to handle the remainder.
 
-## v1 fetch: position-only (no union filter in SQL)
+## Implemented fetch: position-only with transaction safe horizon
 
 ```sql
 SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id
 FROM events
 WHERE position > ?
+  AND transaction_id < pg_snapshot_xmin(pg_current_snapshot())
 ORDER BY position ASC
 LIMIT ?
 ```
 
 No tag/type filter in SQL. `EventSelectionMatcher` handles all routing in-memory after the fetch.
+The transaction-id safe horizon prevents the module cursor from advancing past a later committed
+event while an earlier transaction can still commit and reveal a lower-position event.
 
 **Why position-only for v1:**
 - `moduleScanCursor` is a true scan cursor over the event log, not a "deliverable active-selection cursor." Those are different things.
@@ -95,7 +98,7 @@ When shared-fetch is **disabled**, the existing per-processor `EventProcessorImp
 ```
 Wakeup → 1 scheduled task fires per module
   1. Load moduleScanCursor
-  2. Fetch: SELECT WHERE position > moduleScanCursor ORDER BY position ASC LIMIT fetchBatchSize
+  2. Fetch: SELECT WHERE position > moduleScanCursor AND transaction_id is below PostgreSQL's safe snapshot horizon ORDER BY position ASC LIMIT fetchBatchSize
   3. If zero rows fetched: record module-level empty (backoff eligible), return
   4. For each fetched event: match in-memory against each ACTIVE, non-catching-up processor
      using EventSelectionMatcher
@@ -240,7 +243,7 @@ crablet.outbox.fetch-batch-size=1000
 crablet.shared-fetch.max-events-per-cycle=5000   # default: unset (no global cap)
 ```
 
-Default: 1000. Per-processor `batchSize` still caps matched-event dispatch per processor per call. The optional global cap protects the JVM from large shared-fetch windows without requiring per-module tuning. The global cap applies to the **shared module fetch only** (`LIMIT` on the position-only query) — it does **not** apply to `fetchEventsUntil` in the bounded catch-up loop. Catch-up uses `processor.batchSize` per iteration and is already bounded by `upToPosition=moduleScanCursor`; applying the global cap there would risk a processor that never fully closes its lag if the cap is smaller than the gap.
+Default: 1000. Per-processor `batchSize` still caps matched-event dispatch per processor per call. The optional global cap protects the JVM from large shared-fetch windows without requiring per-module tuning. The global cap applies to the **shared module fetch only** (`LIMIT` on the position-ordered safe-horizon query) — it does **not** apply to `fetchEventsUntil` in the bounded catch-up loop. Catch-up uses `processor.batchSize` per iteration and is already bounded by `upToPosition=moduleScanCursor`; applying the global cap there would risk a processor that never fully closes its lag if the cap is smaller than the gap.
 
 ### Dispatch windowing policy
 

@@ -31,24 +31,23 @@ The framework relies on several PostgreSQL indexes for performance:
   conflict and idempotency fallback paths.
 - **Composite B-tree index (type, position)** — optimized for the DCB query pattern.
 - **`event_tags` derived table** — a normalized B-tree-indexed projection of `events.tags`,
-  maintained atomically on every append. Replaces `unnest(tags)` array scans for the per-processor
-  poller and for the common single-tag idempotency and conflict check paths.
+  maintained atomically on every append. Used by the per-processor poller to replace
+  `unnest(tags)` array scans with indexed EXISTS subqueries.
 
 ### `event_tags` derived table
 
-`event_tags` is the primary performance mechanism for tag-based filtering at scale. Each row
-represents one `key=value` pair from one event, indexed on `(key, value, position)`. Queries
-that previously scanned `unnest(events.tags)` per row now do a B-tree lookup.
+`event_tags` is the performance mechanism for poller tag filtering at scale. Each row represents
+one `key=value` pair from one event. Per-processor poller queries (`EventSelectionSqlBuilder`)
+use correlated EXISTS subqueries against `event_tags` instead of scanning `unnest(events.tags)`
+per row.
 
-**Tradeoff:** every append writes additional rows to `event_tags` (one per tag per event). Events
-with many tags increase write amplification proportionally. The table is derived data — `events`
-remains the canonical source of truth. If `event_tags` ever drifts from `events`, run the drift
-check queries in `docs/dev/plans/eventstore-schema-performance-plan.md`.
+**Idempotency and DCB conflict checks** inside `append_events_if` continue to use the GIN index
+on `events.tags`. Real decision models use 2+ tags per criterion (e.g. `wallet_id + year + month`
+in period-aware handlers), so the GIN `@>` path handles the common case directly and uniformly.
 
-**Multi-tag paths** (idempotency queries with more than one tag, DCB conflict checks with more
-than one condition tag) fall back to the GIN index on `events.tags` to avoid the complexity of
-matching all pairs across `event_tags` rows. Single-tag paths — which cover the vast majority of
-real-world usage — use `event_tags` exclusively.
+**Tradeoff:** every append writes one `event_tags` row per tag per event (write amplification).
+The table is derived data — `events` remains the canonical source of truth. If `event_tags` ever
+drifts from `events`, run the drift check queries in `docs/dev/plans/eventstore-schema-performance-plan.md`.
 
 ## Batch Processing
 

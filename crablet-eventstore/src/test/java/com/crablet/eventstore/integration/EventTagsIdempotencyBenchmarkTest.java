@@ -20,9 +20,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Benchmark: idempotency check latency under concurrent load with event_tags index.
+ * Benchmark: idempotency check latency under concurrent load.
  *
- * Establishes a timing baseline for appendIdempotent after V9 query switch.
+ * Establishes a timing baseline for appendIdempotent using the events.tags GIN index.
  * Run with -Dgroups=benchmark to include in a benchmark-only suite.
  * Output: P50 and P99 of single-writer idempotency check duration,
  * and success/contention counts under 20 concurrent writers sharing the same tag.

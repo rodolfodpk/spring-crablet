@@ -34,7 +34,7 @@ Everything else has sensible defaults. Enable modules explicitly — they are al
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `persist-commands` | boolean | `true` | Write each command to the `commands` audit table in the same transaction as its events. Disable to reduce write amplification when the audit trail is not needed. See [Command Audit Store](../../crablet-commands/README.md#command-audit-store). |
+| `persist-commands` | boolean | `true` | Write each command to the `commands` audit table in the same transaction as its events. Disable to reduce write amplification when the audit trail is not needed. **Must be `true` when passing a `commandId` in `CommandExecutionOptions`** — omitting this raises `InvalidCommandException` at runtime. See [Command Audit Store](../../crablet-commands/README.md#command-audit-store). |
 | `transaction-isolation` | String | `READ_COMMITTED` | JDBC transaction isolation level |
 | `fetch-size` | int | `1000` | PostgreSQL fetch size hint for result-set streaming |
 

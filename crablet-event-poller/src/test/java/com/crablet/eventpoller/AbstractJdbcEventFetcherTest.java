@@ -98,14 +98,48 @@ class AbstractJdbcEventFetcherTest {
                 .isEqualTo("One");
     }
 
+    @Test
+    @DisplayName("Does not fetch past an unsafe open transaction")
+    void doesNotFetchPastUnsafeOpenTransaction() throws Exception {
+        TestFetcher fetcher = new TestFetcher(dataSource, "TRUE");
+
+        try (Connection openTransaction = dataSource.getConnection()) {
+            openTransaction.setAutoCommit(false);
+            insertEvent(openTransaction, "FirstOpenTransaction", new String[]{"kind=a"}, "{}", null, null);
+
+            insertEvent("SecondCommittedTransaction", new String[]{"kind=a"}, "{}", null, null);
+
+            assertThat(fetcher.fetchEvents("processor", 0, 10))
+                    .as("The later committed event must not advance the position cursor while an earlier xid is open")
+                    .isEmpty();
+
+            openTransaction.commit();
+        }
+
+        assertThat(fetcher.fetchEvents("processor", 0, 10))
+                .extracting(StoredEvent::type)
+                .containsExactly("FirstOpenTransaction", "SecondCommittedTransaction");
+    }
+
     private void insertEvent(
             String type,
             String[] tags,
             String data,
             @Nullable UUID correlationId,
             @Nullable Long causationId) throws Exception {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement stmt = connection.prepareStatement("""
+        try (Connection connection = dataSource.getConnection()) {
+            insertEvent(connection, type, tags, data, correlationId, causationId);
+        }
+    }
+
+    private void insertEvent(
+            Connection connection,
+            String type,
+            String[] tags,
+            String data,
+            @Nullable UUID correlationId,
+            @Nullable Long causationId) throws Exception {
+        try (PreparedStatement stmt = connection.prepareStatement("""
                  INSERT INTO events (type, tags, data, transaction_id, occurred_at, correlation_id, causation_id)
                  VALUES (?, ?, ?::json, pg_current_xact_id(), CURRENT_TIMESTAMP, ?, ?)
                  """)) {

@@ -166,7 +166,8 @@ public class OutboxAutoConfiguration {
     }
 
     /**
-     * Shared-fetch variant: one position-only DB fetch per cycle fans out to all (topic, publisher) processors.
+     * Shared-fetch variant: one position-ordered, transaction-safe DB fetch per cycle fans out to
+     * all (topic, publisher) processors.
      */
     @Bean("outboxEventProcessor")
     @ConditionalOnProperty(name = "crablet.outbox.shared-fetch.enabled", havingValue = "true")

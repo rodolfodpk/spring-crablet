@@ -5,7 +5,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,8 +15,8 @@ class PublicApiContractTest {
     @DisplayName("CommandExecutor execute overloads should return ExecutionResult")
     void commandExecutorExecuteOverloads_ShouldReturnExecutionResult() throws NoSuchMethodException {
         assertThat(executeMethod(Object.class).getReturnType()).isEqualTo(ExecutionResult.class);
-        assertThat(executeMethod(Object.class, UUID.class).getReturnType()).isEqualTo(ExecutionResult.class);
         assertThat(executeMethod(Object.class, CommandHandler.class).getReturnType()).isEqualTo(ExecutionResult.class);
+        assertThat(executeMethod(Object.class, CommandExecutionOptions.class).getReturnType()).isEqualTo(ExecutionResult.class);
     }
 
     @Test

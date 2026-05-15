@@ -50,7 +50,7 @@ crablet.automations.shared-fetch.enabled=true
 crablet.automations.fetch-batch-size=1000
 ```
 
-Shared-fetch uses one position-only DB fetch per module cycle, then routes matching events to each automation in memory. `fetch-batch-size` controls the shared DB read size. `batch-size` still controls how many matched events each automation handles per cycle.
+Shared-fetch uses one position-ordered, transaction-safe DB fetch per module cycle, then routes matching events to each automation in memory. `fetch-batch-size` controls the shared DB read size. `batch-size` still controls how many matched events each automation handles per cycle.
 
 Shared-fetch requires the scan-progress tables from framework migration `V6__shared_fetch_scan_progress.sql`. Leave the flag unset or `false` if your application has not added those tables.
 

@@ -28,6 +28,13 @@ import java.util.UUID;
  */
 public abstract class AbstractJdbcEventFetcher<I> implements EventFetcher<I> {
 
+    /**
+     * Prevents position cursors from advancing past events whose earlier transactions may
+     * still become visible after commit.
+     */
+    public static final String SAFE_TRANSACTION_HORIZON =
+            "transaction_id < pg_snapshot_xmin(pg_current_snapshot())";
+
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     protected final DataSource readDataSource;
@@ -49,10 +56,11 @@ public abstract class AbstractJdbcEventFetcher<I> implements EventFetcher<I> {
                    correlation_id, causation_id
             FROM events
             WHERE position > ?
+              AND %s
               AND (%s)
             ORDER BY position ASC
             LIMIT ?
-            """.formatted(sqlFilter);
+            """.formatted(SAFE_TRANSACTION_HORIZON, sqlFilter);
 
         try (Connection connection = readDataSource.getConnection()) {
             connection.setReadOnly(true);
