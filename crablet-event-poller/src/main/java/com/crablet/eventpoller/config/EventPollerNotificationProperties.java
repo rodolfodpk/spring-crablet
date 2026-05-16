@@ -3,6 +3,8 @@ package com.crablet.eventpoller.config;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.Duration;
+
 /**
  * Configuration for the PostgreSQL LISTEN wakeup source.
  *
@@ -47,6 +49,21 @@ public class EventPollerNotificationProperties {
     private @org.jspecify.annotations.Nullable String username;
     private @org.jspecify.annotations.Nullable String password;
 
+    /**
+     * Debounce window for cross-read wakeup coalescing.
+     *
+     * <p>When the Postgres driver splits a burst across multiple {@code getNotifications()}
+     * reads, each read would otherwise trigger a full fan-out to all processors. A debounce
+     * window accumulates back-to-back reads and delivers one merged wakeup per window.
+     *
+     * <p>Set to {@code 0ms} to disable cross-read coalescing (one wakeup per driver read).
+     * Values between 10–50 ms are typical; raise if scheduler churn shows in metrics,
+     * lower if sub-10 ms NOTIFY latency matters more than churn reduction.
+     *
+     * <p>Accepts Spring {@link Duration} syntax: {@code 20ms}, {@code 1s}, {@code PT0.05S}.
+     */
+    private Duration debounce = Duration.ofMillis(20);
+
     public String getChannel() {
         return channel;
     }
@@ -77,5 +94,13 @@ public class EventPollerNotificationProperties {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public Duration getDebounce() {
+        return debounce;
+    }
+
+    public void setDebounce(Duration debounce) {
+        this.debounce = debounce;
     }
 }

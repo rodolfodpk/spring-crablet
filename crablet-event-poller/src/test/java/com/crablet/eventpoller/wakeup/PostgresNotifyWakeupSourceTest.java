@@ -2,8 +2,11 @@ package com.crablet.eventpoller.wakeup;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.postgresql.PGNotification;
 
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -136,5 +139,140 @@ class PostgresNotifyWakeupSourceTest {
         Runnable subscriber = () -> {};
         source.start(subscriber);
         assertThatCode(() -> source.close(subscriber)).doesNotThrowAnyException();
+    }
+
+    // --- Phase B: BatchState merge ---
+
+    @Test
+    @DisplayName("BatchState.merge: union of types when neither is wildcard")
+    void batchStateMergeUnionsTypes() {
+        var a = PostgresNotifyWakeupSource.BatchState.ofBatch(false, Set.of("A", "B"));
+        var b = PostgresNotifyWakeupSource.BatchState.ofBatch(false, Set.of("B", "C"));
+        var merged = a.merge(b);
+        assertThat(merged.wildcard()).isFalse();
+        assertThat(merged.types()).containsExactlyInAnyOrder("A", "B", "C");
+    }
+
+    @Test
+    @DisplayName("BatchState.merge: wildcard in either operand poisons result")
+    void batchStateMergeWildcardPoisons() {
+        var typed = PostgresNotifyWakeupSource.BatchState.ofBatch(false, Set.of("A"));
+        var wild  = PostgresNotifyWakeupSource.BatchState.ofBatch(true, Set.of());
+        assertThat(typed.merge(wild).wildcard()).isTrue();
+        assertThat(wild.merge(typed).wildcard()).isTrue();
+        assertThat(wild.merge(wild).wildcard()).isTrue();
+    }
+
+    // --- Phase B: debounce=0 (immediate dispatch) ---
+
+    @Test
+    @DisplayName("debounce=0: each dispatchBatch call wakes subscribers immediately")
+    void noDebounceDispatchesImmediately() {
+        var source = new PostgresNotifyWakeupSource(
+                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 0L);
+        AtomicInteger count = new AtomicInteger();
+        source.start(count::incrementAndGet);
+
+        source.dispatchBatch(new PGNotification[]{notify("WalletCreated")});
+        source.dispatchBatch(new PGNotification[]{notify("WalletDeposited")});
+
+        assertThat(count.get()).isEqualTo(2); // two separate batches → two wakeups
+        source.close();
+    }
+
+    @Test
+    @DisplayName("debounce=0: typed subscriber skipped when types do not intersect")
+    void noDebounceTypedSubscriberFiltered() {
+        var source = new PostgresNotifyWakeupSource(
+                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 0L);
+        AtomicInteger woken = new AtomicInteger();
+        source.start(Set.of("CourseEnrolled"), woken::incrementAndGet);
+
+        source.dispatchBatch(new PGNotification[]{notify("WalletDeposited")});
+
+        assertThat(woken.get()).isZero();
+        source.close();
+    }
+
+    @Test
+    @DisplayName("debounce=0: wildcard payload wakes all subscribers")
+    void noDebounceWildcardPayloadWakesAll() {
+        var source = new PostgresNotifyWakeupSource(
+                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 0L);
+        AtomicInteger typed = new AtomicInteger();
+        AtomicInteger wildcard = new AtomicInteger();
+        source.start(Set.of("CourseEnrolled"), typed::incrementAndGet);
+        source.start(wildcard::incrementAndGet);
+
+        source.dispatchBatch(new PGNotification[]{notify("*")}); // wildcard payload
+
+        assertThat(typed.get()).isEqualTo(1);
+        assertThat(wildcard.get()).isEqualTo(1);
+        source.close();
+    }
+
+    // --- Phase B: debounce>0 (cross-read coalescing) ---
+
+    @Test
+    @DisplayName("debounce>0: back-to-back batches are coalesced into one wakeup")
+    void debounceCoalescesBatches() throws InterruptedException {
+        var source = new PostgresNotifyWakeupSource(
+                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 50L);
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicInteger count = new AtomicInteger();
+        source.start(() -> { count.incrementAndGet(); latch.countDown(); });
+
+        // Two batches within the debounce window
+        source.dispatchBatch(new PGNotification[]{notify("WalletCreated")});
+        source.dispatchBatch(new PGNotification[]{notify("WalletDeposited")});
+
+        assertThat(latch.await(300, TimeUnit.MILLISECONDS)).isTrue();
+        assertThat(count.get()).isEqualTo(1); // coalesced to one wakeup
+        source.close();
+    }
+
+    @Test
+    @DisplayName("debounce>0: wildcard in second batch poisons the merged flush")
+    void debounceWildcardPoisonsMerge() throws InterruptedException {
+        var source = new PostgresNotifyWakeupSource(
+                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 50L);
+        AtomicInteger typed = new AtomicInteger();
+        AtomicInteger wildSub = new AtomicInteger();
+        CountDownLatch latch = new CountDownLatch(2);
+        source.start(Set.of("CourseEnrolled"), () -> { typed.incrementAndGet(); latch.countDown(); });
+        source.start(() -> { wildSub.incrementAndGet(); latch.countDown(); });
+
+        source.dispatchBatch(new PGNotification[]{notify("WalletCreated")}); // no CourseEnrolled
+        source.dispatchBatch(new PGNotification[]{notify("*")});             // wildcard
+
+        assertThat(latch.await(300, TimeUnit.MILLISECONDS)).isTrue();
+        // Both subscribers woken because wildcard poisoned the merge
+        assertThat(typed.get()).isEqualTo(1);
+        assertThat(wildSub.get()).isEqualTo(1);
+        source.close();
+    }
+
+    @Test
+    @DisplayName("debounce>0: close() drains pending flush before stopping")
+    void debounceCloseFlushesImmediately() {
+        var source = new PostgresNotifyWakeupSource(
+                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 5000L); // very long window
+        AtomicInteger count = new AtomicInteger();
+        source.start(count::incrementAndGet);
+
+        source.dispatchBatch(new PGNotification[]{notify("WalletCreated")}); // queued, window not elapsed
+        source.close(); // must drain immediately
+
+        assertThat(count.get()).isEqualTo(1); // drained synchronously on close
+    }
+
+    // --- helper ---
+
+    private static PGNotification notify(String payload) {
+        return new PGNotification() {
+            @Override public String getName() { return "crablet_events"; }
+            @Override public String getParameter() { return payload; }
+            @Override public int getPID() { return 0; }
+        };
     }
 }

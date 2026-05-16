@@ -19,7 +19,13 @@ public final class PostgresNotifyWakeupSourceFactory implements ProcessorWakeupS
 
     public PostgresNotifyWakeupSourceFactory(
             String jdbcUrl, @Nullable String username, @Nullable String password, String channel) {
-        this.shared = new PostgresNotifyWakeupSource(jdbcUrl, username, password, channel);
+        this(jdbcUrl, username, password, channel, 20L);
+    }
+
+    public PostgresNotifyWakeupSourceFactory(
+            String jdbcUrl, @Nullable String username, @Nullable String password,
+            String channel, long debounceMs) {
+        this.shared = new PostgresNotifyWakeupSource(jdbcUrl, username, password, channel, debounceMs);
     }
 
     @Override

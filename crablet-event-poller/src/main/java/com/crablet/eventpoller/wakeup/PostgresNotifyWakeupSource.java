@@ -15,24 +15,38 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
  * Dedicated PostgreSQL LISTEN/NOTIFY wakeup source.
  *
- * <p>Shared across modules: multiple callers may register via
- * {@link #start(Set, Runnable)}. The LISTEN connection and listener thread are
- * started on the first registration and stopped when the last subscriber
- * unregisters via {@link #close(Runnable)}. {@link #close()} force-closes
- * regardless of remaining subscribers (Spring context shutdown).
+ * <p>Shared across modules: multiple callers register via {@link #start(Set, Runnable)}.
+ * The LISTEN connection and listener thread start on the first registration and stop when
+ * the last subscriber unregisters via {@link #close(Runnable)}.
+ * {@link #close()} force-closes regardless of remaining subscribers (context shutdown).
  *
- * <p>Each subscriber declares the set of event type names it is interested in.
- * When a notification arrives with a type-encoded payload, only subscribers
- * whose declared types intersect the payload types are woken. A wildcard payload
- * ({@code "*"}, blank, or {@code null}) wakes all subscribers. An empty declared
- * type set means the subscriber wants all event types.
+ * <h2>Batch coalescing (Phase A)</h2>
+ * <p>Multiple notifications returned in a single {@code getNotifications()} call are merged
+ * into one wakeup decision: event types are unioned; any wildcard payload makes the whole
+ * batch a wildcard. Each subscriber is called at most once per driver read.
+ *
+ * <h2>Cross-read debounce (Phase B)</h2>
+ * <p>When {@code debounceMs > 0}, back-to-back driver reads within the window are further
+ * merged so that a Postgres burst split across several reads still results in one wakeup
+ * per subscriber per window. {@code debounceMs = 0} disables this and dispatches
+ * immediately after each read (Phase A only).
+ *
+ * <h2>Event-type filtering (Phase D)</h2>
+ * <p>Each subscriber declares its interested event types. Wildcard subscribers (empty set)
+ * are always woken. Typed subscribers are woken only when the accumulated batch intersects
+ * their declared types, or when the batch carries a wildcard payload.
  */
+@SuppressWarnings("NullAway") // AtomicReference<BatchState> uses null as "no pending state" sentinel
 public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
 
     private static final Logger log = LoggerFactory.getLogger(PostgresNotifyWakeupSource.class);
@@ -41,20 +55,56 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
     private final @Nullable String username;
     private final @Nullable String password;
     private final String channel;
+    private final long debounceMs;
+
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final CopyOnWriteArrayList<Subscriber> subscribers = new CopyOnWriteArrayList<>();
+
+    // Cross-read debounce state
+    private final AtomicReference<BatchState> accumulator = new AtomicReference<>(null);
+    private final AtomicBoolean pendingFlush = new AtomicBoolean(false);
+    private final ScheduledExecutorService flushScheduler;
 
     private @Nullable Thread listenerThread;
     private @Nullable Connection connection;
 
     private record Subscriber(Set<String> eventTypes, Runnable onWakeup) {}
 
+    /**
+     * Immutable accumulated batch state. Merges multiple driver reads.
+     * {@code wildcard = true} means "wake all subscribers regardless of types."
+     */
+    record BatchState(boolean wildcard, Set<String> types) {
+        static BatchState ofBatch(boolean wildcard, Set<String> types) {
+            return new BatchState(wildcard, wildcard ? Set.of() : Set.copyOf(types));
+        }
+
+        BatchState merge(BatchState other) {
+            if (this.wildcard || other.wildcard) return new BatchState(true, Set.of());
+            Set<String> merged = new HashSet<>(types);
+            merged.addAll(other.types);
+            return new BatchState(false, Collections.unmodifiableSet(merged));
+        }
+    }
+
     public PostgresNotifyWakeupSource(
             String jdbcUrl, @Nullable String username, @Nullable String password, String channel) {
+        this(jdbcUrl, username, password, channel, 20L);
+    }
+
+    public PostgresNotifyWakeupSource(
+            String jdbcUrl, @Nullable String username, @Nullable String password,
+            String channel, long debounceMs) {
         this.jdbcUrl = jdbcUrl;
         this.username = username;
         this.password = password;
         this.channel = validateChannel(channel);
+        this.debounceMs = debounceMs;
+        this.flushScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "crablet-pg-notify-flush-" + channel);
+            t.setDaemon(true);
+            return t;
+        });
     }
 
     @Override
@@ -76,13 +126,25 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
     public synchronized void close(Runnable onWakeup) {
         subscribers.removeIf(s -> s.onWakeup() == onWakeup);
         if (subscribers.isEmpty()) {
-            stopListener();
+            drainAndStop();
         }
     }
 
     @Override
     public synchronized void close() {
+        drainAndStop();
         subscribers.clear();
+    }
+
+    private void drainAndStop() {
+        // Cancel any pending scheduled flush and drain its accumulated state immediately,
+        // so subscribers receive one final wakeup before the connection closes.
+        flushScheduler.shutdownNow();
+        pendingFlush.set(false);
+        BatchState pending = accumulator.getAndSet(null);
+        if (pending != null) {
+            dispatchToSubscribers(pending);
+        }
         stopListener();
     }
 
@@ -134,14 +196,10 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
     }
 
     /**
-     * Aggregate all payloads in the batch, then wake each subscriber at most once.
-     *
-     * <p>If any notification carries a wildcard payload, the whole batch is treated
-     * as a wildcard and all subscribers are woken. Otherwise the event types from all
-     * notifications are unioned and each subscriber is woken only if its declared types
-     * intersect the union (or if it subscribes to all types via an empty set).
+     * Merge one driver read into a batch state and either dispatch immediately
+     * (debounceMs == 0) or accumulate for the next flush window.
      */
-    private void dispatchBatch(PGNotification[] notifications) {
+    void dispatchBatch(PGNotification[] notifications) {
         boolean hasWildcard = false;
         Set<String> batchTypes = new HashSet<>();
         for (PGNotification n : notifications) {
@@ -152,11 +210,39 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
             }
             batchTypes.addAll(parsed);
         }
+        BatchState incoming = BatchState.ofBatch(hasWildcard, batchTypes);
 
+        if (debounceMs == 0) {
+            dispatchToSubscribers(incoming);
+            return;
+        }
+
+        // Merge into cross-read accumulator atomically
+        accumulator.accumulateAndGet(incoming, (existing, next) ->
+                existing == null ? next : existing.merge(next));
+
+        // Schedule one flush per window — compareAndSet ensures only one is scheduled at a time
+        if (pendingFlush.compareAndSet(false, true)) {
+            flushScheduler.schedule(this::flushAccumulator, debounceMs, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private void flushAccumulator() {
+        // Set false FIRST so listener batches arriving during flush can schedule their own window.
+        // If they do, they may also be consumed by this flush's getAndSet — their newly-scheduled
+        // flush will then fire as a no-op (null accumulator). This is safe: no data is lost.
+        pendingFlush.set(false);
+        BatchState snapshot = accumulator.getAndSet(null);
+        if (snapshot != null) {
+            dispatchToSubscribers(snapshot);
+        }
+    }
+
+    private void dispatchToSubscribers(BatchState state) {
         for (Subscriber sub : subscribers) {
-            boolean wake = sub.eventTypes().isEmpty()                            // subscriber wants all types
-                    || hasWildcard                                               // sender does not know types
-                    || !Collections.disjoint(sub.eventTypes(), batchTypes);     // type intersection
+            boolean wake = sub.eventTypes().isEmpty()                           // subscriber wants all types
+                    || state.wildcard()                                         // sender does not know types
+                    || !Collections.disjoint(sub.eventTypes(), state.types()); // type intersection
             if (wake) {
                 sub.onWakeup().run();
             }

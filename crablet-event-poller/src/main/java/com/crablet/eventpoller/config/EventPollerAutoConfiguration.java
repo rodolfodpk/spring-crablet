@@ -82,6 +82,7 @@ public class EventPollerAutoConfiguration {
                 notificationProperties.getJdbcUrl(),
                 notificationProperties.getUsername(),
                 notificationProperties.getPassword(),
-                notificationProperties.getChannel());
+                notificationProperties.getChannel(),
+                notificationProperties.getDebounce().toMillis());
     }
 }
