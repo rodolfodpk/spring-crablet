@@ -77,4 +77,46 @@ class PostgresNotifyEventAppendNotifierTest {
 
         assertThatCode(notifier::notifyEventsAppended).doesNotThrowAnyException();
     }
+
+    // --- Phase E: failure hygiene ---
+
+    @Test
+    void consecutiveFailuresNeverThrowRegardlessOfCount() throws Exception {
+        DataSource broken = mock(DataSource.class);
+        when(broken.getConnection()).thenThrow(new SQLException("pool exhausted"));
+
+        PostgresNotifyEventAppendNotifier notifier =
+                new PostgresNotifyEventAppendNotifier(broken, "crablet_events", "events-appended");
+
+        // Drive well past the failure threshold — must never propagate
+        for (int i = 0; i < 20; i++) {
+            assertThatCode(notifier::notifyEventsAppended).doesNotThrowAnyException();
+        }
+    }
+
+    @Test
+    void recoveryAfterCooldownResetsSuppression() throws Exception {
+        DataSource broken = mock(DataSource.class);
+        when(broken.getConnection()).thenThrow(new SQLException("fail"));
+
+        PostgresNotifyEventAppendNotifier notifier =
+                new PostgresNotifyEventAppendNotifier(broken, "crablet_events", "events-appended");
+
+        // Exhaust threshold to enter cooldown
+        for (int i = 0; i < 5; i++) {
+            notifier.notifyEventsAppended();
+        }
+
+        // Force cooldown to expire via reflection
+        var field = PostgresNotifyEventAppendNotifier.class.getDeclaredField("suppressUntilNanos");
+        field.setAccessible(true);
+        field.set(notifier, 0L);
+
+        // Switch to healthy datasource and verify recovery works without throwing
+        DataSource healthy = mock(DataSource.class);
+        when(healthy.getConnection()).thenAnswer(inv -> ds.getConnection());
+        PostgresNotifyEventAppendNotifier recovered =
+                new PostgresNotifyEventAppendNotifier(healthy, "crablet_events", "events-appended");
+        assertThatCode(recovered::notifyEventsAppended).doesNotThrowAnyException();
+    }
 }

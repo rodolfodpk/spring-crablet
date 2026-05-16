@@ -45,11 +45,23 @@ import java.util.stream.Collectors;
  * <p>Each subscriber declares its interested event types. Wildcard subscribers (empty set)
  * are always woken. Typed subscribers are woken only when the accumulated batch intersects
  * their declared types, or when the batch carries a wildcard payload.
+ *
+ * <h2>Reconnect backoff (Phase E)</h2>
+ * <p>Transient LISTEN failures (Postgres restart, network blip) are retried with
+ * exponential backoff capped at 60 s. A connection that was established and then dropped
+ * resets the backoff to 1 s because the server was reachable. Permanent failures (pooler
+ * detected via {@code unwrap} failure) exit without retry; the system falls back to
+ * scheduled polling.
  */
 @SuppressWarnings("NullAway") // AtomicReference<BatchState> uses null as "no pending state" sentinel
 public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
 
     private static final Logger log = LoggerFactory.getLogger(PostgresNotifyWakeupSource.class);
+
+    // Reconnect backoff: 1 s → 2 s → 4 s → … capped at 60 s
+    private static final long RECONNECT_BASE_MS    = 1_000L;
+    private static final long RECONNECT_MAX_MS     = 60_000L;
+    private static final int  RECONNECT_MAX_SHIFT  = 6; // 2^6 × 1 s = 64 s > cap
 
     private final String jdbcUrl;
     private final @Nullable String username;
@@ -157,43 +169,87 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
         }
     }
 
+    // ── Reconnect loop ────────────────────────────────────────────────────────
+
     private void listenLoop() {
+        int attempt = 0;
+        while (running.get()) {
+            boolean[] wasConnected = {false};
+            try {
+                runListenSession(wasConnected);
+                return; // clean shutdown (running became false)
+            } catch (SQLException e) {
+                if (!running.get()) return;
+
+                if (isPermanentFailure(e)) {
+                    log.warn("LISTEN wakeup permanently disabled for channel '{}': "
+                            + "could not obtain a direct PostgreSQL connection. "
+                            + "Check that notifications.jdbc-url points directly at PostgreSQL "
+                            + "and not through a pooler (PgBouncer transaction mode, PgCat, "
+                            + "RDS Proxy). Falling back to scheduled polling. Cause: {}",
+                            channel, e.getMessage());
+                    return;
+                }
+
+                long delayMs;
+                if (wasConnected[0]) {
+                    // Server was reachable — transient drop (restart, network blip); reset backoff
+                    attempt = 0;
+                    delayMs = RECONNECT_BASE_MS;
+                    log.warn("LISTEN connection dropped for channel '{}', reconnecting in {}ms: {}",
+                            channel, delayMs, e.getMessage());
+                } else {
+                    delayMs = Math.min(RECONNECT_BASE_MS << attempt, RECONNECT_MAX_MS);
+                    log.warn("LISTEN could not connect for channel '{}' (attempt {}), "
+                            + "retrying in {}ms: {}",
+                            channel, attempt + 1, delayMs, e.getMessage());
+                    attempt = Math.min(attempt + 1, RECONNECT_MAX_SHIFT);
+                }
+
+                try {
+                    Thread.sleep(delayMs);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            }
+        }
+    }
+
+    /**
+     * Open one LISTEN session and poll until {@code running} is false or an error occurs.
+     * Sets {@code wasConnected[0] = true} once the LISTEN statement succeeds, so the
+     * caller can distinguish "never connected" from "connected then dropped."
+     */
+    private void runListenSession(boolean[] wasConnected) throws SQLException {
+        Connection listenConnection = username == null && password == null
+                ? DriverManager.getConnection(jdbcUrl)
+                : DriverManager.getConnection(jdbcUrl, username, password);
+        connection = listenConnection;
         try {
-            Connection listenConnection = username == null && password == null
-                    ? DriverManager.getConnection(jdbcUrl)
-                    : DriverManager.getConnection(jdbcUrl, username, password);
-            connection = listenConnection;
             try (Statement statement = listenConnection.createStatement()) {
                 statement.execute("LISTEN " + channel);
             }
-
             PGConnection pgConnection = listenConnection.unwrap(PGConnection.class);
+            wasConnected[0] = true;
+            log.debug("LISTEN active on channel '{}'", channel);
+
             while (running.get()) {
                 PGNotification[] notifications = pgConnection.getNotifications(1000);
-                if (notifications == null || notifications.length == 0) {
-                    continue;
-                }
-                if (!running.get()) {
-                    break;
-                }
+                if (notifications == null || notifications.length == 0) continue;
+                if (!running.get()) break;
                 dispatchBatch(notifications);
-            }
-        } catch (SQLException e) {
-            if (running.get()) {
-                if (e.getMessage() != null && e.getMessage().toLowerCase().contains("unwrap")) {
-                    log.warn("LISTEN wakeup disabled for channel '{}': could not obtain a direct PostgreSQL connection. "
-                            + "Check that notifications.jdbc-url points directly at PostgreSQL and not through a pooler "
-                            + "(PgBouncer transaction mode, PgCat, RDS Proxy). Falling back to scheduled polling. "
-                            + "Cause: {}", channel, e.getMessage());
-                } else {
-                    log.warn("LISTEN wakeup listener stopped for channel '{}': {}. "
-                            + "Falling back to scheduled polling.", channel, e.getMessage());
-                }
             }
         } finally {
             closeConnectionQuietly();
         }
     }
+
+    private static boolean isPermanentFailure(SQLException e) {
+        return e.getMessage() != null && e.getMessage().toLowerCase().contains("unwrap");
+    }
+
+    // ── Batch dispatch ─────────────────────────────────────────────────────────
 
     /**
      * Merge one driver read into a batch state and either dispatch immediately
@@ -249,6 +305,8 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
         }
     }
 
+    // ── Payload parsing ────────────────────────────────────────────────────────
+
     /**
      * Parse a pg_notify payload into a set of event type names.
      * Returns an empty set to signal "wildcard" (wake all subscribers).
@@ -262,6 +320,8 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toUnmodifiableSet());
     }
+
+    // ── Lifecycle helpers ──────────────────────────────────────────────────────
 
     private void closeConnectionQuietly() {
         if (connection == null) {

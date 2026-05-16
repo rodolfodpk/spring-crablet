@@ -4,6 +4,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.postgresql.PGNotification;
 
+import java.lang.reflect.Method;
+import java.sql.SQLException;
+
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -264,6 +267,30 @@ class PostgresNotifyWakeupSourceTest {
         source.close(); // must drain immediately
 
         assertThat(count.get()).isEqualTo(1); // drained synchronously on close
+    }
+
+    // --- Phase E: reconnect backoff ---
+
+    @Test
+    @DisplayName("isPermanentFailure: unwrap error is permanent; generic error is not")
+    void permanentFailureDetection() throws Exception {
+        Method method = PostgresNotifyWakeupSource.class
+                .getDeclaredMethod("isPermanentFailure", SQLException.class);
+        method.setAccessible(true);
+
+        SQLException poolerError = new SQLException("Cannot unwrap to PGConnection");
+        SQLException transientError = new SQLException("Connection reset");
+
+        assertThat((boolean) method.invoke(null, poolerError)).isTrue();
+        assertThat((boolean) method.invoke(null, transientError)).isFalse();
+    }
+
+    @Test
+    @DisplayName("close() while no listener thread started is safe (no reconnect loop)")
+    void closeBeforeListenerStartsNoReconnect() {
+        var source = new PostgresNotifyWakeupSource(
+                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 0L);
+        assertThatCode(source::close).doesNotThrowAnyException();
     }
 
     // --- helper ---
