@@ -2,13 +2,15 @@
 
 [![codecov](https://codecov.io/gh/rodolfodpk/spring-crablet/branch/main/graph/badge.svg?component=module_metrics)](https://codecov.io/gh/rodolfodpk/spring-crablet)
 
-Micrometer metrics collector for Crablet event-driven metrics.
+Compatibility Micrometer metrics collector for Crablet event-driven metrics.
 
 ## Overview
 
-This module provides automatic metrics collection for Crablet using Micrometer. It subscribes to metric events published via Spring Events and records them to Micrometer.
+This module provides compatibility metrics collection for Crablet using Micrometer. It subscribes to metric events published via Spring Events and records them to Micrometer.
 
-**Framework-agnostic design**: The core Crablet modules (`crablet-eventstore`, `crablet-commands`, `crablet-outbox`) publish framework-agnostic metric events. This module collects those events and records them to Micrometer.
+**Current direction:** Crablet modules now own Spring/Micrometer Observation instrumentation. For new deployments, prefer Spring Boot Actuator with OTLP/OpenTelemetry export. Keep this module when you need the existing Prometheus/Grafana dashboard metric names.
+
+**Module independence:** the collector depends only on `crablet-eventstore`'s shared `MetricEvent` marker. Adding it no longer pulls commands, views, automations, outbox, and event-poller onto the main classpath.
 
 ## Getting Started
 

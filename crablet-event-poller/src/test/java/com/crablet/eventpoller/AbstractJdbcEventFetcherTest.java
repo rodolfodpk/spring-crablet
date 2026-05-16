@@ -1,7 +1,9 @@
 package com.crablet.eventpoller;
 
 import com.crablet.eventstore.StoredEvent;
+import org.flywaydb.core.Flyway;
 import org.jspecify.annotations.Nullable;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,15 @@ class AbstractJdbcEventFetcherTest {
 
     private DataSource dataSource;
 
+    @BeforeAll
+    static void migrateSchema() {
+        Flyway.configure()
+                .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+                .locations("classpath:db/migration")
+                .load()
+                .migrate();
+    }
+
     @BeforeEach
     void setUp() throws Exception {
         PGSimpleDataSource ds = new PGSimpleDataSource();
@@ -40,18 +51,7 @@ class AbstractJdbcEventFetcherTest {
         dataSource = ds;
 
         try (Connection connection = dataSource.getConnection()) {
-            connection.createStatement().execute("""
-                CREATE TABLE IF NOT EXISTS events (
-                    type VARCHAR(64) NOT NULL,
-                    tags TEXT[] NOT NULL DEFAULT '{}',
-                    data JSON NOT NULL,
-                    transaction_id xid8 NOT NULL,
-                    position BIGSERIAL NOT NULL PRIMARY KEY,
-                    occurred_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    correlation_id UUID NULL,
-                    causation_id BIGINT NULL
-                )
-                """);
+            connection.createStatement().execute("TRUNCATE TABLE event_tags");
             connection.createStatement().execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
         }
     }
@@ -98,14 +98,48 @@ class AbstractJdbcEventFetcherTest {
                 .isEqualTo("One");
     }
 
+    @Test
+    @DisplayName("Does not fetch past an unsafe open transaction")
+    void doesNotFetchPastUnsafeOpenTransaction() throws Exception {
+        TestFetcher fetcher = new TestFetcher(dataSource, "TRUE");
+
+        try (Connection openTransaction = dataSource.getConnection()) {
+            openTransaction.setAutoCommit(false);
+            insertEvent(openTransaction, "FirstOpenTransaction", new String[]{"kind=a"}, "{}", null, null);
+
+            insertEvent("SecondCommittedTransaction", new String[]{"kind=a"}, "{}", null, null);
+
+            assertThat(fetcher.fetchEvents("processor", 0, 10))
+                    .as("The later committed event must not advance the position cursor while an earlier xid is open")
+                    .isEmpty();
+
+            openTransaction.commit();
+        }
+
+        assertThat(fetcher.fetchEvents("processor", 0, 10))
+                .extracting(StoredEvent::type)
+                .containsExactly("FirstOpenTransaction", "SecondCommittedTransaction");
+    }
+
     private void insertEvent(
             String type,
             String[] tags,
             String data,
             @Nullable UUID correlationId,
             @Nullable Long causationId) throws Exception {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement stmt = connection.prepareStatement("""
+        try (Connection connection = dataSource.getConnection()) {
+            insertEvent(connection, type, tags, data, correlationId, causationId);
+        }
+    }
+
+    private void insertEvent(
+            Connection connection,
+            String type,
+            String[] tags,
+            String data,
+            @Nullable UUID correlationId,
+            @Nullable Long causationId) throws Exception {
+        try (PreparedStatement stmt = connection.prepareStatement("""
                  INSERT INTO events (type, tags, data, transaction_id, occurred_at, correlation_id, causation_id)
                  VALUES (?, ?, ?::json, pg_current_xact_id(), CURRENT_TIMESTAMP, ?, ?)
                  """)) {

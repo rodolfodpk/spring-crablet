@@ -11,6 +11,7 @@ import org.springframework.scheduling.concurrent.SimpleAsyncTaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import java.time.Instant;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -94,17 +95,23 @@ class EventPollerAutoConfigurationTest {
         SimpleAsyncTaskScheduler scheduler =
                 (SimpleAsyncTaskScheduler) autoConfiguration.taskScheduler(config, environment);
         AtomicReference<Thread> executingThread = new AtomicReference<>();
+        CountDownLatch taskRan = new CountDownLatch(1);
 
-        scheduler.start();
-        ScheduledFuture<?> future = scheduler.schedule(() -> {
-            executingThread.set(Thread.currentThread());
-        }, Instant.now());
+        try {
+            scheduler.start();
+            ScheduledFuture<?> future = scheduler.schedule(() -> {
+                executingThread.set(Thread.currentThread());
+                taskRan.countDown();
+            }, Instant.now());
 
-        assertThat(future.get(5, TimeUnit.SECONDS)).isNull();
-        assertThat(future.isDone()).isTrue();
-        assertThat(executingThread.get()).isNotNull();
-        assertThat(executingThread.get().isVirtual()).isTrue();
-        scheduler.close();
+            assertThat(future.get(5, TimeUnit.SECONDS)).isNull();
+            assertThat(taskRan.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(future.isDone()).isTrue();
+            assertThat(executingThread.get()).isNotNull();
+            assertThat(executingThread.get().isVirtual()).isTrue();
+        } finally {
+            scheduler.close();
+        }
     }
 
     @Test

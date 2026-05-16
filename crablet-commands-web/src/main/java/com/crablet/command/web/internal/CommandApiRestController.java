@@ -1,5 +1,6 @@
 package com.crablet.command.web.internal;
 
+import com.crablet.command.CommandExecutionOptions;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.ExecutionResult;
 import com.crablet.command.web.CommandApiExposedCommandsResponse;
@@ -84,7 +85,10 @@ class CommandApiRestController {
             throw new CommandApiBadRequestException("Invalid payload for commandType: " + commandType);
         }
 
-        ExecutionResult result = commandExecutor.execute(command, correlationId(request));
+        UUID corrId = correlationId(request);
+        ExecutionResult result = corrId != null
+                ? commandExecutor.execute(command, CommandExecutionOptions.builder().correlationId(corrId).build())
+                : commandExecutor.execute(command);
         if (result.wasCreated()) {
             return ResponseEntity.status(HttpStatus.CREATED).body(CommandApiResponse.created());
         }

@@ -1,6 +1,7 @@
 package com.crablet.command.internal;
 
 import com.crablet.command.CommandDecision;
+import com.crablet.command.CommandExecutionOptions;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.DiscoveredCommandRegistry;
@@ -33,6 +34,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -71,6 +73,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class CommandExecutorImpl implements CommandExecutor {
 
     private static final Logger log = LoggerFactory.getLogger(CommandExecutorImpl.class);
+    private static final ScopedValue<UUID> COMMAND_ID = ScopedValue.newInstance();
 
     private final EventStore eventStore;
     private final Map<String, CommandHandler<?>> handlers;
@@ -140,18 +143,27 @@ public class CommandExecutorImpl implements CommandExecutor {
     }
 
     @Override
-    public <T> ExecutionResult execute(T command, @Nullable UUID correlationId) {
-        if (correlationId == null) {
+    public <T> ExecutionResult execute(T command, CommandExecutionOptions options) {
+        UUID correlationId = options.correlationId();
+        UUID commandId = options.commandId();
+        AtomicReference<ExecutionResult> result = new AtomicReference<>();
+        if (correlationId == null && commandId == null) {
             return execute(command);
         }
-        try {
-            return ScopedValue.where(CorrelationContext.CORRELATION_ID, correlationId)
-                              .call(() -> execute(command));
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Unexpected checked exception during command execution", e);
+        if (correlationId == null) {
+            ScopedValue.where(COMMAND_ID, commandId)
+                       .run(() -> result.set(execute(command)));
+            return result.get();
         }
+        if (commandId == null) {
+            ScopedValue.where(CorrelationContext.CORRELATION_ID, correlationId)
+                       .run(() -> result.set(execute(command)));
+            return result.get();
+        }
+        ScopedValue.where(CorrelationContext.CORRELATION_ID, correlationId)
+                   .where(COMMAND_ID, commandId)
+                   .run(() -> result.set(execute(command)));
+        return result.get();
     }
 
     @Override
@@ -213,6 +225,12 @@ public class CommandExecutorImpl implements CommandExecutor {
             );
         }
 
+        @Nullable UUID commandId = COMMAND_ID.isBound() ? COMMAND_ID.get() : null;
+        if (commandId != null && !config.isPersistCommands()) {
+            throw new InvalidCommandException(
+                "Command-level idempotency requires persist-commands=true", command);
+        }
+
         log.debug("Starting transaction for command: {}", commandType);
 
         // Start timing with ClockProvider
@@ -223,6 +241,19 @@ public class CommandExecutorImpl implements CommandExecutor {
 
         try {
             ExecutionResult executionResult = eventStore.executeInTransaction(txStore -> {
+                // Pre-handler command-level idempotency check.
+                // Inserts the command record using pg_current_xact_id() so the same
+                // transaction_id is shared with any subsequent event append.
+                // ON CONFLICT DO NOTHING returns 0 rows when the command_id already exists.
+                if (commandId != null && txStore instanceof CommandAuditStore auditStore) {
+                    String commandJsonForIdempotency = Objects.requireNonNull(commandJson);
+                    if (!auditStore.storeCommandIfAbsent(
+                            commandJsonForIdempotency, commandType, commandId, startTime)) {
+                        operationType.set("command_idempotent");
+                        return ExecutionResult.idempotent("COMMAND_DUPLICATE");
+                    }
+                }
+
                 // Handle command and generate events
                 // Type-safe invocation: handler is CommandHandler<T>, command is T
                 CommandDecision result = handler.handle(txStore, command);
@@ -279,10 +310,11 @@ public class CommandExecutorImpl implements CommandExecutor {
                     return handleConcurrencyException(e, commandType, command, result);
                 }
 
-                // Store command for audit and query purposes (if enabled)
-                if (config.isPersistCommands() && commandJson != null && transactionId != null
+                // Store command for audit (non-idempotent path: commandId == null).
+                // When commandId is non-null, the record was already written pre-handler.
+                if (commandId == null && commandJson != null
                         && txStore instanceof CommandAuditStore auditStore) {
-                    auditStore.storeCommand(commandJson, commandType, transactionId);
+                    auditStore.storeCommand(commandJson, commandType, startTime);
                 }
 
                 // Return success result

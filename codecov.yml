@@ -89,6 +89,16 @@ component_management:
           target: auto
         - type: patch
           target: auto
+
+    - component_id: module_observability
+      name: Observability
+      paths:
+        - "crablet-observability/src/main/**"
+      statuses:
+        - type: project
+          target: auto
+        - type: patch
+          target: auto
     
     - component_id: module_event_processor
       name: Event Processor

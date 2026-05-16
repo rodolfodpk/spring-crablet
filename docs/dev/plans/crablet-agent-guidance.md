@@ -4,14 +4,14 @@
 
 The original plan proposed adding a Crablet-native agent layer alongside the existing skills.
 On evaluation, the proposed agents substantially overlapped existing skills (`event-modeling`,
-`dcb`, `crablet-app-dev`, `crablet-maintainer`). The revised approach resolves agent content into
+`crablet-dcb`, `crablet-app-dev`, `crablet-maintainer`). The revised approach resolves agent content into
 the skills system: overlapping scopes are absorbed into existing skills, and only the distinct
 diagram-renderer scope becomes a new skill.
 
 ## Non-Goals (unchanged)
 
 - Do not install or vendor `melodic-software/claude-code-plugins`.
-- Do not replace the existing `event-modeling`, `dcb`, `crablet-app-dev`, or
+- Do not replace the existing `event-modeling`, `crablet-dcb`, `crablet-app-dev`, or
   `crablet-maintainer` skills.
 - Do not introduce generic saga state machines as a Crablet runtime concept.
 - Do not move external publication into command handlers or automations.
@@ -40,8 +40,8 @@ bands, canonical vs sidecar overlays) have no existing home and are genuinely di
 | File | What was added |
 |---|---|
 | `.claude/skills/event-modeling/SKILL.md` | Facilitation aids: brain dump, timeline arrangement, hot spots, Given/When/Then slice summaries, saga-as-TODO/automation/command/event pattern |
-| `.claude/skills/crablet-app-dev/SKILL.md` | Explicit 6-step Process Rule for automation/outbox workflows; cross-link to `dcb` for command-pattern choices |
-| `.claude/skills/dcb/SKILL.md` | Cross-links to process guidance for automation retries and outbox for external publication |
+| `.claude/skills/crablet-app-dev/SKILL.md` | Explicit 6-step Process Rule for automation/outbox workflows; cross-link to `crablet-dcb` for command-pattern choices |
+| `.claude/skills/crablet-dcb/SKILL.md` | Cross-links to process guidance for automation retries and outbox for external publication |
 | `.claude/skills/crablet-maintainer/SKILL.md` | Root vs template copy policy |
 
 ### Template mirrors updated
@@ -61,7 +61,7 @@ bands, canonical vs sidecar overlays) have no existing home and are genuinely di
 1. Open each modified SKILL.md and confirm new sections are present and consistent.
 2. Use the `event-modeling` skill; confirm facilitation aids appear before Workshop Steps
    and the 6-step saga pattern is visible.
-3. Use the `dcb` skill on an automation scenario; confirm cross-links appear.
+3. Use the `crablet-dcb` skill on an automation scenario; confirm cross-links appear.
 4. Run the banned-pattern search:
    ```
    rg -n "validation:|notBlank|greaterThan|genericSaga|webhook.*automation" \

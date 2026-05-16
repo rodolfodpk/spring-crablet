@@ -128,6 +128,25 @@ The same semantics apply in both fetch modes:
 
 Shared-fetch changes query shape, not selection meaning. It is still module-scoped: enabling shared-fetch for views does not combine views, automations, and outbox into one global query.
 
+## Transaction Safe Horizon
+
+Poller-backed modules keep position-based progress (`last_position`), but fetch only events whose
+PostgreSQL transaction is safely below the current snapshot horizon:
+
+```sql
+transaction_id < pg_snapshot_xmin(pg_current_snapshot())
+```
+
+This follows the transaction-id ordering guard used by the event store. It prevents a poller from
+advancing `last_position` past a later committed event while an earlier transaction can still commit
+and make a lower-position event visible. The tradeoff is intentional: a long-running write
+transaction can temporarily hold back views, automations, and outbox polling until PostgreSQL's safe
+horizon advances.
+
+Crablet does not expose a `(transaction_id, position)` cursor for poller-backed modules. The public
+and operational cursor remains `last_position`; the transaction-id guard is an internal correctness
+filter on fetches.
+
 ## Wakeup Notifications (PostgreSQL LISTEN/NOTIFY)
 
 By default the poller uses a fixed schedule. Optionally you can enable PostgreSQL
@@ -257,7 +276,7 @@ The event processor is built around a few key interfaces:
 
 2. **Scheduling**: By default, `EventProcessorImpl` creates a scheduled task per processor that:
    - Checks if this instance is the leader (via `LeaderElector`)
-   - Fetches events from the event store (via `EventFetcher`)
+   - Fetches transaction-safe events from the event store (via `EventFetcher`)
    - Handles events (via `EventHandler`)
    - Updates progress (via `ProgressTracker`)
 
@@ -267,7 +286,7 @@ The event processor is built around a few key interfaces:
 
 4. **Backoff**: After a threshold of empty polls, the scheduler skips cycles with exponential backoff
 
-5. **Progress Tracking**: Each processor tracks its own position independently in its module-specific progress table such as `view_progress`, `outbox_topic_progress`, or `reaction_progress`
+5. **Progress Tracking**: Each processor tracks its own position independently in its module-specific progress table such as `view_progress`, `outbox_topic_progress`, or `reaction_progress`. Fetches are still ordered by position, but unsafe transactions are filtered out before progress can advance.
 
 ## Configuration Model
 
@@ -426,7 +445,10 @@ The processor publishes metrics via Spring Events:
 - `LeadershipMetric` - Leader election changes
 - `ProcessorMetric` - Processor-specific metrics
 
-See [crablet-metrics-micrometer](../crablet-metrics-micrometer/README.md) for automatic metrics collection.
+Event-poller records module-owned observations when Spring's `ObservationRegistry` is present.
+For new installations, export through Spring Boot Actuator and OTLP/OpenTelemetry. See
+[crablet-metrics-micrometer](../crablet-metrics-micrometer/README.md) only when you need the
+legacy Prometheus/Grafana dashboard collector.
 
 ## See Also
 

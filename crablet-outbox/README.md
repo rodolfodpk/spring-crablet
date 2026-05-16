@@ -116,6 +116,7 @@ eventStore.appendCommutative(events);
 Crablet Outbox uses:
 - **Per-publisher schedulers**: Independent scheduler per (topic, publisher) pair for isolation and flexible polling
 - **Global leader election**: PostgreSQL advisory locks for automatic failover. See [Leader Election Guide](../docs/user/LEADER_ELECTION.md) for details.
+- **Transaction safe-horizon polling**: Position cursors advance only after events are below PostgreSQL's `transaction_id` safe horizon.
 - **At-least-once delivery**: Events may be published multiple times (idempotent consumers required)
 
 **Recommended deployment:**
@@ -182,7 +183,7 @@ Outbox processors still run per `(topic, publisher)` pair. That means the global
 
 ### Shared-Fetch Mode
 
-When `crablet.outbox.shared-fetch.enabled=true`, all outbox processors in the module share a single position-only DB fetch per cycle. Events are routed in-memory to each `(topic, publisher)` processor. This reduces DB load on LISTEN/NOTIFY wakeups from N queries (one per processor) to one query per module cycle.
+When `crablet.outbox.shared-fetch.enabled=true`, all outbox processors in the module share a single position-ordered, transaction-safe DB fetch per cycle. Events are routed in-memory to each `(topic, publisher)` processor. This reduces DB load on LISTEN/NOTIFY wakeups from N queries (one per processor) to one query per module cycle.
 
 Requires two additional tables in your schema migration:
 
@@ -205,11 +206,12 @@ Use `crablet.outbox.fetch-batch-size` to tune how many events the shared module 
 
 ## Metrics
 
-Outbox components support metrics collection via Spring's `ApplicationEventPublisher`:
+Outbox components support observability through Spring's `ObservationRegistry` when available, and
+continue to publish compatibility metric events via Spring's `ApplicationEventPublisher`:
 
-- **Metrics are enabled by default**: Spring Boot automatically provides an `ApplicationEventPublisher` bean
+- **Observations are module-owned**: add Spring Boot Actuator and export via OTLP/OpenTelemetry for new installations
 - **Required parameter**: The `eventPublisher` parameter is required in all outbox component constructors
-- **Automatic metrics collection**: See [crablet-metrics-micrometer](../crablet-metrics-micrometer/README.md) for automatic metrics collection
+- **Compatibility metrics**: See [crablet-metrics-micrometer](../crablet-metrics-micrometer/README.md) for the legacy Prometheus/Grafana dashboard collector
 
 The following components publish metrics:
 - `OutboxPublishingServiceImpl` - Publishing metrics

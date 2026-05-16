@@ -1,8 +1,11 @@
 package com.crablet.views.config;
 
+import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.InstanceIdProvider;
-import com.crablet.eventpoller.internal.sharedfetch.SharedFetchModuleProcessor;
+import com.crablet.eventpoller.config.EventPollerConfig;
+import com.crablet.eventpoller.sharedfetch.SharedFetchModuleProcessor;
+import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventstore.ClockProvider;
@@ -17,6 +20,7 @@ import org.springframework.scheduling.TaskScheduler;
 
 import javax.sql.DataSource;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -54,5 +58,33 @@ class ViewsAutoConfigurationTest {
                 mock(ApplicationEventPublisher.class));
 
         assertThat(processor).isInstanceOf(SharedFetchModuleProcessor.class);
+    }
+
+    @Test
+    @DisplayName("Should create legacy views event processor when wakeup factory and poller config are present")
+    void shouldCreateLegacyViewsEventProcessorWithOptionals() {
+        ViewsConfig config = new ViewsConfig();
+        ViewSubscription subscription = ViewSubscription.builder("wallet-view")
+                .eventTypes("WalletOpened")
+                .build();
+        Map<String, ViewProcessorConfig> processorConfigs = Map.of(
+                "wallet-view", new ViewProcessorConfig("wallet-view", config, subscription));
+        InstanceIdProvider instanceIdProvider = mock(InstanceIdProvider.class);
+        when(instanceIdProvider.getInstanceId()).thenReturn("instance-1");
+
+        EventProcessor<ViewProcessorConfig, String> processor = autoConfiguration.viewsEventProcessor(
+                processorConfigs,
+                Map.of("wallet-view", subscription),
+                mock(ProgressTracker.class),
+                mock(EventFetcher.class),
+                mock(EventHandler.class),
+                instanceIdProvider,
+                new WriteDataSource(mock(DataSource.class)),
+                mock(TaskScheduler.class),
+                mock(ApplicationEventPublisher.class),
+                Optional.of(new NoopProcessorWakeupSourceFactory()),
+                Optional.of(new EventPollerConfig()));
+
+        assertThat(processor).isNotNull();
     }
 }

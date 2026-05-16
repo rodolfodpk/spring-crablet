@@ -7,9 +7,9 @@ import com.crablet.eventpoller.EventSelection;
 import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.config.EventPollerAutoConfiguration;
 import com.crablet.eventpoller.config.EventPollerConfig;
-import com.crablet.eventpoller.internal.sharedfetch.ModuleScanProgressRepository;
-import com.crablet.eventpoller.internal.sharedfetch.ProcessorScanProgressRepository;
-import com.crablet.eventpoller.internal.sharedfetch.SharedFetchModuleProcessor;
+import com.crablet.eventpoller.sharedfetch.ModuleScanProgressRepository;
+import com.crablet.eventpoller.sharedfetch.ProcessorScanProgressRepository;
+import com.crablet.eventpoller.sharedfetch.SharedFetchModuleProcessor;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
@@ -36,11 +36,14 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.TaskScheduler;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Auto-configuration for views using the generic event processor.
@@ -112,6 +115,7 @@ public class ViewsAutoConfiguration {
     @ConditionalOnProperty(name = "crablet.views.shared-fetch.enabled", havingValue = "false", matchIfMissing = true)
     public EventProcessor<ViewProcessorConfig, String> viewsEventProcessor(
             Map<String, ViewProcessorConfig> processorConfigs,
+            @Qualifier("viewSubscriptions") Map<String, ViewSubscription> viewSubscriptions,
             @Qualifier("viewProgressTracker") ProgressTracker<String> progressTracker,
             @Qualifier("viewEventFetcher") EventFetcher<String> eventFetcher,
             @Qualifier("viewEventHandler") EventHandler<String> eventHandler,
@@ -134,7 +138,11 @@ public class ViewsAutoConfiguration {
             taskScheduler,
             eventPublisher,
             wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new),
-            eventPollerConfig.orElseGet(EventPollerConfig::new));
+            eventPollerConfig.orElseGet(EventPollerConfig::new),
+            moduleEventTypes(viewSubscriptions.values()),
+            moduleRequiredTagKeys(viewSubscriptions.values()),
+            moduleAnyOfTagKeys(viewSubscriptions.values()),
+            moduleExactTagKeys(viewSubscriptions.values()));
     }
 
     @Bean("viewsEventProcessor")
@@ -174,5 +182,26 @@ public class ViewsAutoConfiguration {
                 Function.identity(),
                 new NoopProcessorWakeupSource(),
                 clockProvider);
+    }
+
+    private static Set<String> moduleEventTypes(Collection<? extends com.crablet.eventpoller.EventSelection> subscriptions) {
+        if (subscriptions.stream().anyMatch(s -> s.getEventTypes().isEmpty())) return Set.of();
+        return subscriptions.stream().flatMap(s -> s.getEventTypes().stream()).collect(Collectors.toUnmodifiableSet());
+    }
+
+    // Tag criteria: any subscription without restriction disables the module-level filter for that dimension.
+    private static Set<String> moduleRequiredTagKeys(Collection<? extends com.crablet.eventpoller.EventSelection> subscriptions) {
+        if (subscriptions.stream().anyMatch(s -> s.getRequiredTags().isEmpty())) return Set.of();
+        return subscriptions.stream().flatMap(s -> s.getRequiredTags().stream()).collect(Collectors.toUnmodifiableSet());
+    }
+
+    private static Set<String> moduleAnyOfTagKeys(Collection<? extends com.crablet.eventpoller.EventSelection> subscriptions) {
+        if (subscriptions.stream().anyMatch(s -> s.getAnyOfTags().isEmpty())) return Set.of();
+        return subscriptions.stream().flatMap(s -> s.getAnyOfTags().stream()).collect(Collectors.toUnmodifiableSet());
+    }
+
+    private static Set<String> moduleExactTagKeys(Collection<? extends com.crablet.eventpoller.EventSelection> subscriptions) {
+        if (subscriptions.stream().anyMatch(s -> s.getExactTags().isEmpty())) return Set.of();
+        return subscriptions.stream().flatMap(s -> s.getExactTags().keySet().stream()).collect(Collectors.toUnmodifiableSet());
     }
 }

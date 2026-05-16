@@ -40,10 +40,13 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -55,7 +58,7 @@ import java.util.function.Function;
  * <ul>
  *   <li>Read operations (project) use read-only connections</li>
  *   <li>Write operations (appendCommutative, appendNonCommutative, appendIdempotent) use write connections</li>
- *   <li>Command audit writes ({@link com.crablet.eventstore.CommandAuditStore#storeCommand}) use the transaction-scoped write connection</li>
+ *   <li>Command audit writes use the transaction-scoped write connection</li>
  *   <li>Transactions (executeInTransaction) use write connections as they may include writes</li>
  * </ul>
  *
@@ -100,9 +103,10 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     private static final String APPEND_EVENTS_IF_CONNECTION_SQL =
         "SELECT append_events_if(?::text[], ?::text[], ?::jsonb[], ?::text[], ?::text[], ?, ?::text[], ?::text[], ?::TIMESTAMP WITH TIME ZONE, ?::uuid, ?)";
 
-    private static final String INSERT_COMMAND_SQL = """
-        INSERT INTO commands (transaction_id, type, data, metadata, occurred_at)
-        VALUES (?::xid8, ?, ?::jsonb, ?::jsonb, ?::TIMESTAMP WITH TIME ZONE)
+    private static final String STORE_COMMAND_SQL = """
+        INSERT INTO commands (command_id, transaction_id, type, data, metadata, occurred_at)
+        VALUES (COALESCE(?::uuid, gen_random_uuid()), pg_current_xact_id(), ?, ?::jsonb, ?::jsonb, ?::TIMESTAMP WITH TIME ZONE)
+        ON CONFLICT (command_id) DO NOTHING
         """;
 
     private final DataSource writeDataSource;
@@ -321,7 +325,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                     for (AppendEvent event : events) {
                         eventPublisher.publishEvent(new EventTypeMetric(event.type()));
                     }
-                    publishAppendNotification();
+                    publishAppendNotification(new HashSet<>(Arrays.asList(types)), collectTagKeys(events));
 
                     return transactionId;
                 }
@@ -529,7 +533,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 T result = operation.apply(txStore);
                 connection.commit();
                 if (txStore instanceof ConnectionScopedEventStore connectionScopedStore && connectionScopedStore.hasAppendedEvents()) {
-                    publishAppendNotification();
+                    publishAppendNotification(connectionScopedStore.getAppendedEventTypes(), connectionScopedStore.getAppendedTagKeys());
                 }
                 log.debug("Transaction committed successfully");
                 return result;
@@ -860,36 +864,60 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         }
     }
 
+    private void publishAppendNotification(Set<String> eventTypes, Set<String> tagPairs) {
+        try {
+            eventAppendNotifier.notifyEventsAppended(eventTypes, tagPairs);
+        } catch (RuntimeException e) {
+            log.warn("Event append notification failed: {}", e.getMessage());
+        }
+    }
+
+    private static Set<String> collectTagKeys(List<AppendEvent> events) {
+        Set<String> keys = new HashSet<>();
+        for (AppendEvent e : events) {
+            if (e.tags() == null) {
+                continue;
+            }
+            for (Tag t : e.tags()) {
+                if (t.key() != null) {
+                    keys.add(t.key());
+                }
+            }
+        }
+        return keys;
+    }
+
 
     @Override
-    public void storeCommand(String commandJson, String commandType, String transactionId) {
+    public boolean storeCommand(String commandJson, String commandType, Instant occurredAt) {
         try (Connection connection = writeDataSource.getConnection()) {
-            storeCommandWithConnection(connection, commandJson, commandType, transactionId);
+            return storeCommandWithConnection(connection, commandJson, commandType, null, occurredAt);
         } catch (SQLException e) {
             throw new EventStoreException("Failed to store command", e);
         }
     }
 
-    /**
-     * Store a command using a provided connection.
-     * Used internally by ConnectionScopedEventStore.
-     */
-    private void storeCommandWithConnection(Connection connection, String commandJson, String commandType, String transactionId) {
-        try {
-            try (PreparedStatement stmt = connection.prepareStatement(INSERT_COMMAND_SQL)) {
-                stmt.setString(1, transactionId);
-                stmt.setString(2, commandType);
-                stmt.setString(3, commandJson);
-
-                // Create metadata JSON with command type
-                String metadataJson = createCommandMetadata(commandType);
-                stmt.setString(4, metadataJson);
-                stmt.setTimestamp(5, Timestamp.from(clock.now()));
-
-                stmt.executeUpdate();
-            }
+    @Override
+    public boolean storeCommandIfAbsent(String commandJson, String commandType, UUID commandId, Instant occurredAt) {
+        try (Connection connection = writeDataSource.getConnection()) {
+            return storeCommandWithConnection(connection, commandJson, commandType, commandId, occurredAt);
         } catch (SQLException e) {
-            throw new EventStoreException("Failed to store command with connection", e);
+            throw new EventStoreException("Failed to store command", e);
+        }
+    }
+
+    private boolean storeCommandWithConnection(Connection connection, String commandJson,
+                                               String commandType, @Nullable UUID commandId,
+                                               Instant occurredAt) {
+        try (PreparedStatement stmt = connection.prepareStatement(STORE_COMMAND_SQL)) {
+            stmt.setObject(1, commandId);
+            stmt.setString(2, commandType);
+            stmt.setString(3, commandJson);
+            stmt.setString(4, createCommandMetadata(commandType));
+            stmt.setTimestamp(5, Timestamp.from(occurredAt));
+            return stmt.executeUpdate() == 1;
+        } catch (SQLException e) {
+            throw new EventStoreException("Failed to store command", e);
         }
     }
 
@@ -913,6 +941,8 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     private class ConnectionScopedEventStore implements EventStore, CommandAuditStore {
         private final Connection connection;
         private boolean appendedEvents;
+        private final Set<String> appendedEventTypes = new HashSet<>();
+        private final Set<String> appendedTagKeys = new HashSet<>();
 
         private ConnectionScopedEventStore(Connection connection) {
             this.connection = connection;
@@ -920,14 +950,14 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
 
         @Override
         public String appendCommutative(List<AppendEvent> events) {
-            appendedEvents = true;
+            trackAppend(events);
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.empty());
         }
 
         @Override
         public String appendNonCommutative(
                 List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {
-            appendedEvents = true;
+            trackAppend(events);
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendConditionBuilder.of(decisionModel, streamPosition).build());
         }
 
@@ -937,14 +967,22 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 String eventType,
                 String tagKey,
                 String tagValue) {
-            appendedEvents = true;
+            trackAppend(events);
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.idempotent(eventType, tagKey, tagValue));
         }
 
         @Override
         public String appendIdempotent(List<AppendEvent> events, Query idempotencyQuery) {
-            appendedEvents = true;
+            trackAppend(events);
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.idempotent(idempotencyQuery));
+        }
+
+        private void trackAppend(List<AppendEvent> events) {
+            appendedEvents = true;
+            for (AppendEvent e : events) {
+                appendedEventTypes.add(e.type());
+            }
+            appendedTagKeys.addAll(collectTagKeys(events));
         }
 
         @Override
@@ -965,12 +1003,28 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         }
 
         @Override
-        public void storeCommand(String commandJson, String commandType, String transactionId) {
-            EventStoreImpl.this.storeCommandWithConnection(connection, commandJson, commandType, transactionId);
+        public boolean storeCommand(String commandJson, String commandType, java.time.Instant occurredAt) {
+            return EventStoreImpl.this.storeCommandWithConnection(
+                    connection, commandJson, commandType, null, occurredAt);
+        }
+
+        @Override
+        public boolean storeCommandIfAbsent(String commandJson, String commandType,
+                                            UUID commandId, java.time.Instant occurredAt) {
+            return EventStoreImpl.this.storeCommandWithConnection(
+                    connection, commandJson, commandType, commandId, occurredAt);
         }
 
         private boolean hasAppendedEvents() {
             return appendedEvents;
+        }
+
+        private Set<String> getAppendedEventTypes() {
+            return appendedEventTypes;
+        }
+
+        private Set<String> getAppendedTagKeys() {
+            return appendedTagKeys;
         }
     }
 }

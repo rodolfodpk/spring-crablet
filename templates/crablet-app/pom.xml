@@ -67,6 +67,11 @@
         </dependency>
         <dependency>
             <groupId>com.crablet</groupId>
+            <artifactId>crablet-db-migrations</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.crablet</groupId>
             <artifactId>crablet-views</artifactId>
         </dependency>
         <dependency>

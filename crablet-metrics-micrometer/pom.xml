@@ -31,22 +31,27 @@
         <dependency>
             <groupId>com.crablet</groupId>
             <artifactId>crablet-commands</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.crablet</groupId>
             <artifactId>crablet-outbox</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.crablet</groupId>
             <artifactId>crablet-event-poller</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.crablet</groupId>
             <artifactId>crablet-views</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.crablet</groupId>
             <artifactId>crablet-automations</artifactId>
+            <scope>test</scope>
         </dependency>
         
         <!-- Micrometer -->

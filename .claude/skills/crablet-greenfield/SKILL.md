@@ -22,7 +22,7 @@ playbooks.
 | Diagram checkpoint, actor/lane metadata, renderer vocabulary | `crablet-diagram-advisor` |
 | Plan, generate, repair, and slice implementation | `crablet-app-dev` |
 | Provider config, artifact ownership, repair-cycle failures | `crablet-codegen` |
-| DCB pattern, tags, guard events, concurrency diagnosis | `dcb` |
+| DCB pattern, tags, guard events, concurrency diagnosis | `crablet-dcb` |
 | Local Kubernetes after `deployment:` stabilizes | `crablet-k8s` |
 
 ## Phase A - Repo And Runtime Baseline
@@ -83,7 +83,7 @@ wiring. Poller-backed modules process at least once, so views, automations, and 
 idempotent. For production topology, point to `docs/user/DEPLOYMENT_TOPOLOGY.md`; command-only apps
 scale horizontally, while poller-backed modules need the documented singleton-worker shape.
 
-Use `dcb` whenever command consistency, tags, `guardEvents`, or conflict behavior are not obvious.
+Use `crablet-dcb` whenever command consistency, tags, `guardEvents`, or conflict behavior are not obvious.
 Use `crablet-k8s` after the `deployment:` block is stable enough to generate local manifests.
 
 ```mermaid

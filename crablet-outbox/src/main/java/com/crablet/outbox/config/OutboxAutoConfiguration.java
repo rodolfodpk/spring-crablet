@@ -7,9 +7,9 @@ import com.crablet.eventpoller.EventSelection;
 import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.config.EventPollerAutoConfiguration;
 import com.crablet.eventpoller.config.EventPollerConfig;
-import com.crablet.eventpoller.internal.sharedfetch.ModuleScanProgressRepository;
-import com.crablet.eventpoller.internal.sharedfetch.ProcessorScanProgressRepository;
-import com.crablet.eventpoller.internal.sharedfetch.SharedFetchModuleProcessor;
+import com.crablet.eventpoller.sharedfetch.ModuleScanProgressRepository;
+import com.crablet.eventpoller.sharedfetch.ProcessorScanProgressRepository;
+import com.crablet.eventpoller.sharedfetch.SharedFetchModuleProcessor;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
@@ -38,10 +38,12 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.TaskScheduler;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -145,6 +147,7 @@ public class OutboxAutoConfiguration {
     @ConditionalOnProperty(name = "crablet.outbox.shared-fetch.enabled", havingValue = "false", matchIfMissing = true)
     public EventProcessor<OutboxProcessorConfig, TopicPublisherPair> outboxEventProcessor(
             Map<TopicPublisherPair, OutboxProcessorConfig> configs,
+            Map<String, TopicConfig> topicConfigs,
             LeaderElector outboxLeaderElector,
             ProgressTracker<TopicPublisherPair> progressTracker,
             EventFetcher<TopicPublisherPair> eventFetcher,
@@ -162,11 +165,36 @@ public class OutboxAutoConfiguration {
             taskScheduler,
             eventPublisher,
             wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new),
-            eventPollerConfig.orElseGet(EventPollerConfig::new));
+            eventPollerConfig.orElseGet(EventPollerConfig::new),
+            moduleEventTypes(topicConfigs.values()),
+            moduleRequiredTagKeys(topicConfigs.values()),
+            moduleAnyOfTagKeys(topicConfigs.values()),
+            moduleExactTagKeys(topicConfigs.values()));
+    }
+
+    private static Set<String> moduleEventTypes(Collection<? extends com.crablet.eventpoller.EventSelection> s) {
+        if (s.stream().anyMatch(sel -> sel.getEventTypes().isEmpty())) return Set.of();
+        return s.stream().flatMap(sel -> sel.getEventTypes().stream()).collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
+    private static Set<String> moduleRequiredTagKeys(Collection<? extends com.crablet.eventpoller.EventSelection> s) {
+        if (s.stream().anyMatch(sel -> sel.getRequiredTags().isEmpty())) return Set.of();
+        return s.stream().flatMap(sel -> sel.getRequiredTags().stream()).collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
+    private static Set<String> moduleAnyOfTagKeys(Collection<? extends com.crablet.eventpoller.EventSelection> s) {
+        if (s.stream().anyMatch(sel -> sel.getAnyOfTags().isEmpty())) return Set.of();
+        return s.stream().flatMap(sel -> sel.getAnyOfTags().stream()).collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
+    private static Set<String> moduleExactTagKeys(Collection<? extends com.crablet.eventpoller.EventSelection> s) {
+        if (s.stream().anyMatch(sel -> sel.getExactTags().isEmpty())) return Set.of();
+        return s.stream().flatMap(sel -> sel.getExactTags().keySet().stream()).collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 
     /**
-     * Shared-fetch variant: one position-only DB fetch per cycle fans out to all (topic, publisher) processors.
+     * Shared-fetch variant: one position-ordered, transaction-safe DB fetch per cycle fans out to
+     * all (topic, publisher) processors.
      */
     @Bean("outboxEventProcessor")
     @ConditionalOnProperty(name = "crablet.outbox.shared-fetch.enabled", havingValue = "true")

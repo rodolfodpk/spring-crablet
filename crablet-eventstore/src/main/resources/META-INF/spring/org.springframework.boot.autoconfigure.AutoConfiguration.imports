@@ -1,1 +1,2 @@
 com.crablet.eventstore.config.EventStoreAutoConfiguration
+com.crablet.eventstore.config.EventStoreObservationAutoConfiguration

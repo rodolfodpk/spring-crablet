@@ -15,21 +15,25 @@ CREATE TABLE events
 (
     type           VARCHAR(64)              NOT NULL,
     tags           TEXT[]                   NOT NULL,
-    data           JSON                     NOT NULL,
+    data           JSONB                    NOT NULL,
     transaction_id xid8                     NOT NULL,
     position       BIGSERIAL                NOT NULL PRIMARY KEY,
     occurred_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    correlation_id UUID,
+    causation_id   BIGINT,
     CONSTRAINT chk_event_type_length CHECK (LENGTH(type) <= 64)
 );
 ```
 
 **Columns:**
 - `type` - Event type name (e.g., "WalletOpened", "DepositMade")
-- `tags` - Array of key:value tags for querying (e.g., `{"wallet_id:123", "deposit_id:456"}`)
-- `data` - JSON event payload
+- `tags` - Array of key=value tags for querying (e.g., `{"wallet_id=123", "deposit_id=456"}`)
+- `data` - JSONB event payload
 - `transaction_id` - PostgreSQL transaction ID (xid8) for ordering guarantees
 - `position` - Auto-incrementing sequence number (primary key)
 - `occurred_at` - Event timestamp
+- `correlation_id` - Optional UUID used to correlate related operations
+- `causation_id` - Optional event position that caused this event
 
 ### commands
 
@@ -38,13 +42,18 @@ Stores commands for audit trail and debugging.
 ```sql
 CREATE TABLE commands
 (
-    transaction_id xid8                     NOT NULL PRIMARY KEY,
+    command_id     UUID                     NOT NULL PRIMARY KEY,
+    transaction_id xid8                     NOT NULL,
     type           VARCHAR(64)              NOT NULL,
     data           JSONB                    NOT NULL,
     metadata       JSONB,
     occurred_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ```
+
+`command_id` is the command identity and idempotency key. `transaction_id` is the audit join key to
+`events.transaction_id`; it is unique so one command transaction maps unambiguously to the events it
+produced.
 
 ### outbox_topic_progress
 
@@ -97,11 +106,14 @@ CREATE INDEX idx_topic_publisher_heartbeat ON outbox_topic_progress(topic, publi
 -- Transaction and position ordering
 CREATE INDEX idx_events_transaction_position_btree ON events (transaction_id, position);
 
+-- Command-to-event audit join
+CREATE UNIQUE INDEX idx_commands_transaction_id ON commands (transaction_id);
+
 -- Tag-based queries (GIN index for array containment)
-CREATE INDEX idx_events_tags ON events USING GIN (tags);
+CREATE INDEX idx_events_tags_gin ON events USING GIN (tags);
 
 -- Event type filtering
-CREATE INDEX idx_events_type ON events (type);
+CREATE INDEX idx_events_type_position ON events (type, position);
 ```
 
 ### Optimized Indexes
@@ -251,4 +263,3 @@ SELECT * FROM events WHERE tags @> ARRAY['wallet_id=wallet-123'];
 -- Find events with multiple tags
 SELECT * FROM events WHERE tags @> ARRAY['wallet_id=wallet-123', 'event_type=deposit'];
 ```
-

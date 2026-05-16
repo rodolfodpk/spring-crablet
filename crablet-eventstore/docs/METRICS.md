@@ -96,7 +96,9 @@ management.endpoints.web.exposure.include=metrics
 management.metrics.export.prometheus.enabled=true
 ```
 
-**Note:** Metrics are automatically collected when `crablet-metrics-micrometer` is on the classpath. No additional bean configuration is required.
+**Note:** New instrumentation is module-owned through Spring's `ObservationRegistry`; use Spring
+Boot Actuator and OTLP/OpenTelemetry export for new deployments. `crablet-metrics-micrometer`
+remains as a compatibility collector for the existing Prometheus/Grafana metric names.
 
 ## Troubleshooting
 

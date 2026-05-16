@@ -9,7 +9,7 @@ This file is the repo-level routing hub for Claude Code work in spring-crablet.
 - Codegen provider config, artifact ownership, repair cycle, and recovery: invoke `/crablet-codegen`.
 - Framework module changes, public API work, eventstore/commands/poller internals, shared-fetch, auto-configuration, templates, codegen internals, maintainer docs: invoke `/crablet-maintainer`.
 - Event Modeling workshop, generator-ready `event-model.yaml`: invoke `/event-modeling`.
-- Deep DCB explanation, choosing or diagnosing DCB for an application command handler, `ConcurrencyException` analysis: invoke `/dcb`.
+- Deep DCB explanation, choosing or diagnosing DCB for an application command handler, `ConcurrencyException` analysis: invoke `/crablet-dcb`.
 - Docs diagram renderer rules, actor-board vocabulary, sidecar overlays, or multi-lane board authoring: invoke `/crablet-diagram-advisor`.
 - Local build, Testcontainers, MCP codegen loop, module test targets, troubleshooting: invoke `/crablet-local-dev`.
 
@@ -40,10 +40,23 @@ make clean              # Clean build artifacts
 make start              # Run wallet-example-app (port 8080)
 make course-start       # Run course-example-app (port 8081)
 
-# Run specific module tests after dependencies are built
-./mvnw test -pl <module-name>
-./mvnw test -pl <module-name> -Dtest=ClassName
+# Focused module tests (runs same Makefile prerequisites as `make test`, includes `-am` so sibling
+# modules are not taken from a stale ~/.m2 SNAPSHOT):
+make test-pl PL=<module-dir>
+make test-pl PL=<module-dir> MVN_ARGS='-Dtest=ClassName'
+
+# If calling Maven directly after Makefile prerequisites, always use `-am` with `-pl`:
+./mvnw test -pl <module-name> -am
+./mvnw test -pl <module-name> -am -Dtest=ClassName
 ```
+
+Always use `make` targets for repository builds. Do not run root Maven build/test commands directly
+until `make build-test-support` and `make check-test-support-artifact` have passed; otherwise Maven
+can resolve a stale locally installed `crablet-test-support` jar and run tests against old Flyway
+migrations. Prefer `make test-pl PL=…` for focused runs; if you use `./mvnw test -pl …` directly,
+always add **`-am`** after Makefile prerequisites so upstream reactor modules are rebuilt with the
+same invocation. Direct plain `./mvnw test -pl …` (without `-am`) can resolve a stale locally installed
+sibling SNAPSHOT.
 
 Tests use Testcontainers for PostgreSQL integration tests. `make install` is the normal maintainer build because the examples and shared example domain are outside the Maven reactor.
 
@@ -82,8 +95,11 @@ crablet-automations
 crablet-outbox
   Reliable external publication built on crablet-event-poller.
 
+crablet-observability
+  Shared observation names and tag conventions; no runtime module coupling.
+
 crablet-metrics-micrometer
-  Optional metrics auto-collection.
+  Compatibility Micrometer collector for legacy metric events.
 
 crablet-test-support
   Shared test utilities for handler and integration tests.
@@ -121,6 +137,13 @@ Module dependencies:
 - Prefer domain-specific query pattern helpers for reused decision models.
 - When changing **docs/event-model-renderer.js** or describing a canonical actor board, align with **`/crablet-diagram-advisor`** and **`docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`**.
 - When changing docs or diagrams, use Event Modeling vocabulary consistently: rows are semantic element layers; lanes are subsystem or bounded-context groupings; time flows left to right.
+
+## Design Decisions
+
+**Command→event linkage via `transaction_id` (intentional).**
+`commands.transaction_id` and `events.transaction_id` share the same `pg_current_xact_id()` value when both writes happen in the same database transaction. This is the join key between the two tables. Do not propose adding a `command_id` column to `events` or `event_tags` as an alternative linkage mechanism — that decision is closed.
+
+The invariant this relies on: `CommandAuditStore.storeCommand` must always be called on the transaction-scoped store (`ConnectionScopedEventStore`) inside `executeInTransaction`, never on the top-level `EventStoreImpl`. `CommandExecutorImpl` upholds this. Any test or caller that wants command audit linkage must use `executeInTransaction` and cast the scoped store to `CommandAuditStore`.
 
 ## Documentation Quick Links
 

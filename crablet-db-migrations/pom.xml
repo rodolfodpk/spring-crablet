@@ -11,7 +11,7 @@
 
     <artifactId>crablet-db-migrations</artifactId>
     <name>Crablet DB Migrations</name>
-    <description>Core Flyway migrations for all Crablet framework tables (events, commands, view/automation/outbox progress, correlation/causation, shared-fetch). No Java sources — SQL only.</description>
+    <description>Consolidated Flyway migrations for all Crablet framework tables. No Java sources — SQL only.</description>
 
     <dependencies>
         <!-- No runtime dependencies — this module ships SQL resources only -->

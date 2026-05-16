@@ -17,7 +17,10 @@ import org.springframework.context.ApplicationEventPublisher;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import com.crablet.command.CommandExecutionOptions;
+
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -141,6 +144,86 @@ class CommandExecutorImplPersistenceTest {
 
         // Assert - Command should execute successfully
         assertNotNull(result);
+        assertThat(result.wasCreated()).isTrue();
+    }
+
+    @Test
+    @DisplayName("execute() with command ID and persistence disabled throws InvalidCommandException")
+    void executeWithCommandId_PersistenceDisabled_ShouldThrow() {
+        TestCommand command = new TestCommand("test_command", "entity-123");
+        CommandExecutionOptions options = CommandExecutionOptions.builder()
+                .commandId(UUID.randomUUID())
+                .build();
+
+        assertThatThrownBy(() -> commandExecutor.execute(command, options))
+                .isInstanceOf(InvalidCommandException.class)
+                .hasMessageContaining("persist-commands");
+    }
+
+    @Test
+    @DisplayName("execute() with persistence enabled tolerates transaction store without command audit support")
+    void executeWithPersistenceEnabledAndNoCommandAuditStore_ShouldExecute() {
+        config.setPersistCommands(true);
+        commandExecutor = new CommandExecutorImpl(
+                eventStore,
+                List.of(handler),
+                config,
+                clock,
+                objectMapper,
+                eventPublisher);
+        TestCommand command = new TestCommand("test_command", "entity-123");
+        AppendEvent event = AppendEvent.builder("test_event")
+                .tag("entityId", "entity-123")
+                .data("{}")
+                .build();
+        TestCommandHandler.setHandlerLogic(cmd -> CommandDecision.Commutative.of(event));
+        when(eventStore.appendCommutative(Mockito.anyList()))
+                .thenReturn("tx-123");
+        when(eventStore.executeInTransaction(Mockito.any()))
+                .thenAnswer(invocation -> {
+                    @SuppressWarnings("unchecked")
+                    java.util.function.Function<EventStore, ExecutionResult> fn =
+                            (java.util.function.Function<EventStore, ExecutionResult>) invocation.getArgument(0);
+                    return fn.apply(eventStore);
+                });
+
+        ExecutionResult result = commandExecutor.execute(command);
+
+        assertThat(result.wasCreated()).isTrue();
+    }
+
+    @Test
+    @DisplayName("execute() with command ID tolerates transaction store without command audit support")
+    void executeWithCommandIdAndNoCommandAuditStore_ShouldExecute() {
+        config.setPersistCommands(true);
+        commandExecutor = new CommandExecutorImpl(
+                eventStore,
+                List.of(handler),
+                config,
+                clock,
+                objectMapper,
+                eventPublisher);
+        TestCommand command = new TestCommand("test_command", "entity-123");
+        CommandExecutionOptions options = CommandExecutionOptions.builder()
+                .commandId(UUID.randomUUID())
+                .build();
+        AppendEvent event = AppendEvent.builder("test_event")
+                .tag("entityId", "entity-123")
+                .data("{}")
+                .build();
+        TestCommandHandler.setHandlerLogic(cmd -> CommandDecision.Commutative.of(event));
+        when(eventStore.appendCommutative(Mockito.anyList()))
+                .thenReturn("tx-123");
+        when(eventStore.executeInTransaction(Mockito.any()))
+                .thenAnswer(invocation -> {
+                    @SuppressWarnings("unchecked")
+                    java.util.function.Function<EventStore, ExecutionResult> fn =
+                            (java.util.function.Function<EventStore, ExecutionResult>) invocation.getArgument(0);
+                    return fn.apply(eventStore);
+                });
+
+        ExecutionResult result = commandExecutor.execute(command, options);
+
         assertThat(result.wasCreated()).isTrue();
     }
 }

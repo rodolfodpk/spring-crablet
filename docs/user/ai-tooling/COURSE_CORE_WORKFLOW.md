@@ -104,3 +104,30 @@ Do not add the following until the Course core path is reliable:
 
 Those belong in later milestones after the plain-language Course prompt to generated app loop is
 boringly repeatable.
+
+## Reliability Criteria
+
+The Course core loop is reliable when:
+
+- the Course prompt fixture is stable
+- the expected Course core event model fixture is stable
+- `make plan` reports the expected artifacts
+- `make plan` fails fast for incomplete or unsupported models
+- `make generate` works from the Course core model without manual edits
+- `make verify` passes for the generated app
+- `make sync-scenarios` is deterministic
+
+## Roadmap
+
+These items track the intended expansion path after the Course core loop is reliable.
+
+- [x] Core Course enrollment prompt fixture
+- [x] Expected Course core event model fixture
+- [x] Plan/generate/verify workflow documented
+- [x] Fixture regression test covers prompt, model, plan, and fast-fail validation
+- [x] Define reliability criteria for the core prompt-to-app loop
+- [ ] Make generated app verification repeatable from a fresh template
+- [ ] Add `ChangeCourseCapacity`
+- [ ] Add notification automations
+- [ ] Add outbox publishing
+- [ ] Add Kubernetes generation

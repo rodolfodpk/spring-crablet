@@ -4,6 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.postgresql.ds.PGSimpleDataSource;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -37,19 +39,7 @@ class AbstractSingleKeyProgressTrackerTest {
         tracker = new TestProgressTracker(dataSource);
 
         try (Connection connection = dataSource.getConnection()) {
-            connection.createStatement().execute("DROP TABLE IF EXISTS test_single_key_progress");
-            connection.createStatement().execute("""
-                CREATE TABLE test_single_key_progress (
-                    processor_id VARCHAR(255) PRIMARY KEY,
-                    instance_id VARCHAR(255),
-                    status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
-                    last_position BIGINT NOT NULL DEFAULT 0,
-                    error_count INT NOT NULL DEFAULT 0,
-                    last_error TEXT,
-                    last_error_at TIMESTAMP WITH TIME ZONE,
-                    last_updated_at TIMESTAMP WITH TIME ZONE
-                )
-                """);
+            ScriptUtils.executeSqlScript(connection, new ClassPathResource("db/test/test_single_key_progress.sql"));
         }
     }
 

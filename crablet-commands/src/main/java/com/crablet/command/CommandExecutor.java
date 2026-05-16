@@ -1,9 +1,6 @@
 package com.crablet.command;
 
 import com.crablet.eventstore.Stable;
-import org.jspecify.annotations.Nullable;
-
-import java.util.UUID;
 
 /**
  * Interface for executing commands and generating events within a single transaction.
@@ -28,25 +25,6 @@ public interface CommandExecutor {
     <T> ExecutionResult execute(T command);
 
     /**
-     * Execute a command within a single transaction, binding an explicit correlation ID.
-     * <p>
-     * The {@code correlationId} is stored on every event appended during this execution and
-     * can be read back via {@code StoredEvent.correlationId()}. Pass {@code null} when no
-     * correlation context is available (e.g. background batch jobs) — the behaviour is
-     * identical to calling {@link #execute(Object)}.
-     * <p>
-     * Use this overload for programmatic callers (batch jobs, internal services, tests) that
-     * want explicit control over the correlation ID without relying on a servlet filter or
-     * any ambient {@code ScopedValue} scope.
-     *
-     * @param <T>           the command type (inferred from parameter)
-     * @param command       the command to execute
-     * @param correlationId the correlation ID to attach to all appended events, or {@code null}
-     * @return ExecutionResult indicating whether the operation was new or idempotent
-     */
-    <T> ExecutionResult execute(T command, @Nullable UUID correlationId);
-
-    /**
      * Execute a command within a single transaction using an explicit handler.
      * Use this when you need to supply the handler directly instead of relying on auto-discovery.
      * <p>
@@ -59,4 +37,22 @@ public interface CommandExecutor {
      * @return ExecutionResult indicating whether the operation was new or idempotent
      */
     <T> ExecutionResult execute(T command, CommandHandler<T> handler);
+
+    /**
+     * Execute a command with explicit options (correlation ID, command ID, or both).
+     *
+     * <p>When {@code options.commandId()} is set, the executor inserts a command record using
+     * that UUID as the primary key before running the handler. If a committed record with that
+     * ID already exists, the handler is not executed and {@link ExecutionResult#wasIdempotent()}
+     * returns {@code true}. Requires {@code crablet.eventstore.persist-commands=true}.
+     * UUID v7 is recommended. Rollback releases the ID atomically.
+     *
+     * <p>When {@code options.correlationId()} is set, it is stored on every appended event.
+     *
+     * @param <T>     the command type (inferred from parameter)
+     * @param command the command to execute
+     * @param options execution options built via {@link CommandExecutionOptions#builder()}
+     * @return ExecutionResult indicating whether the operation was new or idempotent
+     */
+    <T> ExecutionResult execute(T command, CommandExecutionOptions options);
 }

@@ -1,1 +1,2 @@
 com.crablet.outbox.config.OutboxAutoConfiguration
+com.crablet.outbox.config.OutboxObservationAutoConfiguration

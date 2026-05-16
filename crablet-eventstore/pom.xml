@@ -14,6 +14,16 @@
     <description>Pure Java event sourcing library with DCB pattern</description>
     
     <dependencies>
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-observability</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-observation</artifactId>
+        </dependency>
+
         <!-- JSpecify for nullability annotations -->
 <!-- Spring Boot Web (for tests only) -->
         <dependency>

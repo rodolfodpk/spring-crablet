@@ -7,7 +7,7 @@ This is a generated Crablet application.
 - App feature slices, command handlers, views, automations, outbox, codegen sequencing, and verification: invoke `/crablet-app-dev`.
 - Greenfield pacing from app baseline through workshop, first slice, and evolving features: invoke `/crablet-greenfield`.
 - Codegen provider config, artifact ownership, repair cycle, and recovery: invoke `/crablet-codegen`.
-- DCB command patterns (`idempotent` / `commutative` / `non-commutative`), tags as the consistency boundary, `guardEvents`, and related consistency questions: invoke `/dcb`.
+- DCB command patterns (`idempotent` / `commutative` / `non-commutative`), tags as the consistency boundary, `guardEvents`, and related consistency questions: invoke `/crablet-dcb`.
 - Diagram metadata (`diagram.actors`, `diagram.lanes`, `diagram.assignments`, sidecar overlays): invoke `/crablet-diagram-advisor`.
 - Crablet deployment topology, `make k8s`, generated `k8s/base`, KEDA, and singleton worker layout: invoke `/crablet-k8s`.
 - Local codegen loop, Testcontainers, LISTEN/NOTIFY constraint, troubleshooting: invoke `/crablet-local-dev`.

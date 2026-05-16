@@ -17,6 +17,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.context.ApplicationEventPublisher;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -39,6 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -122,6 +124,18 @@ class EventStoreImplTest {
                 .tag("category", "test")
                 .data(new TestEvent(id, message, clockProvider.now()))
                 .build();
+    }
+
+    @Test
+    @SuppressWarnings("NullAway")
+    void appendCommutative_acceptsNullTagsOnEvent() {
+        String testId = UUID.randomUUID().toString();
+        AppendEvent event = new AppendEvent(
+                "TestEvent",
+                null,
+                "{\"id\":\"" + testId + "\",\"message\":\"n\",\"timestamp\":\"2026-01-01T00:00:00Z\"}");
+
+        assertThatCode(() -> eventStore.appendCommutative(List.of(event))).doesNotThrowAnyException();
     }
 
     @Test
@@ -257,9 +271,12 @@ class EventStoreImplTest {
     @Test
     void shouldStoreCommandAuditRecord() throws Exception {
         String testId = UUID.randomUUID().toString();
-        String transactionId = eventStore.appendCommutative(List.of(appendEvent(testId, "Command Audit")));
-
-        ((CommandAuditStore) eventStore).storeCommand("{\"id\":\"" + testId + "\"}", "TestCommand", transactionId);
+        String transactionId = eventStore.executeInTransaction(txStore -> {
+            String txId = txStore.appendCommutative(List.of(appendEvent(testId, "Command Audit")));
+            ((CommandAuditStore) txStore).storeCommand(
+                    "{\"id\":\"" + testId + "\"}", "TestCommand", Instant.now());
+            return txId;
+        });
 
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(
@@ -272,6 +289,142 @@ class EventStoreImplTest {
                 assertTrue(rs.getString("metadata").contains("TestCommand"));
             }
         }
+    }
+
+    @Test
+    void shouldStoreCommandAuditRecordThroughPublicStore() throws Exception {
+        UUID commandId = UUID.randomUUID();
+        String testId = UUID.randomUUID().toString();
+
+        boolean inserted = ((CommandAuditStore) eventStoreImpl).storeCommandIfAbsent(
+                "{\"id\":\"" + testId + "\"}",
+                "PublicStoreCommand",
+                commandId,
+                Instant.parse("2026-01-02T03:04:05Z"));
+        boolean duplicate = ((CommandAuditStore) eventStoreImpl).storeCommandIfAbsent(
+                "{\"id\":\"" + testId + "\"}",
+                "PublicStoreCommand",
+                commandId,
+                Instant.parse("2026-01-02T03:04:05Z"));
+
+        assertThat(inserted).isTrue();
+        assertThat(duplicate).isFalse();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(
+                     "SELECT type, data, occurred_at FROM commands WHERE command_id = ?")) {
+            stmt.setObject(1, commandId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals("PublicStoreCommand", rs.getString("type"));
+                assertTrue(rs.getString("data").contains(testId));
+                assertEquals(Instant.parse("2026-01-02T03:04:05Z"), rs.getTimestamp("occurred_at").toInstant());
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    void shouldStoreCommandAuditRecordThroughTransactionScopedStoreIfAbsent() throws Exception {
+        UUID commandId = UUID.randomUUID();
+        String testId = UUID.randomUUID().toString();
+
+        boolean inserted = eventStore.executeInTransaction(txStore ->
+                ((CommandAuditStore) txStore).storeCommandIfAbsent(
+                        "{\"id\":\"" + testId + "\"}",
+                        "ScopedIdempotentCommand",
+                        commandId,
+                        Instant.parse("2026-01-02T03:04:05Z")));
+
+        assertThat(inserted).isTrue();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(
+                     "SELECT type, data, occurred_at FROM commands WHERE command_id = ?")) {
+            stmt.setObject(1, commandId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals("ScopedIdempotentCommand", rs.getString("type"));
+                assertTrue(rs.getString("data").contains(testId));
+                assertEquals(Instant.parse("2026-01-02T03:04:05Z"), rs.getTimestamp("occurred_at").toInstant());
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    void shouldStoreCommandAuditRecordThroughPublicAuditStore() throws Exception {
+        String testId = UUID.randomUUID().toString();
+        Instant occurredAt = Instant.parse("2026-01-02T03:04:05Z");
+
+        boolean inserted = ((CommandAuditStore) eventStoreImpl).storeCommand(
+                "{\"id\":\"" + testId + "\"}",
+                "PublicAuditCommand",
+                occurredAt);
+
+        assertThat(inserted).isTrue();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(
+                     "SELECT type, data, occurred_at FROM commands WHERE type = ? AND data @> ?::jsonb")) {
+            stmt.setString(1, "PublicAuditCommand");
+            stmt.setString(2, "{\"id\":\"" + testId + "\"}");
+            try (ResultSet rs = stmt.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals("PublicAuditCommand", rs.getString("type"));
+                assertTrue(rs.getString("data").contains(testId));
+                assertEquals(occurredAt, rs.getTimestamp("occurred_at").toInstant());
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    void shouldWrapConnectionFailureWhenStoringCommandAuditRecord() throws Exception {
+        DataSource failingWriteDataSource = mock(DataSource.class);
+        Mockito.when(failingWriteDataSource.getConnection()).thenThrow(new SQLException("connection down"));
+        EventStoreImpl failingStore = new EventStoreImpl(
+                failingWriteDataSource, dataSource, objectMapper, newConfig(),
+                clockProvider, mock(ApplicationEventPublisher.class));
+
+        EventStoreException ex = assertThrows(EventStoreException.class,
+                () -> ((CommandAuditStore) failingStore).storeCommandIfAbsent(
+                        "{}", "FailingCommand", UUID.randomUUID(), clockProvider.now()));
+
+        assertThat(ex).hasMessage("Failed to store command")
+                .hasCauseInstanceOf(SQLException.class);
+    }
+
+    @Test
+    void shouldWrapConnectionFailureWhenStoringAuditOnlyCommandRecord() throws Exception {
+        DataSource failingWriteDataSource = mock(DataSource.class);
+        Mockito.when(failingWriteDataSource.getConnection()).thenThrow(new SQLException("connection down"));
+        EventStoreImpl failingStore = new EventStoreImpl(
+                failingWriteDataSource, dataSource, objectMapper, newConfig(),
+                clockProvider, mock(ApplicationEventPublisher.class));
+
+        EventStoreException ex = assertThrows(EventStoreException.class,
+                () -> ((CommandAuditStore) failingStore).storeCommand(
+                        "{}", "FailingCommand", clockProvider.now()));
+
+        assertThat(ex).hasMessage("Failed to store command")
+                .hasCauseInstanceOf(SQLException.class);
+    }
+
+    @Test
+    void shouldWrapPrepareStatementFailureWhenStoringCommandAuditRecord() throws Exception {
+        Connection failingConnection = mock(Connection.class);
+        Mockito.when(failingConnection.prepareStatement(Mockito.anyString()))
+                .thenThrow(new SQLException("prepare failed"));
+        DataSource failingWriteDataSource = mock(DataSource.class);
+        Mockito.when(failingWriteDataSource.getConnection()).thenReturn(failingConnection);
+        EventStoreImpl failingStore = new EventStoreImpl(
+                failingWriteDataSource, dataSource, objectMapper, newConfig(),
+                clockProvider, mock(ApplicationEventPublisher.class));
+
+        EventStoreException ex = assertThrows(EventStoreException.class,
+                () -> ((CommandAuditStore) failingStore).storeCommandIfAbsent(
+                        "{}", "FailingCommand", UUID.randomUUID(), clockProvider.now()));
+
+        assertThat(ex).hasMessage("Failed to store command")
+                .hasCauseInstanceOf(SQLException.class);
     }
 
     @Test

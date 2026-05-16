@@ -1,6 +1,6 @@
 package com.crablet.eventpoller.internal;
 
-import com.crablet.eventpoller.internal.sharedfetch.BackoffInfoProvider;
+import com.crablet.eventpoller.sharedfetch.BackoffInfoProvider;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.processor.ProcessorConfig;

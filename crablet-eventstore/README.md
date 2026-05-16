@@ -87,11 +87,12 @@ public void myOperation() {
 
 ## Metrics
 
-EventStore supports metrics collection via Spring's `ApplicationEventPublisher`:
+EventStore supports observability through Spring's `ObservationRegistry` when available, and
+continues to publish compatibility metric events via Spring's `ApplicationEventPublisher`:
 
-- **Metrics are enabled by default**: Spring Boot automatically provides an `ApplicationEventPublisher` bean
+- **Observations are module-owned**: add Spring Boot Actuator and export via OTLP/OpenTelemetry for new installations
 - **Required parameter**: The `eventPublisher` parameter is required in the constructor
-- **Automatic metrics collection**: See [crablet-metrics-micrometer](../crablet-metrics-micrometer/README.md) for automatic metrics collection
+- **Compatibility metrics**: See [crablet-metrics-micrometer](../crablet-metrics-micrometer/README.md) for the legacy Prometheus/Grafana dashboard collector
 
 Example configuration:
 

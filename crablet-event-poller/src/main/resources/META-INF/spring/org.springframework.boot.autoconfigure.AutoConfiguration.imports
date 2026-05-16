@@ -1,1 +1,2 @@
 com.crablet.eventpoller.config.EventPollerAutoConfiguration
+com.crablet.eventpoller.config.EventPollerObservationAutoConfiguration

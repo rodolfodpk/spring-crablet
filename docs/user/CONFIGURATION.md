@@ -34,7 +34,7 @@ Everything else has sensible defaults. Enable modules explicitly — they are al
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `persist-commands` | boolean | `true` | Write each command to the `commands` audit table in the same transaction as its events. Disable to reduce write amplification when the audit trail is not needed. See [Command Audit Store](../../crablet-commands/README.md#command-audit-store). |
+| `persist-commands` | boolean | `true` | Write each command to the `commands` audit table in the same transaction as its events. Disable to reduce write amplification when the audit trail is not needed. **Must be `true` when passing a `commandId` in `CommandExecutionOptions`** — omitting this raises `InvalidCommandException` at runtime. See [Command Audit Store](../../crablet-commands/README.md#command-audit-store). |
 | `transaction-isolation` | String | `READ_COMMITTED` | JDBC transaction isolation level |
 | `fetch-size` | int | `1000` | PostgreSQL fetch size hint for result-set streaming |
 
@@ -105,7 +105,7 @@ Controls the LISTEN side — opt-in wakeup that cancels the current scheduled de
 | `backoff-threshold` | int | `3` | Errors before exponential backoff activates |
 | `backoff-multiplier` | int | `2` | Exponential backoff multiplier |
 | `max-backoff-seconds` | int | `120` | Maximum backoff delay (seconds) |
-| `shared-fetch.enabled` | boolean | `false` | One DB query per cycle serves all views. Requires schema migration V14. Reduces DB load when many views share the same event stream |
+| `shared-fetch.enabled` | boolean | `false` | One DB query per cycle serves all views. Requires the framework poller progress schema. Reduces DB load when many views share the same event stream |
 
 ---
 
@@ -244,7 +244,7 @@ When `crablet.eventstore.read-replicas.enabled=false` (default), both roles use 
 
 ## Tuning Tips
 
-**shared-fetch mode** — enables one DB query per poll cycle that serves all views (or all automations) instead of one query per processor. Enable when you have many views or automations sharing the same event stream. Requires running schema migration V14.
+**shared-fetch mode** — enables one DB query per poll cycle that serves all views (or all automations) instead of one query per processor. Enable when you have many views or automations sharing the same event stream. Requires the framework poller progress tables from `V2__crablet_poller_progress_schema.sql`.
 
 **fetch-batch-size vs batch-size** — `fetch-batch-size` controls how many events are loaded from the DB per query; `batch-size` controls how many are handed to each processor per cycle. In shared-fetch mode, `fetch-batch-size` is the dominant knob.
 

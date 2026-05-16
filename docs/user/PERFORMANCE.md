@@ -25,13 +25,40 @@ See `crablet-eventstore/docs/READ_REPLICAS.md` for full configuration.
 
 ## Database Indexes
 
-The framework relies heavily on PostgreSQL indexes for performance:
+The framework relies on several PostgreSQL indexes for performance:
 
-- **GIN index on tags** — fast tag-based filtering (`WHERE tags @> '{wallet_id:alice}'`)
-- **Composite index (type, position)** — optimized for DCB query pattern
-- **Composite GIN index (type, tags)** — optimized for idempotency checks
+- **GIN index on `events.tags`** — covers multi-tag containment checks (`@>`) used in the DCB
+  conflict and idempotency fallback paths.
+- **Composite B-tree index (type, position)** — optimized for the DCB query pattern.
+- **`event_tags` derived table** — a normalized B-tree-indexed projection of `events.tags`,
+  maintained atomically on every append. Used by the per-processor poller to replace
+  `unnest(tags)` array scans with indexed EXISTS subqueries. The primary key
+  `(key, value, position)` serves exact tag filters; `idx_event_tags_key_position`
+  serves broad key-existence filters such as view processors that consume all events
+  carrying `wallet_id`.
 
-Tag-based filtering is O(log n) with GIN indexes, making it efficient even with millions of events.
+### `event_tags` derived table
+
+`event_tags` is the performance mechanism for poller tag filtering at scale. Each row represents
+one `key=value` pair from one event. Per-processor poller queries (`EventSelectionSqlBuilder`)
+use correlated EXISTS subqueries against `event_tags` instead of scanning `unnest(events.tags)`
+per row.
+
+The table has two important lookup shapes:
+
+- exact tag filters use `(key, value, position)`, for example `wallet_id=w1`
+- key-existence filters use `(key, position)`, for example all events that carry any `wallet_id`
+
+The second shape matters for broad projections and outbox topics that process all events in a
+business category, not just one entity instance.
+
+**Idempotency and DCB conflict checks** inside `append_events_if` continue to use the GIN index
+on `events.tags`. Real decision models use 2+ tags per criterion (e.g. `wallet_id + year + month`
+in period-aware handlers), so the GIN `@>` path handles the common case directly and uniformly.
+
+**Tradeoff:** every append writes one `event_tags` row per tag per event (write amplification).
+The table is derived data — `events` remains the canonical source of truth. If `event_tags` ever
+drifts from `events`, run the drift check queries in `docs/dev/plans/eventstore-schema-performance-plan.md`.
 
 ## Batch Processing
 

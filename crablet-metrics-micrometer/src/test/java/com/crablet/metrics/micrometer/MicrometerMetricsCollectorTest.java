@@ -1,16 +1,23 @@
 package com.crablet.metrics.micrometer;
 
-import com.crablet.command.metrics.CommandFailureMetric;
+import com.crablet.automations.metrics.AutomationExecutionErrorMetric;
+import com.crablet.automations.metrics.AutomationExecutionMetric;
 import com.crablet.command.metrics.CommandStartedMetric;
+import com.crablet.command.metrics.CommandFailureMetric;
 import com.crablet.command.metrics.CommandSuccessMetric;
 import com.crablet.command.metrics.IdempotentOperationMetric;
+import com.crablet.eventpoller.metrics.BackoffStateMetric;
 import com.crablet.eventpoller.metrics.LeadershipMetric;
 import com.crablet.eventstore.metrics.ConcurrencyViolationMetric;
+import com.crablet.eventstore.metrics.MetricEvent;
 import com.crablet.eventstore.metrics.EventTypeMetric;
 import com.crablet.eventstore.metrics.EventsAppendedMetric;
 import com.crablet.outbox.metrics.EventsPublishedMetric;
 import com.crablet.outbox.metrics.OutboxErrorMetric;
 import com.crablet.outbox.metrics.ProcessingCycleMetric;
+import com.crablet.outbox.metrics.PublishingDurationMetric;
+import com.crablet.views.metrics.ViewProjectionErrorMetric;
+import com.crablet.views.metrics.ViewProjectionMetric;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -46,7 +53,7 @@ class MicrometerMetricsCollectorTest {
     @DisplayName("Should record events appended metric")
     void shouldRecordEventsAppended() {
         // When
-        collector.handleEventsAppended(new EventsAppendedMetric(5));
+        collector.handleMetricEvent(new EventsAppendedMetric(5));
         
         // Then
         Counter counter = registry.find("eventstore.events.appended").counter();
@@ -58,7 +65,7 @@ class MicrometerMetricsCollectorTest {
     @DisplayName("Should record event type metric")
     void shouldRecordEventType() {
         // When
-        collector.handleEventType(new EventTypeMetric("WalletOpened"));
+        collector.handleMetricEvent(new EventTypeMetric("WalletOpened"));
         
         // Then
         Counter counter = registry.find("eventstore.events.by_type")
@@ -72,7 +79,7 @@ class MicrometerMetricsCollectorTest {
     @DisplayName("Should record concurrency violation metric")
     void shouldRecordConcurrencyViolation() {
         // When
-        collector.handleConcurrencyViolation(new ConcurrencyViolationMetric());
+        collector.handleMetricEvent(new ConcurrencyViolationMetric());
         
         // Then
         Counter counter = registry.find("eventstore.concurrency.violations").counter();
@@ -84,7 +91,7 @@ class MicrometerMetricsCollectorTest {
     @DisplayName("Should record command success metric")
     void shouldRecordCommandSuccess() {
         // When
-        collector.handleCommandSuccess(new CommandSuccessMetric("deposit", Duration.ofMillis(150), "commutative"));
+        collector.handleMetricEvent(new CommandSuccessMetric("deposit", Duration.ofMillis(150), "commutative"));
         
         // Then
         Timer timer = registry.find("eventstore.commands.duration")
@@ -104,7 +111,7 @@ class MicrometerMetricsCollectorTest {
     @DisplayName("Should record command failure metric")
     void shouldRecordCommandFailure() {
         // When
-        collector.handleCommandFailure(new CommandFailureMetric("withdraw", "validation"));
+        collector.handleMetricEvent(new CommandFailureMetric("withdraw", "validation"));
         
         // Then
         Counter counter = registry.find("eventstore.commands.failed")
@@ -119,7 +126,7 @@ class MicrometerMetricsCollectorTest {
     @DisplayName("Should record idempotent operation metric")
     void shouldRecordIdempotentOperation() {
         // When
-        collector.handleIdempotentOperation(new IdempotentOperationMetric("open_wallet"));
+        collector.handleMetricEvent(new IdempotentOperationMetric("open_wallet"));
         
         // Then
         Counter counter = registry.find("eventstore.commands.idempotent")
@@ -133,7 +140,7 @@ class MicrometerMetricsCollectorTest {
     @DisplayName("Should record events published metric")
     void shouldRecordEventsPublished() {
         // When
-        collector.handleEventsPublished(new EventsPublishedMetric("kafka-publisher", 3));
+        collector.handleMetricEvent(new EventsPublishedMetric("kafka-publisher", 3));
         
         // Then
         Counter counter = registry.find("outbox.events.published")
@@ -147,7 +154,7 @@ class MicrometerMetricsCollectorTest {
     @DisplayName("Should record processing cycle metric")
     void shouldRecordProcessingCycle() {
         // When
-        collector.handleOutboxProcessingCycle(new ProcessingCycleMetric());
+        collector.handleMetricEvent(new ProcessingCycleMetric());
         
         // Then
         Counter counter = registry.find("outbox.processing.cycles").counter();
@@ -159,7 +166,7 @@ class MicrometerMetricsCollectorTest {
     @DisplayName("Should record outbox error metric")
     void shouldRecordOutboxError() {
         // When
-        collector.handleOutboxError(new OutboxErrorMetric("kafka-publisher"));
+        collector.handleMetricEvent(new OutboxErrorMetric("kafka-publisher"));
         
         // Then
         Counter counter = registry.find("outbox.errors")
@@ -173,7 +180,7 @@ class MicrometerMetricsCollectorTest {
     @DisplayName("Should record leadership metric")
     void shouldRecordLeadership() {
         // When
-        collector.handleLeadership(new LeadershipMetric("outbox", "instance-1", true));
+        collector.handleMetricEvent(new LeadershipMetric("outbox", "instance-1", true));
 
         // Then
         Gauge gauge = registry.find("processor.is_leader")
@@ -184,7 +191,7 @@ class MicrometerMetricsCollectorTest {
         assertThat(gauge.value()).isEqualTo(1.0);
 
         // When: leadership changes
-        collector.handleLeadership(new LeadershipMetric("outbox", "instance-1", false));
+        collector.handleMetricEvent(new LeadershipMetric("outbox", "instance-1", false));
 
         // Then: gauge should update
         assertThat(gauge.value()).isEqualTo(0.0);
@@ -194,7 +201,7 @@ class MicrometerMetricsCollectorTest {
     @DisplayName("Should record in-flight gauge on command started and decrement on success")
     void shouldRecordInflightGauge_OnCommandStartedAndSuccess() {
         // When: command started
-        collector.handleCommandStarted(new CommandStartedMetric("deposit", Instant.now()));
+        collector.handleMetricEvent(new CommandStartedMetric("deposit", Instant.now()));
 
         // Then: in-flight gauge is 1
         Gauge gauge = registry.find("commands.inflight").tag("command_type", "deposit").gauge();
@@ -202,10 +209,57 @@ class MicrometerMetricsCollectorTest {
         assertThat(gauge.value()).isEqualTo(1.0);
 
         // When: command succeeds
-        collector.handleCommandSuccess(new CommandSuccessMetric("deposit", Duration.ofMillis(50), "commutative"));
+        collector.handleMetricEvent(new CommandSuccessMetric("deposit", Duration.ofMillis(50), "commutative"));
 
         // Then: in-flight gauge is back to 0
         assertThat(gauge.value()).isEqualTo(0.0);
     }
+
+    @Test
+    @DisplayName("Should record poller processing cycle with empty poll branch")
+    void shouldRecordPollerProcessingCycleWithEmptyPoll() {
+        collector.handleMetricEvent(
+                new com.crablet.eventpoller.metrics.ProcessingCycleMetric("views", "inst-1", 0, true));
+
+        Counter empty = registry.find("poller.empty.polls")
+                .tag("processor", "views")
+                .tag("instance_id", "inst-1")
+                .counter();
+        assertThat(empty).isNotNull();
+        assertThat(empty.count()).isEqualTo(1.0);
+
+        Counter cycles = registry.find("poller.processing.cycles")
+                .tag("processor", "views")
+                .counter();
+        assertThat(cycles).isNotNull();
+        assertThat(cycles.count()).isEqualTo(1.0);
+    }
+
+    @Test
+    @DisplayName("Should record publishing duration, backoff, views, automations, and ignore unknown events")
+    void shouldRecordAuxiliaryMetricsAndIgnoreUnknown() {
+        collector.handleMetricEvent(new PublishingDurationMetric("pub-a", Duration.ofMillis(7)));
+
+        collector.handleMetricEvent(new BackoffStateMetric("proc", "node", true, 4));
+
+        collector.handleMetricEvent(new ViewProjectionMetric("balance", 2, Duration.ofMillis(11)));
+
+        collector.handleMetricEvent(new ViewProjectionErrorMetric("balance"));
+
+        collector.handleMetricEvent(new AutomationExecutionMetric("auto-1", 1, Duration.ofMillis(9)));
+
+        collector.handleMetricEvent(new AutomationExecutionErrorMetric("auto-1"));
+
+        collector.handleMetricEvent(new UnknownMetricForCollectorTest());
+
+        assertThat(registry.find("outbox.publishing.duration").timer().count()).isEqualTo(1);
+        assertThat(registry.find("poller.backoff.active").gauge().value()).isEqualTo(1.0);
+        assertThat(registry.find("views.projection.duration").timer().count()).isEqualTo(1);
+        assertThat(registry.find("views.projection.errors").counter().count()).isEqualTo(1.0);
+        assertThat(registry.find("automations.execution.duration").timer().count()).isEqualTo(1);
+        assertThat(registry.find("automations.execution.errors").counter().count()).isEqualTo(1.0);
+    }
+
+    private record UnknownMetricForCollectorTest() implements MetricEvent {}
 }
 

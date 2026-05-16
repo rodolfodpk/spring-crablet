@@ -11,6 +11,10 @@ public final class NoopProcessorWakeupSource implements ProcessorWakeupSource {
     }
 
     @Override
+    public void close(Runnable onWakeup) {
+    }
+
+    @Override
     public void close() {
     }
 }

@@ -29,13 +29,14 @@ make start
 
 ```
 ── reactor (built together) ──────────────────────────────
-  crablet-eventstore           core, no framework deps
-  crablet-commands              → eventstore
+  crablet-observability       shared observation names/tags, no runtime deps
+  crablet-eventstore           core → observability
+  crablet-commands              → eventstore + observability
   crablet-commands-web         → commands + spring-webmvc
-  crablet-event-poller      → eventstore
-  crablet-outbox               → eventstore + event-processor
-  crablet-views                → eventstore + event-processor
-  crablet-automations          → eventstore + event-processor + command
+  crablet-event-poller      → eventstore + observability
+  crablet-outbox               → eventstore + event-processor + observability
+  crablet-views                → eventstore + event-processor + observability
+  crablet-automations          → eventstore + event-processor + command + observability
   crablet-metrics-micrometer   → eventstore
 
 ── outside reactor (built separately) ───────────────────
@@ -61,7 +62,7 @@ before the real JARs are built.
 
 `crablet-test-support` sits outside the reactor because it depends on
 `crablet-eventstore` (main scope) and provides test utilities to all other modules.
-It carries all database migrations (V1–V6) so every module gets them automatically
+It carries the framework database migrations so every module gets them automatically
 through a single test-scope dependency — no per-module copies needed.
 
 ## Build Order
@@ -70,7 +71,7 @@ through a single test-scope dependency — no per-module copies needed.
 
 | Step | Target | What it builds |
 |------|--------|----------------|
-| 1 | `build-core` | `crablet-eventstore` (no tests, installs stub JARs first) |
+| 1 | `build-core` | `crablet-observability` and `crablet-eventstore` (no tests, installs stub JARs first) |
 | 2 | `build-test-support` | `crablet-test-support` (full build) |
 | 3 | `build-command` | `crablet-commands` (no tests) |
 | 4 | `build-shared` | `shared-examples-domain` (full build with tests) |
@@ -84,7 +85,8 @@ Neither `examples/wallet-example-app` nor `examples/course-example-app` is part 
 make install            # full build with unit tests (recommended)
 make install-all-tests  # full build including integration tests
 make validate-all       # full local validation: framework, docs, codegen, examples
-make test               # run all tests (requires prior install)
+make test               # run all reactor tests (runs Makefile prerequisites first)
+make test-pl PL=…       # run tests for one module + reactor deps (-am); avoids stale ~/.m2 siblings
 make examples-check     # test standalone wallet and course example apps
 make clean              # clean all build artifacts
 make start              # run wallet-example-app (port 8080)
@@ -123,11 +125,20 @@ cd shared-examples-domain && ../mvnw install && cd ..
 ./mvnw install
 ```
 
-Run a single module after `make install`:
+Run tests for a **single reactor module** without picking up a stale sibling JAR from `~/.m2` — use Make so prerequisites match `make test`, and **`-am`** rebuilds Maven modules the selected one depends on:
 
 ```bash
-./mvnw test -pl crablet-views
-./mvnw test -pl crablet-commands -Dtest=DepositCommandHandlerTest
+make test-pl PL=crablet-commands
+make test-pl PL=crablet-views
+# Optional extra Surefire args:
+make test-pl PL=crablet-commands MVN_ARGS='-Dtest=DepositCommandHandlerTest'
+```
+
+If you call Maven directly, always include **`-am`** when using `-pl` so upstream reactor modules are part of the same build, for example:
+
+```bash
+./mvnw test -pl crablet-views -am
+./mvnw test -pl crablet-commands -am -Dtest=DepositCommandHandlerTest
 ```
 
 ## Running the Example Apps
@@ -184,20 +195,16 @@ All framework migrations live in a single place:
 
 ```
 crablet-test-support/src/main/resources/db/migration/
-  V1__eventstore_schema.sql        events + commands tables
-  V2__outbox_schema.sql            outbox_topic_progress table
-  V3__view_progress_schema.sql     view_progress table
-  V4__automation_progress_schema.sql automation_progress table
-  V5__correlation_causation.sql    correlation_id / causation_id on events
-  V6__shared_fetch_scan_progress.sql  module + processor scan progress (shared-fetch)
+  V1__crablet_eventstore_schema.sql        events, commands, event_tags, indexes, append functions
+  V2__crablet_poller_progress_schema.sql   outbox, view, automation, shared-fetch progress tables
 ```
 
 Flyway picks these up automatically on the test classpath because every module
 has `crablet-test-support` as a test-scope dependency. No copies in individual modules.
 
 Both example apps use a two-location Flyway configuration:
-- `classpath:db/migration` — framework tables V1–V6 from `crablet-db-migrations`
-- `classpath:db/migration/app` — app-specific views (V7+)
+- `classpath:db/migration` — framework tables from `crablet-db-migrations`
+- `classpath:db/migration/app` — app-specific views (example apps reserve V100+ to avoid framework version collisions)
 
 Wallet app-specific migrations: `wallet_balance_view`, `wallet_transaction_view`, `wallet_summary_view`, `wallet_statement_view`.
 Course app-specific migrations: `course_availability` table.

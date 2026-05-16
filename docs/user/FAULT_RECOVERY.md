@@ -19,6 +19,17 @@ When a handler throws, Crablet records the error and leaves `last_position` unch
 successful run reprocesses the same event window, so handlers and publishers should be idempotent
 or tolerate duplicate delivery.
 
+Pollers also apply PostgreSQL's transaction safe horizon before advancing position cursors:
+
+```sql
+transaction_id < pg_snapshot_xmin(pg_current_snapshot())
+```
+
+If a write transaction stays open, views, automations, and outbox publishers may temporarily stop
+seeing newer events even though those newer events are committed. This is expected: Crablet waits
+until the snapshot horizon is safe so a later `last_position` cannot skip an earlier event that
+commits late.
+
 ## View Projector Crash Mid-Batch
 
 Symptom:

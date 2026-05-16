@@ -3,12 +3,12 @@ package com.crablet.automations.internal;
 import com.crablet.automations.AutomationDecision;
 import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.config.AutomationsConfig;
+import com.crablet.command.CommandExecutionOptions;
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandHandler;
 import com.crablet.command.ExecutionResult;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
-import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,8 +56,10 @@ class AutomationDefinitionConsistencyTest {
         int count = dispatcher.handle(handler.getAutomationName(), List.of(testEvent("WalletOpened")));
 
         assertThat(fetcher.sqlFilterFor(handler.getAutomationName()))
-                .isEqualTo("type IN ('WalletOpened') AND EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'wallet_id=%') " +
-                        "AND EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'owner_id=%')");
+                .contains("type IN ('WalletOpened')")
+                .contains("t.key = 'wallet_id'")
+                .contains("t.key IN ('owner_id')")
+                .contains("t.position = events.position");
         assertThat(configs.get(handler.getAutomationName()).getPollingIntervalMs()).isEqualTo(1500L);
         assertThat(configs.get(handler.getAutomationName()).getBatchSize()).isEqualTo(25);
         assertThat(count).isEqualTo(1);
@@ -84,8 +85,10 @@ class AutomationDefinitionConsistencyTest {
                 AutomationProcessorConfig.createConfigMap(configWithDefaults(), handlers);
 
         assertThat(fetcher.sqlFilterFor(handler.getAutomationName()))
-                .isEqualTo("type IN ('WalletOpened') AND EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'wallet_id=%') " +
-                        "AND EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'owner_id=%')");
+                .contains("type IN ('WalletOpened')")
+                .contains("t.key = 'wallet_id'")
+                .contains("t.key IN ('owner_id')")
+                .contains("t.position = events.position");
         assertThat(configs.get(handler.getAutomationName()).getPollingIntervalMs()).isEqualTo(5000L);
         assertThat(configs.get(handler.getAutomationName()).getBatchSize()).isEqualTo(7);
     }
@@ -150,13 +153,8 @@ class AutomationDefinitionConsistencyTest {
     private static CommandExecutor noOpExecutor() {
         return new CommandExecutor() {
             @Override public <T> ExecutionResult execute(T command) { return null; }
-
-            @Override
-            public <T> ExecutionResult execute(T command, @Nullable UUID correlationId) {
-                return execute(command);
-            }
-
             @Override public <T> ExecutionResult execute(T command, CommandHandler<T> handler) { return null; }
+            @Override public <T> ExecutionResult execute(T command, CommandExecutionOptions options) { return null; }
         };
     }
 

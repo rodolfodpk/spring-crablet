@@ -29,19 +29,19 @@ public final class EventSelectionSqlBuilder {
         }
 
         for (String tagKey : selection.getRequiredTags()) {
-            conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE '" + tagKey + "=%')");
+            conditions.add("EXISTS (SELECT 1 FROM event_tags t WHERE t.position = events.position AND t.key = '" + tagKey + "')");
         }
 
         Set<String> anyOfTags = selection.getAnyOfTags();
         if (!anyOfTags.isEmpty()) {
-            String anyOfCondition = anyOfTags.stream()
-                    .map(tagKey -> "t LIKE '" + tagKey + "=%'")
-                    .collect(Collectors.joining(" OR "));
-            conditions.add("EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE " + anyOfCondition + ")");
+            String keyList = anyOfTags.stream()
+                    .map(k -> "'" + k + "'")
+                    .collect(Collectors.joining(", "));
+            conditions.add("EXISTS (SELECT 1 FROM event_tags t WHERE t.position = events.position AND t.key IN (" + keyList + "))");
         }
 
         for (Map.Entry<String, String> entry : selection.getExactTags().entrySet()) {
-            conditions.add("'" + entry.getKey() + "=" + entry.getValue() + "' = ANY(tags)");
+            conditions.add("EXISTS (SELECT 1 FROM event_tags t WHERE t.position = events.position AND t.key = '" + entry.getKey() + "' AND t.value = '" + entry.getValue() + "')");
         }
 
         return conditions.isEmpty() ? "TRUE" : String.join(" AND ", conditions);

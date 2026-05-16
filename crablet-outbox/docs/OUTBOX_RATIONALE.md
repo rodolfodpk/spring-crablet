@@ -38,7 +38,7 @@ Events are published atomically with DCB operations - no dual-write problem.
 
 ### 2. **DCB Integration**
 - Uses same event tags for topic routing
-- Leverages DCB's position-based ordering
+- Leverages DCB's position-based ordering with PostgreSQL `transaction_id` safe-horizon filtering
 - Maintains DCB's concurrency control guarantees
 
 ### 3. **Independent Publishers**
@@ -79,6 +79,7 @@ Each publisher tracks its own progress independently. Multiple publishers per to
 
 ### Outbox Pattern (This Library)
 - ✅ Transactional consistency with DCB operations
+- ✅ Transaction-id safe horizon before advancing position cursors
 - ✅ Full control over publishers and routing logic
 - ✅ PostgreSQL advisory locks (no external coordination needed)
 - ✅ Independent publisher progress tracking

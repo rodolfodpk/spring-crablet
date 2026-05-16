@@ -1,7 +1,10 @@
 package com.crablet.outbox.config;
 
+import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
-import com.crablet.eventpoller.internal.sharedfetch.SharedFetchModuleProcessor;
+import com.crablet.eventpoller.config.EventPollerConfig;
+import com.crablet.eventpoller.sharedfetch.SharedFetchModuleProcessor;
+import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
@@ -18,6 +21,7 @@ import org.springframework.scheduling.TaskScheduler;
 
 import javax.sql.DataSource;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -84,5 +88,34 @@ class OutboxAutoConfigurationTest {
                 mock(ApplicationEventPublisher.class));
 
         assertThat(processor).isInstanceOf(SharedFetchModuleProcessor.class);
+    }
+
+    @Test
+    @DisplayName("Should create legacy outbox event processor when wakeup factory and poller config are present")
+    void shouldCreateLegacyOutboxEventProcessorWithOptionals() {
+        OutboxConfig outboxConfig = new OutboxConfig();
+        TopicConfigurationProperties properties = new TopicConfigurationProperties();
+        TopicPublisherPair pair = new TopicPublisherPair("wallet", "publisher-a");
+        Map<TopicPublisherPair, OutboxProcessorConfig> configs = Map.of(
+                pair, new OutboxProcessorConfig(pair, outboxConfig, properties));
+        TopicConfig topicConfig = TopicConfig.builder("wallet")
+                .publishers("publisher-a")
+                .eventTypes("WalletOpened")
+                .build();
+        LeaderElector leaderElector = mock(LeaderElector.class);
+
+        EventProcessor<OutboxProcessorConfig, TopicPublisherPair> processor = autoConfiguration.outboxEventProcessor(
+                configs,
+                Map.of("wallet", topicConfig),
+                leaderElector,
+                mock(ProgressTracker.class),
+                mock(EventFetcher.class),
+                mock(EventHandler.class),
+                mock(TaskScheduler.class),
+                mock(ApplicationEventPublisher.class),
+                Optional.of(new NoopProcessorWakeupSourceFactory()),
+                Optional.of(new EventPollerConfig()));
+
+        assertThat(processor).isNotNull();
     }
 }

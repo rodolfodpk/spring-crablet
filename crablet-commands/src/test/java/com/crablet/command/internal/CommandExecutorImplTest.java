@@ -1,6 +1,8 @@
 package com.crablet.command.internal;
 
 import com.crablet.command.CommandDecision;
+import com.crablet.command.CommandExecutionOptions;
+import com.crablet.command.CommandHandler;
 import com.crablet.command.ExecutionResult;
 import com.crablet.command.InvalidCommandException;
 import com.crablet.command.integration.AbstractCommandTest;
@@ -102,6 +104,25 @@ class CommandExecutorImplTest extends AbstractCommandTest {
         assertFalse(result.wasIdempotent());
 
         // Verify event persisted in database
+        Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
+        List<StoredEvent> events = eventRepository.query(query, null);
+        assertThat(events).hasSize(1);
+        assertThat(events.get(0).type()).isEqualTo("test_event");
+    }
+
+    @Test
+    void executeCommand_WithExplicitHandler_ShouldExecuteSuccessfully() {
+        TestCommand command = new TestCommand("test_command", "entity-explicit-handler");
+        AppendEvent event = AppendEvent.builder("test_event")
+                .tag("entityId", "entity-explicit-handler")
+                .data("{}")
+                .build();
+        CommandHandler<TestCommand> handler = (eventStore, handledCommand) ->
+                CommandDecision.Commutative.of(event);
+
+        ExecutionResult result = commandExecutor.execute(command, handler);
+
+        assertTrue(result.wasCreated());
         Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
         List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(1);
@@ -551,7 +572,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
     }
 
     @Test
-    void executeWithCorrelationId_NullCorrelationId_BehavesLikeExecuteWithoutIt() {
+    void executeWithoutCorrelationId_StoresNoCorrelationId() {
         TestCommand command = new TestCommand("test_command", "entity-no-corr");
         AppendEvent event = AppendEvent.builder("test_event")
                 .tag("entityId", "entity-no-corr")
@@ -559,7 +580,25 @@ class CommandExecutorImplTest extends AbstractCommandTest {
                 .build();
         TestCommandHandler.setHandlerLogic(cmd -> CommandDecision.Commutative.of(event));
 
-        ExecutionResult result = commandExecutor.execute(command, (java.util.UUID) null);
+        ExecutionResult result = commandExecutor.execute(command);
+
+        assertTrue(result.wasCreated());
+        Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
+        List<StoredEvent> events = eventRepository.query(query, null);
+        assertThat(events).hasSize(1);
+        assertThat(events.get(0).correlationId()).isNull();
+    }
+
+    @Test
+    void executeWithDefaultOptions_BehavesLikeExecuteWithoutOptions() {
+        TestCommand command = new TestCommand("test_command", "entity-default-options");
+        AppendEvent event = AppendEvent.builder("test_event")
+                .tag("entityId", "entity-default-options")
+                .data("{}")
+                .build();
+        TestCommandHandler.setHandlerLogic(cmd -> CommandDecision.Commutative.of(event));
+
+        ExecutionResult result = commandExecutor.execute(command, CommandExecutionOptions.defaults());
 
         assertTrue(result.wasCreated());
         Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
@@ -578,7 +617,9 @@ class CommandExecutorImplTest extends AbstractCommandTest {
                 .build();
         TestCommandHandler.setHandlerLogic(cmd -> CommandDecision.Commutative.of(event));
 
-        ExecutionResult result = commandExecutor.execute(command, correlationId);
+        ExecutionResult result = commandExecutor.execute(command, CommandExecutionOptions.builder()
+                .correlationId(correlationId)
+                .build());
 
         assertTrue(result.wasCreated());
         Query query = Query.of(com.crablet.eventstore.query.QueryItem.of(List.of("test_event"), List.of()));
