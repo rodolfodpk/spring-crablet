@@ -85,7 +85,8 @@ Neither `examples/wallet-example-app` nor `examples/course-example-app` is part 
 make install            # full build with unit tests (recommended)
 make install-all-tests  # full build including integration tests
 make validate-all       # full local validation: framework, docs, codegen, examples
-make test               # run all tests (requires prior install)
+make test               # run all reactor tests (runs Makefile prerequisites first)
+make test-pl PL=…       # run tests for one module + reactor deps (-am); avoids stale ~/.m2 siblings
 make examples-check     # test standalone wallet and course example apps
 make clean              # clean all build artifacts
 make start              # run wallet-example-app (port 8080)
@@ -124,11 +125,20 @@ cd shared-examples-domain && ../mvnw install && cd ..
 ./mvnw install
 ```
 
-Run a single module after `make install`:
+Run tests for a **single reactor module** without picking up a stale sibling JAR from `~/.m2` — use Make so prerequisites match `make test`, and **`-am`** rebuilds Maven modules the selected one depends on:
 
 ```bash
-./mvnw test -pl crablet-views
-./mvnw test -pl crablet-commands -Dtest=DepositCommandHandlerTest
+make test-pl PL=crablet-commands
+make test-pl PL=crablet-views
+# Optional extra Surefire args:
+make test-pl PL=crablet-commands MVN_ARGS='-Dtest=DepositCommandHandlerTest'
+```
+
+If you call Maven directly, always include **`-am`** when using `-pl` so upstream reactor modules are part of the same build, for example:
+
+```bash
+./mvnw test -pl crablet-views -am
+./mvnw test -pl crablet-commands -am -Dtest=DepositCommandHandlerTest
 ```
 
 ## Running the Example Apps

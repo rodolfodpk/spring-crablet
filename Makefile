@@ -11,7 +11,7 @@
 # examples/wallet-example-app is built separately after the reactor is installed.
 # See BUILD.md for full explanation.
 
-.PHONY: help install install-all-tests ci-verify validate-all skills-check check-test-support-artifact build-all compile package test test-skip examples-check clean verify build-core build-shared build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check event-model-diagrams
+.PHONY: help install install-all-tests ci-verify validate-all skills-check check-test-support-artifact build-all compile package test test-pl test-skip examples-check clean verify build-core build-shared build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check event-model-diagrams
 
 .NOTPARALLEL:
 
@@ -37,6 +37,7 @@ help:
 	@echo ""
 	@echo "Test Commands:"
 	@echo "  test        - Run all tests across all modules"
+	@echo "  test-pl     - Run tests for one reactor module + deps (use PL=...; avoids stale ~/.m2 siblings)"
 	@echo "  test-skip   - Build without running tests (faster)"
 	@echo "  examples-check - Test standalone example applications"
 	@echo ""
@@ -179,6 +180,15 @@ package: build-core build-test-support check-test-support-artifact build-command
 # Run tests (requires core, test-support, commands and shared examples first)
 test: build-core build-test-support check-test-support-artifact build-command build-shared
 	@./mvnw test
+
+# Run tests for a subset of the reactor, including dependent modules in the same build (-am).
+# Ensures sibling modules (e.g. crablet-eventstore) are rebuilt instead of a stale ~/.m2 SNAPSHOT.
+# Example: make test-pl PL=crablet-commands
+# Optional: extra Maven args, e.g. make test-pl PL=crablet-commands MVN_ARGS='-Dtest=FooTest'
+test-pl:
+	@test -n "$(PL)" || (echo "Usage: make test-pl PL=<module-dir>  Example: make test-pl PL=crablet-commands"; exit 1)
+	@$(MAKE) build-core build-test-support check-test-support-artifact build-command build-shared
+	@./mvnw test -pl $(PL) -am $(MVN_ARGS)
 
 # Build without tests
 test-skip: build-core build-test-support check-test-support-artifact build-command build-shared

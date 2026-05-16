@@ -875,6 +875,9 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     private static Set<String> collectTagKeys(List<AppendEvent> events) {
         Set<String> keys = new HashSet<>();
         for (AppendEvent e : events) {
+            if (e.tags() == null) {
+                continue;
+            }
             for (Tag t : e.tags()) {
                 if (t.key() != null) {
                     keys.add(t.key());

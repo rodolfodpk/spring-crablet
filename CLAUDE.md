@@ -40,16 +40,23 @@ make clean              # Clean build artifacts
 make start              # Run wallet-example-app (port 8080)
 make course-start       # Run course-example-app (port 8081)
 
-# Run specific module tests after dependencies are built
-./mvnw test -pl <module-name>
-./mvnw test -pl <module-name> -Dtest=ClassName
+# Focused module tests (runs same Makefile prerequisites as `make test`, includes `-am` so sibling
+# modules are not taken from a stale ~/.m2 SNAPSHOT):
+make test-pl PL=<module-dir>
+make test-pl PL=<module-dir> MVN_ARGS='-Dtest=ClassName'
+
+# If calling Maven directly after Makefile prerequisites, always use `-am` with `-pl`:
+./mvnw test -pl <module-name> -am
+./mvnw test -pl <module-name> -am -Dtest=ClassName
 ```
 
 Always use `make` targets for repository builds. Do not run root Maven build/test commands directly
 until `make build-test-support` and `make check-test-support-artifact` have passed; otherwise Maven
 can resolve a stale locally installed `crablet-test-support` jar and run tests against old Flyway
-migrations. Direct `./mvnw test -pl ...` is only for focused follow-up after the Makefile has
-prepared local artifacts.
+migrations. Prefer `make test-pl PL=…` for focused runs; if you use `./mvnw test -pl …` directly,
+always add **`-am`** after Makefile prerequisites so upstream reactor modules are rebuilt with the
+same invocation. Direct plain `./mvnw test -pl …` (without `-am`) can resolve a stale locally installed
+sibling SNAPSHOT.
 
 Tests use Testcontainers for PostgreSQL integration tests. `make install` is the normal maintainer build because the examples and shared example domain are outside the Maven reactor.
 
