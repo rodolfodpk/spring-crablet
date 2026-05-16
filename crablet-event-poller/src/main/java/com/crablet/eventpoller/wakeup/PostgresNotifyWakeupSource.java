@@ -25,43 +25,44 @@ import java.util.stream.Collectors;
 /**
  * Dedicated PostgreSQL LISTEN/NOTIFY wakeup source.
  *
- * <p>Shared across modules: multiple callers register via {@link #start(Set, Runnable)}.
- * The LISTEN connection and listener thread start on the first registration and stop when
- * the last subscriber unregisters via {@link #close(Runnable)}.
+ * <p>Shared across modules: multiple callers register via
+ * {@link #start(Set, Set, Set, Set, Runnable)}. The LISTEN connection and listener thread
+ * start on the first registration and stop when the last subscriber unregisters.
  * {@link #close()} force-closes regardless of remaining subscribers (context shutdown).
  *
+ * <h2>Payload format</h2>
+ * <pre>{@code EventType1,EventType2|tagkey1,tagkey2,tagkey3}</pre>
+ * Types before {@code |}, tag <em>key names</em> (not values) after. A bare {@code *}
+ * or absent segment signals wildcard. Falls back to types-only or {@code *} if encoding
+ * exceeds 7 900 bytes. Only tag keys are encoded — high-cardinality values (UUIDs,
+ * amounts) are intentionally excluded to keep the payload compact. Exact-tag value
+ * matching is left to the SQL filter layer.
+ *
  * <h2>Batch coalescing (Phase A)</h2>
- * <p>Multiple notifications returned in a single {@code getNotifications()} call are merged
- * into one wakeup decision: event types are unioned; any wildcard payload makes the whole
- * batch a wildcard. Each subscriber is called at most once per driver read.
+ * Multiple notifications in one {@code getNotifications()} call are merged: types unioned,
+ * tag keys unioned, any wildcard notification poisons the whole batch.
  *
  * <h2>Cross-read debounce (Phase B)</h2>
- * <p>When {@code debounceMs > 0}, back-to-back driver reads within the window are further
- * merged so that a Postgres burst split across several reads still results in one wakeup
- * per subscriber per window. {@code debounceMs = 0} disables this and dispatches
- * immediately after each read (Phase A only).
+ * When {@code debounceMs > 0}, back-to-back reads within the window are further merged.
  *
- * <h2>Event-type filtering (Phase D)</h2>
- * <p>Each subscriber declares its interested event types. Wildcard subscribers (empty set)
- * are always woken. Typed subscribers are woken only when the accumulated batch intersects
- * their declared types, or when the batch carries a wildcard payload.
+ * <h2>Full EventSelection filtering (Phase D)</h2>
+ * Each subscriber registers its {@link com.crablet.eventpoller.EventSelection} criteria:
+ * event types, required tag keys (ALL must be present), anyOf tag keys (at least ONE),
+ * and exact tag keys (the key names from exactTags — ALL must be present; exact value
+ * matching is conservative at this layer and delegated to SQL).
  *
  * <h2>Reconnect backoff (Phase E)</h2>
- * <p>Transient LISTEN failures (Postgres restart, network blip) are retried with
- * exponential backoff capped at 60 s. A connection that was established and then dropped
- * resets the backoff to 1 s because the server was reachable. Permanent failures (pooler
- * detected via {@code unwrap} failure) exit without retry; the system falls back to
- * scheduled polling.
+ * Transient failures retry with exponential backoff capped at 60 s. Permanent pooler
+ * failures exit without retry.
  */
 @SuppressWarnings("NullAway") // AtomicReference<BatchState> uses null as "no pending state" sentinel
 public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
 
     private static final Logger log = LoggerFactory.getLogger(PostgresNotifyWakeupSource.class);
 
-    // Reconnect backoff: 1 s → 2 s → 4 s → … capped at 60 s
-    private static final long RECONNECT_BASE_MS    = 1_000L;
-    private static final long RECONNECT_MAX_MS     = 60_000L;
-    private static final int  RECONNECT_MAX_SHIFT  = 6; // 2^6 × 1 s = 64 s > cap
+    private static final long RECONNECT_BASE_MS   = 1_000L;
+    private static final long RECONNECT_MAX_MS    = 60_000L;
+    private static final int  RECONNECT_MAX_SHIFT = 6;
 
     private final String jdbcUrl;
     private final @Nullable String username;
@@ -72,7 +73,6 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final CopyOnWriteArrayList<Subscriber> subscribers = new CopyOnWriteArrayList<>();
 
-    // Cross-read debounce state
     private final AtomicReference<BatchState> accumulator = new AtomicReference<>(null);
     private final AtomicBoolean pendingFlush = new AtomicBoolean(false);
     private final ScheduledExecutorService flushScheduler;
@@ -80,24 +80,44 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
     private @Nullable Thread listenerThread;
     private @Nullable Connection connection;
 
-    private record Subscriber(Set<String> eventTypes, Runnable onWakeup) {}
+    // ── Subscriber record ──────────────────────────────────────────────────────
 
     /**
-     * Immutable accumulated batch state. Merges multiple driver reads.
-     * {@code wildcard = true} means "wake all subscribers regardless of types."
+     * @param eventTypes     event type names; empty = all types
+     * @param requiredTagKeys tag keys that ALL must be in the batch (empty = no restriction)
+     * @param anyOfTagKeys   tag keys where at least ONE must be in the batch (empty = no restriction)
+     * @param exactTagKeys   tag key names from exactTags declarations; ALL must be present
+     *                       (value check is conservative — exact values verified by SQL)
      */
-    record BatchState(boolean wildcard, Set<String> types) {
-        static BatchState ofBatch(boolean wildcard, Set<String> types) {
-            return new BatchState(wildcard, wildcard ? Set.of() : Set.copyOf(types));
+    private record Subscriber(
+            Set<String> eventTypes,
+            Set<String> requiredTagKeys,
+            Set<String> anyOfTagKeys,
+            Set<String> exactTagKeys,
+            Runnable onWakeup) {}
+
+    // ── BatchState record ──────────────────────────────────────────────────────
+
+    /**
+     * Immutable accumulated batch state. {@code tagKeys} contains the tag key names
+     * (not values) present across all appended events in the batch.
+     */
+    record BatchState(boolean wildcard, Set<String> types, Set<String> tagKeys) {
+
+        static BatchState ofNotification(boolean wildcard, Set<String> types, Set<String> tagKeys) {
+            if (wildcard) return new BatchState(true, Set.of(), Set.of());
+            return new BatchState(false, Set.copyOf(types), Set.copyOf(tagKeys));
         }
 
         BatchState merge(BatchState other) {
-            if (this.wildcard || other.wildcard) return new BatchState(true, Set.of());
-            Set<String> merged = new HashSet<>(types);
-            merged.addAll(other.types);
-            return new BatchState(false, Collections.unmodifiableSet(merged));
+            if (this.wildcard || other.wildcard) return new BatchState(true, Set.of(), Set.of());
+            Set<String> mt = new HashSet<>(types);   mt.addAll(other.types);
+            Set<String> mk = new HashSet<>(tagKeys); mk.addAll(other.tagKeys);
+            return new BatchState(false, Collections.unmodifiableSet(mt), Collections.unmodifiableSet(mk));
         }
     }
+
+    // ── Constructors ────────────────────────────────────────────────────────────
 
     public PostgresNotifyWakeupSource(
             String jdbcUrl, @Nullable String username, @Nullable String password, String channel) {
@@ -119,14 +139,23 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
         });
     }
 
+    // ── ProcessorWakeupSource ───────────────────────────────────────────────────
+
     @Override
     public synchronized void start(Runnable onWakeup) {
-        start(Set.of(), onWakeup);
+        start(Set.of(), Set.of(), Set.of(), Set.of(), onWakeup);
     }
 
     @Override
-    public synchronized void start(Set<String> subscribedEventTypes, Runnable onWakeup) {
-        subscribers.add(new Subscriber(subscribedEventTypes, onWakeup));
+    public synchronized void start(Set<String> eventTypes, Runnable onWakeup) {
+        start(eventTypes, Set.of(), Set.of(), Set.of(), onWakeup);
+    }
+
+    @Override
+    public synchronized void start(Set<String> eventTypes, Set<String> requiredTagKeys,
+                                   Set<String> anyOfTagKeys, Set<String> exactTagKeys,
+                                   Runnable onWakeup) {
+        subscribers.add(new Subscriber(eventTypes, requiredTagKeys, anyOfTagKeys, exactTagKeys, onWakeup));
         if (running.compareAndSet(false, true)) {
             listenerThread = new Thread(this::listenLoop, "crablet-pg-listen-" + channel);
             listenerThread.setDaemon(true);
@@ -148,9 +177,9 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
         subscribers.clear();
     }
 
+    // ── Lifecycle ───────────────────────────────────────────────────────────────
+
     private void drainAndStop() {
-        // Cancel any pending scheduled flush and drain its accumulated state immediately,
-        // so subscribers receive one final wakeup before the connection closes.
         flushScheduler.shutdownNow();
         pendingFlush.set(false);
         BatchState pending = accumulator.getAndSet(null);
@@ -169,7 +198,7 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
         }
     }
 
-    // ── Reconnect loop ────────────────────────────────────────────────────────
+    // ── Reconnect loop ──────────────────────────────────────────────────────────
 
     private void listenLoop() {
         int attempt = 0;
@@ -177,7 +206,7 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
             boolean[] wasConnected = {false};
             try {
                 runListenSession(wasConnected);
-                return; // clean shutdown (running became false)
+                return;
             } catch (SQLException e) {
                 if (!running.get()) return;
 
@@ -193,7 +222,6 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
 
                 long delayMs;
                 if (wasConnected[0]) {
-                    // Server was reachable — transient drop (restart, network blip); reset backoff
                     attempt = 0;
                     delayMs = RECONNECT_BASE_MS;
                     log.warn("LISTEN connection dropped for channel '{}', reconnecting in {}ms: {}",
@@ -216,11 +244,6 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
         }
     }
 
-    /**
-     * Open one LISTEN session and poll until {@code running} is false or an error occurs.
-     * Sets {@code wasConnected[0] = true} once the LISTEN statement succeeds, so the
-     * caller can distinguish "never connected" from "connected then dropped."
-     */
     private void runListenSession(boolean[] wasConnected) throws SQLException {
         Connection listenConnection = username == null && password == null
                 ? DriverManager.getConnection(jdbcUrl)
@@ -249,44 +272,36 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
         return e.getMessage() != null && e.getMessage().toLowerCase().contains("unwrap");
     }
 
-    // ── Batch dispatch ─────────────────────────────────────────────────────────
+    // ── Batch dispatch ──────────────────────────────────────────────────────────
 
-    /**
-     * Merge one driver read into a batch state and either dispatch immediately
-     * (debounceMs == 0) or accumulate for the next flush window.
-     */
     void dispatchBatch(PGNotification[] notifications) {
         boolean hasWildcard = false;
-        Set<String> batchTypes = new HashSet<>();
+        Set<String> batchTypes   = new HashSet<>();
+        Set<String> batchTagKeys = new HashSet<>();
+
         for (PGNotification n : notifications) {
-            Set<String> parsed = parsePayload(n.getParameter());
-            if (parsed.isEmpty()) {
-                hasWildcard = true;
-                break;
-            }
-            batchTypes.addAll(parsed);
+            String payload = n.getParameter();
+            if (isWildcard(payload)) { hasWildcard = true; break; }
+            batchTypes.addAll(parseTypes(payload));
+            batchTagKeys.addAll(parseTagSection(payload));
         }
-        BatchState incoming = BatchState.ofBatch(hasWildcard, batchTypes);
+
+        BatchState incoming = BatchState.ofNotification(hasWildcard, batchTypes, batchTagKeys);
 
         if (debounceMs == 0) {
             dispatchToSubscribers(incoming);
             return;
         }
 
-        // Merge into cross-read accumulator atomically
         accumulator.accumulateAndGet(incoming, (existing, next) ->
                 existing == null ? next : existing.merge(next));
 
-        // Schedule one flush per window — compareAndSet ensures only one is scheduled at a time
         if (pendingFlush.compareAndSet(false, true)) {
             flushScheduler.schedule(this::flushAccumulator, debounceMs, TimeUnit.MILLISECONDS);
         }
     }
 
     private void flushAccumulator() {
-        // Set false FIRST so listener batches arriving during flush can schedule their own window.
-        // If they do, they may also be consumed by this flush's getAndSet — their newly-scheduled
-        // flush will then fire as a no-op (null accumulator). This is safe: no data is lost.
         pendingFlush.set(false);
         BatchState snapshot = accumulator.getAndSet(null);
         if (snapshot != null) {
@@ -296,41 +311,77 @@ public final class PostgresNotifyWakeupSource implements ProcessorWakeupSource {
 
     private void dispatchToSubscribers(BatchState state) {
         for (Subscriber sub : subscribers) {
-            boolean wake = sub.eventTypes().isEmpty()                           // subscriber wants all types
-                    || state.wildcard()                                         // sender does not know types
-                    || !Collections.disjoint(sub.eventTypes(), state.types()); // type intersection
-            if (wake) {
-                sub.onWakeup().run();
-            }
+            if (shouldWake(sub, state)) sub.onWakeup().run();
         }
     }
 
-    // ── Payload parsing ────────────────────────────────────────────────────────
+    private static boolean shouldWake(Subscriber sub, BatchState state) {
+        if (state.wildcard()) return true;
 
-    /**
-     * Parse a pg_notify payload into a set of event type names.
-     * Returns an empty set to signal "wildcard" (wake all subscribers).
-     */
-    static Set<String> parsePayload(@Nullable String payload) {
-        if (payload == null || payload.isBlank() || "*".equals(payload.trim())) {
-            return Set.of(); // empty = wildcard
+        // Event-type check
+        if (!sub.eventTypes().isEmpty() && Collections.disjoint(sub.eventTypes(), state.types())) {
+            return false;
         }
-        return Arrays.stream(payload.split(","))
+
+        // Tag checks — skipped when batch carries no tag keys (old-format or no tags on events)
+        if (!state.tagKeys().isEmpty()) {
+            // requiredTags: ALL declared keys must be present in the batch
+            if (!sub.requiredTagKeys().isEmpty() && !state.tagKeys().containsAll(sub.requiredTagKeys())) {
+                return false;
+            }
+            // anyOfTags: at least ONE declared key must be present
+            if (!sub.anyOfTagKeys().isEmpty() && Collections.disjoint(sub.anyOfTagKeys(), state.tagKeys())) {
+                return false;
+            }
+            // exactTags (conservative): declared key names must be present; SQL verifies values
+            if (!sub.exactTagKeys().isEmpty() && !state.tagKeys().containsAll(sub.exactTagKeys())) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // ── Payload parsing ─────────────────────────────────────────────────────────
+
+    static boolean isWildcard(@Nullable String payload) {
+        return payload == null || payload.isBlank() || "*".equals(payload.trim());
+    }
+
+    /** Parse the types section (before {@code |}) of a notification payload. */
+    static Set<String> parseTypes(@Nullable String payload) {
+        if (isWildcard(payload)) return Set.of();
+        String part = payload.contains("|") ? payload.substring(0, payload.indexOf('|')) : payload;
+        return parseCommaSeparated(part);
+    }
+
+    /** Parse the tag-keys section (after {@code |}) of a notification payload. */
+    static Set<String> parseTagSection(@Nullable String payload) {
+        if (isWildcard(payload)) return Set.of();
+        int pipe = payload == null ? -1 : payload.indexOf('|');
+        if (pipe < 0 || pipe == payload.length() - 1) return Set.of();
+        return parseCommaSeparated(payload.substring(pipe + 1));
+    }
+
+    /** Kept for backward-compatibility with existing tests (parses types only). */
+    static Set<String> parsePayload(@Nullable String payload) {
+        return parseTypes(payload);
+    }
+
+    private static Set<String> parseCommaSeparated(@Nullable String s) {
+        if (s == null || s.isBlank()) return Set.of();
+        return Arrays.stream(s.split(","))
                 .map(String::trim)
-                .filter(s -> !s.isEmpty())
+                .filter(t -> !t.isEmpty())
                 .collect(Collectors.toUnmodifiableSet());
     }
 
-    // ── Lifecycle helpers ──────────────────────────────────────────────────────
+    // ── Lifecycle helpers ────────────────────────────────────────────────────────
 
     private void closeConnectionQuietly() {
-        if (connection == null) {
-            return;
-        }
+        if (connection == null) return;
         try {
-            if (!connection.isClosed()) {
-                connection.close();
-            }
+            if (!connection.isClosed()) connection.close();
         } catch (SQLException e) {
             log.debug("Failed to close Postgres wakeup listener connection: {}", e.getMessage());
         } finally {

@@ -151,17 +151,30 @@ public class AutomationsAutoConfiguration {
             eventPublisher,
             wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new),
             eventPollerConfig.orElseGet(EventPollerConfig::new),
-            moduleEventTypes(resolvedDefinitions.values()));
+            moduleEventTypes(resolvedDefinitions.values()),
+            moduleRequiredTagKeys(resolvedDefinitions.values()),
+            moduleAnyOfTagKeys(resolvedDefinitions.values()),
+            moduleExactTagKeys(resolvedDefinitions.values()));
     }
 
-    private static Set<String> moduleEventTypes(Collection<? extends com.crablet.eventpoller.EventSelection> definitions) {
-        boolean anyWildcard = definitions.stream().anyMatch(s -> s.getEventTypes().isEmpty());
-        if (anyWildcard) {
-            return Set.of();
-        }
-        return definitions.stream()
-                .flatMap(s -> s.getEventTypes().stream())
-                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+    private static Set<String> moduleEventTypes(Collection<? extends com.crablet.eventpoller.EventSelection> s) {
+        if (s.stream().anyMatch(sel -> sel.getEventTypes().isEmpty())) return Set.of();
+        return s.stream().flatMap(sel -> sel.getEventTypes().stream()).collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
+    private static Set<String> moduleRequiredTagKeys(Collection<? extends com.crablet.eventpoller.EventSelection> s) {
+        if (s.stream().anyMatch(sel -> sel.getRequiredTags().isEmpty())) return Set.of();
+        return s.stream().flatMap(sel -> sel.getRequiredTags().stream()).collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
+    private static Set<String> moduleAnyOfTagKeys(Collection<? extends com.crablet.eventpoller.EventSelection> s) {
+        if (s.stream().anyMatch(sel -> sel.getAnyOfTags().isEmpty())) return Set.of();
+        return s.stream().flatMap(sel -> sel.getAnyOfTags().stream()).collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
+    private static Set<String> moduleExactTagKeys(Collection<? extends com.crablet.eventpoller.EventSelection> s) {
+        if (s.stream().anyMatch(sel -> sel.getExactTags().isEmpty())) return Set.of();
+        return s.stream().flatMap(sel -> sel.getExactTags().keySet().stream()).collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 
     @Bean("automationsEventProcessor")

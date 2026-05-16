@@ -52,16 +52,29 @@ public final class PostgresNotifyEventAppendNotifier implements EventAppendNotif
     }
 
     @Override
-    public void notifyEventsAppended(Set<String> eventTypes) {
-        String encodedPayload;
-        if (eventTypes.isEmpty()) {
-            encodedPayload = "*";
-        } else {
-            String joined = String.join(",", eventTypes);
-            // pg_notify payload is limited to 8000 bytes; fall back to wildcard if exceeded
-            encodedPayload = joined.length() <= 7900 ? joined : "*";
+    public void notifyEventsAppended(Set<String> eventTypes, Set<String> tagKeys) {
+        sendNotify(encodePayload(eventTypes, tagKeys));
+    }
+
+    /**
+     * Encode types and tag key names into a {@code pg_notify} payload.
+     *
+     * <p>Format: {@code "Type1,Type2|key1,key2,key3"} — types before {@code |},
+     * tag key names (not values) after. Falls back to types-only if the combined
+     * string exceeds 7 900 bytes, then to {@code "*"} if even types are too long.
+     */
+    static String encodePayload(Set<String> eventTypes, Set<String> tagKeys) {
+        if (eventTypes.isEmpty()) return "*"; // unknown types → wildcard
+
+        String typesPart = String.join(",", eventTypes);
+        if (tagKeys.isEmpty()) {
+            return typesPart.length() <= 7900 ? typesPart : "*";
         }
-        sendNotify(encodedPayload);
+        String tagPart  = String.join(",", tagKeys);
+        String combined = typesPart + "|" + tagPart;
+        if (combined.length() <= 7900) return combined;
+        // Tag keys made it too long — degrade to types-only, then wildcard
+        return typesPart.length() <= 7900 ? typesPart : "*";
     }
 
     private void sendNotify(String notifyPayload) {

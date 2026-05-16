@@ -26,11 +26,32 @@ public interface ProcessorWakeupSource extends AutoCloseable {
         start(onWakeup);
     }
 
+    /**
+     * Register a subscriber with the full {@link com.crablet.eventpoller.EventSelection} criteria.
+     * The subscriber is woken only when the notification batch matches all declared criteria,
+     * or when the payload is a wildcard.
+     *
+     * @param eventTypes      event type names; empty = all types
+     * @param requiredTagKeys tag keys that must ALL be present in the batch (empty = no restriction)
+     * @param anyOfTagKeys    tag keys where at least ONE must be present (empty = no restriction)
+     * @param exactTagPairs   {@code "key=value"} strings that must ALL be present (empty = no restriction)
+     */
+    default void start(Set<String> eventTypes, Set<String> requiredTagKeys,
+                       Set<String> anyOfTagKeys, Set<String> exactTagPairs, Runnable onWakeup) {
+        start(eventTypes, onWakeup);
+    }
+
     /** Unregister a subscriber. Stops the underlying connection when the last subscriber leaves. */
     void close(Runnable onWakeup);
 
     /** Unregister a typed subscriber (delegates to {@link #close(Runnable)} by default). */
     default void close(Set<String> subscribedEventTypes, Runnable onWakeup) {
+        close(onWakeup);
+    }
+
+    /** Unregister a full-criteria subscriber (delegates to {@link #close(Runnable)} by default). */
+    default void close(Set<String> eventTypes, Set<String> requiredTagKeys,
+                       Set<String> anyOfTagKeys, Set<String> exactTagPairs, Runnable onWakeup) {
         close(onWakeup);
     }
 

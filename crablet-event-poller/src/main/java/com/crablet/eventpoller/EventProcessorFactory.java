@@ -139,12 +139,31 @@ public final class EventProcessorFactory {
             ProcessorWakeupSourceFactory wakeupSourceFactory,
             EventPollerConfig eventPollerConfig,
             Set<String> subscribedEventTypes) {
+        return createProcessor(configs, leaderElector, progressTracker, eventFetcher, eventHandler,
+                taskScheduler, eventPublisher, wakeupSourceFactory, eventPollerConfig,
+                subscribedEventTypes, Set.of(), Set.of(), Set.of());
+    }
+
+    public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
+            Map<I, C> configs,
+            LeaderElector leaderElector,
+            ProgressTracker<I> progressTracker,
+            EventFetcher<I> eventFetcher,
+            EventHandler<I> eventHandler,
+            TaskScheduler taskScheduler,
+            ApplicationEventPublisher eventPublisher,
+            ProcessorWakeupSourceFactory wakeupSourceFactory,
+            EventPollerConfig eventPollerConfig,
+            Set<String> subscribedEventTypes,
+            Set<String> requiredTagKeys,
+            Set<String> anyOfTagKeys,
+            Set<String> exactTagKeys) {
 
         return new EventProcessorImpl<>(
                 configs, leaderElector, progressTracker, eventFetcher, eventHandler,
                 taskScheduler, eventPublisher, wakeupSourceFactory.create(),
                 eventPollerConfig.getLeaderRetryCooldownMs(), eventPollerConfig.getStartupDelayMs(),
-                ClockProvider.systemDefault(), subscribedEventTypes);
+                ClockProvider.systemDefault(), subscribedEventTypes, requiredTagKeys, anyOfTagKeys, exactTagKeys);
     }
 
     public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
@@ -220,21 +239,35 @@ public final class EventProcessorFactory {
             ProcessorWakeupSourceFactory wakeupSourceFactory,
             EventPollerConfig eventPollerConfig,
             Set<String> subscribedEventTypes) {
+        return createProcessor(configs, processorName, lockKey, instanceId, progressTracker,
+                eventFetcher, eventHandler, writeDataSource, taskScheduler, eventPublisher,
+                wakeupSourceFactory, eventPollerConfig, subscribedEventTypes, Set.of(), Set.of(), Set.of());
+    }
+
+    public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
+            Map<I, C> configs,
+            String processorName,
+            long lockKey,
+            String instanceId,
+            ProgressTracker<I> progressTracker,
+            EventFetcher<I> eventFetcher,
+            EventHandler<I> eventHandler,
+            WriteDataSource writeDataSource,
+            TaskScheduler taskScheduler,
+            ApplicationEventPublisher eventPublisher,
+            ProcessorWakeupSourceFactory wakeupSourceFactory,
+            EventPollerConfig eventPollerConfig,
+            Set<String> subscribedEventTypes,
+            Set<String> requiredTagKeys,
+            Set<String> anyOfTagKeys,
+            Set<String> exactTagKeys) {
 
         var leaderElector = createLeaderElector(
                 writeDataSource, processorName, instanceId, lockKey, eventPublisher);
 
-        return createProcessor(
-                configs,
-                leaderElector,
-                progressTracker,
-                eventFetcher,
-                eventHandler,
-                taskScheduler,
-                eventPublisher,
-                wakeupSourceFactory,
-                eventPollerConfig,
-                subscribedEventTypes);
+        return createProcessor(configs, leaderElector, progressTracker, eventFetcher, eventHandler,
+                taskScheduler, eventPublisher, wakeupSourceFactory, eventPollerConfig,
+                subscribedEventTypes, requiredTagKeys, anyOfTagKeys, exactTagKeys);
     }
 
     /**

@@ -11,6 +11,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -76,6 +77,29 @@ class PostgresNotifyEventAppendNotifierTest {
                 new PostgresNotifyEventAppendNotifier(broken, "crablet_events", "events-appended");
 
         assertThatCode(notifier::notifyEventsAppended).doesNotThrowAnyException();
+    }
+
+    // --- Phase D: encodePayload ---
+
+    @Test
+    void encodePayloadTypesOnly() {
+        assertThat(PostgresNotifyEventAppendNotifier.encodePayload(Set.of("WalletCreated"), Set.of()))
+                .isEqualTo("WalletCreated");
+    }
+
+    @Test
+    void encodePayloadTypesAndTagKeys() {
+        String encoded = PostgresNotifyEventAppendNotifier.encodePayload(
+                Set.of("WalletDeposited"), Set.of("wallet_id", "region"));
+        assertThat(encoded).startsWith("WalletDeposited|");
+        assertThat(encoded).contains("wallet_id");
+        assertThat(encoded).contains("region");
+    }
+
+    @Test
+    void encodePayloadEmptyTypesIsWildcard() {
+        assertThat(PostgresNotifyEventAppendNotifier.encodePayload(Set.of(), Set.of("wallet_id")))
+                .isEqualTo("*");
     }
 
     // --- Phase E: failure hygiene ---

@@ -149,8 +149,8 @@ class PostgresNotifyWakeupSourceTest {
     @Test
     @DisplayName("BatchState.merge: union of types when neither is wildcard")
     void batchStateMergeUnionsTypes() {
-        var a = PostgresNotifyWakeupSource.BatchState.ofBatch(false, Set.of("A", "B"));
-        var b = PostgresNotifyWakeupSource.BatchState.ofBatch(false, Set.of("B", "C"));
+        var a = PostgresNotifyWakeupSource.BatchState.ofNotification(false, Set.of("A", "B"), Set.of());
+        var b = PostgresNotifyWakeupSource.BatchState.ofNotification(false, Set.of("B", "C"), Set.of());
         var merged = a.merge(b);
         assertThat(merged.wildcard()).isFalse();
         assertThat(merged.types()).containsExactlyInAnyOrder("A", "B", "C");
@@ -159,11 +159,20 @@ class PostgresNotifyWakeupSourceTest {
     @Test
     @DisplayName("BatchState.merge: wildcard in either operand poisons result")
     void batchStateMergeWildcardPoisons() {
-        var typed = PostgresNotifyWakeupSource.BatchState.ofBatch(false, Set.of("A"));
-        var wild  = PostgresNotifyWakeupSource.BatchState.ofBatch(true, Set.of());
+        var typed = PostgresNotifyWakeupSource.BatchState.ofNotification(false, Set.of("A"), Set.of());
+        var wild  = PostgresNotifyWakeupSource.BatchState.ofNotification(true, Set.of(), Set.of());
         assertThat(typed.merge(wild).wildcard()).isTrue();
         assertThat(wild.merge(typed).wildcard()).isTrue();
         assertThat(wild.merge(wild).wildcard()).isTrue();
+    }
+
+    @Test
+    @DisplayName("BatchState.merge: union of tag keys when neither is wildcard")
+    void batchStateMergeUnionsTagKeys() {
+        var a = PostgresNotifyWakeupSource.BatchState.ofNotification(false, Set.of("T"), Set.of("wallet_id", "region"));
+        var b = PostgresNotifyWakeupSource.BatchState.ofNotification(false, Set.of("T"), Set.of("region", "currency"));
+        var merged = a.merge(b);
+        assertThat(merged.tagKeys()).containsExactlyInAnyOrder("wallet_id", "region", "currency");
     }
 
     // --- Phase B: debounce=0 (immediate dispatch) ---
@@ -269,6 +278,87 @@ class PostgresNotifyWakeupSourceTest {
         assertThat(count.get()).isEqualTo(1); // drained synchronously on close
     }
 
+    // --- Phase D: tag-key filtering ---
+
+    @Test
+    @DisplayName("parseTagSection: extracts keys after pipe separator")
+    void parseTagSectionExtractsKeys() {
+        assertThat(PostgresNotifyWakeupSource.parseTagSection("WalletDeposited|wallet_id,region,currency"))
+                .containsExactlyInAnyOrder("wallet_id", "region", "currency");
+    }
+
+    @Test
+    @DisplayName("parseTagSection: no pipe means no tag section")
+    void parseTagSectionNoPipe() {
+        assertThat(PostgresNotifyWakeupSource.parseTagSection("WalletDeposited")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("parseTagSection: wildcard payload yields empty")
+    void parseTagSectionWildcard() {
+        assertThat(PostgresNotifyWakeupSource.parseTagSection("*")).isEmpty();
+        assertThat(PostgresNotifyWakeupSource.parseTagSection(null)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("requiredTagKeys filter: skips subscriber when required tag absent from batch")
+    void requiredTagKeyFilterSkipsWhenAbsent() {
+        var source = new PostgresNotifyWakeupSource(
+                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 0L);
+        AtomicInteger count = new AtomicInteger();
+        // Subscriber requires wallet_id to be present
+        source.start(Set.of("WalletDeposited"), Set.of("wallet_id"), Set.of(), Set.of(), count::incrementAndGet);
+
+        // Batch has WalletDeposited but no wallet_id tag key
+        source.dispatchBatch(new PGNotification[]{notifyWithTags("WalletDeposited", "region")});
+
+        assertThat(count.get()).isZero();
+        source.close();
+    }
+
+    @Test
+    @DisplayName("requiredTagKeys filter: wakes subscriber when all required tags present")
+    void requiredTagKeyFilterWakesWhenPresent() {
+        var source = new PostgresNotifyWakeupSource(
+                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 0L);
+        AtomicInteger count = new AtomicInteger();
+        source.start(Set.of("WalletDeposited"), Set.of("wallet_id"), Set.of(), Set.of(), count::incrementAndGet);
+
+        source.dispatchBatch(new PGNotification[]{notifyWithTags("WalletDeposited", "wallet_id,region")});
+
+        assertThat(count.get()).isEqualTo(1);
+        source.close();
+    }
+
+    @Test
+    @DisplayName("anyOfTagKeys filter: skips when none of the anyOf keys present")
+    void anyOfTagKeyFilterSkipsWhenNonePresent() {
+        var source = new PostgresNotifyWakeupSource(
+                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 0L);
+        AtomicInteger count = new AtomicInteger();
+        source.start(Set.of(), Set.of(), Set.of("wallet_id", "account_id"), Set.of(), count::incrementAndGet);
+
+        source.dispatchBatch(new PGNotification[]{notifyWithTags("SomeEvent", "region,currency")});
+
+        assertThat(count.get()).isZero();
+        source.close();
+    }
+
+    @Test
+    @DisplayName("tag filter skipped when batch has no tag section (backward compat)")
+    void tagFilterSkippedWhenNoTagSection() {
+        var source = new PostgresNotifyWakeupSource(
+                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 0L);
+        AtomicInteger count = new AtomicInteger();
+        source.start(Set.of("WalletDeposited"), Set.of("wallet_id"), Set.of(), Set.of(), count::incrementAndGet);
+
+        // Old-format payload — no | section — tag filter should be skipped (conservative)
+        source.dispatchBatch(new PGNotification[]{notify("WalletDeposited")});
+
+        assertThat(count.get()).isEqualTo(1); // woken conservatively when no tag info
+        source.close();
+    }
+
     // --- Phase E: reconnect backoff ---
 
     @Test
@@ -301,5 +391,10 @@ class PostgresNotifyWakeupSourceTest {
             @Override public String getParameter() { return payload; }
             @Override public int getPID() { return 0; }
         };
+    }
+
+    /** Helper that builds a payload with types and tag keys: {@code "type|key1,key2"}. */
+    private static PGNotification notifyWithTags(String types, String tagKeys) {
+        return notify(types + "|" + tagKeys);
     }
 }

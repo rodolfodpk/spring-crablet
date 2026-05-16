@@ -325,7 +325,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                     for (AppendEvent event : events) {
                         eventPublisher.publishEvent(new EventTypeMetric(event.type()));
                     }
-                    publishAppendNotification(new HashSet<>(Arrays.asList(types)));
+                    publishAppendNotification(new HashSet<>(Arrays.asList(types)), collectTagKeys(events));
 
                     return transactionId;
                 }
@@ -533,7 +533,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 T result = operation.apply(txStore);
                 connection.commit();
                 if (txStore instanceof ConnectionScopedEventStore connectionScopedStore && connectionScopedStore.hasAppendedEvents()) {
-                    publishAppendNotification(connectionScopedStore.getAppendedEventTypes());
+                    publishAppendNotification(connectionScopedStore.getAppendedEventTypes(), connectionScopedStore.getAppendedTagKeys());
                 }
                 log.debug("Transaction committed successfully");
                 return result;
@@ -864,12 +864,24 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         }
     }
 
-    private void publishAppendNotification(Set<String> eventTypes) {
+    private void publishAppendNotification(Set<String> eventTypes, Set<String> tagPairs) {
         try {
-            eventAppendNotifier.notifyEventsAppended(eventTypes);
+            eventAppendNotifier.notifyEventsAppended(eventTypes, tagPairs);
         } catch (RuntimeException e) {
             log.warn("Event append notification failed: {}", e.getMessage());
         }
+    }
+
+    private static Set<String> collectTagKeys(List<AppendEvent> events) {
+        Set<String> keys = new HashSet<>();
+        for (AppendEvent e : events) {
+            for (Tag t : e.tags()) {
+                if (t.key() != null) {
+                    keys.add(t.key());
+                }
+            }
+        }
+        return keys;
     }
 
 
@@ -927,6 +939,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         private final Connection connection;
         private boolean appendedEvents;
         private final Set<String> appendedEventTypes = new HashSet<>();
+        private final Set<String> appendedTagKeys = new HashSet<>();
 
         private ConnectionScopedEventStore(Connection connection) {
             this.connection = connection;
@@ -966,6 +979,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             for (AppendEvent e : events) {
                 appendedEventTypes.add(e.type());
             }
+            appendedTagKeys.addAll(collectTagKeys(events));
         }
 
         @Override
@@ -1004,6 +1018,10 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
 
         private Set<String> getAppendedEventTypes() {
             return appendedEventTypes;
+        }
+
+        private Set<String> getAppendedTagKeys() {
+            return appendedTagKeys;
         }
     }
 }
