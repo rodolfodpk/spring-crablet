@@ -43,6 +43,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -126,6 +127,7 @@ public class AutomationsAutoConfiguration {
     @ConditionalOnProperty(name = "crablet.automations.shared-fetch.enabled", havingValue = "false", matchIfMissing = true)
     public EventProcessor<AutomationProcessorConfig, String> automationsEventProcessor(
             @Qualifier("automationProcessorConfigs") Map<String, AutomationProcessorConfig> automationProcessorConfigs,
+            @Qualifier("resolvedAutomationDefinitions") Map<String, AutomationDefinition> resolvedDefinitions,
             @Qualifier("automationProgressTracker") ProgressTracker<String> automationProgressTracker,
             @Qualifier("automationEventFetcher") EventFetcher<String> automationEventFetcher,
             @Qualifier("automationEventHandler") EventHandler<String> automationEventHandler,
@@ -148,7 +150,18 @@ public class AutomationsAutoConfiguration {
             taskScheduler,
             eventPublisher,
             wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new),
-            eventPollerConfig.orElseGet(EventPollerConfig::new));
+            eventPollerConfig.orElseGet(EventPollerConfig::new),
+            moduleEventTypes(resolvedDefinitions.values()));
+    }
+
+    private static Set<String> moduleEventTypes(Collection<? extends com.crablet.eventpoller.EventSelection> definitions) {
+        boolean anyWildcard = definitions.stream().anyMatch(s -> s.getEventTypes().isEmpty());
+        if (anyWildcard) {
+            return Set.of();
+        }
+        return definitions.stream()
+                .flatMap(s -> s.getEventTypes().stream())
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 
     @Bean("automationsEventProcessor")

@@ -40,10 +40,13 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -322,7 +325,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                     for (AppendEvent event : events) {
                         eventPublisher.publishEvent(new EventTypeMetric(event.type()));
                     }
-                    publishAppendNotification();
+                    publishAppendNotification(new HashSet<>(Arrays.asList(types)));
 
                     return transactionId;
                 }
@@ -856,6 +859,14 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     private void publishAppendNotification() {
         try {
             eventAppendNotifier.notifyEventsAppended();
+        } catch (RuntimeException e) {
+            log.warn("Event append notification failed: {}", e.getMessage());
+        }
+    }
+
+    private void publishAppendNotification(Set<String> eventTypes) {
+        try {
+            eventAppendNotifier.notifyEventsAppended(eventTypes);
         } catch (RuntimeException e) {
             log.warn("Event append notification failed: {}", e.getMessage());
         }

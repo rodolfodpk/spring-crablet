@@ -38,10 +38,12 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.TaskScheduler;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -145,6 +147,7 @@ public class OutboxAutoConfiguration {
     @ConditionalOnProperty(name = "crablet.outbox.shared-fetch.enabled", havingValue = "false", matchIfMissing = true)
     public EventProcessor<OutboxProcessorConfig, TopicPublisherPair> outboxEventProcessor(
             Map<TopicPublisherPair, OutboxProcessorConfig> configs,
+            Map<String, TopicConfig> topicConfigs,
             LeaderElector outboxLeaderElector,
             ProgressTracker<TopicPublisherPair> progressTracker,
             EventFetcher<TopicPublisherPair> eventFetcher,
@@ -162,7 +165,18 @@ public class OutboxAutoConfiguration {
             taskScheduler,
             eventPublisher,
             wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new),
-            eventPollerConfig.orElseGet(EventPollerConfig::new));
+            eventPollerConfig.orElseGet(EventPollerConfig::new),
+            moduleEventTypes(topicConfigs.values()));
+    }
+
+    private static Set<String> moduleEventTypes(Collection<? extends com.crablet.eventpoller.EventSelection> selections) {
+        boolean anyWildcard = selections.stream().anyMatch(s -> s.getEventTypes().isEmpty());
+        if (anyWildcard) {
+            return Set.of();
+        }
+        return selections.stream()
+                .flatMap(s -> s.getEventTypes().stream())
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 
     /**

@@ -191,6 +191,7 @@ class EventProcessorFactoryTest {
             created++;
             return new ProcessorWakeupSource() {
                 @Override public void start(Runnable onWakeup) {}
+                @Override public void close(Runnable onWakeup) {}
                 @Override public void close() {}
             };
         }

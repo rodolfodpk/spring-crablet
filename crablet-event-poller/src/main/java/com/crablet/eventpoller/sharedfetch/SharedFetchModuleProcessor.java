@@ -597,7 +597,7 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
                 pendingImmediatePoll.cancel(false);
                 pendingImmediatePoll = null;
             }
-            wakeupSource.close();
+            wakeupSource.close(this::requestImmediatePoll);
             leaderElector.releaseGlobalLeader();
             schedulersInitialized = false;
             log.info("[{}] Shared-fetch processor stopped", moduleName);

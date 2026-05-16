@@ -52,6 +52,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
     private final TaskScheduler taskScheduler;
     private final ApplicationEventPublisher eventPublisher;
     private final ProcessorWakeupSource wakeupSource;
+    private final Set<String> subscribedEventTypes;
     private final ClockProvider clockProvider;
     private final Object lifecycleMonitor = new Object();
 
@@ -111,6 +112,24 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
             long leaderRetryCooldownMs,
             long startupDelayMs,
             ClockProvider clockProvider) {
+        this(configs, leaderElector, progressTracker, eventFetcher, eventHandler,
+                taskScheduler, eventPublisher, wakeupSource, leaderRetryCooldownMs,
+                startupDelayMs, clockProvider, Set.of());
+    }
+
+    public EventProcessorImpl(
+            Map<I, T> configs,
+            LeaderElector leaderElector,
+            ProgressTracker<I> progressTracker,
+            EventFetcher<I> eventFetcher,
+            EventHandler<I> eventHandler,
+            TaskScheduler taskScheduler,
+            ApplicationEventPublisher eventPublisher,
+            ProcessorWakeupSource wakeupSource,
+            long leaderRetryCooldownMs,
+            long startupDelayMs,
+            ClockProvider clockProvider,
+            Set<String> subscribedEventTypes) {
         this.configs = configs;
         this.leaderElector = leaderElector;
         this.progressTracker = progressTracker;
@@ -119,6 +138,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
         this.taskScheduler = taskScheduler;
         this.eventPublisher = eventPublisher;
         this.wakeupSource = wakeupSource;
+        this.subscribedEventTypes = subscribedEventTypes;
         this.leaderRetryCooldownMs = leaderRetryCooldownMs;
         this.startupDelayMs = startupDelayMs;
         this.clockProvider = clockProvider;
@@ -177,7 +197,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
                 shuttingDown = false;
                 log.info("Starting event processor schedulers via {}", trigger);
                 doInitializeSchedulers();
-                wakeupSource.start(this::requestImmediatePoll);
+                wakeupSource.start(subscribedEventTypes, this::requestImmediatePoll);
                 schedulersInitialized = true;
                 log.info("Event processor schedulers started");
             } catch (Exception e) {
@@ -265,7 +285,7 @@ public class EventProcessorImpl<T extends ProcessorConfig<I>, I> implements Even
                 leaderRetryScheduler = null;
             }
 
-            wakeupSource.close();
+            wakeupSource.close(subscribedEventTypes, this::requestImmediatePoll);
 
             // Allow a future manual start() to recreate the schedulers.
             schedulersInitialized = false;

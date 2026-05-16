@@ -7,6 +7,7 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Set;
 
 /**
  * Best-effort PostgreSQL notifier backed by {@code pg_notify}.
@@ -28,10 +29,27 @@ public final class PostgresNotifyEventAppendNotifier implements EventAppendNotif
 
     @Override
     public void notifyEventsAppended() {
+        sendNotify(payload);
+    }
+
+    @Override
+    public void notifyEventsAppended(Set<String> eventTypes) {
+        String encodedPayload;
+        if (eventTypes.isEmpty()) {
+            encodedPayload = "*";
+        } else {
+            String joined = String.join(",", eventTypes);
+            // pg_notify payload is limited to 8000 bytes; fall back to wildcard if exceeded
+            encodedPayload = joined.length() <= 7900 ? joined : "*";
+        }
+        sendNotify(encodedPayload);
+    }
+
+    private void sendNotify(String notifyPayload) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(PG_NOTIFY_SQL)) {
             statement.setString(1, channel);
-            statement.setString(2, payload);
+            statement.setString(2, notifyPayload);
             statement.execute();
         } catch (SQLException e) {
             log.warn("Failed to publish pg_notify on channel {}: {}", channel, e.getMessage());

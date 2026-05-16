@@ -102,6 +102,7 @@ class AutomationsAutoConfigurationTest {
 
         EventProcessor<AutomationProcessorConfig, String> processor = autoConfiguration.automationsEventProcessor(
                 Map.of("automation", new AutomationProcessorConfig("automation", new AutomationsConfig(), handler("automation"))),
+                Map.of(),
                 mock(ProgressTracker.class),
                 (processorId, lastPosition, batchSize) -> List.of(),
                 (processorId, events) -> 0,

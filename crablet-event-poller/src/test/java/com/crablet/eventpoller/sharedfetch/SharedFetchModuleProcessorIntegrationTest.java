@@ -751,6 +751,11 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
         }
 
         @Override
+        public void close(Runnable onWakeup) {
+            this.closed = true;
+        }
+
+        @Override
         public void close() {
             this.closed = true;
         }

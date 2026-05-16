@@ -201,6 +201,7 @@ class EventProcessorImplWakeupTest {
         boolean closed;
 
         @Override public void start(Runnable cb) { onWakeup = cb; started = true; }
+        @Override public void close(Runnable cb) { closed = true; }
         @Override public void close() { closed = true; }
         void trigger() { onWakeup.run(); }
     }
