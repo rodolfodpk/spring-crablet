@@ -518,7 +518,7 @@ When `crablet.eventstore.persist-commands=true` (the default), every command exe
 | Column | Type | Content |
 |---|---|---|
 | `command_id` | `uuid` (PRIMARY KEY) | Caller-provided UUID when using `CommandExecutionOptions.commandId()`; `gen_random_uuid()` otherwise |
-| `transaction_id` | `xid8` | PostgreSQL transaction ID — same value as `events.transaction_id` for events appended in this execution |
+| `transaction_id` | `xid8` (UNIQUE) | PostgreSQL transaction ID — same value as `events.transaction_id` for events appended in this execution |
 | `type` | `varchar(64)` | Command type name (e.g. `"deposit"`, `"open_wallet"`) |
 | `data` | `jsonb` | Full command serialized as JSON |
 | `metadata` | `jsonb` | `{"command_type": "..."}` — reserved for future enrichment |
