@@ -533,7 +533,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 T result = operation.apply(txStore);
                 connection.commit();
                 if (txStore instanceof ConnectionScopedEventStore connectionScopedStore && connectionScopedStore.hasAppendedEvents()) {
-                    publishAppendNotification();
+                    publishAppendNotification(connectionScopedStore.getAppendedEventTypes());
                 }
                 log.debug("Transaction committed successfully");
                 return result;
@@ -926,6 +926,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     private class ConnectionScopedEventStore implements EventStore, CommandAuditStore {
         private final Connection connection;
         private boolean appendedEvents;
+        private final Set<String> appendedEventTypes = new HashSet<>();
 
         private ConnectionScopedEventStore(Connection connection) {
             this.connection = connection;
@@ -933,14 +934,14 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
 
         @Override
         public String appendCommutative(List<AppendEvent> events) {
-            appendedEvents = true;
+            trackAppend(events);
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.empty());
         }
 
         @Override
         public String appendNonCommutative(
                 List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {
-            appendedEvents = true;
+            trackAppend(events);
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendConditionBuilder.of(decisionModel, streamPosition).build());
         }
 
@@ -950,14 +951,21 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 String eventType,
                 String tagKey,
                 String tagValue) {
-            appendedEvents = true;
+            trackAppend(events);
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.idempotent(eventType, tagKey, tagValue));
         }
 
         @Override
         public String appendIdempotent(List<AppendEvent> events, Query idempotencyQuery) {
-            appendedEvents = true;
+            trackAppend(events);
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.idempotent(idempotencyQuery));
+        }
+
+        private void trackAppend(List<AppendEvent> events) {
+            appendedEvents = true;
+            for (AppendEvent e : events) {
+                appendedEventTypes.add(e.type());
+            }
         }
 
         @Override
@@ -992,6 +1000,10 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
 
         private boolean hasAppendedEvents() {
             return appendedEvents;
+        }
+
+        private Set<String> getAppendedEventTypes() {
+            return appendedEventTypes;
         }
     }
 }
