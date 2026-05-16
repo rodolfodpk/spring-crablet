@@ -150,14 +150,16 @@ Both are nullable. Events appended before the feature was introduced, or through
 
 ## Database Columns
 
-The shared migration that adds the columns lives in `crablet-db-migrations` and is reused by example apps. Test support carries the same migration for module integration tests:
+The framework eventstore migration includes these columns from the start. It lives in
+`crablet-db-migrations` for runtime apps and is mirrored in `crablet-test-support`
+for module integration tests:
 
 | Location | File | Applied to |
 |----------|------|-----------|
-| `crablet-db-migrations/src/main/resources/db/migration/` | `V5__correlation_causation.sql` | Example apps and apps that include the shared migration artifact |
-| `crablet-test-support/src/main/resources/db/migration/` | `V5__correlation_causation.sql` | All test databases |
+| `crablet-db-migrations/src/main/resources/db/migration/` | `V1__crablet_eventstore_schema.sql` | Example apps and apps that include the shared migration artifact |
+| `crablet-test-support/src/main/resources/db/migration/` | `V1__crablet_eventstore_schema.sql` | All test databases |
 
-For your own application, add a Flyway migration with:
+If you maintain your own schema instead of using `crablet-db-migrations`, include:
 
 ```sql
 ALTER TABLE events

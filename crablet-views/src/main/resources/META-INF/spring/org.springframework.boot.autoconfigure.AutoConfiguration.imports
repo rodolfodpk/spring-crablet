@@ -1,1 +1,2 @@
 com.crablet.views.config.ViewsAutoConfiguration
+com.crablet.views.config.ViewsObservationAutoConfiguration

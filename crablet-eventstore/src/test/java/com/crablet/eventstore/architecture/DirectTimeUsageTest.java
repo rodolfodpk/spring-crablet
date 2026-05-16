@@ -22,6 +22,7 @@ class DirectTimeUsageTest {
 
     private static final Set<String> FRAMEWORK_MODULES = Set.of(
             "crablet-eventstore",
+            "crablet-observability",
             "crablet-commands",
             "crablet-commands-web",
             "crablet-outbox",
@@ -37,7 +38,7 @@ class DirectTimeUsageTest {
             Set.of("return Instant.now(clock);"),
             "crablet-event-poller/src/main/java/com/crablet/eventpoller/internal/EventProcessorImpl.java",
             Set.of("Instant.now().plusMillis(sanitizedDelayMs)"),
-            "crablet-event-poller/src/main/java/com/crablet/eventpoller/internal/sharedfetch/SharedFetchModuleProcessor.java",
+            "crablet-event-poller/src/main/java/com/crablet/eventpoller/sharedfetch/SharedFetchModuleProcessor.java",
             Set.of("taskScheduler.schedule(this::runSharedCycle, Instant.now())")
     );
 

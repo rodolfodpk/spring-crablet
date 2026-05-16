@@ -20,6 +20,7 @@ class UserFacingModuleBoundaryTest {
 
     private static final Set<String> USER_FACING_MODULES = Set.of(
             "crablet-eventstore",
+            "crablet-observability",
             "crablet-commands",
             "crablet-commands-web",
             "crablet-outbox",

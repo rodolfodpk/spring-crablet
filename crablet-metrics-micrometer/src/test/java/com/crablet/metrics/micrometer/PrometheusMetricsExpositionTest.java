@@ -51,9 +51,9 @@ class PrometheusMetricsExpositionTest {
     @Test
     @DisplayName("EventStore metrics produce correct Prometheus names")
     void eventStoreMetrics() {
-        collector.handleEventsAppended(new EventsAppendedMetric(3));
-        collector.handleEventType(new EventTypeMetric("WalletOpened"));
-        collector.handleConcurrencyViolation(new ConcurrencyViolationMetric());
+        collector.handleMetricEvent(new EventsAppendedMetric(3));
+        collector.handleMetricEvent(new EventTypeMetric("WalletOpened"));
+        collector.handleMetricEvent(new ConcurrencyViolationMetric());
 
         String output = scrape();
         assertThat(output).contains("eventstore_events_appended_total 3.0");
@@ -64,10 +64,10 @@ class PrometheusMetricsExpositionTest {
     @Test
     @DisplayName("Command metrics produce correct Prometheus names and labels")
     void commandMetrics() {
-        collector.handleCommandStarted(new CommandStartedMetric("OpenWalletCommand", Instant.now()));
-        collector.handleCommandSuccess(new CommandSuccessMetric("OpenWalletCommand", Duration.ofMillis(50), "idempotent"));
-        collector.handleCommandFailure(new CommandFailureMetric("WithdrawCommand", "InsufficientFunds"));
-        collector.handleIdempotentOperation(new IdempotentOperationMetric("OpenWalletCommand"));
+        collector.handleMetricEvent(new CommandStartedMetric("OpenWalletCommand", Instant.now()));
+        collector.handleMetricEvent(new CommandSuccessMetric("OpenWalletCommand", Duration.ofMillis(50), "idempotent"));
+        collector.handleMetricEvent(new CommandFailureMetric("WithdrawCommand", "InsufficientFunds"));
+        collector.handleMetricEvent(new IdempotentOperationMetric("OpenWalletCommand"));
 
         String output = scrape();
         assertThat(output).contains("commands_inflight{command_type=\"OpenWalletCommand\"}");
@@ -82,10 +82,10 @@ class PrometheusMetricsExpositionTest {
     @Test
     @DisplayName("Outbox metrics produce correct Prometheus names and labels")
     void outboxMetrics() {
-        collector.handleEventsPublished(new EventsPublishedMetric("LogPublisher", 5));
-        collector.handlePublishingDuration(new PublishingDurationMetric("LogPublisher", Duration.ofMillis(10)));
-        collector.handleOutboxProcessingCycle(new com.crablet.outbox.metrics.ProcessingCycleMetric());
-        collector.handleOutboxError(new OutboxErrorMetric("LogPublisher"));
+        collector.handleMetricEvent(new EventsPublishedMetric("LogPublisher", 5));
+        collector.handleMetricEvent(new PublishingDurationMetric("LogPublisher", Duration.ofMillis(10)));
+        collector.handleMetricEvent(new com.crablet.outbox.metrics.ProcessingCycleMetric());
+        collector.handleMetricEvent(new OutboxErrorMetric("LogPublisher"));
 
         String output = scrape();
         assertThat(output).contains("outbox_events_published_total{publisher=\"LogPublisher\"} 5.0");
@@ -97,7 +97,7 @@ class PrometheusMetricsExpositionTest {
     @Test
     @DisplayName("Leadership metric uses instance_id label (not instance)")
     void leadershipMetricLabel() {
-        collector.handleLeadership(new LeadershipMetric("outbox", "node-1", true));
+        collector.handleMetricEvent(new LeadershipMetric("outbox", "node-1", true));
 
         String output = scrape();
         // Correct label key is instance_id
@@ -109,8 +109,8 @@ class PrometheusMetricsExpositionTest {
     @Test
     @DisplayName("Poller metrics produce correct Prometheus names and labels")
     void pollerMetrics() {
-        collector.handlePollerProcessingCycle(new ProcessingCycleMetric("views", "node-1", 10, false));
-        collector.handleBackoffState(new BackoffStateMetric("views", "node-1", true, 3));
+        collector.handleMetricEvent(new ProcessingCycleMetric("views", "node-1", 10, false));
+        collector.handleMetricEvent(new BackoffStateMetric("views", "node-1", true, 3));
 
         String output = scrape();
         assertThat(output).contains("poller_processing_cycles_total{instance_id=\"node-1\",processor=\"views\"}");
@@ -122,8 +122,8 @@ class PrometheusMetricsExpositionTest {
     @Test
     @DisplayName("View metrics produce correct Prometheus names and labels")
     void viewMetrics() {
-        collector.handleViewProjection(new ViewProjectionMetric("wallet_balance", 7, Duration.ofMillis(20)));
-        collector.handleViewProjectionError(new ViewProjectionErrorMetric("wallet_balance"));
+        collector.handleMetricEvent(new ViewProjectionMetric("wallet_balance", 7, Duration.ofMillis(20)));
+        collector.handleMetricEvent(new ViewProjectionErrorMetric("wallet_balance"));
 
         String output = scrape();
         assertThat(output).contains("views_projection_duration_seconds_count{view=\"wallet_balance\"}");
@@ -134,8 +134,8 @@ class PrometheusMetricsExpositionTest {
     @Test
     @DisplayName("Automation metrics produce correct Prometheus names and labels")
     void automationMetrics() {
-        collector.handleAutomationExecution(new AutomationExecutionMetric("refund-automation", 2, Duration.ofMillis(30)));
-        collector.handleAutomationExecutionError(new AutomationExecutionErrorMetric("refund-automation"));
+        collector.handleMetricEvent(new AutomationExecutionMetric("refund-automation", 2, Duration.ofMillis(30)));
+        collector.handleMetricEvent(new AutomationExecutionErrorMetric("refund-automation"));
 
         String output = scrape();
         assertThat(output).contains("automations_execution_duration_seconds_count{automation=\"refund-automation\"}");

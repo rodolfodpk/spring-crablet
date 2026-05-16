@@ -59,7 +59,7 @@ This is **normative app development workflow**, not workshop-only behavior.
 **Body structure**
 
 1. **When to use** — Full journey pacing vs jumping straight into `/event-modeling` or `/crablet-app-dev`.
-2. **Routing table** → `event-modeling`, `crablet-app-dev`, `crablet-diagram-advisor`, `dcb`, `crablet-codegen`, `crablet-local-dev`, optional `crablet-k8s`.
+2. **Routing table** → `event-modeling`, `crablet-app-dev`, `crablet-diagram-advisor`, `crablet-dcb`, `crablet-codegen`, `crablet-local-dev`, optional `crablet-k8s`.
 3. **Phase A (split)**
 
    **Canonical skill (spring-crablet workspace or greenfield narration)**
@@ -77,7 +77,7 @@ This is **normative app development workflow**, not workshop-only behavior.
 
 5. **Phase C — Land one slice** — `/crablet-app-dev` loop; diagram checkpoint gate when actors/lanes/policies change materially.
 
-6. **Phase D — Evolving app** — Each feature repeats B→C semantics; emphasize poller-backed modules, [`DEPLOYMENT_TOPOLOGY.md`](../../user/DEPLOYMENT_TOPOLOGY.md), `/dcb`.
+6. **Phase D — Evolving app** — Each feature repeats B→C semantics; emphasize poller-backed modules, [`DEPLOYMENT_TOPOLOGY.md`](../../user/DEPLOYMENT_TOPOLOGY.md), `/crablet-dcb`.
 
 7. **Optional** — `crablet-codegen`, `crablet-local-dev`, `crablet-k8s`.
 

@@ -1,10 +1,19 @@
 # Observability
 
-Crablet exposes metrics via Micrometer and ships a pre-built Prometheus + Grafana stack for local development and reference.
+Crablet modules publish Spring/Micrometer observations when an `ObservationRegistry` is present.
+Use Spring Boot Actuator plus OTLP/OpenTelemetry export for new installations.
+
+The older `crablet-metrics-micrometer` module remains as a compatibility collector for the
+pre-built Prometheus + Grafana dashboard.
 
 ## Quick Start
 
-**1. Add three dependencies to your app:**
+**1. Recommended path: add Spring Boot Actuator and OTLP export.**
+
+Crablet instruments through Spring's `ObservationRegistry`; Spring Boot wires that into metrics
+and traces. Use Boot's OTLP/OpenTelemetry support for export.
+
+**2. Compatibility dashboard path: add three dependencies to your app:**
 
 ```xml
 <dependency>
@@ -22,15 +31,17 @@ Crablet exposes metrics via Micrometer and ships a pre-built Prometheus + Grafan
 </dependency>
 ```
 
-**2. Expose the Prometheus endpoint:**
+**3. Expose the Prometheus endpoint for the compatibility dashboard:**
 
 ```properties
 management.endpoints.web.exposure.include=health,info,prometheus
 ```
 
-That's all. `MicrometerMetricsCollector` auto-configures when a `MeterRegistry` bean is present — no component scanning needed.
+`MicrometerMetricsCollector` auto-configures when a `MeterRegistry` bean is present. It is a
+compatibility bridge over Crablet metric events; it no longer pulls every optional Crablet module
+onto the main classpath.
 
-**3. Run the local observability stack** (Prometheus + Grafana pre-loaded with the Crablet dashboard):
+**4. Run the local observability stack** (Prometheus + Grafana pre-loaded with the Crablet dashboard):
 
 ```bash
 make start          # wallet-example-app on :8080

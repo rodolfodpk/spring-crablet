@@ -32,7 +32,10 @@ The framework relies on several PostgreSQL indexes for performance:
 - **Composite B-tree index (type, position)** — optimized for the DCB query pattern.
 - **`event_tags` derived table** — a normalized B-tree-indexed projection of `events.tags`,
   maintained atomically on every append. Used by the per-processor poller to replace
-  `unnest(tags)` array scans with indexed EXISTS subqueries.
+  `unnest(tags)` array scans with indexed EXISTS subqueries. The primary key
+  `(key, value, position)` serves exact tag filters; `idx_event_tags_key_position`
+  serves broad key-existence filters such as view processors that consume all events
+  carrying `wallet_id`.
 
 ### `event_tags` derived table
 
@@ -40,6 +43,14 @@ The framework relies on several PostgreSQL indexes for performance:
 one `key=value` pair from one event. Per-processor poller queries (`EventSelectionSqlBuilder`)
 use correlated EXISTS subqueries against `event_tags` instead of scanning `unnest(events.tags)`
 per row.
+
+The table has two important lookup shapes:
+
+- exact tag filters use `(key, value, position)`, for example `wallet_id=w1`
+- key-existence filters use `(key, position)`, for example all events that carry any `wallet_id`
+
+The second shape matters for broad projections and outbox topics that process all events in a
+business category, not just one entity instance.
 
 **Idempotency and DCB conflict checks** inside `append_events_if` continue to use the GIN index
 on `events.tags`. Real decision models use 2+ tags per criterion (e.g. `wallet_id + year + month`

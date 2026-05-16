@@ -445,7 +445,10 @@ The processor publishes metrics via Spring Events:
 - `LeadershipMetric` - Leader election changes
 - `ProcessorMetric` - Processor-specific metrics
 
-See [crablet-metrics-micrometer](../crablet-metrics-micrometer/README.md) for automatic metrics collection.
+Event-poller records module-owned observations when Spring's `ObservationRegistry` is present.
+For new installations, export through Spring Boot Actuator and OTLP/OpenTelemetry. See
+[crablet-metrics-micrometer](../crablet-metrics-micrometer/README.md) only when you need the
+legacy Prometheus/Grafana dashboard collector.
 
 ## See Also
 

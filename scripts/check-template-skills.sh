@@ -39,7 +39,7 @@ grep_markers() {
 
 SKILL_IDS=(
   event-modeling
-  dcb
+  crablet-dcb
   crablet-greenfield
   crablet-app-dev
   crablet-codegen
@@ -59,7 +59,7 @@ grep_markers "${SKILLS}/event-modeling/SKILL.md" \
   'Given/When/Then' \
   'Policies in Crablet'
 
-grep_markers "${SKILLS}/dcb/SKILL.md" \
+grep_markers "${SKILLS}/crablet-dcb/SKILL.md" \
   'idempotent' \
   'commutative' \
   'non-commutative' \

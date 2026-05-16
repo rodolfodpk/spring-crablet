@@ -2,7 +2,7 @@ package com.crablet.eventpoller.internal;
 
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
-import com.crablet.eventpoller.internal.sharedfetch.BackoffInfoProvider;
+import com.crablet.eventpoller.sharedfetch.BackoffInfoProvider;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.metrics.BackoffStateMetric;
 import com.crablet.eventpoller.metrics.ProcessingCycleMetric;

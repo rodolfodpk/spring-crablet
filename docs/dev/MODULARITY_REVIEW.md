@@ -194,11 +194,12 @@ is correct for a solo project and requires no immediate change.
 
 ## What Is Working Well
 
-**Pub/sub metrics (exemplary design).**
-`crablet-metrics-micrometer` has zero knowledge of how events are generated. It subscribes to
-`@EventListener` methods for metric events published via `ApplicationEventPublisher`. Each
-publishing module declares its own metric event types with no knowledge of who listens.
-Strength: contract. Distance: cross-module. Volatility: very low. Perfectly balanced.
+**Module-owned observability.**
+Crablet modules own their Spring Observation instrumentation and share only observation names/tag
+conventions through `crablet-observability`. The compatibility `crablet-metrics-micrometer`
+collector now depends only on the shared `MetricEvent` marker, so adding it no longer pulls every
+optional module onto the application classpath. Strength: contract. Distance: cross-module.
+Volatility: low. Balanced.
 
 **Factory abstractions over implementations.**
 `CommandExecutors.create(...)` and `EventProcessorFactory.createProcessor(...)` mean that

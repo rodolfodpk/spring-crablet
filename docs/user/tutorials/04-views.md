@@ -128,20 +128,10 @@ crablet.views.fetch-batch-size=1000
 
 In this mode a single position-ordered, transaction-safe query fetches events for the entire views module and routes them in-memory to each view using `EventSelectionMatcher`. The legacy path (one query per view) remains the default.
 
-The required schema tables are added by a Flyway migration you add to your application:
-
-```sql
-CREATE TABLE crablet_module_scan_progress (
-    module_name   TEXT   PRIMARY KEY,
-    scan_position BIGINT NOT NULL DEFAULT 0
-);
-CREATE TABLE crablet_processor_scan_progress (
-    module_name      TEXT   NOT NULL,
-    processor_id     TEXT   NOT NULL,
-    scanned_position BIGINT NOT NULL DEFAULT 0,
-    PRIMARY KEY (module_name, processor_id)
-);
-```
+The required scan-progress tables are included in the framework poller progress schema from
+`crablet-db-migrations`. If your application maintains its own framework schema instead of using
+that artifact, create `crablet_module_scan_progress` and `crablet_processor_scan_progress` with the
+same shape as `V2__crablet_poller_progress_schema.sql`.
 
 ## Deployment Guidance
 

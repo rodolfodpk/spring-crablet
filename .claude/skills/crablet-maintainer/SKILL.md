@@ -15,7 +15,7 @@ This skill is for contributors changing the spring-crablet framework repository.
 ## Routing
 
 - Framework code changes use this skill, including DCB implementation changes.
-- Choosing or diagnosing DCB for an application command handler uses `dcb`.
+- Choosing or diagnosing DCB for an application command handler uses `crablet-dcb`.
 - Building generated applications or feature slices uses `crablet-app-dev`.
 - Workshop-level `event-model.yaml` design uses `event-modeling`.
 
@@ -45,12 +45,24 @@ Treat these as current repository policy unless the change explicitly revises th
 - Generic poller handlers should not accept raw `DataSource`.
 - View projection writes are owned by `crablet-views`, not by the generic poller contract.
 - Poller-backed modules model global module defaults plus per-processor configuration.
-- Shared-fetch mode is opt-in per module and requires schema V14.
+- Shared-fetch mode is opt-in per module and uses the consolidated poller progress schema in `V2__crablet_poller_progress_schema.sql`.
 - LISTEN wakeup uses `crablet.event-poller.notifications.jdbc-url` and must be a direct Postgres connection.
 - The eventstore sends NOTIFY after every append; there is no separate eventstore flag.
 - `crablet-commands-web` is server-agnostic at runtime and depends only on `jakarta.servlet-api`.
 - Do not add framework-owned circuit breakers, retries, or time limits to Crablet modules by default. Applications can wrap their own projectors, automation handlers, and outbox publishers when they need those policies.
 - The root tutorial is a tutorial series under `docs/user/tutorials/`.
+- Observability is module-owned through Spring/Micrometer Observation. `crablet-observability`
+  holds shared names/tags; `crablet-metrics-micrometer` is a compatibility collector and must not
+  depend on optional sibling modules in main scope.
+
+## Eventstore Schema Rules
+
+- Framework Flyway migrations are consolidated: eventstore schema lives in `V1__crablet_eventstore_schema.sql`; poller progress schema lives in `V2__crablet_poller_progress_schema.sql`.
+- Keep migration copies in `crablet-db-migrations` and `crablet-test-support` byte-for-byte aligned.
+- `events.tags` is canonical for DCB/idempotency command consistency checks and is indexed with GIN for `@>` containment.
+- `event_tags` is a derived, transactionally maintained lookup table for poller filtering only. Exact tag filters use `(key, value, position)`; broad key-existence filters use `(key, position)`.
+- Do not link events to commands through `command_id` columns on `events` or `event_tags`; the intentional linkage is the shared `transaction_id`.
+- Avoid duplicate or misleading indexes. Prefer `TEXT` over arbitrary `VARCHAR(n)` unless the length is a real domain constraint, and prefer JSONB for payloads unless preserving raw JSON formatting is required.
 
 ## DataSource Rules
 
@@ -94,7 +106,9 @@ Projection writes must go to the primary.
 - `shared-examples-domain`, `examples/wallet-example-app`, and `examples/course-example-app` are excluded from the reactor.
 - Use `make install` for the normal full build because it applies the required build order and stub JAR steps.
 - Use `make install-all-tests` when integration coverage is required.
-- Use `./mvnw test -pl <module-name>` only when the module dependencies are already built.
+- Always use `make` targets for repository builds. Direct root Maven test/build commands are only for focused follow-up after `make build-test-support` and `make check-test-support-artifact` have passed.
+- If framework migrations change, run `make build-test-support` before focused Maven tests so Testcontainers uses the current migration jar.
+- Use `./mvnw test -pl <module-name>` only when the module dependencies are already built and the test-support artifact freshness check passes.
 - Tests use Testcontainers for PostgreSQL integration tests.
 - Framework modules should use `shared-examples-domain` in test scope for realistic scenarios where useful.
 - Shared test utilities live in `crablet-test-support`.
@@ -129,4 +143,5 @@ When changing framework behavior:
 - Add or adjust module tests at the nearest layer that proves the behavior.
 - If poller behavior changes, check views, automations, and outbox because they share the infrastructure.
 - If eventstore append behavior changes, check command executor decisions and DCB diagnostics.
+- If migrations change, update both migration modules, rebuild `crablet-test-support`, run `make check-test-support-artifact`, and run fresh-Flyway coverage through focused Testcontainers tests or `make install-all-tests`.
 - If template or codegen behavior changes, check both `embabel-codegen` docs and `templates/crablet-app`.

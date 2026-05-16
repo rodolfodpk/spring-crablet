@@ -2,16 +2,18 @@
 # Provides convenient commands for working with the multi-module structure
 #
 # Build order (required due to cross-module test dependencies):
-# 1. crablet-eventstore    (no tests — needed by crablet-test-support)
-# 2. crablet-test-support  (test utilities + DB migrations for all modules)
-# 3. crablet-commands       (no tests — needed by shared-examples-domain)
-# 4. shared-examples-domain (wallet/course/notification examples, used by reactor in test scope)
-# 5. reactor               (all framework modules with full tests)
+# 1. crablet-observability + crablet-eventstore (no tests — needed by crablet-test-support)
+# 2. crablet-test-support                       (test utilities + DB migrations for all modules)
+# 3. crablet-commands                            (no tests — needed by shared-examples-domain)
+# 4. shared-examples-domain                      (wallet/course/notification examples, used by reactor in test scope)
+# 5. reactor                                    (all framework modules with full tests)
 #
 # examples/wallet-example-app is built separately after the reactor is installed.
 # See BUILD.md for full explanation.
 
-.PHONY: help install install-all-tests ci-verify validate-all skills-check build-all compile package test test-skip examples-check clean verify build-core build-shared build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check event-model-diagrams
+.PHONY: help install install-all-tests ci-verify validate-all skills-check check-test-support-artifact build-all compile package test test-skip examples-check clean verify build-core build-shared build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check event-model-diagrams
+
+.NOTPARALLEL:
 
 # Default target
 help:
@@ -23,6 +25,7 @@ help:
 	@echo "  ci-verify        - Build with all tests for CI (no local repo install, faster)"
 	@echo "  validate-all     - Full local validation: framework, docs, codegen, examples, and template skills"
 	@echo "  skills-check     - Verify templates/crablet-app skill files and CLAUDE routing"
+	@echo "  check-test-support-artifact - Verify installed crablet-test-support jar matches source migrations"
 	@echo "  build-all        - Alias for install"
 	@echo "  compile          - Compile all modules without packaging"
 	@echo "  package          - Build JARs for all modules"
@@ -65,11 +68,11 @@ help:
 # Main build command - handles cyclic dependency automatically
 # Note: Uses 'install' which runs unit tests but not integration tests
 # Use 'install-all-tests' for full test coverage including integration tests
-install: build-core build-test-support build-command build-shared build-reactor
+install: build-core build-test-support check-test-support-artifact build-command build-shared build-reactor
 	@echo "✓ Build complete! All modules installed to local repository."
 
 # Full build with all tests including integration tests (for CI)
-install-all-tests: build-core build-test-support build-command build-shared build-reactor-verify build-reactor-install-artifacts
+install-all-tests: build-core build-test-support check-test-support-artifact build-command build-shared build-reactor-verify build-reactor-install-artifacts
 	@echo "✓ Build complete with all tests! All modules installed to local repository."
 
 # CI build - verifies build, only installs minimal modules needed
@@ -77,7 +80,7 @@ install-all-tests: build-core build-test-support build-command build-shared buil
 # 2. Install crablet-test-support (needed by shared-examples-domain)
 # 3. Install shared-examples-domain (needed by reactor modules in test scope)
 # 4. Verify reactor (no install needed for reactor modules)
-ci-verify: build-core build-test-support build-command build-shared build-reactor-verify
+ci-verify: build-core build-test-support check-test-support-artifact build-command build-shared build-reactor-verify
 	@echo "✓ CI build complete with all tests!"
 
 validate-all: skills-check install-all-tests docs-check docs-compile-check docs-generate-check codegen-check examples-check
@@ -86,6 +89,10 @@ validate-all: skills-check install-all-tests docs-check docs-compile-check docs-
 skills-check:
 	@chmod +x scripts/check-template-skills.sh
 	@./scripts/check-template-skills.sh
+
+check-test-support-artifact:
+	@chmod +x scripts/check-test-support-artifact.sh
+	@./scripts/check-test-support-artifact.sh
 
 
 docs-check:
@@ -118,17 +125,18 @@ build-core:
 	@mkdir -p /tmp/crablet-stub && touch /tmp/crablet-stub/empty.jar
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-eventstore -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-eventstore/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-eventstore -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -Dclassifier=tests -DpomFile=crablet-eventstore/pom.xml -q 2>/dev/null || true
+	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-observability -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-observability/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-test-support -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-test-support/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-commands -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-commands/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-automations -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-automations/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=shared-examples-domain -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=shared-examples-domain/pom.xml -q 2>/dev/null || true
-	@echo "Building crablet-eventstore (main code only, skipping tests)..."
-	@./mvnw clean compile package install -pl crablet-eventstore -DskipTests -Dmaven.test.skip=true
+	@echo "Building crablet-observability and crablet-eventstore (main code only, skipping tests)..."
+	@./mvnw clean compile package install -pl crablet-observability,crablet-eventstore -DskipTests -Dmaven.test.skip=true
 
 # Build crablet-test-support (step 2 - test utilities that depend on crablet-eventstore)
 build-test-support:
 	@echo "Building crablet-test-support..."
-	@cd crablet-test-support && ../mvnw install
+	@cd crablet-test-support && ../mvnw clean install
 
 # Build crablet-commands without tests (step 2 - needed by shared-examples-domain)
 build-command:
@@ -136,7 +144,7 @@ build-command:
 	@./mvnw clean compile package install -pl crablet-commands -DskipTests -Dmaven.test.skip=true
 
 # Build shared-examples-domain (step 3 - depends on crablet-eventstore and crablet-commands)
-build-shared:
+build-shared: check-test-support-artifact
 	@echo "Building shared-examples-domain..."
 	@cd shared-examples-domain && ../mvnw install
 	@echo "Building crablet-eventstore test-jar (needed by crablet-commands tests)..."
@@ -144,36 +152,36 @@ build-shared:
 
 
 # Build all reactor modules with tests (step 4 - shared-examples-domain is now available)
-build-reactor:
+build-reactor: check-test-support-artifact
 	@echo "Building reactor modules (with tests)..."
 	@./mvnw install
 
 # Build all reactor modules with all tests including integration tests (for CI)
 # Note: Don't clean - build-core and build-shared already installed artifacts to local repo
 # The reactor build will use installed versions and compile fresh for tests
-build-reactor-verify:
+build-reactor-verify: check-test-support-artifact
 	@echo "Building reactor modules (with all tests including integration tests)..."
 	@./mvnw verify -Dmaven.clean.skip=true
 
 # Install reactor artifacts after verification so standalone examples resolve real jars, not bootstrap stubs.
-build-reactor-install-artifacts:
+build-reactor-install-artifacts: check-test-support-artifact
 	@echo "Installing verified reactor artifacts..."
 	@./mvnw install -DskipTests -Dmaven.test.skip=true -Dmaven.clean.skip=true
 
 # Compile all modules
-compile: build-core build-command build-shared
+compile: build-core build-test-support check-test-support-artifact build-command build-shared
 	@./mvnw compile
 
 # Package all modules
-package: build-core build-command build-shared
+package: build-core build-test-support check-test-support-artifact build-command build-shared
 	@./mvnw package
 
 # Run tests (requires core, test-support, commands and shared examples first)
-test: build-core build-test-support build-command build-shared
+test: build-core build-test-support check-test-support-artifact build-command build-shared
 	@./mvnw test
 
 # Build without tests
-test-skip: build-core build-command build-shared
+test-skip: build-core build-test-support check-test-support-artifact build-command build-shared
 	@./mvnw install -DskipTests
 
 examples-check:
@@ -184,7 +192,7 @@ examples-check:
 	@echo "✓ Example apps tested."
 
 # Full verify (clean build with tests)
-verify: build-core build-command build-shared
+verify: build-core build-test-support check-test-support-artifact build-command build-shared
 	@./mvnw verify
 
 # Clean all build artifacts

@@ -385,7 +385,7 @@ DCB leverages PostgreSQL features:
 
 1. **Snapshot isolation**: `pg_snapshot_xmin()` filters uncommitted transactions
 2. **GIN index on `events.tags`**: idempotency and DCB conflict checks use `events.tags @>` containment queries — real decision models use 2+ tags per criterion, so GIN handles the common case directly
-3. **`event_tags` B-tree index**: per-processor poller tag filtering uses correlated EXISTS subqueries against the derived `event_tags` table (one row per `key=value` pair per event) instead of `unnest(tags)` scans
+3. **`event_tags` B-tree indexes**: per-processor poller tag filtering uses correlated EXISTS subqueries against the derived `event_tags` table (one row per `key=value` pair per event) instead of `unnest(tags)` scans. `(key, value, position)` covers exact tag filters; `(key, position)` covers broad key-existence filters such as all events with `wallet_id`.
 4. **ACID guarantees**: Transactional consistency
 
 Function signature:

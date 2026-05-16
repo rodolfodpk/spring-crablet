@@ -21,7 +21,7 @@ root. It coordinates existing depth skills; it does not replace their playbooks.
 | Diagram checkpoint, actor/lane metadata, renderer vocabulary | `crablet-diagram-advisor` |
 | Plan, generate, repair, and slice implementation | `crablet-app-dev` |
 | Provider config, artifact ownership, repair-cycle failures | `crablet-codegen` |
-| DCB pattern, tags, guard events, concurrency diagnosis | `dcb` |
+| DCB pattern, tags, guard events, concurrency diagnosis | `crablet-dcb` |
 | Local Kubernetes after `deployment:` stabilizes | `crablet-k8s` |
 
 ## Phase A - App Baseline
@@ -81,7 +81,7 @@ idempotent. For production topology, use the spring-crablet `docs/user/DEPLOYMEN
 command-only apps scale horizontally, while poller-backed modules need the documented
 singleton-worker shape.
 
-Use `dcb` whenever command consistency, tags, `guardEvents`, or conflict behavior are not obvious.
+Use `crablet-dcb` whenever command consistency, tags, `guardEvents`, or conflict behavior are not obvious.
 Use `crablet-k8s` after the `deployment:` block is stable enough to generate local manifests.
 
 ```mermaid

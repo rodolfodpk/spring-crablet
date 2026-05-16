@@ -33,7 +33,7 @@ makes the intended entry point unambiguous.
 | `/event-modeling` | Facilitate Event Modeling workshop dialogue and turn the conversation into generator-ready `event-model.yaml`. |
 | `/crablet-codegen` | Configure codegen providers, run plan/generate, manage artifact ownership, and recover from generation or repair failures. |
 | `/crablet-app-dev` | Build one generated application slice at a time: commands, handlers, views, automations, outbox, and verification. |
-| `/dcb` | Choose or diagnose command consistency patterns: `idempotent`, `commutative`, `non-commutative`, tags, and `guardEvents`. |
+| `/crablet-dcb` | Choose or diagnose command consistency patterns: `idempotent`, `commutative`, `non-commutative`, tags, and `guardEvents`. |
 | `/crablet-k8s` | Map the `deployment:` model to local Kubernetes manifests, KEDA settings, and singleton worker topology. |
 | `/crablet-local-dev` | Handle local build, Testcontainers, LISTEN/NOTIFY constraints, MCP codegen loop, and troubleshooting. |
 | `/crablet-diagram-advisor` | Work with event-model diagram metadata, actor boards, sidecar overlays, and renderer rules. |

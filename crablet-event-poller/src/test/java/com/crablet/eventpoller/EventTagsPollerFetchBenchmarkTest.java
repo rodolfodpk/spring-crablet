@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Benchmark: per-processor poller fetch time with sparse required-tag-key filter.
  *
- * Establishes a timing baseline for EventSelectionSqlBuilder after the V9 query
+ * Establishes a timing baseline for EventSelectionSqlBuilder after the query
  * switch from unnest(tags) LIKE to event_tags correlated EXISTS subqueries.
  * Run with -Dgroups=benchmark to include in a benchmark-only suite.
  *

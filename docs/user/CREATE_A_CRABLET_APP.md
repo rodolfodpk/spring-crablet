@@ -111,14 +111,14 @@ createdb my_crablet_app
 
 Keep application-specific Flyway migrations in the generated app. Crablet modules
 provide runtime wiring through Spring Boot auto-configuration when the
-dependencies are on the classpath, but the PostgreSQL schema is still owned by
-your application migrations.
+dependencies are on the classpath. Add `crablet-db-migrations` as a runtime
+dependency for the framework tables, then keep your app-owned tables under a
+separate app migration location such as `classpath:db/migration/app`.
 
 For the event store schema, use [Database Schema](../../crablet-eventstore/SCHEMA.md)
-as the reference and copy the current SQL shape into your app's first migration.
-The wallet example's
-[`V1__eventstore_schema.sql`](../../crablet-db-migrations/src/main/resources/db/migration/V1__eventstore_schema.sql)
-is the runnable reference in this repository.
+as the reference. The framework migration
+[`V1__crablet_eventstore_schema.sql`](../../crablet-db-migrations/src/main/resources/db/migration/V1__crablet_eventstore_schema.sql)
+is the runnable source of truth in this repository.
 
 ## Build The First Manual Vertical Slice
 

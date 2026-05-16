@@ -9,7 +9,7 @@ This file is the repo-level routing hub for Claude Code work in spring-crablet.
 - Codegen provider config, artifact ownership, repair cycle, and recovery: invoke `/crablet-codegen`.
 - Framework module changes, public API work, eventstore/commands/poller internals, shared-fetch, auto-configuration, templates, codegen internals, maintainer docs: invoke `/crablet-maintainer`.
 - Event Modeling workshop, generator-ready `event-model.yaml`: invoke `/event-modeling`.
-- Deep DCB explanation, choosing or diagnosing DCB for an application command handler, `ConcurrencyException` analysis: invoke `/dcb`.
+- Deep DCB explanation, choosing or diagnosing DCB for an application command handler, `ConcurrencyException` analysis: invoke `/crablet-dcb`.
 - Docs diagram renderer rules, actor-board vocabulary, sidecar overlays, or multi-lane board authoring: invoke `/crablet-diagram-advisor`.
 - Local build, Testcontainers, MCP codegen loop, module test targets, troubleshooting: invoke `/crablet-local-dev`.
 
@@ -44,6 +44,12 @@ make course-start       # Run course-example-app (port 8081)
 ./mvnw test -pl <module-name>
 ./mvnw test -pl <module-name> -Dtest=ClassName
 ```
+
+Always use `make` targets for repository builds. Do not run root Maven build/test commands directly
+until `make build-test-support` and `make check-test-support-artifact` have passed; otherwise Maven
+can resolve a stale locally installed `crablet-test-support` jar and run tests against old Flyway
+migrations. Direct `./mvnw test -pl ...` is only for focused follow-up after the Makefile has
+prepared local artifacts.
 
 Tests use Testcontainers for PostgreSQL integration tests. `make install` is the normal maintainer build because the examples and shared example domain are outside the Maven reactor.
 
@@ -82,8 +88,11 @@ crablet-automations
 crablet-outbox
   Reliable external publication built on crablet-event-poller.
 
+crablet-observability
+  Shared observation names and tag conventions; no runtime module coupling.
+
 crablet-metrics-micrometer
-  Optional metrics auto-collection.
+  Compatibility Micrometer collector for legacy metric events.
 
 crablet-test-support
   Shared test utilities for handler and integration tests.

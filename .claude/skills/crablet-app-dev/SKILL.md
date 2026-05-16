@@ -21,7 +21,7 @@ except for documented template-only wording.
 - Use `event-modeling` for workshop dialogue and generator-ready `event-model.yaml` shape.
 - Use `crablet-greenfield` for end-to-end greenfield pacing across repo bootstrap, modeling, slices, and app evolution.
 - Use this skill to sequence the app workflow around that model and implement/repair app code.
-- Use `dcb` for deep DCB diagnosis, `ConcurrencyException` analysis, or command-pattern explanation.
+- Use `crablet-dcb` for deep DCB diagnosis, `ConcurrencyException` analysis, or command-pattern explanation.
 - Use `crablet-maintainer` only when changing spring-crablet framework modules, APIs, templates, or codegen internals.
 
 ## Feature Slice Workflow
@@ -54,7 +54,7 @@ For each slice, clarify:
 
 ## DCB Choice For App Commands
 
-Use this as a quick choice guide. For deeper analysis, use `dcb`.
+Use this as a quick choice guide. For deeper analysis, use `crablet-dcb`.
 
 | Pattern | Use when | App result |
 |---------|----------|------------|
@@ -107,7 +107,7 @@ For any multi-step event-driven workflow:
 
 Do not put hidden generic saga state inside automation handlers. If an automation needs shared
 decision state across events, model it as an explicit TODO/read model that the automation reads.
-For the DCB pattern that protects the emitted command, use `dcb`.
+For the DCB pattern that protects the emitted command, use `crablet-dcb`.
 
 ## App Gotchas
 

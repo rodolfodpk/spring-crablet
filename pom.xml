@@ -13,6 +13,7 @@
     
     <modules>
         <module>crablet-db-migrations</module>
+        <module>crablet-observability</module>
         <module>crablet-eventstore</module>
         <module>crablet-commands</module>
         <module>crablet-commands-web</module>
@@ -66,6 +67,13 @@
                 <scope>import</scope>
             </dependency>
             
+            <!-- Crablet Event Store -->
+            <dependency>
+                <groupId>com.crablet</groupId>
+                <artifactId>crablet-observability</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- Crablet Event Store -->
             <dependency>
                 <groupId>com.crablet</groupId>
@@ -298,6 +306,12 @@
                         </goals>
                         <configuration>
                             <fileSets>
+                                <fileSet>
+                                    <directory>${project.basedir}/crablet-observability/target</directory>
+                                    <includes>
+                                        <include>jacoco.exec</include>
+                                    </includes>
+                                </fileSet>
                                 <fileSet>
                                     <directory>${project.basedir}/crablet-eventstore/target</directory>
                                     <includes>

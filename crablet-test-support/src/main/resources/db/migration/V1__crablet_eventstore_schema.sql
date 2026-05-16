@@ -1,0 +1,192 @@
+-- Crablet event store schema for DCB-style event sourcing.
+--
+-- events.tags is the canonical tag storage used by command idempotency and DCB
+-- conflict checks through GIN-backed containment queries.
+--
+-- event_tags is derived data maintained atomically on append. It exists to give
+-- legacy per-processor poller SQL an indexed key/value lookup shape instead of
+-- scanning unnest(events.tags) per candidate row.
+
+CREATE TABLE events
+(
+    type           VARCHAR(64)              NOT NULL,
+    tags           TEXT[]                   NOT NULL,
+    data           JSONB                    NOT NULL,
+    transaction_id xid8                     NOT NULL,
+    position       BIGSERIAL                NOT NULL PRIMARY KEY,
+    occurred_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    correlation_id UUID,
+    causation_id   BIGINT,
+    CONSTRAINT chk_event_type_length CHECK (LENGTH(type) <= 64)
+);
+
+CREATE TABLE commands
+(
+    command_id     UUID                     NOT NULL PRIMARY KEY,
+    transaction_id xid8                     NOT NULL,
+    type           VARCHAR(64)              NOT NULL,
+    data           JSONB                    NOT NULL,
+    metadata       JSONB,
+    occurred_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE event_tags
+(
+    position BIGINT NOT NULL,
+    key      TEXT   NOT NULL,
+    value    TEXT   NOT NULL,
+    PRIMARY KEY (key, value, position),
+    CONSTRAINT fk_event_tags_position FOREIGN KEY (position) REFERENCES events(position) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_events_transaction_position_btree ON events (transaction_id, position);
+CREATE INDEX idx_events_type_position ON events (type, position);
+CREATE INDEX idx_events_tags_gin ON events USING GIN (tags);
+CREATE INDEX idx_events_correlation_id ON events (correlation_id)
+    WHERE correlation_id IS NOT NULL;
+
+CREATE INDEX idx_commands_transaction_id ON commands (transaction_id);
+
+CREATE INDEX idx_event_tags_position ON event_tags (position);
+CREATE INDEX idx_event_tags_key_position ON event_tags (key, position);
+
+CREATE OR REPLACE FUNCTION append_events_batch(
+    p_types          TEXT[],
+    p_tags           TEXT[],
+    p_data           JSONB[],
+    p_occurred_at    TIMESTAMP WITH TIME ZONE,
+    p_correlation_id UUID   DEFAULT NULL,
+    p_causation_id   BIGINT DEFAULT NULL
+) RETURNS VOID AS
+$$
+BEGIN
+    WITH inserted AS (
+        INSERT INTO events (type, tags, data, transaction_id, occurred_at,
+                            correlation_id, causation_id)
+        SELECT t.type,
+               t.tag_string::TEXT[],
+               t.data,
+               pg_current_xact_id(),
+               p_occurred_at,
+               p_correlation_id,
+               p_causation_id
+        FROM UNNEST($1, $2, $3) AS t(type, tag_string, data)
+        RETURNING position, tags
+    )
+    INSERT INTO event_tags (position, key, value)
+    SELECT i.position,
+           split_part(tag, '=', 1)                      AS key,
+           substring(tag FROM position('=' IN tag) + 1) AS value
+    FROM inserted i,
+         LATERAL unnest(i.tags) AS tag
+    WHERE tag LIKE '%=%';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION append_events_if(
+    p_types                 TEXT[],
+    p_tags                  TEXT[],
+    p_data                  JSONB[],
+    p_event_types           TEXT[]                   DEFAULT NULL,
+    p_condition_tags        TEXT[]                   DEFAULT NULL,
+    p_after_cursor_position BIGINT                   DEFAULT NULL,
+    p_idempotency_types     TEXT[]                   DEFAULT NULL,
+    p_idempotency_tags      TEXT[]                   DEFAULT NULL,
+    p_occurred_at           TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_correlation_id        UUID                     DEFAULT NULL,
+    p_causation_id          BIGINT                   DEFAULT NULL
+) RETURNS JSONB AS
+$$
+DECLARE
+    v_has_duplicate BOOLEAN;
+    v_has_conflict  BOOLEAN;
+    v_lock_key      BIGINT;
+BEGIN
+    IF p_idempotency_types IS NOT NULL OR p_idempotency_tags IS NOT NULL THEN
+        v_lock_key := hashtextextended(
+            array_to_string(
+                ARRAY(SELECT unnest(p_idempotency_tags) ORDER BY 1),
+                ','
+            ),
+            0
+        );
+        PERFORM pg_advisory_xact_lock(v_lock_key);
+    END IF;
+
+    SELECT
+        CASE
+            WHEN p_idempotency_types IS NOT NULL OR p_idempotency_tags IS NOT NULL THEN
+                EXISTS (
+                    SELECT 1 FROM events e
+                    WHERE e.type = ANY(p_idempotency_types)
+                      AND e.tags @> p_idempotency_tags
+                    LIMIT 1
+                )
+            ELSE FALSE
+        END,
+        CASE
+            WHEN p_event_types IS NULL AND p_condition_tags IS NULL AND p_after_cursor_position IS NULL THEN
+                FALSE
+            ELSE
+                EXISTS (
+                    SELECT 1 FROM events e
+                    WHERE (p_event_types IS NULL OR e.type = ANY(p_event_types))
+                      AND (p_condition_tags IS NULL OR e.tags @> p_condition_tags)
+                      AND (p_after_cursor_position IS NULL OR e.position > p_after_cursor_position)
+                      AND e.transaction_id < pg_snapshot_xmin(pg_current_snapshot())
+                    LIMIT 1
+                )
+        END
+    INTO v_has_duplicate, v_has_conflict;
+
+    IF v_has_duplicate THEN
+        RETURN jsonb_build_object(
+            'success',    false,
+            'message',    'duplicate operation detected',
+            'error_code', 'IDEMPOTENCY_VIOLATION'
+        );
+    END IF;
+
+    IF v_has_conflict THEN
+        RETURN jsonb_build_object(
+            'success',    false,
+            'message',    'append condition violated',
+            'error_code', 'DCB_VIOLATION'
+        );
+    END IF;
+
+    PERFORM append_events_batch(
+        p_types,
+        p_tags,
+        p_data,
+        COALESCE(p_occurred_at, CURRENT_TIMESTAMP),
+        p_correlation_id,
+        p_causation_id
+    );
+
+    RETURN jsonb_build_object(
+        'success',        true,
+        'message',        'events appended successfully',
+        'events_count',   array_length(p_types, 1),
+        'transaction_id', pg_current_xact_id()::TEXT
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON TABLE events IS
+    'Canonical Crablet event log. tags is the source of truth for event tags.';
+
+COMMENT ON TABLE event_tags IS
+    'Derived tag lookup table maintained atomically from events.tags for poller filtering.';
+
+COMMENT ON COLUMN events.correlation_id IS
+    'Business operation thread ID shared by all events caused by one user request, including automation-triggered downstream events.';
+
+COMMENT ON COLUMN events.causation_id IS
+    'Position (events.position) of the event that directly triggered this event. NULL for direct user actions.';
+
+COMMENT ON FUNCTION append_events_batch(TEXT[], TEXT[], JSONB[], TIMESTAMP WITH TIME ZONE, UUID, BIGINT) IS
+    'Insert events with application-controlled timestamps and maintain derived event_tags rows.';
+
+COMMENT ON FUNCTION append_events_if(TEXT[], TEXT[], JSONB[], TEXT[], TEXT[], BIGINT, TEXT[], TEXT[], TIMESTAMP WITH TIME ZONE, UUID, BIGINT) IS
+    'Conditionally insert events using DCB conflict checks over canonical events.tags.';

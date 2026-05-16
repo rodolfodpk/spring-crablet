@@ -67,5 +67,7 @@ management.metrics.distribution.percentiles-histogram.eventstore.commands.durati
 
 ## Adding Metrics to Your Own App
 
-See [`crablet-metrics-micrometer/README.md`](../crablet-metrics-micrometer/README.md) for the three-dependency setup.
+See [`docs/user/OBSERVABILITY.md`](../docs/user/OBSERVABILITY.md) for the recommended
+Observation/OTLP path and [`crablet-metrics-micrometer/README.md`](../crablet-metrics-micrometer/README.md)
+for the compatibility dashboard setup.
 Point your Prometheus at your app's `/actuator/prometheus` endpoint and import `grafana/dashboards/crablet-dashboard.json`.

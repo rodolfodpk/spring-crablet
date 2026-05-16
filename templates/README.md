@@ -9,7 +9,7 @@ A ready-to-use Spring Boot application skeleton configured for the AI-first Crab
 **What's included:**
 - `pom.xml` with all Crablet runtime dependencies
 - `event-model.yaml` skeleton to describe your domain
-- `V1__eventstore_schema.sql` Flyway migration (full Crablet schema)
+- `crablet-db-migrations` runtime dependency for the framework Flyway schema
 - `Makefile` with `plan`, `generate`, `k8s`, `verify`, and `check` targets
 - `.claude/settings.json` pre-wired for the `embabel-codegen` MCP server
 - `.cursor/mcp.json` pre-wired for the same MCP server

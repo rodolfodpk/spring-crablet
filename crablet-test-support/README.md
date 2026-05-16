@@ -16,7 +16,7 @@ Optional test support for applications built on Crablet. Provides fast in-memory
 It solves two problems:
 
 1. **Test utilities** — `InMemoryEventStore`, `AbstractCrabletTest`, `AbstractHandlerUnitTest`, and `DCBTestHelpers` are available from a single dependency instead of being reimplemented per application
-2. **Database migrations** — All framework migrations (V1–V9) live here so every module gets them automatically through a single test-scope dependency
+2. **Database migrations** — All framework migrations live here so every module gets them automatically through a single test-scope dependency
 
 ## Maven Coordinates
 
@@ -121,15 +121,8 @@ All framework migrations live in `src/main/resources/db/migration/` — main res
 
 | File | Creates |
 |------|---------|
-| `V1__eventstore_schema.sql` | `events`, `commands` tables + functions |
-| `V2__outbox_schema.sql` | `outbox_topic_progress` table |
-| `V3__view_progress_schema.sql` | `view_progress` table |
-| `V4__automation_progress_schema.sql` | `automation_progress` table |
-| `V5__correlation_causation.sql` | Correlation / causation columns on `events` |
-| `V6__shared_fetch_scan_progress.sql` | `crablet_module_scan_progress`, `crablet_processor_scan_progress` |
-| `V7__event_tags_schema.sql` | `event_tags` table + backfill |
-| `V8__event_tags_append_maintenance.sql` | append-path event tag maintenance |
-| `V9__event_tags_query_switch.sql` | design record — no SQL changes (poller-only scope) |
+| `V1__crablet_eventstore_schema.sql` | `events`, `commands`, `event_tags`, tag indexes, and append functions |
+| `V2__crablet_poller_progress_schema.sql` | outbox, view, automation, and shared-fetch progress tables |
 
 Flyway picks these up automatically in every module that declares `crablet-test-support` as a test-scope dependency — no per-module migration copies needed.
 

@@ -14,6 +14,16 @@
     <description>View projections for materialized read models</description>
     
     <dependencies>
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-observability</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-observation</artifactId>
+        </dependency>
+
         <!-- Crablet Event Store -->
         <dependency>
             <groupId>com.crablet</groupId>

@@ -189,7 +189,7 @@ markmap:
 #### Event modeling workshop — /event-modeling skill session
 ### Claude Code Skills
 #### /event-modeling — structured workshop, produces event-model.yaml
-#### /dcb — choose AppendCondition, diagnose ConcurrencyException
+#### /crablet-dcb — choose AppendCondition, diagnose ConcurrencyException
 #### /balanced-coupling — modularity review and coupling analysis
 #### /review — pull request review
 #### /jspecify — add null-safety annotations

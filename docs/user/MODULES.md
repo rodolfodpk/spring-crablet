@@ -7,7 +7,7 @@ Crablet is split into a small required write-side core and optional libraries yo
 | Area | Modules |
 |------|---------|
 | Core runtime | [Event Store](../../crablet-eventstore/README.md), [Commands](../../crablet-commands/README.md) |
-| Optional add-ons | [Views](../../crablet-views/README.md), [Outbox](../../crablet-outbox/README.md), [Automations](../../crablet-automations/README.md), [Command Web API](../../crablet-commands-web/README.md), [Micrometer metrics](../../crablet-metrics-micrometer/README.md), [Observability](OBSERVABILITY.md) |
+| Optional add-ons | [Views](../../crablet-views/README.md), [Outbox](../../crablet-outbox/README.md), [Automations](../../crablet-automations/README.md), [Command Web API](../../crablet-commands-web/README.md), [Observability](OBSERVABILITY.md), [Micrometer compatibility metrics](../../crablet-metrics-micrometer/README.md) |
 | Support and examples | [Test support](../../crablet-test-support/README.md), [Wallet example app](../../examples/wallet-example-app/README.md), [Course example app](../../examples/course-example-app/README.md), shared example domain code, compiled docs samples |
 | Internal infrastructure | [Event Poller](../../crablet-event-poller/README.md) powers the poller-backed modules |
 | AI-first tooling | [Embabel Codegen](../../embabel-codegen/README.md) — generates code from event-model.yaml; [Templates](../../templates/README.md) — starter project |
@@ -27,7 +27,8 @@ stack at once.
 | Read models | `crablet-views` | Asynchronous view projection from stored events into query-optimized tables, with per-view subscriptions and management operations | Add after the write side works and users need fast reads, dashboards, or query APIs. |
 | Internal follow-up behavior | `crablet-automations` | Event-triggered policies that return `AutomationDecision`s, usually executing commands through `CommandExecutor` | Add when one stored event should cause application behavior inside the same bounded context. |
 | External publication | `crablet-outbox` | Reliable event publication outside the application boundary through `OutboxPublisher` implementations, with per-topic/per-publisher progress | Add when stored events must leave the application boundary. |
-| Metrics | `crablet-metrics-micrometer` | Micrometer listeners for command, view, automation, outbox, and processor metrics | Add when operating Crablet in environments with Prometheus, Grafana, or other Micrometer backends. |
+| Observability conventions | `crablet-observability` | Shared observation names and low-cardinality tag conventions used by Crablet modules | Pulled transitively by framework modules; application code normally does not depend on it directly. |
+| Metrics compatibility | `crablet-metrics-micrometer` | Transitional Micrometer collector for legacy Crablet metric events | Add only when you need the existing Prometheus/Grafana dashboard metrics. Prefer Spring Boot Observation with OTLP/OpenTelemetry export for new setups. |
 
 The **write model** is synchronous: a command handler decides, `CommandExecutor` checks consistency,
 and the event store appends within the command transaction. This path can run by itself with only

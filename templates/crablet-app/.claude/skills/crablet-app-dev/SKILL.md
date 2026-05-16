@@ -21,7 +21,7 @@ repo is the generated app root.
 - Use `event-modeling` for workshop dialogue and generator-ready `event-model.yaml` shape.
 - Use `crablet-greenfield` for end-to-end greenfield pacing across app baseline, modeling, slices, and app evolution.
 - Use this skill to sequence the app workflow around that model and implement/repair app code.
-- Use `dcb` for deep DCB diagnosis, `ConcurrencyException` analysis, or command-pattern explanation when available.
+- Use `crablet-dcb` for deep DCB diagnosis, `ConcurrencyException` analysis, or command-pattern explanation when available.
 - Framework module, public API, template, or codegen internals belong in the spring-crablet repo, not this app.
 
 ## Feature Slice Workflow

@@ -3,7 +3,7 @@ name: event-modeling
 description: >
   Use this skill when modelling or revising domain behaviour for this Crablet app—events,
   commands in event-model.yaml, views, automations, and outbox—with Event Modeling facilitation
-  techniques. Prefer /dcb for AppendCondition and consistency-boundary specifics; prefer
+  techniques. Prefer /crablet-dcb for AppendCondition and consistency-boundary specifics; prefer
   /crablet-app-dev for plan → generate → verify sequencing once the YAML is drafted.
 ---
 

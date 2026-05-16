@@ -8,26 +8,33 @@ here, and should use deprecation first when that is practical.
 
 ---
 
-## `event_tags` derived index (V7–V9) and command-level idempotency (V10)
+## Consolidated framework migrations, `event_tags`, and command-level idempotency
 
-**Affects:** All deployments (schema change); users of `CommandExecutor` who want idempotency (API addition, non-breaking)
+**Affects:** Fresh test and example databases; users of `CommandExecutor` who want idempotency
 
 ### What changed
 
-**V7–V9 — `event_tags` derived table**
+Framework Flyway history was consolidated before a stable release. Fresh databases now receive the final framework schema through:
 
-A normalized `event_tags` table is added alongside `events`. Each row represents one `key=value` tag pair from one event. Flyway applies V7 (schema + backfill), V8 (append maintenance), and V9 (no-op design record) automatically on startup.
+```text
+V1__crablet_eventstore_schema.sql
+V2__crablet_poller_progress_schema.sql
+```
 
-- Per-processor poller tag filtering now uses indexed `event_tags` EXISTS subqueries instead of `unnest(events.tags)` array scans.
+The final schema includes the `event_tags` derived table and command-level idempotency shape from the start.
+
+**`event_tags` derived table**
+
+A normalized `event_tags` table exists alongside `events`. Each row represents one `key=value` tag pair from one event.
+
+- Per-processor poller tag filtering now uses indexed `event_tags` EXISTS subqueries instead of `unnest(events.tags)` array scans. Exact tag filters use `(key, value, position)`; broad key-existence filters use `(key, position)`.
 - Idempotency and DCB conflict checks inside `append_events_if` continue to use `events.tags @>` with the GIN index — real decision models use 2+ tags per criterion, so the GIN path handles the common case directly.
 - `events` remains the canonical source of truth; `event_tags` is derived and kept in sync atomically via the same CTE that inserts into `events`.
 - **Write amplification:** every append writes one `event_tags` row per tag per event. See `docs/user/PERFORMANCE.md` for tradeoff details and drift-check queries.
 
-No application code changes required.
+**Command-level idempotency**
 
-**V10 — `command_id UUID` primary key on `commands`**
-
-`commands` gains a `command_id UUID PRIMARY KEY`. `transaction_id` is demoted from primary key to a regular indexed column (still stored for event-to-command linkage). No `idempotency_key` column is added. Flyway applies V10 automatically.
+`commands` has a `command_id UUID PRIMARY KEY`. `transaction_id` is retained as a regular indexed column for event-to-command linkage. No `idempotency_key` column is added.
 
 A new `CommandExecutor` overload is available for client-controlled idempotency:
 
@@ -49,6 +56,8 @@ When `commandId` is supplied, the executor inserts the command record using that
 Requires `crablet.eventstore.persist-commands=true`. An `InvalidCommandException` is thrown if persistence is disabled and a `commandId` is supplied.
 
 No action required if you do not use the new overload. Existing `execute(T)` and `execute(T, CommandHandler<T>)` calls are unchanged. The previously deprecated `execute(T, @Nullable UUID correlationId)` overload has been removed — migrate to `execute(T, CommandExecutionOptions.builder().correlationId(id).build())` if you were using it.
+
+Because this consolidation rewrites pre-release Flyway history, discard and recreate any local database that already applied the old framework V1-V10 chain. The project uses Testcontainers for framework tests, so this mainly affects manually created local example databases.
 
 ---
 
@@ -350,19 +359,26 @@ public class MyAutomationHandler implements AutomationHandler {
 
 ---
 
-## Shared-fetch schema migration (V14)
+## Shared-fetch progress schema
 
 **Affects:** Deployments enabling `*.shared-fetch.enabled=true`
 
 ### What changed
 
-Shared-fetch mode requires two new tables (`module_scan_progress`, `processor_scan_progress`) added in Flyway migration `V14`.
+Shared-fetch mode requires the framework scan-progress tables:
+
+```text
+crablet_module_scan_progress
+crablet_processor_scan_progress
+```
+
+Fresh installs receive these through `V2__crablet_poller_progress_schema.sql`.
 
 ### Migration
 
 Shared-fetch is opt-in. If you enable it:
 
-1. Ensure your Flyway migrations run up to V14 before deploying.
+1. Ensure the framework poller progress schema is applied before deploying.
 2. Set `crablet.views.shared-fetch.enabled=true` (or equivalent for automations/outbox).
 3. Existing `scan_progress` rows are preserved — no data migration needed.
 
