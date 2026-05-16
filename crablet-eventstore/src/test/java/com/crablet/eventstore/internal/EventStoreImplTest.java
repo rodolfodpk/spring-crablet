@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -123,6 +124,18 @@ class EventStoreImplTest {
                 .tag("category", "test")
                 .data(new TestEvent(id, message, clockProvider.now()))
                 .build();
+    }
+
+    @Test
+    @SuppressWarnings("NullAway")
+    void appendCommutative_acceptsNullTagsOnEvent() {
+        String testId = UUID.randomUUID().toString();
+        AppendEvent event = new AppendEvent(
+                "TestEvent",
+                null,
+                "{\"id\":\"" + testId + "\",\"message\":\"n\",\"timestamp\":\"2026-01-01T00:00:00Z\"}");
+
+        assertThatCode(() -> eventStore.appendCommutative(List.of(event))).doesNotThrowAnyException();
     }
 
     @Test

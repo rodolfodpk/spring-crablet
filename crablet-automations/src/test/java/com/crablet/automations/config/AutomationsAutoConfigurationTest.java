@@ -6,9 +6,12 @@ import com.crablet.automations.AutomationHandler;
 import com.crablet.automations.internal.AutomationProcessorConfig;
 import com.crablet.automations.internal.ViewSubscriptionLookup;
 import com.crablet.command.CommandExecutor;
+import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.InstanceIdProvider;
+import com.crablet.eventpoller.config.EventPollerConfig;
 import com.crablet.eventpoller.sharedfetch.SharedFetchModuleProcessor;
+import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.progress.ProgressTracker;
 import com.crablet.eventstore.ClockProvider;
@@ -112,6 +115,28 @@ class AutomationsAutoConfigurationTest {
                 mock(ApplicationEventPublisher.class),
                 Optional.empty(),
                 Optional.empty());
+
+        assertThat(processor).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Should create legacy automation event processor when wakeup factory and poller config are present")
+    void shouldCreateLegacyAutomationEventProcessorWithOptionals() {
+        InstanceIdProvider instanceIdProvider = mock(InstanceIdProvider.class);
+        when(instanceIdProvider.getInstanceId()).thenReturn("instance-1");
+
+        EventProcessor<AutomationProcessorConfig, String> processor = autoConfiguration.automationsEventProcessor(
+                Map.of("automation", new AutomationProcessorConfig("automation", new AutomationsConfig(), handler("automation"))),
+                Map.of(),
+                mock(ProgressTracker.class),
+                mock(EventFetcher.class),
+                mock(EventHandler.class),
+                instanceIdProvider,
+                new WriteDataSource(mock(DataSource.class)),
+                mock(TaskScheduler.class),
+                mock(ApplicationEventPublisher.class),
+                Optional.of(new NoopProcessorWakeupSourceFactory()),
+                Optional.of(new EventPollerConfig()));
 
         assertThat(processor).isNotNull();
     }

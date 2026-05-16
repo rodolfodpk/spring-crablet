@@ -1,16 +1,23 @@
 package com.crablet.metrics.micrometer;
 
-import com.crablet.command.metrics.CommandFailureMetric;
+import com.crablet.automations.metrics.AutomationExecutionErrorMetric;
+import com.crablet.automations.metrics.AutomationExecutionMetric;
 import com.crablet.command.metrics.CommandStartedMetric;
+import com.crablet.command.metrics.CommandFailureMetric;
 import com.crablet.command.metrics.CommandSuccessMetric;
 import com.crablet.command.metrics.IdempotentOperationMetric;
+import com.crablet.eventpoller.metrics.BackoffStateMetric;
 import com.crablet.eventpoller.metrics.LeadershipMetric;
 import com.crablet.eventstore.metrics.ConcurrencyViolationMetric;
+import com.crablet.eventstore.metrics.MetricEvent;
 import com.crablet.eventstore.metrics.EventTypeMetric;
 import com.crablet.eventstore.metrics.EventsAppendedMetric;
 import com.crablet.outbox.metrics.EventsPublishedMetric;
 import com.crablet.outbox.metrics.OutboxErrorMetric;
 import com.crablet.outbox.metrics.ProcessingCycleMetric;
+import com.crablet.outbox.metrics.PublishingDurationMetric;
+import com.crablet.views.metrics.ViewProjectionErrorMetric;
+import com.crablet.views.metrics.ViewProjectionMetric;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -207,5 +214,52 @@ class MicrometerMetricsCollectorTest {
         // Then: in-flight gauge is back to 0
         assertThat(gauge.value()).isEqualTo(0.0);
     }
+
+    @Test
+    @DisplayName("Should record poller processing cycle with empty poll branch")
+    void shouldRecordPollerProcessingCycleWithEmptyPoll() {
+        collector.handleMetricEvent(
+                new com.crablet.eventpoller.metrics.ProcessingCycleMetric("views", "inst-1", 0, true));
+
+        Counter empty = registry.find("poller.empty.polls")
+                .tag("processor", "views")
+                .tag("instance_id", "inst-1")
+                .counter();
+        assertThat(empty).isNotNull();
+        assertThat(empty.count()).isEqualTo(1.0);
+
+        Counter cycles = registry.find("poller.processing.cycles")
+                .tag("processor", "views")
+                .counter();
+        assertThat(cycles).isNotNull();
+        assertThat(cycles.count()).isEqualTo(1.0);
+    }
+
+    @Test
+    @DisplayName("Should record publishing duration, backoff, views, automations, and ignore unknown events")
+    void shouldRecordAuxiliaryMetricsAndIgnoreUnknown() {
+        collector.handleMetricEvent(new PublishingDurationMetric("pub-a", Duration.ofMillis(7)));
+
+        collector.handleMetricEvent(new BackoffStateMetric("proc", "node", true, 4));
+
+        collector.handleMetricEvent(new ViewProjectionMetric("balance", 2, Duration.ofMillis(11)));
+
+        collector.handleMetricEvent(new ViewProjectionErrorMetric("balance"));
+
+        collector.handleMetricEvent(new AutomationExecutionMetric("auto-1", 1, Duration.ofMillis(9)));
+
+        collector.handleMetricEvent(new AutomationExecutionErrorMetric("auto-1"));
+
+        collector.handleMetricEvent(new UnknownMetricForCollectorTest());
+
+        assertThat(registry.find("outbox.publishing.duration").timer().count()).isEqualTo(1);
+        assertThat(registry.find("poller.backoff.active").gauge().value()).isEqualTo(1.0);
+        assertThat(registry.find("views.projection.duration").timer().count()).isEqualTo(1);
+        assertThat(registry.find("views.projection.errors").counter().count()).isEqualTo(1.0);
+        assertThat(registry.find("automations.execution.duration").timer().count()).isEqualTo(1);
+        assertThat(registry.find("automations.execution.errors").counter().count()).isEqualTo(1.0);
+    }
+
+    private record UnknownMetricForCollectorTest() implements MetricEvent {}
 }
 

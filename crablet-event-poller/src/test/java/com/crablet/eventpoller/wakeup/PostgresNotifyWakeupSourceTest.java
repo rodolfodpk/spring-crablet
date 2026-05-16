@@ -16,17 +16,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import static com.crablet.eventpoller.wakeup.PostgresNotifyWakeupTestProperties.channel;
+import static com.crablet.eventpoller.wakeup.PostgresNotifyWakeupTestProperties.jdbcUrl;
+import static com.crablet.eventpoller.wakeup.PostgresNotifyWakeupTestProperties.newSource;
+import static com.crablet.eventpoller.wakeup.PostgresNotifyWakeupTestProperties.newSourceDefaultDebounce;
+import static com.crablet.eventpoller.wakeup.PostgresNotifyWakeupTestProperties.password;
+import static com.crablet.eventpoller.wakeup.PostgresNotifyWakeupTestProperties.username;
+
 @DisplayName("PostgresNotifyWakeupSource Unit Tests")
 class PostgresNotifyWakeupSourceTest {
 
     @Test
     @DisplayName("Should accept valid PostgreSQL notification channel names")
     void shouldAcceptValidChannelNames() {
-        assertThatCode(() -> new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events"))
+        assertThatCode(() -> newSourceDefaultDebounce())
                 .doesNotThrowAnyException();
         assertThatCode(() -> new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "_events_123"))
+                jdbcUrl(), username(), password(), "_events_123"))
                 .doesNotThrowAnyException();
     }
 
@@ -35,15 +41,15 @@ class PostgresNotifyWakeupSourceTest {
     @SuppressWarnings("NullAway")
     void shouldRejectInvalidChannelNames() {
         assertThatThrownBy(() -> new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", null))
+                jdbcUrl(), username(), password(), null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Invalid PostgreSQL notification channel: null");
         assertThatThrownBy(() -> new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "123_events"))
+                jdbcUrl(), username(), password(), "123_events"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Invalid PostgreSQL notification channel: 123_events");
         assertThatThrownBy(() -> new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "events; DROP TABLE events"))
+                jdbcUrl(), username(), password(), "events; DROP TABLE events"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Invalid PostgreSQL notification channel: events; DROP TABLE events");
     }
@@ -51,8 +57,7 @@ class PostgresNotifyWakeupSourceTest {
     @Test
     @DisplayName("Should close safely before listener starts")
     void shouldCloseSafelyBeforeListenerStarts() {
-        PostgresNotifyWakeupSource source = new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events");
+        PostgresNotifyWakeupSource source = newSourceDefaultDebounce();
 
         assertThatCode(source::close).doesNotThrowAnyException();
     }
@@ -92,8 +97,7 @@ class PostgresNotifyWakeupSourceTest {
         // A subscriber with empty subscribedEventTypes is a wildcard — must be woken
         // even when a type-specific payload arrives. We can verify by checking
         // that the subscriber list includes it after registration.
-        PostgresNotifyWakeupSource source = new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events");
+        PostgresNotifyWakeupSource source = newSourceDefaultDebounce();
         AtomicInteger count = new AtomicInteger();
         source.start(Set.of(), count::incrementAndGet); // wildcard subscriber
         source.close(); // cleanup
@@ -106,7 +110,7 @@ class PostgresNotifyWakeupSourceTest {
     @DisplayName("factory.create() returns the same singleton instance")
     void factoryCreateReturnsSingleton() {
         PostgresNotifyWakeupSourceFactory factory = new PostgresNotifyWakeupSourceFactory(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events");
+                jdbcUrl(), username(), password(), channel());
 
         ProcessorWakeupSource first = factory.create();
         ProcessorWakeupSource second = factory.create();
@@ -117,8 +121,7 @@ class PostgresNotifyWakeupSourceTest {
     @Test
     @DisplayName("close(subscriber) removes only that subscriber; other subscribers remain")
     void closeSubscriberRemovesOnlyThatSubscriber() {
-        PostgresNotifyWakeupSource source = new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events");
+        PostgresNotifyWakeupSource source = newSourceDefaultDebounce();
 
         AtomicInteger countA = new AtomicInteger();
         AtomicInteger countB = new AtomicInteger();
@@ -136,8 +139,7 @@ class PostgresNotifyWakeupSourceTest {
     @Test
     @DisplayName("close(last subscriber) shuts down cleanly")
     void closeLastSubscriberShutsDown() {
-        PostgresNotifyWakeupSource source = new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events");
+        PostgresNotifyWakeupSource source = newSourceDefaultDebounce();
 
         Runnable subscriber = () -> {};
         source.start(subscriber);
@@ -180,8 +182,7 @@ class PostgresNotifyWakeupSourceTest {
     @Test
     @DisplayName("debounce=0: each dispatchBatch call wakes subscribers immediately")
     void noDebounceDispatchesImmediately() {
-        var source = new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 0L);
+        var source = newSource(0L);
         AtomicInteger count = new AtomicInteger();
         source.start(count::incrementAndGet);
 
@@ -195,8 +196,7 @@ class PostgresNotifyWakeupSourceTest {
     @Test
     @DisplayName("debounce=0: typed subscriber skipped when types do not intersect")
     void noDebounceTypedSubscriberFiltered() {
-        var source = new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 0L);
+        var source = newSource(0L);
         AtomicInteger woken = new AtomicInteger();
         source.start(Set.of("CourseEnrolled"), woken::incrementAndGet);
 
@@ -209,8 +209,7 @@ class PostgresNotifyWakeupSourceTest {
     @Test
     @DisplayName("debounce=0: wildcard payload wakes all subscribers")
     void noDebounceWildcardPayloadWakesAll() {
-        var source = new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 0L);
+        var source = newSource(0L);
         AtomicInteger typed = new AtomicInteger();
         AtomicInteger wildcard = new AtomicInteger();
         source.start(Set.of("CourseEnrolled"), typed::incrementAndGet);
@@ -228,8 +227,7 @@ class PostgresNotifyWakeupSourceTest {
     @Test
     @DisplayName("debounce>0: back-to-back batches are coalesced into one wakeup")
     void debounceCoalescesBatches() throws InterruptedException {
-        var source = new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 50L);
+        var source = newSource(50L);
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger count = new AtomicInteger();
         source.start(() -> { count.incrementAndGet(); latch.countDown(); });
@@ -246,8 +244,7 @@ class PostgresNotifyWakeupSourceTest {
     @Test
     @DisplayName("debounce>0: wildcard in second batch poisons the merged flush")
     void debounceWildcardPoisonsMerge() throws InterruptedException {
-        var source = new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 50L);
+        var source = newSource(50L);
         AtomicInteger typed = new AtomicInteger();
         AtomicInteger wildSub = new AtomicInteger();
         CountDownLatch latch = new CountDownLatch(2);
@@ -267,8 +264,7 @@ class PostgresNotifyWakeupSourceTest {
     @Test
     @DisplayName("debounce>0: close() drains pending flush before stopping")
     void debounceCloseFlushesImmediately() {
-        var source = new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 5000L); // very long window
+        var source = newSource(5000L); // very long window
         AtomicInteger count = new AtomicInteger();
         source.start(count::incrementAndGet);
 
@@ -301,10 +297,16 @@ class PostgresNotifyWakeupSourceTest {
     }
 
     @Test
+    @DisplayName("parseTypes: only uses segment before pipe")
+    void parseTypesUsesSegmentBeforePipe() {
+        assertThat(PostgresNotifyWakeupSource.parseTypes("WalletDeposited|wallet_id,region"))
+                .containsExactly("WalletDeposited");
+    }
+
+    @Test
     @DisplayName("requiredTagKeys filter: skips subscriber when required tag absent from batch")
     void requiredTagKeyFilterSkipsWhenAbsent() {
-        var source = new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 0L);
+        var source = newSource(0L);
         AtomicInteger count = new AtomicInteger();
         // Subscriber requires wallet_id to be present
         source.start(Set.of("WalletDeposited"), Set.of("wallet_id"), Set.of(), Set.of(), count::incrementAndGet);
@@ -319,8 +321,7 @@ class PostgresNotifyWakeupSourceTest {
     @Test
     @DisplayName("requiredTagKeys filter: wakes subscriber when all required tags present")
     void requiredTagKeyFilterWakesWhenPresent() {
-        var source = new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 0L);
+        var source = newSource(0L);
         AtomicInteger count = new AtomicInteger();
         source.start(Set.of("WalletDeposited"), Set.of("wallet_id"), Set.of(), Set.of(), count::incrementAndGet);
 
@@ -331,10 +332,48 @@ class PostgresNotifyWakeupSourceTest {
     }
 
     @Test
+    @DisplayName("anyOfTagKeys filter: wakes when at least one anyOf key is present")
+    void anyOfTagKeyFilterWakesWhenOnePresent() {
+        var source = newSource(0L);
+        AtomicInteger count = new AtomicInteger();
+        source.start(Set.of(), Set.of(), Set.of("wallet_id", "account_id"), Set.of(), count::incrementAndGet);
+
+        source.dispatchBatch(new PGNotification[]{notifyWithTags("SomeEvent", "wallet_id")});
+
+        assertThat(count.get()).isEqualTo(1);
+        source.close();
+    }
+
+    @Test
+    @DisplayName("exactTagKeys filter: skips when a declared exact key is absent from batch")
+    void exactTagKeyFilterSkipsWhenKeyAbsent() {
+        var source = newSource(0L);
+        AtomicInteger count = new AtomicInteger();
+        source.start(Set.of("WalletDeposited"), Set.of(), Set.of(), Set.of("statement_id"), count::incrementAndGet);
+
+        source.dispatchBatch(new PGNotification[]{notifyWithTags("WalletDeposited", "wallet_id")});
+
+        assertThat(count.get()).isZero();
+        source.close();
+    }
+
+    @Test
+    @DisplayName("exactTagKeys filter: wakes when all declared exact keys appear in batch payload")
+    void exactTagKeyFilterWakesWhenKeysPresent() {
+        var source = newSource(0L);
+        AtomicInteger count = new AtomicInteger();
+        source.start(Set.of("WalletDeposited"), Set.of(), Set.of(), Set.of("wallet_id", "statement_id"), count::incrementAndGet);
+
+        source.dispatchBatch(new PGNotification[]{notifyWithTags("WalletDeposited", "wallet_id,statement_id")});
+
+        assertThat(count.get()).isEqualTo(1);
+        source.close();
+    }
+
+    @Test
     @DisplayName("anyOfTagKeys filter: skips when none of the anyOf keys present")
     void anyOfTagKeyFilterSkipsWhenNonePresent() {
-        var source = new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 0L);
+        var source = newSource(0L);
         AtomicInteger count = new AtomicInteger();
         source.start(Set.of(), Set.of(), Set.of("wallet_id", "account_id"), Set.of(), count::incrementAndGet);
 
@@ -347,8 +386,7 @@ class PostgresNotifyWakeupSourceTest {
     @Test
     @DisplayName("tag filter skipped when batch has no tag section (backward compat)")
     void tagFilterSkippedWhenNoTagSection() {
-        var source = new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 0L);
+        var source = newSource(0L);
         AtomicInteger count = new AtomicInteger();
         source.start(Set.of("WalletDeposited"), Set.of("wallet_id"), Set.of(), Set.of(), count::incrementAndGet);
 
@@ -378,8 +416,7 @@ class PostgresNotifyWakeupSourceTest {
     @Test
     @DisplayName("close() while no listener thread started is safe (no reconnect loop)")
     void closeBeforeListenerStartsNoReconnect() {
-        var source = new PostgresNotifyWakeupSource(
-                "jdbc:postgresql://localhost/test", "user", "password", "crablet_events", 0L);
+        var source = newSource(0L);
         assertThatCode(source::close).doesNotThrowAnyException();
     }
 
@@ -387,7 +424,7 @@ class PostgresNotifyWakeupSourceTest {
 
     private static PGNotification notify(String payload) {
         return new PGNotification() {
-            @Override public String getName() { return "crablet_events"; }
+            @Override public String getName() { return channel(); }
             @Override public String getParameter() { return payload; }
             @Override public int getPID() { return 0; }
         };

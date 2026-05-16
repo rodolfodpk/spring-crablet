@@ -12,6 +12,7 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -100,6 +101,38 @@ class PostgresNotifyEventAppendNotifierTest {
     void encodePayloadEmptyTypesIsWildcard() {
         assertThat(PostgresNotifyEventAppendNotifier.encodePayload(Set.of(), Set.of("wallet_id")))
                 .isEqualTo("*");
+    }
+
+    @Test
+    void encodePayloadCombinedTooLongFallsBackToTypesOnly() {
+        String hugeTag = "y".repeat(8000);
+        assertThat(PostgresNotifyEventAppendNotifier.encodePayload(Set.of("T"), Set.of(hugeTag)))
+                .isEqualTo("T");
+    }
+
+    @Test
+    void encodePayloadTypesPartTooLongFallsBackToWildcard() {
+        String hugeType = "x".repeat(8000);
+        assertThat(PostgresNotifyEventAppendNotifier.encodePayload(Set.of(hugeType), Set.of()))
+                .isEqualTo("*");
+    }
+
+    @Test
+    void recoveryOnSameNotifierAfterFailureClearsConsecutiveFailures() throws Exception {
+        DataSource flaky = mock(DataSource.class);
+        AtomicInteger attempts = new AtomicInteger();
+        when(flaky.getConnection()).thenAnswer(invocation -> {
+            if (attempts.getAndIncrement() == 0) {
+                throw new SQLException("transient");
+            }
+            return ds.getConnection();
+        });
+
+        PostgresNotifyEventAppendNotifier notifier =
+                new PostgresNotifyEventAppendNotifier(flaky, "crablet_events", "events-appended");
+
+        assertThatCode(notifier::notifyEventsAppended).doesNotThrowAnyException();
+        assertThatCode(notifier::notifyEventsAppended).doesNotThrowAnyException();
     }
 
     // --- Phase E: failure hygiene ---
