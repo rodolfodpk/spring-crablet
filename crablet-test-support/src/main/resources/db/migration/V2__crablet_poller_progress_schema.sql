@@ -19,9 +19,9 @@ CREATE TABLE outbox_topic_progress
 
     CONSTRAINT pk_outbox_topic_progress PRIMARY KEY (topic, publisher),
     CONSTRAINT chk_outbox_status CHECK (status IN ('ACTIVE', 'PAUSED', 'FAILED')),
-    CONSTRAINT chk_topic_len CHECK (length(topic) <= 100),
-    CONSTRAINT chk_publisher_len CHECK (length(publisher) <= 100),
-    CONSTRAINT chk_leader_instance_len CHECK (length(leader_instance) <= 255)
+    CONSTRAINT chk_topic_len CHECK (length(topic) <= 128),
+    CONSTRAINT chk_publisher_len CHECK (length(publisher) <= 128),
+    CONSTRAINT chk_leader_instance_len CHECK (leader_instance IS NULL OR length(leader_instance) <= 256)
 );
 
 CREATE TABLE view_progress
@@ -36,8 +36,8 @@ CREATE TABLE view_progress
     last_updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_view_status CHECK (status IN ('ACTIVE', 'PAUSED', 'FAILED')),
-    CONSTRAINT chk_view_name_len CHECK (length(view_name) <= 255),
-    CONSTRAINT chk_view_instance_len CHECK (length(instance_id) <= 255)
+    CONSTRAINT chk_view_name_len CHECK (length(view_name) <= 256),
+    CONSTRAINT chk_view_instance_len CHECK (instance_id IS NULL OR length(instance_id) <= 256)
 );
 
 CREATE TABLE automation_progress
@@ -52,14 +52,15 @@ CREATE TABLE automation_progress
     last_updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_automation_status CHECK (status IN ('ACTIVE', 'PAUSED', 'FAILED')),
-    CONSTRAINT chk_automation_name_len CHECK (length(automation_name) <= 255),
-    CONSTRAINT chk_automation_instance_len CHECK (length(instance_id) <= 255)
+    CONSTRAINT chk_automation_name_len CHECK (length(automation_name) <= 256),
+    CONSTRAINT chk_automation_instance_len CHECK (instance_id IS NULL OR length(instance_id) <= 256)
 );
 
 CREATE TABLE crablet_module_scan_progress
 (
     module_name   TEXT   PRIMARY KEY,
-    scan_position BIGINT NOT NULL DEFAULT 0
+    scan_position BIGINT NOT NULL DEFAULT 0,
+    CONSTRAINT chk_module_scan_module_name_len CHECK (length(module_name) <= 64)
 );
 
 CREATE TABLE crablet_processor_scan_progress
@@ -67,7 +68,9 @@ CREATE TABLE crablet_processor_scan_progress
     module_name      TEXT   NOT NULL,
     processor_id     TEXT   NOT NULL,
     scanned_position BIGINT NOT NULL DEFAULT 0,
-    PRIMARY KEY (module_name, processor_id)
+    PRIMARY KEY (module_name, processor_id),
+    CONSTRAINT chk_processor_scan_module_name_len CHECK (length(module_name) <= 64),
+    CONSTRAINT chk_processor_scan_processor_id_len CHECK (length(processor_id) <= 320)
 );
 
 CREATE INDEX idx_topic_status ON outbox_topic_progress (topic, status);

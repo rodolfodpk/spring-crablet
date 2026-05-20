@@ -150,7 +150,8 @@ public interface EventStore {
      *   <li>All operations (queries, projections, appends) use the same database transaction</li>
      *   <li>All operations see a consistent database snapshot</li>
      *   <li>All operations commit atomically, or all rollback on error</li>
-     *   <li>The transactionId returned by append methods represents the entire transaction</li>
+     *   <li>The transactionId returned by append methods is PostgreSQL's xid8 for the append transaction</li>
+     *   <li>All events appended in the same transaction share that transactionId for ordering and command-audit joins</li>
      * </ul>
      *
      * @param operation Function that receives a transaction-scoped EventStore

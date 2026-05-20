@@ -13,7 +13,7 @@ Stores all events in a single table with tag-based identification.
 ```sql
 CREATE TABLE events
 (
-    type           VARCHAR(64)              NOT NULL,
+    type           TEXT                     NOT NULL,
     tags           TEXT[]                   NOT NULL,
     data           JSONB                    NOT NULL,
     transaction_id xid8                     NOT NULL,
@@ -28,8 +28,8 @@ CREATE TABLE events
 **Columns:**
 - `type` - Event type name (e.g., "WalletOpened", "DepositMade")
 - `tags` - Array of key=value tags for querying (e.g., `{"wallet_id=123", "deposit_id=456"}`)
-- `data` - JSONB event payload
-- `transaction_id` - PostgreSQL transaction ID (xid8) for ordering guarantees
+- `data` - JSONB event payload. Crablet treats event data as immutable application data; JSONB keeps it queryable and indexable for diagnostics, backfills, and projections without preserving insignificant input formatting.
+- `transaction_id` - PostgreSQL transaction ID (`xid8`) for the database transaction that appended the event. Every event appended in the same transaction has the same value, and command audit rows join to events through this value. This is not a business transaction ID such as a deposit, withdrawal, transfer, or order ID.
 - `position` - Auto-incrementing sequence number (primary key)
 - `occurred_at` - Event timestamp
 - `correlation_id` - Optional UUID used to correlate related operations
@@ -44,16 +44,17 @@ CREATE TABLE commands
 (
     command_id     UUID                     NOT NULL PRIMARY KEY,
     transaction_id xid8                     NOT NULL,
-    type           VARCHAR(64)              NOT NULL,
+    type           TEXT                     NOT NULL,
     data           JSONB                    NOT NULL,
     metadata       JSONB,
-    occurred_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    occurred_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_command_type_length CHECK (LENGTH(type) <= 64)
 );
 ```
 
 `command_id` is the command identity and idempotency key. `transaction_id` is the audit join key to
 `events.transaction_id`; it is unique so one command transaction maps unambiguously to the events it
-produced.
+produced. `transaction_id` is not an application/business transaction ID.
 
 ### outbox_topic_progress
 
@@ -61,19 +62,22 @@ Tracks event publishing progress per topic and publisher for the Outbox.
 
 ```sql
 CREATE TABLE outbox_topic_progress (
-    topic              VARCHAR(100)                NOT NULL,
-    publisher           VARCHAR(100)                NOT NULL,
+    topic              TEXT                        NOT NULL,
+    publisher           TEXT                        NOT NULL,
     last_position      BIGINT                      NOT NULL DEFAULT 0,
     last_published_at  TIMESTAMP WITH TIME ZONE,
-    status             VARCHAR(20)                 NOT NULL DEFAULT 'ACTIVE',
+    status             TEXT                        NOT NULL DEFAULT 'ACTIVE',
     error_count        INT                         NOT NULL DEFAULT 0,
     last_error         TEXT,
     updated_at         TIMESTAMP WITH TIME ZONE    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    leader_instance    VARCHAR(255),
+    leader_instance    TEXT,
     leader_since       TIMESTAMP WITH TIME ZONE,
     leader_heartbeat   TIMESTAMP WITH TIME ZONE,
     
     CONSTRAINT pk_outbox_topic_progress PRIMARY KEY (topic, publisher),
+    CONSTRAINT chk_outbox_topic_length CHECK (LENGTH(topic) <= 128),
+    CONSTRAINT chk_outbox_publisher_length CHECK (LENGTH(publisher) <= 128),
+    CONSTRAINT chk_outbox_leader_instance_length CHECK (leader_instance IS NULL OR LENGTH(leader_instance) <= 256),
     CONSTRAINT chk_status CHECK (status IN ('ACTIVE', 'PAUSED', 'FAILED'))
 );
 ```
@@ -91,6 +95,8 @@ CREATE TABLE outbox_topic_progress (
 - `leader_since` - When the current instance became the leader
 - `leader_heartbeat` - Last heartbeat timestamp for liveness detection
 
+Identifier limits are explicit `CHECK` constraints rather than `VARCHAR(n)`: event and command types are capped at 64 characters, outbox topics and publishers at 128, view and automation names at 256, instance IDs at 256, module names at 64, and shared-fetch processor IDs at 320. The shared-fetch processor limit allows outbox's `topic:publisher` serialized key while keeping indexed values bounded.
+
 **Indexes:**
 ```sql
 CREATE INDEX idx_topic_status ON outbox_topic_progress(topic, status);
@@ -103,7 +109,7 @@ CREATE INDEX idx_topic_publisher_heartbeat ON outbox_topic_progress(topic, publi
 ### Core Indexes
 
 ```sql
--- Transaction and position ordering
+-- PostgreSQL transaction and position ordering
 CREATE INDEX idx_events_transaction_position_btree ON events (transaction_id, position);
 
 -- Command-to-event audit join
@@ -121,10 +127,6 @@ CREATE INDEX idx_events_type_position ON events (type, position);
 ```sql
 -- DCB query pattern: filter by type, order by position
 CREATE INDEX idx_events_type_position ON events (type, position);
-
--- Idempotency checks: type + tags containment
-CREATE INDEX idx_events_type_tags_gin ON events (type, tags) 
-    WHERE type IS NOT NULL AND tags IS NOT NULL;
 ```
 
 ## Functions

@@ -6,10 +6,16 @@
 -- event_tags is derived data maintained atomically on append. It exists to give
 -- legacy per-processor poller SQL an indexed key/value lookup shape instead of
 -- scanning unnest(events.tags) per candidate row.
+--
+-- Using transaction_id for proper ordering guarantees (see: https://event-driven.io/en/ordering_in_postgres_outbox/)
+-- transaction_id is PostgreSQL's xid8 for the database transaction that appended the row.
+-- It is shared by every event appended in the same transaction and links those events
+-- to the command audit row. It is not a business transaction identifier such as
+-- deposit_id, withdrawal_id, or transfer_id.
 
 CREATE TABLE events
 (
-    type           VARCHAR(64)              NOT NULL,
+    type           TEXT                     NOT NULL,
     tags           TEXT[]                   NOT NULL,
     data           JSONB                    NOT NULL,
     transaction_id xid8                     NOT NULL,
@@ -24,10 +30,11 @@ CREATE TABLE commands
 (
     command_id     UUID                     NOT NULL PRIMARY KEY,
     transaction_id xid8                     NOT NULL,
-    type           VARCHAR(64)              NOT NULL,
+    type           TEXT                     NOT NULL,
     data           JSONB                    NOT NULL,
     metadata       JSONB,
-    occurred_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    occurred_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_command_type_length CHECK (LENGTH(type) <= 64)
 );
 
 CREATE TABLE event_tags
@@ -105,7 +112,14 @@ BEGIN
     IF p_idempotency_types IS NOT NULL OR p_idempotency_tags IS NOT NULL THEN
         v_lock_key := hashtextextended(
             array_to_string(
-                ARRAY(SELECT unnest(p_idempotency_tags) ORDER BY 1),
+                ARRAY(
+                    SELECT 'type:' || item.value
+                    FROM unnest(COALESCE(p_idempotency_types, ARRAY[]::TEXT[])) AS item(value)
+                    UNION ALL
+                    SELECT 'tag:' || item.value
+                    FROM unnest(COALESCE(p_idempotency_tags, ARRAY[]::TEXT[])) AS item(value)
+                    ORDER BY 1
+                ),
                 ','
             ),
             0
@@ -118,8 +132,8 @@ BEGIN
             WHEN p_idempotency_types IS NOT NULL OR p_idempotency_tags IS NOT NULL THEN
                 EXISTS (
                     SELECT 1 FROM events e
-                    WHERE e.type = ANY(p_idempotency_types)
-                      AND e.tags @> p_idempotency_tags
+                    WHERE (p_idempotency_types IS NULL OR e.type = ANY(p_idempotency_types))
+                      AND (p_idempotency_tags IS NULL OR e.tags @> p_idempotency_tags)
                     LIMIT 1
                 )
             ELSE FALSE
@@ -184,6 +198,12 @@ COMMENT ON COLUMN events.correlation_id IS
 
 COMMENT ON COLUMN events.causation_id IS
     'Position (events.position) of the event that directly triggered this event. NULL for direct user actions.';
+
+COMMENT ON COLUMN events.transaction_id IS
+    'PostgreSQL xid8 for the transaction that appended this event; shared by all events appended in the same transaction and used to join command audit rows. Not a business transaction ID.';
+
+COMMENT ON COLUMN commands.transaction_id IS
+    'PostgreSQL xid8 for the command execution transaction; joins to events.transaction_id for events produced by the command. Not a business transaction ID.';
 
 COMMENT ON FUNCTION append_events_batch(TEXT[], TEXT[], JSONB[], TIMESTAMP WITH TIME ZONE, UUID, BIGINT) IS
     'Insert events with application-controlled timestamps and maintain derived event_tags rows.';

@@ -131,7 +131,8 @@ In this mode a single position-ordered, transaction-safe query fetches events fo
 The required scan-progress tables are included in the framework poller progress schema from
 `crablet-db-migrations`. If your application maintains its own framework schema instead of using
 that artifact, create `crablet_module_scan_progress` and `crablet_processor_scan_progress` with the
-same shape as `V2__crablet_poller_progress_schema.sql`.
+same shape as `V2__crablet_poller_progress_schema.sql`. That schema caps `module_name` at 64
+characters and `processor_id` at 320 characters.
 
 ## Deployment Guidance
 

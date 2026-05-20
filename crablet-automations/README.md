@@ -171,15 +171,18 @@ Add the automation progress table to your application's Flyway migrations:
 
 ```sql
 CREATE TABLE IF NOT EXISTS automation_progress (
-    automation_name VARCHAR(255) PRIMARY KEY,
-    instance_id   VARCHAR(255),
-    status        VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+    automation_name TEXT PRIMARY KEY,
+    instance_id   TEXT,
+    status        TEXT NOT NULL DEFAULT 'ACTIVE',
     last_position BIGINT NOT NULL DEFAULT 0,
     error_count   INTEGER NOT NULL DEFAULT 0,
     last_error    TEXT,
     last_error_at TIMESTAMP WITH TIME ZONE,
     last_updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_automation_name_length CHECK (LENGTH(automation_name) <= 256),
+    CONSTRAINT chk_automation_instance_id_length CHECK (instance_id IS NULL OR LENGTH(instance_id) <= 256),
+    CONSTRAINT chk_automation_progress_status CHECK (status IN ('ACTIVE', 'PAUSED', 'FAILED'))
 );
 ```
 

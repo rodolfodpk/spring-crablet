@@ -24,7 +24,8 @@ public interface CommandAuditStore {
      * for commands that do not use command-level idempotency.
      *
      * <p>{@code transaction_id} is {@code pg_current_xact_id()}, so this must be called
-     * inside the active transaction when event-to-command linkage matters.
+     * inside the active transaction when event-to-command linkage matters. It is a
+     * PostgreSQL transaction ID, not an application/business transaction ID.
      *
      * @param commandJson  the command serialized as JSON
      * @param commandType  the command type identifier
@@ -47,7 +48,8 @@ public interface CommandAuditStore {
      * {@code false} when a committed command with that ID already exists.
      *
      * <p>{@code transaction_id} is always {@code pg_current_xact_id()}, so this must be called
-     * inside the active transaction when event-to-command linkage matters.
+     * inside the active transaction when event-to-command linkage matters. It is not an
+     * application/business transaction ID.
      *
      * @param commandJson  the command serialized as JSON
      * @param commandType  the command type identifier
