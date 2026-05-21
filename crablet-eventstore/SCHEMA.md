@@ -2,7 +2,7 @@
 
 ## Overview
 
-Crablet uses PostgreSQL with two main tables (`events` and `commands`), one outbox table (`outbox_topic_progress`), and two PL/pgSQL functions for inserting events.
+Crablet uses PostgreSQL with two main tables (`events` and `commands`), one outbox table (`outbox_topic_progress`), and two PL/pgSQL functions for inserting events. The schema is split across three Flyway migrations: `V1` (event store), `V2` (command audit), and `V3` (poller progress).
 
 ## Tables
 

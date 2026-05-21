@@ -10,8 +10,8 @@
 -- Using transaction_id for proper ordering guarantees (see: https://event-driven.io/en/ordering_in_postgres_outbox/)
 -- transaction_id is PostgreSQL's xid8 for the database transaction that appended the row.
 -- It is shared by every event appended in the same transaction and links those events
--- to the command audit row. It is not a business transaction identifier such as
--- deposit_id, withdrawal_id, or transfer_id.
+-- to the command audit row (see V2__crablet_commands_schema.sql). It is not a business
+-- transaction identifier such as deposit_id, withdrawal_id, or transfer_id.
 
 CREATE TABLE events
 (
@@ -24,17 +24,6 @@ CREATE TABLE events
     correlation_id UUID,
     causation_id   BIGINT,
     CONSTRAINT chk_event_type_length CHECK (LENGTH(type) <= 64)
-);
-
-CREATE TABLE commands
-(
-    command_id     UUID                     NOT NULL PRIMARY KEY,
-    transaction_id xid8                     NOT NULL,
-    type           TEXT                     NOT NULL,
-    data           JSONB                    NOT NULL,
-    metadata       JSONB,
-    occurred_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_command_type_length CHECK (LENGTH(type) <= 64)
 );
 
 CREATE TABLE event_tags
@@ -51,8 +40,6 @@ CREATE INDEX idx_events_type_position ON events (type, position);
 CREATE INDEX idx_events_tags_gin ON events USING GIN (tags);
 CREATE INDEX idx_events_correlation_id ON events (correlation_id)
     WHERE correlation_id IS NOT NULL;
-
-CREATE INDEX idx_commands_transaction_id ON commands (transaction_id);
 
 CREATE INDEX idx_event_tags_position ON event_tags (position);
 CREATE INDEX idx_event_tags_key_position ON event_tags (key, position);
@@ -201,9 +188,6 @@ COMMENT ON COLUMN events.causation_id IS
 
 COMMENT ON COLUMN events.transaction_id IS
     'PostgreSQL xid8 for the transaction that appended this event; shared by all events appended in the same transaction and used to join command audit rows. Not a business transaction ID.';
-
-COMMENT ON COLUMN commands.transaction_id IS
-    'PostgreSQL xid8 for the command execution transaction; joins to events.transaction_id for events produced by the command. Not a business transaction ID.';
 
 COMMENT ON FUNCTION append_events_batch(TEXT[], TEXT[], JSONB[], TIMESTAMP WITH TIME ZONE, UUID, BIGINT) IS
     'Insert events with application-controlled timestamps and maintain derived event_tags rows.';
