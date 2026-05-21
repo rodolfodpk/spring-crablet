@@ -96,7 +96,13 @@ The leader election boundary is per module. A views backlog does not require the
 
 ### Shared-fetch mode
 
-Shared-fetch is also module-scoped. When enabled for a module, that module uses one shared fetch loop for all processors inside the module:
+Without shared-fetch, every LISTEN/NOTIFY wakeup triggers one DB query per processor inside the
+module. With many processors this becomes a thundering-herd problem: N concurrent queries hit
+Postgres simultaneously on each notification. Shared-fetch eliminates this by issuing one
+positional fetch per module cycle and routing events in memory to each processor via
+`EventSelectionMatcher`.
+
+Shared-fetch is module-scoped. When enabled for a module, that module uses one shared fetch loop for all processors inside the module:
 
 ```properties
 crablet.views.shared-fetch.enabled=true

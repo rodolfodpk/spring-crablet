@@ -77,6 +77,10 @@ processor ordering, singleton leadership, batch size, progress tracking, or data
 pool limits. Applications can still override the default by declaring their own `taskScheduler`
 bean.
 
+The LISTEN/NOTIFY wakeup source (`PostgresNotifyWakeupSource`) maintains its own dedicated
+single-thread executor for the persistent Postgres connection. This thread is separate from the
+`TaskScheduler` pool and is not affected by `spring.threads.virtual.enabled` or `scheduler.pool-size`.
+
 ### `crablet.event-poller.notifications`
 
 Controls the LISTEN side — opt-in wakeup that cancels the current scheduled delay and triggers an immediate poll on each NOTIFY. See [LISTEN/NOTIFY Wakeup](#listennotify-wakeup) below for compatibility rules.
