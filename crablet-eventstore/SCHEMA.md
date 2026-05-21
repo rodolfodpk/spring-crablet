@@ -1,14 +1,18 @@
 # Database Schema
 
-## Overview
+Crablet adds three Flyway migrations to your PostgreSQL database — nothing else.
 
-Crablet uses PostgreSQL with two main tables (`events` and `commands`), one outbox table (`outbox_topic_progress`), and two PL/pgSQL functions for inserting events. The schema is split across three Flyway migrations: `V1` (event store), `V2` (command audit), and `V3` (poller progress).
+| Migration | Owns | Tables |
+|---|---|---|
+| `V1__crablet_eventstore_schema.sql` | Event store | `events`, `event_tags` + 2 PL/pgSQL functions |
+| `V2__crablet_commands_schema.sql` | Command audit | `commands` |
+| `V3__crablet_poller_progress_schema.sql` | Poller infrastructure | `view_progress`, `automation_progress`, `outbox_topic_progress`, `crablet_module_scan_progress`, `crablet_processor_scan_progress` |
 
-## Tables
+V2 is only needed if you use `crablet-commands`. V3 is only needed if you use views, automations, or outbox. The event store (V1) has no dependency on either.
 
-### events
+---
 
-Stores all events in a single table with tag-based identification.
+## V1 — Event Store
 
 ```sql
 CREATE TABLE events
@@ -25,25 +29,56 @@ CREATE TABLE events
 );
 ```
 
-**Columns:**
-- `type` - Event type name (e.g., "WalletOpened", "DepositMade")
-- `tags` - Array of key=value tags for querying (e.g., `{"wallet_id=123", "deposit_id=456"}`)
-- `data` - JSONB event payload. Crablet treats event data as immutable application data; JSONB keeps it queryable and indexable for diagnostics, backfills, and projections without preserving insignificant input formatting.
-- `transaction_id` - PostgreSQL transaction ID (`xid8`) for the database transaction that appended the event. Every event appended in the same transaction has the same value, and command audit rows join to events through this value. This is not a business transaction ID such as a deposit, withdrawal, transfer, or order ID.
-- `position` - Auto-incrementing sequence number (primary key)
-- `occurred_at` - Event timestamp
-- `correlation_id` - Optional UUID used to correlate related operations
-- `causation_id` - Optional event position that caused this event
+**Why `tags TEXT[]`?** Tags are stored as `key=value` strings in a Postgres array (`{"wallet_id=abc", "deposit_id=xyz"}`). A GIN index makes containment queries (`tags @> ARRAY['wallet_id=abc']`) fast without joins. This is the same array that drives DCB conflict detection — the decision model query is just a GIN lookup.
 
-### commands
+**Why `xid8`?** `transaction_id` is PostgreSQL's internal transaction ID for the transaction that appended the event. It provides a safe ordering guarantee: the `append_events_if` function checks events whose `transaction_id < pg_snapshot_xmin(pg_current_snapshot())`, which excludes events from in-flight transactions — no dirty reads possible. It also links events to command audit rows without a foreign key (see V2).
 
-Stores commands for audit trail and debugging.
+**`event_tags` is derived, not canonical.** The `events.tags` array is the source of truth. `event_tags` is a key/value lookup table maintained atomically on every append, giving the poller SQL an indexed `(key, value, position)` shape instead of scanning `unnest(tags)` per row. Reading or writing tags directly should always go through `events.tags`.
+
+### The two append functions
+
+**`append_events_batch()`** — simple insert, no conditions. Used for commutative events where order doesn't matter and no DCB check is needed. Supports an application-controlled `occurred_at` timestamp for deterministic testing.
+
+**`append_events_if()`** — the heart of DCB. Atomically checks for conflicts and duplicates, then appends. Returns JSONB so the caller distinguishes between success, an idempotency violation, and a DCB conflict:
+
+```json
+{ "success": true,  "error_code": null }
+{ "success": false, "error_code": "IDEMPOTENCY_VIOLATION" }
+{ "success": false, "error_code": "DCB_VIOLATION" }
+```
+
+**DCB conflict check** queries events after a cursor position using MVCC snapshot isolation — no locking needed. If transaction A appended at position 43, transaction B will see it through the snapshot and detect the conflict naturally.
+
+**Idempotency check** is different: there is no prior cursor position to anchor the check. Without a lock, two concurrent transactions can both query "has this command already run?" and both see "no" before either commits — producing a duplicate. `append_events_if` serializes idempotency checks with `pg_advisory_xact_lock()`, scoped to a hash of the idempotency key. The lock is held only for the duration of the check-and-insert, and released automatically at transaction end.
+
+### Tags in Java
+
+```java
+AppendEvent.builder("WalletOpened")
+    .tag("wallet_id", "wallet-123")   // stored as "wallet_id=wallet-123"
+    .tag("owner_id",  "user-456")     // stored as "owner_id=user-456"
+    .build();
+```
+
+Querying directly in SQL:
+
+```sql
+-- exact match (uses GIN index)
+SELECT * FROM events WHERE tags @> ARRAY['wallet_id=wallet-123'];
+
+-- all events for a wallet, any type
+SELECT * FROM events WHERE tags @> ARRAY['wallet_id=wallet-123'] ORDER BY position;
+```
+
+---
+
+## V2 — Command Audit
 
 ```sql
 CREATE TABLE commands
 (
     command_id     UUID                     NOT NULL PRIMARY KEY,
-    transaction_id xid8                     NOT NULL,
+    transaction_id xid8                     NOT NULL UNIQUE,
     type           TEXT                     NOT NULL,
     data           JSONB                    NOT NULL,
     metadata       JSONB,
@@ -52,216 +87,36 @@ CREATE TABLE commands
 );
 ```
 
-`command_id` is the command identity and idempotency key. `transaction_id` is the audit join key to
-`events.transaction_id`; it is unique so one command transaction maps unambiguously to the events it
-produced. `transaction_id` is not an application/business transaction ID.
+`command_id` is the command identity and idempotency key. `transaction_id` is the join key to `events.transaction_id`: both are written in the same Postgres transaction, so they share the same `pg_current_xact_id()` value.
 
-### outbox_topic_progress
+**Why no foreign key?** The linkage is via `xid8`, not a referential constraint. Postgres does not support FK constraints on `xid8` columns. The uniqueness constraint on `commands.transaction_id` ensures one command maps unambiguously to the events it produced. The join is always `commands.transaction_id = events.transaction_id`.
 
-Tracks event publishing progress per topic and publisher for the Outbox.
+`transaction_id` is not a business concept — it is not a deposit ID, withdrawal ID, or order ID. Those belong in `tags`.
 
-```sql
-CREATE TABLE outbox_topic_progress (
-    topic              TEXT                        NOT NULL,
-    publisher           TEXT                        NOT NULL,
-    last_position      BIGINT                      NOT NULL DEFAULT 0,
-    last_published_at  TIMESTAMP WITH TIME ZONE,
-    status             TEXT                        NOT NULL DEFAULT 'ACTIVE',
-    error_count        INT                         NOT NULL DEFAULT 0,
-    last_error         TEXT,
-    updated_at         TIMESTAMP WITH TIME ZONE    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    leader_instance    TEXT,
-    leader_since       TIMESTAMP WITH TIME ZONE,
-    leader_heartbeat   TIMESTAMP WITH TIME ZONE,
-    
-    CONSTRAINT pk_outbox_topic_progress PRIMARY KEY (topic, publisher),
-    CONSTRAINT chk_outbox_topic_length CHECK (LENGTH(topic) <= 128),
-    CONSTRAINT chk_outbox_publisher_length CHECK (LENGTH(publisher) <= 128),
-    CONSTRAINT chk_outbox_leader_instance_length CHECK (leader_instance IS NULL OR LENGTH(leader_instance) <= 256),
-    CONSTRAINT chk_status CHECK (status IN ('ACTIVE', 'PAUSED', 'FAILED'))
-);
-```
+---
 
-**Columns:**
-- `topic` - Topic name for event filtering (part of composite primary key)
-- `publisher` - Publisher name (part of composite primary key)
-- `last_position` - Last published event position in the event stream
-- `last_published_at` - Timestamp of last successful publish
-- `status` - Publisher status: 'ACTIVE', 'PAUSED', or 'FAILED'
-- `error_count` - Number of consecutive errors
-- `last_error` - Last error message
-- `updated_at` - Last update timestamp
-- `leader_instance` - Hostname/pod name of the instance holding the lock
-- `leader_since` - When the current instance became the leader
-- `leader_heartbeat` - Last heartbeat timestamp for liveness detection
+## V3 — Poller Progress
 
-Identifier limits are explicit `CHECK` constraints rather than `VARCHAR(n)`: event and command types are capped at 64 characters, outbox topics and publishers at 128, view and automation names at 256, instance IDs at 256, module names at 64, and shared-fetch processor IDs at 320. The shared-fetch processor limit allows outbox's `topic:publisher` serialized key while keeping indexed values bounded.
+Five tables that track cursor positions and leader election state for the polling infrastructure:
 
-**Indexes:**
-```sql
-CREATE INDEX idx_topic_status ON outbox_topic_progress(topic, status);
-CREATE INDEX idx_topic_leader ON outbox_topic_progress(topic, leader_instance);
-CREATE INDEX idx_topic_publisher_heartbeat ON outbox_topic_progress(topic, publisher, leader_heartbeat);
-```
+| Table | Used by |
+|---|---|
+| `view_progress` | Views — one row per named view projector |
+| `automation_progress` | Automations — one row per named automation |
+| `outbox_topic_progress` | Outbox — one row per topic/publisher pair |
+| `crablet_module_scan_progress` | Shared-fetch — one row per module |
+| `crablet_processor_scan_progress` | Shared-fetch — one row per processor within a module |
 
-## Indexes
+Each table tracks `last_position` (the highest event position processed), `status` (`ACTIVE`, `PAUSED`, `FAILED`), and leader election columns (`leader_instance`, `leader_heartbeat`). The full DDL is in [`V3__crablet_poller_progress_schema.sql`](../crablet-db-migrations/src/main/resources/db/migration/V3__crablet_poller_progress_schema.sql).
 
-### Core Indexes
+Identifier lengths are enforced as `CHECK` constraints rather than `VARCHAR(n)`: types at 64 chars, topics/publishers at 128, view/automation names at 256, instance IDs at 256, module names at 64, processor IDs at 320 (accommodating outbox's `topic:publisher` composite key).
 
-```sql
--- PostgreSQL transaction and position ordering
-CREATE INDEX idx_events_transaction_position_btree ON events (transaction_id, position);
+---
 
--- Command-to-event audit join
-CREATE UNIQUE INDEX idx_commands_transaction_id ON commands (transaction_id);
+## Full DDL
 
--- Tag-based queries (GIN index for array containment)
-CREATE INDEX idx_events_tags_gin ON events USING GIN (tags);
+The authoritative DDL is in the migration files — not duplicated here:
 
--- Event type filtering
-CREATE INDEX idx_events_type_position ON events (type, position);
-```
-
-### Optimized Indexes
-
-```sql
--- DCB query pattern: filter by type, order by position
-CREATE INDEX idx_events_type_position ON events (type, position);
-```
-
-## Functions
-
-### append_events_batch()
-
-Batch inserts events without DCB checks.
-
-```sql
-CREATE OR REPLACE FUNCTION append_events_batch(
-    p_types TEXT[],
-    p_tags TEXT[],
-    p_data JSONB[],
-    p_occurred_at TIMESTAMP WITH TIME ZONE
-) RETURNS VOID
-```
-
-Used internally by `EventStore.appendCommutative()` (via the package-private `append()` method) for simple event insertion. Supports application-controlled timestamps for deterministic testing.
-
-### append_events_if()
-
-Inserts events with DCB conflict detection and idempotency checks.
-
-```sql
-CREATE OR REPLACE FUNCTION append_events_if(
-    p_types TEXT[],
-    p_tags TEXT[],
-    p_data JSONB[],
-    p_event_types TEXT[] DEFAULT NULL,
-    p_condition_tags TEXT[] DEFAULT NULL,
-    p_after_position BIGINT DEFAULT NULL,
-    p_idempotency_types TEXT[] DEFAULT NULL,
-    p_idempotency_tags TEXT[] DEFAULT NULL,
-    p_occurred_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
-) RETURNS JSONB
-```
-
-**Parameters:**
-- `p_types`, `p_tags`, `p_data` - Events to insert
-- `p_event_types`, `p_condition_tags` - Decision model query (for DCB conflict check)
-- `p_after_position` - Stream position (check events after this)
-- `p_idempotency_types`, `p_idempotency_tags` - Idempotency query (check all events)
-
-**Returns:**
-```json
-{
-  "success": true,
-  "message": "events appended successfully",
-  "events_count": 1
-}
-```
-
-Or on conflict/duplicate:
-```json
-{
-  "success": false,
-  "message": "duplicate operation detected",
-  "error_code": "IDEMPOTENCY_VIOLATION"
-}
-```
-
-**Advisory Locks:**
-- Uses `pg_advisory_xact_lock()` to serialize idempotency checks
-- Prevents race conditions where two transactions both see "no duplicate"
-- Lock is automatically released at transaction end
-
-**Why Advisory Locks Are Needed for Idempotency:**
-
-Unlike streamPosition-based concurrency checks, idempotency checks cannot rely on PostgreSQL's snapshot isolation because there's no prior state (stream position) to check against. The race condition occurs when:
-
-1. Transaction A checks "does entity exist?" → No → Proceeds to create
-2. Transaction B checks "does entity exist?" → No (A hasn't committed yet) → Also proceeds to create
-3. Result: Both transactions create the entity → Duplicate ❌
-
-Snapshot isolation doesn't help here because both transactions see the same "entity doesn't exist" state. Advisory locks serialize the duplicate check, ensuring only one transaction can check "does entity exist?" at a time, preventing both from seeing "no duplicate" simultaneously.
-
-**StreamPosition-Based Checks Don't Need Locks:**
-- StreamPosition-based checks query "has anything changed AFTER stream position X?"
-- Snapshot isolation handles this: if transaction A writes at position 43, transaction B will see position 43 when it tries to write and detect the conflict
-- No advisory locks needed - PostgreSQL's MVCC (Multi-Version Concurrency Control) provides the protection
-
-**Concurrency Check:**
-- Checks events AFTER stream position
-- Only sees snapshot-visible committed events
-- Used by DCB for optimistic locking
-
-**Idempotency Check:**
-- Checks ALL events (ignores stream position)
-- Finds duplicate operations by operation ID tags
-- Example: checking if `withdrawal_id:456` already exists
-
-## Setup
-
-### Using Flyway
-
-Place the schema SQL in `src/main/resources/db/migration/V1__initial_schema.sql`:
-
-```sql
--- Copy content from crablet-eventstore/src/test/resources/db/migration/V1__eventstore_schema.sql
-```
-
-### Manual Setup
-
-```bash
-psql -U postgres -d your_database -f schema.sql
-```
-
-### Spring Boot Configuration
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/your_database
-spring.datasource.username=your_user
-spring.datasource.password=your_password
-spring.flyway.enabled=true
-```
-
-## Tag Format
-
-Tags are stored as `TEXT[]` in PostgreSQL with format `key=value` (using equals sign, not colon):
-
-```java
-AppendEvent.builder("WalletOpened")
-    .tag("wallet_id", "wallet-123")      // Stored as "wallet_id=wallet-123"
-    .tag("owner_id", "user-456")         // Stored as "owner_id=user-456"
-    .build();
-```
-
-**Querying tags:**
-```sql
--- Find events with wallet_id using LIKE pattern
-SELECT * FROM events WHERE EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'wallet_id=%');
-
--- Find events with exact tag match
-SELECT * FROM events WHERE tags @> ARRAY['wallet_id=wallet-123'];
-
--- Find events with multiple tags
-SELECT * FROM events WHERE tags @> ARRAY['wallet_id=wallet-123', 'event_type=deposit'];
-```
+- [`V1__crablet_eventstore_schema.sql`](../crablet-db-migrations/src/main/resources/db/migration/V1__crablet_eventstore_schema.sql)
+- [`V2__crablet_commands_schema.sql`](../crablet-db-migrations/src/main/resources/db/migration/V2__crablet_commands_schema.sql)
+- [`V3__crablet_poller_progress_schema.sql`](../crablet-db-migrations/src/main/resources/db/migration/V3__crablet_poller_progress_schema.sql)

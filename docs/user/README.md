@@ -11,6 +11,7 @@ Everything here is for **people building or operating applications** on Crablet 
 | [CREATE_A_CRABLET_APP.md](CREATE_A_CRABLET_APP.md) | Manual app setup |
 | [COMMANDS_FIRST_ADOPTION.md](COMMANDS_FIRST_ADOPTION.md) | Adopt the command side first |
 | [MODULES.md](MODULES.md), [PUBLIC_API.md](PUBLIC_API.md) | Module map and HTTP API surface |
+| [../../crablet-eventstore/SCHEMA.md](../../crablet-eventstore/SCHEMA.md) | Database schema — what Crablet adds to Postgres and why |
 | [CONFIGURATION.md](CONFIGURATION.md), [BUILD.md](BUILD.md), [UPGRADE.md](UPGRADE.md) | Configure, build, upgrade |
 | [DEPLOYMENT_TOPOLOGY.md](DEPLOYMENT_TOPOLOGY.md) | Monolith model and deployment shapes _(also covers K8s; will be split when Stage 3 matures)_ |
 
