@@ -2,7 +2,13 @@
 
 Everything here is for **people building or operating applications** on Crablet (not for working on the framework repository itself).
 
-## Stage 1 — Java-first (understand the runtime)
+| Track | Status | Use this when |
+|------|--------|---------------|
+| [Stage 1 — Java-first](#stage-1--java-first-runtime-near-complete) | **Near complete** | You want to use Crablet as a Spring framework directly. |
+| [Stage 2 — AI-first](#stage-2--ai-first-code-generation-in-progress) | **In progress** | You want to turn Event Modeling conversations into `event-model.yaml` and generated Spring code. |
+| [Stage 3 — Local Kubernetes](#stage-3--local-kubernetes-early--planned) | **Early / planned** | You want generated local/test Kubernetes manifests from the modeled service shape. |
+
+## Stage 1 — Java-first runtime _(near complete)_
 
 | Path | Contents |
 |------|----------|
@@ -15,7 +21,7 @@ Everything here is for **people building or operating applications** on Crablet 
 | [CONFIGURATION.md](CONFIGURATION.md), [BUILD.md](BUILD.md), [UPGRADE.md](UPGRADE.md) | Configure, build, upgrade |
 | [DEPLOYMENT_TOPOLOGY.md](DEPLOYMENT_TOPOLOGY.md) | Monolith model and deployment shapes _(also covers K8s; will be split when Stage 3 matures)_ |
 
-## Stage 2 — AI-first (generate from conversation)
+## Stage 2 — AI-first code generation _(in progress)_
 
 | Path | Contents |
 |------|----------|
@@ -26,7 +32,7 @@ Everything here is for **people building or operating applications** on Crablet 
 | [ai-tooling/EVENT_MODELING.md](ai-tooling/EVENT_MODELING.md) | Event Modeling notation |
 | [ai-tooling/AI_SKILLS.md](ai-tooling/AI_SKILLS.md) | Claude Code skill routing |
 
-## Stage 3 — Kubernetes local deployment (using AI) _(early / planned)_
+## Stage 3 — Local Kubernetes _(early / planned)_
 
 No dedicated docs exist yet. See the Kubernetes section of
 [DEPLOYMENT_TOPOLOGY.md](DEPLOYMENT_TOPOLOGY.md) for current guidance.
