@@ -75,7 +75,7 @@ DCB uses streamPosition-based checks to detect conflicting events since last rea
 ### Conflict Detection Query
 
 ```sql
-SELECT COUNT(*) FROM events 
+SELECT COUNT(*) FROM crablet_events 
 WHERE tags @> ARRAY['wallet_id=alice']
 AND position > 42
 AND transaction_id < pg_snapshot_xmin(pg_current_snapshot())
@@ -384,8 +384,8 @@ StreamPosition streamPosition = result.streamPosition(); // Use for DCB concurre
 DCB leverages PostgreSQL features:
 
 1. **Snapshot isolation**: `pg_snapshot_xmin()` filters uncommitted transactions
-2. **GIN index on `events.tags`**: idempotency and DCB conflict checks use `events.tags @>` containment queries — real decision models use 2+ tags per criterion, so GIN handles the common case directly
-3. **`event_tags` B-tree indexes**: per-processor poller tag filtering uses correlated EXISTS subqueries against the derived `event_tags` table (one row per `key=value` pair per event) instead of `unnest(tags)` scans. `(key, value, position)` covers exact tag filters; `(key, position)` covers broad key-existence filters such as all events with `wallet_id`.
+2. **GIN index on `crablet_events.tags`**: idempotency and DCB conflict checks use `crablet_events.tags @>` containment queries — real decision models use 2+ tags per criterion, so GIN handles the common case directly
+3. **`crablet_event_tags` B-tree indexes**: per-processor poller tag filtering uses correlated EXISTS subqueries against the derived `crablet_event_tags` table (one row per `key=value` pair per event) instead of `unnest(tags)` scans. `(key, value, position)` covers exact tag filters; `(key, position)` covers broad key-existence filters such as all events with `wallet_id`.
 4. **ACID guarantees**: Transactional consistency
 
 Function signature:

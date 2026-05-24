@@ -121,9 +121,9 @@ All framework migrations live in `src/main/resources/db/migration/` — main res
 
 | File | Creates |
 |------|---------|
-| `V1__crablet_eventstore_schema.sql` | `events`, `event_tags`, tag indexes, and append functions |
-| `V2__crablet_commands_schema.sql` | `commands` table with unique transaction index |
-| `V3__crablet_poller_progress_schema.sql` | outbox, view, automation, and shared-fetch progress tables |
+| `V1__crablet_eventstore_schema.sql` | `crablet_events`, `crablet_event_tags`, indexes, and append functions |
+| `V2__crablet_commands_schema.sql` | `crablet_commands` |
+| `V3__crablet_processing_schema.sql` | `crablet_outbox_topic_progress`, `crablet_view_progress`, `crablet_automation_progress`, and shared-fetch progress tables |
 
 Flyway picks these up automatically in every module that declares `crablet-test-support` as a test-scope dependency — no per-module migration copies needed.
 

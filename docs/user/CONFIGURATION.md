@@ -34,18 +34,17 @@ Everything else has sensible defaults. Enable modules explicitly — they are al
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `persist-commands` | boolean | `true` | Write each command to the `commands` audit table in the same transaction as its events. Disable to reduce write amplification when the audit trail is not needed. **Must be `true` when passing a `commandId` in `CommandExecutionOptions`** — omitting this raises `InvalidCommandException` at runtime. See [Command Audit Store](../../crablet-commands/README.md#command-audit-store). |
+| `persist-commands` | boolean | `true` | Write each command to the `crablet_commands` audit table in the same transaction as its events. Disable to reduce write amplification when the audit trail is not needed. **Must be `true` when passing a `commandId` in `CommandExecutionOptions`** — omitting this raises `InvalidCommandException` at runtime. See [Command Audit Store](../../crablet-commands/README.md#command-audit-store). |
 | `transaction-isolation` | String | `READ_COMMITTED` | JDBC transaction isolation level |
 | `fetch-size` | int | `1000` | PostgreSQL fetch size hint for result-set streaming |
 
 ### `crablet.eventstore.notifications`
 
-Controls the NOTIFY side — fires `pg_notify` on every successful append. Always active; no opt-in required. If nothing is LISTENing, PostgreSQL discards the notification silently.
+Controls the NOTIFY side. Crablet fires `pg_notify` from inside the append SQL function on every successful append. Always active for auto-configured event stores; no opt-in required. If nothing is LISTENing, PostgreSQL discards the notification silently.
 
 | Property | Type | Default | Description |
 |---|---|---|---|
 | `channel` | String | `crablet_events` | PostgreSQL channel name. Must match `crablet.event-poller.notifications.channel` |
-| `payload` | String | `events-appended` | Payload token sent with each notification |
 
 ### `crablet.eventstore.read-replicas`
 
@@ -248,7 +247,7 @@ When `crablet.eventstore.read-replicas.enabled=false` (default), both roles use 
 
 ## Tuning Tips
 
-**shared-fetch mode** — enables one DB query per poll cycle that serves all views (or all automations) instead of one query per processor. Enable when you have many views or automations sharing the same event stream. Requires the framework poller progress tables from `V2__crablet_poller_progress_schema.sql`.
+**shared-fetch mode** — enables one DB query per poll cycle that serves all views (or all automations) instead of one query per processor. Enable when you have many views or automations sharing the same event stream. Requires the framework poller progress tables from the consolidated framework migration.
 
 **fetch-batch-size vs batch-size** — `fetch-batch-size` controls how many events are loaded from the DB per query; `batch-size` controls how many are handed to each processor per cycle. In shared-fetch mode, `fetch-batch-size` is the dominant knob.
 

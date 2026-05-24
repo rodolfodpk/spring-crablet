@@ -39,8 +39,8 @@ class EventSelectionSqlBuilderTest {
                 Set.of(), Set.of("wallet_id", "statement_id"), Set.of(), Map.of()));
 
         assertThat(whereClause)
-                .contains("EXISTS (SELECT 1 FROM event_tags t WHERE t.position = events.position AND t.key = 'wallet_id')")
-                .contains("EXISTS (SELECT 1 FROM event_tags t WHERE t.position = events.position AND t.key = 'statement_id')")
+                .contains("EXISTS (SELECT 1 FROM crablet_event_tags t WHERE t.position = crablet_events.position AND t.key = 'wallet_id')")
+                .contains("EXISTS (SELECT 1 FROM crablet_event_tags t WHERE t.position = crablet_events.position AND t.key = 'statement_id')")
                 .contains(" AND ");
     }
 
@@ -51,7 +51,7 @@ class EventSelectionSqlBuilderTest {
                 Set.of(), Set.of(), Set.of("from_wallet_id", "to_wallet_id"), Map.of()));
 
         assertThat(whereClause)
-                .contains("EXISTS (SELECT 1 FROM event_tags t WHERE t.position = events.position AND t.key IN (")
+                .contains("EXISTS (SELECT 1 FROM crablet_event_tags t WHERE t.position = crablet_events.position AND t.key IN (")
                 .contains("'from_wallet_id'")
                 .contains("'to_wallet_id'");
     }
@@ -63,8 +63,8 @@ class EventSelectionSqlBuilderTest {
                 Set.of(), Set.of(), Set.of(), Map.of("wallet_id", "w1", "owner", "Alice")));
 
         assertThat(whereClause)
-                .contains("EXISTS (SELECT 1 FROM event_tags t WHERE t.position = events.position AND t.key = 'wallet_id' AND t.value = 'w1')")
-                .contains("EXISTS (SELECT 1 FROM event_tags t WHERE t.position = events.position AND t.key = 'owner' AND t.value = 'Alice')");
+                .contains("EXISTS (SELECT 1 FROM crablet_event_tags t WHERE t.position = crablet_events.position AND t.key = 'wallet_id' AND t.value = 'w1')")
+                .contains("EXISTS (SELECT 1 FROM crablet_event_tags t WHERE t.position = crablet_events.position AND t.key = 'owner' AND t.value = 'Alice')");
     }
 
     @Test
@@ -83,7 +83,7 @@ class EventSelectionSqlBuilderTest {
                 .contains("'from_wallet_id'")
                 .contains("'to_wallet_id'")
                 .contains("t.key = 'currency' AND t.value = 'USD'")
-                .contains("t.position = events.position");
+                .contains("t.position = crablet_events.position");
     }
 
     private static EventSelection selection(

@@ -520,7 +520,7 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
 
     private void insertEvent(Connection connection, String type) throws Exception {
         try (PreparedStatement stmt = connection.prepareStatement("""
-                INSERT INTO events (type, tags, data, transaction_id, occurred_at)
+                INSERT INTO crablet_events (type, tags, data, transaction_id, occurred_at)
                 VALUES (?, ARRAY[]::text[], '{}'::jsonb, pg_current_xact_id(), CURRENT_TIMESTAMP)
                 """)) {
             stmt.setString(1, type);
@@ -557,7 +557,7 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
     }
 
     private long maxPosition(JdbcTemplate jdbc) {
-        Long max = jdbc.queryForObject("SELECT COALESCE(MAX(position), 0) FROM events", Long.class);
+        Long max = jdbc.queryForObject("SELECT COALESCE(MAX(position), 0) FROM crablet_events", Long.class);
         return max != null ? max : 0L;
     }
 

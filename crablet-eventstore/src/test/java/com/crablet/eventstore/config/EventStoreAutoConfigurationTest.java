@@ -4,8 +4,7 @@ import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
-import com.crablet.eventstore.notify.EventAppendNotifier;
-import com.crablet.eventstore.notify.PostgresNotifyEventAppendNotifier;
+import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.eventstore.query.EventRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -15,6 +14,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import tools.jackson.databind.json.JsonMapper;
 
 import javax.sql.DataSource;
+import java.lang.reflect.Field;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -36,16 +36,8 @@ class EventStoreAutoConfigurationTest {
             assertThat(ctx).hasSingleBean(ReadDataSource.class);
             assertThat(ctx).hasSingleBean(JdbcTemplate.class);
             assertThat(ctx).hasSingleBean(PlatformTransactionManager.class);
-            assertThat(ctx).hasSingleBean(EventAppendNotifier.class);
             assertThat(ctx).hasSingleBean(ClockProvider.class);
         });
-    }
-
-    @Test
-    void defaultNotifierIsPostgresNotifyEventAppendNotifier() {
-        runner.run(ctx ->
-                assertThat(ctx.getBean(EventAppendNotifier.class))
-                        .isInstanceOf(PostgresNotifyEventAppendNotifier.class));
     }
 
     @Test
@@ -55,6 +47,17 @@ class EventStoreAutoConfigurationTest {
             ReadDataSource read = ctx.getBean(ReadDataSource.class);
             assertThat(read.dataSource()).isSameAs(write.dataSource());
         });
+    }
+
+    @Test
+    void customNotificationChannelIsPassedToEventStoreImpl() {
+        runner.withPropertyValues("crablet.eventstore.notifications.channel=custom_events")
+                .run(ctx -> {
+                    EventStore eventStore = ctx.getBean(EventStore.class);
+
+                    assertThat(eventStore).isInstanceOf(EventStoreImpl.class);
+                    assertThat(notifyChannel(eventStore)).isEqualTo("custom_events");
+                });
     }
 
     @Test
@@ -83,5 +86,11 @@ class EventStoreAutoConfigurationTest {
                             .isInstanceOf(IllegalStateException.class)
                             .hasMessageContaining("no replica URL configured");
                 });
+    }
+
+    private static Object notifyChannel(EventStore eventStore) throws Exception {
+        Field field = EventStoreImpl.class.getDeclaredField("notifyChannel");
+        field.setAccessible(true);
+        return field.get(eventStore);
     }
 }

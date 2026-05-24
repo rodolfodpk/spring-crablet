@@ -14,10 +14,10 @@
  * <strong>Responsibilities:</strong>
  * The publishing service handles:
  * <ul>
- *   <li>Fetching events from the events table based on topic configuration</li>
+ *   <li>Fetching events from the crablet_events table based on topic configuration</li>
  *   <li>Filtering events by required/optional tags</li>
  *   <li>Publishing events via configured publishers</li>
- *   <li>Updating position tracking in outbox_topic_progress</li>
+ *   <li>Updating position tracking in crablet_outbox_topic_progress</li>
  *   <li>Handling publishing errors and retries</li>
  * </ul>
  * <p>
@@ -40,7 +40,7 @@
  * <strong>Position Tracking:</strong>
  * Each (topic, publisher) pair tracks its own position independently:
  * <ul>
- *   <li>Position is stored in {@code outbox_topic_progress.last_position}</li>
+ *   <li>Position is stored in {@code crablet_outbox_topic_progress.last_position}</li>
  *   <li>Only events after the last position are fetched</li>
  *   <li>Position is updated after successful publishing</li>
  * </ul>
@@ -50,4 +50,3 @@
  */
 @org.jspecify.annotations.NullMarked
 package com.crablet.outbox.publishing;
-

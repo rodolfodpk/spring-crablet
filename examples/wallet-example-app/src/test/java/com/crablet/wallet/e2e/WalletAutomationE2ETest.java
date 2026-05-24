@@ -76,7 +76,7 @@ class WalletAutomationE2ETest extends AbstractWalletE2ETest {
         Map<String, Object> walletOpened = jdbcTemplate.queryForMap(
             """
             SELECT position, correlation_id, causation_id
-            FROM events
+            FROM crablet_events
             WHERE type = 'WalletOpened' AND tags @> ARRAY[?]::text[]
             ORDER BY position
             LIMIT 1
@@ -87,7 +87,7 @@ class WalletAutomationE2ETest extends AbstractWalletE2ETest {
         Map<String, Object> welcomeNotification = jdbcTemplate.queryForMap(
             """
             SELECT position, correlation_id, causation_id
-            FROM events
+            FROM crablet_events
             WHERE type = 'WelcomeNotificationSent' AND tags @> ARRAY[?]::text[]
             ORDER BY position
             LIMIT 1
@@ -126,7 +126,7 @@ class WalletAutomationE2ETest extends AbstractWalletE2ETest {
 
         // Verify WelcomeNotificationSent event was appended
         Long count = jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM events WHERE type = 'WelcomeNotificationSent'",
+            "SELECT COUNT(*) FROM crablet_events WHERE type = 'WelcomeNotificationSent'",
             Long.class
         );
         assertThat(count).isEqualTo(1L);
@@ -141,7 +141,7 @@ class WalletAutomationE2ETest extends AbstractWalletE2ETest {
 
         // Should still be exactly one notification (DCB idempotency on WelcomeNotificationSent)
         Long count = jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM events WHERE type = 'WelcomeNotificationSent'",
+            "SELECT COUNT(*) FROM crablet_events WHERE type = 'WelcomeNotificationSent'",
             Long.class
         );
         assertThat(count).isEqualTo(1L);
@@ -165,7 +165,7 @@ class WalletAutomationE2ETest extends AbstractWalletE2ETest {
         automationsEventProcessor.process(AUTOMATION_NAME);
 
         Long count = jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM events WHERE type = 'WelcomeNotificationSent'",
+            "SELECT COUNT(*) FROM crablet_events WHERE type = 'WelcomeNotificationSent'",
             Long.class
         );
         assertThat(count).isEqualTo(2L);

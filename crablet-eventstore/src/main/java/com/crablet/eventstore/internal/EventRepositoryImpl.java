@@ -72,7 +72,7 @@ public class EventRepositoryImpl implements EventRepository {
     public List<StoredEvent> query(Query query, @Nullable StreamPosition after) {
         try {
             // Build SQL query directly instead of using the function
-            StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id FROM events");
+            StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id FROM crablet_events");
             List<Object> params = new ArrayList<>();
 
             // Use shared WHERE clause builder

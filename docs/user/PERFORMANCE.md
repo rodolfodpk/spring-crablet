@@ -27,21 +27,21 @@ See `crablet-eventstore/docs/READ_REPLICAS.md` for full configuration.
 
 The framework relies on several PostgreSQL indexes for performance:
 
-- **GIN index on `events.tags`** — covers multi-tag containment checks (`@>`) used in the DCB
+- **GIN index on `crablet_events.tags`** — covers multi-tag containment checks (`@>`) used in the DCB
   conflict and idempotency fallback paths.
 - **Composite B-tree index (type, position)** — optimized for the DCB query pattern.
-- **`event_tags` derived table** — a normalized B-tree-indexed projection of `events.tags`,
+- **`crablet_event_tags` derived table** — a normalized B-tree-indexed projection of `crablet_events.tags`,
   maintained atomically on every append. Used by the per-processor poller to replace
   `unnest(tags)` array scans with indexed EXISTS subqueries. The primary key
-  `(key, value, position)` serves exact tag filters; `idx_event_tags_key_position`
+  `(key, value, position)` serves exact tag filters; `idx_crablet_event_tags_key_position`
   serves broad key-existence filters such as view processors that consume all events
   carrying `wallet_id`.
 
-### `event_tags` derived table
+### `crablet_event_tags` derived table
 
-`event_tags` is the performance mechanism for poller tag filtering at scale. Each row represents
+`crablet_event_tags` is the performance mechanism for poller tag filtering at scale. Each row represents
 one `key=value` pair from one event. Per-processor poller queries (`EventSelectionSqlBuilder`)
-use correlated EXISTS subqueries against `event_tags` instead of scanning `unnest(events.tags)`
+use correlated EXISTS subqueries against `crablet_event_tags` instead of scanning `unnest(crablet_events.tags)`
 per row.
 
 The table has two important lookup shapes:
@@ -53,12 +53,12 @@ The second shape matters for broad projections and outbox topics that process al
 business category, not just one entity instance.
 
 **Idempotency and DCB conflict checks** inside `append_events_if` continue to use the GIN index
-on `events.tags`. Real decision models use 2+ tags per criterion (e.g. `wallet_id + year + month`
+on `crablet_events.tags`. Real decision models use 2+ tags per criterion (e.g. `wallet_id + year + month`
 in period-aware handlers), so the GIN `@>` path handles the common case directly and uniformly.
 
-**Tradeoff:** every append writes one `event_tags` row per tag per event (write amplification).
-The table is derived data — `events` remains the canonical source of truth. If `event_tags` ever
-drifts from `events`, run the drift check queries in `docs/dev/plans/eventstore-schema-performance-plan.md`.
+**Tradeoff:** every append writes one `crablet_event_tags` row per tag per event (write amplification).
+The table is derived data — `crablet_events` remains the canonical source of truth. If `crablet_event_tags` ever
+drifts from `crablet_events`, run the drift check queries in `docs/dev/plans/eventstore-schema-performance-plan.md`.
 
 ## Batch Processing
 

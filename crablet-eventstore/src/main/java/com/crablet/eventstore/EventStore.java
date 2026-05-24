@@ -126,7 +126,7 @@ public interface EventStore {
     /**
      * Returns {@code true} if at least one event matching {@code query} exists.
      * <p>
-     * The production implementation uses {@code SELECT EXISTS(SELECT 1 FROM events WHERE ...)}
+     * The production implementation uses {@code SELECT EXISTS(SELECT 1 FROM crablet_events WHERE ...)}
      * so PostgreSQL short-circuits at the first match — no event data is fetched or deserialized.
      * The {@code default} implementation falls back to {@code project()} for custom implementors.
      *

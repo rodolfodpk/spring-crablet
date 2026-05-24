@@ -25,7 +25,7 @@ import java.util.Map;
  * <ul>
  *   <li>Implements {@link ProcessorManagementService} for operations (pause, resume, reset, status, lag)</li>
  *   <li>Adds detailed progress monitoring via {@link #getProgressDetails(String)}</li>
- *   <li>Provides comprehensive view information from the view_progress table</li>
+ *   <li>Provides comprehensive view information from the crablet_view_progress table</li>
  * </ul>
  * 
  * <p>Applications can inject this service as either:
@@ -45,14 +45,14 @@ public class ViewManagementService implements ProcessorManagementService<String>
     private static final String SELECT_PROGRESS_SQL = """
         SELECT view_name, instance_id, status, last_position, error_count,
                last_error, last_error_at, last_updated_at, created_at
-        FROM view_progress
+        FROM crablet_view_progress
         WHERE view_name = ?
         """;
     
     private static final String SELECT_ALL_PROGRESS_SQL = """
         SELECT view_name, instance_id, status, last_position, error_count,
                last_error, last_error_at, last_updated_at, created_at
-        FROM view_progress
+        FROM crablet_view_progress
         """;
     
     public ViewManagementService(

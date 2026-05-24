@@ -480,7 +480,7 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
     private List<StoredEvent> fetchPositionOnly(long afterPosition, int limit) {
         String sql = """
                 SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id
-                FROM events
+                FROM crablet_events
                 WHERE position > ?
                   AND %s
                 ORDER BY position ASC
@@ -506,7 +506,7 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
     private List<StoredEvent> fetchPositionOnlyBounded(long afterPosition, long upToPosition, int limit) {
         String sql = """
                 SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id
-                FROM events
+                FROM crablet_events
                 WHERE position > ? AND position <= ?
                   AND %s
                 ORDER BY position ASC

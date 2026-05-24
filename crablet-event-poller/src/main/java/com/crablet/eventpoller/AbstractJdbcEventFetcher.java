@@ -54,7 +54,7 @@ public abstract class AbstractJdbcEventFetcher<I> implements EventFetcher<I> {
         String sql = """
             SELECT type, tags, data, transaction_id, position, occurred_at,
                    correlation_id, causation_id
-            FROM events
+            FROM crablet_events
             WHERE position > ?
               AND %s
               AND (%s)

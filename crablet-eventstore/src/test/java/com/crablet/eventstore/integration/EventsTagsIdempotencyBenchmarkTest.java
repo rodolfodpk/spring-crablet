@@ -22,13 +22,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Benchmark: idempotency check latency under concurrent load.
  *
- * Establishes a timing baseline for appendIdempotent using the events.tags GIN index.
+ * Establishes a timing baseline for appendIdempotent using the crablet_events.tags GIN index.
  * Run with -Dgroups=benchmark to include in a benchmark-only suite.
  * Output: P50 and P99 of single-writer idempotency check duration,
  * and success/contention counts under 20 concurrent writers sharing the same tag.
  */
 @Tag("benchmark")
-@DisplayName("events.tags GIN idempotency benchmark")
+@DisplayName("crablet_events.tags GIN idempotency benchmark")
 @SpringBootTest(classes = TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 class EventsTagsIdempotencyBenchmarkTest extends AbstractCrabletTest {
 

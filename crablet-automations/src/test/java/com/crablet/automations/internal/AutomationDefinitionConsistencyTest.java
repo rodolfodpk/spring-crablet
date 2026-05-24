@@ -59,7 +59,7 @@ class AutomationDefinitionConsistencyTest {
                 .contains("type IN ('WalletOpened')")
                 .contains("t.key = 'wallet_id'")
                 .contains("t.key IN ('owner_id')")
-                .contains("t.position = events.position");
+                .contains("t.position = crablet_events.position");
         assertThat(configs.get(handler.getAutomationName()).getPollingIntervalMs()).isEqualTo(1500L);
         assertThat(configs.get(handler.getAutomationName()).getBatchSize()).isEqualTo(25);
         assertThat(count).isEqualTo(1);
@@ -88,7 +88,7 @@ class AutomationDefinitionConsistencyTest {
                 .contains("type IN ('WalletOpened')")
                 .contains("t.key = 'wallet_id'")
                 .contains("t.key IN ('owner_id')")
-                .contains("t.position = events.position");
+                .contains("t.position = crablet_events.position");
         assertThat(configs.get(handler.getAutomationName()).getPollingIntervalMs()).isEqualTo(5000L);
         assertThat(configs.get(handler.getAutomationName()).getBatchSize()).isEqualTo(7);
     }

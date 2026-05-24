@@ -203,12 +203,12 @@ events = fetchEventsForTopic(lastPosition);
 **Hypothetical JOIN query:**
 ```sql
 SELECT e.* 
-FROM events e
-JOIN outbox_topic_progress otp ON e.position > otp.last_position
+FROM crablet_events e
+JOIN crablet_outbox_topic_progress otp ON e.position > otp.last_position
 WHERE otp.topic = ? AND otp.publisher = ?
 ```
 
-**Problem:** This query requires access to **both tables** (`events` and `outbox_topic_progress`) from the **same database**. We can't JOIN across different DataSources (primary vs replica).
+**Problem:** This query requires access to **both tables** (`crablet_events` and `crablet_outbox_topic_progress`) from the **same database**. We can't JOIN across different DataSources (primary vs replica).
 
 **Solution:** Separate queries allow:
 - Position tracking → Primary (strong consistency)

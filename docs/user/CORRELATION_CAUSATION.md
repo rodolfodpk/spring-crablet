@@ -7,7 +7,7 @@ Crablet records two optional identifiers on every appended event:
 | `correlationId` | `UUID` (nullable) | Ties all events produced by the same business operation (e.g. one HTTP request) |
 | `causationId` | `Long` (nullable) | The `position` of the event that directly triggered the current operation in an automation chain |
 
-Both are stored as nullable columns on the `events` table (`correlation_id UUID`, `causation_id BIGINT`) and are readable via `StoredEvent.correlationId()` and `StoredEvent.causationId()`.
+Both are stored as nullable columns on the `crablet_events` table (`correlation_id UUID`, `causation_id BIGINT`) and are readable via `StoredEvent.correlationId()` and `StoredEvent.causationId()`.
 
 ## How It Works
 
@@ -88,7 +88,7 @@ public class CorrelationFilter extends OncePerRequestFilter {
 
 - If the caller sends `X-Correlation-ID: <uuid>`, that value is used.
 - If the header is absent or not a valid UUID, a fresh UUID is generated.
-- The final ID is echoed back in the response header so callers can trace their request through logs and the `events` table.
+- The final ID is echoed back in the response header so callers can trace their request through logs and the `crablet_events` table.
 
 Copy this filter into your application and annotate it with `@Component` — Spring Boot picks it up automatically.
 
@@ -162,7 +162,7 @@ for module integration tests:
 If you maintain your own schema instead of using `crablet-db-migrations`, include:
 
 ```sql
-ALTER TABLE events
+ALTER TABLE crablet_events
     ADD COLUMN IF NOT EXISTS correlation_id UUID,
     ADD COLUMN IF NOT EXISTS causation_id   BIGINT;
 ```

@@ -51,8 +51,8 @@ class AbstractJdbcEventFetcherTest {
         dataSource = ds;
 
         try (Connection connection = dataSource.getConnection()) {
-            connection.createStatement().execute("TRUNCATE TABLE event_tags");
-            connection.createStatement().execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
+            connection.createStatement().execute("TRUNCATE TABLE crablet_event_tags");
+            connection.createStatement().execute("TRUNCATE TABLE crablet_events RESTART IDENTITY CASCADE");
         }
     }
 
@@ -140,7 +140,7 @@ class AbstractJdbcEventFetcherTest {
             @Nullable UUID correlationId,
             @Nullable Long causationId) throws Exception {
         try (PreparedStatement stmt = connection.prepareStatement("""
-                 INSERT INTO events (type, tags, data, transaction_id, occurred_at, correlation_id, causation_id)
+                 INSERT INTO crablet_events (type, tags, data, transaction_id, occurred_at, correlation_id, causation_id)
                  VALUES (?, ?, ?::json, pg_current_xact_id(), CURRENT_TIMESTAMP, ?, ?)
                  """)) {
             stmt.setString(1, type);

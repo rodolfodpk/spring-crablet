@@ -40,14 +40,14 @@ public class OutboxManagementService implements ProcessorManagementService<Topic
     private static final String SELECT_PROGRESS_SQL = """
         SELECT topic, publisher, status, last_position, last_published_at,
                error_count, last_error, updated_at, leader_instance
-        FROM outbox_topic_progress
+        FROM crablet_outbox_topic_progress
         WHERE topic = ? AND publisher = ?
         """;
 
     private static final String SELECT_ALL_PROGRESS_SQL = """
         SELECT topic, publisher, status, last_position, last_published_at,
                error_count, last_error, updated_at, leader_instance
-        FROM outbox_topic_progress
+        FROM crablet_outbox_topic_progress
         ORDER BY topic, publisher
         """;
 

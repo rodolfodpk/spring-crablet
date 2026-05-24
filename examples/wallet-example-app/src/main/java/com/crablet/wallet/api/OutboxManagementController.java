@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
  * <ul>
  *   <li>Publisher operations: pause, resume, reset</li>
  *   <li>Status monitoring: get status, lag, all statuses</li>
- *   <li>Detailed progress: get progress information from the outbox_topic_progress table</li>
+ *   <li>Detailed progress: get progress information from the crablet_outbox_topic_progress table</li>
  * </ul>
  * <p>
  * Each publisher is identified by a (topic, publisher) pair in the URL path:

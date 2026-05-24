@@ -336,7 +336,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
 
         // Verify command stored in database
         Integer count = jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM commands WHERE type = ?",
+            "SELECT COUNT(*) FROM crablet_commands WHERE type = ?",
             Integer.class,
             "test_command"
         );

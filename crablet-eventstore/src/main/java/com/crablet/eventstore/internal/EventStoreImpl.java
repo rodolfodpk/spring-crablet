@@ -17,8 +17,6 @@ import com.crablet.eventstore.Tag;
 import com.crablet.eventstore.metrics.ConcurrencyViolationMetric;
 import com.crablet.eventstore.metrics.EventTypeMetric;
 import com.crablet.eventstore.metrics.EventsAppendedMetric;
-import com.crablet.eventstore.notify.EventAppendNotifier;
-import com.crablet.eventstore.notify.NoopEventAppendNotifier;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
@@ -40,7 +38,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -98,13 +95,13 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
      * Extracted as constants for maintainability and readability.
      */
     private static final String APPEND_EVENTS_IF_SQL =
-        "SELECT append_events_if(?, ?, ?::jsonb[], ?, ?, ?, ?, ?, ?::TIMESTAMP WITH TIME ZONE, ?::uuid, ?)";
+        "SELECT append_events_if(?, ?, ?::jsonb[], ?, ?, ?, ?, ?, ?::TIMESTAMP WITH TIME ZONE, ?::uuid, ?, ?::text, ?::text)";
 
     private static final String APPEND_EVENTS_IF_CONNECTION_SQL =
-        "SELECT append_events_if(?::text[], ?::text[], ?::jsonb[], ?::text[], ?::text[], ?, ?::text[], ?::text[], ?::TIMESTAMP WITH TIME ZONE, ?::uuid, ?)";
+        "SELECT append_events_if(?::text[], ?::text[], ?::jsonb[], ?::text[], ?::text[], ?, ?::text[], ?::text[], ?::TIMESTAMP WITH TIME ZONE, ?::uuid, ?, ?::text, ?::text)";
 
     private static final String STORE_COMMAND_SQL = """
-        INSERT INTO commands (command_id, transaction_id, type, data, metadata, occurred_at)
+        INSERT INTO crablet_commands (command_id, transaction_id, type, data, metadata, occurred_at)
         VALUES (COALESCE(?::uuid, gen_random_uuid()), pg_current_xact_id(), ?, ?::jsonb, ?::jsonb, ?::TIMESTAMP WITH TIME ZONE)
         ON CONFLICT (command_id) DO NOTHING
         """;
@@ -116,7 +113,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     private final ClockProvider clock;
     private final QuerySqlBuilder sqlBuilder;
     private final ApplicationEventPublisher eventPublisher;
-    private final EventAppendNotifier eventAppendNotifier;
+    private final @Nullable String notifyChannel;
 
     /**
      * Singleton RowMapper for StoredEvent objects.
@@ -178,7 +175,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             EventStoreConfig config,
             ClockProvider clock,
             ApplicationEventPublisher eventPublisher) {
-        this(writeDataSource, readDataSource, objectMapper, config, clock, eventPublisher, new NoopEventAppendNotifier());
+        this(writeDataSource, readDataSource, objectMapper, config, clock, eventPublisher, null);
     }
 
     public EventStoreImpl(
@@ -188,7 +185,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             EventStoreConfig config,
             ClockProvider clock,
             ApplicationEventPublisher eventPublisher,
-            EventAppendNotifier eventAppendNotifier) {
+            @Nullable String notifyChannel) {
         if (writeDataSource == null) {
             throw new IllegalArgumentException("writeDataSource must not be null");
         }
@@ -207,16 +204,13 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         if (eventPublisher == null) {
             throw new IllegalArgumentException("eventPublisher must not be null");
         }
-        if (eventAppendNotifier == null) {
-            throw new IllegalArgumentException("eventAppendNotifier must not be null");
-        }
         this.writeDataSource = writeDataSource;
         this.readDataSource = readDataSource;
         this.objectMapper = objectMapper;
         this.config = config;
         this.clock = clock;
         this.eventPublisher = eventPublisher;
-        this.eventAppendNotifier = eventAppendNotifier;
+        this.notifyChannel = notifyChannel;
         this.sqlBuilder = new QuerySqlBuilderImpl();
     }
 
@@ -287,6 +281,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             String[] dataStrings = events.stream()
                     .map(event -> serializeEventData(event.eventData()))
                     .toArray(String[]::new);
+            String notifyPayload = encodeNotifyPayload(events);
 
             // Determine stream position: NULL for empty conditions (no concurrency check), actual value otherwise
             Long afterPosition = null;
@@ -310,6 +305,8 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 stmt.setTimestamp(9, Timestamp.from(clock.now()));
                 stmt.setObject(10, CorrelationContext.correlationId());
                 stmt.setObject(11, CorrelationContext.causationId());
+                stmt.setString(12, notifyChannel);
+                stmt.setString(13, notifyPayload);
 
                 try (ResultSet rs = stmt.executeQuery()) {
                     // Fail fast: Check if we have a result
@@ -325,7 +322,6 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                     for (AppendEvent event : events) {
                         eventPublisher.publishEvent(new EventTypeMetric(event.type()));
                     }
-                    publishAppendNotification(new HashSet<>(Arrays.asList(types)), collectTagKeys(events));
 
                     return transactionId;
                 }
@@ -351,7 +347,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
 
         try {
             // Build SQL using existing helper
-            StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id FROM events");
+            StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id FROM crablet_events");
             List<Object> params = new ArrayList<>();
             String whereClause = sqlBuilder.buildWhereClause(query, after, params);
             if (!whereClause.isEmpty()) {
@@ -447,6 +443,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             String[] dataStrings = events.stream()
                     .map(event -> serializeEventData(event.eventData()))
                     .toArray(String[]::new);
+            String notifyPayload = encodeNotifyPayload(events);
 
             // Extract concurrency check (with stream position)
             List<String> concurrencyTypes = condition != null ? condition.concurrencyQuery().items().stream()
@@ -494,6 +491,8 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             stmt.setTimestamp(9, Timestamp.from(clock.now()));
             stmt.setObject(10, CorrelationContext.correlationId());
             stmt.setObject(11, CorrelationContext.causationId());
+            stmt.setString(12, notifyChannel);
+            stmt.setString(13, notifyPayload);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 // Fail fast: Check if we have a result
@@ -532,9 +531,6 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 EventStore txStore = createConnectionScopedStore(connection);
                 T result = operation.apply(txStore);
                 connection.commit();
-                if (txStore instanceof ConnectionScopedEventStore connectionScopedStore && connectionScopedStore.hasAppendedEvents()) {
-                    publishAppendNotification(connectionScopedStore.getAppendedEventTypes(), connectionScopedStore.getAppendedTagKeys());
-                }
                 log.debug("Transaction committed successfully");
                 return result;
             } catch (Exception e) {
@@ -587,7 +583,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             Connection connection, Query query, StreamPosition after, List<StateProjector<T>> projectors) {
         try {
             // Build SQL using existing helper
-            StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id FROM events");
+            StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id FROM crablet_events");
             List<Object> params = new ArrayList<>();
             String whereClause = sqlBuilder.buildWhereClause(query, after, params);
             if (!whereClause.isEmpty()) {
@@ -645,7 +641,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         try {
             List<Object> params = new ArrayList<>();
             String whereClause = sqlBuilder.buildWhereClause(query, null, params);
-            StringBuilder sql = new StringBuilder("SELECT EXISTS(SELECT 1 FROM events");
+            StringBuilder sql = new StringBuilder("SELECT EXISTS(SELECT 1 FROM crablet_events");
             if (!whereClause.isEmpty()) {
                 sql.append(" WHERE ").append(whereClause);
             }
@@ -856,20 +852,15 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         return tags;
     }
 
-    private void publishAppendNotification() {
-        try {
-            eventAppendNotifier.notifyEventsAppended();
-        } catch (RuntimeException e) {
-            log.warn("Event append notification failed: {}", e.getMessage());
+    private @Nullable String encodeNotifyPayload(List<AppendEvent> events) {
+        if (notifyChannel == null) {
+            return null;
         }
-    }
-
-    private void publishAppendNotification(Set<String> eventTypes, Set<String> tagPairs) {
-        try {
-            eventAppendNotifier.notifyEventsAppended(eventTypes, tagPairs);
-        } catch (RuntimeException e) {
-            log.warn("Event append notification failed: {}", e.getMessage());
+        Set<String> eventTypes = new HashSet<>();
+        for (AppendEvent event : events) {
+            eventTypes.add(event.type());
         }
+        return PostgresNotifyPayload.encodePayload(eventTypes, collectTagKeys(events));
     }
 
     private static Set<String> collectTagKeys(List<AppendEvent> events) {
@@ -940,9 +931,6 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     // Inner class for connection-scoped EventStore
     private class ConnectionScopedEventStore implements EventStore, CommandAuditStore {
         private final Connection connection;
-        private boolean appendedEvents;
-        private final Set<String> appendedEventTypes = new HashSet<>();
-        private final Set<String> appendedTagKeys = new HashSet<>();
 
         private ConnectionScopedEventStore(Connection connection) {
             this.connection = connection;
@@ -950,14 +938,12 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
 
         @Override
         public String appendCommutative(List<AppendEvent> events) {
-            trackAppend(events);
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.empty());
         }
 
         @Override
         public String appendNonCommutative(
                 List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {
-            trackAppend(events);
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendConditionBuilder.of(decisionModel, streamPosition).build());
         }
 
@@ -967,22 +953,12 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 String eventType,
                 String tagKey,
                 String tagValue) {
-            trackAppend(events);
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.idempotent(eventType, tagKey, tagValue));
         }
 
         @Override
         public String appendIdempotent(List<AppendEvent> events, Query idempotencyQuery) {
-            trackAppend(events);
             return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.idempotent(idempotencyQuery));
-        }
-
-        private void trackAppend(List<AppendEvent> events) {
-            appendedEvents = true;
-            for (AppendEvent e : events) {
-                appendedEventTypes.add(e.type());
-            }
-            appendedTagKeys.addAll(collectTagKeys(events));
         }
 
         @Override
@@ -1015,16 +991,5 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                     connection, commandJson, commandType, commandId, occurredAt);
         }
 
-        private boolean hasAppendedEvents() {
-            return appendedEvents;
-        }
-
-        private Set<String> getAppendedEventTypes() {
-            return appendedEventTypes;
-        }
-
-        private Set<String> getAppendedTagKeys() {
-            return appendedTagKeys;
-        }
     }
 }

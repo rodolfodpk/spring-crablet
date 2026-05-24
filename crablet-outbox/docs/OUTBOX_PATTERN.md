@@ -8,10 +8,10 @@ The outbox provides **reliable event publishing** for DCB-based event sourcing. 
 
 **How it works:**
 1. Handler returns `CommandDecision` (Commutative / NonCommutative / Idempotent)
-2. `CommandExecutor` calls the appropriate `EventStore` append method → stores events in `events` table
+2. `CommandExecutor` calls the appropriate `EventStore` append method → stores events in `crablet_events` table
 3. Outbox processor polls transaction-safe events (`WHERE position > last_position` plus PostgreSQL's transaction safe horizon)
 4. Publishers send events to external systems
-5. Progress tracking updates `outbox_topic_progress` with new position
+5. Progress tracking updates `crablet_outbox_topic_progress` with new position
 
 **Key Features:**
 - ✅ At-least-once delivery semantics
@@ -57,15 +57,15 @@ public CommandDecision.NonCommutative decide(EventStore eventStore, TransferComm
 ## How It Works
 
 1. **Handler** returns `CommandDecision` (Commutative / NonCommutative / Idempotent)
-2. **CommandExecutor** calls the appropriate EventStore append method → stores events in `events` table
+2. **CommandExecutor** calls the appropriate EventStore append method → stores events in `crablet_events` table
 3. **Outbox processor** polls transaction-safe events after `last_position`
 4. **Publishers** receive matching stored events
-5. **Progress tracking** updates `outbox_topic_progress` with new position
+5. **Progress tracking** updates `crablet_outbox_topic_progress` with new position
 
 ### Ordering and Transaction Safety
 
 Stored events carry PostgreSQL's `transaction_id`. The outbox keeps its operational cursor as
-`outbox_topic_progress.last_position`, but it only fetches events below PostgreSQL's safe snapshot
+`crablet_outbox_topic_progress.last_position`, but it only fetches events below PostgreSQL's safe snapshot
 horizon:
 
 ```sql
@@ -198,12 +198,12 @@ curl http://localhost:8080/api/outbox/default/publishers/LogPublisher/lag
 ### SQL Management
 ```sql
 -- Pause publisher
-UPDATE outbox_topic_progress 
+UPDATE crablet_outbox_topic_progress 
 SET status = 'PAUSED' 
 WHERE publisher = 'LogPublisher';
 
 -- Reset failed publisher
-UPDATE outbox_topic_progress 
+UPDATE crablet_outbox_topic_progress 
 SET status = 'ACTIVE', error_count = 0, last_error = NULL 
 WHERE publisher = 'LogPublisher';
 ```
@@ -218,7 +218,7 @@ Events may be published multiple times in the following scenarios:
 
 1. **Leader failover during publishing**: Leader crashes mid-batch, backup leader starts from last committed position
 2. **Publisher failure with retry**: Publisher throws exception, position not updated, next cycle retries
-3. **Transactional boundary**: Events written to events table (COMMIT), publisher attempted but network failure
+3. **Transactional boundary**: Events written to `crablet_events` (COMMIT), publisher attempted but network failure
 
 **Consumer requirements:**
 - ✅ **Must be idempotent:** Handle duplicate events gracefully
@@ -295,7 +295,7 @@ Events may be published multiple times in the following scenarios:
   - Batch status checking
   - Increased thread pool size
   - Per-pair leader locks for horizontal scaling
-  - Partitioning outbox_topic_progress table
+  - Partitioning crablet_outbox_topic_progress table
 
 **Key constraints:**
 1. **Global lock**: One leader processes ALL pairs (no horizontal scaling)
@@ -309,7 +309,7 @@ Events may be published multiple times in the following scenarios:
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   Application   │───▶│   Event Store    │───▶│  Outbox Topics  │
-│   (DCB Commands)│    │  (events table)  │    │ (centralized)   │
+│   (DCB Commands)│    │(crablet_events)  │    │ (centralized)   │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
                               │                        │
                               ▼                        ▼
@@ -366,15 +366,15 @@ For complete details on crash detection, failover mechanism, and deployment patt
 ```sql
 -- Check publisher status
 SELECT topic, publisher, status, last_position, error_count, last_error
-FROM outbox_topic_progress;
+FROM crablet_outbox_topic_progress;
 
 -- Resume paused publisher
-UPDATE outbox_topic_progress 
+UPDATE crablet_outbox_topic_progress 
 SET status = 'ACTIVE' 
 WHERE publisher = 'LogPublisher';
 
 -- Reset failed publisher
-UPDATE outbox_topic_progress 
+UPDATE crablet_outbox_topic_progress 
 SET status = 'ACTIVE', error_count = 0, last_error = NULL 
 WHERE publisher = 'LogPublisher';
 ```

@@ -8,7 +8,7 @@ here, and should use deprecation first when that is practical.
 
 ---
 
-## Consolidated framework migrations, `event_tags`, and command-level idempotency
+## Consolidated framework migrations, `crablet_event_tags`, and command-level idempotency
 
 **Affects:** Fresh test and example databases; users of `CommandExecutor` who want idempotency
 
@@ -18,23 +18,22 @@ Framework Flyway history was consolidated before a stable release. Fresh databas
 
 ```text
 V1__crablet_eventstore_schema.sql
-V2__crablet_poller_progress_schema.sql
 ```
 
-The final schema includes the `event_tags` derived table and command-level idempotency shape from the start.
+The final schema includes the `crablet_event_tags` derived table and command-level idempotency shape from the start.
 
-**`event_tags` derived table**
+**`crablet_event_tags` derived table**
 
-A normalized `event_tags` table exists alongside `events`. Each row represents one `key=value` tag pair from one event.
+A normalized `crablet_event_tags` table exists alongside `crablet_events`. Each row represents one `key=value` tag pair from one event.
 
-- Per-processor poller tag filtering now uses indexed `event_tags` EXISTS subqueries instead of `unnest(events.tags)` array scans. Exact tag filters use `(key, value, position)`; broad key-existence filters use `(key, position)`.
-- Idempotency and DCB conflict checks inside `append_events_if` continue to use `events.tags @>` with the GIN index — real decision models use 2+ tags per criterion, so the GIN path handles the common case directly.
-- `events` remains the canonical source of truth; `event_tags` is derived and kept in sync atomically via the same CTE that inserts into `events`.
-- **Write amplification:** every append writes one `event_tags` row per tag per event. See `docs/user/PERFORMANCE.md` for tradeoff details and drift-check queries.
+- Per-processor poller tag filtering now uses indexed `crablet_event_tags` EXISTS subqueries instead of `unnest(crablet_events.tags)` array scans. Exact tag filters use `(key, value, position)`; broad key-existence filters use `(key, position)`.
+- Idempotency and DCB conflict checks inside `append_events_if` continue to use `crablet_events.tags @>` with the GIN index — real decision models use 2+ tags per criterion, so the GIN path handles the common case directly.
+- `crablet_events` remains the canonical source of truth; `crablet_event_tags` is derived and kept in sync atomically via the same CTE that inserts into `crablet_events`.
+- **Write amplification:** every append writes one `crablet_event_tags` row per tag per event. See `docs/user/PERFORMANCE.md` for tradeoff details and drift-check queries.
 
 **Command-level idempotency**
 
-`commands` has a `command_id UUID PRIMARY KEY`. `transaction_id` is retained as a regular indexed column for event-to-command linkage. No `idempotency_key` column is added.
+`crablet_commands` has a `command_id UUID PRIMARY KEY`. `transaction_id` is retained as a regular indexed column for event-to-command linkage. No `idempotency_key` column is added.
 
 A new `CommandExecutor` overload is available for client-controlled idempotency:
 
@@ -372,7 +371,7 @@ crablet_module_scan_progress
 crablet_processor_scan_progress
 ```
 
-Fresh installs receive these through `V2__crablet_poller_progress_schema.sql`.
+Fresh installs receive these through the consolidated `V1__crablet_eventstore_schema.sql`.
 
 ### Migration
 

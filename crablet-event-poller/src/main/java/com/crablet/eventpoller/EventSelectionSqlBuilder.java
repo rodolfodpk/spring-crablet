@@ -29,7 +29,7 @@ public final class EventSelectionSqlBuilder {
         }
 
         for (String tagKey : selection.getRequiredTags()) {
-            conditions.add("EXISTS (SELECT 1 FROM event_tags t WHERE t.position = events.position AND t.key = '" + tagKey + "')");
+            conditions.add("EXISTS (SELECT 1 FROM crablet_event_tags t WHERE t.position = crablet_events.position AND t.key = '" + tagKey + "')");
         }
 
         Set<String> anyOfTags = selection.getAnyOfTags();
@@ -37,11 +37,11 @@ public final class EventSelectionSqlBuilder {
             String keyList = anyOfTags.stream()
                     .map(k -> "'" + k + "'")
                     .collect(Collectors.joining(", "));
-            conditions.add("EXISTS (SELECT 1 FROM event_tags t WHERE t.position = events.position AND t.key IN (" + keyList + "))");
+            conditions.add("EXISTS (SELECT 1 FROM crablet_event_tags t WHERE t.position = crablet_events.position AND t.key IN (" + keyList + "))");
         }
 
         for (Map.Entry<String, String> entry : selection.getExactTags().entrySet()) {
-            conditions.add("EXISTS (SELECT 1 FROM event_tags t WHERE t.position = events.position AND t.key = '" + entry.getKey() + "' AND t.value = '" + entry.getValue() + "')");
+            conditions.add("EXISTS (SELECT 1 FROM crablet_event_tags t WHERE t.position = crablet_events.position AND t.key = '" + entry.getKey() + "' AND t.value = '" + entry.getValue() + "')");
         }
 
         return conditions.isEmpty() ? "TRUE" : String.join(" AND ", conditions);

@@ -23,7 +23,7 @@
  *   <li>Users configure ViewSubscription to subscribe to specific event types/tags
  *       (tags are stored as "key=value" format in PostgreSQL)</li>
  *   <li>The generic EventProcessor polls events and calls projectors asynchronously</li>
- *   <li>Progress is tracked independently per view in view_progress table</li>
+ *   <li>Progress is tracked independently per view in crablet_view_progress table</li>
  * </ol>
  * <p>
  * <strong>Base Classes:</strong>

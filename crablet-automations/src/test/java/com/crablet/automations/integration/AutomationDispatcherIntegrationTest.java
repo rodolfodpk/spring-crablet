@@ -174,7 +174,7 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
 
     private int notificationEventCount(String walletId) {
         return jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM events WHERE type = ? AND tags @> ARRAY[?]::text[]",
+                "SELECT COUNT(*) FROM crablet_events WHERE type = ? AND tags @> ARRAY[?]::text[]",
                 Integer.class,
                 "WelcomeNotificationSent",
                 "wallet_id=" + walletId

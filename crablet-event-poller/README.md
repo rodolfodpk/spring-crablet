@@ -163,17 +163,15 @@ The feature has two independent sides:
 
 ### NOTIFY — event store side
 
-After every successful append the event store calls `pg_notify(channel, payload)` on
-the write connection. This is always active — no configuration is required to turn it
-on or off. If nobody is LISTENing, Postgres silently discards the notification at
-negligible cost.
+After every successful append the event store calls `pg_notify(channel, payload)` from
+inside the append SQL function. This is always active for auto-configured event stores.
+If nobody is LISTENing, Postgres silently discards the notification at negligible cost.
 
 Tune only when needed:
 
 ```properties
-# defaults shown — only set these to override
+# default shown - only set this to override
 crablet.eventstore.notifications.channel=crablet_events
-crablet.eventstore.notifications.payload=events-appended
 ```
 
 ### LISTEN — poller side
@@ -292,7 +290,7 @@ The event processor is built around a few key interfaces:
 
 4. **Backoff**: After a threshold of empty polls, the scheduler skips cycles with exponential backoff
 
-5. **Progress Tracking**: Each processor tracks its own position independently in its module-specific progress table such as `view_progress`, `outbox_topic_progress`, or `reaction_progress`. Fetches are still ordered by position, but unsafe transactions are filtered out before progress can advance.
+5. **Progress Tracking**: Each processor tracks its own position independently in its module-specific progress table such as `crablet_view_progress`, `crablet_outbox_topic_progress`, or `reaction_progress`. Fetches are still ordered by position, but unsafe transactions are filtered out before progress can advance.
 
 ## Configuration Model
 

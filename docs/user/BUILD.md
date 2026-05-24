@@ -195,8 +195,7 @@ All framework migrations live in a single place:
 
 ```
 crablet-test-support/src/main/resources/db/migration/
-  V1__crablet_eventstore_schema.sql        events, commands, event_tags, indexes, append functions
-  V2__crablet_poller_progress_schema.sql   outbox, view, automation, shared-fetch progress tables
+  V1__crablet_eventstore_schema.sql        events, commands, event_tags, progress tables, indexes, append functions
 ```
 
 Flyway picks these up automatically on the test classpath because every module

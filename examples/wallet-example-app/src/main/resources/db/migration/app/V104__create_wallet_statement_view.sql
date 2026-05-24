@@ -71,5 +71,4 @@ COMMENT ON COLUMN wallet_statement_view.closed_at IS 'When the statement period 
 
 COMMENT ON TABLE statement_transactions IS 'Junction table tracking which events have been processed for each statement (idempotency)';
 COMMENT ON COLUMN statement_transactions.statement_id IS 'Statement identifier';
-COMMENT ON COLUMN statement_transactions.event_position IS 'Event position from events table';
-
+COMMENT ON COLUMN statement_transactions.event_position IS 'Event position from crablet_events table';

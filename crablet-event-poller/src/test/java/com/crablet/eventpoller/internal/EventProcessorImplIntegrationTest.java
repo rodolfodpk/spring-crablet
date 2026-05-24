@@ -92,7 +92,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
     @DisplayName("Should process events and update progress")
     void shouldProcessEvents_AndUpdateProgress() {
         // Given - Verify database is clean
-        Long eventCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM events", Long.class);
+        Long eventCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM crablet_events", Long.class);
         assertThat(eventCount).as("Database should be clean from setUp()").isEqualTo(0L);
 
         // Given - Events in store
@@ -107,11 +107,11 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
         eventStore.appendCommutative(events);
 
         // Verify only 2 events were created
-        eventCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM events", Long.class);
+        eventCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM crablet_events", Long.class);
         assertThat(eventCount).as("Should have exactly 2 events").isEqualTo(2L);
 
         // Verify event positions are 1 and 2
-        List<Long> positions = jdbcTemplate.queryForList("SELECT position FROM events ORDER BY position", Long.class)
+        List<Long> positions = jdbcTemplate.queryForList("SELECT position FROM crablet_events ORDER BY position", Long.class)
                 .stream()
                 .map(Long::longValue)
                 .toList();
@@ -525,7 +525,7 @@ class EventProcessorImplIntegrationTest extends AbstractEventProcessorTest {
             try (var connection = readDataSource.getConnection();
                  var stmt = connection.prepareStatement(
                      "SELECT type, tags, data, transaction_id, position, occurred_at " +
-                     "FROM events WHERE position > ? ORDER BY position ASC LIMIT ?")) {
+                     "FROM crablet_events WHERE position > ? ORDER BY position ASC LIMIT ?")) {
                 stmt.setLong(1, lastPosition);
                 stmt.setInt(2, batchSize);
 

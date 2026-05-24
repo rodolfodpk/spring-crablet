@@ -6,7 +6,7 @@ import org.jspecify.annotations.Nullable;
 import java.time.Instant;
 
 /**
- * Detailed progress information for an automation, read from the {@code automation_progress} table.
+ * Detailed progress information for an automation, read from the {@code crablet_automation_progress} table.
  */
 public record AutomationProgressDetails(
         String automationName,

@@ -356,7 +356,7 @@ commandExecutor.execute(command, CommandExecutionOptions.builder()
 | | Command-level (`CommandExecutionOptions.commandId`) | Event-level (`.idempotent(...)` on `CommandDecision`) |
 |---|---|---|
 | When checked | Before handler runs | After handler runs, inside append |
-| Mechanism | `PRIMARY KEY` on `commands` | Advisory lock in `append_events_if` |
+| Mechanism | `PRIMARY KEY` on `crablet_commands` | Advisory lock in `append_events_if` |
 | Key source | Caller (UUID from HTTP header, message ID) | Handler (business key on output event) |
 | Handler invoked on duplicate? | No | Yes |
 
@@ -512,14 +512,14 @@ See [Closing the Books Pattern Guide](../crablet-eventstore/docs/CLOSING_BOOKS_P
 
 ## Command Audit Store
 
-When `crablet.eventstore.persist-commands=true` (the default), every command execution is written to the `commands` table **in the same database transaction** as the appended events. This gives you a durable, queryable record linking every command to the events it produced.
+When `crablet.eventstore.persist-commands=true` (the default), every command execution is written to the `crablet_commands` table **in the same database transaction** as the appended events. This gives you a durable, queryable record linking every command to the events it produced.
 
 ### What is stored
 
 | Column | Type | Content |
 |---|---|---|
 | `command_id` | `uuid` (PRIMARY KEY) | Caller-provided UUID when using `CommandExecutionOptions.commandId()`; `gen_random_uuid()` otherwise |
-| `transaction_id` | `xid8` (UNIQUE) | PostgreSQL transaction ID for this command execution. Same value as `events.transaction_id` for events appended in this execution; not a business transaction ID. |
+| `transaction_id` | `xid8` (UNIQUE) | PostgreSQL transaction ID for this command execution. Same value as `crablet_events.transaction_id` for events appended in this execution; not a business transaction ID. |
 | `type` | `text` | Command type name (e.g. `"deposit"`, `"open_wallet"`), constrained to 64 characters |
 | `data` | `jsonb` | Full command serialized as JSON |
 | `metadata` | `jsonb` | `{"command_type": "..."}` — reserved for future enrichment |
@@ -538,21 +538,21 @@ The command row is written inside the same `Connection` and transaction as the e
 
 ### Querying the audit trail
 
-Join `commands` to `events` on `transaction_id` to see which command produced which events:
+Join `crablet_commands` to `crablet_events` on `transaction_id` to see which command produced which events:
 
 ```sql
 -- Events produced by a specific command type
 SELECT c.occurred_at, c.type AS command_type, c.data AS command,
        e.type AS event_type, e.data AS event
-FROM commands c
-JOIN events e ON e.transaction_id = c.transaction_id
+FROM crablet_commands c
+JOIN crablet_events e ON e.transaction_id = c.transaction_id
 WHERE c.type = 'deposit'
 ORDER BY c.occurred_at DESC;
 
 -- Full history for a wallet (all commands and events, newest first)
 SELECT c.occurred_at, c.type AS command_type, e.type AS event_type, e.tags
-FROM commands c
-JOIN events e ON e.transaction_id = c.transaction_id
+FROM crablet_commands c
+JOIN crablet_events e ON e.transaction_id = c.transaction_id
 WHERE e.tags @> ARRAY['wallet_id=abc123']
 ORDER BY c.occurred_at DESC;
 ```

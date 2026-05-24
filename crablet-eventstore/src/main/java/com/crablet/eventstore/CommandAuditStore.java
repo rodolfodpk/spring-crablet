@@ -39,7 +39,7 @@ public interface CommandAuditStore {
      *
      * <p>Executes:
      * <pre>{@code
-     * INSERT INTO commands (command_id, transaction_id, type, data, metadata, occurred_at)
+     * INSERT INTO crablet_commands (command_id, transaction_id, type, data, metadata, occurred_at)
      * VALUES (COALESCE(?::uuid, gen_random_uuid()), pg_current_xact_id(), ...)
      * ON CONFLICT (command_id) DO NOTHING
      * }</pre>

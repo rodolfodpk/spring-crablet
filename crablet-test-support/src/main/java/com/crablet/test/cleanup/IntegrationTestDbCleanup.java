@@ -13,26 +13,26 @@ public final class IntegrationTestDbCleanup {
 
     /** Eventstore / metrics style: {@code events} without RESTART IDENTITY, explicit sequence reset. */
     public static void truncateEventStoreTablesAndRestartPositionSequence(JdbcTemplate jdbc) {
-        jdbc.execute("TRUNCATE TABLE event_tags");
-        jdbc.execute("TRUNCATE TABLE events CASCADE");
-        jdbc.execute("TRUNCATE TABLE commands CASCADE");
-        jdbc.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_event_tags");
+        jdbc.execute("TRUNCATE TABLE crablet_events CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_commands CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_outbox_topic_progress CASCADE");
         jdbc.execute("ALTER SEQUENCE events_position_seq RESTART WITH 1");
     }
 
     /** Outbox, event-poller, and related tests: {@code events} with RESTART IDENTITY. */
     public static void truncateEventsCommandsAndOutboxProgress(JdbcTemplate jdbc) {
-        jdbc.execute("TRUNCATE TABLE event_tags");
-        jdbc.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-        jdbc.execute("TRUNCATE TABLE commands CASCADE");
-        jdbc.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_event_tags");
+        jdbc.execute("TRUNCATE TABLE crablet_events RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_commands CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_outbox_topic_progress CASCADE");
     }
 
     /** For tests that reset the event stream and outbox progress without touching {@code commands}. */
     public static void truncateEventsAndOutboxProgressOnly(JdbcTemplate jdbc) {
-        jdbc.execute("TRUNCATE TABLE event_tags");
-        jdbc.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-        jdbc.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_event_tags");
+        jdbc.execute("TRUNCATE TABLE crablet_events RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_outbox_topic_progress CASCADE");
     }
 
     public static void truncateViewsIntegrationTables(JdbcTemplate jdbc) {
@@ -41,22 +41,22 @@ public final class IntegrationTestDbCleanup {
     }
 
     public static void truncateAutomationsIntegrationTables(JdbcTemplate jdbc) {
-        jdbc.execute("TRUNCATE TABLE event_tags");
-        jdbc.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-        jdbc.execute("TRUNCATE TABLE commands CASCADE");
-        jdbc.execute("TRUNCATE TABLE automation_progress CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_event_tags");
+        jdbc.execute("TRUNCATE TABLE crablet_events RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_commands CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_automation_progress CASCADE");
     }
 
     public static void truncateOutboxTopicProgress(JdbcTemplate jdbc) {
-        jdbc.execute("TRUNCATE TABLE outbox_topic_progress CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_outbox_topic_progress CASCADE");
     }
 
     public static void truncateViewProgress(JdbcTemplate jdbc) {
-        jdbc.execute("TRUNCATE TABLE view_progress CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_view_progress CASCADE");
     }
 
     public static void truncateAutomationProgress(JdbcTemplate jdbc) {
-        jdbc.execute("TRUNCATE TABLE automation_progress CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_automation_progress CASCADE");
     }
 
     public static void truncateSharedFetchScanProgress(JdbcTemplate jdbc) {

@@ -71,8 +71,8 @@ class EventTagsPollerFetchBenchmarkTest {
         dataSource = ds;
 
         try (Connection conn = dataSource.getConnection()) {
-            conn.createStatement().execute("TRUNCATE TABLE event_tags");
-            conn.createStatement().execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
+            conn.createStatement().execute("TRUNCATE TABLE crablet_event_tags");
+            conn.createStatement().execute("TRUNCATE TABLE crablet_events RESTART IDENTITY CASCADE");
         }
 
         seedEvents();
@@ -113,12 +113,12 @@ class EventTagsPollerFetchBenchmarkTest {
         try (Connection conn = dataSource.getConnection()) {
             conn.setAutoCommit(false);
             String insertEvent = """
-                INSERT INTO events (type, tags, data, transaction_id, occurred_at)
+                INSERT INTO crablet_events (type, tags, data, transaction_id, occurred_at)
                 VALUES (?, ?, ?::json, pg_current_xact_id(), CURRENT_TIMESTAMP)
                 RETURNING position
                 """;
             String insertTag = """
-                INSERT INTO event_tags (position, key, value)
+                INSERT INTO crablet_event_tags (position, key, value)
                 VALUES (?, ?, ?)
                 """;
 

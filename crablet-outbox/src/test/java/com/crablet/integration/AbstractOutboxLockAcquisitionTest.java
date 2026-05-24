@@ -66,7 +66,7 @@ abstract class AbstractOutboxLockAcquisitionTest extends AbstractCrabletTest {
         Integer lockCount = jdbcTemplate.queryForObject(
             """
             SELECT COUNT(*) 
-            FROM outbox_topic_progress 
+            FROM crablet_outbox_topic_progress 
             WHERE leader_instance IS NOT NULL 
               AND leader_heartbeat IS NOT NULL
             """,
@@ -103,7 +103,7 @@ abstract class AbstractOutboxLockAcquisitionTest extends AbstractCrabletTest {
         Integer positionsUpdated = jdbcTemplate.queryForObject(
             """
             SELECT COUNT(*) 
-            FROM outbox_topic_progress 
+            FROM crablet_outbox_topic_progress 
             WHERE last_position > 0
             """,
             Integer.class
@@ -139,7 +139,7 @@ abstract class AbstractOutboxLockAcquisitionTest extends AbstractCrabletTest {
         Integer positionsUpdated = jdbcTemplate.queryForObject(
             """
             SELECT COUNT(*) 
-            FROM outbox_topic_progress 
+            FROM crablet_outbox_topic_progress 
             WHERE last_position >= 2
             """,
             Integer.class

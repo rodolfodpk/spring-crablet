@@ -29,10 +29,10 @@ class EventTagsDriftTest extends AbstractCrabletTest {
 
         Integer missing = jdbcTemplate.queryForObject("""
             SELECT COUNT(*)
-            FROM events e
+            FROM crablet_events e
             WHERE cardinality(e.tags) > 0
               AND NOT EXISTS (
-                  SELECT 1 FROM event_tags t WHERE t.position = e.position
+                  SELECT 1 FROM crablet_event_tags t WHERE t.position = e.position
               )
             """, Integer.class);
 
@@ -51,9 +51,9 @@ class EventTagsDriftTest extends AbstractCrabletTest {
 
         Integer orphans = jdbcTemplate.queryForObject("""
             SELECT COUNT(*)
-            FROM event_tags t
+            FROM crablet_event_tags t
             WHERE NOT EXISTS (
-                SELECT 1 FROM events e WHERE e.position = t.position
+                SELECT 1 FROM crablet_events e WHERE e.position = t.position
             )
             """, Integer.class);
 
@@ -61,7 +61,7 @@ class EventTagsDriftTest extends AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("tag count in event_tags matches cardinality of events.tags per position")
+    @DisplayName("tag count in event_tags matches cardinality of crablet_events.tags per position")
     void tagCountPerPositionMatches() {
         eventStore.appendCommutative(List.of(
             AppendEvent.builder("MoneyTransferred")
@@ -74,8 +74,8 @@ class EventTagsDriftTest extends AbstractCrabletTest {
 
         Integer mismatched = jdbcTemplate.queryForObject("""
             SELECT COUNT(*)
-            FROM events e
-            JOIN (SELECT position, COUNT(*) AS tag_count FROM event_tags GROUP BY position) t
+            FROM crablet_events e
+            JOIN (SELECT position, COUNT(*) AS tag_count FROM crablet_event_tags GROUP BY position) t
                 ON t.position = e.position
             WHERE t.tag_count != cardinality(e.tags)
             """, Integer.class);
@@ -84,7 +84,7 @@ class EventTagsDriftTest extends AbstractCrabletTest {
     }
 
     @Test
-    @DisplayName("tag key and value are parsed correctly from events.tags encoding")
+    @DisplayName("tag key and value are parsed correctly from crablet_events.tags encoding")
     void tagKeyValueParsedCorrectly() {
         eventStore.appendCommutative(List.of(
             AppendEvent.builder("WalletOpened")
@@ -94,7 +94,7 @@ class EventTagsDriftTest extends AbstractCrabletTest {
         ));
 
         var row = jdbcTemplate.queryForMap(
-            "SELECT key, value FROM event_tags ORDER BY position DESC LIMIT 1");
+            "SELECT key, value FROM crablet_event_tags ORDER BY position DESC LIMIT 1");
 
         assertThat(row.get("key")).isEqualTo("wallet_id");
         assertThat(row.get("value")).isEqualTo("w=special");

@@ -409,7 +409,7 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
             try (var connection = readDataSource.getConnection();
                  var stmt = connection.prepareStatement(
                      "SELECT type, tags, data, transaction_id, position, occurred_at " +
-                     "FROM events WHERE position > ? ORDER BY position ASC LIMIT ?")) {
+                     "FROM crablet_events WHERE position > ? ORDER BY position ASC LIMIT ?")) {
                 stmt.setLong(1, lastPosition);
                 stmt.setInt(2, batchSize);
 

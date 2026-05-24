@@ -170,7 +170,7 @@ Each `AutomationHandler` bean must have a unique automation name. Invalid overla
 Add the automation progress table to your application's Flyway migrations:
 
 ```sql
-CREATE TABLE IF NOT EXISTS automation_progress (
+CREATE TABLE IF NOT EXISTS crablet_automation_progress (
     automation_name TEXT PRIMARY KEY,
     instance_id   TEXT,
     status        TEXT NOT NULL DEFAULT 'ACTIVE',
@@ -292,12 +292,12 @@ Do not override `getEventTypes()` on a `ViewBackedAutomationHandler` — it thro
 **Independent progress.** Views, automations, and outbox each track their own position. A view can successfully project an event while the automation that handles the same event fails. View projection does not block or wait for automations. Each consumer retries from its own last known position:
 
 ```text
-events table
-  → view processor updates read model and advances view_progress
+crablet_events table
+  → view processor updates read model and advances crablet_view_progress
   → automation processor sees matching event and calls decide()
   → automation reads read model
   → automation emits command or no-ops
-  → automation_progress advances only after all decisions succeed
+  → crablet_automation_progress advances only after all decisions succeed
 ```
 
 **At-least-once delivery.** The automation retries an event if `decide()` or any of its decisions fail. Progress only advances after every decision in a batch succeeds.
@@ -306,7 +306,7 @@ events table
 
 ```text
 Automation executes command successfully.
-Process crashes before automation_progress advances.
+Process crashes before crablet_automation_progress advances.
 Automation retries the same event on restart.
 The emitted command must detect the duplicate and return idempotent or throw according to policy.
 ```
@@ -361,7 +361,7 @@ AutomationDecision.ExecuteCommand / NoOp
     ↓
 CommandExecutor
     ↓
-automation_progress   — schema table that stores per-automation progress
+crablet_automation_progress   — schema table that stores per-automation progress
 ```
 
 - **Leader election**: PostgreSQL advisory locks ensure only one instance processes each automation at a time

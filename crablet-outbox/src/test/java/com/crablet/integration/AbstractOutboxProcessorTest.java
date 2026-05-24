@@ -48,7 +48,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
     
     @BeforeEach
     void setUp() {
-        // Parent's cleanDatabase() runs first and cleans events table, but ensure it's clean
+        // Parent's cleanDatabase() runs first and cleans crablet_events, but ensure it's clean
         // This is idempotent - safe to run multiple times
         try {
             IntegrationTestDbCleanup.truncateEventsAndOutboxProgressOnly(jdbcTemplate);
@@ -91,14 +91,14 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
             
             // Verify publisher was auto-registered
             Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM outbox_topic_progress WHERE topic = 'default' AND publisher = 'CountDownLatchPublisher'",
+                "SELECT COUNT(*) FROM crablet_outbox_topic_progress WHERE topic = 'default' AND publisher = 'CountDownLatchPublisher'",
                 Integer.class
             );
             assertThat(count).isGreaterThanOrEqualTo(1);
         } else {
             // CountDownLatchPublisher was not used, verify other publishers were registered
             Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM outbox_topic_progress WHERE topic = 'default'",
+                "SELECT COUNT(*) FROM crablet_outbox_topic_progress WHERE topic = 'default'",
                 Integer.class
             );
             assertThat(count).isGreaterThan(0);
@@ -134,7 +134,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
             
             // Verify publisher position was updated
             Long lastPosition = jdbcTemplate.queryForObject(
-                "SELECT last_position FROM outbox_topic_progress WHERE topic = 'default' AND publisher = 'CountDownLatchPublisher'",
+                "SELECT last_position FROM crablet_outbox_topic_progress WHERE topic = 'default' AND publisher = 'CountDownLatchPublisher'",
                 Long.class
             );
             assertThat(lastPosition).isGreaterThan(0);
@@ -144,7 +144,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
             
             // Verify that some publisher processed the event
             Long lastPosition = jdbcTemplate.queryForObject(
-                "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+                "SELECT MAX(last_position) FROM crablet_outbox_topic_progress WHERE topic = 'default'",
                 Long.class
             );
             assertThat(lastPosition).isGreaterThan(0);
@@ -190,7 +190,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
             
             // Verify publisher position was updated to the last event position
             Long lastPosition = jdbcTemplate.queryForObject(
-                "SELECT last_position FROM outbox_topic_progress WHERE topic = 'default' AND publisher = 'CountDownLatchPublisher'",
+                "SELECT last_position FROM crablet_outbox_topic_progress WHERE topic = 'default' AND publisher = 'CountDownLatchPublisher'",
                 Long.class
             );
             assertThat(lastPosition).isEqualTo(3); // Should be at position 3 (last event)
@@ -200,7 +200,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
             
             // Verify that some publisher processed all events
             Long lastPosition = jdbcTemplate.queryForObject(
-                "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+                "SELECT MAX(last_position) FROM crablet_outbox_topic_progress WHERE topic = 'default'",
                 Long.class
             );
             assertThat(lastPosition).isEqualTo(3);
@@ -255,7 +255,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
             
             // Verify that events were processed by other publishers
             Long lastPosition = jdbcTemplate.queryForObject(
-                "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+                "SELECT MAX(last_position) FROM crablet_outbox_topic_progress WHERE topic = 'default'",
                 Long.class
             );
             assertThat(lastPosition).isEqualTo(2);
@@ -314,7 +314,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
 
         // Verify publisher position was updated
         Long lastPosition = jdbcTemplate.queryForObject(
-            "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+            "SELECT MAX(last_position) FROM crablet_outbox_topic_progress WHERE topic = 'default'",
             Long.class
         );
         assertThat(lastPosition).isGreaterThan(0);
@@ -365,7 +365,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
 
         // Verify position tracking maintains order
         Long lastPosition = jdbcTemplate.queryForObject(
-            "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+            "SELECT MAX(last_position) FROM crablet_outbox_topic_progress WHERE topic = 'default'",
             Long.class
         );
         assertThat(lastPosition).isEqualTo(3L);
@@ -399,7 +399,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
 
         // Get last position
         Long lastPosition = jdbcTemplate.queryForObject(
-            "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+            "SELECT MAX(last_position) FROM crablet_outbox_topic_progress WHERE topic = 'default'",
             Long.class
         );
 
@@ -425,7 +425,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
 
         // Verify position advanced
         Long newLastPosition = jdbcTemplate.queryForObject(
-            "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+            "SELECT MAX(last_position) FROM crablet_outbox_topic_progress WHERE topic = 'default'",
             Long.class
         );
         assertThat(newLastPosition).isGreaterThan(lastPosition);
@@ -478,7 +478,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
 
         // Verify all events were processed
         Long lastPosition = jdbcTemplate.queryForObject(
-            "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+            "SELECT MAX(last_position) FROM crablet_outbox_topic_progress WHERE topic = 'default'",
             Long.class
         );
         assertThat(lastPosition).isEqualTo(5L);
@@ -498,13 +498,13 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         // But publishers should be auto-registered even with no events
         // This is expected behavior - publishers are registered when first accessed
         Integer count = jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM outbox_topic_progress WHERE topic = 'default'",
+            "SELECT COUNT(*) FROM crablet_outbox_topic_progress WHERE topic = 'default'",
             Integer.class
         );
         
         // Debug: Let's see what publishers were registered
         List<String> publishers = jdbcTemplate.queryForList(
-            "SELECT publisher FROM outbox_topic_progress WHERE topic = 'default'",
+            "SELECT publisher FROM crablet_outbox_topic_progress WHERE topic = 'default'",
             String.class
         );
         System.out.println("Registered publishers: " + publishers);
@@ -549,7 +549,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
 
         // Verify processing completed
         Long lastPosition = jdbcTemplate.queryForObject(
-            "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+            "SELECT MAX(last_position) FROM crablet_outbox_topic_progress WHERE topic = 'default'",
             Long.class
         );
         assertThat(lastPosition).isEqualTo(3L);
@@ -584,7 +584,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
 
         // Verify all events were processed
         Long lastPosition = jdbcTemplate.queryForObject(
-            "SELECT MAX(last_position) FROM outbox_topic_progress WHERE topic = 'default'",
+            "SELECT MAX(last_position) FROM crablet_outbox_topic_progress WHERE topic = 'default'",
             Long.class
         );
         assertThat(lastPosition).isEqualTo((long) batchSize);

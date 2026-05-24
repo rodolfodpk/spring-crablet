@@ -7,7 +7,7 @@ import java.time.Instant;
 
 /**
  * Detailed progress information for an outbox topic-publisher pair.
- * Contains all fields from the outbox_topic_progress table.
+ * Contains all fields from the crablet_outbox_topic_progress table.
  */
 public record OutboxProgressDetails(
     String topic,

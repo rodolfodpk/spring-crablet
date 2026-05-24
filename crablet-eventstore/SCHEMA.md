@@ -1,21 +1,19 @@
 # Database Schema
 
-Crablet adds three Flyway migrations to your PostgreSQL database — nothing else.
+Crablet adds three framework Flyway migrations to your PostgreSQL database — nothing else.
 
 | Migration | Owns | Tables |
 |---|---|---|
-| `V1__crablet_eventstore_schema.sql` | Event store | `events`, `event_tags` + 2 PL/pgSQL functions |
-| `V2__crablet_commands_schema.sql` | Command audit | `commands` |
-| `V3__crablet_poller_progress_schema.sql` | Poller infrastructure | `view_progress`, `automation_progress`, `outbox_topic_progress`, `crablet_module_scan_progress`, `crablet_processor_scan_progress` |
-
-V2 is only needed if you use `crablet-commands`. V3 is only needed if you use views, automations, or outbox. The event store (V1) has no dependency on either.
+| `V1__crablet_eventstore_schema.sql` | Core event store | `crablet_events`, `crablet_event_tags` + 2 PL/pgSQL functions |
+| `V2__crablet_commands_schema.sql` | Command audit | `crablet_commands` |
+| `V3__crablet_processing_schema.sql` | Processing progress | `crablet_outbox_topic_progress`, `crablet_view_progress`, `crablet_automation_progress`, shared-fetch progress tables |
 
 ---
 
 ## V1 — Event Store
 
 ```sql
-CREATE TABLE events
+CREATE TABLE crablet_events
 (
     type           TEXT                     NOT NULL,
     tags           TEXT[]                   NOT NULL,
@@ -31,9 +29,9 @@ CREATE TABLE events
 
 **Why `tags TEXT[]`?** Tags are stored as `key=value` strings in a Postgres array (`{"wallet_id=abc", "deposit_id=xyz"}`). A GIN index makes containment queries (`tags @> ARRAY['wallet_id=abc']`) fast without joins. This is the same array that drives DCB conflict detection — the decision model query is just a GIN lookup.
 
-**Why `xid8`?** `transaction_id` is PostgreSQL's internal transaction ID for the transaction that appended the event. It provides a safe ordering guarantee: the `append_events_if` function checks events whose `transaction_id < pg_snapshot_xmin(pg_current_snapshot())`, which excludes events from in-flight transactions — no dirty reads possible. It also links events to command audit rows without a foreign key (see V2).
+**Why `xid8`?** `transaction_id` is PostgreSQL's internal transaction ID for the transaction that appended the event. It provides a safe ordering guarantee: the `append_events_if` function checks events whose `transaction_id < pg_snapshot_xmin(pg_current_snapshot())`, which excludes events from in-flight transactions — no dirty reads possible. It also links events to command audit rows without a foreign key.
 
-**`event_tags` is derived, not canonical.** The `events.tags` array is the source of truth. `event_tags` is a key/value lookup table maintained atomically on every append, giving the poller SQL an indexed `(key, value, position)` shape instead of scanning `unnest(tags)` per row. Reading or writing tags directly should always go through `events.tags`.
+**`crablet_event_tags` is derived, not canonical.** The `crablet_events.tags` array is the source of truth. `crablet_event_tags` is a key/value lookup table maintained atomically on every append, giving the poller SQL an indexed `(key, value, position)` shape instead of scanning `unnest(tags)` per row. Reading or writing tags directly should always go through `crablet_events.tags`.
 
 ### The two append functions
 
@@ -64,18 +62,18 @@ Querying directly in SQL:
 
 ```sql
 -- exact match (uses GIN index)
-SELECT * FROM events WHERE tags @> ARRAY['wallet_id=wallet-123'];
+SELECT * FROM crablet_events WHERE tags @> ARRAY['wallet_id=wallet-123'];
 
 -- all events for a wallet, any type
-SELECT * FROM events WHERE tags @> ARRAY['wallet_id=wallet-123'] ORDER BY position;
+SELECT * FROM crablet_events WHERE tags @> ARRAY['wallet_id=wallet-123'] ORDER BY position;
 ```
 
 ---
 
-## V2 — Command Audit
+## Command Audit
 
 ```sql
-CREATE TABLE commands
+CREATE TABLE crablet_commands
 (
     command_id     UUID                     NOT NULL PRIMARY KEY,
     transaction_id xid8                     NOT NULL UNIQUE,
@@ -87,27 +85,27 @@ CREATE TABLE commands
 );
 ```
 
-`command_id` is the command identity and idempotency key. `transaction_id` is the join key to `events.transaction_id`: both are written in the same Postgres transaction, so they share the same `pg_current_xact_id()` value.
+`command_id` is the command identity and idempotency key. `transaction_id` is the join key to `crablet_events.transaction_id`: both are written in the same Postgres transaction, so they share the same `pg_current_xact_id()` value.
 
-**Why no foreign key?** The linkage is via `xid8`, not a referential constraint. Postgres does not support FK constraints on `xid8` columns. The uniqueness constraint on `commands.transaction_id` ensures one command maps unambiguously to the events it produced. The join is always `commands.transaction_id = events.transaction_id`.
+**Why no foreign key?** The linkage is via `xid8`, not a referential constraint. Postgres does not support FK constraints on `xid8` columns. The uniqueness constraint on `crablet_commands.transaction_id` ensures one command maps unambiguously to the events it produced. The join is always `crablet_commands.transaction_id = crablet_events.transaction_id`.
 
 `transaction_id` is not a business concept — it is not a deposit ID, withdrawal ID, or order ID. Those belong in `tags`.
 
 ---
 
-## V3 — Poller Progress
+## Poller Progress
 
 Five tables that track cursor positions and leader election state for the polling infrastructure:
 
 | Table | Used by |
 |---|---|
-| `view_progress` | Views — one row per named view projector |
-| `automation_progress` | Automations — one row per named automation |
-| `outbox_topic_progress` | Outbox — one row per topic/publisher pair |
+| `crablet_view_progress` | Views — one row per named view projector |
+| `crablet_automation_progress` | Automations — one row per named automation |
+| `crablet_outbox_topic_progress` | Outbox — one row per topic/publisher pair |
 | `crablet_module_scan_progress` | Shared-fetch — one row per module |
 | `crablet_processor_scan_progress` | Shared-fetch — one row per processor within a module |
 
-Each table tracks `last_position` (the highest event position processed), `status` (`ACTIVE`, `PAUSED`, `FAILED`), and leader election columns (`leader_instance`, `leader_heartbeat`). The full DDL is in [`V3__crablet_poller_progress_schema.sql`](../crablet-db-migrations/src/main/resources/db/migration/V3__crablet_poller_progress_schema.sql).
+Each table tracks `last_position` (the highest event position processed), `status` (`ACTIVE`, `PAUSED`, `FAILED`), and leader election columns (`leader_instance`, `leader_heartbeat`).
 
 Identifier lengths are enforced as `CHECK` constraints rather than `VARCHAR(n)`: types at 64 chars, topics/publishers at 128, view/automation names at 256, instance IDs at 256, module names at 64, processor IDs at 320 (accommodating outbox's `topic:publisher` composite key).
 
@@ -118,5 +116,3 @@ Identifier lengths are enforced as `CHECK` constraints rather than `VARCHAR(n)`:
 The authoritative DDL is in the migration files — not duplicated here:
 
 - [`V1__crablet_eventstore_schema.sql`](../crablet-db-migrations/src/main/resources/db/migration/V1__crablet_eventstore_schema.sql)
-- [`V2__crablet_commands_schema.sql`](../crablet-db-migrations/src/main/resources/db/migration/V2__crablet_commands_schema.sql)
-- [`V3__crablet_poller_progress_schema.sql`](../crablet-db-migrations/src/main/resources/db/migration/V3__crablet_poller_progress_schema.sql)

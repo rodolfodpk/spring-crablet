@@ -144,7 +144,7 @@ class ViewManagementServiceTest extends AbstractViewsTest {
     @Test
     @DisplayName("Given view with progress, when getting details, then returns all fields")
     void givenViewWithProgress_whenGettingDetails_thenReturnsAllFields() {
-        // Given - Insert test data into view_progress table
+        // Given - Insert test data into crablet_view_progress table
         String viewName = "test-view";
         String instanceId = "instance-123";
         long lastPosition = 100L;
@@ -308,7 +308,7 @@ class ViewManagementServiceTest extends AbstractViewsTest {
         // Given - View exists in subscription
         String viewName = "wallet-view";
         
-        // Wait a bit for view to be registered in view_progress
+        // Wait a bit for view to be registered in crablet_view_progress
         // (ViewProgressTracker auto-registers views on first access)
         viewManagementService.getStatus(viewName);
         
@@ -317,11 +317,11 @@ class ViewManagementServiceTest extends AbstractViewsTest {
         assertThat(paused).isTrue();
         
         // Then - Get details and verify status
-        // Note: Status might not be updated immediately in view_progress table
+        // Note: Status might not be updated immediately in crablet_view_progress table
         // The pause operation succeeds, but the table update might happen asynchronously
         // This test verifies the methods work together
         ViewProgressDetails details = viewManagementService.getProgressDetails(viewName);
-        // Details might be null if view not yet registered in view_progress
+        // Details might be null if view not yet registered in crablet_view_progress
         // This is acceptable - the test verifies both methods can be called together
         // If details exist, verify they're consistent
         if (details != null) {
@@ -348,7 +348,7 @@ class ViewManagementServiceTest extends AbstractViewsTest {
         // Then - Both should work
         assertThat(status).isNotNull();
         assertThat(lag).isNotNull();
-        // Details might be null if view not yet registered in view_progress
+        // Details might be null if view not yet registered in crablet_view_progress
         // This is acceptable - the test verifies both methods can be called together
     }
 

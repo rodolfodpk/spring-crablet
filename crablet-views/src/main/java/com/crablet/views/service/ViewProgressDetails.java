@@ -6,7 +6,7 @@ import java.time.Instant;
 
 /**
  * Detailed progress information for a view projection.
- * Contains all fields from the view_progress table.
+ * Contains all fields from the crablet_view_progress table.
  *
  * <p>This record provides comprehensive monitoring information including:
  * <ul>

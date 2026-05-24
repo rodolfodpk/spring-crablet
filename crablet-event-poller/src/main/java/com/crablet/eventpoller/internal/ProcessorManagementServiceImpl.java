@@ -34,7 +34,7 @@ public class ProcessorManagementServiceImpl<T extends ProcessorConfig<I>, I>
     private final DataSource readDataSource;
 
     private static final String SELECT_MAX_POSITION_SQL =
-        "SELECT COALESCE(MAX(position), 0) FROM events";
+        "SELECT COALESCE(MAX(position), 0) FROM crablet_events";
 
     public ProcessorManagementServiceImpl(
             EventProcessor<T, I> eventProcessor,
@@ -99,7 +99,7 @@ public class ProcessorManagementServiceImpl<T extends ProcessorConfig<I>, I>
 
     @Override
     public @Nullable Long getLag(I processorId) {
-        // Get max position from events table
+        // Get max position from crablet_events.
         try (Connection connection = readDataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(SELECT_MAX_POSITION_SQL);
              ResultSet rs = stmt.executeQuery()) {

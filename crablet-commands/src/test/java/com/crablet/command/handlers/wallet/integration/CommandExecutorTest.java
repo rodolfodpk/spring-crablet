@@ -214,9 +214,9 @@ class CommandExecutorTest extends AbstractCrabletTest {
         // When: execute command
         commandExecutor.execute(cmd);
 
-        // Then: verify command metadata stored in commands table
+        // Then: verify command metadata stored in crablet_commands table
         Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM commands WHERE type = ?",
+                "SELECT COUNT(*) FROM crablet_commands WHERE type = ?",
                 Integer.class,
                 "open_wallet"
         );

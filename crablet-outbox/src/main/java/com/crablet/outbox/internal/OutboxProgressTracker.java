@@ -14,7 +14,7 @@ import java.sql.SQLException;
 
 /**
  * Progress tracker for outbox processors.
- * Uses the outbox_topic_progress table to track position per (topic, publisher) pair.
+ * Uses the crablet_outbox_topic_progress table to track position per (topic, publisher) pair.
  * 
  * <p>Uses plain JDBC for consistency with eventstore module and full control.
  */
@@ -25,10 +25,10 @@ public class OutboxProgressTracker implements ProgressTracker<TopicPublisherPair
     private final DataSource dataSource;
     
     private static final String SELECT_LAST_POSITION_SQL = 
-        "SELECT last_position FROM outbox_topic_progress WHERE topic = ? AND publisher = ?";
+        "SELECT last_position FROM crablet_outbox_topic_progress WHERE topic = ? AND publisher = ?";
     
     private static final String UPDATE_LAST_POSITION_SQL = """
-        UPDATE outbox_topic_progress
+        UPDATE crablet_outbox_topic_progress
         SET last_position = ?,
             last_published_at = CURRENT_TIMESTAMP,
             error_count = 0,
@@ -38,7 +38,7 @@ public class OutboxProgressTracker implements ProgressTracker<TopicPublisherPair
         """;
     
     private static final String INCREMENT_ERROR_COUNT_SQL = """
-        UPDATE outbox_topic_progress
+        UPDATE crablet_outbox_topic_progress
         SET error_count = error_count + 1,
             last_error = ?,
             status = CASE 
@@ -50,7 +50,7 @@ public class OutboxProgressTracker implements ProgressTracker<TopicPublisherPair
         """;
     
     private static final String RESET_ERROR_COUNT_SQL = """
-        UPDATE outbox_topic_progress
+        UPDATE crablet_outbox_topic_progress
         SET error_count = 0,
             last_error = NULL,
             updated_at = CURRENT_TIMESTAMP
@@ -58,13 +58,13 @@ public class OutboxProgressTracker implements ProgressTracker<TopicPublisherPair
         """;
     
     private static final String SELECT_STATUS_SQL = 
-        "SELECT status FROM outbox_topic_progress WHERE topic = ? AND publisher = ?";
+        "SELECT status FROM crablet_outbox_topic_progress WHERE topic = ? AND publisher = ?";
     
     private static final String UPDATE_STATUS_SQL = 
-        "UPDATE outbox_topic_progress SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE topic = ? AND publisher = ?";
+        "UPDATE crablet_outbox_topic_progress SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE topic = ? AND publisher = ?";
     
     private static final String INSERT_TOPIC_PUBLISHER_SQL = """
-        INSERT INTO outbox_topic_progress (topic, publisher, last_position, status, leader_instance, leader_heartbeat)
+        INSERT INTO crablet_outbox_topic_progress (topic, publisher, last_position, status, leader_instance, leader_heartbeat)
         VALUES (?, ?, 0, 'ACTIVE', ?, CURRENT_TIMESTAMP)
         ON CONFLICT (topic, publisher) DO NOTHING
         """;

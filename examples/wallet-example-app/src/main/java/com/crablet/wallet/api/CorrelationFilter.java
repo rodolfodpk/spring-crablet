@@ -16,7 +16,7 @@ import java.util.UUID;
  * <p>
  * If the caller provides an {@code X-Correlation-ID} header, that value is used;
  * otherwise a fresh UUID is generated. The ID is echoed back in the response header
- * so callers can trace their request through logs and the events table.
+ * so callers can trace their request through logs and the crablet_events table.
  * <p>
  * The {@link ScopedValue} scope exits automatically when the filter chain returns —
  * no explicit cleanup is needed.

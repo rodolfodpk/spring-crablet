@@ -308,7 +308,7 @@ class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
 
         // Then: verify command stored
         Integer openCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM commands WHERE type = ?",
+                "SELECT COUNT(*) FROM crablet_commands WHERE type = ?",
                 Integer.class,
                 "open_wallet"
         );

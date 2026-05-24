@@ -377,7 +377,7 @@ Crablet Views uses the generic event processor infrastructure:
 
 - **Event Fetcher**: Fetches events from read replica based on subscription filters
 - **Event Handler**: Delegates to user-provided `ViewProjector` implementations
-- **Progress Tracker**: Tracks processing progress per view in `view_progress` table
+- **Progress Tracker**: Tracks processing progress per view in `crablet_view_progress` table
 - **Leader Election**: Uses PostgreSQL advisory locks for distributed leader election. See [Leader Election Guide](../docs/user/LEADER_ELECTION.md) for details.
 - **Backoff Strategy**: Exponential backoff for error recovery
 
@@ -494,7 +494,7 @@ The views module provides `ViewManagementService` for managing and monitoring vi
 
 - **Operations**: Pause, resume, reset views
 - **Basic Monitoring**: Status, lag, backoff information
-- **Detailed Monitoring**: Complete progress information from `view_progress` table
+- **Detailed Monitoring**: Complete progress information from `crablet_view_progress` table
 
 ### Usage
 
@@ -565,7 +565,7 @@ ViewProgressDetails details = viewManagementService.getProgressDetails("wallet-v
 
 ## Progress Tracking
 
-Each view tracks its own progress independently in the `view_progress` table:
+Each view tracks its own progress independently in the `crablet_view_progress` table:
 
 - `view_name`: Unique identifier for the view
 - `last_position`: Last processed event position
@@ -578,7 +578,7 @@ Each view tracks its own progress independently in the `view_progress` table:
 
 Views use poller progress for error recovery:
 
-1. On error, the view records the error in `view_progress`
+1. On error, the view records the error in `crablet_view_progress`
 2. Progress is not advanced, so the same event is redelivered on a later cycle
 3. After `max-errors` consecutive errors, the view is marked `FAILED`
 4. After successful processing, the error count resets

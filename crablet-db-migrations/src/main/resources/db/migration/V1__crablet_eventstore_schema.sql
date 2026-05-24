@@ -1,19 +1,19 @@
 -- Crablet event store schema for DCB-style event sourcing.
 --
--- events.tags is the canonical tag storage used by command idempotency and DCB
+-- crablet_events.tags is the canonical tag storage used by command idempotency and DCB
 -- conflict checks through GIN-backed containment queries.
 --
--- event_tags is derived data maintained atomically on append. It exists to give
+-- crablet_event_tags is derived data maintained atomically on append. It exists to give
 -- legacy per-processor poller SQL an indexed key/value lookup shape instead of
--- scanning unnest(events.tags) per candidate row.
+-- scanning unnest(crablet_events.tags) per candidate row.
 --
 -- Using transaction_id for proper ordering guarantees (see: https://event-driven.io/en/ordering_in_postgres_outbox/)
 -- transaction_id is PostgreSQL's xid8 for the database transaction that appended the row.
 -- It is shared by every event appended in the same transaction and links those events
--- to the command audit row (see V2__crablet_commands_schema.sql). It is not a business
+-- to the command audit row (see crablet_commands table). It is not a business
 -- transaction identifier such as deposit_id, withdrawal_id, or transfer_id.
 
-CREATE TABLE events
+CREATE TABLE crablet_events
 (
     type           TEXT                     NOT NULL,
     tags           TEXT[]                   NOT NULL,
@@ -26,23 +26,23 @@ CREATE TABLE events
     CONSTRAINT chk_event_type_length CHECK (LENGTH(type) <= 64)
 );
 
-CREATE TABLE event_tags
+CREATE TABLE crablet_event_tags
 (
     position BIGINT NOT NULL,
     key      TEXT   NOT NULL,
     value    TEXT   NOT NULL,
     PRIMARY KEY (key, value, position),
-    CONSTRAINT fk_event_tags_position FOREIGN KEY (position) REFERENCES events(position) ON DELETE CASCADE
+    CONSTRAINT fk_crablet_event_tags_position FOREIGN KEY (position) REFERENCES crablet_events(position) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_events_transaction_position_btree ON events (transaction_id, position);
-CREATE INDEX idx_events_type_position ON events (type, position);
-CREATE INDEX idx_events_tags_gin ON events USING GIN (tags);
-CREATE INDEX idx_events_correlation_id ON events (correlation_id)
+CREATE INDEX idx_crablet_events_transaction_position_btree ON crablet_events (transaction_id, position);
+CREATE INDEX idx_crablet_events_type_position ON crablet_events (type, position);
+CREATE INDEX idx_crablet_events_tags_gin ON crablet_events USING GIN (tags);
+CREATE INDEX idx_crablet_events_correlation_id ON crablet_events (correlation_id)
     WHERE correlation_id IS NOT NULL;
 
-CREATE INDEX idx_event_tags_position ON event_tags (position);
-CREATE INDEX idx_event_tags_key_position ON event_tags (key, position);
+CREATE INDEX idx_crablet_event_tags_position ON crablet_event_tags (position);
+CREATE INDEX idx_crablet_event_tags_key_position ON crablet_event_tags (key, position);
 
 CREATE OR REPLACE FUNCTION append_events_batch(
     p_types          TEXT[],
@@ -55,7 +55,7 @@ CREATE OR REPLACE FUNCTION append_events_batch(
 $$
 BEGIN
     WITH inserted AS (
-        INSERT INTO events (type, tags, data, transaction_id, occurred_at,
+        INSERT INTO crablet_events (type, tags, data, transaction_id, occurred_at,
                             correlation_id, causation_id)
         SELECT t.type,
                t.tag_string::TEXT[],
@@ -67,7 +67,7 @@ BEGIN
         FROM UNNEST($1, $2, $3) AS t(type, tag_string, data)
         RETURNING position, tags
     )
-    INSERT INTO event_tags (position, key, value)
+    INSERT INTO crablet_event_tags (position, key, value)
     SELECT i.position,
            split_part(tag, '=', 1)                      AS key,
            substring(tag FROM position('=' IN tag) + 1) AS value
@@ -88,7 +88,9 @@ CREATE OR REPLACE FUNCTION append_events_if(
     p_idempotency_tags      TEXT[]                   DEFAULT NULL,
     p_occurred_at           TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_correlation_id        UUID                     DEFAULT NULL,
-    p_causation_id          BIGINT                   DEFAULT NULL
+    p_causation_id          BIGINT                   DEFAULT NULL,
+    p_notify_channel        TEXT                     DEFAULT NULL,
+    p_notify_payload        TEXT                     DEFAULT NULL
 ) RETURNS JSONB AS
 $$
 DECLARE
@@ -118,7 +120,7 @@ BEGIN
         CASE
             WHEN p_idempotency_types IS NOT NULL OR p_idempotency_tags IS NOT NULL THEN
                 EXISTS (
-                    SELECT 1 FROM events e
+                    SELECT 1 FROM crablet_events e
                     WHERE (p_idempotency_types IS NULL OR e.type = ANY(p_idempotency_types))
                       AND (p_idempotency_tags IS NULL OR e.tags @> p_idempotency_tags)
                     LIMIT 1
@@ -130,7 +132,7 @@ BEGIN
                 FALSE
             ELSE
                 EXISTS (
-                    SELECT 1 FROM events e
+                    SELECT 1 FROM crablet_events e
                     WHERE (p_event_types IS NULL OR e.type = ANY(p_event_types))
                       AND (p_condition_tags IS NULL OR e.tags @> p_condition_tags)
                       AND (p_after_cursor_position IS NULL OR e.position > p_after_cursor_position)
@@ -165,6 +167,14 @@ BEGIN
         p_causation_id
     );
 
+    IF p_notify_channel IS NOT NULL THEN
+        BEGIN
+            PERFORM pg_notify(p_notify_channel, COALESCE(p_notify_payload, '*'));
+        EXCEPTION WHEN OTHERS THEN
+            RAISE WARNING 'pg_notify failed on channel %: %', p_notify_channel, SQLERRM;
+        END;
+    END IF;
+
     RETURN jsonb_build_object(
         'success',        true,
         'message',        'events appended successfully',
@@ -174,23 +184,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON TABLE events IS
+COMMENT ON TABLE crablet_events IS
     'Canonical Crablet event log. tags is the source of truth for event tags.';
 
-COMMENT ON TABLE event_tags IS
-    'Derived tag lookup table maintained atomically from events.tags for poller filtering.';
+COMMENT ON TABLE crablet_event_tags IS
+    'Derived tag lookup table maintained atomically from crablet_events.tags for poller filtering.';
 
-COMMENT ON COLUMN events.correlation_id IS
+COMMENT ON COLUMN crablet_events.correlation_id IS
     'Business operation thread ID shared by all events caused by one user request, including automation-triggered downstream events.';
 
-COMMENT ON COLUMN events.causation_id IS
-    'Position (events.position) of the event that directly triggered this event. NULL for direct user actions.';
+COMMENT ON COLUMN crablet_events.causation_id IS
+    'Position (crablet_events.position) of the event that directly triggered this event. NULL for direct user actions.';
 
-COMMENT ON COLUMN events.transaction_id IS
+COMMENT ON COLUMN crablet_events.transaction_id IS
     'PostgreSQL xid8 for the transaction that appended this event; shared by all events appended in the same transaction and used to join command audit rows. Not a business transaction ID.';
 
 COMMENT ON FUNCTION append_events_batch(TEXT[], TEXT[], JSONB[], TIMESTAMP WITH TIME ZONE, UUID, BIGINT) IS
-    'Insert events with application-controlled timestamps and maintain derived event_tags rows.';
+    'Insert events with application-controlled timestamps and maintain derived crablet_event_tags rows.';
 
-COMMENT ON FUNCTION append_events_if(TEXT[], TEXT[], JSONB[], TEXT[], TEXT[], BIGINT, TEXT[], TEXT[], TIMESTAMP WITH TIME ZONE, UUID, BIGINT) IS
-    'Conditionally insert events using DCB conflict checks over canonical events.tags.';
+COMMENT ON FUNCTION append_events_if(TEXT[], TEXT[], JSONB[], TEXT[], TEXT[], BIGINT, TEXT[], TEXT[], TIMESTAMP WITH TIME ZONE, UUID, BIGINT, TEXT, TEXT) IS
+    'Conditionally insert events using DCB conflict checks over canonical crablet_events.tags and optionally notify append listeners on commit.';

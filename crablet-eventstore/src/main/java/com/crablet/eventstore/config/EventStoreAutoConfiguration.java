@@ -11,8 +11,6 @@ import com.crablet.eventstore.internal.EventRepositoryImpl;
 import com.crablet.eventstore.internal.EventStoreImpl;
 import com.crablet.eventstore.internal.EventStoreNotificationProperties;
 import com.crablet.eventstore.internal.ReadReplicaProperties;
-import com.crablet.eventstore.notify.EventAppendNotifier;
-import com.crablet.eventstore.notify.PostgresNotifyEventAppendNotifier;
 import com.crablet.eventstore.query.EventRepository;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -158,17 +156,6 @@ public class EventStoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public EventAppendNotifier eventAppendNotifier(
-            WriteDataSource writeDataSource,
-            EventStoreNotificationProperties notificationProperties) {
-        return new PostgresNotifyEventAppendNotifier(
-                writeDataSource.dataSource(),
-                notificationProperties.getChannel(),
-                notificationProperties.getPayload());
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
     public EventStore eventStore(
             WriteDataSource writeDataSource,
             ReadDataSource readDataSource,
@@ -176,7 +163,7 @@ public class EventStoreAutoConfiguration {
             EventStoreConfig config,
             ClockProvider clock,
             ApplicationEventPublisher eventPublisher,
-            EventAppendNotifier eventAppendNotifier) {
+            EventStoreNotificationProperties notificationProperties) {
         return new EventStoreImpl(
                 writeDataSource.dataSource(),
                 readDataSource.dataSource(),
@@ -184,7 +171,7 @@ public class EventStoreAutoConfiguration {
                 config,
                 clock,
                 eventPublisher,
-                eventAppendNotifier);
+                notificationProperties.getChannel());
     }
 
     @Bean

@@ -3,7 +3,7 @@ package com.crablet.wallet.cleanup;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * Seeds {@code view_progress} for the wallet example's four view processors.
+ * Seeds {@code crablet_view_progress} for the wallet example's four view processors.
  */
 public final class WalletViewProgressFixtures {
 
@@ -12,7 +12,7 @@ public final class WalletViewProgressFixtures {
     public static void reseedDefaultWalletViews(JdbcTemplate jdbc) {
         jdbc.update(
                 """
-                INSERT INTO view_progress (view_name, status, last_position, last_updated_at, created_at)
+                INSERT INTO crablet_view_progress (view_name, status, last_position, last_updated_at, created_at)
                 VALUES
                     ('wallet-balance-view',     'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
                     ('wallet-transaction-view', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),

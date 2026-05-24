@@ -19,7 +19,7 @@ import java.util.Map;
 
 /**
  * Management service for automations, extending the generic {@link ProcessorManagementService}
- * with detailed progress monitoring from the {@code automation_progress} table.
+ * with detailed progress monitoring from the {@code crablet_automation_progress} table.
  *
  * <p>Applications can inject this as either:
  * <ul>
@@ -38,14 +38,14 @@ public class AutomationManagementService implements ProcessorManagementService<S
     private static final String SELECT_PROGRESS_SQL = """
         SELECT automation_name, instance_id, status, last_position, error_count,
                last_error, last_error_at, last_updated_at, created_at
-        FROM automation_progress
+        FROM crablet_automation_progress
         WHERE automation_name = ?
         """;
 
     private static final String SELECT_ALL_PROGRESS_SQL = """
         SELECT automation_name, instance_id, status, last_position, error_count,
                last_error, last_error_at, last_updated_at, created_at
-        FROM automation_progress
+        FROM crablet_automation_progress
         """;
 
     public AutomationManagementService(

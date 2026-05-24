@@ -18,21 +18,21 @@ public final class WalletIntegrationTestDbCleanup {
         jdbc.execute("TRUNCATE TABLE wallet_statement_view CASCADE");
     }
 
-    /** Default {@link com.crablet.wallet.AbstractWalletTest} cleanup: events, commands, wallet views, then view_progress seed. */
+    /** Default {@link com.crablet.wallet.AbstractWalletTest} cleanup: events, commands, wallet views, then crablet_view_progress seed. */
     public static void cleanDefaultWalletIntegrationTest(JdbcTemplate jdbc) {
-        jdbc.execute("TRUNCATE TABLE event_tags");
-        jdbc.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-        jdbc.execute("TRUNCATE TABLE commands CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_event_tags");
+        jdbc.execute("TRUNCATE TABLE crablet_events RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_commands CASCADE");
         truncateWalletMaterializedViews(jdbc);
         WalletViewProgressFixtures.reseedDefaultWalletViews(jdbc);
     }
 
-    /** View lifecycle E2E: events, commands, view_progress, wallet projection tables (no outbox). */
+    /** View lifecycle E2E: events, commands, crablet_view_progress, wallet projection tables (no outbox). */
     public static void truncateForWalletViewLifecycleE2e(JdbcTemplate jdbc) {
-        jdbc.execute("TRUNCATE TABLE event_tags");
-        jdbc.execute("TRUNCATE TABLE events RESTART IDENTITY CASCADE");
-        jdbc.execute("TRUNCATE TABLE commands CASCADE");
-        jdbc.execute("TRUNCATE TABLE view_progress CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_event_tags");
+        jdbc.execute("TRUNCATE TABLE crablet_events RESTART IDENTITY CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_commands CASCADE");
+        jdbc.execute("TRUNCATE TABLE crablet_view_progress CASCADE");
         truncateWalletMaterializedViews(jdbc);
     }
 

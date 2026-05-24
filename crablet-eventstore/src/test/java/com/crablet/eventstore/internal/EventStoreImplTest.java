@@ -18,6 +18,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.postgresql.PGConnection;
+import org.postgresql.PGNotification;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.context.ApplicationEventPublisher;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -31,6 +33,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -126,6 +129,15 @@ class EventStoreImplTest {
                 .build();
     }
 
+    private AppendEvent typedAppendEvent(String type) {
+        String id = UUID.randomUUID().toString();
+        return AppendEvent.builder(type)
+                .tag("test_id", id)
+                .tag("category", "test")
+                .data(new TestEvent(id, type, clockProvider.now()))
+                .build();
+    }
+
     @Test
     @SuppressWarnings("NullAway")
     void appendCommutative_acceptsNullTagsOnEvent() {
@@ -170,6 +182,149 @@ class EventStoreImplTest {
         // Then - Event was persisted successfully and transaction ID returned
         assertNotNull(transactionId);
         assertFalse(transactionId.isEmpty());
+    }
+
+    @Test
+    void appendCommutativeWithNotifyChannelDeliversPgNotifyFromAppendFunction() throws Exception {
+        EventStore notifyingStore = new EventStoreImpl(
+                dataSource, dataSource, objectMapper, newConfig(),
+                clockProvider, mock(ApplicationEventPublisher.class), "crablet_events");
+
+        try (Connection listenConn = dataSource.getConnection()) {
+            listen(listenConn, "crablet_events");
+
+            notifyingStore.appendCommutative(List.of(appendEvent(UUID.randomUUID().toString(), "notify")));
+
+            PGNotification[] notifications = notifications(listenConn, 5000);
+            assertThat(notifications)
+                    .as("expected notification from append_events_if")
+                    .isNotNull()
+                    .isNotEmpty();
+            assertThat(notifications[0].getName()).isEqualTo("crablet_events");
+            assertThat(notifications[0].getParameter()).contains("TestEvent");
+            assertThat(notifications[0].getParameter()).contains("test_id");
+        }
+    }
+
+    @Test
+    void appendCommutativeWithoutNotifyChannelDoesNotInvokePgNotify() throws Exception {
+        try (Connection listenConn = dataSource.getConnection()) {
+            listen(listenConn, "crablet_events");
+
+            eventStore.appendCommutative(List.of(appendEvent(UUID.randomUUID().toString(), "no-notify")));
+
+            assertThat(notifications(listenConn, 500)).isNullOrEmpty();
+        }
+    }
+
+    @Test
+    void rolledBackTransactionDoesNotDeliverPgNotify() throws Exception {
+        EventStore notifyingStore = new EventStoreImpl(
+                dataSource, dataSource, objectMapper, newConfig(),
+                clockProvider, mock(ApplicationEventPublisher.class), "crablet_events");
+
+        try (Connection listenConn = dataSource.getConnection()) {
+            listen(listenConn, "crablet_events");
+
+            assertThrows(IllegalStateException.class, () -> notifyingStore.executeInTransaction(txEventStore -> {
+                txEventStore.appendCommutative(List.of(appendEvent(UUID.randomUUID().toString(), "rollback-notify")));
+                throw new IllegalStateException("rollback");
+            }));
+
+            assertThat(notifications(listenConn, 500)).isNullOrEmpty();
+        }
+    }
+
+    @Test
+    void multipleAppendsInCommittedTransactionDeliverOneNotificationPerDistinctPayload() throws Exception {
+        EventStore notifyingStore = new EventStoreImpl(
+                dataSource, dataSource, objectMapper, newConfig(),
+                clockProvider, mock(ApplicationEventPublisher.class), "crablet_events");
+
+        try (Connection listenConn = dataSource.getConnection()) {
+            listen(listenConn, "crablet_events");
+
+            notifyingStore.executeInTransaction(txEventStore -> {
+                txEventStore.appendCommutative(List.of(typedAppendEvent("TxNotifyOne")));
+                txEventStore.appendCommutative(List.of(typedAppendEvent("TxNotifyTwo")));
+                return "committed";
+            });
+
+            PGNotification[] notifications = notifications(listenConn, 5000);
+            assertThat(notifications)
+                    .as("expected both deferred transaction notifications after commit")
+                    .isNotNull()
+                    .hasSize(2);
+            List<String> payloads = List.of(notifications).stream()
+                    .map(PGNotification::getParameter)
+                    .toList();
+            assertThat(payloads)
+                    .containsExactlyInAnyOrder("TxNotifyOne|category,test_id", "TxNotifyTwo|category,test_id");
+        }
+    }
+
+    @Test
+    void sqlDirectCallWithOldElevenArgumentSignatureStillSucceeds() throws Exception {
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement()) {
+            ResultSet rs = statement.executeQuery("""
+                    SELECT append_events_if(
+                        ARRAY['SqlDirectEvent']::text[],
+                        ARRAY['{sql_id=old_signature}']::text[],
+                        ARRAY['{}'::jsonb]::jsonb[],
+                        NULL::text[],
+                        NULL::text[],
+                        NULL::bigint,
+                        NULL::text[],
+                        NULL::text[],
+                        CURRENT_TIMESTAMP,
+                        NULL::uuid,
+                        NULL::bigint
+                    )
+                    """);
+
+            assertThat(rs.next()).isTrue();
+            assertThat(rs.getString(1)).contains("\"success\": true");
+        }
+
+        assertThat(eventStore.exists(Query.forEventAndTag("SqlDirectEvent", "sql_id", "old_signature")))
+                .isTrue();
+    }
+
+    @Test
+    void oversizedNotifyPayloadWarningDoesNotFailAppend() throws Exception {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("""
+                     SELECT append_events_if(
+                         ARRAY['OversizedNotifyEvent']::text[],
+                         ARRAY['{sql_id=oversized_payload}']::text[],
+                         ARRAY['{}'::jsonb]::jsonb[],
+                         NULL::text[],
+                         NULL::text[],
+                         NULL::bigint,
+                         NULL::text[],
+                         NULL::text[],
+                         CURRENT_TIMESTAMP,
+                         NULL::uuid,
+                         NULL::bigint,
+                         ?::text,
+                         ?::text
+                     )
+                     """)) {
+            statement.setString(1, "crablet_events");
+            statement.setString(2, "x".repeat(9000));
+
+            ResultSet rs = statement.executeQuery();
+
+            assertThat(rs.next()).isTrue();
+            assertThat(rs.getString(1)).contains("\"success\": true");
+            assertThat(statement.getWarnings() != null)
+                    .as("expected pg_notify warning to be surfaced on the statement")
+                    .isTrue();
+        }
+
+        assertThat(eventStore.exists(Query.forEventAndTag("OversizedNotifyEvent", "sql_id", "oversized_payload")))
+                .isTrue();
     }
 
     @Test
@@ -280,7 +435,7 @@ class EventStoreImplTest {
 
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(
-                     "SELECT type, data, metadata FROM commands WHERE transaction_id = ?::xid8")) {
+                     "SELECT type, data, metadata FROM crablet_commands WHERE transaction_id = ?::xid8")) {
             stmt.setString(1, transactionId);
             try (ResultSet rs = stmt.executeQuery()) {
                 assertTrue(rs.next());
@@ -311,7 +466,7 @@ class EventStoreImplTest {
         assertThat(duplicate).isFalse();
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(
-                     "SELECT type, data, occurred_at FROM commands WHERE command_id = ?")) {
+                     "SELECT type, data, occurred_at FROM crablet_commands WHERE command_id = ?")) {
             stmt.setObject(1, commandId);
             try (ResultSet rs = stmt.executeQuery()) {
                 assertTrue(rs.next());
@@ -338,7 +493,7 @@ class EventStoreImplTest {
         assertThat(inserted).isTrue();
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(
-                     "SELECT type, data, occurred_at FROM commands WHERE command_id = ?")) {
+                     "SELECT type, data, occurred_at FROM crablet_commands WHERE command_id = ?")) {
             stmt.setObject(1, commandId);
             try (ResultSet rs = stmt.executeQuery()) {
                 assertTrue(rs.next());
@@ -363,7 +518,7 @@ class EventStoreImplTest {
         assertThat(inserted).isTrue();
         try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement(
-                     "SELECT type, data, occurred_at FROM commands WHERE type = ? AND data @> ?::jsonb")) {
+                     "SELECT type, data, occurred_at FROM crablet_commands WHERE type = ? AND data @> ?::jsonb")) {
             stmt.setString(1, "PublicAuditCommand");
             stmt.setString(2, "{\"id\":\"" + testId + "\"}");
             try (ResultSet rs = stmt.executeQuery()) {
@@ -473,6 +628,16 @@ class EventStoreImplTest {
         c.setTransactionIsolation("READ_COMMITTED");
         c.setFetchSize(1000);
         return c;
+    }
+
+    private static void listen(Connection connection, String channel) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("LISTEN " + channel);
+        }
+    }
+
+    private static PGNotification[] notifications(Connection connection, int timeoutMillis) throws SQLException {
+        return connection.unwrap(PGConnection.class).getNotifications(timeoutMillis);
     }
 
     static class CountingDataSource implements DataSource {
