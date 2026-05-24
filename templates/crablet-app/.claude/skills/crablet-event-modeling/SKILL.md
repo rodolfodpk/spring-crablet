@@ -1,5 +1,5 @@
 ---
-name: event-modeling
+name: crablet-event-modeling
 description: >
   Use this skill when modelling or revising domain behaviour for this Crablet app—events,
   commands in event-model.yaml, views, automations, and outbox—with Event Modeling facilitation

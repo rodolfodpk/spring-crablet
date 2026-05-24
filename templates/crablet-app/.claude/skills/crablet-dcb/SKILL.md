@@ -4,7 +4,7 @@ description: >
   Use this skill in this Crablet application for Dynamic Consistency Boundary (DCB) patterns:
   idempotent vs commutative vs non-commutative commands, tags as the consistency boundary,
   guardEvents lifecycle preconditions, and diagnosing ConcurrencyException. For modeling
-  workshop flow and event-model.yaml structure, see /event-modeling; for sequencing plan,
+  workshop flow and event-model.yaml structure, see /crablet-event-modeling; for sequencing plan,
   generate, and verify around a slice, see /crablet-app-dev.
 ---
 
@@ -19,13 +19,13 @@ In **event-model.yaml**, `pattern` selects the coarse strategy (`idempotent` |
 on events and commands scope who races with whom. **`guardEvents`** declares lifecycle facts
 required before append (orthogonal to commutative vs cursor-based concurrency).
 
-Routing: workshop and YAML shape → `/event-modeling`. Slice sequencing and codegen →
+Routing: workshop and YAML shape → `/crablet-event-modeling`. Slice sequencing and codegen →
 `/crablet-app-dev`.
 
 ## Pattern decision (three cases)
 
 Declares **idempotent**, **commutative**, or **non-commutative** in the YAML (see
-`/event-modeling` for field meanings).
+`/crablet-event-modeling` for field meanings).
 
 | YAML pattern | Typical use | Boundary / concurrency idea |
 |---|---|---|
@@ -57,7 +57,7 @@ running collaboration**. For visible multi-step workflows, prefer explicit **TOD
 1. Fact committed → automation or poll sees work in a view row.
 2. Next command emits the next fact; **retry-safe** handlers absorb at-least-once delivery.
 
-Model that flow in `/event-modeling`; implement handler idempotency and patterns here.
+Model that flow in `/crablet-event-modeling`; implement handler idempotency and patterns here.
 
 ## Automation and at-least-once retries
 

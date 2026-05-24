@@ -17,7 +17,7 @@ This skill is for contributors changing the spring-crablet framework repository.
 - Framework code changes use this skill, including DCB implementation changes.
 - Choosing or diagnosing DCB for an application command handler uses `crablet-dcb`.
 - Building generated applications or feature slices uses `crablet-app-dev`.
-- Workshop-level `event-model.yaml` design uses `event-modeling`.
+- Workshop-level `event-model.yaml` design uses `crablet-event-modeling`.
 
 ## Maintainer Sources
 
@@ -45,7 +45,7 @@ Treat these as current repository policy unless the change explicitly revises th
 - Generic poller handlers should not accept raw `DataSource`.
 - View projection writes are owned by `crablet-views`, not by the generic poller contract.
 - Poller-backed modules model global module defaults plus per-processor configuration.
-- Shared-fetch mode is opt-in per module and uses the consolidated poller progress schema in `V2__crablet_poller_progress_schema.sql`.
+- Shared-fetch mode is opt-in per module and uses the consolidated poller progress schema in `V3__crablet_poller_progress_schema.sql`.
 - LISTEN wakeup uses `crablet.event-poller.notifications.jdbc-url` and must be a direct Postgres connection.
 - The eventstore sends NOTIFY after every append; there is no separate eventstore flag.
 - `crablet-commands-web` is server-agnostic at runtime and depends only on `jakarta.servlet-api`.
@@ -57,7 +57,7 @@ Treat these as current repository policy unless the change explicitly revises th
 
 ## Eventstore Schema Rules
 
-- Framework Flyway migrations are consolidated: eventstore schema lives in `V1__crablet_eventstore_schema.sql`; poller progress schema lives in `V2__crablet_poller_progress_schema.sql`.
+- Framework Flyway migrations are split by module: V1=`V1__crablet_eventstore_schema.sql` (events, event_tags, append functions), V2=`V2__crablet_commands_schema.sql` (commands table, unique transaction_id index), V3=`V3__crablet_poller_progress_schema.sql` (poller progress tables).
 - Keep migration copies in `crablet-db-migrations` and `crablet-test-support` byte-for-byte aligned.
 - `events.tags` is canonical for DCB/idempotency command consistency checks and is indexed with GIN for `@>` containment.
 - `event_tags` is a derived, transactionally maintained lookup table for poller filtering only. Exact tag filters use `(key, value, position)`; broad key-existence filters use `(key, position)`.

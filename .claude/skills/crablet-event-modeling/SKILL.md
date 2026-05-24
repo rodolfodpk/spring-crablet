@@ -1,5 +1,5 @@
 ---
-name: event-modeling
+name: crablet-event-modeling
 description: >
   Conducts a structured event-modeling workshop with the user to produce an event-model.yaml
   file for a given domain. Use when the user wants to design a new feature or application using
@@ -184,12 +184,21 @@ Ask: are there any event-driven reactions or policies? First classify each one u
 system-driven command emission. Human decisions belong in `views:` + `commands:`; external
 publication belongs in `outbox:`.
 
-For each automation:
-- Name it (kebab-case)
-- `triggeredBy` — the event that fires it
+For each automation, choose one of two forms:
+
+**View-backed (preferred when the automation reads accumulated state):**
+- `readsViews` (list) — views whose event subscriptions define the wake events; generates `ViewBackedAutomationHandler`; do NOT add `triggeredBy` — wake events are inferred from the named views at startup
 - `emitsCommand` — the command to emit when the condition passes
 - `condition` — explicit expression (not vague)
-- `readsView` — if the condition depends on accumulated state
+- `wakeEventsExtra` — optional; event types to add beyond those inferred from views
+- `wakeEventsExclude` — optional; event types to exclude from the inferred set
+
+**Simple (no accumulated state):**
+- `triggeredBy` — the single event that fires it
+- `emitsCommand` — the command to emit when the condition passes
+- `condition` — explicit expression (not vague)
+
+`readsView` (singular) is legacy sugar still accepted as a one-element `readsViews`; prefer `readsViews` in new models.
 
 ### 5. Add Outbox (optional)
 

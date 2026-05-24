@@ -27,7 +27,7 @@ describe one vertical slice using Event Modeling workshop language, let the assi
 `event-model.yaml`, and then generate code from that file. Codex and other agents can use the same
 Makefile/CLI workflow.
 When using Claude Code, start prompts with the relevant skill name for predictable routing, for
-example `/crablet-greenfield`, `/event-modeling`, or `/crablet-codegen`; see
+example `/crablet-greenfield`, `/crablet-event-modeling`, or `/crablet-codegen`; see
 [AI Skills](AI_SKILLS.md).
 
 ## At A Glance

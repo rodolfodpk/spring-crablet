@@ -38,7 +38,7 @@ grep_markers() {
 }
 
 SKILL_IDS=(
-  event-modeling
+  crablet-event-modeling
   crablet-dcb
   crablet-greenfield
   crablet-app-dev
@@ -54,7 +54,7 @@ for id in "${SKILL_IDS[@]}"; do
   require_name_frontmatter "$id" "$path"
 done
 
-grep_markers "${SKILLS}/event-modeling/SKILL.md" \
+grep_markers "${SKILLS}/crablet-event-modeling/SKILL.md" \
   'event-model.yaml' \
   'Given/When/Then' \
   'Policies in Crablet'

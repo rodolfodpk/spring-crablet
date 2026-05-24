@@ -18,21 +18,24 @@ DCB was introduced by Sara Pellegrini ("Killing the Aggregate"). Official spec: 
 
 Instead of locking a fixed aggregate stream, you define a **dynamic query (decision model)** that captures which events are relevant to your business decision — then check if any of those events appeared after you read state (cursor-based optimistic locking).
 
-## The 3 DCB Patterns — Decision Tree
+## The 4 DCB Patterns — Decision Tree
 
 ```
 Is this creating a NEW entity that must be unique?
-  YES → Pattern 1: withIdempotencyCheck()
+  YES → Pattern 1: Idempotent
   NO  → Is the operation commutative? (order doesn't affect outcome)
-          YES → Pattern 2: AppendCondition.empty()
-          NO  → Pattern 3: AppendConditionBuilder(decisionModel, cursor)
+          YES → Does the entity need to exist / be active?
+                  NO  → Pattern 2: Commutative (AppendCondition.empty())
+                  YES → Pattern 2b: CommutativeGuarded (lifecycle guard only)
+          NO  → Pattern 3: NonCommutative (cursor-based)
 ```
 
-| Pattern | Operation examples | AppendCondition | Parallel-safe? |
+| Pattern | Operation examples | `CommandDecision` | Parallel-safe? |
 |---------|-------------------|-----------------|---------------|
-| **1. Idempotency** | OpenWallet, CreateAccount | `withIdempotencyCheck(type, tagKey, tagValue)` | ✅ |
-| **2. Empty (commutative)** | Deposit, AddItem | `AppendCondition.empty()` | ✅ |
-| **3. Cursor (non-commutative)** | Withdraw, Transfer, ChangeCap | `new AppendConditionBuilder(decisionModel, cursor).build()` | ❌ (DCB detects conflict, app retries) |
+| **1. Idempotent** | OpenWallet, CreateAccount | `Idempotent` | ✅ |
+| **2. Commutative** | Deposit, AddItem | `Commutative` | ✅ |
+| **2b. CommutativeGuarded** | Deposit on open wallet, enroll in active course | `CommutativeGuarded` | ✅ (same-type ops don't conflict; only lifecycle change conflicts) |
+| **3. NonCommutative** | Withdraw, Transfer, ChangeCap | `NonCommutative` | ❌ (DCB detects conflict, app retries) |
 
 ## How Each Pattern Works
 
@@ -60,6 +63,42 @@ AppendCondition condition = AppendCondition.empty();
 - Safe when `op(A) then op(B)` = `op(B) then op(A)` in any observable way
 - Deposits: +$10 then +$20 = +$20 then +$10 ✓
 - Maximum throughput
+
+**Commutative idempotency (automation retry safety):** When an automation can re-deliver the same event, the emitted `Commutative` or `CommutativeGuarded` decision should carry a stable business key via `.idempotent(key, tagKey, tagValue)`. `CommandExecutorImpl` then calls `appendIdempotent` instead of `appendIf`, which is a no-op if the tagged event already exists. Use a stable business key (not a random ID) as the idempotency tag.
+
+```java
+return CommandDecision.commutative(events).idempotent(type(DepositMade.class), DEPOSIT_ID, command.depositId());
+```
+
+### Pattern 2b — CommutativeGuarded (commutative with lifecycle guard)
+
+Use when the operation is order-independent among concurrent same-type operations, but the entity must exist or be active. Examples: deposit into an open wallet, enroll in an active course.
+
+```java
+// 1. Project lifecycle state + capture guard position
+Query lifecycleQuery = QueryBuilder.create()
+    .events(type(WalletOpened.class), type(WalletClosed.class))
+    .tag(WALLET_ID, command.walletId())
+    .build();
+
+ProjectionResult<WalletLifecycleState> guard = eventStore.project(
+    lifecycleQuery, Cursor.zero(), WalletLifecycleState.class, List.of(lifecycleProjector));
+
+// 2. Precondition check
+if (!guard.state().isOpen()) throw new WalletNotOpenException(command.walletId());
+
+// 3. Build event
+AppendEvent event = AppendEvent.builder(type(DepositMade.class))
+    .tag(WALLET_ID, command.walletId())
+    .data(DepositMade.of(...))
+    .build();
+
+// 4. CommutativeGuarded — concurrent deposits don't conflict each other,
+//    but a WalletClosed after guardPosition will throw ConcurrencyException
+return CommandDecision.CommutativeGuarded.withLifecycleGuard(event, lifecycleQuery, guard.cursor());
+```
+
+**Guard query design rule:** the lifecycle query must include ONLY lifecycle event types (e.g., `WalletOpened`, `WalletClosed`) — NOT the commutative event type (e.g., `DepositMade`). Including the appended type in the guard query throws `IllegalArgumentException` at runtime.
 
 ### Pattern 3 — Cursor-Based Check (non-commutative)
 
@@ -114,6 +153,8 @@ AppendEvent transfer = AppendEvent.builder(type(MoneyTransferred.class))
 | Using cursor for Deposit | Unnecessary conflicts under load | Use `empty()` (Pattern 2) |
 | Using cursor for entity creation | No prior cursor, wrong semantics | Use `withIdempotencyCheck()` (Pattern 1) |
 | Decision model tags don't match event tags | False conflicts or missed conflicts | Tags must exactly match what's on the events |
+| Including appended event type in CommutativeGuarded lifecycle query | `IllegalArgumentException` at runtime | Lifecycle query must have ONLY lifecycle types (e.g., WalletOpened/WalletClosed), never the commutative type |
+| Using `Commutative` when entity must be active | Operation succeeds on closed/deleted entity | Use `CommutativeGuarded` with lifecycle guard |
 | Retrying inside handler | Handler runs inside a transaction | Retry at the application/controller layer |
 
 ## Diagnosing ConcurrencyException

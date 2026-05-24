@@ -11,7 +11,7 @@ This is a generated Crablet application.
 - Diagram metadata (`diagram.actors`, `diagram.lanes`, `diagram.assignments`, sidecar overlays): invoke `/crablet-diagram-advisor`.
 - Crablet deployment topology, `make k8s`, generated `k8s/base`, KEDA, and singleton worker layout: invoke `/crablet-k8s`.
 - Local codegen loop, Testcontainers, LISTEN/NOTIFY constraint, troubleshooting: invoke `/crablet-local-dev`.
-- Event Modeling workshop dialogue and `event-model.yaml` shape: invoke `/event-modeling`.
+- Event Modeling workshop dialogue and `event-model.yaml` shape: invoke `/crablet-event-modeling`.
 
 ## Essentials
 

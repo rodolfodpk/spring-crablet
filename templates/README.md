@@ -13,7 +13,7 @@ A ready-to-use Spring Boot application skeleton configured for the AI-first Crab
 - `Makefile` with `plan`, `generate`, `k8s`, `verify`, and `check` targets
 - `.claude/settings.json` pre-wired for the `embabel-codegen` MCP server
 - `.cursor/mcp.json` pre-wired for the same MCP server
-- `/event-modeling` Claude Code skill for running a domain modeling workshop
+- `/crablet-event-modeling` Claude Code skill for running a domain modeling workshop
 
 **Workflow (MCP — Claude Code or Cursor):**
 

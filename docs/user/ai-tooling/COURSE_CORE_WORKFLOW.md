@@ -30,7 +30,7 @@ The checked regression inputs are:
 Start with the Event Modeling skill and ask for only this slice:
 
 ```text
-/event-modeling
+/crablet-event-modeling
 I want to model course enrollment.
 
 Admins can define a course with a course id, title, and capacity.

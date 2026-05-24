@@ -8,7 +8,7 @@ This file is the repo-level routing hub for Claude Code work in spring-crablet.
 - Greenfield onboarding, repo bootstrap, first workshop, first slice, and evolving app lifecycle: invoke `/crablet-greenfield`.
 - Codegen provider config, artifact ownership, repair cycle, and recovery: invoke `/crablet-codegen`.
 - Framework module changes, public API work, eventstore/commands/poller internals, shared-fetch, auto-configuration, templates, codegen internals, maintainer docs: invoke `/crablet-maintainer`.
-- Event Modeling workshop, generator-ready `event-model.yaml`: invoke `/event-modeling`.
+- Event Modeling workshop, generator-ready `event-model.yaml`: invoke `/crablet-event-modeling`.
 - Deep DCB explanation, choosing or diagnosing DCB for an application command handler, `ConcurrencyException` analysis: invoke `/crablet-dcb`.
 - Docs diagram renderer rules, actor-board vocabulary, sidecar overlays, or multi-lane board authoring: invoke `/crablet-diagram-advisor`.
 - Local build, Testcontainers, MCP codegen loop, module test targets, troubleshooting: invoke `/crablet-local-dev`.
@@ -25,7 +25,7 @@ Other tools (invoke by name when needed):
 Searchable signposts:
 
 - Datasource rules, shared-fetch, LISTEN/NOTIFY, generated interface policy, and build graph caveats live in `crablet-maintainer`.
-- Docs HTML diagram renderer: `docs/event-model-renderer.js`; board notation in `/event-modeling` (§ Event Modeling Board Semantics); full renderer/arrow rules in `/crablet-diagram-advisor`.
+- Docs HTML diagram renderer: `docs/event-model-renderer.js`; board notation in `/crablet-event-modeling` (§ Event Modeling Board Semantics); full renderer/arrow rules in `/crablet-diagram-advisor`.
 - Greenfield lifecycle pacing lives in `crablet-greenfield`; feature-slice workflow, MCP `output: src/main/java`, generated app verification, and app implementation defaults live in `crablet-app-dev`.
 
 ## Build Commands
@@ -141,7 +141,7 @@ Module dependencies:
 ## Design Decisions
 
 **Command→event linkage via `transaction_id` (intentional).**
-`commands.transaction_id` and `events.transaction_id` share the same `pg_current_xact_id()` value when both writes happen in the same database transaction. This is the join key between the two tables. Do not propose adding a `command_id` column to `events` or `event_tags` as an alternative linkage mechanism — that decision is closed.
+`crablet_commands.transaction_id` and `crablet_events.transaction_id` share the same `pg_current_xact_id()` value when both writes happen in the same database transaction. This is the join key between the two tables. Do not propose adding a `command_id` column to `crablet_events` or `crablet_event_tags` as an alternative linkage mechanism — that decision is closed.
 
 The invariant this relies on: `CommandAuditStore.storeCommand` must always be called on the transaction-scoped store (`ConnectionScopedEventStore`) inside `executeInTransaction`, never on the top-level `EventStoreImpl`. `CommandExecutorImpl` upholds this. Any test or caller that wants command audit linkage must use `executeInTransaction` and cast the scoped store to `CommandAuditStore`.
 

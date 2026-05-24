@@ -4,7 +4,7 @@ description: >
   Use this skill when authoring or reviewing event-model docs diagrams and renderer projections.
   Covers diagram.actors, diagram.lanes, diagram.assignments, sidecar overlays, arrow rules, and
   renderer vocabulary. Root version includes renderer internals for docs maintainers.
-  Do not use for event-model.yaml workshop design (use event-modeling) or app feature slices
+  Do not use for event-model.yaml workshop design (use crablet-event-modeling) or app feature slices
   (use crablet-app-dev).
 ---
 

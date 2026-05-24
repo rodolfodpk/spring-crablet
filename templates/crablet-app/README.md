@@ -189,7 +189,7 @@ This writes `diagram-preview.html` from the current model. It uses the vendored 
 npm install --prefix tools --silent
 ```
 
-Generate Kubernetes manifests under `k8s/base` from `event-model.yaml` (add a `deployment:` block; see the `/event-modeling` skill and `k8s/base/README-k8s.md` after generation):
+Generate Kubernetes manifests under `k8s/base` from `event-model.yaml` (add a `deployment:` block; see the `/crablet-event-modeling` skill and `k8s/base/README-k8s.md` after generation):
 
 ```bash
 make k8s

@@ -18,7 +18,7 @@ except for documented template-only wording.
 
 ## Routing
 
-- Use `event-modeling` for workshop dialogue and generator-ready `event-model.yaml` shape.
+- Use `crablet-event-modeling` for workshop dialogue and generator-ready `event-model.yaml` shape.
 - Use `crablet-greenfield` for end-to-end greenfield pacing across repo bootstrap, modeling, slices, and app evolution.
 - Use this skill to sequence the app workflow around that model and implement/repair app code.
 - Use `crablet-dcb` for deep DCB diagnosis, `ConcurrencyException` analysis, or command-pattern explanation.
@@ -29,7 +29,7 @@ except for documented template-only wording.
 Work one vertical slice at a time, scoped to one observable user outcome.
 
 1. Ask for missing business facts before changing files.
-2. Use or sequence with `event-modeling` to update `event-model.yaml` first.
+2. Use or sequence with `crablet-event-modeling` to update `event-model.yaml` first.
 3. After any model-affecting change, run `make diagram-preview` from the app root or provide a
    textual board walk-through; check actors, lanes, commands, events, views, automations, and outbox
    before planning.

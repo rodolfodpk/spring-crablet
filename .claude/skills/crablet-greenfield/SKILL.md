@@ -18,7 +18,7 @@ playbooks.
 | Phase | Use |
 |-------|-----|
 | App bootstrap and baseline | `crablet-greenfield`, then `crablet-local-dev` if local setup fails |
-| Event Modeling conversation and YAML shape | `event-modeling` |
+| Event Modeling conversation and YAML shape | `crablet-event-modeling` |
 | Diagram checkpoint, actor/lane metadata, renderer vocabulary | `crablet-diagram-advisor` |
 | Plan, generate, repair, and slice implementation | `crablet-app-dev` |
 | Provider config, artifact ownership, repair-cycle failures | `crablet-codegen` |
@@ -45,7 +45,7 @@ Phase A is done when:
 
 ## Phase B - Model
 
-Use `event-modeling` for workshop dialogue. The output is `event-model.yaml`: the structural source
+Use `crablet-event-modeling` for workshop dialogue. The output is `event-model.yaml`: the structural source
 of truth for generated Spring code. For small, unambiguous changes, direct YAML edits are acceptable,
 but the assistant should still ask for missing business facts.
 
