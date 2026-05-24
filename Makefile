@@ -11,7 +11,7 @@
 # examples/wallet-example-app is built separately after the reactor is installed.
 # See BUILD.md for full explanation.
 
-.PHONY: help install install-all-tests ci-verify validate-all skills-check check-test-support-artifact build-all compile package test test-pl test-skip examples-check clean verify build-core build-shared build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check event-model-diagrams
+.PHONY: help install install-all-tests ci-verify validate-all skills-check check-test-support-artifact check-db-migrations-artifact check-migration-sync build-all compile package test test-pl test-skip examples-check clean verify build-core build-shared build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check event-model-diagrams
 
 .NOTPARALLEL:
 
@@ -25,7 +25,9 @@ help:
 	@echo "  ci-verify        - Build with all tests for CI (no local repo install, faster)"
 	@echo "  validate-all     - Full local validation: framework, docs, codegen, examples, and template skills"
 	@echo "  skills-check     - Verify templates/crablet-app skill files and CLAUDE routing"
-	@echo "  check-test-support-artifact - Verify installed crablet-test-support jar matches source migrations"
+	@echo "  check-test-support-artifact  - Verify installed crablet-test-support jar matches source migrations"
+	@echo "  check-db-migrations-artifact - Verify installed crablet-db-migrations jar matches source migrations"
+	@echo "  check-migration-sync - Verify migration sources match between db-migrations and test-support"
 	@echo "  build-all        - Alias for install"
 	@echo "  compile          - Compile all modules without packaging"
 	@echo "  package          - Build JARs for all modules"
@@ -69,11 +71,11 @@ help:
 # Main build command - handles cyclic dependency automatically
 # Note: Uses 'install' which runs unit tests but not integration tests
 # Use 'install-all-tests' for full test coverage including integration tests
-install: build-core build-test-support check-test-support-artifact build-command build-shared build-reactor
+install: build-core build-test-support check-test-support-artifact check-db-migrations-artifact check-migration-sync build-command build-shared build-reactor
 	@echo "✓ Build complete! All modules installed to local repository."
 
 # Full build with all tests including integration tests (for CI)
-install-all-tests: build-core build-test-support check-test-support-artifact build-command build-shared build-reactor-verify build-reactor-install-artifacts
+install-all-tests: build-core build-test-support check-test-support-artifact check-db-migrations-artifact check-migration-sync build-command build-shared build-reactor-verify build-reactor-install-artifacts
 	@echo "✓ Build complete with all tests! All modules installed to local repository."
 
 # CI build - verifies build, only installs minimal modules needed
@@ -81,7 +83,7 @@ install-all-tests: build-core build-test-support check-test-support-artifact bui
 # 2. Install crablet-test-support (needed by shared-examples-domain)
 # 3. Install shared-examples-domain (needed by reactor modules in test scope)
 # 4. Verify reactor (no install needed for reactor modules)
-ci-verify: build-core build-test-support check-test-support-artifact build-command build-shared build-reactor-verify
+ci-verify: build-core build-test-support check-test-support-artifact check-db-migrations-artifact check-migration-sync build-command build-shared build-reactor-verify
 	@echo "✓ CI build complete with all tests!"
 
 validate-all: skills-check install-all-tests docs-check docs-compile-check docs-generate-check codegen-check examples-check
@@ -94,6 +96,13 @@ skills-check:
 check-test-support-artifact:
 	@chmod +x scripts/check-test-support-artifact.sh
 	@./scripts/check-test-support-artifact.sh
+
+check-db-migrations-artifact:
+	@chmod +x scripts/check-db-migrations-artifact.sh
+	@./scripts/check-db-migrations-artifact.sh
+
+check-migration-sync:
+	@diff -r crablet-db-migrations/src/main/resources/db/migration/ crablet-test-support/src/main/resources/db/migration/
 
 
 docs-check:
@@ -131,6 +140,8 @@ build-core:
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-commands -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-commands/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-automations -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-automations/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=shared-examples-domain -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=shared-examples-domain/pom.xml -q 2>/dev/null || true
+	@echo "Building crablet-db-migrations (clean install — guards against stale SQL files in target/)..."
+	@./mvnw clean install -pl crablet-db-migrations -DskipTests -q
 	@echo "Building crablet-observability and crablet-eventstore (main code only, skipping tests)..."
 	@./mvnw clean compile package install -pl crablet-observability,crablet-eventstore -DskipTests -Dmaven.test.skip=true
 
