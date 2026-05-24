@@ -23,7 +23,7 @@ CREATE TABLE crablet_events
     occurred_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     correlation_id UUID,
     causation_id   BIGINT,
-    CONSTRAINT chk_event_type_length CHECK (LENGTH(type) <= 64)
+    CONSTRAINT chk_event_type_length CHECK (LENGTH(type) BETWEEN 1 AND 64)
 );
 ```
 
@@ -81,7 +81,7 @@ CREATE TABLE crablet_commands
     data           JSONB                    NOT NULL,
     metadata       JSONB,
     occurred_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_command_type_length CHECK (LENGTH(type) <= 64)
+    CONSTRAINT chk_crablet_command_type_length CHECK (LENGTH(type) BETWEEN 1 AND 64)
 );
 ```
 

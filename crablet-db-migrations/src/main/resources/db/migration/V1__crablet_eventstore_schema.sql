@@ -23,7 +23,7 @@ CREATE TABLE crablet_events
     occurred_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     correlation_id UUID,
     causation_id   BIGINT,
-    CONSTRAINT chk_event_type_length CHECK (LENGTH(type) <= 64)
+    CONSTRAINT chk_event_type_length CHECK (LENGTH(type) BETWEEN 1 AND 64)
 );
 
 CREATE TABLE crablet_event_tags
@@ -203,4 +203,8 @@ COMMENT ON FUNCTION append_events_batch(TEXT[], TEXT[], JSONB[], TIMESTAMP WITH 
     'Insert events with application-controlled timestamps and maintain derived crablet_event_tags rows.';
 
 COMMENT ON FUNCTION append_events_if(TEXT[], TEXT[], JSONB[], TEXT[], TEXT[], BIGINT, TEXT[], TEXT[], TIMESTAMP WITH TIME ZONE, UUID, BIGINT, TEXT, TEXT) IS
-    'Conditionally insert events using DCB conflict checks over canonical crablet_events.tags and optionally notify append listeners on commit.';
+    'Conditionally insert events using DCB conflict checks over canonical crablet_events.tags '
+    'and optionally notify append listeners on commit. '
+    'Advisory lock key derived via hashtextextended() → signed 64-bit integer (~2^64 possible '
+    'values); collision probability per concurrent idempotency pair is negligible. Risk '
+    'accepted: worst case is unnecessary lock serialization, not data corruption.';

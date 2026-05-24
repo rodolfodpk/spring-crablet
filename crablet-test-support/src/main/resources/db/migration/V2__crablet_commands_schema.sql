@@ -14,7 +14,7 @@ CREATE TABLE crablet_commands
     data           JSONB                    NOT NULL,
     metadata       JSONB,
     occurred_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_crablet_command_type_length CHECK (LENGTH(type) <= 64)
+    CONSTRAINT chk_crablet_command_type_length CHECK (LENGTH(type) BETWEEN 1 AND 64)
 );
 
 CREATE UNIQUE INDEX idx_crablet_commands_transaction_id ON crablet_commands (transaction_id);
