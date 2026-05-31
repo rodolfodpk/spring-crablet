@@ -91,7 +91,7 @@ Projection writes must go to the primary.
 ## Codegen And Template Policy
 
 - Codegen agents depend on `CodegenLlmClient`, not provider SDKs or concrete provider services.
-- Provider SDK and Embabel provider factory references belong inside `com.crablet.codegen.llm`
+- Provider/HTTP client references belong inside `com.crablet.codegen.llm`
   adapter code and focused tests.
 - Keep `codegen.anthropic.*` / `ANTHROPIC_API_KEY` backward compatibility while documenting
   provider-neutral `codegen.llm.*` / `CODEGEN_LLM_*` configuration.

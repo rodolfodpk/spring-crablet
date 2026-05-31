@@ -2,8 +2,9 @@
 
 AI-powered code generator for spring-crablet. Reads an `event-model.yaml` and generates production-ready Spring Boot source files for every layer of a Crablet application — events, commands, views, automations, and outbox — then compiles and self-repairs up to three times.
 
-Uses Embabel's LLM abstraction. Anthropic remains the default provider for backward compatibility,
-and OpenAI-compatible providers can be selected with configuration.
+Provider-neutral: talks directly to any LLM over HTTP with no vendor SDK. Anthropic remains the
+default provider for backward compatibility, and OpenAI-compatible providers can be selected with
+configuration.
 
 ## How It Works
 
