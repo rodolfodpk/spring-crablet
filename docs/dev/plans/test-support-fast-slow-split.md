@@ -40,8 +40,10 @@ A consistent `crablet-test-*` family so the test-support modules group together,
 | Module | Provides | Footprint |
 |--------|----------|-----------|
 | `crablet-test-inmemory` | `InMemoryEventStore` (+ fast fixtures) | **fast** — `crablet-eventstore` only, no Postgres |
-| `crablet-test-postgres` | `AbstractCrabletTest` (+ `cleanup`, `config`) | heavy — Testcontainers / Postgres / Flyway |
-| `crablet-test-commands` | `AbstractHandlerUnitTest` (BDD handler base) | fast — `crablet-commands` + `crablet-test-inmemory`, no Postgres |
+| `crablet-test-postgres` | `AbstractPostgresIntegrationTest` (+ `cleanup`, `config`) | heavy — Testcontainers / Postgres / Flyway |
+| `crablet-test-commands` | `AbstractInMemoryHandlerTest` (BDD handler base) | fast — `crablet-commands` + `crablet-test-inmemory`, no Postgres |
+
+The two base classes are renamed to signal their backing: `AbstractCrabletTest` → `AbstractPostgresIntegrationTest`, `AbstractHandlerUnitTest` → `AbstractInMemoryHandlerTest`. `InMemoryEventStore` keeps its name (already explicit).
 
 `crablet-test-inmemory` is the renamed-and-slimmed successor to today's `crablet-test-support`; `crablet-test-postgres` is the Testcontainers part extracted out of it.
 
@@ -50,11 +52,11 @@ A consistent `crablet-test-*` family so the test-support modules group together,
 ```
                           FAST (no Postgres)                 HEAVY (Testcontainers/Postgres)
 eventstore ── crablet-test-inmemory         ───────────────  crablet-test-postgres
-                 InMemoryEventStore                              AbstractCrabletTest (+ cleanup, config)
+                 InMemoryEventStore                              AbstractPostgresIntegrationTest (+ cleanup, config)
                  deps: crablet-eventstore only                   deps: crablet-eventstore + Testcontainers/PG/Flyway
                        │
 commands ── crablet-test-commands           (FAST)
-                 AbstractHandlerUnitTest
+                 AbstractInMemoryHandlerTest
                  deps: crablet-commands + crablet-test-inmemory + junit-jupiter-api + assertj
                  (NO Postgres / Testcontainers)
 ```
@@ -70,8 +72,8 @@ Consumer story:
 | Artifact | From | To |
 |----------|------|----|
 | `InMemoryEventStore` | `crablet-test-support` | `crablet-test-inmemory` (renamed module; now Postgres-free) |
-| `AbstractCrabletTest`, `cleanup/`, `config/` | `crablet-test-support` | new `crablet-test-postgres` |
-| `AbstractHandlerUnitTest` | `crablet-commands` test sources | new `crablet-test-commands` (main sources, e.g. package `com.crablet.test.commands`) |
+| `AbstractCrabletTest` (→ `AbstractPostgresIntegrationTest`), `cleanup/`, `config/` | `crablet-test-support` | new `crablet-test-postgres` |
+| `AbstractHandlerUnitTest` (→ `AbstractInMemoryHandlerTest`) | `crablet-commands` test sources | new `crablet-test-commands` (main sources, e.g. package `com.crablet.test.commands`) |
 | 7 example-handler BDD tests (`OpenWalletCommandHandlerUnitTest`, courses/wallet `*UnitTest`) | `crablet-commands` test sources | `shared-examples-domain` test sources |
 | dead `InMemoryEventStore` duplicate | `crablet-commands` test sources | **delete** |
 
@@ -84,10 +86,10 @@ Consumer story:
 
 ## Migration steps (ordered, green at each step)
 
-1. Create `crablet-test-postgres`; move `AbstractCrabletTest` + `cleanup/` + `config/` into it; give it the Testcontainers/Postgres/Flyway deps.
+1. Create `crablet-test-postgres`; move `AbstractCrabletTest` + `cleanup/` + `config/` into it and rename `AbstractCrabletTest` → `AbstractPostgresIntegrationTest`; give it the Testcontainers/Postgres/Flyway deps.
 2. Rename `crablet-test-support` → `crablet-test-inmemory`; strip Testcontainers/Postgres/Flyway; it keeps `InMemoryEventStore` and depends on `crablet-eventstore` only.
 3. Repoint every current integration-test consumer of `AbstractCrabletTest` from the old module → `crablet-test-postgres` (test scope).
-4. Create `crablet-test-commands`; move `AbstractHandlerUnitTest` into its **main** sources (package `com.crablet.test.commands`).
+4. Create `crablet-test-commands`; move `AbstractHandlerUnitTest` into its **main** sources (package `com.crablet.test.commands`) and rename it → `AbstractInMemoryHandlerTest`.
 5. Move the 7 example-handler BDD tests from `crablet-commands` → `shared-examples-domain` test sources; point them at `crablet-test-commands`.
 6. Delete the orphaned `InMemoryEventStore` duplicate in `crablet-commands`.
 7. Add `crablet-test-inmemory`, `crablet-test-postgres`, and `crablet-test-commands` to BOM `dependencyManagement` so consumers drop explicit versions.
@@ -99,11 +101,12 @@ Consumer story:
 ## Resolved decisions
 
 - **Module names:** `crablet-test-inmemory` / `crablet-test-postgres` / `crablet-test-commands` (consistent `crablet-test-*` family).
+- **Base class names:** `AbstractCrabletTest` → `AbstractPostgresIntegrationTest`; `AbstractHandlerUnitTest` → `AbstractInMemoryHandlerTest` (backing made explicit; `InMemoryEventStore` unchanged).
 - **Home for relocated example-handler tests:** `shared-examples-domain` test sources (tests next to the handlers).
 
 ## Open decisions
 
-- **`@Stable` governance:** mark `AbstractHandlerUnitTest` (and `InMemoryEventStore`) as stable test API for 1.0.
+- **`@Stable` governance:** mark `AbstractInMemoryHandlerTest` (and `InMemoryEventStore`) as stable test API for 1.0.
 - **Pre-existing `eventstore ↔ crablet-test-inmemory` cycle:** address now (separate `AbstractCrabletTest` consumers) or defer.
 
 ## Out of scope
