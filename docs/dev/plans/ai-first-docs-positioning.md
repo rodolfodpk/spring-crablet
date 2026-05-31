@@ -1,5 +1,9 @@
 # AI-First Documentation Positioning Plan
 
+> **Superseded (historical record).** This plan references Embabel as the codegen implementation;
+> Embabel was later replaced by a provider-neutral `DirectLlmClient` (direct HTTP, no vendor SDK).
+> Kept for context on the original positioning; treat Embabel mentions as historical.
+
 ## Summary
 
 Reposition Crablet's public documentation around an AI-assisted, event-model-first product
