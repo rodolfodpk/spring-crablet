@@ -269,7 +269,7 @@ codegen-check:
 	@$(MAKE) codegen-plan-example
 
 codegen-snapshot-verify:
-	@echo "Installing reactor artifacts (loan snapshot depends on crablet-commands-web, crablet-views, etc.)..."
-	@./mvnw install -DskipTests -Dmaven.test.skip=true -Dmaven.clean.skip=true
+	@echo "Installing reactor artifacts (loan snapshot needs crablet-commands-web/views; metrics-micrometer needs the commands test-jar)..."
+	@./mvnw install -DskipTests -Dmaven.clean.skip=true
 	@echo "Verifying committed loan-slice generated snapshot..."
 	@./mvnw verify -f examples/loan-generated-snapshot/pom.xml -DskipTests=false
