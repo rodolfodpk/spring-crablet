@@ -29,7 +29,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 @EnableConfigurationProperties({OutboxConfig.class, GlobalStatisticsConfig.class, TopicConfigurationProperties.class})
-public class CrabletConfig {
+public class WalletApplicationConfig {
 
     // --- Outbox ---
 

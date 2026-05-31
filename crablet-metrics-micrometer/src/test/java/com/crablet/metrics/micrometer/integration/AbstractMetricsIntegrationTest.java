@@ -1,7 +1,7 @@
 package com.crablet.metrics.micrometer.integration;
 
 import com.crablet.eventstore.EventStore;
-import com.crablet.test.cleanup.IntegrationTestDbCleanup;
+import com.crablet.test.cleanup.CrabletTestSchemaCleanup;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,7 +70,7 @@ public abstract class AbstractMetricsIntegrationTest {
     void cleanDatabase() {
         // Only clean if tables exist (Flyway may not have run yet)
         try {
-            IntegrationTestDbCleanup.truncateEventStoreTablesAndRestartPositionSequence(jdbcTemplate);
+            CrabletTestSchemaCleanup.truncateEventStoreTablesAndRestartPositionSequence(jdbcTemplate);
         } catch (BadSqlGrammarException e) {
             // Tables don't exist yet - Flyway will create them
             // This is expected on first run

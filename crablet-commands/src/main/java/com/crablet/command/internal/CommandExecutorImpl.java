@@ -54,7 +54,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * For example:
  * <pre>{@code
  * @Configuration
- * public class CrabletConfig {
+ * public class ApplicationConfig {
  *
  *     @Bean
  *     public CommandExecutor commandExecutor(

@@ -1,7 +1,7 @@
 package com.crablet.views.internal;
 
 import com.crablet.eventpoller.AbstractJdbcEventFetcher;
-import com.crablet.eventpoller.EventSelectionSqlBuilder;
+import com.crablet.eventpoller.EventSelectionWhereClauseBuilder;
 import com.crablet.views.ViewSubscription;
 
 import org.jspecify.annotations.Nullable;
@@ -31,6 +31,6 @@ public class ViewEventFetcher extends AbstractJdbcEventFetcher<String> {
             log.warn("Subscription not found for view: {} (available: {})", viewName, subscriptions.keySet());
             return null;
         }
-        return EventSelectionSqlBuilder.buildWhereClause(subscription);
+        return EventSelectionWhereClauseBuilder.buildWhereClause(subscription);
     }
 }

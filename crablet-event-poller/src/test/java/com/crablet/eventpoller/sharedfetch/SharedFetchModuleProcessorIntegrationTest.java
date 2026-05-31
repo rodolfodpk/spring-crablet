@@ -15,7 +15,7 @@ import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.internal.EventStoreImpl;
-import com.crablet.test.cleanup.IntegrationTestDbCleanup;
+import com.crablet.test.cleanup.CrabletTestSchemaCleanup;
 import com.crablet.test.config.CrabletFlywayConfiguration;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
@@ -563,7 +563,7 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
 
     private void cleanScanProgress(JdbcTemplate jdbc) {
         try {
-            IntegrationTestDbCleanup.truncateSharedFetchScanProgress(jdbc);
+            CrabletTestSchemaCleanup.truncateSharedFetchScanProgress(jdbc);
         } catch (Exception ignored) {
             // Some schema variants used by focused tests do not include these tables.
         }

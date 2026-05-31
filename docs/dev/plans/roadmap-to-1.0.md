@@ -107,7 +107,7 @@ shared-examples-domain/   ← stays at root (used in test scope by framework mod
 - Spring Boot app under `examples/course-example-app/`
 - Depends on framework modules + `shared-examples-domain`
 - `make` targets: `make course-start`, `make course-dev`
-- All source files implemented: `CourseApplication`, `CourseAvailabilityViewProjector`, `CourseCapacityAutomation`, `CourseQueryController`, Flyway migrations, `CrabletConfig`
+- All source files implemented: `CourseApplication`, `CourseAvailabilityViewProjector`, `CourseCapacityAutomation`, `CourseQueryController`, Flyway migrations, `CourseApplicationConfig`
 - Pending: commit to git (`examples/course-example-app/` is currently untracked)
 
 Module coverage:

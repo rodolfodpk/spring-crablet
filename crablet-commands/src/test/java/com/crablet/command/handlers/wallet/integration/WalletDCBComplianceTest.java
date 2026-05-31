@@ -14,14 +14,13 @@ import com.crablet.examples.wallet.commands.WithdrawCommandHandler;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;
-import com.crablet.test.AbstractCrabletTest;
+import com.crablet.test.AbstractPostgresEventStoreTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 
-import static com.crablet.eventstore.integration.DCBTestHelpers.deserialize;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -29,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Verifies that DCB guarantees are maintained for real wallet business logic.
  */
 @SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
-class WalletDCBComplianceTest extends AbstractCrabletTest {
+class WalletDCBComplianceTest extends AbstractPostgresEventStoreTest {
 
     @Autowired
     private CommandExecutor commandExecutor;

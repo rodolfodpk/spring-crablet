@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @DisplayName("DepositCommandHandler Integration Tests")
 @SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
-class DepositCommandHandlerTest extends com.crablet.test.AbstractCrabletTest {
+class DepositCommandHandlerTest extends com.crablet.test.AbstractPostgresEventStoreTest {
 
     private DepositCommandHandler handler;
 

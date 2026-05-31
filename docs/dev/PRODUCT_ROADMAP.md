@@ -267,10 +267,11 @@ assume Central availability.
 Done: extracted the command-handler BDD base into a dedicated `crablet-test-commands` module
 (`AbstractInMemoryHandlerTest`, in-memory event store, no Postgres) so handler unit tests are fast
 and don't depend on the framework's internal `crablet-commands` test-jar. The originally-planned
-full split of `crablet-test-support` into `-inmemory` / `-postgres` (with migration relocation and
-a 32-usage `AbstractCrabletTest` rename) was **dropped** — it bought only dependency hygiene, not
-speed, at high build-system churn. An optional minimal `crablet-test-inmemory` extraction remains
-documented for later if Testcontainers-on-classpath becomes a concern.
+full split of `crablet-test-support` into `-inmemory` / `-postgres` (with migration relocation) was
+**dropped** — it bought only dependency hygiene, not speed, at high build-system churn. The shared
+PostgreSQL integration base was renamed separately to `AbstractPostgresEventStoreTest`. An optional
+minimal `crablet-test-inmemory` extraction remains documented for later if Testcontainers-on-classpath
+becomes a concern.
 Record + optional follow-ups: `docs/dev/plans/test-support-fast-slow-split.md`.
 
 #### 1.4 Course Example Committed

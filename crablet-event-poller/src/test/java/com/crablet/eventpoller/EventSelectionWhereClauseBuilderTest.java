@@ -8,13 +8,13 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisplayName("EventSelectionSqlBuilder Unit Tests")
-class EventSelectionSqlBuilderTest {
+@DisplayName("EventSelectionWhereClauseBuilder Unit Tests")
+class EventSelectionWhereClauseBuilderTest {
 
     @Test
     @DisplayName("Empty selection returns TRUE")
     void emptySelectionReturnsTrue() {
-        String whereClause = EventSelectionSqlBuilder.buildWhereClause(selection(
+        String whereClause = EventSelectionWhereClauseBuilder.buildWhereClause(selection(
                 Set.of(), Set.of(), Set.of(), Map.of()));
 
         assertThat(whereClause).isEqualTo("TRUE");
@@ -23,7 +23,7 @@ class EventSelectionSqlBuilderTest {
     @Test
     @DisplayName("Event type selection builds IN clause")
     void eventTypeSelectionBuildsInClause() {
-        String whereClause = EventSelectionSqlBuilder.buildWhereClause(selection(
+        String whereClause = EventSelectionWhereClauseBuilder.buildWhereClause(selection(
                 Set.of("WalletOpened", "DepositMade"), Set.of(), Set.of(), Map.of()));
 
         assertThat(whereClause)
@@ -35,7 +35,7 @@ class EventSelectionSqlBuilderTest {
     @Test
     @DisplayName("Required tags build event_tags correlated EXISTS clauses")
     void requiredTagsBuildExistsClauses() {
-        String whereClause = EventSelectionSqlBuilder.buildWhereClause(selection(
+        String whereClause = EventSelectionWhereClauseBuilder.buildWhereClause(selection(
                 Set.of(), Set.of("wallet_id", "statement_id"), Set.of(), Map.of()));
 
         assertThat(whereClause)
@@ -47,7 +47,7 @@ class EventSelectionSqlBuilderTest {
     @Test
     @DisplayName("Any-of tags build single event_tags IN EXISTS clause")
     void anyOfTagsBuildSingleOrExistsClause() {
-        String whereClause = EventSelectionSqlBuilder.buildWhereClause(selection(
+        String whereClause = EventSelectionWhereClauseBuilder.buildWhereClause(selection(
                 Set.of(), Set.of(), Set.of("from_wallet_id", "to_wallet_id"), Map.of()));
 
         assertThat(whereClause)
@@ -59,7 +59,7 @@ class EventSelectionSqlBuilderTest {
     @Test
     @DisplayName("Exact tags build event_tags correlated EXISTS clauses")
     void exactTagsBuildAnyClauses() {
-        String whereClause = EventSelectionSqlBuilder.buildWhereClause(selection(
+        String whereClause = EventSelectionWhereClauseBuilder.buildWhereClause(selection(
                 Set.of(), Set.of(), Set.of(), Map.of("wallet_id", "w1", "owner", "Alice")));
 
         assertThat(whereClause)
@@ -70,7 +70,7 @@ class EventSelectionSqlBuilderTest {
     @Test
     @DisplayName("Combined selection joins all filters with AND")
     void combinedSelectionJoinsAllFiltersWithAnd() {
-        String whereClause = EventSelectionSqlBuilder.buildWhereClause(selection(
+        String whereClause = EventSelectionWhereClauseBuilder.buildWhereClause(selection(
                 Set.of("MoneyTransferred"),
                 Set.of("transfer_id"),
                 Set.of("from_wallet_id", "to_wallet_id"),

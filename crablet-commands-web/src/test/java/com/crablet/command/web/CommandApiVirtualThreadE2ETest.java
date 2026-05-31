@@ -1,7 +1,7 @@
 package com.crablet.command.web;
 
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
-import com.crablet.test.AbstractCrabletTest;
+import com.crablet.test.AbstractPostgresEventStoreTest;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         }
 )
 @DisplayName("Command API Virtual Thread E2E Tests")
-class CommandApiVirtualThreadE2ETest extends AbstractCrabletTest {
+class CommandApiVirtualThreadE2ETest extends AbstractPostgresEventStoreTest {
 
     @LocalServerPort
     private int port;

@@ -1,7 +1,7 @@
 package com.crablet.outbox.internal;
 
 import com.crablet.eventpoller.AbstractJdbcEventFetcher;
-import com.crablet.eventpoller.EventSelectionSqlBuilder;
+import com.crablet.eventpoller.EventSelectionWhereClauseBuilder;
 import com.crablet.outbox.TopicConfig;
 import com.crablet.outbox.TopicPublisherPair;
 import org.jspecify.annotations.Nullable;
@@ -33,6 +33,6 @@ public class OutboxEventFetcher extends AbstractJdbcEventFetcher<TopicPublisherP
             log.warn("Topic '{}' not found for processor {}", topicName, processorId);
             return null;
         }
-        return EventSelectionSqlBuilder.buildWhereClause(topicConfig);
+        return EventSelectionWhereClauseBuilder.buildWhereClause(topicConfig);
     }
 }

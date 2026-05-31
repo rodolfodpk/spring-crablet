@@ -37,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @DisplayName("EventStore Integration Tests")
 @SpringBootTest(classes = TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
-class EventStoreTest extends com.crablet.test.AbstractCrabletTest {
+class EventStoreTest extends com.crablet.test.AbstractPostgresEventStoreTest {
 
     @Autowired
     private ObjectMapper objectMapper;

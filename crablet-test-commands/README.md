@@ -5,7 +5,7 @@ Fast, in-memory BDD base for **command handler unit tests**. No PostgreSQL, no T
 It provides `AbstractInMemoryHandlerTest` (`com.crablet.test.commands`), a domain-agnostic
 given/when/then base backed by `InMemoryEventStore`. Use it to prove a single handler's decision
 logic — happy paths, validation, emitted events and tags. DCB concurrency and persistence belong in
-integration tests against the real event store (`AbstractCrabletTest` in `crablet-test-support`).
+integration tests against the real event store (`AbstractPostgresEventStoreTest` in `crablet-test-support`).
 
 This module sits one layer above `crablet-test-support`: it depends on `crablet-commands` (for
 `CommandHandler` / `CommandDecision`) and `crablet-test-support` (for `InMemoryEventStore`). It is

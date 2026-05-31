@@ -1,6 +1,6 @@
 package com.crablet.eventpoller.integration;
 
-import com.crablet.test.cleanup.IntegrationTestDbCleanup;
+import com.crablet.test.cleanup.CrabletTestSchemaCleanup;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -71,7 +71,7 @@ public abstract class AbstractEventProcessorTest {
     protected void cleanDatabase(JdbcTemplate jdbcTemplate) {
         // Clean all tables in the correct order to respect foreign key constraints
         try {
-            IntegrationTestDbCleanup.truncateEventsCommandsAndOutboxProgress(jdbcTemplate);
+            CrabletTestSchemaCleanup.truncateEventsCommandsAndOutboxProgress(jdbcTemplate);
         } catch (BadSqlGrammarException e) {
             // Tables don't exist yet - Flyway will create them
             // This is expected on first run

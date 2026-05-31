@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Unit tests for {@link EventSelectionMatcher}.
  * Each filter type is tested independently and in combination to verify parity
- * with the SQL WHERE logic in {@link EventSelectionSqlBuilder}.
+ * with the SQL WHERE logic in {@link EventSelectionWhereClauseBuilder}.
  */
 @DisplayName("EventSelectionMatcher Unit Tests")
 class EventSelectionMatcherTest {

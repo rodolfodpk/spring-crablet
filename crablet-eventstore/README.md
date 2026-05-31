@@ -321,8 +321,8 @@ Complete working examples are available in the `shared-examples-domain` module:
 Test infrastructure has moved to a dedicated `crablet-test-support` module:
 
 - **InMemoryEventStore** (`com.crablet.test.InMemoryEventStore`) - Fast in-memory event store for unit tests
-- **AbstractCrabletTest** (`com.crablet.test.AbstractCrabletTest`) - Base class for integration tests with Testcontainers
-- **DCBTestHelpers** (`com.crablet.eventstore.integration.DCBTestHelpers`) - Helper utilities for test event deserialization
+- **AbstractPostgresEventStoreTest** (`com.crablet.test.AbstractPostgresEventStoreTest`) - Base class for integration tests with Testcontainers
+- **AbstractPostgresEventStoreTest** (`com.crablet.test.AbstractPostgresEventStoreTest`) - PostgreSQL-backed test base with helpers for asserting persisted event data
 
 See [Testing](TESTING.md) for complete testing guide and examples.
 

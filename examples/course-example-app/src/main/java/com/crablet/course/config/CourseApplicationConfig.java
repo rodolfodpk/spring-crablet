@@ -20,7 +20,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 @EnableConfigurationProperties({OutboxConfig.class, TopicConfigurationProperties.class})
-public class CrabletConfig {
+public class CourseApplicationConfig {
 
     @Bean
     @ConditionalOnMissingBean(name = "logPublisher")

@@ -12,7 +12,7 @@ import com.crablet.examples.wallet.commands.TransferMoneyCommand;
 import com.crablet.examples.wallet.commands.WithdrawCommand;
 import com.crablet.examples.wallet.exceptions.InsufficientFundsException;
 import com.crablet.examples.wallet.exceptions.WalletNotFoundException;
-import com.crablet.test.AbstractCrabletTest;
+import com.crablet.test.AbstractPostgresEventStoreTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
 @DisplayName("CommandExecutor Integration Tests")
-class CommandExecutorTest extends AbstractCrabletTest {
+class CommandExecutorTest extends AbstractPostgresEventStoreTest {
 
     @Autowired
     private CommandExecutor commandExecutor;

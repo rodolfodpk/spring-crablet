@@ -9,9 +9,9 @@ import java.util.stream.Collectors;
 /**
  * Builds SQL WHERE fragments for {@link EventSelection}.
  */
-public final class EventSelectionSqlBuilder {
+public final class EventSelectionWhereClauseBuilder {
 
-    private EventSelectionSqlBuilder() {}
+    private EventSelectionWhereClauseBuilder() {}
 
     /**
      * Builds a SQL fragment that can be placed inside a {@code WHERE (...)} clause.

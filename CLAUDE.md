@@ -125,9 +125,9 @@ crablet-metrics-micrometer  [reactor]
   observations for event throughput, concurrency violations, command execution, and poller processing.
 
 crablet-test-support  [installed separately via `make build-test-support`]
-  Shared test utilities: InMemoryEventStore for fast unit tests and AbstractCrabletTest backed by
-  Testcontainers PostgreSQL. Bundles Flyway migration infrastructure and PostgreSQL driver needed
-  for test isolation.
+  Shared test utilities: InMemoryEventStore for fast unit tests and AbstractPostgresEventStoreTest
+  backed by Testcontainers PostgreSQL. Bundles Flyway migration infrastructure and PostgreSQL driver
+  needed for test isolation.
 
 crablet-test-commands  [installed separately via `make build-test-commands`]
   Fast, in-memory BDD base for command handler unit tests (AbstractInMemoryHandlerTest, package

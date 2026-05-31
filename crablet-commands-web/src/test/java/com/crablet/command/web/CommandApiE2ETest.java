@@ -5,7 +5,7 @@ import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.examples.wallet.notification.commands.SendWelcomeNotificationCommand;
-import com.crablet.test.AbstractCrabletTest;
+import com.crablet.test.AbstractPostgresEventStoreTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         properties = "spring.profiles.active=test"
 )
 @DisplayName("Command API E2E Tests")
-class CommandApiE2ETest extends AbstractCrabletTest {
+class CommandApiE2ETest extends AbstractPostgresEventStoreTest {
 
     @Autowired
     private EventRepository eventRepository;

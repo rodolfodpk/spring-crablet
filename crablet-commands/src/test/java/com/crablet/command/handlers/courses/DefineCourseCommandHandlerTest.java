@@ -6,7 +6,7 @@ import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.course.commands.DefineCourseCommand;
 import com.crablet.examples.course.events.CourseDefined;
 import com.crablet.examples.course.handlers.DefineCourseCommandHandler;
-import com.crablet.test.AbstractCrabletTest;
+import com.crablet.test.AbstractPostgresEventStoreTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @DisplayName("DefineCourseCommandHandler Integration Tests")
 @SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
-class DefineCourseCommandHandlerTest extends AbstractCrabletTest {
+class DefineCourseCommandHandlerTest extends AbstractPostgresEventStoreTest {
 
     private DefineCourseCommandHandler handler;
     

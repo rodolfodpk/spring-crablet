@@ -3,7 +3,7 @@ package com.crablet.wallet;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.EventStore;
 import com.crablet.wallet.api.WalletQueryController;
-import com.crablet.wallet.view.config.ViewConfiguration;
+import com.crablet.wallet.view.config.WalletViewConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +37,7 @@ class WalletApplicationContextTest extends AbstractWalletTest {
     private WalletQueryController walletQueryController;
 
     @Autowired
-    private ViewConfiguration viewConfiguration;
+    private WalletViewConfig viewConfiguration;
 
     @Test
     @DisplayName("Application context should load successfully")
@@ -64,7 +64,7 @@ class WalletApplicationContextTest extends AbstractWalletTest {
     }
 
     @Test
-    @DisplayName("ViewConfiguration bean should be present")
+    @DisplayName("WalletViewConfig bean should be present")
     void viewConfigurationShouldBePresent() {
         assertThat(viewConfiguration).isNotNull();
     }
@@ -80,7 +80,7 @@ class WalletApplicationContextTest extends AbstractWalletTest {
     @Test
     @DisplayName("All view projectors should be registered")
     void viewProjectorsShouldBeRegistered() {
-        // Verify view projectors are registered via ViewConfiguration
+        // Verify view projectors are registered via WalletViewConfig
         // This is an indirect check - if projectors weren't registered, views would fail
         assertThat(viewConfiguration).isNotNull();
     }

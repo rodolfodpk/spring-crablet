@@ -105,7 +105,7 @@
             <artifactId>flyway-database-postgresql</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Crablet Test Support (for InMemoryEventStore, AbstractCrabletTest) -->
+        <!-- Crablet Test Support (for InMemoryEventStore, AbstractPostgresEventStoreTest) -->
         <dependency>
             <groupId>com.crablet</groupId>
             <artifactId>crablet-test-support</artifactId>

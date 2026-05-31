@@ -6,7 +6,7 @@
 > criterion (e.g. `wallet_id + year + month`), so the GIN path on `events.tags` handles the
 > common case directly; a single-tag B-tree fast path would add write amplification for all
 > appends while benefiting only a minority of commands. `event_tags` is consumed exclusively
-> by the per-processor poller (`EventSelectionSqlBuilder`).
+> by the per-processor poller (`EventSelectionWhereClauseBuilder`).
 > Deferred items (shared-fetch indexed_selection, consistency boundaries) remain open.
 
 ## Context
@@ -22,7 +22,7 @@ Crablet currently uses a compact event store schema:
 
 Two concrete performance problems exist today:
 
-1. `EventSelectionSqlBuilder` uses `EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'key=%')`
+1. `EventSelectionWhereClauseBuilder` uses `EXISTS (SELECT 1 FROM unnest(tags) AS t WHERE t LIKE 'key=%')`
    for required-tag-key and any-of-tag filters. This forces a per-row array expansion and cannot
    use the GIN index on `events.tags`, making it expensive at scale.
 
@@ -188,7 +188,7 @@ $$ LANGUAGE plpgsql;
 Gated on: drift check from step 1 passes, and step 2 has been running in production
 long enough to confirm `event_tags` is current for all new appends.
 
-### 3a — Per-processor poller (`EventSelectionSqlBuilder`)
+### 3a — Per-processor poller (`EventSelectionWhereClauseBuilder`)
 
 Current implementation uses `unnest(tags) LIKE` patterns, which cannot use the GIN index:
 

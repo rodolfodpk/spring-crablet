@@ -2,7 +2,7 @@ package com.crablet.automations.internal;
 
 import com.crablet.automations.AutomationDefinition;
 import com.crablet.eventpoller.AbstractJdbcEventFetcher;
-import com.crablet.eventpoller.EventSelectionSqlBuilder;
+import com.crablet.eventpoller.EventSelectionWhereClauseBuilder;
 
 import org.jspecify.annotations.Nullable;
 
@@ -27,7 +27,7 @@ public class AutomationEventFetcher extends AbstractJdbcEventFetcher<String> {
     protected @Nullable String buildSqlFilter(String automationName) {
         AutomationDefinition definition = definitions.get(automationName);
         if (definition != null) {
-            return EventSelectionSqlBuilder.buildWhereClause(definition);
+            return EventSelectionWhereClauseBuilder.buildWhereClause(definition);
         }
 
         Set<String> available = new HashSet<>(definitions.keySet());

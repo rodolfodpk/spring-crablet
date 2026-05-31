@@ -102,7 +102,7 @@ For unit and integration testing, add `crablet-test-support`:
 
 This provides:
 - **InMemoryEventStore** - Fast in-memory event store for unit tests
-- **AbstractCrabletTest** - Base class for integration tests with Testcontainers
+- **AbstractPostgresEventStoreTest** - Base class for integration tests with Testcontainers
 
 For the BDD given/when/then base for **command handler unit tests**
 (`AbstractInMemoryHandlerTest`), add `crablet-test-commands` (it builds on `crablet-test-support`):
@@ -178,7 +178,7 @@ public class DepositCommandHandler implements CommutativeCommandHandler<DepositC
 
 ```java
 @Configuration
-public class CrabletConfig {
+public class ApplicationConfig {
     
     @Bean
     public CommandExecutor commandExecutor(

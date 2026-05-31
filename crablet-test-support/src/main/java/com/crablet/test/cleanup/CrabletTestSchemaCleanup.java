@@ -7,9 +7,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * invocations in {@code try/catch} for {@link org.springframework.jdbc.BadSqlGrammarException} when
  * Flyway has not created tables yet.
  */
-public final class IntegrationTestDbCleanup {
+public final class CrabletTestSchemaCleanup {
 
-    private IntegrationTestDbCleanup() {}
+    private CrabletTestSchemaCleanup() {}
 
     /** Eventstore / metrics style: {@code events} without RESTART IDENTITY, explicit sequence reset. */
     public static void truncateEventStoreTablesAndRestartPositionSequence(JdbcTemplate jdbc) {

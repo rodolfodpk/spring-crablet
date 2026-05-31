@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @DisplayName("EventStore Query Tests")
 @SpringBootTest(classes = TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
-class EventStoreQueryTest extends com.crablet.test.AbstractCrabletTest {
+class EventStoreQueryTest extends com.crablet.test.AbstractPostgresEventStoreTest {
 
     @Autowired
     private EventStore eventStore;

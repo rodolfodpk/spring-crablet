@@ -4,7 +4,7 @@ description: >
   Use this skill when the user wants to:
     - Write command handler unit tests for a Crablet app or module
     - Use the BDD given/when/then helpers (AbstractInMemoryHandlerTest)
-    - Set up integration tests with a real PostgreSQL (AbstractCrabletTest)
+    - Set up integration tests with a real PostgreSQL (AbstractPostgresEventStoreTest)
     - Write or wire up generated scenario tests
     - Get command->event audit linkage right in a test (the executeInTransaction footgun)
     - Decide which test layer (unit vs integration vs scenario) fits a behavior
@@ -21,7 +21,7 @@ pick the lowest one that proves the behavior.
 | Layer | Base / mechanism | Backing store | Proves |
 |-------|------------------|---------------|--------|
 | **Handler unit** | `AbstractInMemoryHandlerTest` (given/when/then) | `InMemoryEventStore` | Business logic of a single handler's decision — happy paths, validation, emitted events/tags |
-| **Integration** | `AbstractCrabletTest` | Testcontainers PostgreSQL | DCB concurrency (`ConcurrencyException`, idempotency), real append, audit linkage, projections |
+| **Integration** | `AbstractPostgresEventStoreTest` | Testcontainers PostgreSQL | DCB concurrency (`ConcurrencyException`, idempotency), real append, audit linkage, projections |
 | **Scenario** | generated `*ScenarioTest` | n/a (stubbed steps) | Event-model scenarios stay represented as living docs; filled in by the author |
 
 Rule of thumb: prove **business logic** at the unit layer (fast, no container); prove
@@ -93,9 +93,9 @@ class OpenWalletCommandHandlerUnitTest extends AbstractInMemoryHandlerTest {
 }
 ```
 
-## Integration tests — `AbstractCrabletTest`
+## Integration tests — `AbstractPostgresEventStoreTest`
 
-Extend `com.crablet.test.AbstractCrabletTest` (from `crablet-test-support`) for tests that need a real
+Extend `com.crablet.test.AbstractPostgresEventStoreTest` (from `crablet-test-support`) for tests that need a real
 PostgreSQL via Testcontainers: DCB append behavior, `ConcurrencyException`, idempotency, projections,
 and command->event audit linkage. DCB integration helpers live in
 `crablet-test-support/src/main/java/com/crablet/eventstore/integration/`.

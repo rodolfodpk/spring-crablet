@@ -1,7 +1,8 @@
 package com.crablet.test;
 
 import com.crablet.eventstore.EventStore;
-import com.crablet.test.cleanup.IntegrationTestDbCleanup;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.test.cleanup.CrabletTestSchemaCleanup;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.BadSqlGrammarException;
@@ -10,13 +11,17 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Base class for Crablet integration tests using Testcontainers.
  * Subclasses must add their own @SpringBootTest annotation with the appropriate TestApplication class.
  */
 @Testcontainers
-public abstract class AbstractCrabletTest {
+public abstract class AbstractPostgresEventStoreTest {
+    private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder().build();
+
     private static final PostgreSQLContainer<?> SHARED_POSTGRES = new PostgreSQLContainer<>("postgres:17")
             .withDatabaseName("postgres")
             .withUsername("postgres")
@@ -63,7 +68,7 @@ public abstract class AbstractCrabletTest {
     void cleanDatabase() {
         // Clean all tables in the correct order to respect foreign key constraints
         try {
-            IntegrationTestDbCleanup.truncateEventStoreTablesAndRestartPositionSequence(jdbcTemplate);
+            CrabletTestSchemaCleanup.truncateEventStoreTablesAndRestartPositionSequence(jdbcTemplate);
         } catch (BadSqlGrammarException e) {
             // Tables don't exist yet - Flyway will create them
             // This is expected on first run
@@ -74,6 +79,14 @@ public abstract class AbstractCrabletTest {
 
     protected DatabaseProperties getDatabaseProperties() {
         return new DatabaseProperties(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+    }
+
+    protected <T> T deserialize(StoredEvent event, Class<T> type) {
+        try {
+            return OBJECT_MAPPER.readValue(event.data(), type);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to deserialize stored event", e);
+        }
     }
 
     public record DatabaseProperties(String url, String username, String password) {}

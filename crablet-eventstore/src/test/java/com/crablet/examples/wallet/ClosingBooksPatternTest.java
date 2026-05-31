@@ -17,7 +17,7 @@ import com.crablet.examples.wallet.events.WalletStatementOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;
 import com.crablet.examples.wallet.projections.WalletBalanceState;
 import com.crablet.examples.wallet.projections.WalletBalanceStateProjector;
-import com.crablet.test.AbstractCrabletTest;
+import com.crablet.test.AbstractPostgresEventStoreTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @DisplayName("Closing the Books Pattern Test")
 @SpringBootTest(classes = com.crablet.eventstore.integration.TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
-class ClosingBooksPatternTest extends AbstractCrabletTest {
+class ClosingBooksPatternTest extends AbstractPostgresEventStoreTest {
 
     @Autowired
     private EventStore eventStore;

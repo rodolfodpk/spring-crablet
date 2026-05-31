@@ -2,7 +2,7 @@ package com.crablet.integration;
 
 import com.crablet.TestApplication;
 import com.crablet.eventstore.EventStore;
-import com.crablet.test.cleanup.IntegrationTestDbCleanup;
+import com.crablet.test.cleanup.CrabletTestSchemaCleanup;
 import com.crablet.testutils.TestConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,7 +82,7 @@ public abstract class AbstractCrabletTest {
     void cleanDatabase() {
         // Clean all tables in the correct order to respect foreign key constraints
         try {
-            IntegrationTestDbCleanup.truncateEventsCommandsAndOutboxProgress(jdbcTemplate);
+            CrabletTestSchemaCleanup.truncateEventsCommandsAndOutboxProgress(jdbcTemplate);
         } catch (BadSqlGrammarException e) {
             // Tables don't exist yet - Flyway will create them
             // This is expected on first run

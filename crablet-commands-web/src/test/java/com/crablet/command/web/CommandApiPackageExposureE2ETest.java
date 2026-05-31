@@ -1,6 +1,6 @@
 package com.crablet.command.web;
 
-import com.crablet.test.AbstractCrabletTest;
+import com.crablet.test.AbstractPostgresEventStoreTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         properties = "spring.profiles.active=test"
 )
 @DisplayName("Command API Package Exposure E2E Tests")
-class CommandApiPackageExposureE2ETest extends AbstractCrabletTest {
+class CommandApiPackageExposureE2ETest extends AbstractPostgresEventStoreTest {
 
     @LocalServerPort
     private int port;

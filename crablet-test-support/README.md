@@ -6,7 +6,7 @@ Optional test support for applications built on Crablet. Provides fast in-memory
 
 - Add this as a `test` dependency when you want shared migrations and reusable Crablet test helpers
 - Use `InMemoryEventStore` for fast unit tests
-- Use `AbstractCrabletTest` when you need a real PostgreSQL-backed integration test
+- Use `AbstractPostgresEventStoreTest` when you need a real PostgreSQL-backed integration test
 - Treat this as developer tooling, not as part of your runtime architecture
 
 ## Overview
@@ -15,7 +15,7 @@ Optional test support for applications built on Crablet. Provides fast in-memory
 
 It solves two problems:
 
-1. **Test utilities** — `InMemoryEventStore`, `AbstractCrabletTest`, and `DCBTestHelpers` are available from a single dependency instead of being reimplemented per application (the command-handler BDD base lives one layer up in `crablet-test-commands`)
+1. **Test utilities** — `InMemoryEventStore` and `AbstractPostgresEventStoreTest` are available from a single dependency instead of being reimplemented per application (the command-handler BDD base lives one layer up in `crablet-test-commands`)
 2. **Database migrations** — All framework migrations live here so every module gets them automatically through a single test-scope dependency
 
 ## Maven Coordinates
@@ -51,30 +51,27 @@ depends on `crablet-commands`, so it sits one layer above this module. It wraps 
 (fast, no Postgres) with `given()` / `when()` / `then()` helpers. See the `/crablet-test-authoring`
 skill for the dependency snippet and a worked example.
 
-### AbstractCrabletTest
+### AbstractPostgresEventStoreTest
 
 Base class for integration tests using a real PostgreSQL container via Testcontainers.
 
 - Shared container across all tests (reuse enabled)
 - Automatic database cleanup before each test
 - Dynamic property source for Flyway and datasource configuration
+- Protected `deserialize(StoredEvent, Class<T>)` helper for asserting persisted JSON event payloads
 
 ```java
 @SpringBootTest(classes = TestApplication.class)
-class MyIntegrationTest extends AbstractCrabletTest {
+class MyIntegrationTest extends AbstractPostgresEventStoreTest {
 
     @Test
     void testWithRealDatabase() {
-        // eventStore and jdbcTemplate are autowired from AbstractCrabletTest
+        // eventStore and jdbcTemplate are autowired from AbstractPostgresEventStoreTest
         eventStore.appendCommutative(List.of(myEvent));
         // ...
     }
 }
 ```
-
-### DCBTestHelpers
-
-Utilities for testing DCB concurrency scenarios (optimistic locking, idempotency violations).
 
 ## When To Use This Module
 
@@ -100,7 +97,7 @@ Flyway picks these up automatically in every module that declares `crablet-test-
 
 ### Integration test database hygiene
 
-Framework integration tests use Flyway (classpath `db/migration` from this module) and truncate the relevant tables from `@BeforeEach` in each module’s `Abstract*Test` base class, or via `com.crablet.test.cleanup.IntegrationTestDbCleanup` for shared SQL. Example applications keep their own Flyway scripts and test-specific cleanup (for example `wallet-example-app` and `WalletIntegrationTestDbCleanup`).
+Framework integration tests use Flyway (classpath `db/migration` from this module) and truncate the relevant tables from `@BeforeEach` in each module’s `Abstract*Test` base class, or via `com.crablet.test.cleanup.CrabletTestSchemaCleanup` for shared SQL. Example applications keep their own Flyway scripts and test-specific cleanup (for example `wallet-example-app` and `WalletIntegrationTestDbCleanup`).
 
 ## Build Notes
 

@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import static com.crablet.eventstore.EventType.type;
 
 @Configuration
-public class ViewConfiguration {
+public class CourseViewConfig {
 
     @Bean
     public ViewSubscription courseAvailabilityViewSubscription(CourseAvailabilityViewProjector projector) {

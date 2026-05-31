@@ -8,7 +8,7 @@ import com.crablet.examples.course.events.CourseCapacityChanged;
 import com.crablet.examples.course.events.CourseDefined;
 import com.crablet.examples.course.exceptions.CourseNotFoundException;
 import com.crablet.examples.course.handlers.ChangeCourseCapacityCommandHandler;
-import com.crablet.test.AbstractCrabletTest;
+import com.crablet.test.AbstractPostgresEventStoreTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @DisplayName("ChangeCourseCapacityCommandHandler Integration Tests")
 @SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
-class ChangeCourseCapacityCommandHandlerTest extends AbstractCrabletTest {
+class ChangeCourseCapacityCommandHandlerTest extends AbstractPostgresEventStoreTest {
 
     private ChangeCourseCapacityCommandHandler handler;
     

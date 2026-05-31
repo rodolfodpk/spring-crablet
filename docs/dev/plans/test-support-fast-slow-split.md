@@ -20,14 +20,14 @@ This delivers the actual goal: **handler BDD tests run fast against the in-memor
 
 ## Why the full split was dropped
 
-The original plan split `crablet-test-support` into `crablet-test-inmemory` + `crablet-test-postgres`, renamed `AbstractCrabletTest` → `AbstractPostgresIntegrationTest`, relocated the DB migrations, reworked `check-migration-sync` / `check-test-support-artifact`, and repointed **32 `AbstractCrabletTest` usages** across four modules.
+The original plan split `crablet-test-support` into `crablet-test-inmemory` + `crablet-test-postgres`, renamed the PostgreSQL integration base, relocated the DB migrations, reworked `check-migration-sync` / `check-test-support-artifact`, and repointed usages across four modules.
 
 On review, that buys only **dependency hygiene**, not speed:
 
-- BDD test *speed* is already achieved by M1 — `InMemoryEventStore` starts no container; Testcontainers only runs when a test extends `AbstractCrabletTest`. Having Testcontainers on the classpath does not slow or gate a BDD test.
+- BDD test *speed* is already achieved by M1 — `InMemoryEventStore` starts no container; Testcontainers only runs when a test extends `AbstractPostgresEventStoreTest`. Having Testcontainers on the classpath does not slow or gate a BDD test.
 - The full split's sole remaining benefit is keeping Testcontainers/Postgres/Flyway off the BDD module's transitive classpath — high churn and build-system risk for marginal value.
 
-Decision: **do not do the full split.** `AbstractCrabletTest` keeps its name and home in `crablet-test-support`.
+Decision: **do not do the full split.** The shared PostgreSQL integration base now keeps its home in `crablet-test-support` as `AbstractPostgresEventStoreTest`.
 
 ## Optional: minimal `crablet-test-inmemory` extraction
 
@@ -37,12 +37,12 @@ Only worth doing if the Testcontainers/Postgres jars on the BDD classpath actual
 Minimal, low-churn shape — **no rename, no migration move, no 32-usage repoint**:
 
 1. Create `crablet-test-inmemory` containing only `InMemoryEventStore` (depends on `crablet-eventstore`).
-2. `crablet-test-support` depends on `crablet-test-inmemory` (re-exports the fake) — existing `AbstractCrabletTest` consumers unchanged.
+2. `crablet-test-support` depends on `crablet-test-inmemory` (re-exports the fake) — existing `AbstractPostgresEventStoreTest` consumers unchanged.
 3. `crablet-test-commands` depends on `crablet-test-inmemory` instead of `crablet-test-support` → its transitive classpath is Postgres-free.
 4. Add `crablet-test-inmemory` to the Makefile staging + BOM.
 
 ## Other optional follow-ups (decoupled, only if desired)
 
-- Rename `AbstractCrabletTest` → `AbstractPostgresIntegrationTest` as a standalone clarity change (32 usages across `crablet-commands`, `crablet-commands-web`, `crablet-eventstore`, `crablet-outbox`). Pure churn for a clearer name; not required.
+- Rename already done: the shared PostgreSQL integration base is now `AbstractPostgresEventStoreTest`. Module-local integration bases can be renamed separately only if the local clarity benefit justifies the churn.
 - Move `crablet-commands`' 7 example-handler unit tests to `shared-examples-domain` test sources ("tests next to the handlers"). Not required — the staged build handles the dependency ordering as-is.
 - Add `crablet-test-commands` (and `crablet-test-inmemory`, if created) to BOM `dependencyManagement` so external app consumers drop explicit versions.

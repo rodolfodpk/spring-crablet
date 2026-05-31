@@ -6,7 +6,7 @@ import com.crablet.eventstore.EventStore;
 import com.crablet.outbox.TopicPublisherPair;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.internal.OutboxProcessorConfig;
-import com.crablet.test.cleanup.IntegrationTestDbCleanup;
+import com.crablet.test.cleanup.CrabletTestSchemaCleanup;
 import com.crablet.testutils.CountDownLatchPublisher;
 import com.crablet.testutils.EventProcessorTestHelper;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +51,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
         // Parent's cleanDatabase() runs first and cleans crablet_events, but ensure it's clean
         // This is idempotent - safe to run multiple times
         try {
-            IntegrationTestDbCleanup.truncateEventsAndOutboxProgressOnly(jdbcTemplate);
+            CrabletTestSchemaCleanup.truncateEventsAndOutboxProgressOnly(jdbcTemplate);
         } catch (Exception e) {
             // Ignore if table doesn't exist yet (Flyway will create it)
         }
@@ -273,7 +273,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
     void shouldHandlePublisherFailureAndRetry() throws InterruptedException {
         // Ensure clean state before starting
         try {
-            IntegrationTestDbCleanup.truncateEventsAndOutboxProgressOnly(jdbcTemplate);
+            CrabletTestSchemaCleanup.truncateEventsAndOutboxProgressOnly(jdbcTemplate);
         } catch (Exception e) {
             // Ignore if table doesn't exist yet
         }
@@ -324,7 +324,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
     void shouldMaintainEventOrderingAcrossPublishers() throws InterruptedException {
         // Ensure clean state before starting - do this explicitly to avoid race conditions
         try {
-            IntegrationTestDbCleanup.truncateEventsAndOutboxProgressOnly(jdbcTemplate);
+            CrabletTestSchemaCleanup.truncateEventsAndOutboxProgressOnly(jdbcTemplate);
         } catch (Exception e) {
             // Ignore if table doesn't exist yet
         }
@@ -487,7 +487,7 @@ abstract class AbstractOutboxProcessorTest extends AbstractCrabletTest {
     @Test
     void shouldHandleEmptyEventBatches() {
         // Given - Ensure clean state (explicit cleanup for this test)
-        IntegrationTestDbCleanup.truncateOutboxTopicProgress(jdbcTemplate);
+        CrabletTestSchemaCleanup.truncateOutboxTopicProgress(jdbcTemplate);
         
         // When - Process with no events
         int processed = EventProcessorTestHelper.processAll(eventProcessor, processorConfigs);

@@ -24,7 +24,7 @@ works correctly.
 plumbing. The public API guide is honest about what's stable and what isn't.
 
 **Testing story is solid.** `InMemoryEventStore` + `AbstractInMemoryHandlerTest` (given/when/then, no
-Docker) + `AbstractCrabletTest` (Testcontainers integration, shared container) covers the full
+Docker) + `AbstractPostgresEventStoreTest` (Testcontainers integration, shared container) covers the full
 pyramid. This is better test tooling than most event sourcing frameworks provide out of the box.
 
 **Documentation is above average.** `DCB_AND_CRABLET.md` explains the SQL, the timeline,

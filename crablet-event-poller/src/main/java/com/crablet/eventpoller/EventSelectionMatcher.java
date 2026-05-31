@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * In-memory counterpart of {@link EventSelectionSqlBuilder}.
+ * In-memory counterpart of {@link EventSelectionWhereClauseBuilder}.
  * Mirrors the SQL WHERE logic exactly so fan-out routing produces the same results
  * as the database-side filter used in the legacy per-processor path.
  */

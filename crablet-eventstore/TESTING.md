@@ -21,7 +21,7 @@
 
 ### Integration test database hygiene
 
-PostgreSQL integration tests rely on **Flyway** migrations from `crablet-test-support` (`classpath:db/migration`) plus each module’s `TestApplication` importing `CrabletFlywayConfiguration`. Bases such as `AbstractCrabletTest` (in this module or in `crablet-test-support`) clear data between tests with `TRUNCATE` (and related helpers in `IntegrationTestDbCleanup`) so runs stay isolated without re-running migrations each time.
+PostgreSQL integration tests rely on **Flyway** migrations from `crablet-test-support` (`classpath:db/migration`) plus each module’s `TestApplication` importing `CrabletFlywayConfiguration`. Bases such as `AbstractPostgresEventStoreTest` from `crablet-test-support` or module-local integration bases clear data between tests with `TRUNCATE` (and related helpers in `CrabletTestSchemaCleanup`) so runs stay isolated without re-running migrations each time.
 
 ## Testing Strategy
 
@@ -282,17 +282,17 @@ Integration tests validate DCB concurrency, database constraints, and real datab
 Use the framework's base test class:
 
 ```java
-import com.crablet.test.AbstractCrabletTest;
+import com.crablet.test.AbstractPostgresEventStoreTest;
 
-public class WalletIntegrationTest extends AbstractCrabletTest {
+public class WalletIntegrationTest extends AbstractPostgresEventStoreTest {
     
-    // eventStore and jdbcTemplate are inherited from AbstractCrabletTest — no redeclaration needed
+    // eventStore and jdbcTemplate are inherited from AbstractPostgresEventStoreTest — no redeclaration needed
     
     // Your test methods here
 }
 ```
 
-`AbstractCrabletTest` provides:
+`AbstractPostgresEventStoreTest` provides:
 - Shared PostgreSQL Testcontainers container
 - Automatic Flyway migrations
 - EventStore and JdbcTemplate autowired
@@ -300,7 +300,7 @@ public class WalletIntegrationTest extends AbstractCrabletTest {
 ### Integration Test Example
 
 ```java
-class WithdrawCommandHandlerTest extends AbstractCrabletTest {
+class WithdrawCommandHandlerTest extends AbstractPostgresEventStoreTest {
     
     @Autowired
     private WithdrawCommandHandler handler;
@@ -525,7 +525,7 @@ The test scope is organized into:
 
 - **Integration Tests** (`com.crablet.command.handlers.*.integration.*`): Integration tests with Testcontainers
   - Real database testing, DCB concurrency validation
-  - Use `AbstractCrabletTest` base class
+  - Use `AbstractPostgresEventStoreTest` base class
 
 - **Framework Tests** (`com.crablet.eventstore.integration.*`): Integration tests for core EventStore functionality
 

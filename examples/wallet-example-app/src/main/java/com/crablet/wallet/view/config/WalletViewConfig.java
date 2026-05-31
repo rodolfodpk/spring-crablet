@@ -21,7 +21,7 @@ import static com.crablet.eventstore.EventType.type;
  * Defines which events each view subscribes to.
  */
 @Configuration
-public class ViewConfiguration {
+public class WalletViewConfig {
 
     private static final String[] WALLET_ANY_OF_TAGS = {"wallet_id", "from_wallet_id", "to_wallet_id"};
 
