@@ -1,7 +1,7 @@
 package com.crablet.views.integration.wallet;
 
 import com.crablet.eventpoller.progress.ProcessorStatus;
-import com.crablet.views.integration.AbstractViewsTest;
+import com.crablet.views.integration.AbstractViewsIntegrationTest;
 import com.crablet.views.internal.ViewProgressTracker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,19 +23,14 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(classes = ViewProgressTrackerWalletIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DisplayName("ViewProgressTracker Wallet Domain Integration Tests")
-class ViewProgressTrackerWalletIntegrationTest extends AbstractViewsTest {
+class ViewProgressTrackerWalletIntegrationTest extends AbstractViewsIntegrationTest {
 
     @Autowired
     private DataSource dataSource;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
     private ViewProgressTracker progressTracker;
 
     @BeforeEach
     void setUp() {
-        cleanDatabase(jdbcTemplate);
         progressTracker = new ViewProgressTracker(dataSource);
     }
 
@@ -243,9 +238,9 @@ class ViewProgressTrackerWalletIntegrationTest extends AbstractViewsTest {
             SimpleDriverDataSource dataSource =
                     new SimpleDriverDataSource();
             dataSource.setDriverClass(org.postgresql.Driver.class);
-            dataSource.setUrl(AbstractViewsTest.postgres.getJdbcUrl());
-            dataSource.setUsername(AbstractViewsTest.postgres.getUsername());
-            dataSource.setPassword(AbstractViewsTest.postgres.getPassword());
+            dataSource.setUrl(AbstractViewsIntegrationTest.postgres.getJdbcUrl());
+            dataSource.setUsername(AbstractViewsIntegrationTest.postgres.getUsername());
+            dataSource.setPassword(AbstractViewsIntegrationTest.postgres.getPassword());
             return dataSource;
         }
 

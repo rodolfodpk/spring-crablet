@@ -34,20 +34,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(classes = AutomationEventFetcherIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DisplayName("AutomationEventFetcher Integration Tests")
-class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
-
-    @Autowired
-    private EventStore eventStore;
-
+class AutomationEventFetcherIntegrationTest extends AbstractAutomationsIntegrationTest {
     @Autowired
     private AutomationEventFetcher eventFetcher;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
     @BeforeEach
     void setUp() {
-        cleanDatabase(jdbcTemplate);
     }
 
     @Test
@@ -178,9 +169,9 @@ class AutomationEventFetcherIntegrationTest extends AbstractAutomationsTest {
             SimpleDriverDataSource ds =
                     new SimpleDriverDataSource();
             ds.setDriverClass(org.postgresql.Driver.class);
-            ds.setUrl(AbstractAutomationsTest.postgres.getJdbcUrl());
-            ds.setUsername(AbstractAutomationsTest.postgres.getUsername());
-            ds.setPassword(AbstractAutomationsTest.postgres.getPassword());
+            ds.setUrl(AbstractAutomationsIntegrationTest.postgres.getJdbcUrl());
+            ds.setUsername(AbstractAutomationsIntegrationTest.postgres.getUsername());
+            ds.setPassword(AbstractAutomationsIntegrationTest.postgres.getPassword());
             return ds;
         }
 

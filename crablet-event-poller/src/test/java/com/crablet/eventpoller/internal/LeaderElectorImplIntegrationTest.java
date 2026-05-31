@@ -1,6 +1,6 @@
 package com.crablet.eventpoller.internal;
 
-import com.crablet.eventpoller.integration.AbstractEventProcessorTest;
+import com.crablet.eventpoller.integration.AbstractEventProcessorIntegrationTest;
 import com.crablet.eventpoller.metrics.LeadershipMetric;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @SpringBootTest(classes = LeaderElectorImplIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DisplayName("LeaderElectorImpl Integration Tests")
-class LeaderElectorImplIntegrationTest extends AbstractEventProcessorTest {
+class LeaderElectorImplIntegrationTest extends AbstractEventProcessorIntegrationTest {
 
     @Autowired
     private DataSource dataSource;

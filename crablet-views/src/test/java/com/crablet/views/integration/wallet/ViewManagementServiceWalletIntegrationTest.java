@@ -14,7 +14,7 @@ import com.crablet.test.config.CrabletFlywayConfiguration;
 import com.crablet.views.ViewSubscription;
 import com.crablet.views.config.ViewsAutoConfiguration;
 import com.crablet.views.config.ViewsConfig;
-import com.crablet.views.integration.AbstractViewsTest;
+import com.crablet.views.integration.AbstractViewsIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,14 +47,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(classes = ViewManagementServiceWalletIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DisplayName("View Management Service Wallet Domain Integration Tests")
-class ViewManagementServiceWalletIntegrationTest extends AbstractViewsTest {
+class ViewManagementServiceWalletIntegrationTest extends AbstractViewsIntegrationTest {
 
     @Autowired
     private ProcessorManagementService<String> managementService;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
     @DynamicPropertySource
     static void configureAdditionalProperties(DynamicPropertyRegistry registry) {
         registry.add("crablet.views.enabled", () -> "true");
@@ -62,7 +58,6 @@ class ViewManagementServiceWalletIntegrationTest extends AbstractViewsTest {
 
     @BeforeEach
     void setUp() {
-        cleanDatabase(jdbcTemplate);
     }
 
     @Test
@@ -174,9 +169,9 @@ class ViewManagementServiceWalletIntegrationTest extends AbstractViewsTest {
         public DataSource dataSource() {
             SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
             dataSource.setDriverClass(Driver.class);
-            dataSource.setUrl(AbstractViewsTest.postgres.getJdbcUrl());
-            dataSource.setUsername(AbstractViewsTest.postgres.getUsername());
-            dataSource.setPassword(AbstractViewsTest.postgres.getPassword());
+            dataSource.setUrl(AbstractViewsIntegrationTest.postgres.getJdbcUrl());
+            dataSource.setUsername(AbstractViewsIntegrationTest.postgres.getUsername());
+            dataSource.setPassword(AbstractViewsIntegrationTest.postgres.getPassword());
             return dataSource;
         }
 

@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Contains all test logic that will be inherited by concrete test classes
  * for each lock strategy (GLOBAL and PER_TOPIC_PUBLISHER).
  */
-abstract class AbstractOutboxManagementServiceTest extends AbstractCrabletTest {
+abstract class AbstractOutboxManagementServiceTest extends AbstractOutboxIntegrationTest {
     
     @Autowired
     private EventStore eventStore;

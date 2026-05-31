@@ -1,6 +1,6 @@
 package com.crablet.eventpoller.leader;
 
-import com.crablet.eventpoller.integration.AbstractEventProcessorTest;
+import com.crablet.eventpoller.integration.AbstractEventProcessorIntegrationTest;
 import com.crablet.eventpoller.internal.LeaderElectorImpl;
 import com.crablet.eventpoller.metrics.LeadershipMetric;
 import org.jspecify.annotations.Nullable;
@@ -39,7 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(classes = PersistentConnectionLeaderElectorTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DisplayName("Persistent Connection Leader Election Tests")
-class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
+class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorIntegrationTest {
 
     @Autowired
     private DataSource dataSource;
@@ -345,9 +345,9 @@ class PersistentConnectionLeaderElectorTest extends AbstractEventProcessorTest {
         public DataSource dataSource() {
             SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
             dataSource.setDriverClass(Driver.class);
-            dataSource.setUrl(AbstractEventProcessorTest.postgres.getJdbcUrl());
-            dataSource.setUsername(AbstractEventProcessorTest.postgres.getUsername());
-            dataSource.setPassword(AbstractEventProcessorTest.postgres.getPassword());
+            dataSource.setUrl(AbstractEventProcessorIntegrationTest.postgres.getJdbcUrl());
+            dataSource.setUsername(AbstractEventProcessorIntegrationTest.postgres.getUsername());
+            dataSource.setPassword(AbstractEventProcessorIntegrationTest.postgres.getPassword());
             return dataSource;
         }
 

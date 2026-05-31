@@ -3,7 +3,7 @@ package com.crablet.eventpoller.internal;
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.InstanceIdProvider;
-import com.crablet.eventpoller.integration.AbstractEventProcessorTest;
+import com.crablet.eventpoller.integration.AbstractEventProcessorIntegrationTest;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
@@ -55,21 +55,13 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(classes = ProcessorManagementServiceImplIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DisplayName("ProcessorManagementServiceImpl Integration Tests")
-class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcessorTest {
+class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcessorIntegrationTest {
 
     @Autowired
     private ProcessorManagementService<String> managementService;
 
     @Autowired
-    private EventProcessor<TestProcessorConfig, String> eventProcessor;
-
-    @Autowired
-    private EventStore eventStore;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    @Autowired
+    private EventProcessor<TestProcessorConfig, String> eventProcessor;    @Autowired
     private TestProgressTracker progressTracker;
 
     @BeforeEach
@@ -78,7 +70,6 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
         eventProcessor.stop();
 
         // Clean database
-        cleanDatabase(jdbcTemplate);
 
         // Reset progress tracker
         progressTracker.positions.clear();
@@ -457,9 +448,9 @@ class ProcessorManagementServiceImplIntegrationTest extends AbstractEventProcess
         public DataSource dataSource() {
             SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
             dataSource.setDriverClass(org.postgresql.Driver.class);
-            dataSource.setUrl(AbstractEventProcessorTest.postgres.getJdbcUrl());
-            dataSource.setUsername(AbstractEventProcessorTest.postgres.getUsername());
-            dataSource.setPassword(AbstractEventProcessorTest.postgres.getPassword());
+            dataSource.setUrl(AbstractEventProcessorIntegrationTest.postgres.getJdbcUrl());
+            dataSource.setUsername(AbstractEventProcessorIntegrationTest.postgres.getUsername());
+            dataSource.setPassword(AbstractEventProcessorIntegrationTest.postgres.getPassword());
             return dataSource;
         }
 

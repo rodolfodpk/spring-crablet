@@ -7,7 +7,7 @@ import com.crablet.eventstore.WriteDataSource;
 import com.crablet.test.config.CrabletFlywayConfiguration;
 import com.crablet.views.ViewSubscription;
 import com.crablet.views.config.ViewsAutoConfiguration;
-import com.crablet.views.integration.AbstractViewsTest;
+import com.crablet.views.integration.AbstractViewsIntegrationTest;
 import com.crablet.views.internal.ViewProcessorConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -43,14 +43,10 @@ import javax.sql.DataSource;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
 @DisplayName("ViewController E2E Tests")
-class ViewControllerE2ETest extends AbstractViewsTest {
+class ViewControllerE2ETest extends AbstractViewsIntegrationTest {
 
     @LocalServerPort
     private int port;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
     @Autowired
     @Qualifier("viewsEventProcessor")
     private EventProcessor<ViewProcessorConfig, String> viewsEventProcessor;
@@ -64,7 +60,6 @@ class ViewControllerE2ETest extends AbstractViewsTest {
 
     @BeforeEach
     void setUp() {
-        cleanDatabase(jdbcTemplate);
         webTestClient = WebTestClient
             .bindToServer()
             .baseUrl("http://localhost:" + port)
@@ -217,9 +212,9 @@ class ViewControllerE2ETest extends AbstractViewsTest {
             SimpleDriverDataSource dataSource =
                     new SimpleDriverDataSource();
             dataSource.setDriverClass(org.postgresql.Driver.class);
-            dataSource.setUrl(AbstractViewsTest.postgres.getJdbcUrl());
-            dataSource.setUsername(AbstractViewsTest.postgres.getUsername());
-            dataSource.setPassword(AbstractViewsTest.postgres.getPassword());
+            dataSource.setUrl(AbstractViewsIntegrationTest.postgres.getJdbcUrl());
+            dataSource.setUsername(AbstractViewsIntegrationTest.postgres.getUsername());
+            dataSource.setPassword(AbstractViewsIntegrationTest.postgres.getPassword());
             return dataSource;
         }
 

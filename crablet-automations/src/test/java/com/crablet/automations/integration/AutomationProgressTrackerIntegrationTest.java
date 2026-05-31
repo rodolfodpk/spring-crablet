@@ -25,19 +25,14 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(classes = AutomationProgressTrackerIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DisplayName("AutomationProgressTracker Integration Tests")
-class AutomationProgressTrackerIntegrationTest extends AbstractAutomationsTest {
+class AutomationProgressTrackerIntegrationTest extends AbstractAutomationsIntegrationTest {
 
     @Autowired
     private DataSource dataSource;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
     private AutomationProgressTracker progressTracker;
 
     @BeforeEach
     void setUp() {
-        cleanDatabase(jdbcTemplate);
         progressTracker = new AutomationProgressTracker(dataSource);
     }
 
@@ -235,9 +230,9 @@ class AutomationProgressTrackerIntegrationTest extends AbstractAutomationsTest {
             SimpleDriverDataSource dataSource =
                     new SimpleDriverDataSource();
             dataSource.setDriverClass(org.postgresql.Driver.class);
-            dataSource.setUrl(AbstractAutomationsTest.postgres.getJdbcUrl());
-            dataSource.setUsername(AbstractAutomationsTest.postgres.getUsername());
-            dataSource.setPassword(AbstractAutomationsTest.postgres.getPassword());
+            dataSource.setUrl(AbstractAutomationsIntegrationTest.postgres.getJdbcUrl());
+            dataSource.setUsername(AbstractAutomationsIntegrationTest.postgres.getUsername());
+            dataSource.setPassword(AbstractAutomationsIntegrationTest.postgres.getPassword());
             return dataSource;
         }
 

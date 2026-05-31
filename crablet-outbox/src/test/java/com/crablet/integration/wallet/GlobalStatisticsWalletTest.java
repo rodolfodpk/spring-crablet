@@ -3,7 +3,7 @@ package com.crablet.integration.wallet;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
-import com.crablet.integration.AbstractCrabletTest;
+import com.crablet.integration.AbstractOutboxIntegrationTest;
 import com.crablet.outbox.TopicPublisherPair;
 import com.crablet.outbox.config.OutboxConfig;
 import com.crablet.outbox.internal.OutboxProcessorConfig;
@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(properties = {
     "spring.config.import=classpath:application-test-with-outbox-global.properties"
 })
-class GlobalStatisticsWalletTest extends AbstractCrabletTest {
+class GlobalStatisticsWalletTest extends AbstractOutboxIntegrationTest {
     
     @Autowired
     private EventStore eventStore;
@@ -44,7 +44,7 @@ class GlobalStatisticsWalletTest extends AbstractCrabletTest {
     
     @BeforeEach
     void setUp() {
-        // Parent AbstractCrabletTest.cleanDatabase() already truncates events, commands, and outbox.
+        // Parent AbstractOutboxIntegrationTest.cleanDatabase() already truncates events, commands, and outbox.
         globalStatistics.reset();
         outboxConfig.setEnabled(true);
     }

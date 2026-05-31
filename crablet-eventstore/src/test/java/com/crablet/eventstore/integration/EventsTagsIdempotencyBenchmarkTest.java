@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Tag("benchmark")
 @DisplayName("crablet_events.tags GIN idempotency benchmark")
 @SpringBootTest(classes = TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
-class EventsTagsIdempotencyBenchmarkTest extends AbstractCrabletTest {
+class EventsTagsIdempotencyBenchmarkTest extends AbstractEventStoreIntegrationTest {
 
     private static final int SEED_EVENTS    = 10_000;
     private static final int SAMPLE_COUNT   = 100;

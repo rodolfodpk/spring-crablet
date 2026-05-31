@@ -44,7 +44,9 @@ public abstract class AbstractPostgresEventStoreTest {
         }));
     }
 
-    @Autowired
+    // Optional: not every subclass context defines an EventStore bean (e.g. progress-tracker
+    // and leader-elector integration tests). Required injection would fail those contexts.
+    @Autowired(required = false)
     protected EventStore eventStore;
     @Autowired
     protected JdbcTemplate jdbcTemplate;
@@ -55,7 +57,7 @@ public abstract class AbstractPostgresEventStoreTest {
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.flyway.enabled", () -> true);
-        // Reduce connection pool sizes for tests to avoid exhausting PostgreSQL max_connections
+        // Reduce connection pool sizes for tests to avoid exhausting PostgreSQL max_connections.
         registry.add("spring.datasource.hikari.maximum-pool-size", () -> 5);
         registry.add("spring.datasource.hikari.minimum-idle", () -> 1);
     }
@@ -65,7 +67,20 @@ public abstract class AbstractPostgresEventStoreTest {
     }
 
     @BeforeEach
-    void cleanDatabase() {
+    void cleanDatabaseBeforeEach() {
+        cleanDatabase(jdbcTemplate);
+    }
+
+    /**
+     * Cleanup hook run before each test. Default truncates the event-store tables and restarts the
+     * position sequence. Module bases override this to truncate their own table set (views,
+     * outbox/automations progress, etc.).
+     *
+     * <p>Keep overrides table-name-only (raw SQL via {@code CrabletTestSchemaCleanup}); never pull
+     * module-specific types into {@code crablet-test-support}, which would create a dependency cycle
+     * with the modules that test-depend on it.
+     */
+    protected void cleanDatabase(JdbcTemplate jdbcTemplate) {
         // Clean all tables in the correct order to respect foreign key constraints
         try {
             CrabletTestSchemaCleanup.truncateEventStoreTablesAndRestartPositionSequence(jdbcTemplate);
