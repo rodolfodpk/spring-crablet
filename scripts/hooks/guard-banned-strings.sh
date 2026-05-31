@@ -19,10 +19,18 @@ input="$(cat)"
 file="$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.path // ""')"
 [ -n "$file" ] && [ -f "$file" ] || exit 0
 
-# Never flag the hook scripts themselves (they name the banned terms on purpose).
+# Never flag the hook scripts themselves, nor the superseded historical plans
+# (which legitimately reference the old name — see the message below).
 case "$file" in
   */scripts/hooks/*) exit 0 ;;
+  */docs/dev/plans/*) exit 0 ;;
 esac
+
+# Per-file opt-out: a file may legitimately name a banned term (e.g. a skill that
+# documents the "no embabel" rule) by including this marker anywhere in its body.
+if grep -q "crablet-banned-terms: allow" "$file" 2>/dev/null; then
+  exit 0
+fi
 
 if grep -inE "$BANNED_TERMS" "$file" >/dev/null 2>&1; then
   echo "Warning: '$file' contains a banned term (${BANNED_TERMS})." >&2

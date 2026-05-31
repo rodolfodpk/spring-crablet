@@ -1,6 +1,6 @@
 # Crablet Product Roadmap
 
-Last updated: 2026-05-25
+Last updated: 2026-05-31
 
 ---
 
@@ -194,6 +194,44 @@ in `event-model.yaml`.
 
 **Ops:** LISTEN/NOTIFY wakeup with pooler detection is implemented. K8s generation exists.
 KEDA integration exists. Correlation/causation propagation and observability are post-1.0.
+
+---
+
+## Health Assessment (2026-05-31)
+
+A structural and process assessment (architecture, test ratios, docs, CI, code hygiene) — not a
+line-by-line correctness audit of poller/DCB internals.
+
+**Verdict: strong on design, implementation, and documentation; two soft spots — codegen maturity
+and adoption surface — both already sequenced in the roadmap below.**
+
+**Strengths (evidence):**
+
+- **Design.** Acyclic module DAG (`eventstore` root; `observability`/`db-migrations` are leaf
+  contracts). DCB multi-entity consistency without aggregate-per-command is a genuine differentiator
+  in the Java space. Conventions are governed as *closed decisions* (transaction_id linkage,
+  ClockProvider, EventType.type, snake_case tags), not informal style.
+- **Implementation.** ~21k lines of main Java with **0 TODO/FIXME/HACK** markers and 1 `@Deprecated`.
+  ~205 test files; strong ratios where it matters (commands 45, eventstore 37, outbox 32, poller 27),
+  Testcontainers-backed.
+- **CI.** Beyond build: verifies a committed codegen snapshot, runs doc guardrails, compiles tutorial
+  fixtures, regenerates snippets. This "docs can't drift from code" discipline is what makes the
+  heavy documentation trustworthy.
+- **Documentation.** 84 doc files + ~3,600 lines of module READMEs + skills + concept map; README
+  tiers maturity honestly (runtime near-complete, AI tooling in progress, K8s early).
+
+**Soft spots (risk → where addressed):**
+
+1. **Codegen maturity.** It is the headline/differentiator but the least-proven module (thin tests;
+   agents→generators refactor in progress). Risk: the marketed track is softer than the runtime.
+   → Mitigated by **H2 §2.3 deterministic codegen** (makes generation testable offline in CI) and a
+   near-term push on codegen test coverage.
+2. **Adoption surface.** Java 25 + Spring Boot 4 is bleeding-edge, narrowing near-term adopters;
+   single primary author. → Mitigated by **H1 §1.1 Maven Central publication** and the stated
+   Java 25 / Spring Boot 4 / PostgreSQL 17+ baseline + semantic-versioning policy in §1.2.
+
+**Positioning note:** lead the value proposition with the **runtime** (the solid part); present the
+AI-first codegen as the in-progress accelerator, consistent with the README's maturity tiering.
 
 ---
 
