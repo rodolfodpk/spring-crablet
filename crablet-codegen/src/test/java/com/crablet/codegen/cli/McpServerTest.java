@@ -34,8 +34,8 @@ class McpServerTest {
 
         assertThat(tools).hasSize(5);
         assertThat(tools.findValuesAsText("name"))
-                .contains("embabel_init", "embabel_plan", "embabel_generate", "embabel_k8s",
-                          "embabel_sync_scenarios");
+                .contains("crablet_init", "crablet_plan", "crablet_generate", "crablet_k8s",
+                          "crablet_sync_scenarios");
     }
 
     @Test
@@ -46,7 +46,7 @@ class McpServerTest {
                   "id": 2,
                   "method": "tools/call",
                   "params": {
-                    "name": "embabel_plan",
+                    "name": "crablet_plan",
                     "arguments": {
                       "model": "../docs/user/examples/loan-submit-feature-slice-event-model.yaml"
                     }

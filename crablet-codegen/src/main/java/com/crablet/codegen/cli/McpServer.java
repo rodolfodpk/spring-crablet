@@ -24,8 +24,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
 /**
- * Stdio MCP server exposing embabel_init, embabel_plan, embabel_generate, embabel_k8s,
- * and embabel_sync_scenarios as tools.
+ * Stdio MCP server exposing crablet_init, crablet_plan, crablet_generate, crablet_k8s,
+ * and crablet_sync_scenarios as tools.
  * Activated with the --mcp flag; Claude Code discovers it via .claude/settings.json.
  *
  * Protocol: MCP 2024-11-05 over newline-delimited JSON-RPC on stdin/stdout.
@@ -125,7 +125,7 @@ public class McpServer {
         result.set("capabilities", json.createObjectNode()
                 .set("tools", json.createObjectNode()));
         ObjectNode info = json.createObjectNode();
-        info.put("name", "embabel-codegen");
+        info.put("name", "crablet-codegen");
         info.put("version", "1.0.0");
         result.set("serverInfo", info);
         return result;
@@ -134,7 +134,7 @@ public class McpServer {
     private ObjectNode toolsListResult() {
         ArrayNode tools = json.createArrayNode();
 
-        tools.add(tool("embabel_generate",
+        tools.add(tool("crablet_generate",
                 "Generate spring-crablet code from an event-model.yaml produced by the " +
                 "/event-modeling skill. Runs the AI agent pipeline (events -> commands -> views " +
                 "-> automations -> outbox) then a compile-and-fix loop.",
@@ -144,14 +144,14 @@ public class McpServer {
                         prop("output", "string",
                                 "Output directory for generated source files (default: src/main/java)"))));
 
-        tools.add(tool("embabel_plan",
+        tools.add(tool("crablet_plan",
                 "Print the planned spring-crablet artifacts for an event-model.yaml without " +
                 "calling a model or writing files.",
                 schema(
                         prop("model", "string",
                                 "Path to event-model.yaml (default: event-model.yaml)"))));
 
-        tools.add(tool("embabel_init",
+        tools.add(tool("crablet_init",
                 "Bootstrap a new Spring Boot project with Crablet dependencies. " +
                 "Creates pom.xml, main class, and application.yml ready for code generation.",
                 schema(
@@ -162,7 +162,7 @@ public class McpServer {
                         prop("dir", "string",
                                 "Target directory path (default: ../<name>)"))));
 
-        tools.add(tool("embabel_k8s",
+        tools.add(tool("crablet_k8s",
                 "Generate Kubernetes manifests (k8s/base) from event-model.yaml using the " +
                 "deployment topology and module list. No Anthropic calls.",
                 schema(
@@ -171,7 +171,7 @@ public class McpServer {
                         prop("output", "string",
                                 "Output directory; k8s/base is created under it (default: .)"))));
 
-        tools.add(tool("embabel_sync_scenarios",
+        tools.add(tool("crablet_sync_scenarios",
                 "Compare event-model.yaml scenarios against generated test scaffolds on disk. " +
                 "Reports scenarios in the model with no test file and test files with no matching " +
                 "model scenario. Read-only — never writes files.",
@@ -193,11 +193,11 @@ public class McpServer {
         String output;
         try {
             output = switch (toolName) {
-                case "embabel_generate" -> callGenerate(args, capture);
-                case "embabel_plan" -> callPlan(args);
-                case "embabel_init" -> callInit(args, capture);
-                case "embabel_k8s" -> callK8s(args);
-                case "embabel_sync_scenarios" -> {
+                case "crablet_generate" -> callGenerate(args, capture);
+                case "crablet_plan" -> callPlan(args);
+                case "crablet_init" -> callInit(args, capture);
+                case "crablet_k8s" -> callK8s(args);
+                case "crablet_sync_scenarios" -> {
                     ScenarioSyncReport report = callSyncScenarios(args);
                     isError = !report.isClean();
                     yield report.render();
@@ -260,7 +260,7 @@ public class McpServer {
         String log = capture.toString(StandardCharsets.UTF_8).trim();
         return "Initialized project at " + dir
                 + (log.isBlank() ? "" : "\n\n" + log)
-                + "\n\nNext: run /event-modeling then embabel_generate.";
+                + "\n\nNext: run /event-modeling then crablet_generate.";
     }
 
     private ScenarioSyncReport callSyncScenarios(JsonNode args) throws Exception {

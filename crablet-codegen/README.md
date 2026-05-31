@@ -1,4 +1,4 @@
-# Embabel Codegen
+# Crablet Codegen
 
 AI-powered code generator for spring-crablet. Reads an `event-model.yaml` and generates production-ready Spring Boot source files for every layer of a Crablet application — events, commands, views, automations, and outbox — then compiles and self-repairs up to three times.
 
@@ -18,7 +18,7 @@ event-model.yaml
   → RepairAgent       → compile → fix → compile (up to 3 attempts)
 ```
 
-Each agent injects **section templates** from **`embabel-codegen/CLAUDE.md`** (see `TemplateLoader`) into its system prompt so generated code matches the codegen shape (handler interfaces, view projector, etc.). Run the CLI from the **`embabel-codegen`** directory (as the root `Makefile` `codegen-*` targets do) so `codegen.claude-md-path: CLAUDE.md` resolves to that file.
+Each agent injects **section templates** from **`crablet-codegen/CLAUDE.md`** (see `TemplateLoader`) into its system prompt so generated code matches the codegen shape (handler interfaces, view projector, etc.). Run the CLI from the **`crablet-codegen`** directory (as the root `Makefile` `codegen-*` targets do) so `codegen.claude-md-path: CLAUDE.md` resolves to that file.
 
 ## Prerequisites
 
@@ -33,7 +33,7 @@ Each agent injects **section templates** from **`embabel-codegen/CLAUDE.md`** (s
 
 ```bash
 # from the spring-crablet root
-make codegen-build    # → embabel-codegen/target/embabel-codegen.jar
+make codegen-build    # → crablet-codegen/target/crablet-codegen.jar
 make codegen-install  # also installs to local Maven repo
 ```
 
@@ -42,7 +42,7 @@ The module is excluded from the main reactor and must be built separately.
 ## CLI Usage
 
 ```
-java -jar embabel-codegen.jar <command> [flags]
+java -jar crablet-codegen.jar <command> [flags]
 ```
 
 ### Commands
@@ -50,7 +50,7 @@ java -jar embabel-codegen.jar <command> [flags]
 **`init`** — bootstrap a new Spring Boot project with Crablet dependencies
 
 ```bash
-java -jar embabel-codegen.jar init \
+java -jar crablet-codegen.jar init \
   --name my-service \
   --package com.example.myservice \
   --dir ../my-service
@@ -61,7 +61,7 @@ Creates `pom.xml`, main class, `application.yml`, and `event-model.yaml` skeleto
 **`plan`** — print planned artifacts without calling a model or writing files
 
 ```bash
-java -jar embabel-codegen.jar plan --model event-model.yaml
+java -jar crablet-codegen.jar plan --model event-model.yaml
 ```
 
 Example output:
@@ -86,7 +86,7 @@ Commands:
 **`generate`** — generate code from an event model YAML
 
 ```bash
-java -jar embabel-codegen.jar generate \
+java -jar crablet-codegen.jar generate \
   --model event-model.yaml \
   --output src/main/java
 ```
@@ -94,7 +94,7 @@ java -jar embabel-codegen.jar generate \
 **`k8s`** — generate Kubernetes manifests from `event-model.yaml` (no model call; uses `deployment` in the model)
 
 ```bash
-java -jar embabel-codegen.jar k8s \
+java -jar crablet-codegen.jar k8s \
   --model event-model.yaml \
   --output .
 ```
@@ -104,7 +104,7 @@ Writes `k8s/base` with Namespace, Deployments, Service, optional KEDA ScaledObje
 **`sync-scenarios`** — compare `event-model.yaml` scenarios against generated test scaffolds on disk (read-only)
 
 ```bash
-java -jar embabel-codegen.jar sync-scenarios \
+java -jar crablet-codegen.jar sync-scenarios \
   --model event-model.yaml \
   --output src/main/java
 ```
@@ -114,7 +114,7 @@ Reports scenarios in the model with no test file on disk and test files with no 
 **`--mcp`** — start as an MCP server (used by Claude Code, Cursor, and other MCP-capable clients)
 
 ```bash
-java -jar embabel-codegen.jar --mcp
+java -jar crablet-codegen.jar --mcp
 ```
 
 ## MCP Server
@@ -123,11 +123,11 @@ When started with `--mcp`, the JAR exposes tools over stdio JSON-RPC:
 
 | Tool | Description |
 |---|---|
-| `embabel_plan` | Print planned artifacts without writing files |
-| `embabel_generate` | Generate code from event-model.yaml (default output: `src/main/java`) |
-| `embabel_init` | Bootstrap a new Crablet project |
-| `embabel_k8s` | Write `k8s/base` from event-model (same as CLI `k8s`) |
-| `embabel_sync_scenarios` | Report drift between model scenarios and test scaffolds (read-only; sets `isError` on drift) |
+| `crablet_plan` | Print planned artifacts without writing files |
+| `crablet_generate` | Generate code from event-model.yaml (default output: `src/main/java`) |
+| `crablet_init` | Bootstrap a new Crablet project |
+| `crablet_k8s` | Write `k8s/base` from event-model (same as CLI `k8s`) |
+| `crablet_sync_scenarios` | Report drift between model scenarios and test scaffolds (read-only; sets `isError` on drift) |
 
 Claude Code discovers the server via `.claude/settings.json` in the application project. Cursor can
 use the same server via `.cursor/mcp.json`. The `templates/crablet-app` starter ships with both
@@ -140,8 +140,8 @@ The intended workflow pairs this tool with event-modeling guidance in an AI codi
 ```
 1. Start Claude Code or Cursor from the app root, or use Codex/terminal with Makefile commands
 2. Model one slice and update event-model.yaml
-3. embabel_plan / make plan                 # review what will be generated
-4. embabel_generate / make generate          # generate + compile + repair
+3. crablet_plan / make plan                 # review what will be generated
+4. crablet_generate / make generate          # generate + compile + repair
 5. ./mvnw verify                             # full test run
 ```
 
@@ -173,7 +173,7 @@ codegen:
     api-key: ${OPENAI_COMPATIBLE_API_KEY:}
     base-url: ${OPENAI_COMPATIBLE_BASE_URL:}
     model: ${OPENAI_COMPATIBLE_MODEL:}
-  claude-md-path: CLAUDE.md      # this module's CLAUDE.md (run JAR from embabel-codegen/; see above)
+  claude-md-path: CLAUDE.md      # this module's CLAUDE.md (run JAR from crablet-codegen/; see above)
 ```
 
 Examples:
@@ -232,7 +232,7 @@ com.fasterxml.jackson.dataformat.yaml.JacksonYAMLParseException
 
 Run `plan` first — it parses the YAML without calling a model, so errors appear immediately:
 ```bash
-java -jar embabel-codegen.jar plan --model event-model.yaml
+java -jar crablet-codegen.jar plan --model event-model.yaml
 ```
 
 Common causes: wrong indentation, missing quotes around strings with special characters, a `$ref` pointing to a schema name that is not defined in the `schemas` block.

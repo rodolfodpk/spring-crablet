@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -15,6 +16,10 @@ public class FileWriterTool {
 
     private static final Pattern FILE_BLOCK = Pattern.compile(
             "===FILE: ([^=]+)===\\s*\n(.*?)===END FILE===",
+            Pattern.DOTALL
+    );
+    private static final Pattern WHOLE_CONTENT_MARKDOWN_FENCE = Pattern.compile(
+            "\\A\\s*```[A-Za-z0-9_-]*\\R(.*?)\\R```\\s*\\z",
             Pattern.DOTALL
     );
 
@@ -38,7 +43,7 @@ public class FileWriterTool {
             }
             try {
                 Files.createDirectories(target.getParent());
-                Files.writeString(target, fileContent);
+                Files.writeString(target, stripWholeContentMarkdownFence(fileContent));
                 written.add(target);
                 System.out.println("  wrote " + target);
             } catch (IOException e) {
@@ -50,5 +55,30 @@ public class FileWriterTool {
                     + llmOutput.substring(0, Math.min(500, llmOutput.length())));
         }
         return written;
+    }
+
+    public Path writeGeneratedFile(String relativePath, String content, Path outputDir) {
+        Path safeRoot = outputDir.toAbsolutePath().normalize();
+        Path target = safeRoot.resolve(relativePath).normalize();
+        if (!target.startsWith(safeRoot)) {
+            throw new IllegalArgumentException(
+                    "Path traversal rejected: '" + relativePath + "' escapes output directory");
+        }
+        try {
+            Files.createDirectories(target.getParent());
+            Files.writeString(target, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            System.out.println("  wrote " + target);
+            return target;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to write " + target, e);
+        }
+    }
+
+    private static String stripWholeContentMarkdownFence(String content) {
+        Matcher fence = WHOLE_CONTENT_MARKDOWN_FENCE.matcher(content);
+        if (fence.matches()) {
+            return fence.group(1) + "\n";
+        }
+        return content;
     }
 }

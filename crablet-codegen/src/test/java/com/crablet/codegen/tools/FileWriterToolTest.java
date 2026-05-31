@@ -56,6 +56,28 @@ class FileWriterToolTest {
     }
 
     @Test
+    void stripsWholeContentMarkdownFence(@TempDir Path out) throws Exception {
+        String llm = """
+                ===FILE: com/example/Foo.java===
+                ```java
+                package com.example;
+
+                public class Foo {}
+                ```
+                ===END FILE===
+                """;
+
+        tool.writeGeneratedFiles(llm, out);
+
+        assertThat(Files.readString(out.resolve("com/example/Foo.java")))
+                .isEqualTo("""
+                        package com.example;
+
+                        public class Foo {}
+                        """);
+    }
+
+    @Test
     void returnsEmptyListAndWarnsWhenNoBlocksFound(@TempDir Path out) {
         List<Path> written = tool.writeGeneratedFiles("no blocks here", out);
         assertThat(written).isEmpty();

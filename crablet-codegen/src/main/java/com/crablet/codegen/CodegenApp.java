@@ -5,11 +5,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication(excludeName = {
-        "com.embabel.agent.autoconfigure.platform.AgentPlatformAutoConfiguration",
-        "com.embabel.agent.autoconfigure.models.anthropic.AgentAnthropicAutoConfiguration",
-        "com.embabel.agent.autoconfigure.models.openai.AgentOpenAiAutoConfiguration"
-})
+@SpringBootApplication
 public class CodegenApp implements CommandLineRunner {
 
     private final CodegenCommand command;

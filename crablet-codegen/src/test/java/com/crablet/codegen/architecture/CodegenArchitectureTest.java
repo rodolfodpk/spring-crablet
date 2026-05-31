@@ -10,13 +10,11 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 class CodegenArchitectureTest {
 
     @ArchTest
-    static final ArchRule generatorAgentsDoNotDependOnProviderSdks = noClasses()
+    static final ArchRule aiAgentsDoNotDependOnProviderSdks = noClasses()
             .that().resideInAPackage("..agents..")
             .should().dependOnClassesThat().resideInAnyPackage(
                     "com.anthropic..",
                     "org.springframework.ai.anthropic..",
-                    "org.springframework.ai.openai..",
-                    "com.embabel.agent.config.models.anthropic..",
-                    "com.embabel.agent.openai.."
+                    "org.springframework.ai.openai.."
             );
 }

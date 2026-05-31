@@ -81,8 +81,11 @@ public class CodegenCommand {
         System.out.println("Generating code from: " + modelPath);
         System.out.println("Output directory:     " + outputDir);
 
-        pipeline.run(model, outputDir);
+        boolean compiled = pipeline.run(model, outputDir);
         System.out.println("Done. Build the application module (e.g. ./mvnw verify).");
+        if (!compiled) {
+            System.exit(1);
+        }
     }
 
     private void runSyncScenarios(Map<String, String> flags) throws Exception {
@@ -138,7 +141,7 @@ public class CodegenCommand {
 
     private void printHelp() {
         System.out.println("""
-                Embabel Codegen — generate spring-crablet code from an event model YAML
+                Crablet Codegen — generate spring-crablet code from an event model YAML
 
                 Commands:
                   init       Bootstrap a Spring Boot app with Crablet dependencies
@@ -165,10 +168,10 @@ public class CodegenCommand {
                   help       Show this message
 
                 Workflow:
-                  1. java -jar embabel-codegen.jar init --name my-service
+                  1. java -jar crablet-codegen.jar init --name my-service
                   2. Run the /event-modeling skill in Claude Code
-                  3. java -jar embabel-codegen.jar plan --model event-model.yaml
-                  4. java -jar embabel-codegen.jar generate --model event-model.yaml \\
+                  3. java -jar crablet-codegen.jar plan --model event-model.yaml
+                  4. java -jar crablet-codegen.jar generate --model event-model.yaml \\
                           --output ../my-service/src/main/java
                   5. cd ../my-service && ./mvnw verify
                 """);

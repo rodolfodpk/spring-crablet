@@ -1,6 +1,10 @@
 package com.crablet.codegen.pipeline;
 
-import com.crablet.codegen.agents.*;
+import com.crablet.codegen.generator.AutomationsGenerator;
+import com.crablet.codegen.generator.CommandsGenerator;
+import com.crablet.codegen.generator.EventsGenerator;
+import com.crablet.codegen.generator.OutboxGenerator;
+import com.crablet.codegen.generator.ViewsGenerator;
 import com.crablet.codegen.model.EventModel;
 import com.crablet.codegen.scaffold.ScenarioScaffoldGenerator;
 import com.crablet.codegen.tools.MavenTool;
@@ -12,59 +16,53 @@ import java.nio.file.Path;
 public class CodegenPipeline {
 
     private final SchemaResolver schemaResolver;
-    private final EventsAgent eventsAgent;
-    private final CommandsAgent commandsAgent;
-    private final ViewsAgent viewsAgent;
-    private final AutomationsAgent automationsAgent;
-    private final OutboxAgent outboxAgent;
+    private final EventsGenerator eventsGenerator;
+    private final CommandsGenerator commandsGenerator;
+    private final ViewsGenerator viewsGenerator;
+    private final AutomationsGenerator automationsGenerator;
+    private final OutboxGenerator outboxGenerator;
     private final ScenarioScaffoldGenerator scenarioScaffoldGenerator;
-    private final RepairAgent repairAgent;
     private final MavenTool maven;
 
     public CodegenPipeline(
             SchemaResolver schemaResolver,
-            EventsAgent eventsAgent,
-            CommandsAgent commandsAgent,
-            ViewsAgent viewsAgent,
-            AutomationsAgent automationsAgent,
-            OutboxAgent outboxAgent,
+            EventsGenerator eventsGenerator,
+            CommandsGenerator commandsGenerator,
+            ViewsGenerator viewsGenerator,
+            AutomationsGenerator automationsGenerator,
+            OutboxGenerator outboxGenerator,
             ScenarioScaffoldGenerator scenarioScaffoldGenerator,
-            RepairAgent repairAgent,
             MavenTool maven) {
         this.schemaResolver = schemaResolver;
-        this.eventsAgent = eventsAgent;
-        this.commandsAgent = commandsAgent;
-        this.viewsAgent = viewsAgent;
-        this.automationsAgent = automationsAgent;
-        this.outboxAgent = outboxAgent;
+        this.eventsGenerator = eventsGenerator;
+        this.commandsGenerator = commandsGenerator;
+        this.viewsGenerator = viewsGenerator;
+        this.automationsGenerator = automationsGenerator;
+        this.outboxGenerator = outboxGenerator;
         this.scenarioScaffoldGenerator = scenarioScaffoldGenerator;
-        this.repairAgent = repairAgent;
         this.maven = maven;
     }
 
-    public void run(EventModel model, Path outputDir) {
+    public boolean run(EventModel model, Path outputDir) {
         EventModel resolved = schemaResolver.resolve(model);
 
-        eventsAgent.generate(resolved, outputDir);
-        commandsAgent.generate(resolved, outputDir);
-        viewsAgent.generate(resolved, outputDir);
-        automationsAgent.generate(resolved, outputDir);
-        outboxAgent.generate(resolved, outputDir);
+        eventsGenerator.generate(resolved, outputDir);
+        commandsGenerator.generate(resolved, outputDir);
+        viewsGenerator.generate(resolved, outputDir);
+        automationsGenerator.generate(resolved, outputDir);
+        outboxGenerator.generate(resolved, outputDir);
         scenarioScaffoldGenerator.generate(resolved, outputDir);
 
-        for (int attempt = 1; attempt <= 3; attempt++) {
-            CompileResult result = maven.compile(outputDir);
-            if (result.success()) {
-                System.out.println("Compilation succeeded on attempt " + attempt + ".");
-                return;
-            }
-            System.out.printf("Attempt %d: %d error(s) — repairing...%n",
-                    attempt, result.errors().size());
-            result.errors().forEach(e ->
-                    System.out.println("  " + e.file().getFileName() + ":" + e.line() + " " + e.message()));
-            repairAgent.fix(result.errors(), outputDir);
+        CompileResult result = maven.compile(outputDir);
+        if (result.success()) {
+            System.out.println("Compilation succeeded.");
+            return true;
         }
 
-        System.err.println("[WARN] Compilation still failing after 3 repair attempts. Review errors above.");
+        System.err.printf("[WARN] Compilation failed with %d error(s). Review errors below.%n",
+                result.errors().size());
+        result.errors().forEach(e ->
+                System.err.println("  " + e.file().getFileName() + ":" + e.line() + " " + e.message()));
+        return false;
     }
 }

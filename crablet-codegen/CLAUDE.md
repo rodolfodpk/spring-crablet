@@ -1,4 +1,4 @@
-# embabel-codegen
+# crablet-codegen
 
 Generator guidance for the AI codegen pipeline. Templates below define the exact shape of generated
 Java interfaces; implementation classes are written by the user separately.

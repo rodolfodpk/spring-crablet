@@ -35,6 +35,6 @@ codegen:
     api-key: ${OPENAI_COMPATIBLE_API_KEY:}
     base-url: ${OPENAI_COMPATIBLE_BASE_URL:}
     model: ${OPENAI_COMPATIBLE_MODEL:}
-  # Resolved relative to process working directory. Run the JAR from the embabel-codegen module
-  # (see root Makefile codegen-* targets) so this loads embabel-codegen/CLAUDE.md with codegen templates.
+  # Resolved relative to process working directory. Run the JAR from the crablet-codegen module
+  # (see root Makefile codegen-* targets) so this loads crablet-codegen/CLAUDE.md with codegen templates.
   claude-md-path: CLAUDE.md
