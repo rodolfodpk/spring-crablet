@@ -44,6 +44,21 @@ Lower-level condition types such as `AppendCondition` and `AppendConditionBuilde
 remain available for advanced direct `EventStore` usage, but they are not the
 recommended path for command handlers.
 
+### Event Type Names Are Durable
+
+Crablet derives event type names with `EventType.type(Class)`, which returns the event class simple
+name. That value is stored in `crablet_events.type` and used by queries, projectors, processors, and
+Jackson subtype mappings. Treat event class simple names as a persistence contract.
+
+Once events may exist for a class, do not rename it. Add a new event class instead, and keep readers
+able to handle the historical event type for as long as that data exists.
+
+Applications can guard Jackson subtype alignment with `EventTypeContract` from `crablet-test-support`:
+
+```java
+EventTypeContract.assertJsonSubTypesMatchEventType(WalletEvent.class);
+```
+
 ## Usage
 
 Inject `EventStore` via constructor and use it directly:
@@ -292,6 +307,7 @@ StateProjector<SubscriptionState> projector =
 
 Builder rules:
 - `.on(Class<E>, EventTransition<T, E>)` derives the event type string via `EventType.type(Class)`.
+- Event class simple names are a persistence contract; do not rename event classes after events exist.
 - Duplicate event class registrations throw `IllegalArgumentException` immediately.
 - Calling `.on()` after `.build()` throws `IllegalStateException`.
 - Unregistered event types return the current state unchanged.

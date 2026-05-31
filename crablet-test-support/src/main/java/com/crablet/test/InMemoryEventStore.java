@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -207,13 +208,13 @@ public class InMemoryEventStore implements EventStore, CommandAuditStore {
     }
     
     @Override
-    public boolean storeCommand(String commandJson, String commandType, java.time.Instant occurredAt) {
+    public boolean storeCommand(String commandJson, String commandType, Instant occurredAt) {
         return true;
     }
 
     @Override
     public boolean storeCommandIfAbsent(String commandJson, String commandType,
-                                        java.util.UUID commandId, java.time.Instant occurredAt) {
+                                        UUID commandId, Instant occurredAt) {
         return true;
     }
     

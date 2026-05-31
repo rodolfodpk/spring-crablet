@@ -8,9 +8,9 @@
         <module name="AvoidStarImport"/>
         <module name="RedundantImport"/>
         <module name="RegexpSinglelineJava">
-            <property name="format" value="^\s*(?!package\s)(?!import\s).*\b(?:java\.sql|org\.springframework)(?:\.[a-z][A-Za-z0-9_]*)*\.[A-Z][A-Za-z0-9_]*"/>
+            <property name="format" value="^(?!\s*package\s)(?!\s*import\s)(?!.*&quot;).*\b(?:java|org\.springframework)(?:\.[a-z][A-Za-z0-9_]*)*\.[A-Z][A-Za-z0-9_]*"/>
             <property name="ignoreComments" value="true"/>
-            <property name="message" value="Import Java SQL and Spring classes instead of using fully qualified class names in code."/>
+            <property name="message" value="Import Java and Spring classes instead of using fully qualified class names in code."/>
         </module>
         <module name="UnusedImports"/>
     </module>

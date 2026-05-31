@@ -9,6 +9,8 @@ import com.crablet.examples.course.events.CourseCapacityChanged;
 import com.crablet.examples.course.events.StudentRegistered;
 import com.crablet.examples.course.events.StudentSubscribedToCourse;
 
+import java.util.List;
+
 /**
  * Projector for course capacity.
  * Not a singleton - create instances as needed. This class is stateless and thread-safe.
@@ -24,8 +26,8 @@ public class CourseCapacityProjection implements StateProjector<Integer> {
     }
 
     @Override
-    public java.util.List<String> getEventTypes() {
-        return java.util.List.of("CourseDefined", "CourseCapacityChanged");
+    public List<String> getEventTypes() {
+        return List.of("CourseDefined", "CourseCapacityChanged");
     }
 
     @Override

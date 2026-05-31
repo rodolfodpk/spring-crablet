@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -195,9 +196,9 @@ class AbstractViewProjectorTest {
 
     private static final class TestProjector extends AbstractViewProjector {
         private final HandleMode mode;
-        private final java.util.List<String> seenTypes = new java.util.ArrayList<>();
-        private final java.util.List<UUID> seenCorrelationIds = new java.util.ArrayList<>();
-        private final java.util.List<Long> seenCausationIds = new java.util.ArrayList<>();
+        private final List<String> seenTypes = new ArrayList<>();
+        private final List<UUID> seenCorrelationIds = new ArrayList<>();
+        private final List<Long> seenCausationIds = new ArrayList<>();
 
         private TestProjector(
                 ObjectMapper objectMapper,

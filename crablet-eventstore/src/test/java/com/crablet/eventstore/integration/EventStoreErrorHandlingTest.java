@@ -5,6 +5,7 @@ import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.StreamPosition;
 import com.crablet.eventstore.Tag;
+import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
@@ -18,7 +19,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 
@@ -397,7 +401,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractPostgresEvent
         // Manually corrupt the data in database
         // We can't directly modify the database in unit tests, but we can test
         // the deserialization logic by creating a StoredEvent with invalid JSON
-        byte[] malformedJson = "{invalid json}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] malformedJson = "{invalid json}".getBytes(StandardCharsets.UTF_8);
         StoredEvent malformedEvent = new StoredEvent(
                 "WalletOpened",
                 List.of(new Tag("wallet_id", walletId)),
@@ -407,11 +411,14 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractPostgresEvent
                 Instant.now()
         );
 
-        com.crablet.eventstore.query.EventDeserializer deserializer = new com.crablet.eventstore.query.EventDeserializer() {
+        EventDeserializer deserializer = new EventDeserializer() {
             @Override
-            public <E> E deserialize(com.crablet.eventstore.StoredEvent event, Class<E> eventType) {
+            public <E> E deserialize(StoredEvent event, Class<E> eventType) {
                 try {
-                    return tools.jackson.databind.json.JsonMapper.builder().disable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build().readValue(event.data(), eventType);
+                    return JsonMapper.builder()
+                            .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+                            .build()
+                            .readValue(event.data(), eventType);
                 } catch (Exception e) {
                     throw new RuntimeException("Failed to deserialize event type=" +
                         event.type() + " to " + eventType.getName(), e);
@@ -449,7 +456,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractPostgresEvent
     @DisplayName("Should handle empty JSON string during deserialization")
     void shouldHandleEmptyJsonStringDuringDeserialization() {
         // Given: Event with empty JSON data
-        byte[] emptyJson = "".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] emptyJson = "".getBytes(StandardCharsets.UTF_8);
         StoredEvent emptyEvent = new StoredEvent(
                 "WalletOpened",
                 List.of(new Tag("wallet_id", "empty-json-wallet")),
@@ -459,11 +466,14 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractPostgresEvent
                 Instant.now()
         );
 
-        com.crablet.eventstore.query.EventDeserializer deserializer = new com.crablet.eventstore.query.EventDeserializer() {
+        EventDeserializer deserializer = new EventDeserializer() {
             @Override
-            public <E> E deserialize(com.crablet.eventstore.StoredEvent event, Class<E> eventType) {
+            public <E> E deserialize(StoredEvent event, Class<E> eventType) {
                 try {
-                    return tools.jackson.databind.json.JsonMapper.builder().disable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build().readValue(event.data(), eventType);
+                    return JsonMapper.builder()
+                            .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+                            .build()
+                            .readValue(event.data(), eventType);
                 } catch (Exception e) {
                     throw new RuntimeException("Failed to deserialize event type=" +
                         event.type() + " to " + eventType.getName(), e);
@@ -498,7 +508,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractPostgresEvent
         List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(1);
         // JSON field order may vary, so we check that the data contains the walletId
-        String storedData = new String(events.get(0).data(), java.nio.charset.StandardCharsets.UTF_8);
+        String storedData = new String(events.get(0).data(), StandardCharsets.UTF_8);
         assertThat(storedData).contains(walletId).contains("Charlie").contains("1000");
     }
 
@@ -508,12 +518,12 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractPostgresEvent
         // Given: Event data as byte array (simulating raw JSON bytes)
         String walletId = "bytearray-data-wallet-1";
         String jsonString = "{\"walletId\":\"" + walletId + "\",\"owner\":\"Diana\",\"initialBalance\":1000}";
-        byte[] jsonBytes = jsonString.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] jsonBytes = jsonString.getBytes(StandardCharsets.UTF_8);
 
         // When: Append event with String data (converted from byte array)
         // Note: AppendEvent.builder().data() accepts Object, EventStoreImpl handles byte[] internally,
         // but we convert to String here to match the API
-        String jsonData = new String(jsonBytes, java.nio.charset.StandardCharsets.UTF_8);
+        String jsonData = new String(jsonBytes, StandardCharsets.UTF_8);
         eventStore.appendCommutative(List.of(
                 AppendEvent.builder("WalletOpened")
                         .tag("wallet_id", walletId)
@@ -526,7 +536,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractPostgresEvent
         List<StoredEvent> events = eventRepository.query(query, null);
         assertThat(events).hasSize(1);
         // Verify the data was stored correctly
-        String storedData = new String(events.get(0).data(), java.nio.charset.StandardCharsets.UTF_8);
+        String storedData = new String(events.get(0).data(), StandardCharsets.UTF_8);
         assertThat(storedData).contains(walletId).contains("Diana").contains("1000");
     }
 
@@ -535,7 +545,7 @@ class EventStoreErrorHandlingTest extends com.crablet.test.AbstractPostgresEvent
     void shouldHandleDeserializingEventMissingOptionalFields() {
         // Given: Incomplete JSON (missing optional fields - records allow null values)
         // Note: WalletOpened is a record with default values, so missing fields may deserialize with null
-        byte[] incompleteJson = "{\"walletId\":\"incomplete-wallet-1\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] incompleteJson = "{\"walletId\":\"incomplete-wallet-1\"}".getBytes(StandardCharsets.UTF_8);
         StoredEvent incompleteEvent = new StoredEvent(
                 "WalletOpened",
                 List.of(new Tag("wallet_id", "incomplete-wallet-1")),

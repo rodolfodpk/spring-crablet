@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
+import java.util.stream.LongStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -60,7 +61,7 @@ class StreamGathererWindowingTest {
     }
 
     private static List<StoredEvent> events(long... positions) {
-        return java.util.stream.LongStream.of(positions)
+        return LongStream.of(positions)
                 .mapToObj(StreamGathererWindowingTest::event)
                 .toList();
     }

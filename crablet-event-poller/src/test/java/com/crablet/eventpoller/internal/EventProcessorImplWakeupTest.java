@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Delayed;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -191,7 +192,7 @@ class EventProcessorImplWakeupTest {
             @Override public Void get() { return null; }
             @Override public Void get(long t, TimeUnit u) { return null; }
             @Override public long getDelay(TimeUnit u) { return 0; }
-            @Override public int compareTo(java.util.concurrent.Delayed o) { return 0; }
+            @Override public int compareTo(Delayed o) { return 0; }
         }
     }
 

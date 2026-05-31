@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Delayed;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -684,9 +685,9 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorIn
             @Override public boolean isCancelled() { return cancelled; }
             @Override public boolean isDone() { return cancelled; }
             @Override public Void get() { return null; }
-            @Override public Void get(long timeout, java.util.concurrent.TimeUnit unit) { return null; }
+            @Override public Void get(long timeout, TimeUnit unit) { return null; }
             @Override public long getDelay(TimeUnit unit) { return 0; }
-            @Override public int compareTo(java.util.concurrent.Delayed o) { return 0; }
+            @Override public int compareTo(Delayed o) { return 0; }
         }
     }
 

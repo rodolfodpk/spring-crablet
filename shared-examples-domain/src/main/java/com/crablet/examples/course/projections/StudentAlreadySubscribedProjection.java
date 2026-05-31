@@ -5,6 +5,8 @@ import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.course.events.StudentSubscribedToCourse;
 
+import java.util.List;
+
 /**
  * Projector for checking if student is already subscribed to a specific course.
  * Not a singleton - create instances as needed. This class is stateless and thread-safe.
@@ -25,8 +27,8 @@ public class StudentAlreadySubscribedProjection implements StateProjector<Boolea
     }
 
     @Override
-    public java.util.List<String> getEventTypes() {
-        return java.util.List.of("StudentSubscribedToCourse");
+    public List<String> getEventTypes() {
+        return List.of("StudentSubscribedToCourse");
     }
 
     @Override
@@ -44,4 +46,3 @@ public class StudentAlreadySubscribedProjection implements StateProjector<Boolea
         return currentState;
     }
 }
-

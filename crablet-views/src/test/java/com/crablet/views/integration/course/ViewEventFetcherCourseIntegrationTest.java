@@ -22,6 +22,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 
 import javax.sql.DataSource;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -180,7 +181,7 @@ class ViewEventFetcherCourseIntegrationTest extends AbstractViewsIntegrationTest
     @DisplayName("Should respect batch size limit")
     void shouldRespectBatchSizeLimit() {
         // Given - More events than batch size
-        List<AppendEvent> events = new java.util.ArrayList<>();
+        List<AppendEvent> events = new ArrayList<>();
         for (int i = 0; i < 150; i++) {
             events.add(AppendEvent.builder("CourseDefined")
                 .tag("course_id", "course-" + i)

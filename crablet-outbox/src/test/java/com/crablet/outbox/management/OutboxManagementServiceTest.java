@@ -21,6 +21,7 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -256,7 +257,7 @@ class OutboxManagementServiceTest {
     }
 
     private static Map<String, Object> rowWithNulls() {
-        return new java.util.HashMap<>(Map.of(
+        return new HashMap<>(Map.of(
                 "topic", "wallet",
                 "publisher", "kafka",
                 "last_position", 123L,

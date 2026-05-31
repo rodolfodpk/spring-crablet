@@ -1,5 +1,6 @@
 package com.example.loan.command;
 
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
@@ -25,6 +26,6 @@ public class LoanApplicationQueryPatterns {
         if (!isSubmitted(state)) {
             throw new IllegalArgumentException("Application not submitted yet");
         }
-        return (int) state.get().submittedAt().until(java.time.Instant.now(), ChronoUnit.DAYS);
+        return (int) state.get().submittedAt().until(Instant.now(), ChronoUnit.DAYS);
     }
 }

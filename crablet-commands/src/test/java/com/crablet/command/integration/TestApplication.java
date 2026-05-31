@@ -2,6 +2,7 @@ package com.crablet.command.integration;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.command.CommandExecutors;
+import com.crablet.command.CommandHandler;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
@@ -31,6 +32,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
+import java.util.List;
 
 @SpringBootApplication
 @Import(CrabletFlywayConfiguration.class)
@@ -142,7 +144,7 @@ public class TestApplication {
     
     @Bean
     public CommandExecutor commandExecutor(EventStore eventStore, 
-                                           java.util.List<com.crablet.command.CommandHandler<?>> commandHandlers,
+                                           List<CommandHandler<?>> commandHandlers,
                                            EventStoreConfig config,
                                            ClockProvider clock,
                                            tools.jackson.databind.ObjectMapper objectMapper,

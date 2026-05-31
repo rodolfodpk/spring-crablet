@@ -73,6 +73,22 @@ class MyIntegrationTest extends AbstractPostgresEventStoreTest {
 }
 ```
 
+### EventTypeContract
+
+`EventTypeContract` verifies that Jackson subtype names match the event type names Crablet derives
+with `EventType.type(Class)`. Add one focused test per event hierarchy:
+
+```java
+@Test
+void eventTypeNamesShouldMatchJsonSubTypes() {
+    EventTypeContract.assertJsonSubTypesMatchEventType(WalletEvent.class);
+}
+```
+
+This guard has no extra files to maintain. It catches drift between `@JsonSubTypes` and Crablet's
+event type convention; the separate persistence rule still applies: do not rename event classes once
+events may exist for them.
+
 ## When To Use This Module
 
 Use `crablet-test-support` when your application needs:

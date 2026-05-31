@@ -4,7 +4,8 @@ description: >
   Use this skill when the user wants to:
     - Review a diff or file against spring-crablet's repo conventions and closed design decisions
     - Check Crablet-specific rules generic linters/code-review miss (ClockProvider, EventType.type,
-      no-FQN, snake_case tags, the transaction_id linkage invariant, audit storeCommand placement)
+      event-name persistence, no-FQN, snake_case tags, the transaction_id linkage invariant,
+      audit storeCommand placement)
     - Pre-flight a change before committing or opening a PR in this repo
     - Understand WHY a convention exists, not just that it was violated
 argument-hint: [optional: file, module, or "diff" to review]
@@ -28,7 +29,11 @@ over reading whole files for the mechanical rules below.
 2. **Never call `Instant.now()` directly.** Inject `ClockProvider` and call `clockProvider.now()`.
    - Detect: `grep -rn "Instant.now()" --include=*.java src/main`. Time must be injectable for tests.
 3. **Use `EventType.type(Class)` for event type names** — not string literals for event types.
+   Event class simple names are a persistence contract: never rename an event class after events may
+   exist for it; add a new event type and handle both names instead.
    - Detect: event-type strings that duplicate a class name instead of `type(SomeEvent.class)`.
+   - Guard: app tests can use `EventTypeContract` from `crablet-test-support` for their
+     `@JsonSubTypes` event hierarchies.
 4. **snake_case tag keys.** Keys are normalized to lowercase; values stay case-sensitive.
    - Detect: camelCase or PascalCase tag keys in `.tag(...)` / tag constant classes.
 5. **Prefer domain-specific query pattern helpers** for reused decision models rather than inlining

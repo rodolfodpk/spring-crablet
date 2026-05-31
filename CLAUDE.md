@@ -183,7 +183,8 @@ Module dependencies:
 
 - Never use fully qualified class names inline in Java code. Add imports.
 - Never call `Instant.now()` directly. Inject `ClockProvider` and call `clockProvider.now()`.
-- Use `EventType.type(Class)` for event type names.
+- Use `EventType.type(Class)` for event type names. Event class simple names are a persistence
+  contract: never rename an event class once events may exist; add a new event type instead.
 - Use snake_case tag keys; tag keys are normalized to lowercase and tag values remain case-sensitive.
 - Prefer domain-specific query pattern helpers for reused decision models.
 - When changing **docs/event-model-renderer.js** or describing a canonical actor board, align with **`/crablet-diagram-advisor`** and **`docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`**.
@@ -195,6 +196,13 @@ Module dependencies:
 `crablet_commands.transaction_id` and `crablet_events.transaction_id` share the same `pg_current_xact_id()` value when both writes happen in the same database transaction. This is the join key between the two tables. Do not propose adding a `command_id` column to `crablet_events` or `crablet_event_tags` as an alternative linkage mechanism — that decision is closed.
 
 The invariant this relies on: `CommandAuditStore.storeCommand` must always be called on the transaction-scoped store (`ConnectionScopedEventStore`) inside `executeInTransaction`, never on the top-level `EventStoreImpl`. `CommandExecutorImpl` upholds this. Any test or caller that wants command audit linkage must use `executeInTransaction` and cast the scoped store to `CommandAuditStore`.
+
+**Event class simple names are persisted event types.**
+`EventType.type(Class)` returns the event class simple name, and that string is stored in
+`crablet_events.type` and used by queries, projectors, processors, and Jackson subtype mappings.
+Do not rename an event class after events exist for it. Model the change as a new event class and
+handle both event types during the migration period. Applications can use `EventTypeContract` from
+`crablet-test-support` to verify Jackson subtype names stay aligned with `EventType.type(Class)`.
 
 ## Documentation Quick Links
 

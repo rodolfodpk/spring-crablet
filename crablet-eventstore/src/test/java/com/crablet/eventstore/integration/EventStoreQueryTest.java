@@ -20,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -151,7 +153,7 @@ class EventStoreQueryTest extends com.crablet.test.AbstractPostgresEventStoreTes
         // When: query with stream position beyond existing events
         StreamPosition futureStreamPosition = StreamPosition.of(
                 999999L,
-                java.time.Instant.now(),
+                Instant.now(),
                 "future-tx-id"
         );
         Query query = Query.forEventAndTag("WalletOpened", "wallet_id", walletId);
@@ -166,7 +168,7 @@ class EventStoreQueryTest extends com.crablet.test.AbstractPostgresEventStoreTes
     void shouldHandleLargeResultSetsWithPagination() {
         // Given: wallet with many events
         String walletId = "query-wallet-5";
-        List<AppendEvent> events = new java.util.ArrayList<>();
+        List<AppendEvent> events = new ArrayList<>();
         events.add(AppendEvent.builder("WalletOpened")
                 .tag("wallet_id", walletId)
                 .data(WalletOpened.of(walletId, "Eve", 1000))

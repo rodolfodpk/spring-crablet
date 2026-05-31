@@ -979,14 +979,14 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
         }
 
         @Override
-        public boolean storeCommand(String commandJson, String commandType, java.time.Instant occurredAt) {
+        public boolean storeCommand(String commandJson, String commandType, Instant occurredAt) {
             return EventStoreImpl.this.storeCommandWithConnection(
                     connection, commandJson, commandType, null, occurredAt);
         }
 
         @Override
         public boolean storeCommandIfAbsent(String commandJson, String commandType,
-                                            UUID commandId, java.time.Instant occurredAt) {
+                                            UUID commandId, Instant occurredAt) {
             return EventStoreImpl.this.storeCommandWithConnection(
                     connection, commandJson, commandType, commandId, occurredAt);
         }
