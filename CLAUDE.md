@@ -10,7 +10,7 @@ This file is the repo-level routing hub for Claude Code work in spring-crablet.
 - Framework module changes, public API work, eventstore/commands/poller internals, shared-fetch, auto-configuration, templates, codegen internals, maintainer docs: invoke `/crablet-maintainer`.
 - Event Modeling workshop, generator-ready `event-model.yaml`: invoke `/crablet-event-modeling`.
 - Deep DCB explanation, choosing or diagnosing DCB for an application command handler, `ConcurrencyException` analysis: invoke `/crablet-dcb`.
-- Writing handler unit tests, integration tests, or scenario tests; test-jar consumption; command audit-linkage in tests: invoke `/crablet-test-authoring`.
+- Writing handler unit tests, integration tests, or scenario tests; `crablet-test-commands` consumption; command audit-linkage in tests: invoke `/crablet-test-authoring`.
 - Reviewing a diff/file against repo conventions and closed design decisions (ClockProvider, no-FQN, snake_case tags, `transaction_id` linkage): invoke `/crablet-conventions`.
 - Docs diagram renderer rules, actor-board vocabulary, sidecar overlays, or multi-lane board authoring: invoke `/crablet-diagram-advisor`.
 - Local build, Testcontainers, MCP codegen loop, module test targets, troubleshooting: invoke `/crablet-local-dev`.
@@ -125,9 +125,14 @@ crablet-metrics-micrometer  [reactor]
   observations for event throughput, concurrency violations, command execution, and poller processing.
 
 crablet-test-support  [installed separately via `make build-test-support`]
-  Shared test utilities: InMemoryEventStore for fast unit tests, AbstractCrabletTest backed by
-  Testcontainers PostgreSQL, and AbstractHandlerUnitTest for BDD-style command handler tests.
-  Bundles Flyway migration infrastructure and PostgreSQL driver needed for test isolation.
+  Shared test utilities: InMemoryEventStore for fast unit tests and AbstractCrabletTest backed by
+  Testcontainers PostgreSQL. Bundles Flyway migration infrastructure and PostgreSQL driver needed
+  for test isolation.
+
+crablet-test-commands  [installed separately via `make build-test-commands`]
+  Fast, in-memory BDD base for command handler unit tests (AbstractInMemoryHandlerTest, package
+  com.crablet.test.commands). Depends on crablet-commands + crablet-test-support; no Postgres/
+  Testcontainers. This is the handler-test base apps consume — not the crablet-commands test-jar.
 
 docs-samples  [reactor, compile-only — no tests]
   Compilable tutorial fixtures that keep documentation aligned with the public API. Covers six

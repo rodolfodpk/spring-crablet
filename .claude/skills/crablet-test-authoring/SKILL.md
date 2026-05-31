@@ -3,7 +3,7 @@ name: crablet-test-authoring
 description: >
   Use this skill when the user wants to:
     - Write command handler unit tests for a Crablet app or module
-    - Use the BDD given/when/then helpers (AbstractHandlerUnitTest)
+    - Use the BDD given/when/then helpers (AbstractInMemoryHandlerTest)
     - Set up integration tests with a real PostgreSQL (AbstractCrabletTest)
     - Write or wire up generated scenario tests
     - Get command->event audit linkage right in a test (the executeInTransaction footgun)
@@ -20,7 +20,7 @@ pick the lowest one that proves the behavior.
 
 | Layer | Base / mechanism | Backing store | Proves |
 |-------|------------------|---------------|--------|
-| **Handler unit** | `AbstractHandlerUnitTest` (given/when/then) | `InMemoryEventStore` | Business logic of a single handler's decision — happy paths, validation, emitted events/tags |
+| **Handler unit** | `AbstractInMemoryHandlerTest` (given/when/then) | `InMemoryEventStore` | Business logic of a single handler's decision — happy paths, validation, emitted events/tags |
 | **Integration** | `AbstractCrabletTest` | Testcontainers PostgreSQL | DCB concurrency (`ConcurrencyException`, idempotency), real append, audit linkage, projections |
 | **Scenario** | generated `*ScenarioTest` | n/a (stubbed steps) | Event-model scenarios stay represented as living docs; filled in by the author |
 
@@ -28,30 +28,29 @@ Rule of thumb: prove **business logic** at the unit layer (fast, no container); 
 **DCB / concurrency / persistence** at the integration layer. Don't test concurrency in unit tests —
 `InMemoryEventStore` does not model it.
 
-## Handler unit tests — `AbstractHandlerUnitTest`
+## Handler unit tests — `AbstractInMemoryHandlerTest`
 
-`com.crablet.command.handlers.unit.AbstractHandlerUnitTest` is a `public abstract`, domain-agnostic
-base with BDD helpers. It is **published via the `crablet-commands` test-jar** — apps and other
-modules depend on it; they do not copy it.
+`com.crablet.test.commands.AbstractInMemoryHandlerTest` (module **`crablet-test-commands`**) is a
+`public abstract`, domain-agnostic base with BDD helpers, backed by `InMemoryEventStore` (fast, no
+Postgres). Apps and modules depend on it; they do not copy it.
 
-### Consume the test-jar
+### Consume crablet-test-commands
 
-In the consuming module's `pom.xml` (test scope). The test-jar's dependencies are **not** transitive,
-so also declare `crablet-test-support` (for `InMemoryEventStore`) and the usual test stack
-(junit-jupiter, assertj) if not already present:
+In the consuming module's `pom.xml` (test scope). It transitively brings `crablet-commands` and
+`crablet-test-support`, so you don't declare those separately for handler unit tests:
 
 ```xml
 <dependency>
     <groupId>com.crablet</groupId>
-    <artifactId>crablet-commands</artifactId>
-    <type>test-jar</type>
-    <scope>test</scope>
+    <artifactId>crablet-test-commands</artifactId>
     <version>${project.version}</version>
+    <scope>test</scope>
 </dependency>
 ```
 
-This is an established pattern in-repo: `crablet-eventstore`, `crablet-metrics-micrometer`, and
-`shared-examples-domain` already consume the `crablet-commands` test-jar this way.
+In-repo, `crablet-commands`' own handler unit tests consume it this way. (Earlier this base shipped
+in the `crablet-commands` test-jar; it now has its own module so a fast BDD test no longer pulls the
+framework's internal test classes.)
 
 ### The given/when/then API
 
@@ -69,7 +68,7 @@ See `crablet-commands/src/test/java/com/crablet/command/handlers/wallet/unit/Ope
 (and the `courses/unit/` siblings). Shape:
 
 ```java
-class OpenWalletCommandHandlerUnitTest extends AbstractHandlerUnitTest {
+class OpenWalletCommandHandlerUnitTest extends AbstractInMemoryHandlerTest {
 
     private OpenWalletCommandHandler handler;
 

@@ -103,9 +103,20 @@ For unit and integration testing, add `crablet-test-support`:
 This provides:
 - **InMemoryEventStore** - Fast in-memory event store for unit tests
 - **AbstractCrabletTest** - Base class for integration tests with Testcontainers
-- **AbstractHandlerUnitTest** - BDD-style base class for command handler unit tests
 
-See [EventStore Testing](../crablet-eventstore/TESTING.md) for complete testing guide.
+For the BDD given/when/then base for **command handler unit tests**
+(`AbstractInMemoryHandlerTest`), add `crablet-test-commands` (it builds on `crablet-test-support`):
+
+```xml
+<dependency>
+    <groupId>com.crablet</groupId>
+    <artifactId>crablet-test-commands</artifactId>
+    <version>${project.version}</version>
+    <scope>test</scope>
+</dependency>
+```
+
+See [EventStore Testing](../crablet-eventstore/TESTING.md) and the `/crablet-test-authoring` skill for the complete testing guide.
 
 ## Quick Start
 

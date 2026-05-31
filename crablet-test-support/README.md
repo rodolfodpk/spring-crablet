@@ -15,7 +15,7 @@ Optional test support for applications built on Crablet. Provides fast in-memory
 
 It solves two problems:
 
-1. **Test utilities** — `InMemoryEventStore`, `AbstractCrabletTest`, `AbstractHandlerUnitTest`, and `DCBTestHelpers` are available from a single dependency instead of being reimplemented per application
+1. **Test utilities** — `InMemoryEventStore`, `AbstractCrabletTest`, and `DCBTestHelpers` are available from a single dependency instead of being reimplemented per application (the command-handler BDD base lives one layer up in `crablet-test-commands`)
 2. **Database migrations** — All framework migrations live here so every module gets them automatically through a single test-scope dependency
 
 ## Maven Coordinates
@@ -43,42 +43,13 @@ Fast in-memory `EventStore` implementation for unit tests. No database, no Docke
 InMemoryEventStore eventStore = new InMemoryEventStore();
 ```
 
-### AbstractHandlerUnitTest
+### Command handler BDD base (in `crablet-test-commands`)
 
-BDD-style base class for command handler unit tests. Wraps `InMemoryEventStore` with `given()`, `when()`, `then()` helpers.
-
-```java
-class DepositCommandHandlerTest extends AbstractHandlerUnitTest {
-
-    private DepositCommandHandler handler;
-
-    @BeforeEach
-    @Override
-    protected void setUp() {
-        super.setUp();
-        handler = new DepositCommandHandler(new WalletBalanceStateProjector());
-    }
-
-    @Test
-    void givenOpenWallet_whenDeposit_thenDepositMadeEventGenerated() {
-        // Given
-        given().event(type(WalletOpened.class), builder -> builder
-            .data(WalletOpened.of("wallet-1", "Alice", 0))
-            .tag(WALLET_ID, "wallet-1")
-        );
-
-        // When
-        DepositCommand command = DepositCommand.of("dep-1", "wallet-1", 100, "Salary");
-        List<Object> events = when(handler, command);
-
-        // Then
-        then(events, DepositMade.class, event -> {
-            assertThat(event.walletId()).isEqualTo("wallet-1");
-            assertThat(event.amount()).isEqualTo(100);
-        });
-    }
-}
-```
+The BDD given/when/then base for command handler unit tests — `AbstractInMemoryHandlerTest`
+(`com.crablet.test.commands`) — lives in the **`crablet-test-commands`** module, not here. It
+depends on `crablet-commands`, so it sits one layer above this module. It wraps `InMemoryEventStore`
+(fast, no Postgres) with `given()` / `when()` / `then()` helpers. See the `/crablet-test-authoring`
+skill for the dependency snippet and a worked example.
 
 ### AbstractCrabletTest
 

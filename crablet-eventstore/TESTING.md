@@ -77,9 +77,9 @@ In-memory `EventStore` implementation:
 - Accepts all appends (no DCB concurrency checks for unit tests)
 - Fast and lightweight - no database overhead
 
-#### AbstractHandlerUnitTest
+#### AbstractInMemoryHandlerTest
 
-**Location:** `com.crablet.test.AbstractHandlerUnitTest` (module: `crablet-test-support`)
+**Location:** `com.crablet.test.commands.AbstractInMemoryHandlerTest` (module: `crablet-test-commands`)
 
 BDD-style base class providing:
 - `given()` - Builder callback pattern for event seeding
@@ -93,11 +93,11 @@ BDD-style base class providing:
 
 ### Quick Start
 
-Extend `AbstractHandlerUnitTest` and start writing tests:
+Extend `AbstractInMemoryHandlerTest` and start writing tests:
 
 ```java
 @DisplayName("DepositCommandHandler Unit Tests")
-class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
+class DepositCommandHandlerUnitTest extends AbstractInMemoryHandlerTest {
     
     private DepositCommandHandler handler;
     
@@ -469,7 +469,7 @@ The framework never calls `Instant.now()` directly. All timestamps go through th
 
 #### Unit tests — implement a fixed `ClockProvider`
 
-For unit tests extending `AbstractHandlerUnitTest`, pass a fixed clock implementation to your handler:
+For unit tests extending `AbstractInMemoryHandlerTest`, pass a fixed clock implementation to your handler:
 
 ```java
 private static final Instant FIXED_TIME =
@@ -521,7 +521,7 @@ The test scope is organized into:
 
 - **Unit Tests** (`com.crablet.command.handlers.*.unit.*`): Pure unit tests for business logic
   - Fast, isolated, no database dependencies
-  - Use `AbstractHandlerUnitTest` base class
+  - Use `AbstractInMemoryHandlerTest` base class
 
 - **Integration Tests** (`com.crablet.command.handlers.*.integration.*`): Integration tests with Testcontainers
   - Real database testing, DCB concurrency validation
