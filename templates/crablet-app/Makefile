@@ -1,4 +1,4 @@
-CRABLET_CODEGEN_JAR ?= tools/embabel-codegen.jar
+CRABLET_CODEGEN_JAR ?= tools/crablet-codegen.jar
 
 .PHONY: help plan generate sync-scenarios k8s diagram-preview verify check
 
@@ -14,7 +14,7 @@ help:
 	@echo "  verify          - Run Maven verification"
 	@echo "  check           - Run plan and verify"
 	@echo ""
-	@echo "Set CRABLET_CODEGEN_JAR=/path/to/embabel-codegen.jar if needed."
+	@echo "Set CRABLET_CODEGEN_JAR=/path/to/crablet-codegen.jar if needed."
 
 plan:
 	@java -jar $(CRABLET_CODEGEN_JAR) plan --model event-model.yaml

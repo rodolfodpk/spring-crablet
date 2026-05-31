@@ -2,7 +2,7 @@
 name: crablet-app-dev
 description: >
   Use this skill for application work in this Crablet app: adding feature slices,
-  sequencing event-model.yaml with codegen, using embabel_plan or embabel_generate,
+  sequencing event-model.yaml with codegen, using crablet_plan or crablet_generate,
   implementing app command handlers, views, automations, outbox publishers, and
   verifying generated app code. Do not use for spring-crablet framework module
   internals or public API changes.
@@ -33,9 +33,9 @@ Work one vertical slice at a time, scoped to one observable user outcome.
 3. After any model-affecting change, run `make diagram-preview` from this app root or provide a
    textual board walk-through; check actors, lanes, commands, events, views, automations, and outbox
    before planning.
-4. Run `embabel_plan` and show the planned artifacts.
-5. Ask for confirmation before `embabel_generate`.
-6. Call `embabel_generate` with `output` set to `src/main/java`.
+4. Run `crablet_plan` and show the planned artifacts.
+5. Ask for confirmation before `crablet_generate`.
+6. Call `crablet_generate` with `output` set to `src/main/java`.
 7. Run `./mvnw verify` after generation or manual repair.
 8. Prefer improving `event-model.yaml` over hand-patching generated structural code.
 

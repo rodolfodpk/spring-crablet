@@ -4,7 +4,7 @@ description: >
   Use this skill for spring-crablet framework work: changing framework modules,
   public APIs, eventstore append internals, command executor behavior, poller or
   shared-fetch routing, auto-configuration, module tests, starter templates,
-  embabel-codegen internals, or docs that describe framework behavior. Do not use
+  crablet-codegen internals, or docs that describe framework behavior. Do not use
   for application feature-slice implementation in generated Crablet apps.
 ---
 
@@ -31,7 +31,7 @@ Prefer linking to source docs over duplicating full architecture prose:
 - Event poller: `crablet-event-poller/README.md`
 - Views: `crablet-views/README.md`
 - Outbox: `crablet-outbox/README.md`
-- AI-first tooling: `embabel-codegen/README.md`
+- AI-first tooling: `crablet-codegen/README.md`
 - Starter template: `templates/crablet-app/README.md`
 
 ## Current Decisions
@@ -144,4 +144,4 @@ When changing framework behavior:
 - If poller behavior changes, check views, automations, and outbox because they share the infrastructure.
 - If eventstore append behavior changes, check command executor decisions and DCB diagnostics.
 - If migrations change, update both migration modules, rebuild `crablet-test-support`, run `make check-test-support-artifact`, and run fresh-Flyway coverage through focused Testcontainers tests or `make install-all-tests`.
-- If template or codegen behavior changes, check both `embabel-codegen` docs and `templates/crablet-app`.
+- If template or codegen behavior changes, check both `crablet-codegen` docs and `templates/crablet-app`.

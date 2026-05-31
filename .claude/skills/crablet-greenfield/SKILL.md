@@ -28,7 +28,7 @@ playbooks.
 ## Phase A - Repo And Runtime Baseline
 
 Preferred path: copy `templates/crablet-app`, install framework artifacts when they are not yet
-published, build `embabel-codegen.jar`, and place it under the app's `tools/` directory. Align the
+published, build `crablet-codegen.jar`, and place it under the app's `tools/` directory. Align the
 exact setup with `docs/user/CREATE_A_CRABLET_APP.md`, `docs/user/BUILD.md`, and
 `templates/crablet-app/README.md`.
 
@@ -64,8 +64,8 @@ Use `crablet-app-dev` for the feature-slice loop:
 1. Clarify the outcome and missing facts.
 2. Update `event-model.yaml`.
 3. Run the diagram checkpoint when the model changed.
-4. Run `make plan` or `embabel_plan` and review artifacts.
-5. Ask for approval before `make generate` or `embabel_generate`.
+4. Run `make plan` or `crablet_plan` and review artifacts.
+5. Ask for approval before `make generate` or `crablet_generate`.
 6. Generate with output set to `src/main/java` in starter apps.
 7. Implement user-owned behavior behind generated structural boundaries.
 8. Run `make verify` or `./mvnw verify`.

@@ -11,7 +11,7 @@ A ready-to-use Spring Boot application skeleton configured for the AI-first Crab
 - `event-model.yaml` skeleton to describe your domain
 - `crablet-db-migrations` runtime dependency for the framework Flyway schema
 - `Makefile` with `plan`, `generate`, `k8s`, `verify`, and `check` targets
-- `.claude/settings.json` pre-wired for the `embabel-codegen` MCP server
+- `.claude/settings.json` pre-wired for the `crablet-codegen` MCP server
 - `.cursor/mcp.json` pre-wired for the same MCP server
 - `/crablet-event-modeling` Claude Code skill for running a domain modeling workshop
 
@@ -20,8 +20,8 @@ A ready-to-use Spring Boot application skeleton configured for the AI-first Crab
 ```
 Open Claude Code or Cursor from your copied app directory, describe one vertical slice
   → update event-model.yaml
-  → embabel_plan — review planned artifacts
-  → embabel_generate with output: src/main/java  (same as make generate)
+  → crablet_plan — review planned artifacts
+  → crablet_generate with output: src/main/java  (same as make generate)
   → ./mvnw verify
 ```
 
@@ -29,8 +29,8 @@ Open Claude Code or Cursor from your copied app directory, describe one vertical
 
 ```
 make plan      # review plan only, no model call (CI- / script-friendly)
-make generate  # same AI pipeline as embabel_generate — not a normal CI step
-make k8s       # same as embabel_k8s; Kubernetes manifests, no model call
+make generate  # same AI pipeline as crablet_generate — not a normal CI step
+make k8s       # same as crablet_k8s; Kubernetes manifests, no model call
 make verify    # full Maven test run (CI-friendly)
 make check     # plan + verify
 ```
@@ -43,7 +43,7 @@ make install && make codegen-build
 
 # 2. Copy the template and the JAR into a sibling app directory
 cp -r templates/crablet-app ../my-service
-cp embabel-codegen/target/embabel-codegen.jar ../my-service/tools/
+cp crablet-codegen/target/crablet-codegen.jar ../my-service/tools/
 
 # 3. Configure a generator provider and open your frontend from the app directory
 cd ../my-service
@@ -55,6 +55,6 @@ See [`templates/crablet-app/README.md`](crablet-app/README.md) for full setup an
 
 ## See Also
 
-- [`embabel-codegen/README.md`](../embabel-codegen/README.md) — the AI codegen tool
+- [`crablet-codegen/README.md`](../crablet-codegen/README.md) — the AI codegen tool
 - [`docs/user/ai-tooling/AI_FIRST_WORKFLOW.md`](../docs/user/ai-tooling/AI_FIRST_WORKFLOW.md) — end-to-end workflow
 - [`docs/user/CREATE_A_CRABLET_APP.md`](../docs/user/CREATE_A_CRABLET_APP.md) — step-by-step app creation guide

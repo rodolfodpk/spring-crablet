@@ -63,8 +63,8 @@ Do not model human decisions as automations. The view IS the human policy's inbo
 3. Identify commands, events, tags, validations, read models, automations, and outbox publishers.
 4. Ask clarifying questions before editing `event-model.yaml`.
 5. Update `event-model.yaml` only after the missing facts are known.
-6. Run `embabel_plan` and show the planned artifacts.
-7. Ask for confirmation before running `embabel_generate`.
+6. Run `crablet_plan` and show the planned artifacts.
+7. Ask for confirmation before running `crablet_generate`.
 8. Run `./mvnw verify` after generation.
 
 For Claude Code and Cursor, use MCP tools when available. For Codex, other agents, or terminal

@@ -13,7 +13,7 @@ The project has three related tracks. Each track has a different maturity level,
 |------|--------|------------|
 | **Spring-native runtime** for commands, events, consistency checks, views, automations, outbox publishing, and tests | **Near complete** | [Quickstart](docs/user/QUICKSTART.md), [Tutorial](docs/user/TUTORIAL.md), [Module reference](docs/user/MODULES.md) |
 | **AI-first Event Modeling and code generation** from workshop conversation to `event-model.yaml` to Spring code | **In progress** | [AI-first workflow](docs/user/ai-tooling/AI_FIRST_WORKFLOW.md), [Feature-slice workflow](docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md), [Event model format](docs/user/ai-tooling/EVENT_MODEL_FORMAT.md) |
-| **Local Kubernetes generation** from the modeled service shape | **Early / planned** | [Deployment topology](docs/user/DEPLOYMENT_TOPOLOGY.md), [App template](templates/crablet-app/README.md), [Codegen CLI](embabel-codegen/README.md) |
+| **Local Kubernetes generation** from the modeled service shape | **Early / planned** | [Deployment topology](docs/user/DEPLOYMENT_TOPOLOGY.md), [App template](templates/crablet-app/README.md), [Codegen CLI](crablet-codegen/README.md) |
 
 The AI tooling is optional. The Java runtime APIs work directly when a team wants to build by hand, customize generated code, or adopt Crablet one module at a time.
 

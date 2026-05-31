@@ -31,7 +31,7 @@ user says they skipped the template.
 
 Phase A is done when:
 
-- `tools/embabel-codegen.jar` exists, or `CRABLET_CODEGEN_JAR` points to a built generator jar
+- `tools/crablet-codegen.jar` exists, or `CRABLET_CODEGEN_JAR` points to a built generator jar
 - the chosen provider is configured for `make generate`
 - Claude Code/Cursor MCP or Makefile commands are understood
 - `make plan`, `make generate`, `make verify`, and `make diagram-preview` are available
@@ -61,8 +61,8 @@ Use `crablet-app-dev` for the feature-slice loop:
 1. Clarify the outcome and missing facts.
 2. Update `event-model.yaml`.
 3. Run the diagram checkpoint when the model changed.
-4. Run `make plan` or `embabel_plan` and review artifacts.
-5. Ask for approval before `make generate` or `embabel_generate`.
+4. Run `make plan` or `crablet_plan` and review artifacts.
+5. Ask for approval before `make generate` or `crablet_generate`.
 6. Generate with output set to `src/main/java`.
 7. Implement user-owned behavior behind generated structural boundaries.
 8. Run `make verify` or `./mvnw verify`.

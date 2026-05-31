@@ -8,9 +8,9 @@ The workflow is:
 describe one vertical slice
   -> update event-model.yaml
   -> run make diagram-preview
-  -> run embabel_plan
+  -> run crablet_plan
   -> approve the planned artifacts
-  -> run embabel_generate with output: "src/main/java"
+  -> run crablet_generate with output: "src/main/java"
   -> run ./mvnw verify
 ```
 
@@ -23,7 +23,7 @@ describe one vertical slice
 - A configured generator provider. Anthropic users set `ANTHROPIC_API_KEY`; OpenAI users set
   `OPENAI_API_KEY` and a model; local/Ollama users set `CODEGEN_LLM_PROVIDER`,
   `CODEGEN_LLM_BASE_URL`, and `CODEGEN_LLM_MODEL`.
-- `embabel-codegen.jar`
+- `crablet-codegen.jar`
 
 Phase 1 uses a local generator JAR. From a sibling `spring-crablet` checkout:
 
@@ -34,7 +34,7 @@ make codegen-build
 
 cd ../my-crablet-app
 mkdir -p tools
-cp ../spring-crablet/embabel-codegen/target/embabel-codegen.jar tools/embabel-codegen.jar
+cp ../spring-crablet/crablet-codegen/target/crablet-codegen.jar tools/crablet-codegen.jar
 ```
 
 Longer term, the template should download a versioned release artifact instead of copying from a
@@ -90,8 +90,8 @@ Use the Crablet feature-slice workflow.
 Ask for missing facts before changing files.
 ```
 
-Claude should update `event-model.yaml`, run `embabel_plan`, ask you to review the planned
-artifacts, then run `embabel_generate` only after the plan looks right.
+Claude should update `event-model.yaml`, run `crablet_plan`, ask you to review the planned
+artifacts, then run `crablet_generate` only after the plan looks right.
 
 Cursor can use the same MCP tools through `.cursor/mcp.json`. Codex and other agents can edit
 `event-model.yaml` and use the local `make plan` / `make generate` commands.
@@ -120,8 +120,8 @@ Reviewers should see applicationId, customerId, requestedAmount, purpose, status
 No automation or outbox yet.
 
 Claude:
-I will update event-model.yaml, run embabel_plan, show the planned artifacts, and wait for approval
-before running embabel_generate.
+I will update event-model.yaml, run crablet_plan, show the planned artifacts, and wait for approval
+before running crablet_generate.
 ```
 
 ## How code generation works
@@ -132,11 +132,11 @@ mode when Claude Code or Cursor opens the project:
 ```json
 {
   "mcpServers": {
-    "embabel-codegen": {
+    "crablet-codegen": {
       "command": "java",
       "args": [
         "-jar",
-        "./tools/embabel-codegen.jar",
+        "./tools/crablet-codegen.jar",
         "--mcp"
       ]
     }
@@ -144,17 +144,17 @@ mode when Claude Code or Cursor opens the project:
 }
 ```
 
-That exposes these MCP tools without you running `java -jar` by hand: **`embabel_plan`**,
-**`embabel_generate`**, **`embabel_init`**, **`embabel_k8s`**.
+That exposes these MCP tools without you running `java -jar` by hand: **`crablet_plan`**,
+**`crablet_generate`**, **`crablet_init`**, **`crablet_k8s`**.
 
-**Kubernetes:** **`make k8s`** is the Makefile entry point for the same **`embabel_k8s`** MCP tool
+**Kubernetes:** **`make k8s`** is the Makefile entry point for the same **`crablet_k8s`** MCP tool
 (no model calls; writes `k8s/base` from `event-model.yaml`).
 
-**Output directory:** **`embabel_generate`** defaults `output` to `src/main/java`, matching
+**Output directory:** **`crablet_generate`** defaults `output` to `src/main/java`, matching
 `make generate`. Omit the parameter when using this template.
 
 **Primary workflow:** describe a slice in Claude Code or Cursor → update `event-model.yaml` →
-`make diagram-preview` → `embabel_plan` → review → **`embabel_generate`** → `./mvnw verify`.
+`make diagram-preview` → `crablet_plan` → review → **`crablet_generate`** → `./mvnw verify`.
 
 **Local commands** (below) are for Codex, other agents, terminal use, scripting, and debugging —
 see each command’s description.
@@ -173,7 +173,7 @@ Generate the structural code:
 make generate
 ```
 
-Same AI codegen pipeline as **`embabel_generate`** (calls the configured model, compiles, may repair
+Same AI codegen pipeline as **`crablet_generate`** (calls the configured model, compiles, may repair
 errors). Use when regenerating from the shell — not a typical deterministic CI step.
 
 Generate a standalone Event Modeling board preview from `event-model.yaml`:
@@ -212,7 +212,7 @@ make check
 If the generator JAR is somewhere else:
 
 ```bash
-make plan CRABLET_CODEGEN_JAR=/path/to/embabel-codegen.jar
+make plan CRABLET_CODEGEN_JAR=/path/to/crablet-codegen.jar
 ```
 
 ## Runtime Setup

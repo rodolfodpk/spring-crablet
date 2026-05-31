@@ -18,7 +18,7 @@ This is a generated Crablet application.
 - Work one vertical slice at a time.
 - Ask for missing business facts before changing files.
 - Update `event-model.yaml` before generated structural code.
-- Run `embabel_plan` and review artifacts before `embabel_generate`.
+- Run `crablet_plan` and review artifacts before `crablet_generate`.
 - Generate with `output` set to `src/main/java`.
 - Claude Code and Cursor can use MCP tools; Codex and terminal workflows should use `make plan`,
   `make generate`, and `make verify`.

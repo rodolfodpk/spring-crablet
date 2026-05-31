@@ -1,15 +1,15 @@
 # Tools
 
-Place `embabel-codegen.jar` in this directory for local template use:
+Place `crablet-codegen.jar` in this directory for local template use:
 
 ```bash
-cp ../spring-crablet/embabel-codegen/target/embabel-codegen.jar tools/embabel-codegen.jar
+cp ../spring-crablet/crablet-codegen/target/crablet-codegen.jar tools/crablet-codegen.jar
 ```
 
 Or run template Make targets with:
 
 ```bash
-make plan CRABLET_CODEGEN_JAR=/path/to/embabel-codegen.jar
+make plan CRABLET_CODEGEN_JAR=/path/to/crablet-codegen.jar
 ```
 
 `diagram-preview.js` and `event-model-renderer.js` support:

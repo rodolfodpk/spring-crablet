@@ -20,7 +20,7 @@ Other tools (invoke by name when needed):
 - `/design` — produce modular architecture designs from functional requirements
 - `/review` — modularity analysis using Balanced Coupling model
 - `/document` — produce modularity review documents in Markdown and HTML
-- `/jspecify-skill` — add jspecify nullability support to Java modules
+- `/jspecify` — add jspecify nullability support to Java modules
 
 Searchable signposts:
 
@@ -51,14 +51,14 @@ make test-pl PL=<module-dir> MVN_ARGS='-Dtest=ClassName'
 ```
 
 Always use `make` targets for repository builds. Do not run root Maven build/test commands directly
-until `make build-test-support` and `make check-test-support-artifact` have passed; otherwise Maven
+until `make build-core`, `make build-test-support`, and `make check-test-support-artifact` have passed; otherwise Maven
 can resolve a stale locally installed `crablet-test-support` jar and run tests against old Flyway
 migrations. Prefer `make test-pl PL=…` for focused runs; if you use `./mvnw test -pl …` directly,
 always add **`-am`** after Makefile prerequisites so upstream reactor modules are rebuilt with the
 same invocation. Direct plain `./mvnw test -pl …` (without `-am`) can resolve a stale locally installed
 sibling SNAPSHOT.
 
-Tests use Testcontainers for PostgreSQL integration tests. `make install` is the normal maintainer build because the examples and shared example domain are outside the Maven reactor.
+Tests use Testcontainers for PostgreSQL integration tests. `make install` is the normal maintainer build because `crablet-test-support`, `shared-examples-domain`, codegen, and example apps are outside the main Maven reactor.
 
 ## Project Overview
 
@@ -67,66 +67,110 @@ Spring-Crablet is a Java 25 event-sourcing framework for Spring Boot application
 Key technologies:
 
 - Java 25
-- Spring Boot 4.0
+- Spring Boot 4.0.5
 - PostgreSQL 17+
 - Maven multi-module project
 
 ## Module Map
 
 ```text
-crablet-eventstore
-  Core event store, DCB append methods, queries, projections, migrations.
+crablet-db-migrations  [reactor]
+  Consolidated Flyway SQL migrations for all framework schemas: event store tables and PL/pgSQL
+  functions, command audit table, and processing/progress tables for views, automations, and outbox.
+  No Java sources; consumed as a classpath dependency by crablet-eventstore at runtime.
 
-crablet-commands
-  CommandHandler, CommandExecutor, CommandDecision, command audit integration.
+crablet-eventstore  [reactor]
+  Core event store implementing three DCB-style atomic append methods (idempotent, commutative,
+  non-commutative), tag-based event queries, state projection helpers, and optional read-replica
+  routing. Foundational module — all other framework modules depend on it directly or transitively.
 
-crablet-commands-web
-  Optional generic HTTP command API backed by CommandExecutor.
+crablet-commands  [reactor]
+  Command handler framework layered on top of crablet-eventstore: Spring @Component-based
+  CommandHandler auto-discovery, CommandExecutor, CommandDecision, transaction-scoped command audit
+  integration, and DCB-pattern support for idempotent and consistency-guarded commands.
 
-crablet-event-poller
-  Shared polling, progress tracking, leader election, LISTEN/NOTIFY wakeup, shared-fetch.
+crablet-commands-web  [reactor]
+  Optional REST adapter that exposes a generic POST /api/commands endpoint, routing JSON payloads
+  to registered CommandHandlers via CommandExecutor. Adds Swagger UI automatically when springdoc
+  OpenAPI is on the classpath.
 
-crablet-views
-  Materialized read models built on crablet-event-poller.
+crablet-event-poller  [reactor]
+  Shared polling engine used by views, automations, and outbox: per-processor progress tracking,
+  PostgreSQL advisory-lock leader election with heartbeat, LISTEN/NOTIFY wakeup to reduce poll lag,
+  exponential backoff, and shared-fetch routing for co-located processors.
 
-crablet-automations
-  Event-driven command/reaction handlers built on crablet-event-poller.
+crablet-views  [reactor]
+  Asynchronous materialized view projections built on crablet-event-poller. Provides
+  AbstractTypedViewProjector and AbstractViewProjector base classes, idempotent batch processing,
+  and independent per-view progress cursors so views catch up at different rates.
 
-crablet-outbox
-  Reliable external publication built on crablet-event-poller.
+crablet-automations  [reactor]
+  Event-driven automation handlers (Event Modeling style: read trigger event + state, emit follow-up
+  command) built on crablet-event-poller. Supports lifecycle guards, view-backed decision state,
+  automatic correlation/causation trace propagation, and independent progress tracking.
 
-crablet-observability
-  Shared observation names and tag conventions; no runtime module coupling.
+crablet-outbox  [reactor]
+  Transactional outbox for reliable external publication within the same DB transaction as domain
+  events. Supports multiple publishers per topic, per-publisher isolated schedulers, leader election
+  with heartbeat, and at-least-once delivery semantics via the shared poller infrastructure.
 
-crablet-metrics-micrometer
-  Compatibility Micrometer collector for legacy metric events.
+crablet-observability  [reactor]
+  Canonical observation names and tag conventions shared across all modules. No runtime dependency
+  on Micrometer or any specific backend — acts as a compile-time naming contract only.
 
-crablet-test-support
-  Shared test utilities for handler and integration tests.
+crablet-metrics-micrometer  [reactor]
+  Micrometer collector that translates Crablet internal metric events into Prometheus-compatible
+  observations for event throughput, concurrency violations, command execution, and poller processing.
 
-shared-examples-domain
-  Wallet and course example domains used by framework tests.
+crablet-test-support  [installed separately via `make build-test-support`]
+  Shared test utilities: InMemoryEventStore for fast unit tests, AbstractCrabletTest backed by
+  Testcontainers PostgreSQL, and AbstractHandlerUnitTest for BDD-style command handler tests.
+  Bundles Flyway migration infrastructure and PostgreSQL driver needed for test isolation.
 
-examples/wallet-example-app
-examples/course-example-app
-  Runnable Spring Boot examples, outside the reactor.
+docs-samples  [reactor, compile-only — no tests]
+  Compilable tutorial fixtures that keep documentation aligned with the public API. Covers six
+  progressive tutorials (EventStore, Commands, DCB, Views, Automations, Outbox) plus a Getting
+  Started wallet example. Built without tests purely to catch API breakage in doc code snippets.
 
-embabel-codegen
-  AI-first CLI/MCP code generator for Crablet applications; provider-neutral through Embabel.
+shared-examples-domain  [outside reactor]
+  Wallet and Course example domains shared across framework module tests. Includes Jackson
+  polymorphism configuration, YAVI command validators, period helpers for closing-the-books pattern,
+  and state projectors demonstrating all three DCB concurrency strategies.
+
+examples/wallet-example-app  [outside reactor — `make start`, port 8080]
+  Full-stack example showing the complete Crablet runtime: REST API via commands-web, event
+  sourcing, view projections, automations, outbox publishers, Micrometer metrics, and a Thymeleaf
+  management dashboard. Uses resilience4j for webhook retry in the outbox publisher.
+
+examples/course-example-app  [outside reactor — `make course-start`, port 8081]
+  Example demonstrating multi-entity DCB constraints: Course, Student, and Subscription aggregates
+  with capacity limits and per-student subscription limits enforced via non-commutative append and
+  composite projectors spanning multiple entity streams.
+
+crablet-codegen  [outside reactor — `make codegen-build`]
+  AI-first CLI/MCP code generator: reads event-model.yaml and emits command handler interfaces,
+  view projectors, automation handlers, outbox publishers, and scenario test stubs. Provider-neutral;
+  speaks directly to Anthropic or OpenAI-compatible chat APIs via HTTP without vendor SDK dependencies
+  (providers include anthropic, openai, deepseek, ollama, and openai-compatible/custom).
 
 templates/crablet-app
-  Starter project template wired for embabel-codegen MCP and Makefile/CLI workflows.
+  Starter project template for new Crablet applications: Spring Boot, BOM dependency management,
+  commands-web, views, and test-support pre-wired, plus a CLAUDE.md with skill routing for
+  AI-assisted development via crablet-codegen MCP and Makefile/CLI workflows.
 ```
 
 Module dependencies:
 
-- `crablet-eventstore`: no dependencies on other Crablet modules.
-- `crablet-commands`: depends on `crablet-eventstore`.
+- `crablet-db-migrations`: no dependencies on other Crablet modules.
+- `crablet-observability`: no dependencies on other Crablet modules.
+- `crablet-eventstore`: depends on `crablet-db-migrations` and `crablet-observability`.
+- `crablet-commands`: depends on `crablet-eventstore` and `crablet-observability`.
 - `crablet-commands-web`: depends on `crablet-commands` plus web APIs.
-- `crablet-event-poller`: depends on `crablet-eventstore`.
-- `crablet-views`: depends on `crablet-eventstore` and `crablet-event-poller`.
-- `crablet-outbox`: depends on `crablet-eventstore` and `crablet-event-poller`.
-- `crablet-automations`: depends on `crablet-eventstore`, `crablet-event-poller`, and `crablet-commands`.
+- `crablet-event-poller`: depends on `crablet-eventstore` and `crablet-observability`.
+- `crablet-views`: depends on `crablet-eventstore`, `crablet-event-poller`, and `crablet-observability`.
+- `crablet-outbox`: depends on `crablet-eventstore`, `crablet-event-poller`, and `crablet-observability`.
+- `crablet-automations`: depends on `crablet-eventstore`, `crablet-event-poller`, `crablet-commands`, `crablet-views`, and `crablet-observability`.
+- `crablet-metrics-micrometer`: depends on `crablet-eventstore`, `crablet-commands`, `crablet-outbox`, `crablet-event-poller`, `crablet-views`, `crablet-automations`, and `crablet-observability`.
 
 ## Repo Conventions
 
@@ -166,7 +210,7 @@ The invariant this relies on: `CommandAuditStore.storeCommand` must always be ca
 - Feature slice workflow: `docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md`
 - Event model format & diagram projection: `docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`
 - HTML diagram renderer: `docs/event-model-renderer.js`
-- Codegen: `embabel-codegen/README.md`
+- Codegen: `crablet-codegen/README.md`
 - Starter template: `templates/crablet-app/README.md`
 - Concept map source: `docs/examples/concepts.md`
 

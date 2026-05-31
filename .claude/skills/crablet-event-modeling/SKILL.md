@@ -12,7 +12,7 @@ allowed-tools: Read, Write, AskUserQuestion, TaskCreate, TaskUpdate
 # Event Modeling Workshop
 
 You conduct a structured dialogue with the user to produce a complete `event-model.yaml` for a
-domain. The goal is an explicit, generator-ready model — rich enough that `embabel-codegen` can
+domain. The goal is an explicit, generator-ready model — rich enough that `crablet-codegen` can
 produce structurally complete Java code without guessing.
 
 ## Input
@@ -253,7 +253,7 @@ scenario on the first `generate` run.
 Then show a YAML preview and ask for confirmation.
 On confirmation, write the file to `event-model.yaml` (or the path the user specifies).
 
-After writing, recommend running `embabel_plan` before `embabel_generate`, or `make plan` before
+After writing, recommend running `crablet_plan` before `crablet_generate`, or `make plan` before
 `make generate` when MCP is not available. `plan` is deterministic and does not call a model;
 `generate` uses the configured codegen provider. Do not generate code until the user has reviewed
 the planned artifacts.
@@ -357,7 +357,7 @@ deployment:
     pollingInterval: 30       # seconds between KEDA PostgreSQL checks
 ```
 
-**Kubernetes (optional):** from the app template, `make k8s` (requires `embabel-codegen.jar` in `tools/`) writes `k8s/base` from this `deployment` block. See `k8s/base/README-k8s.md` for fill-in, KEDA install (`helm install keda kedacore/keda --namespace keda --create-namespace`), and how monolith vs distributed maps to Deployments. `minReplicas: 0` only affects distributed workers; PDBs are omitted when `minReplicas` is 0. Platform-agnostic rules: [DEPLOYMENT_TOPOLOGY.md](../../../docs/user/DEPLOYMENT_TOPOLOGY.md).
+**Kubernetes (optional):** from the app template, `make k8s` (requires `crablet-codegen.jar` in `tools/`) writes `k8s/base` from this `deployment` block. See `k8s/base/README-k8s.md` for fill-in, KEDA install (`helm install keda kedacore/keda --namespace keda --create-namespace`), and how monolith vs distributed maps to Deployments. `minReplicas: 0` only affects distributed workers; PDBs are omitted when `minReplicas` is 0. Platform-agnostic rules: [DEPLOYMENT_TOPOLOGY.md](../../../docs/user/DEPLOYMENT_TOPOLOGY.md).
 
 Downstream sequencing lives in `crablet-app-dev`; full greenfield pacing lives in
 `crablet-greenfield`.

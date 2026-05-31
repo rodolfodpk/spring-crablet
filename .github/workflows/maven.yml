@@ -47,6 +47,9 @@ jobs:
       - name: Build with Maven (handles cyclic dependencies)
         run: make ci-verify
 
+      - name: Verify generated loan-slice snapshot
+        run: make codegen-snapshot-verify
+
       - name: Verify documentation guardrails
         run: make docs-check
 

@@ -10,7 +10,7 @@ description: >
 # Crablet Codegen
 
 This skill is a compact reference for provider configuration, artifact ownership, and recovery
-when `embabel-codegen` generation fails or produces incomplete application behavior.
+when `crablet-codegen` generation fails or produces incomplete application behavior.
 
 ## Scope Boundary
 
@@ -23,7 +23,7 @@ when `embabel-codegen` generation fails or produces incomplete application behav
 
 ## Provider Setup
 
-Five named providers are supported by `embabel-codegen`.
+Five named providers are supported by `crablet-codegen`.
 
 | Provider | `CODEGEN_LLM_PROVIDER` | Key env vars | Notes |
 |---|---|---|---|
@@ -44,8 +44,8 @@ named `ollama` provider is simpler for local setups.
 `CODEGEN_LLM_MAX_TOKENS` defaults to `8096`.
 
 When running the JAR directly from the root repo, remember that `codegen.claude-md-path` must
-resolve to `embabel-codegen/CLAUDE.md`. The root Makefile targets handle this by running from the
-`embabel-codegen` module.
+resolve to `crablet-codegen/CLAUDE.md`. The root Makefile targets handle this by running from the
+`crablet-codegen` module.
 
 ## Artifact Ownership
 
@@ -89,7 +89,7 @@ Do not delete user `@Component` implementation classes.
 
 ## Recovery Decision Tree
 
-These are the five failure modes documented in `embabel-codegen/README.md` under **When Generation
+These are the five failure modes documented in `crablet-codegen/README.md` under **When Generation
 Fails**. `$ref` schema errors are a subcase of YAML/model parse failure.
 
 | Symptom | Cause | Fix |
@@ -140,5 +140,5 @@ Scenarios are structural model elements authored during the workshop.
 
 ## Source References
 
-- `embabel-codegen/README.md` — provider configuration and recovery guidance.
-- `embabel-codegen/CLAUDE.md` — exact generated artifact shape templates.
+- `crablet-codegen/README.md` — provider configuration and recovery guidance.
+- `crablet-codegen/CLAUDE.md` — exact generated artifact shape templates.

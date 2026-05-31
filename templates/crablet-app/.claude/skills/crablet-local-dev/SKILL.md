@@ -12,9 +12,9 @@ description: >
 ## Codegen Loop
 
 **Claude Code / Cursor (MCP available):**
-1. `embabel_plan` — deterministic, reads `event-model.yaml`, no model call; shows planned artifacts
+1. `crablet_plan` — deterministic, reads `event-model.yaml`, no model call; shows planned artifacts
 2. Review the planned artifact list before proceeding
-3. `embabel_generate` with `output` set to `src/main/java`
+3. `crablet_generate` with `output` set to `src/main/java`
 4. `./mvnw verify` — compile and run tests
 
 **Terminal / non-MCP workflows:**
@@ -42,7 +42,7 @@ not PgBouncer, PgCat, or RDS Proxy. Testcontainers Postgres is always a direct c
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `embabel_generate` writes to wrong directory | Default `output` is `.` | Pass `src/main/java` explicitly |
+| `crablet_generate` writes to wrong directory | Default `output` is `.` | Pass `src/main/java` explicitly |
 | Integration test hangs at startup | Docker not running | Start Docker |
 | `ConcurrencyException` in tests | Non-commutative command under parallel load | Serialize test execution |
 | LISTEN/NOTIFY not waking poller | Proxy URL instead of direct Postgres | Set `crablet.event-poller.notifications.jdbc-url` to direct JDBC URL |
