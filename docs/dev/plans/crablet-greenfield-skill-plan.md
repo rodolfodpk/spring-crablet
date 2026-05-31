@@ -70,7 +70,7 @@ This is **normative app development workflow**, not workshop-only behavior.
 
    **Template mirror (user already holds a generated app checkout)**
 
-   - Assume repo root `./` equals the starter app: `tools/embabel-codegen.jar` (or overridden `CRABLET_CODEGEN_JAR`), MCP or Makefile codegen per template README; `./mvnw verify` succeeds.
+   - Assume repo root `./` equals the starter app: `tools/crablet-codegen.jar` (or overridden `CRABLET_CODEGEN_JAR`), MCP or Makefile codegen per template README; `./mvnw verify` succeeds.
    - **Do restate** cloning spring-crablet vs Initializr only as “if you landed here without starter, see canonical Phase A docs,” not as the default storyline.
 
 4. **Phase B — Model** — `/event-modeling` or controlled YAML edits; after increments → diagram checkpoint (**`make diagram-preview`** + advisory skill as needed).

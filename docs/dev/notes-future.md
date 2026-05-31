@@ -12,4 +12,4 @@ Informal items for maintainers: not a committed roadmap. Promote real work to `d
 
 - **Terraform (or CDK) against a local endpoint:** Optional follow-up: `terraform apply` with `endpoints` / `AWS_ENDPOINT_URL` pointed at the emulator for the same stack—only if the first spike is promising.
 
-The Kubernetes path (`k8s` in embabel-codegen) remains the primary portable story; AWS-shaped deployment is a potential complement, not a replacement.
+The Kubernetes path (`k8s` in crablet-codegen) remains the primary portable story; AWS-shaped deployment is a potential complement, not a replacement.

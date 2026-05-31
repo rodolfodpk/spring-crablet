@@ -1,5 +1,5 @@
 # Renderer-only extensions for the wallet-opened slice board.
-# This file is NOT a codegen input — do not feed it to embabel-codegen.
+# This file is NOT a codegen input — do not feed it to crablet-codegen.
 
 triggers:
   - name: "Customer opens wallet"

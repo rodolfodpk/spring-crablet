@@ -10,7 +10,7 @@
 
 | Area | State |
 |------|--------|
-| **Java** | `ActorSpec`, `DiagramSpec`, `LaneSpec`, `TriggerSpec` (nullable `actor`), `SyntheticCommandSpec` — new/updated types in working tree under `embabel-codegen` |
+| **Java** | `ActorSpec`, `DiagramSpec`, `LaneSpec`, `TriggerSpec` (nullable `actor`), `SyntheticCommandSpec` — new/updated types in working tree under `crablet-codegen` |
 | **Renderer** | `docs/event-model-renderer.js` — canonical path needs `diagram.actors` + `trigger.actor` wired through merge + layout |
 | **Examples** | `wallet-event-model.yaml` / `course-event-model.yaml` (+ optional sidecars) — add actors and per-trigger `actor` to exercise canonical rendering |
 

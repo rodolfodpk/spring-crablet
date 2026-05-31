@@ -2,9 +2,9 @@
 
 ## Context
 
-Two known gaps in the embabel-codegen AI workflow:
+Two known gaps in the crablet-codegen AI workflow:
 
-1. `embabel_generate` MCP tool defaults `output` to `.` (the working directory), but the starter
+1. `crablet_generate` MCP tool defaults `output` to `.` (the working directory), but the starter
    template always needs `src/main/java`. This is documented as a known gotcha in the
    `crablet-app-dev` skill, which means it is actively biting first-time MCP users and must be
    worked around manually every time.
@@ -16,15 +16,15 @@ Two known gaps in the embabel-codegen AI workflow:
 
 ---
 
-## Fix 1 — MCP `embabel_generate` output default
+## Fix 1 — MCP `crablet_generate` output default
 
-**Change:** Update the `embabel_generate` MCP default for `output` from `"."` to `"src/main/java"`.
+**Change:** Update the `crablet_generate` MCP default for `output` from `"."` to `"src/main/java"`.
 The CLI default stays `"."` because the Makefile passes `--output src/main/java` explicitly and
 CLI users are expected to be explicit.
 
 ### Files
 
-**`embabel-codegen/src/main/java/com/crablet/codegen/cli/McpServer.java`**
+**`crablet-codegen/src/main/java/com/crablet/codegen/cli/McpServer.java`**
 
 - Line 138: update tool schema description:
   `"Output directory for generated source files (default: .)"` → `"Output directory for generated source files (default: src/main/java)"`
@@ -36,8 +36,8 @@ CLI users are expected to be explicit.
   `- The MCP tool defaults \`output\` to \`.\`, which is wrong for the starter template. Use \`src/main/java\`.`
 
 **Docs sweep (part of this fix, not optional):**
-Run `rg "default: \\\." embabel-codegen/ docs/ .claude/ templates/` and
-`rg "embabel_generate" docs/ .claude/ templates/` to catch any remaining help text, doc examples,
+Run `rg "default: \\\." crablet-codegen/ docs/ .claude/ templates/` and
+`rg "crablet_generate" docs/ .claude/ templates/` to catch any remaining help text, doc examples,
 or skill prose that still describes `output` defaulting to `.`. Update every hit.
 No change to `CodegenCommand.printHelp()` — it already shows `--output src/main/java` as the
 example value, not as the default.
@@ -51,7 +51,7 @@ already throws `IllegalArgumentException` with a clear message if the path does 
 ## Fix 2 — Scenario sync report
 
 **Change:** Add a `syncReport` method to `ScenarioScaffoldGenerator` and expose it as a new
-`sync-scenarios` CLI command, `embabel_sync_scenarios` MCP tool, and `make sync-scenarios` Makefile
+`sync-scenarios` CLI command, `crablet_sync_scenarios` MCP tool, and `make sync-scenarios` Makefile
 target. Read-only — never writes files.
 
 ### Data model
@@ -115,7 +115,7 @@ tests named `*ScenarioTest.java` outside the Crablet package, causing false posi
 
 ### New method: `ScenarioScaffoldGenerator.syncReport`
 
-**`embabel-codegen/src/main/java/com/crablet/codegen/scaffold/ScenarioScaffoldGenerator.java`**
+**`crablet-codegen/src/main/java/com/crablet/codegen/scaffold/ScenarioScaffoldGenerator.java`**
 
 ```java
 public ScenarioSyncReport syncReport(EventModel model, Path outputDir) {
@@ -137,7 +137,7 @@ Reuses existing private `toJavaIdentifier`, `deriveTestOutputDir`, and `packageT
 
 ### CLI: `sync-scenarios` command
 
-**`embabel-codegen/src/main/java/com/crablet/codegen/cli/CodegenCommand.java`**
+**`crablet-codegen/src/main/java/com/crablet/codegen/cli/CodegenCommand.java`**
 
 - Inject `ScenarioScaffoldGenerator` in the constructor
 - Add `case "sync-scenarios" -> runSyncScenarios(parseFlags(args, 1));` to the switch
@@ -147,15 +147,15 @@ Reuses existing private `toJavaIdentifier`, `deriveTestOutputDir`, and `packageT
 
 Exit code 1 makes this CI-friendly (e.g. a `make check` variant can include sync).
 
-### MCP: `embabel_sync_scenarios` tool
+### MCP: `crablet_sync_scenarios` tool
 
-**`embabel-codegen/src/main/java/com/crablet/codegen/cli/McpServer.java`**
+**`crablet-codegen/src/main/java/com/crablet/codegen/cli/McpServer.java`**
 
 - Inject `ScenarioScaffoldGenerator` in the constructor
-- Add `embabel_sync_scenarios` to `toolsListResult()`:
+- Add `crablet_sync_scenarios` to `toolsListResult()`:
   - `model` param (default: `event-model.yaml`)
   - `output` param (default: `src/main/java`)
-- Add `case "embabel_sync_scenarios" -> callSyncScenarios(args);` to dispatch switch
+- Add `case "crablet_sync_scenarios" -> callSyncScenarios(args);` to dispatch switch
 - `callSyncScenarios`: returns `report.render()` as the tool text **and sets `isError=true` when
   `!report.isClean()`**. Drift is a logically significant failure for automated callers; this makes
   the MCP tool's failure signal consistent with the CLI's exit-1. Exceptions (model parse failure,
@@ -172,7 +172,7 @@ Exit code 1 makes this CI-friendly (e.g. a `make check` variant can include sync
   and wrap at the call site), and have `callSyncScenarios` return
   `new ToolResult(report.render(), !report.isClean())`. `toolCallResult` then reads `isError` from
   the returned record rather than solely from the catch block. The exception path stays unchanged.
-- Update class-level Javadoc to list `embabel_sync_scenarios` alongside the existing tools
+- Update class-level Javadoc to list `crablet_sync_scenarios` alongside the existing tools
 
 ### Makefile
 
@@ -188,7 +188,7 @@ Exit code 1 makes this CI-friendly (e.g. a `make check` variant can include sync
 
 ### Tests
 
-**`embabel-codegen/src/test/java/com/crablet/codegen/scaffold/ScenarioScaffoldGeneratorTest.java`**
+**`crablet-codegen/src/test/java/com/crablet/codegen/scaffold/ScenarioScaffoldGeneratorTest.java`**
 
 Four new tests for `syncReport` using the existing `@TempDir` + `mainJavaDir()` pattern:
 
@@ -203,26 +203,26 @@ Two new tests for `ScenarioSyncReport.render()` directly (pure record, no I/O):
 - `renderDriftReport()` — assert rendered string contains both drift sections, the `→` arrow
   notation for missing scaffolds, and the "Delete stale" instruction
 
-**`embabel-codegen/src/test/java/com/crablet/codegen/cli/McpServerTest.java`** (if this test exists):
+**`crablet-codegen/src/test/java/com/crablet/codegen/cli/McpServerTest.java`** (if this test exists):
 
 - Constructor call must pass a `ScenarioScaffoldGenerator` instance (or mock)
 - Tool list count assertion: 4 → 5
-- Tool name list must include `embabel_sync_scenarios`
+- Tool name list must include `crablet_sync_scenarios`
 
 ---
 
 ## Verification
 
-1. **Unit tests:** `./mvnw test -pl embabel-codegen` — all existing + new tests pass
-2. **MCP default:** Run `embabel_generate` via Claude Code MCP without specifying `output`; confirm
+1. **Unit tests:** `./mvnw test -pl crablet-codegen` — all existing + new tests pass
+2. **MCP default:** Run `crablet_generate` via Claude Code MCP without specifying `output`; confirm
    files land in `src/main/java/`, not at the project root
 3. **sync-scenarios CLI — drift case:** From a template app with a model scenario that has no test
-   file: `java -jar tools/embabel-codegen.jar sync-scenarios` prints drift report and exits 1
+   file: `java -jar tools/crablet-codegen.jar sync-scenarios` prints drift report and exits 1
 4. **sync-scenarios CLI — clean case:** After `make generate`, re-run `sync-scenarios`; exits 0
-5. **sync-scenarios MCP — drift:** Call `embabel_sync_scenarios` with a stale model; response
+5. **sync-scenarios MCP — drift:** Call `crablet_sync_scenarios` with a stale model; response
    contains `isError=true` and the drift report text
 5a. **sync-scenarios MCP — clean:** Call after `make generate`; response has no `isError` flag
 6. **make sync-scenarios:** From the template app root, `make sync-scenarios` runs and outputs the report
 7. **Docs sweep result:** No remaining occurrences of `"default: ."` or `"output=."` for
-   `embabel_generate` in docs, skills, or templates
+   `crablet_generate` in docs, skills, or templates
 8. **Skill gotcha removal:** `crablet-app-dev` App Gotchas no longer mentions the output default

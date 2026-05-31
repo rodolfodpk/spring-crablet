@@ -21,9 +21,9 @@ The first Course slice covers:
 The checked regression inputs are:
 
 - Course prompt fixture:
-  [`embabel-codegen/src/test/resources/course/course-enrollment-prompt.md`](../../../embabel-codegen/src/test/resources/course/course-enrollment-prompt.md)
+  [`crablet-codegen/src/test/resources/course/course-enrollment-prompt.md`](../../../crablet-codegen/src/test/resources/course/course-enrollment-prompt.md)
 - Expected model fixture:
-  [`embabel-codegen/src/test/resources/course/course-core-event-model.yaml`](../../../embabel-codegen/src/test/resources/course/course-core-event-model.yaml)
+  [`crablet-codegen/src/test/resources/course/course-core-event-model.yaml`](../../../crablet-codegen/src/test/resources/course/course-core-event-model.yaml)
 
 ## Dialogue Shape
 
@@ -64,7 +64,7 @@ Before running generation, review the YAML as the durable domain contract:
 ```text
 Review event-model.yaml for the Course core slice.
 List missing model facts instead of guessing.
-Confirm whether embabel-codegen can plan and generate this model.
+Confirm whether crablet-codegen can plan and generate this model.
 ```
 
 The model is not ready if it omits:

@@ -164,10 +164,10 @@ markmap:
 #### CourseAvailability view
 
 ## AI Tooling
-### embabel-codegen
+### crablet-codegen
 #### CLI — init / plan / generate / k8s
 #### k8s command — generates k8s/base Deployments, optional KEDA ScaledObjects, and README from deployment block
-#### MCP server — exposes embabel_init, embabel_plan, embabel_generate
+#### MCP server — exposes crablet_init, crablet_plan, crablet_generate
 #### Agent pipeline — events → commands → views → automations → outbox
 #### Auto-repair on compile errors
 #### Error recovery loop — compile, diagnose, patch, retry

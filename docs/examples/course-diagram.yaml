@@ -1,5 +1,5 @@
 # Renderer-only extensions for the course enrollment event modeling diagram.
-# This file is NOT a codegen input — do not feed it to embabel-codegen.
+# This file is NOT a codegen input — do not feed it to crablet-codegen.
 # Loaded and merged alongside course-event-model.yaml (diagram.actors lives in the main file).
 
 triggers:

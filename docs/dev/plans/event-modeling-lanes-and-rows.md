@@ -165,7 +165,7 @@ Visual checks:
 
 Parser checks:
 
-- `docs/examples/*-event-model.yaml` still parse through embabel-codegen planner/parser.
+- `docs/examples/*-event-model.yaml` still parse through crablet-codegen planner/parser.
 - Diagram sidecar files are never treated as codegen input.
 
 ## Out Of Scope

@@ -1,7 +1,7 @@
 # Feature Slice Workflow
 
 This guide describes the intended developer dialogue for adding one vertical slice with
-`embabel-codegen`.
+`crablet-codegen`.
 
 In normal app development, start from the
 [Crablet app template](../../../templates/crablet-app/README.md) and use this workflow from inside the
@@ -38,10 +38,10 @@ For a greenfield app, initialize the project using the starter template:
 
 ```bash
 cp -r templates/crablet-app ../loan-service
-cp embabel-codegen/target/embabel-codegen.jar ../loan-service/tools/
+cp crablet-codegen/target/crablet-codegen.jar ../loan-service/tools/
 ```
 
-> **CLI alternative** (no template): `java -jar embabel-codegen/target/embabel-codegen.jar init --name loan-service --package com.example.loan --dir ../loan-service`
+> **CLI alternative** (no template): `java -jar crablet-codegen/target/crablet-codegen.jar init --name loan-service --package com.example.loan --dir ../loan-service`
 
 For a brownfield app, skip the template step and point `generate --output` at the existing
 `src/main/java` root.
@@ -49,7 +49,7 @@ For a brownfield app, skip the template step and point `generate --output` at th
 ## Practical Walkthrough
 
 > **Workflow paths:** The dialogue and MCP tool calls below describe the recommended Claude Code or
-> Cursor experience. Every `embabel_plan` / `embabel_generate` call has an equivalent CLI command
+> Cursor experience. Every `crablet_plan` / `crablet_generate` call has an equivalent CLI command
 > shown directly below it for contributor checks, automation scripts, Codex, or terminal use.
 
 For a loan application service, start with one feature: a customer submits an application and
@@ -133,7 +133,7 @@ Before writing files, ask for a model review:
 
 ```text
 Review the proposed event-model.yaml.
-Does embabel-codegen have enough information to generate the command, event,
+Does crablet-codegen have enough information to generate the command, event,
 handler decision state, view projector, and migration without guessing?
 ```
 
@@ -141,12 +141,12 @@ Then ask for the plan:
 
 Claude Code MCP path:
 ```text
-Run embabel_plan with model=event-model.yaml.
+Run crablet_plan with model=event-model.yaml.
 ```
 
 CLI shortcut:
 ```bash
-make plan   # runs: java -jar tools/embabel-codegen.jar plan --model event-model.yaml
+make plan   # runs: java -jar tools/crablet-codegen.jar plan --model event-model.yaml
 ```
 
 For this slice, the plan should name the event hierarchy, submit command, command handler,
@@ -200,7 +200,7 @@ Before generation, run one model review:
 
 ```text
 Review event-model.yaml against docs/ai-tooling/EVENT_MODEL_FORMAT.md.
-Tell me whether embabel-codegen has enough information to generate:
+Tell me whether crablet-codegen has enough information to generate:
 - events
 - commands
 - command handler decision state
@@ -210,17 +210,17 @@ Tell me whether embabel-codegen has enough information to generate:
 List missing model facts instead of guessing.
 ```
 
-You can also ask `embabel-codegen` for the deterministic artifact plan without
+You can also ask `crablet-codegen` for the deterministic artifact plan without
 calling a model or writing files:
 
 Claude Code MCP path:
 ```text
-Run embabel_plan with model=event-model.yaml.
+Run crablet_plan with model=event-model.yaml.
 ```
 
 CLI shortcut:
 ```bash
-make plan   # runs: java -jar tools/embabel-codegen.jar plan --model event-model.yaml
+make plan   # runs: java -jar tools/crablet-codegen.jar plan --model event-model.yaml
 ```
 
 From the `spring-crablet` repository, the shortest contributor smoke check for the
@@ -230,7 +230,7 @@ documented loan slice is:
 make codegen-plan-example
 ```
 
-After changing `embabel-codegen`, the event model format, or the documented fixture, run:
+After changing `crablet-codegen`, the event model format, or the documented fixture, run:
 
 ```bash
 make codegen-check
@@ -239,13 +239,13 @@ make codegen-check
 Claude Code MCP path:
 
 ```text
-Run embabel_plan with model=event-model.yaml.
+Run crablet_plan with model=event-model.yaml.
 ```
 
 ## Detailed Claude Code Experience
 
 This example shows the intended user experience once the template, Claude instructions, and
-`embabel-codegen` MCP tools are wired together.
+`crablet-codegen` MCP tools are wired together.
 
 For the same flow as a standalone transcript, see
 [Submit Loan Application Claude Dialogue](../examples/submit-loan-application-claude-dialogue.md).
@@ -455,13 +455,13 @@ Claude Code MCP path:
 
 ```text
 Tool:
-embabel_plan model=event-model.yaml
+crablet_plan model=event-model.yaml
 ```
 
 CLI shortcut:
 
 ```bash
-make plan   # runs: java -jar tools/embabel-codegen.jar plan --model event-model.yaml
+make plan   # runs: java -jar tools/crablet-codegen.jar plan --model event-model.yaml
 ```
 
 Claude shows the plan to the developer and waits for approval:
@@ -504,7 +504,7 @@ Use application_id as the only view routing tag. customer_id should stay on the 
 should be keyed by application.
 ```
 
-Claude updates `event-model.yaml`, reruns `embabel_plan`, and shows the revised plan. If the plan is
+Claude updates `event-model.yaml`, reruns `crablet_plan`, and shows the revised plan. If the plan is
 right, the developer approves generation:
 
 ```text
@@ -523,7 +523,7 @@ Claude Code MCP path:
 
 ```text
 Tool:
-embabel_generate model=event-model.yaml
+crablet_generate model=event-model.yaml
 ```
 
 > The `output` parameter defaults to `src/main/java` — omit it when using the starter template.
@@ -532,7 +532,7 @@ embabel_generate model=event-model.yaml
 CLI shortcut:
 
 ```bash
-make generate   # runs: java -jar tools/embabel-codegen.jar generate --model event-model.yaml --output src/main/java
+make generate   # runs: java -jar tools/crablet-codegen.jar generate --model event-model.yaml --output src/main/java
 ```
 
 The generator runs the agent pipeline and compile-and-repair loop. Claude should report the result
@@ -626,13 +626,13 @@ describe outcome
 Claude Code MCP path:
 
 ```text
-Run embabel_generate with model=event-model.yaml.
+Run crablet_generate with model=event-model.yaml.
 ```
 
 CLI shortcut:
 
 ```bash
-make generate   # runs: java -jar tools/embabel-codegen.jar generate --model event-model.yaml --output src/main/java
+make generate   # runs: java -jar tools/crablet-codegen.jar generate --model event-model.yaml --output src/main/java
 ```
 
 The generator runs the agent pipeline for events, commands, views, automations,
@@ -673,11 +673,11 @@ Expected test artifacts:
 Test scaffolds are written to `src/test/java` on the first `generate` run and never overwritten
 again. Fill in the assertions after generation.
 
-After renaming or adding scenarios in `event-model.yaml`, use `embabel_sync_scenarios` (or `make sync-scenarios`) to detect drift between the model and on-disk test files:
+After renaming or adding scenarios in `event-model.yaml`, use `crablet_sync_scenarios` (or `make sync-scenarios`) to detect drift between the model and on-disk test files:
 
 ```text
 Tool:
-embabel_sync_scenarios model=event-model.yaml
+crablet_sync_scenarios model=event-model.yaml
 ```
 
 ```bash

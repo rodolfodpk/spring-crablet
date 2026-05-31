@@ -44,7 +44,7 @@ Making them interfaces would force the user to implement almost everything manua
 ## Files to Change
 
 ### 1. `PlannedArtifact.java`
-**Path:** `embabel-codegen/src/main/java/com/crablet/codegen/planning/PlannedArtifact.java`
+**Path:** `crablet-codegen/src/main/java/com/crablet/codegen/planning/PlannedArtifact.java`
 
 Add one factory method after `javaClass(...)`:
 
@@ -57,7 +57,7 @@ public static PlannedArtifact javaInterface(String section, String packageName, 
 ---
 
 ### 2. `ArtifactPlanner.java`
-**Path:** `embabel-codegen/src/main/java/com/crablet/codegen/planning/ArtifactPlanner.java`
+**Path:** `crablet-codegen/src/main/java/com/crablet/codegen/planning/ArtifactPlanner.java`
 
 Use `javaInterface` at three call sites. View projectors keep `javaClass`.
 
@@ -77,7 +77,7 @@ artifacts.add(PlannedArtifact.javaInterface("outbox", outboxPackage,
 ---
 
 ### 3. `ArtifactPlannerTest.java`
-**Path:** `embabel-codegen/src/test/java/com/crablet/codegen/planning/ArtifactPlannerTest.java`
+**Path:** `crablet-codegen/src/test/java/com/crablet/codegen/planning/ArtifactPlannerTest.java`
 
 **Existing test:** add after the existing `contains("...CommandHandler")` assertion:
 
@@ -251,7 +251,7 @@ public interface LoanNotificationsPublisher extends OutboxPublisher {
 ---
 
 ### 5. `CommandsAgent.java`
-**Path:** `embabel-codegen/src/main/java/com/crablet/codegen/agents/CommandsAgent.java`
+**Path:** `crablet-codegen/src/main/java/com/crablet/codegen/agents/CommandsAgent.java`
 
 **Change A:** `templates.load("Command Handler")` → `templates.load("Command Handler Interface")`
 
@@ -300,7 +300,7 @@ In <pre> blocks inside Javadoc, write */ as *&#47;.
 ---
 
 ### 6. `AutomationsAgent.java`
-**Path:** `embabel-codegen/src/main/java/com/crablet/codegen/agents/AutomationsAgent.java`
+**Path:** `crablet-codegen/src/main/java/com/crablet/codegen/agents/AutomationsAgent.java`
 
 **Change A:** `templates.load("Automation Handler")` → `templates.load("Automation Handler Interface")`
 
@@ -331,7 +331,7 @@ Remove the `ViewSpec` import from the class as well.
 ---
 
 ### 7. `OutboxAgent.java`
-**Path:** `embabel-codegen/src/main/java/com/crablet/codegen/agents/OutboxAgent.java`
+**Path:** `crablet-codegen/src/main/java/com/crablet/codegen/agents/OutboxAgent.java`
 
 **Change A:** `templates.load("Outbox Publisher")` → `templates.load("Outbox Publisher Interface")`
 
@@ -373,8 +373,8 @@ Remove adapter **implementation** hints: SmtpEmailService/RestClient/KafkaTempla
 
 ---
 
-### 9. `embabel-codegen/README.md`
-**Path:** `embabel-codegen/README.md`
+### 9. `crablet-codegen/README.md`
+**Path:** `crablet-codegen/README.md`
 
 Replace the "Generated code compiles but behaviour is wrong" paragraph to cover:
 - Command handler, automation handler, outbox publisher → interfaces; user writes `@Component`
@@ -409,7 +409,7 @@ Replace the "Generated code compiles but behaviour is wrong" paragraph to cover:
 
 ## Verification
 
-1. `./mvnw test -pl embabel-codegen` — `ArtifactPlannerTest` passes including:
+1. `./mvnw test -pl crablet-codegen` — `ArtifactPlannerTest` passes including:
    - `"com.example.loan.command.SubmitLoanApplicationCommandHandler (Java interface)"`
    - `"com.example.loan.command.LoanApplicationState (Java class)"`
    - New test: automation and outbox → `(Java interface)`; view projector → `(Java class)`

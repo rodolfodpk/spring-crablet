@@ -12,11 +12,11 @@ lives under [`docs/dev/`](../README.md) — not part of the primary end-user pat
 
 Give the `docs/user/` folder and root README explicit, separate sections for:
 - **Framework** — the Java runtime (EventStore, commands, views, outbox, automations, configuration, operations)
-- **AI Tooling** — event-model-driven codegen (embabel-codegen, MCP server, templates, workflows)
+- **AI Tooling** — event-model-driven codegen (crablet-codegen, MCP server, templates, workflows)
 
 ## Motivation
 
-Since `embabel-codegen` and the AI-first workflow were introduced, the docs/ flat list and README documentation section blend two audiences. A framework user doesn't need to wade through codegen workflow docs; an AI-tooling user shouldn't have to find codegen docs buried in an undifferentiated list.
+Since `crablet-codegen` and the AI-first workflow were introduced, the docs/ flat list and README documentation section blend two audiences. A framework user doesn't need to wade through codegen workflow docs; an AI-tooling user shouldn't have to find codegen docs buried in an undifferentiated list.
 
 ---
 
@@ -68,7 +68,7 @@ The union of both outputs is the authoritative list to fix. Known files (conveni
 | `CLAUDE.md` | AI_FIRST_WORKFLOW, FEATURE_SLICE_WORKFLOW, EVENT_MODEL_FORMAT |
 | `docs/user/QUICKSTART.md` | AI_FIRST_WORKFLOW, EVENT_MODELING, EVENT_MODEL_FORMAT, FEATURE_SLICE_WORKFLOW |
 | `docs/user/CREATE_A_CRABLET_APP.md` | AI_FIRST_WORKFLOW, EVENT_MODEL_FORMAT |
-| `embabel-codegen/README.md` | AI_FIRST_WORKFLOW, FEATURE_SLICE_WORKFLOW, EVENT_MODEL_FORMAT |
+| `crablet-codegen/README.md` | AI_FIRST_WORKFLOW, FEATURE_SLICE_WORKFLOW, EVENT_MODEL_FORMAT |
 | `templates/README.md` | AI_FIRST_WORKFLOW |
 | `templates/crablet-app/README.md` | scan; rg will confirm |
 | `examples/wallet-example-app/README.md` | scan; rg will confirm |
@@ -110,7 +110,7 @@ MANAGEMENT_API · FAULT_RECOVERY · LEADER_ELECTION · OBSERVABILITY · Wallet e
 
 ### AI Tooling
 AI_FIRST_WORKFLOW · FEATURE_SLICE_WORKFLOW · EVENT_MODELING · EVENT_MODEL_FORMAT ·
-embabel-codegen/README · templates/README · templates/crablet-app/README
+crablet-codegen/README · templates/README · templates/crablet-app/README
 
 Also give the two runtime paths equal weight in the README body:
 - `## Framework Path` (currently a single short paragraph titled "Manual Runtime Path")
@@ -146,5 +146,5 @@ This runs `scripts/verify-docs.sh`, which validates all Markdown link targets in
 
 Open and visually verify a sample of links in:
 - `README.md` documentation section
-- `embabel-codegen/README.md`
+- `crablet-codegen/README.md`
 - `templates/crablet-app/README.md`

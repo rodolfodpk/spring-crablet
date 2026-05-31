@@ -1,5 +1,5 @@
 # Renderer-only extensions for the loan submit diagram.
-# This file is NOT a codegen input — do not feed it to embabel-codegen.
+# This file is NOT a codegen input — do not feed it to crablet-codegen.
 
 triggers:
   - name: "Customer submits loan application"

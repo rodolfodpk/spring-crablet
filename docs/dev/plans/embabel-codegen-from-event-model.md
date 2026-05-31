@@ -29,7 +29,7 @@ the journey is not “install codegen” vs “create a project” in two differ
 | `generate` | Read `event-model.yaml` and run the agent pipeline (unchanged). |
 
 Users never need to discover a separate “Crablet starter” feature — `init` and `generate` are
-**one entry point** (`java -jar embabel-codegen.jar help`). MCP wraps the same operations:
+**one entry point** (`java -jar crablet-codegen.jar help`). MCP wraps the same operations:
 `@Tool` for `init` and `generate` so Claude Code can run the full path without leaving the
 session.
 
@@ -46,7 +46,7 @@ leaving the session.
 
 ```
 # 1) Optional — new repo / directory with Crablet-ready Boot app
-java -jar embabel-codegen/target/embabel-codegen.jar init \
+java -jar crablet-codegen/target/crablet-codegen.jar init \
   --name my-service --package com.example.myservice --dir ../my-service
   → pom.xml (or build.gradle) + Crablet BOM/modules + minimal @SpringBootApplication
 
@@ -55,7 +55,7 @@ java -jar embabel-codegen/target/embabel-codegen.jar init \
   → event-model.yaml
 
 # 3) Codegen
-java -jar embabel-codegen/target/embabel-codegen.jar generate \
+java -jar crablet-codegen/target/crablet-codegen.jar generate \
   --model event-model.yaml --output ../my-service/src/main/java
   → files written + compile-and-fix loop
 
@@ -74,7 +74,7 @@ CI and for users not in Claude Code.
 
 ## Location in the repo
 
-`embabel-codegen` lives inside this repository, excluded from the Maven reactor — the same
+`crablet-codegen` lives inside this repository, excluded from the Maven reactor — the same
 treatment as `examples/wallet-example-app` and `shared-examples-domain`.
 
 ```
@@ -86,19 +86,19 @@ spring-crablet/
 ├── crablet-outbox/
 ├── shared-examples-domain/     ← excluded from reactor
 ├── examples/wallet-example-app/         ← excluded from reactor
-└── embabel-codegen/            ← excluded from reactor, same pattern
+└── crablet-codegen/            ← excluded from reactor, same pattern
 ```
 
-The root `pom.xml` does **not** list `embabel-codegen` in `<modules>`. It is built via dedicated
+The root `pom.xml` does **not** list `crablet-codegen` in `<modules>`. It is built via dedicated
 Makefile targets:
 
 ```makefile
 codegen-install:
-	./mvnw install -pl embabel-codegen -am
+	./mvnw install -pl crablet-codegen -am
 
 codegen-build:
-	./mvnw package -pl embabel-codegen -DskipTests
-	# produces embabel-codegen/target/embabel-codegen.jar
+	./mvnw package -pl crablet-codegen -DskipTests
+	# produces crablet-codegen/target/crablet-codegen.jar
 ```
 
 **Language: Java** — consistent with the rest of the codebase. Spring Shell and Spring AI work
@@ -396,7 +396,7 @@ generating the handler that depends on them.
 ## Project structure
 
 ```
-embabel-codegen/                        # inside spring-crablet repo, excluded from reactor
+crablet-codegen/                        # inside spring-crablet repo, excluded from reactor
 ├── pom.xml                             # parent = spring-crablet root, not in <modules>
 └── src/main/java/com/crablet/codegen/
     ├── CodegenApp.java                 # @SpringBootApplication + Spring Shell
@@ -671,15 +671,15 @@ Changes made to `.claude/skills/event-modeling/SKILL.md`:
 
 1. ~~Add `AutomationHandler` + `OutboxPublisher` templates to CLAUDE.md (prompt sources)~~ **Done**
 2. ~~Enhance `event-modeling` skill to emit `event-model.yaml` with full field set~~ **Done** — skill updated to follow all 7 steps + emit `event-model.yaml`
-3. ~~Create `embabel-codegen/` module in this repo (excluded from reactor, Java, Spring Shell + Spring AI)~~ **Done** — all agents, pipeline, CLI, model, tools implemented; fat JAR builds to 29MB; `help` and `init` work without `ANTHROPIC_API_KEY`; `generate` fails fast with a clear message when key is absent
+3. ~~Create `crablet-codegen/` module in this repo (excluded from reactor, Java, Spring Shell + Spring AI)~~ **Done** — all agents, pipeline, CLI, model, tools implemented; fat JAR builds to 29MB; `help` and `init` work without `ANTHROPIC_API_KEY`; `generate` fails fast with a clear message when key is absent
 4. ~~Add `codegen-build` and `codegen-install` targets to `Makefile`~~ **Done**
 5. ~~Unified UX — document “From zero to generated domain”~~ **Done** — `docs/user/CREATE_A_CRABLET_APP.md` restructured to lead with the AI-first path (`init` → `/event-modeling` → `generate` → `./mvnw verify`); manual path kept as secondary section; MCP shortcut documented
-6. ~~Validate YAML parsing and schema resolution on the Wallet domain~~ **Done** — `embabel-codegen/src/test/resources/wallet-event-model.yaml` added; 2 tests pass (parsing + schema inlining); CLI reaches EventsAgent before failing on missing API key; full generation requires `ANTHROPIC_API_KEY` to be set:
+6. ~~Validate YAML parsing and schema resolution on the Wallet domain~~ **Done** — `crablet-codegen/src/test/resources/wallet-event-model.yaml` added; 2 tests pass (parsing + schema inlining); CLI reaches EventsAgent before failing on missing API key; full generation requires `ANTHROPIC_API_KEY` to be set:
    ```bash
    export ANTHROPIC_API_KEY=sk-...
-   cd embabel-codegen
-   java -jar target/embabel-codegen.jar generate \
+   cd crablet-codegen
+   java -jar target/crablet-codegen.jar generate \
      --model src/test/resources/wallet-event-model.yaml \
      --output /tmp/wallet-gen
    ```
-7. ~~Expose `init` + `generate` as MCP tools~~ **Done** — `McpServer.java` implements MCP 2024-11-05 stdio protocol; `embabel_init` and `embabel_generate` tools exposed; `.claude/settings.json` added to repo root; Spring Boot banner + INFO logs suppressed via JVM flags so the protocol stream is clean; verified with live `tools/list` and `tools/call embabel_init` round-trips
+7. ~~Expose `init` + `generate` as MCP tools~~ **Done** — `McpServer.java` implements MCP 2024-11-05 stdio protocol; `crablet_init` and `crablet_generate` tools exposed; `.claude/settings.json` added to repo root; Spring Boot banner + INFO logs suppressed via JVM flags so the protocol stream is clean; verified with live `tools/list` and `tools/call crablet_init` round-trips

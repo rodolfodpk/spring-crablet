@@ -179,7 +179,7 @@ outbox: []
 
 ## 4. Review The Artifact Plan
 
-Claude asks `embabel-codegen` for the deterministic plan before generation:
+Claude asks `crablet-codegen` for the deterministic plan before generation:
 
 ```text
 Claude:
@@ -191,13 +191,13 @@ Claude Code MCP path:
 
 ```text
 Tool:
-embabel_plan model=event-model.yaml
+crablet_plan model=event-model.yaml
 ```
 
 CLI shortcut:
 
 ```bash
-make plan   # runs: java -jar tools/embabel-codegen.jar plan --model event-model.yaml
+make plan   # runs: java -jar tools/crablet-codegen.jar plan --model event-model.yaml
 ```
 
 Claude shows the planned artifacts and waits for approval:
@@ -236,7 +236,7 @@ Use application_id as the only view routing tag. customer_id should stay on the 
 should be keyed by application.
 ```
 
-Claude updates `event-model.yaml`, reruns `embabel_plan`, and shows the revised plan. If the plan is
+Claude updates `event-model.yaml`, reruns `crablet_plan`, and shows the revised plan. If the plan is
 right, the user approves generation:
 
 ```text
@@ -257,13 +257,13 @@ Claude Code MCP path:
 
 ```text
 Tool:
-embabel_generate model=event-model.yaml output=src/main/java
+crablet_generate model=event-model.yaml output=src/main/java
 ```
 
 CLI shortcut:
 
 ```bash
-make generate   # runs: java -jar tools/embabel-codegen.jar generate --model event-model.yaml --output src/main/java
+make generate   # runs: java -jar tools/crablet-codegen.jar generate --model event-model.yaml --output src/main/java
 ```
 
 Claude reports the result in slice terms:

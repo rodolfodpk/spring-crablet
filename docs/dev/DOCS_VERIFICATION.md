@@ -29,7 +29,7 @@ It currently validates:
 
 `codegen-check` separately verifies:
 
-- `embabel-codegen` model parsing, artifact planning, and MCP tool tests
+- `crablet-codegen` model parsing, artifact planning, and MCP tool tests
 - the documented loan feature-slice event model parses as a real `EventModel`
 - the planner smoke command prints expected generated artifacts without calling a model
 

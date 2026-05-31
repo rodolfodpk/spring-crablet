@@ -2,13 +2,13 @@
 
 ## Summary
 
-Move `embabel-codegen` off direct Anthropic-only wiring and onto an Embabel-backed,
+Move `crablet-codegen` off direct Anthropic-only wiring and onto an Embabel-backed,
 provider-agnostic completion layer. Keep existing CLI/MCP command names stable, add Cursor MCP
 template support, and update docs so users understand the difference between their coding frontend
 and the generator's LLM provider.
 
 Provider support should cover named hosted providers, local runtimes such as Ollama, and custom
-OpenAI-compatible endpoints. Relevant docs to update or cross-link: `embabel-codegen/README.md`,
+OpenAI-compatible endpoints. Relevant docs to update or cross-link: `crablet-codegen/README.md`,
 `docs/user/ai-tooling/`, and `templates/crablet-app/README.md`.
 
 ## Implementation Changes
@@ -28,7 +28,7 @@ OpenAI-compatible endpoints. Relevant docs to update or cross-link: `embabel-cod
   `OutboxAgent`, and `RepairAgent`.
 - Preserve existing public surfaces:
   - CLI: `plan`, `generate`, `init`, `k8s`, `--mcp`
-  - MCP tools: `embabel_plan`, `embabel_generate`, `embabel_init`, `embabel_k8s`
+  - MCP tools: `crablet_plan`, `crablet_generate`, `crablet_init`, `crablet_k8s`
 - Make config backward-compatible:
   - keep `codegen.anthropic.*` and `ANTHROPIC_API_KEY` working for existing users
   - add provider-neutral config such as `codegen.llm.provider`, mapped via Spring relaxed binding to
@@ -43,11 +43,11 @@ OpenAI-compatible endpoints. Relevant docs to update or cross-link: `embabel-cod
 - Update user-visible strings in `McpServer`, `CodegenCommand`, and docs from "Anthropic" to
   model/provider-neutral wording where appropriate.
 - Add `templates/crablet-app/.cursor/mcp.json` after validating Cursor's current project MCP schema,
-  using the same local JAR pattern: `java -jar ./tools/embabel-codegen.jar --mcp`.
+  using the same local JAR pattern: `java -jar ./tools/crablet-codegen.jar --mcp`.
 
 ## Documentation Changes
 
-- Update root README, `embabel-codegen/README.md`, AI tooling docs, and template docs to separate:
+- Update root README, `crablet-codegen/README.md`, AI tooling docs, and template docs to separate:
   - frontend: Claude Code, Cursor, Codex, terminal
   - provider: Anthropic, OpenAI, DeepSeek, Ollama, or another configured Embabel-supported or
     OpenAI-compatible provider
@@ -76,7 +76,7 @@ OpenAI-compatible endpoints. Relevant docs to update or cross-link: `embabel-cod
 - Keep existing parser, planner, MCP, and k8s tests green.
 - Run the canonical codegen checks:
   - confirm whether `make codegen-check` is preferred over raw Maven
-  - run `cd embabel-codegen && ../mvnw test` if still the module-local test command
+  - run `cd crablet-codegen && ../mvnw test` if still the module-local test command
   - run `make docs-check`
 - Ensure codegen tests and docs checks remain part of PR validation.
 

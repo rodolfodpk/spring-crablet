@@ -190,13 +190,13 @@ Synthetic placement uses **`assignments.SendWelcomeNotification: notification`**
 - [`docs/examples/course-event-model.yaml`](../examples/course-event-model.yaml) and [`docs/examples/course-diagram.yaml`](../examples/course-diagram.yaml) — actors + triggers; strip obsolete lane-only partitioning.
 - [`docs/examples/wallet-event-model.yaml`](../examples/wallet-event-model.yaml) and [`docs/examples/wallet-diagram.yaml`](../examples/wallet-diagram.yaml) — actors + **`actor`** on triggers where applicable.
 - [`docs/user/examples/event-model-schema.json`](../user/examples/event-model-schema.json) — **`ActorSpec`**, optional **`actor`** on trigger entries under **`diagram`**.
-- [`embabel-codegen/src/main/java/com/crablet/codegen/model/`](../../embabel-codegen/src/main/java/com/crablet/codegen/model/) — **`ActorSpec`**, **`TriggerSpec(actor)` nullable**, **`DiagramSpec.actors`** (partially landed in repo — finish call sites/tests).
+- [`crablet-codegen/src/main/java/com/crablet/codegen/model/`](../../crablet-codegen/src/main/java/com/crablet/codegen/model/) — **`ActorSpec`**, **`TriggerSpec(actor)` nullable**, **`DiagramSpec.actors`** (partially landed in repo — finish call sites/tests).
 
 ---
 
 ## Suggested execution order
 
-1. **Java + tests** — **`ActorSpec`**; **`TriggerSpec(actor)` nullable** everywhere; **`DiagramSpec`** **`actors`** + **`DiagramSpec.empty()`**; **`SchemaResolver`/tests** preserve **`diagram`**. Run **`rg "new DiagramSpec("`** / **`rg "new TriggerSpec("`** inside **`embabel-codegen`**.
+1. **Java + tests** — **`ActorSpec`**; **`TriggerSpec(actor)` nullable** everywhere; **`DiagramSpec`** **`actors`** + **`DiagramSpec.empty()`**; **`SchemaResolver`/tests** preserve **`diagram`**. Run **`rg "new DiagramSpec("`** / **`rg "new TriggerSpec("`** inside **`crablet-codegen`**.
 2. **JSON Schema** — document **`diagram.actors`** and optional **`trigger.actor`** (and allowed assignment keys descriptions if present).
 3. **Renderer** — merge extension; **`renderWithActors`**; warn on invalid command lane assignments.
 4. **Examples + HTML** sanity (wallet/course **`8091`** if using local static server conventions from prior plans).

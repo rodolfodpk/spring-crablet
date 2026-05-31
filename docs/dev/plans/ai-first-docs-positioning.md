@@ -109,7 +109,7 @@ Example flow:
 /event-modeling Wallet domain
 # produces event-model.yaml
 
-java -jar embabel-codegen/target/embabel-codegen.jar generate \
+java -jar crablet-codegen/target/crablet-codegen.jar generate \
   --model event-model.yaml \
   --output ../wallet-generated
 ```
@@ -149,7 +149,7 @@ It should link back to `docs/user/AI_FIRST_WORKFLOW.md` near the top.
 The existing plan:
 
 ```text
-docs/dev/plans/embabel-codegen-from-event-model.md
+docs/dev/plans/crablet-codegen-from-event-model.md
 ```
 
 uses implementation-first language. Keep the file if it is already referenced, but future docs

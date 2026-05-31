@@ -40,7 +40,7 @@ Classic horizontal swim-strip rendering is out of scope. Crablet continues to re
 
 ## Java Model And Schema
 
-Add a new `diagram` component to [`EventModel`](../../../embabel-codegen/src/main/java/com/crablet/codegen/model/EventModel.java). Use a compact-constructor default so `null` becomes an empty diagram object or another safe default that keeps existing tests passing.
+Add a new `diagram` component to [`EventModel`](../../../crablet-codegen/src/main/java/com/crablet/codegen/model/EventModel.java). Use a compact-constructor default so `null` becomes an empty diagram object or another safe default that keeps existing tests passing.
 
 Add `DiagramSpec` with explicit fields for all v1 keys:
 
@@ -51,14 +51,14 @@ Add `DiagramSpec` with explicit fields for all v1 keys:
 - `Map<String, String> eventBadges`
 - `List<AutomationSpec> automations`
 
-`DiagramSpec` must be annotated with `@JsonIgnoreProperties(ignoreUnknown = true)`. The current embabel-codegen mappers use `ObjectMapper` with `YAMLFactory` and do not globally disable unknown-property failures, so this is required for forward-compatible diagram metadata.
+`DiagramSpec` must be annotated with `@JsonIgnoreProperties(ignoreUnknown = true)`. The current crablet-codegen mappers use `ObjectMapper` with `YAMLFactory` and do not globally disable unknown-property failures, so this is required for forward-compatible diagram metadata.
 
 Update every direct `new EventModel(...)` call site after adding the record component. Known current call sites include:
 
-- [`SchemaResolver.java`](../../../embabel-codegen/src/main/java/com/crablet/codegen/pipeline/SchemaResolver.java): pass through `model.diagram()` so schema resolution does not drop metadata.
-- [`ArtifactPlannerTest.java`](../../../embabel-codegen/src/test/java/com/crablet/codegen/planning/ArtifactPlannerTest.java): pass `null` or the empty diagram default.
+- [`SchemaResolver.java`](../../../crablet-codegen/src/main/java/com/crablet/codegen/pipeline/SchemaResolver.java): pass through `model.diagram()` so schema resolution does not drop metadata.
+- [`ArtifactPlannerTest.java`](../../../crablet-codegen/src/test/java/com/crablet/codegen/planning/ArtifactPlannerTest.java): pass `null` or the empty diagram default.
 
-Before merging, rerun `rg "new EventModel\\(" embabel-codegen` from the repository root and update any additional call sites.
+Before merging, rerun `rg "new EventModel\\(" crablet-codegen` from the repository root and update any additional call sites.
 
 Update [`docs/user/examples/event-model-schema.json`](../../user/examples/event-model-schema.json):
 
@@ -127,7 +127,7 @@ Keep sidecars for docs-only visual overlays such as:
 
 Wallet is the primary demo because it proves lane grouping plus a notification-side synthetic command. Course is the second demo because it proves a simpler multi-entity DCB board without notification complexity.
 
-Add a `diagram` parser fixture to [`embabel-codegen/src/test/resources/wallet-event-model.yaml`](../../../embabel-codegen/src/test/resources/wallet-event-model.yaml), and add a short commented `diagram:` example to [`templates/crablet-app/event-model.yaml`](../../../templates/crablet-app/event-model.yaml).
+Add a `diagram` parser fixture to [`crablet-codegen/src/test/resources/wallet-event-model.yaml`](../../../crablet-codegen/src/test/resources/wallet-event-model.yaml), and add a short commented `diagram:` example to [`templates/crablet-app/event-model.yaml`](../../../templates/crablet-app/event-model.yaml).
 
 ## Documentation
 

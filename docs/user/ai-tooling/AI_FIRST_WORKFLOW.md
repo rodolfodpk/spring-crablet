@@ -42,7 +42,7 @@ example `/crablet-greenfield`, `/crablet-event-modeling`, or `/crablet-codegen`;
 
 ## Workflow
 
-1. Build the Crablet runtime and `embabel-codegen` tool.
+1. Build the Crablet runtime and `crablet-codegen` tool.
 2. Optionally initialize a new Spring Boot application.
 3. Run an Event Modeling workshop for one feature slice, or select a small subset from a larger
    workshop board: the business outcome, command, event, rules, read models, automations,
@@ -67,9 +67,9 @@ The intended shape when using Claude Code or Cursor through MCP:
 ```text
 1. make install && make codegen-build
 2. cp -r templates/crablet-app ../wallet-service
-   cp embabel-codegen/target/embabel-codegen.jar ../wallet-service/tools/
+   cp crablet-codegen/target/crablet-codegen.jar ../wallet-service/tools/
 3. cd ../wallet-service && export ANTHROPIC_API_KEY=sk-ant-... && claude
-4. Provide one workshop slice/subset → assistant updates event-model.yaml → embabel_plan → approve → embabel_generate
+4. Provide one workshop slice/subset → assistant updates event-model.yaml → crablet_plan → approve → crablet_generate
 5. ./mvnw verify
 ```
 
@@ -79,7 +79,7 @@ CLI shortcut (from the app directory; useful for Codex, other agents, and termin
 # one-time setup (from the spring-crablet repo):
 make install && make codegen-build
 cp -r templates/crablet-app ../wallet-service
-cp embabel-codegen/target/embabel-codegen.jar ../wallet-service/tools/
+cp crablet-codegen/target/crablet-codegen.jar ../wallet-service/tools/
 
 # day-to-day (from the app directory):
 make plan      # dry run — shows planned artifacts without generating code
@@ -91,7 +91,7 @@ make check     # plan + verify in one step
 For greenfield apps without the template, `init` has no Makefile shortcut — use the CLI directly:
 
 ```bash
-java -jar embabel-codegen/target/embabel-codegen.jar init \
+java -jar crablet-codegen/target/crablet-codegen.jar init \
   --name wallet-service \
   --package com.example.wallet \
   --dir ../wallet-service
@@ -111,18 +111,18 @@ For a concise map of the Claude Code skills used by this workflow, see [AI Skill
 
 ## Tool Entrypoints
 
-`embabel-codegen` is built as a fat JAR. From the `spring-crablet` repository:
+`crablet-codegen` is built as a fat JAR. From the `spring-crablet` repository:
 
 ```bash
 make codegen-build
-java -jar embabel-codegen/target/embabel-codegen.jar help
+java -jar crablet-codegen/target/crablet-codegen.jar help
 ```
 
 When working inside a project initialized from the template, use the Makefile shortcuts instead:
 
 ```bash
-make plan      # embabel-codegen plan
-make generate  # embabel-codegen generate
+make plan      # crablet-codegen plan
+make generate  # crablet-codegen generate
 make verify    # ./mvnw verify
 make check     # plan + verify
 ```
@@ -139,7 +139,7 @@ For the documented loan-slice fixture, contributors can run the local planner sm
 make codegen-plan-example
 ```
 
-After changing `embabel-codegen`, the event model format, or the documented fixture, run:
+After changing `crablet-codegen`, the event model format, or the documented fixture, run:
 
 ```bash
 make codegen-check
@@ -148,11 +148,11 @@ make codegen-check
 Claude Code can use the same tool through MCP when `.claude/settings.json` is active. Cursor can use
 the same tool when `.cursor/mcp.json` is active:
 
-- `embabel_init`
-- `embabel_plan`
-- `embabel_generate`
+- `crablet_init`
+- `crablet_plan`
+- `crablet_generate`
 
-Generation uses the provider configured for `embabel-codegen`: Anthropic by default, OpenAI with
+Generation uses the provider configured for `crablet-codegen`: Anthropic by default, OpenAI with
 `CODEGEN_LLM_PROVIDER=openai`, or local/OpenAI-compatible endpoints such as Ollama with
 `CODEGEN_LLM_PROVIDER=openai-compatible`, `CODEGEN_LLM_BASE_URL`, and `CODEGEN_LLM_MODEL`.
 

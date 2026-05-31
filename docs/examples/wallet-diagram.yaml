@@ -1,5 +1,5 @@
 # Renderer-only extensions for the wallet event modeling diagram.
-# This file is NOT a codegen input — do not feed it to embabel-codegen.
+# This file is NOT a codegen input — do not feed it to crablet-codegen.
 # Loaded and merged alongside wallet-event-model.yaml (which already contains diagram.lanes
 # and diagram.assignments). Sidecar values override model.diagram values where defined.
 

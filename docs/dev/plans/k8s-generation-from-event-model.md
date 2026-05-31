@@ -13,7 +13,7 @@ Key value: encoding crablet's non-obvious topology rules so newcomers don't get 
 
 ## Current status (keep in sync with the repo)
 
-- **Done — deployment model (former Step 1):** `EventModel` has `@JsonProperty("deployment") DeploymentSpec deployment` with compact-constructor default to `DeploymentSpec.defaults()`. `DeploymentSpec` and `KedaSpec` exist under `embabel-codegen/.../model/`. The event-modeling **skill** documents `deployment` / KEDA / topology; keep it aligned when generated YAML or flags change.
+- **Done — deployment model (former Step 1):** `EventModel` has `@JsonProperty("deployment") DeploymentSpec deployment` with compact-constructor default to `DeploymentSpec.defaults()`. `DeploymentSpec` and `KedaSpec` exist under `crablet-codegen/.../model/`. The event-modeling **skill** documents `deployment` / KEDA / topology; keep it aligned when generated YAML or flags change.
 - **Remaining:** K8s topology mapping, generator, `k8s` CLI + MCP, tests, Makefile `k8s` target, post-ship `DEPLOYMENT_TOPOLOGY.md` K8s subsection (per documentation strategy). CLI/MCP `k8s` not in checklist until implemented — update verified facts when added.
 
 ## Verified facts from the codebase
@@ -23,8 +23,8 @@ Key value: encoding crablet's non-obvious topology rules so newcomers don't get 
 | `EventModel` includes `deployment: DeploymentSpec` (defaults when absent) | `model/EventModel.java` |
 | `DeploymentSpec`, `KedaSpec` exist | `model/DeploymentSpec.java`, `model/KedaSpec.java` |
 | CLI: `plan`, `generate`, `init`, `mcp` (add `k8s` when implemented) | `CodegenCommand.java` |
-| MCP tools: `embabel_generate`, `embabel_plan`, `embabel_init` (add `embabel_k8s` when implemented) | `McpServer.java` |
-| No Mustache — Jackson YAML already in classpath | `embabel-codegen/pom.xml` |
+| MCP tools: `crablet_generate`, `crablet_plan`, `crablet_init` (add `crablet_k8s` when implemented) | `McpServer.java` |
+| No Mustache — Jackson YAML already in classpath | `crablet-codegen/pom.xml` |
 | `EventSpec.name()`, not `.type()` | `model/EventSpec.java` |
 | `ViewSpec.reads` → `List<String>` of raw event names | `model/ViewSpec.java` |
 | `view_progress(view_name, last_position)` | `V3__view_progress_schema.sql` |
@@ -34,7 +34,7 @@ Key value: encoding crablet's non-obvious topology rules so newcomers don't get 
 | `CRABLET_VIEWS_ENABLED=true` enables **all** registered view processors, not one | `ViewsAutoConfiguration.java` |
 | Makefile variable is `CRABLET_CODEGEN_JAR` | `templates/crablet-app/Makefile` |
 | Event-modeling skill: `deployment` / KEDA / topology | `.claude/skills/event-modeling/SKILL.md` |
-| **Tests:** `embabel-codegen` is **not** in the root Maven reactor; run `cd embabel-codegen && ../mvnw test` (do **not** use `./mvnw test -pl embabel-codegen` from repo root). | `embabel-codegen/README.md`, `make codegen-build` |
+| **Tests:** `crablet-codegen` is **not** in the root Maven reactor; run `cd crablet-codegen && ../mvnw test` (do **not** use `./mvnw test -pl crablet-codegen` from repo root). | `crablet-codegen/README.md`, `make codegen-build` |
 
 ---
 
@@ -87,7 +87,7 @@ sidecars, kustomize overlays, Vault agent, HPA for command-api, TriggerAuthentic
 
 ## Step 1 — K8sTopology mapper
 
-**New package:** `embabel-codegen/src/main/java/com/crablet/codegen/k8s/`
+**New package:** `crablet-codegen/src/main/java/com/crablet/codegen/k8s/`
 
 **`K8sTopology.java`** — pure record, no I/O:
 
@@ -266,8 +266,8 @@ Add `case "k8s" -> runK8s(parseFlags(args, 1));`.
 Update `printHelp()` to document `k8s --model --output` with same flag style as `generate`.
 
 ### `McpServer.java`
-Add `embabel_k8s` tool to `toolsListResult()`.
-Add `case "embabel_k8s"` branch to `toolCallResult()`.
+Add `crablet_k8s` tool to `toolsListResult()`.
+Add `case "crablet_k8s"` branch to `toolCallResult()`.
 
 ### `templates/crablet-app/Makefile`
 ```makefile
@@ -303,7 +303,7 @@ Also capture in `README-k8s.md` / skill (operator notes), not only inline YAML c
 
 ## Step 5 — Tests (3 new classes under `k8s/` + existing model tests)
 
-**`embabel-codegen/src/test/java/com/crablet/codegen/k8s/`**
+**`crablet-codegen/src/test/java/com/crablet/codegen/k8s/`**
 
 1. **Deployment / model parsing** — keep **`EventModelParsingTest`** (and related) **green**; do not add a separate `DeploymentSpecParsingTest` unless you need cases not already covered.
 2. **`K8sTopologyTest`** — unit-test `K8sTopology.from()`:
@@ -331,8 +331,8 @@ Also capture in `README-k8s.md` / skill (operator notes), not only inline YAML c
 
 ## Verification
 
-1. `cd embabel-codegen && ../mvnw test` — all new test classes in `embabel-codegen` pass, no regressions (`embabel-codegen` is not in the root reactor; do not use `./mvnw test -pl embabel-codegen` from root)
+1. `cd crablet-codegen && ../mvnw test` — all new test classes in `crablet-codegen` pass, no regressions (`crablet-codegen` is not in the root reactor; do not use `./mvnw test -pl crablet-codegen` from root)
 2. `make k8s` in `templates/crablet-app/` against template `event-model.yaml` — writes `k8s/base/`
 3. `kubectl kustomize k8s/base/` — validates YAML structure (no KEDA CRDs needed)
-4. `embabel_generate`, `embabel_plan`, `embabel_init` still work unchanged
+4. `crablet_generate`, `crablet_plan`, `crablet_init` still work unchanged
 5. **Docs:** `DEPLOYMENT_TOPOLOGY.md` updated per **Documentation strategy** above (K8s subsection or new page + cross-links; topology doc stays conceptual)

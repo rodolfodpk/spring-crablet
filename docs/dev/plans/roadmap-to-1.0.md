@@ -58,7 +58,7 @@ Full `main` history audited. Eight breaking changes now documented in `UPGRADE.m
 **Then — POM + CI work:**
 - Add `central-publishing-maven-plugin` + `maven-gpg-plugin` to root POM
 - Wire GPG key + Sonatype credentials as CI secrets
-- Verify `groupId`/`artifactId`/version in all module POMs match what the starter template and `embabel-codegen` reference
+- Verify `groupId`/`artifactId`/version in all module POMs match what the starter template and `crablet-codegen` reference
 - Publish a snapshot to Central snapshots first; validate `crablet-app` template resolves it before tagging 1.0.0
 
 **Before tagging 1.0.0** (release checklist — must be done alongside or before 1c):

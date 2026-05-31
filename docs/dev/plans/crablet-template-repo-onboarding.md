@@ -4,7 +4,7 @@
 
 Create a first-user experience where teams clone a Crablet application template and develop one
 vertical slice at a time with Claude Code, a bundled event-modeling workflow, and the
-`embabel-codegen` MCP tools.
+`crablet-codegen` MCP tools.
 
 The intended user journey is:
 
@@ -13,9 +13,9 @@ clone template repo
   -> open Claude Code
   -> describe one vertical slice
   -> update event-model.yaml
-  -> run embabel_plan
+  -> run crablet_plan
   -> approve the planned artifacts
-  -> run embabel_generate
+  -> run crablet_generate
   -> run ./mvnw verify
 ```
 
@@ -28,7 +28,7 @@ template repository is the place where application teams start.
 The primary onboarding artifact should be a Crablet app template, not a command that users run
 from the framework repository.
 
-`embabel-codegen init` remains useful for creating or patching apps, but the lowest-friction
+`crablet-codegen init` remains useful for creating or patching apps, but the lowest-friction
 path should be:
 
 ```bash
@@ -72,7 +72,7 @@ my-crablet-app/
 │       └── event-modeling/
 │           └── SKILL.md
 ├── tools/
-│   └── embabel-codegen.jar
+│   └── crablet-codegen.jar
 ├── src/main/java/com/example/app/Application.java
 └── src/main/resources/
     ├── application.yml
@@ -80,7 +80,7 @@ my-crablet-app/
         └── V1__eventstore_schema.sql
 ```
 
-The template may initially vendor `tools/embabel-codegen.jar`. Longer term, this should move to a
+The template may initially vendor `tools/crablet-codegen.jar`. Longer term, this should move to a
 versioned release artifact or Maven plugin to avoid committing generated binaries.
 
 ## Template CLAUDE.md Contract
@@ -91,7 +91,7 @@ The template `CLAUDE.md` should be short and application-focused. It should tell
 2. Add features one vertical slice at a time.
 3. Update `event-model.yaml` before editing generated Java.
 4. Ask for missing business facts before changing files.
-5. Run `embabel_plan` and show the planned artifacts before `embabel_generate`.
+5. Run `crablet_plan` and show the planned artifacts before `crablet_generate`.
 6. Prefer improving the model over hand-patching structural generated code.
 7. Run `./mvnw verify` after generation.
 
@@ -99,7 +99,7 @@ Example instruction:
 
 ```text
 When adding a feature, first model the command, event, tags, command pattern, validation,
-read model, automation, and outbox requirements. Do not generate code until embabel_plan
+read model, automation, and outbox requirements. Do not generate code until crablet_plan
 has been reviewed.
 ```
 
@@ -107,10 +107,10 @@ has been reviewed.
 
 The template should expose these MCP tools through `.claude/settings.json`:
 
-- `embabel_plan`
-- `embabel_generate`
+- `crablet_plan`
+- `crablet_generate`
 
-`embabel_init` is optional in a template repo because the app is already initialized. It remains
+`crablet_init` is optional in a template repo because the app is already initialized. It remains
 useful for creating a second service.
 
 Local template configuration:
@@ -118,11 +118,11 @@ Local template configuration:
 ```json
 {
   "mcpServers": {
-    "embabel-codegen": {
+    "crablet-codegen": {
       "command": "java",
       "args": [
         "-jar",
-        "./tools/embabel-codegen.jar",
+        "./tools/crablet-codegen.jar",
         "--mcp"
       ]
     }
@@ -135,11 +135,11 @@ During framework development, a template can point at a sibling checkout instead
 ```json
 {
   "mcpServers": {
-    "embabel-codegen": {
+    "crablet-codegen": {
       "command": "java",
       "args": [
         "-jar",
-        "../spring-crablet/embabel-codegen/target/embabel-codegen.jar",
+        "../spring-crablet/crablet-codegen/target/crablet-codegen.jar",
         "--mcp"
       ]
     }
@@ -153,10 +153,10 @@ Recommended user-facing targets:
 
 ```makefile
 plan:
-	java -jar tools/embabel-codegen.jar plan --model event-model.yaml
+	java -jar tools/crablet-codegen.jar plan --model event-model.yaml
 
 generate:
-	java -jar tools/embabel-codegen.jar generate --model event-model.yaml --output src/main/java
+	java -jar tools/crablet-codegen.jar generate --model event-model.yaml --output src/main/java
 
 verify:
 	./mvnw verify
@@ -166,7 +166,7 @@ Recommended contributor targets:
 
 ```makefile
 check: verify
-	java -jar tools/embabel-codegen.jar plan --model event-model.yaml
+	java -jar tools/crablet-codegen.jar plan --model event-model.yaml
 ```
 
 If the template does not vendor the JAR, these targets should use the release download path or
@@ -199,13 +199,13 @@ Claude asks for missing facts:
 Claude updates `event-model.yaml`, then runs:
 
 ```text
-embabel_plan model=event-model.yaml
+crablet_plan model=event-model.yaml
 ```
 
 The user reviews the planned artifacts. Only after confirmation should Claude run:
 
 ```text
-embabel_generate model=event-model.yaml output=src/main/java
+crablet_generate model=event-model.yaml output=src/main/java
 ```
 
 Then:
@@ -225,7 +225,7 @@ The skill should:
 - ask clarifying questions before writing the model
 - validate against `EVENT_MODEL_FORMAT.md`
 - avoid inventing adapters, credentials, or unsupported business rules
-- recommend `embabel_plan` before generation
+- recommend `crablet_plan` before generation
 
 This is currently the biggest missing packaging piece. The framework repo references the
 event-modeling workflow, but the template must ship the actual skill/instructions that make the
@@ -235,13 +235,13 @@ workflow repeatable for app teams.
 
 Phase 1:
 
-- Keep `embabel-codegen` built from the framework repo.
-- Use a sibling checkout or manually copied `tools/embabel-codegen.jar`.
+- Keep `crablet-codegen` built from the framework repo.
+- Use a sibling checkout or manually copied `tools/crablet-codegen.jar`.
 - Validate the template with local users.
 
 Phase 2:
 
-- Publish `embabel-codegen` as a release artifact.
+- Publish `crablet-codegen` as a release artifact.
 - Update template setup to download or reference a versioned generator.
 - Add a template upgrade guide for generator/runtime version alignment.
 
@@ -256,7 +256,7 @@ Phase 3:
 2. Add Spring Boot + Crablet skeleton.
 3. Add starter `event-model.yaml`.
 4. Add `CLAUDE.md` with slice-first instructions.
-5. Add `.claude/settings.json` for `embabel-codegen`.
+5. Add `.claude/settings.json` for `crablet-codegen`.
 6. Add the event-modeling skill/instructions.
 7. Add Make targets: `plan`, `generate`, `verify`, `check`.
 8. Add a README showing the first 10 minutes of use.
@@ -272,8 +272,8 @@ A new user can:
 3. Open Claude Code.
 4. Describe one vertical slice.
 5. Review `event-model.yaml`.
-6. Run `embabel_plan`.
-7. Run `embabel_generate`.
+6. Run `crablet_plan`.
+7. Run `crablet_generate`.
 8. Run `./mvnw verify`.
 
 The user should not need to:
@@ -287,7 +287,7 @@ The user should not need to:
 
 - Should the template live in this repository under `templates/`, or as a separate GitHub template
   repository?
-- Should the first version vendor `embabel-codegen.jar`, download it from releases, or require a
+- Should the first version vendor `crablet-codegen.jar`, download it from releases, or require a
   sibling `spring-crablet` checkout?
 - Should `event-modeling` be a Claude skill, an agent prompt, or both?
 - How much generated code should the template commit in its starter state?

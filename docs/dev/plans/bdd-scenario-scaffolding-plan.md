@@ -19,8 +19,8 @@ New branch from `main` (`feat/bdd-scenarios`). None of the model changes landed 
 ## Step 1 — Port model records (new files, no Gherkin dependency)
 
 **New files** (copy cleanly from `feat/gherkin-import`, zero changes needed):
-- `embabel-codegen/src/main/java/com/crablet/codegen/model/ScenarioSpec.java`
-- `embabel-codegen/src/main/java/com/crablet/codegen/model/ScenarioStepSpec.java`
+- `crablet-codegen/src/main/java/com/crablet/codegen/model/ScenarioSpec.java`
+- `crablet-codegen/src/main/java/com/crablet/codegen/model/ScenarioStepSpec.java`
 
 **Modified files** (port only the scenario-related additions):
 - `EventModel.java` — add `scenarios` field and `scenarios()` accessor (`List<ScenarioSpec>`, defaults to `List.of()`)
@@ -32,7 +32,7 @@ Do NOT port: `GherkinImportService`, `CodegenCommand` import-gherkin case, `McpS
 
 ---
 
-## Step 2 — Add Scenario Test Template to `embabel-codegen/CLAUDE.md`
+## Step 2 — Add Scenario Test Template to `crablet-codegen/CLAUDE.md`
 
 Add a `### Scenario Test Template` section (heading must contain `"Scenario Test"` for `TemplateLoader.load("Scenario Test")` to find it).
 
@@ -68,7 +68,7 @@ class SubmitLoanApplicationScenarioTest {
 
 ## Step 3 — Implement `ScenariosAgent`
 
-**New file:** `embabel-codegen/src/main/java/com/crablet/codegen/agents/ScenariosAgent.java`
+**New file:** `crablet-codegen/src/main/java/com/crablet/codegen/agents/ScenariosAgent.java`
 
 Key decisions:
 
@@ -98,7 +98,7 @@ Constructor takes `TemplateLoader` (for documentation purposes), no `CodegenLlmC
 
 ## Step 4 — Wire into `CodegenPipeline`
 
-**File:** `embabel-codegen/src/main/java/com/crablet/codegen/pipeline/CodegenPipeline.java`
+**File:** `crablet-codegen/src/main/java/com/crablet/codegen/pipeline/CodegenPipeline.java`
 
 - Inject `ScenariosAgent` in constructor
 - Call `scenariosAgent.generate(resolved, outputDir)` after `outboxAgent.generate()`, before the repair loop
@@ -119,7 +119,7 @@ Without this update, `scenarios:` blocks in YAML are documented but not schema-v
 
 ## Step 6 — Add `ScenariosAgentTest`
 
-**New file:** `embabel-codegen/src/test/java/com/crablet/codegen/agents/ScenariosAgentTest.java`
+**New file:** `crablet-codegen/src/test/java/com/crablet/codegen/agents/ScenariosAgentTest.java`
 
 JUnit 5, `@TempDir`, no Spring context. Test cases:
 
@@ -152,7 +152,7 @@ Write fresh on the new branch (do not carry over the Gherkin-forward framing fro
 
 ## Branch starting point
 
-Start from `main`. If working from the current `feat/gherkin-import` branch instead, explicitly remove all Gherkin additions before committing: `GherkinImportService.java`, `import-gherkin` CLI/MCP wiring in `CodegenCommand` and `McpServer`, `GherkinImportServiceTest`, the `.feature` example file, `bdd-input-import-plan.md`, the Gherkin additions to `embabel-codegen/README.md`, `docs/user/ai-tooling/AI_SKILLS.md`, `templates/crablet-app/*` Gherkin notes, and the uncommitted "Gherkin feature import" routing edit in the repo-root `CLAUDE.md`. Starting from `main` is strongly preferred.
+Start from `main`. If working from the current `feat/gherkin-import` branch instead, explicitly remove all Gherkin additions before committing: `GherkinImportService.java`, `import-gherkin` CLI/MCP wiring in `CodegenCommand` and `McpServer`, `GherkinImportServiceTest`, the `.feature` example file, `bdd-input-import-plan.md`, the Gherkin additions to `crablet-codegen/README.md`, `docs/user/ai-tooling/AI_SKILLS.md`, `templates/crablet-app/*` Gherkin notes, and the uncommitted "Gherkin feature import" routing edit in the repo-root `CLAUDE.md`. Starting from `main` is strongly preferred.
 
 ---
 
@@ -160,17 +160,17 @@ Start from `main`. If working from the current `feat/gherkin-import` branch inst
 
 | File | Action |
 |------|--------|
-| `embabel-codegen/src/main/java/com/crablet/codegen/model/ScenarioSpec.java` | New (port) |
-| `embabel-codegen/src/main/java/com/crablet/codegen/model/ScenarioStepSpec.java` | New (port) |
-| `embabel-codegen/src/main/java/com/crablet/codegen/model/EventModel.java` | Add `scenarios` field |
-| `embabel-codegen/src/main/java/com/crablet/codegen/planning/ArtifactPlanner.java` | Add `testClass` loop |
-| `embabel-codegen/src/main/java/com/crablet/codegen/planning/PlannedArtifact.java` | Add `testClass()` factory |
-| `embabel-codegen/src/main/java/com/crablet/codegen/pipeline/SchemaResolver.java` | Pass `scenarios` through |
-| `embabel-codegen/src/main/java/com/crablet/codegen/agents/ScenariosAgent.java` | **New — `@Component`, no LLM** |
-| `embabel-codegen/src/main/java/com/crablet/codegen/pipeline/CodegenPipeline.java` | Inject + call `ScenariosAgent` |
-| `embabel-codegen/CLAUDE.md` | Add `### Scenario Test Template` |
+| `crablet-codegen/src/main/java/com/crablet/codegen/model/ScenarioSpec.java` | New (port) |
+| `crablet-codegen/src/main/java/com/crablet/codegen/model/ScenarioStepSpec.java` | New (port) |
+| `crablet-codegen/src/main/java/com/crablet/codegen/model/EventModel.java` | Add `scenarios` field |
+| `crablet-codegen/src/main/java/com/crablet/codegen/planning/ArtifactPlanner.java` | Add `testClass` loop |
+| `crablet-codegen/src/main/java/com/crablet/codegen/planning/PlannedArtifact.java` | Add `testClass()` factory |
+| `crablet-codegen/src/main/java/com/crablet/codegen/pipeline/SchemaResolver.java` | Pass `scenarios` through |
+| `crablet-codegen/src/main/java/com/crablet/codegen/agents/ScenariosAgent.java` | **New — `@Component`, no LLM** |
+| `crablet-codegen/src/main/java/com/crablet/codegen/pipeline/CodegenPipeline.java` | Inject + call `ScenariosAgent` |
+| `crablet-codegen/CLAUDE.md` | Add `### Scenario Test Template` |
 | `docs/user/examples/event-model-schema.json` | Add `scenarios` array to schema |
-| `embabel-codegen/src/test/java/com/crablet/codegen/agents/ScenariosAgentTest.java` | New — 8 test cases |
+| `crablet-codegen/src/test/java/com/crablet/codegen/agents/ScenariosAgentTest.java` | New — 8 test cases |
 | `.claude/skills/crablet-codegen/SKILL.md` | Replace Gherkin Import section |
 | 4 docs files (EVENT_MODEL_FORMAT, FEATURE_SLICE, AI_FIRST_WORKFLOW, EVENT_MODELING) | Minimal fresh framing |
 
@@ -179,7 +179,7 @@ Start from `main`. If working from the current `feat/gherkin-import` branch inst
 ## Verification
 
 ```bash
-cd embabel-codegen && mvn test
+cd crablet-codegen && mvn test
 ```
 
 Watch: `ScenariosAgentTest` (all 8), `ArtifactPlannerTest` (unchanged), `EventModelParsingTest` (scenarios default to empty), `McpServerTest` (tool count stays the same — no new MCP tool added).

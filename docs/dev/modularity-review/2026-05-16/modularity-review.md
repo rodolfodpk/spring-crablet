@@ -1,6 +1,6 @@
 # Modularity Review
 
-**Scope**: Entire codebase — all framework modules, shared examples domain, embabel-codegen  
+**Scope**: Entire codebase — all framework modules, shared examples domain, crablet-codegen  
 **Date**: 2026-05-16
 
 ## Executive Summary

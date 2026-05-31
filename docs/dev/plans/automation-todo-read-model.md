@@ -45,7 +45,7 @@ This plan captures **tradeoffs** and a **recommended direction** without locking
 
 | Layer | What it knows | Consumed by |
 |-------|----------------|-------------|
-| **`event-model.yaml`** | Each view has **`reads: [EventName, …]`** ([`ViewSpec`](../../embabel-codegen/src/main/java/com/crablet/codegen/model/ViewSpec.java)) | **Codegen** (e.g. LLM prompt in [`ViewsAgent`](../../embabel-codegen/src/main/java/com/crablet/codegen/agents/ViewsAgent.java)), **diagrams**, **topology** ([`K8sTopology`](../../embabel-codegen/src/main/java/com/crablet/codegen/k8s/K8sTopology.java)) — **not** loaded by `crablet-views` at runtime |
+| **`event-model.yaml`** | Each view has **`reads: [EventName, …]`** ([`ViewSpec`](../../crablet-codegen/src/main/java/com/crablet/codegen/model/ViewSpec.java)) | **Codegen** (e.g. LLM prompt in [`ViewsAgent`](../../crablet-codegen/src/main/java/com/crablet/codegen/agents/ViewsAgent.java)), **diagrams**, **topology** ([`K8sTopology`](../../crablet-codegen/src/main/java/com/crablet/codegen/k8s/K8sTopology.java)) — **not** loaded by `crablet-views` at runtime |
 | **Runtime** | [`ViewSubscription`](../../crablet-views/src/main/java/com/crablet/views/ViewSubscription.java) on each **`ViewProjector`** (`getEventTypes()`, tags) | `ViewEventFetcher` → SQL `WHERE` for the **view** `EventProcessor` |
 
 So projectors **in code** already declare the event set the poller uses. That set **should** match **`views[].reads`** after a codegen pass; for hand-written projectors, only **Java** is authoritative unless you re-sync from YAML.

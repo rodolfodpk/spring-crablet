@@ -10,13 +10,13 @@ paths. It is closing holes around wiring, cross-boundary behavior, filesystem
 safety, and ops-sensitive wakeup behavior.
 
 JaCoCo is wired in the parent `pom.xml`, but coverage review needs one caveat:
-`embabel-codegen` is currently excluded from the root reactor, so root-level
+`crablet-codegen` is currently excluded from the root reactor, so root-level
 `./mvnw test` and aggregate coverage do not exercise or report that module
 unless it is built separately or added to the reactor.
 
 ## 1. Codegen Filesystem Safety Tests and Fix
 
-**Gap:** `embabel-codegen/src/main/java/com/crablet/codegen/tools/FileWriterTool.java`
+**Gap:** `crablet-codegen/src/main/java/com/crablet/codegen/tools/FileWriterTool.java`
 resolves generated `===FILE: path===` blocks under `outputDir`, but it does not
 currently enforce that the normalized target remains inside `outputDir`.
 Generated paths such as `../escape.java` can write outside the configured output
@@ -154,10 +154,10 @@ real timing.
   ./mvnw test
   ```
 
-- Run `embabel-codegen` separately because it is excluded from the root reactor:
+- Run `crablet-codegen` separately because it is excluded from the root reactor:
 
   ```bash
-  ./mvnw -f embabel-codegen/pom.xml test
+  ./mvnw -f crablet-codegen/pom.xml test
   ```
 
 - For JaCoCo aggregate review, use `verify`, then inspect changed-line coverage

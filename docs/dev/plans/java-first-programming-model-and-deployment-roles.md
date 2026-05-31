@@ -56,7 +56,7 @@ The docs should separate two layers:
   - Clarify `ViewBackedAutomationHandler` requirements in Java-first terms.
   - Say `event-model.yaml` is optional and only mirrors/generates the Java contract.
 
-- `embabel-codegen` generated Kubernetes README text
+- `crablet-codegen` generated Kubernetes README text
   - Make generated docs say manifests are derived from `event-model.yaml`, but runtime behavior is still Java/Spring bean based.
 
 ## Test Plan
