@@ -2,7 +2,7 @@
 
 Crablet is split into a small required write-side core and optional libraries you add by capability. This page lists module areas and when to adopt each. For **poller-backed module deployment and scaling rules** (views, outbox, automations), see [Deployment Topology](DEPLOYMENT_TOPOLOGY.md) — the constraints are documented there, not duplicated below.
 
-**Kubernetes:** the [app template](../../templates/crablet-app/README.md) can generate `k8s/base` with `make k8s` (see [Embabel Codegen](../../embabel-codegen/README.md)) from the `deployment` block in `event-model.yaml`. Read `k8s/base/README-k8s.md` in the generated output for how singleton workers, KEDA, and env vars line up with the table below — still anchored in [Deployment Topology](DEPLOYMENT_TOPOLOGY.md).
+**Kubernetes:** the [app template](../../templates/crablet-app/README.md) can generate `k8s/base` with `make k8s` (see [Crablet Codegen](../../crablet-codegen/README.md)) from the `deployment` block in `event-model.yaml`. Read `k8s/base/README-k8s.md` in the generated output for how singleton workers, KEDA, and env vars line up with the table below — still anchored in [Deployment Topology](DEPLOYMENT_TOPOLOGY.md).
 
 | Area | Modules |
 |------|---------|
@@ -10,7 +10,7 @@ Crablet is split into a small required write-side core and optional libraries yo
 | Optional add-ons | [Views](../../crablet-views/README.md), [Outbox](../../crablet-outbox/README.md), [Automations](../../crablet-automations/README.md), [Command Web API](../../crablet-commands-web/README.md), [Observability](OBSERVABILITY.md), [Micrometer compatibility metrics](../../crablet-metrics-micrometer/README.md) |
 | Support and examples | [Test support](../../crablet-test-support/README.md), [Wallet example app](../../examples/wallet-example-app/README.md), [Course example app](../../examples/course-example-app/README.md), shared example domain code, compiled docs samples |
 | Internal infrastructure | [Event Poller](../../crablet-event-poller/README.md) powers the poller-backed modules |
-| AI-first tooling | [Embabel Codegen](../../embabel-codegen/README.md) — generates code from event-model.yaml; [Templates](../../templates/README.md) — starter project |
+| AI-first tooling | [Crablet Codegen](../../crablet-codegen/README.md) — generates code from event-model.yaml; [Templates](../../templates/README.md) — starter project |
 
 ## Module boundaries
 
@@ -81,7 +81,7 @@ See [Deployment Topology](DEPLOYMENT_TOPOLOGY.md) for the full topology rules.
 
 ### Generated Kubernetes Topology
 
-When you run `make k8s` (or `embabel k8s`), the `deployment:` block in `event-model.yaml` selects
+When you run `make k8s` (or `crablet k8s`), the `deployment:` block in `event-model.yaml` selects
 the deployment shape; the modules that exist in the model control which workers are generated.
 All workers use the same container image — `CRABLET_*_ENABLED` env flags control which processors start.
 
