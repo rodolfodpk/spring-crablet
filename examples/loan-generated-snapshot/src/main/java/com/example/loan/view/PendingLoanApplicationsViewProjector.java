@@ -1,0 +1,56 @@
+package com.example.loan.view;
+
+import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.StoredEvent;
+import com.crablet.eventstore.WriteDataSource;
+import com.crablet.views.AbstractTypedViewProjector;
+import com.example.loan.domain.LoanApplicationEvent;
+import com.example.loan.domain.LoanApplicationSubmitted;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import tools.jackson.databind.ObjectMapper;
+
+import java.sql.Timestamp;
+
+@Component
+public class PendingLoanApplicationsViewProjector extends AbstractTypedViewProjector<LoanApplicationEvent> {
+
+    public PendingLoanApplicationsViewProjector(
+            ObjectMapper objectMapper,
+            ClockProvider clockProvider,
+            PlatformTransactionManager transactionManager,
+            WriteDataSource writeDataSource) {
+        super(objectMapper, clockProvider, transactionManager, writeDataSource);
+    }
+
+    @Override
+    public String getViewName() {
+        return "pending-loan-applications";
+    }
+
+    @Override
+    protected Class<LoanApplicationEvent> getEventType() {
+        return LoanApplicationEvent.class;
+    }
+
+    @Override
+    protected boolean handleEvent(LoanApplicationEvent event, StoredEvent stored, JdbcTemplate jdbc) {
+        return switch (event) {
+            case LoanApplicationSubmitted submitted -> {
+                jdbc.update(
+                        "INSERT INTO pending_loan_applications " +
+                        "(application_id, customer_id, requested_amount, purpose, status, submitted_at) " +
+                        "VALUES (?, ?, ?, ?, 'PENDING', ?) " +
+                        "ON CONFLICT (application_id) DO NOTHING",
+                        submitted.applicationId(),
+                        submitted.customerId(),
+                        submitted.requestedAmount(),
+                        submitted.purpose(),
+                        Timestamp.from(submitted.submittedAt())
+                );
+                yield true;
+            }
+        };
+    }
+}

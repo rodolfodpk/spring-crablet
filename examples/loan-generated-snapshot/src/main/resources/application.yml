@@ -1,0 +1,7 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/crablet_app
+    username: postgres
+    password: postgres
+  flyway:
+    enabled: true
