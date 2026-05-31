@@ -1,6 +1,6 @@
 package com.crablet.command.handlers.courses.unit;
 
-import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
+import com.crablet.test.commands.AbstractInMemoryHandlerTest;
 import com.crablet.examples.course.commands.RegisterStudentCommand;
 import com.crablet.examples.course.events.StudentRegistered;
 import com.crablet.examples.course.handlers.RegisterStudentCommandHandler;
@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for {@link RegisterStudentCommandHandler}.
  */
 @DisplayName("RegisterStudentCommandHandler Unit Tests")
-class RegisterStudentCommandHandlerUnitTest extends AbstractHandlerUnitTest {
+class RegisterStudentCommandHandlerUnitTest extends AbstractInMemoryHandlerTest {
 
     private RegisterStudentCommandHandler handler;
 

@@ -1,6 +1,6 @@
 package com.crablet.command.handlers.wallet.unit;
 
-import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
+import com.crablet.test.commands.AbstractInMemoryHandlerTest;
 import com.crablet.examples.wallet.commands.WithdrawCommand;
 import com.crablet.examples.wallet.commands.WithdrawCommandHandler;
 import com.crablet.examples.wallet.events.DepositMade;
@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * DCB concurrency is tested in integration tests.
  */
 @DisplayName("WithdrawCommandHandler Unit Tests")
-class WithdrawCommandHandlerUnitTest extends AbstractHandlerUnitTest {
+class WithdrawCommandHandlerUnitTest extends AbstractInMemoryHandlerTest {
     
     private WithdrawCommandHandler handler;
     private WalletPeriodHelper periodHelper;

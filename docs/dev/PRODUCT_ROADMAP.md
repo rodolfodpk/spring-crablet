@@ -262,15 +262,16 @@ assume Central availability.
 - Java 25 / Spring Boot 4 / PostgreSQL 17+ baseline stated in README and release notes
 - SBOM generated via `cyclonedx-maven-plugin` attached to release
 
-#### 1.3 Test-Support Split (Fast BDD vs Real-Postgres Integration)
+#### 1.3 Fast Handler-Test Base (`crablet-test-commands`)
 
-Reorganize test infrastructure by dependency weight so BDD/handler unit tests stay fast
-(in-memory, no Postgres) while integration tests use the real PostgreSQL event store, and
-publish a curated, `@Stable` handler-test base instead of leaking the `crablet-commands`
-test-jar (45 ungoverned classes) to external apps. Target modules:
-`crablet-test-inmemory` (fast), `crablet-test-postgres` (Testcontainers), and
-`crablet-test-commands` (handler BDD base). Detailed plan and migration steps:
-`docs/dev/plans/test-support-fast-slow-split.md`.
+Done: extracted the command-handler BDD base into a dedicated `crablet-test-commands` module
+(`AbstractInMemoryHandlerTest`, in-memory event store, no Postgres) so handler unit tests are fast
+and don't depend on the framework's internal `crablet-commands` test-jar. The originally-planned
+full split of `crablet-test-support` into `-inmemory` / `-postgres` (with migration relocation and
+a 32-usage `AbstractCrabletTest` rename) was **dropped** — it bought only dependency hygiene, not
+speed, at high build-system churn. An optional minimal `crablet-test-inmemory` extraction remains
+documented for later if Testcontainers-on-classpath becomes a concern.
+Record + optional follow-ups: `docs/dev/plans/test-support-fast-slow-split.md`.
 
 #### 1.4 Course Example Committed
 

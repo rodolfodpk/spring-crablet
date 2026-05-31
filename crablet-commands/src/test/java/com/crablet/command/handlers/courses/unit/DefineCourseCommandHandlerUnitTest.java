@@ -1,6 +1,6 @@
 package com.crablet.command.handlers.courses.unit;
 
-import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
+import com.crablet.test.commands.AbstractInMemoryHandlerTest;
 import com.crablet.examples.course.commands.DefineCourseCommand;
 import com.crablet.examples.course.events.CourseDefined;
 import com.crablet.examples.course.handlers.DefineCourseCommandHandler;
@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * DCB concurrency (idempotency) is tested in integration tests.
  */
 @DisplayName("DefineCourseCommandHandler Unit Tests")
-class DefineCourseCommandHandlerUnitTest extends AbstractHandlerUnitTest {
+class DefineCourseCommandHandlerUnitTest extends AbstractInMemoryHandlerTest {
     
     private DefineCourseCommandHandler handler;
     

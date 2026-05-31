@@ -1,4 +1,4 @@
-package com.crablet.command.handlers.unit;
+package com.crablet.test.commands;
 
 import com.crablet.command.CommandDecision;
 import com.crablet.command.CommandHandler;
@@ -138,7 +138,7 @@ import java.util.stream.Collectors;
  * }
  * }</pre>
  */
-public abstract class AbstractHandlerUnitTest {
+public abstract class AbstractInMemoryHandlerTest {
     
     protected InMemoryEventStore eventStore;
     

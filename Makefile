@@ -11,7 +11,7 @@
 # examples/wallet-example-app is built separately after the reactor is installed.
 # See BUILD.md for full explanation.
 
-.PHONY: help install install-all-tests ci-verify validate-all skills-check check-test-support-artifact check-db-migrations-artifact check-migration-sync build-all compile package test test-pl test-skip examples-check clean verify build-core build-shared build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check codegen-snapshot-verify event-model-diagrams
+.PHONY: help install install-all-tests ci-verify validate-all skills-check check-test-support-artifact check-db-migrations-artifact check-migration-sync build-all compile package test test-pl test-skip examples-check clean verify build-core build-shared build-test-commands build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check codegen-snapshot-verify event-model-diagrams
 
 .NOTPARALLEL:
 
@@ -71,11 +71,11 @@ help:
 # Main build command - handles cyclic dependency automatically
 # Note: Uses 'install' which runs unit tests but not integration tests
 # Use 'install-all-tests' for full test coverage including integration tests
-install: build-core build-test-support check-test-support-artifact check-db-migrations-artifact check-migration-sync build-command build-shared build-reactor
+install: build-core build-test-support check-test-support-artifact check-db-migrations-artifact check-migration-sync build-command build-shared build-test-commands build-reactor
 	@echo "✓ Build complete! All modules installed to local repository."
 
 # Full build with all tests including integration tests (for CI)
-install-all-tests: build-core build-test-support check-test-support-artifact check-db-migrations-artifact check-migration-sync build-command build-shared build-reactor-verify build-reactor-install-artifacts
+install-all-tests: build-core build-test-support check-test-support-artifact check-db-migrations-artifact check-migration-sync build-command build-shared build-test-commands build-reactor-verify build-reactor-install-artifacts
 	@echo "✓ Build complete with all tests! All modules installed to local repository."
 
 # CI build - verifies build, only installs minimal modules needed
@@ -83,7 +83,7 @@ install-all-tests: build-core build-test-support check-test-support-artifact che
 # 2. Install crablet-test-support (needed by shared-examples-domain)
 # 3. Install shared-examples-domain (needed by reactor modules in test scope)
 # 4. Verify reactor (no install needed for reactor modules)
-ci-verify: build-core build-test-support check-test-support-artifact check-db-migrations-artifact check-migration-sync build-command build-shared build-reactor-verify
+ci-verify: build-core build-test-support check-test-support-artifact check-db-migrations-artifact check-migration-sync build-command build-shared build-test-commands build-reactor-verify
 	@echo "✓ CI build complete with all tests!"
 
 validate-all: skills-check install-all-tests docs-check docs-compile-check docs-generate-check codegen-check codegen-snapshot-verify examples-check
@@ -138,6 +138,7 @@ build-core:
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-observability -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-observability/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-test-support -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-test-support/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-commands -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-commands/pom.xml -q 2>/dev/null || true
+	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-test-commands -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-test-commands/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=crablet-automations -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=crablet-automations/pom.xml -q 2>/dev/null || true
 	@./mvnw install:install-file -Dfile=/tmp/crablet-stub/empty.jar -DgroupId=com.crablet -DartifactId=shared-examples-domain -Dversion=1.0.0-SNAPSHOT -Dpackaging=jar -DpomFile=shared-examples-domain/pom.xml -q 2>/dev/null || true
 	@echo "Building crablet-db-migrations (clean install — guards against stale SQL files in target/)..."
@@ -154,6 +155,11 @@ build-test-support:
 build-command:
 	@echo "Building crablet-commands (main code only, skipping tests)..."
 	@./mvnw clean compile package install -pl crablet-commands -DskipTests -Dmaven.test.skip=true
+
+# Build crablet-test-commands (fast in-memory handler BDD base; depends on crablet-commands main + crablet-test-support)
+build-test-commands:
+	@echo "Building crablet-test-commands..."
+	@cd crablet-test-commands && ../mvnw clean install
 
 # Build shared-examples-domain (step 3 - depends on crablet-eventstore and crablet-commands)
 build-shared: check-test-support-artifact
@@ -181,15 +187,15 @@ build-reactor-install-artifacts: check-test-support-artifact
 	@./mvnw install -DskipTests -Dmaven.test.skip=true -Dmaven.clean.skip=true
 
 # Compile all modules
-compile: build-core build-test-support check-test-support-artifact build-command build-shared
+compile: build-core build-test-support check-test-support-artifact build-command build-shared build-test-commands
 	@./mvnw compile
 
 # Package all modules
-package: build-core build-test-support check-test-support-artifact build-command build-shared
+package: build-core build-test-support check-test-support-artifact build-command build-shared build-test-commands
 	@./mvnw package
 
 # Run tests (requires core, test-support, commands and shared examples first)
-test: build-core build-test-support check-test-support-artifact build-command build-shared
+test: build-core build-test-support check-test-support-artifact build-command build-shared build-test-commands
 	@./mvnw test
 
 # Run tests for a subset of the reactor, including dependent modules in the same build (-am).
@@ -198,11 +204,11 @@ test: build-core build-test-support check-test-support-artifact build-command bu
 # Optional: extra Maven args, e.g. make test-pl PL=crablet-commands MVN_ARGS='-Dtest=FooTest'
 test-pl:
 	@test -n "$(PL)" || (echo "Usage: make test-pl PL=<module-dir>  Example: make test-pl PL=crablet-commands"; exit 1)
-	@$(MAKE) build-core build-test-support check-test-support-artifact build-command build-shared
+	@$(MAKE) build-core build-test-support check-test-support-artifact build-command build-shared build-test-commands
 	@./mvnw test -pl $(PL) -am $(MVN_ARGS)
 
 # Build without tests
-test-skip: build-core build-test-support check-test-support-artifact build-command build-shared
+test-skip: build-core build-test-support check-test-support-artifact build-command build-shared build-test-commands
 	@./mvnw install -DskipTests
 
 examples-check:
@@ -213,7 +219,7 @@ examples-check:
 	@echo "✓ Example apps tested."
 
 # Full verify (clean build with tests)
-verify: build-core build-test-support check-test-support-artifact build-command build-shared
+verify: build-core build-test-support check-test-support-artifact build-command build-shared build-test-commands
 	@./mvnw verify
 
 # Clean all build artifacts

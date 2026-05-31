@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.crablet</groupId>
+        <artifactId>crablet</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>crablet-test-commands</artifactId>
+    <name>Crablet Test Commands</name>
+    <description>Fast, in-memory BDD base for command handler unit tests (AbstractInMemoryHandlerTest). No PostgreSQL/Testcontainers.</description>
+
+    <dependencies>
+        <!-- Command model: CommandHandler, CommandDecision -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-commands</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Event store interfaces: AppendEvent, EventStore, Tag, PeriodTags -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-eventstore</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- In-memory event store fake (fast; no Postgres) -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-test-support</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Test APIs used by the base class itself (main scope, since the base lives in main) -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

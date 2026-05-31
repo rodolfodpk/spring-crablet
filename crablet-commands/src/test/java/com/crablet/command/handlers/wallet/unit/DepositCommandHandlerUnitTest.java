@@ -1,6 +1,6 @@
 package com.crablet.command.handlers.wallet.unit;
 
-import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
+import com.crablet.test.commands.AbstractInMemoryHandlerTest;
 import com.crablet.examples.wallet.commands.DepositCommand;
 import com.crablet.examples.wallet.commands.DepositCommandHandler;
 import com.crablet.examples.wallet.events.DepositMade;
@@ -34,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * </ul>
  */
 @DisplayName("DepositCommandHandler Unit Tests")
-class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
+class DepositCommandHandlerUnitTest extends AbstractInMemoryHandlerTest {
     
     private DepositCommandHandler handler;
     private WalletPeriodHelper periodHelper;
