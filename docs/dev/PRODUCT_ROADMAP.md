@@ -267,7 +267,9 @@ assume Central availability.
 Reorganize test infrastructure by dependency weight so BDD/handler unit tests stay fast
 (in-memory, no Postgres) while integration tests use the real PostgreSQL event store, and
 publish a curated, `@Stable` handler-test base instead of leaking the `crablet-commands`
-test-jar (45 ungoverned classes) to external apps. Detailed plan and migration steps:
+test-jar (45 ungoverned classes) to external apps. Target modules:
+`crablet-test-inmemory` (fast), `crablet-test-postgres` (Testcontainers), and
+`crablet-test-commands` (handler BDD base). Detailed plan and migration steps:
 `docs/dev/plans/test-support-fast-slow-split.md`.
 
 #### 1.4 Course Example Committed
