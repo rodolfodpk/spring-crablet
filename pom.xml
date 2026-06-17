@@ -137,13 +137,27 @@
                 <version>${project.version}</version>
             </dependency>
             
+            <!-- Crablet Test Support (Postgres/Testcontainers base, built outside the reactor) -->
+            <dependency>
+                <groupId>com.crablet</groupId>
+                <artifactId>crablet-test-support</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Crablet Test Commands (in-memory handler BDD base, built outside the reactor) -->
+            <dependency>
+                <groupId>com.crablet</groupId>
+                <artifactId>crablet-test-commands</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- Shared Examples Domain -->
             <dependency>
                 <groupId>com.crablet</groupId>
                 <artifactId>shared-examples-domain</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            
+
             <!-- JUnit -->
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
