@@ -69,7 +69,7 @@ Spring-Crablet is a Java 25 event-sourcing framework for Spring Boot application
 Key technologies:
 
 - Java 25
-- Spring Boot 4.0.5
+- Spring Boot 4.1.0
 - PostgreSQL 17+
 - Maven multi-module project
 

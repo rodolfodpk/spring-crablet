@@ -55,9 +55,11 @@ example `/crablet-greenfield`, `/crablet-event-modeling`, or `/crablet-codegen`;
    scaffolding.
 5. Review the YAML as the durable domain contract. If the assistant misunderstood the feature,
    fix the model before generating code.
-6. Generate the Spring application code from `event-model.yaml`.
+6. Generate the Spring application code from `event-model.yaml` (deterministic; no API key needed).
 7. Compile the generated app.
-8. Repair generation issues until the app builds.
+8. If the app does not compile, the event model is likely under-specified — add missing fields or
+   types and re-run `plan` → `generate`. Manual edits to generator-owned files are a temporary
+   unblock; the durable fix is always in `event-model.yaml`.
 9. Run the app on the Crablet runtime.
 10. Update the event model when missing behavior is structural, and customize code when behavior is
    genuinely application-specific.
@@ -68,10 +70,14 @@ The intended shape when using Claude Code or Cursor through MCP:
 1. make install && make codegen-build
 2. cp -r templates/crablet-app ../wallet-service
    cp crablet-codegen/target/crablet-codegen.jar ../wallet-service/tools/
-3. cd ../wallet-service && export ANTHROPIC_API_KEY=sk-ant-... && claude
+3. cd ../wallet-service && claude
 4. Provide one workshop slice/subset → assistant updates event-model.yaml → crablet_plan → approve → crablet_generate
 5. ./mvnw verify
 ```
+
+`generate` is deterministic and requires no LLM API key. The AI assistant (Claude Code,
+Cursor) is used in step 4 to produce the `event-model.yaml` — the actual code generation in
+`crablet_generate` runs offline without a model call.
 
 CLI shortcut (from the app directory; useful for Codex, other agents, and terminal workflows):
 
@@ -131,7 +137,7 @@ The CLI commands are:
 
 - `init`: bootstrap a Spring Boot app with Crablet dependencies
 - `plan`: print planned artifacts without calling a model or writing files
-- `generate`: read `event-model.yaml`, generate code, and run the compile-and-repair loop
+- `generate`: read `event-model.yaml` and deterministically generate structural code (no LLM call)
 
 For the documented loan-slice fixture, contributors can run the local planner smoke check:
 

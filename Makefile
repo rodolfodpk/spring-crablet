@@ -11,7 +11,7 @@
 # examples/wallet-example-app is built separately after the reactor is installed.
 # See BUILD.md for full explanation.
 
-.PHONY: help install install-all-tests ci-verify validate-all skills-check check-test-support-artifact check-db-migrations-artifact check-migration-sync build-all compile package test test-pl test-skip examples-check clean verify build-core build-shared build-test-commands build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check codegen-snapshot-verify event-model-diagrams
+.PHONY: help install install-all-tests ci-verify validate-all skills-check check-test-support-artifact check-db-migrations-artifact check-migration-sync build-all compile package test test-pl test-skip examples-check clean verify build-core build-shared build-test-commands build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check codegen-snapshot-verify codegen-regenerate-verify event-model-diagrams
 
 .NOTPARALLEL:
 
@@ -66,7 +66,8 @@ help:
 	@echo "  codegen-build   - Build crablet-codegen fat JAR (crablet-codegen/target/crablet-codegen.jar)"
 	@echo "  codegen-install - Build and install crablet-codegen to local Maven repo"
 	@echo "  codegen-plan-example - Print planned artifacts for the documented loan feature slice"
-	@echo "  codegen-check   - Run crablet-codegen tests and planner smoke check"
+	@echo "  codegen-check          - Run crablet-codegen tests and planner smoke check"
+	@echo "  codegen-regenerate-verify - Regenerate loan slice and diff against committed snapshot"
 
 # Main build command - handles cyclic dependency automatically
 # Note: Uses 'install' which runs unit tests but not integration tests
@@ -86,7 +87,7 @@ install-all-tests: build-core build-test-support check-test-support-artifact che
 ci-verify: build-core build-test-support check-test-support-artifact check-db-migrations-artifact check-migration-sync build-command build-shared build-test-commands build-reactor-verify
 	@echo "✓ CI build complete with all tests!"
 
-validate-all: skills-check install-all-tests docs-check docs-compile-check docs-generate-check codegen-check codegen-snapshot-verify examples-check
+validate-all: skills-check install-all-tests docs-check docs-compile-check docs-generate-check codegen-check codegen-regenerate-verify codegen-snapshot-verify examples-check
 	@echo "✓ Full local validation complete."
 
 skills-check:
@@ -273,3 +274,46 @@ codegen-snapshot-verify:
 	@./mvnw install -DskipTests -Dmaven.clean.skip=true
 	@echo "Verifying committed loan-slice generated snapshot..."
 	@./mvnw verify -f examples/loan-generated-snapshot/pom.xml -DskipTests=false
+
+# Regenerate machine-owned files from the loan fixture and diff them against the committed snapshot.
+# Diff paths match the ownership table in docs/dev/plans/ai-workflow-trust-hardening.md.
+# Normalization: none required — files end with a single newline from the generator.
+codegen-regenerate-verify: codegen-build
+	@echo "Regenerating loan slice into temp dir and diffing against committed snapshot..."
+	@REGEN_DIR=$$(mktemp -d) && \
+	SNAPSHOT=examples/loan-generated-snapshot && \
+	JAVA_OUT=$$REGEN_DIR/src/main/java && \
+	mkdir -p $$JAVA_OUT && \
+	(cd crablet-codegen && java -jar target/crablet-codegen.jar generate \
+	  --model ../docs/user/examples/loan-submit-feature-slice-event-model.yaml \
+	  --output $$JAVA_OUT 2>/dev/null; true) && \
+	FAIL=0 && \
+	for REL_PATH in \
+	  com/example/loan/domain/LoanApplicationEvent.java \
+	  com/example/loan/domain/LoanApplicationSubmitted.java \
+	  com/example/loan/command/SubmitLoanApplication.java \
+	  com/example/loan/command/SubmitLoanApplicationCommandHandler.java \
+	  com/example/loan/view/PendingLoanApplicationsViewProjector.java; do \
+	  COMMITTED=$$SNAPSHOT/src/main/java/$$REL_PATH; \
+	  REGENERATED=$$JAVA_OUT/$$REL_PATH; \
+	  if ! diff -q $$COMMITTED $$REGENERATED > /dev/null 2>&1; then \
+	    echo "DRIFT: $$REL_PATH"; \
+	    diff $$COMMITTED $$REGENERATED || true; \
+	    FAIL=1; \
+	  fi; \
+	done && \
+	SQL_COMMITTED=$$SNAPSHOT/src/main/resources/db/migration/V100__create_pending_loan_applications.sql && \
+	SQL_REGEN=$$REGEN_DIR/src/main/resources/db/migration/V100__create_pending_loan_applications.sql && \
+	if ! diff -q $$SQL_COMMITTED $$SQL_REGEN > /dev/null 2>&1; then \
+	  echo "DRIFT: db/migration/V100__create_pending_loan_applications.sql"; \
+	  diff $$SQL_COMMITTED $$SQL_REGEN || true; \
+	  FAIL=1; \
+	fi && \
+	rm -rf $$REGEN_DIR && \
+	if [ $$FAIL -eq 1 ]; then \
+	  echo ""; \
+	  echo "Generator drift detected. Refresh the snapshot: run 'make codegen-build' then regenerate and commit the machine-owned files."; \
+	  exit 1; \
+	else \
+	  echo "✓ All machine-owned loan snapshot files match the regenerated output"; \
+	fi

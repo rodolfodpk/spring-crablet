@@ -10,8 +10,8 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 class CodegenArchitectureTest {
 
     @ArchTest
-    static final ArchRule aiAgentsDoNotDependOnProviderSdks = noClasses()
-            .that().resideInAPackage("..agents..")
+    static final ArchRule codegenDoesNotDependOnProviderSdks = noClasses()
+            .that().resideInAPackage("com.crablet.codegen..")
             .should().dependOnClassesThat().resideInAnyPackage(
                     "com.anthropic..",
                     "org.springframework.ai.anthropic..",

@@ -5,6 +5,11 @@ import org.springframework.stereotype.Component;
 
 import java.util.Locale;
 
+/**
+ * Dormant LLM provider configuration. All fields default so the Spring context starts without
+ * API keys. {@link #selection()} is lazy — only called by future opt-in commands that depend on
+ * {@link CodegenLlmClient}. Not called by the default deterministic {@code generate} pipeline.
+ */
 @Component
 class CodegenLlmProperties {
 

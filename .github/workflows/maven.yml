@@ -47,6 +47,12 @@ jobs:
       - name: Build with Maven (handles cyclic dependencies)
         run: make ci-verify
 
+      - name: Run codegen unit tests and planner smoke check
+        run: make codegen-check
+
+      - name: Verify generator fidelity (regenerate-and-diff)
+        run: make codegen-regenerate-verify
+
       - name: Verify generated loan-slice snapshot
         run: make codegen-snapshot-verify
 

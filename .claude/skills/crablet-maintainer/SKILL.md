@@ -90,11 +90,16 @@ Projection writes must go to the primary.
 
 ## Codegen And Template Policy
 
-- Codegen agents depend on `CodegenLlmClient`, not provider SDKs or concrete provider services.
-- Provider/HTTP client references belong inside `com.crablet.codegen.llm`
-  adapter code and focused tests.
-- Keep `codegen.anthropic.*` / `ANTHROPIC_API_KEY` backward compatibility while documenting
-  provider-neutral `codegen.llm.*` / `CODEGEN_LLM_*` configuration.
+- The default `generate` command is **deterministic** — same YAML, same generator version,
+  same output. No LLM client is involved. Do not add LLM calls to the default code generation path.
+- `CodegenLlmClient` (interface), `CodegenLlmProperties`, and `CodegenLlmSelection` are retained
+  as dormant types reserved for future opt-in commands (`crablet explain`, `crablet suggest`).
+  Do not remove these types; do not add new implementations until those commands are planned.
+  New implementations must live in `com.crablet.codegen.llm` with no provider SDKs on the classpath
+  (enforced by the existing ArchUnit rule).
+- Provider/HTTP client references belong inside `com.crablet.codegen.llm` adapter code only.
+- `codegen.anthropic.*` / `ANTHROPIC_API_KEY` are legacy config names; `codegen.llm.*` /
+  `CODEGEN_LLM_*` are the provider-neutral overrides documented in `crablet-codegen/README.md`.
 - Generated command-handler artifacts are Java interfaces with empty bodies. User `@Component` implementation classes provide logic.
 - Generated automation handler interfaces should contain metadata defaults only.
 - Generated outbox publisher interfaces should contain metadata defaults only.
