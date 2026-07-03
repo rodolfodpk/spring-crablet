@@ -45,9 +45,9 @@ make install && make codegen-build
 cp -r templates/crablet-app ../my-service
 cp crablet-codegen/target/crablet-codegen.jar ../my-service/tools/
 
-# 3. Configure a generator provider and open your frontend from the app directory
+# 3. Open your AI coding frontend from the app directory
 cd ../my-service
-export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_API_KEY=sk-ant-...   # for Claude Code; not needed for crablet generate
 claude
 ```
 

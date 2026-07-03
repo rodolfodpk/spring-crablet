@@ -20,9 +20,6 @@ describe one vertical slice
 - PostgreSQL
 - Node.js for `make diagram-preview`
 - Claude Code, Cursor, Codex, or a terminal workflow
-- A configured generator provider. Anthropic users set `ANTHROPIC_API_KEY`; OpenAI users set
-  `OPENAI_API_KEY` and a model; local/Ollama users set `CODEGEN_LLM_PROVIDER`,
-  `CODEGEN_LLM_BASE_URL`, and `CODEGEN_LLM_MODEL`.
 - `crablet-codegen.jar`
 
 Phase 1 uses a local generator JAR. From a sibling `spring-crablet` checkout:
@@ -40,39 +37,12 @@ cp ../spring-crablet/crablet-codegen/target/crablet-codegen.jar tools/crablet-co
 Longer term, the template should download a versioned release artifact instead of copying from a
 framework checkout.
 
-## Provider Setup
-
-Anthropic remains the default:
-
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-```
-
-OpenAI:
-
-```bash
-export CODEGEN_LLM_PROVIDER=openai
-export OPENAI_API_KEY=sk-...
-export OPENAI_MODEL=gpt-5.2
-```
-
-Local Ollama or another OpenAI-compatible endpoint:
-
-```bash
-export CODEGEN_LLM_PROVIDER=openai-compatible
-export CODEGEN_LLM_BASE_URL=http://localhost:11434/v1
-export CODEGEN_LLM_MODEL=qwen2.5-coder:32b
-```
-
-Only point custom `CODEGEN_LLM_BASE_URL` values at model endpoints you control or trust. Local
-model quality varies; use a model that can reliably follow strict file-block output instructions.
-
 ## First Slice
 
 Open Claude Code from your app directory (not from inside spring-crablet):
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_API_KEY=sk-ant-...   # for Claude Code; not needed for crablet generate
 claude
 ```
 
