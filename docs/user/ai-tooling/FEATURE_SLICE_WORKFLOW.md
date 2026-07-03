@@ -23,16 +23,9 @@ make install
 make codegen-build
 ```
 
-For generation, the shell running the tool needs a configured provider. Anthropic remains the
-default:
-
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-```
-
-OpenAI, DeepSeek, Ollama, and custom OpenAI-compatible endpoints are selected through
-`CODEGEN_LLM_PROVIDER` and provider-specific key/model/base-url settings. `make plan` does not call
-a model.
+`make plan` and `make generate` are deterministic — no LLM provider key is needed to run them.
+An API key is only required for Claude Code itself (the modeling conversation) and for future
+opt-in codegen commands (`crablet explain`, `crablet suggest`).
 
 For a greenfield app, initialize the project using the starter template:
 
@@ -535,7 +528,7 @@ CLI shortcut:
 make generate   # runs: java -jar tools/crablet-codegen.jar generate --model event-model.yaml --output src/main/java
 ```
 
-The generator runs the agent pipeline and compile-and-repair loop. Claude should report the result
+The generator is deterministic — same YAML, same output, no LLM call. Claude should report the result
 in terms of the slice, not raw implementation noise:
 
 ```text
@@ -635,8 +628,8 @@ CLI shortcut:
 make generate   # runs: java -jar tools/crablet-codegen.jar generate --model event-model.yaml --output src/main/java
 ```
 
-The generator runs the agent pipeline for events, commands, views, automations,
-and outbox publishers, then runs a compile-and-repair loop up to three times.
+The generator deterministically writes events, commands, views, automations,
+and outbox publisher interfaces from the event model. No LLM call; no compile-and-repair loop.
 
 ## Expected Generated Artifacts
 
@@ -684,8 +677,8 @@ crablet_sync_scenarios model=event-model.yaml
 make sync-scenarios   # exits 1 if drift is detected (CI-friendly)
 ```
 
-The compile-and-repair loop may adjust generated Java details, but it should not invent
-new commands, events, views, automations, or publishers that are absent from the model.
+The generator should not invent new commands, events, views, automations, or publishers that are
+absent from the model — generation is driven entirely by `event-model.yaml`.
 
 ## Verify The Slice
 

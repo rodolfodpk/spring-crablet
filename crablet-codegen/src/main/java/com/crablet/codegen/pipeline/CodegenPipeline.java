@@ -6,6 +6,7 @@ import com.crablet.codegen.generator.EventsGenerator;
 import com.crablet.codegen.generator.OutboxGenerator;
 import com.crablet.codegen.generator.ViewsGenerator;
 import com.crablet.codegen.model.EventModel;
+import com.crablet.codegen.planning.ModelValidator;
 import com.crablet.codegen.scaffold.ScenarioScaffoldGenerator;
 import com.crablet.codegen.tools.MavenTool;
 import org.springframework.stereotype.Component;
@@ -16,6 +17,7 @@ import java.nio.file.Path;
 public class CodegenPipeline {
 
     private final SchemaResolver schemaResolver;
+    private final ModelValidator modelValidator;
     private final EventsGenerator eventsGenerator;
     private final CommandsGenerator commandsGenerator;
     private final ViewsGenerator viewsGenerator;
@@ -26,6 +28,7 @@ public class CodegenPipeline {
 
     public CodegenPipeline(
             SchemaResolver schemaResolver,
+            ModelValidator modelValidator,
             EventsGenerator eventsGenerator,
             CommandsGenerator commandsGenerator,
             ViewsGenerator viewsGenerator,
@@ -34,6 +37,7 @@ public class CodegenPipeline {
             ScenarioScaffoldGenerator scenarioScaffoldGenerator,
             MavenTool maven) {
         this.schemaResolver = schemaResolver;
+        this.modelValidator = modelValidator;
         this.eventsGenerator = eventsGenerator;
         this.commandsGenerator = commandsGenerator;
         this.viewsGenerator = viewsGenerator;
@@ -45,6 +49,7 @@ public class CodegenPipeline {
 
     public boolean run(EventModel model, Path outputDir) {
         EventModel resolved = schemaResolver.resolve(model);
+        modelValidator.validate(resolved);
 
         eventsGenerator.generate(resolved, outputDir);
         commandsGenerator.generate(resolved, outputDir);

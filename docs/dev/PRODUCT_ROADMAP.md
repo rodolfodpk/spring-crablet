@@ -118,11 +118,11 @@ default entry point for a developer building incrementally.
 The most important philosophical change in the Crablet AI workflow is this: **the AI writes
 `event-model.yaml`, not Java.**
 
-Currently, the LLM agents generate Java code. This is non-deterministic, requires an API key,
-cannot be verified in CI without a live model call, and produces output that varies across
-providers and model versions.
+Previously, LLM agents generated Java code directly. That path was non-deterministic, required an
+API key, could not be verified in CI without a live model call, and produced output that varied
+across providers and model versions. It has been replaced.
 
-After H2, the LLM writes the model file. Deterministic tools write the Java. This separation:
+Now, the LLM writes the model file. Deterministic generators write the Java. This separation:
 - Makes generation reproducible and testable
 - Removes the API key requirement from the generation step
 - Makes the model file the auditable artifact (what did the AI change? look at the YAML diff)
@@ -183,14 +183,14 @@ interfaces, view projectors, automation handlers, and outbox publishers are func
 Remaining 1.0 work is publication and policy.
 
 **AI Workflow:** Partially implemented. The `crablet-event-modeling` skill guides modeling
-conversations. LLM-backed codegen works but is non-deterministic. The diagram renderer exists
-as a static HTML tool with no live update mechanism. The three-step workflow exists in concept
-but not as a coherent product experience.
+conversations. The diagram renderer exists as a static HTML tool with no live update mechanism.
+The three-step workflow exists in concept but not as a coherent product experience.
 
-**Codegen:** `ArtifactPlanner` enumerates artifacts deterministically. `K8sGenerator` and
-`ScenarioScaffoldGenerator` are already deterministic. The plan to replace LLM agents with
-deterministic generators is written and sequenced. State derivation metadata does not yet exist
-in `event-model.yaml`.
+**Codegen:** All five generators (`EventsGenerator`, `CommandsGenerator`, `ViewsGenerator`,
+`AutomationsGenerator`, `OutboxGenerator`) are deterministic — same YAML, same generator version,
+same output. No LLM API key is required for `generate`, `plan`, `init`, `k8s`, or `sync-scenarios`.
+Generator golden tests and a regenerate-and-diff CI gate (`make codegen-regenerate-verify`) enforce
+this contract. State derivation metadata does not yet exist in `event-model.yaml`.
 
 **Ops:** LISTEN/NOTIFY wakeup with pooler detection is implemented. K8s generation exists.
 KEDA integration exists. Correlation/causation propagation and observability are post-1.0.
@@ -510,14 +510,15 @@ Neither command is part of the default `generate` path. Both require an LLM call
 and are manifest-aware (they know which files are machine-owned and do not propose edits to
 them).
 
-#### 2.7 Repair Loop and Manifest Consistency
+#### 2.7 Manifest Consistency
 
-The existing fence-stripping and repair loop in `RepairAgent` is defensive tooling. It must
-not be extended — the investment goes into deterministic generators, not better prompts.
+`RepairAgent` and the LLM-codegen repair loop were removed in the trust-hardening pass (July 2026).
+All generators are deterministic; there is no compile-fix-retry cycle in the default `generate` path.
 
-`crablet repair` must either update the manifest when it writes machine-owned files, or be
-explicitly documented as manifest-unaware. Silent writes to machine-owned files without
-manifest updates create drift that `generate` cannot detect and the user cannot explain.
+If a future `crablet repair` command is introduced for user-owned files, it must either update
+the manifest when it writes machine-owned files, or be explicitly documented as manifest-unaware.
+Silent writes to machine-owned files without manifest updates create drift that `generate` cannot
+detect and the user cannot explain.
 
 ---
 

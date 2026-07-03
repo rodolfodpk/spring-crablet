@@ -2,7 +2,7 @@
 name: crablet-codegen
 description: >
   Use this skill in a generated Crablet app for codegen provider setup, generator-owned vs
-  user-owned artifact boundaries, repair-cycle behavior, and generation failure recovery.
+  user-owned artifact boundaries, and generation failure recovery.
   Do not use for feature-slice workflow sequencing (use crablet-app-dev) or local invocation/output
   paths (use crablet-local-dev).
 ---
@@ -66,20 +66,17 @@ implementation classes are not touched by the generator.
 Key rule: if behavior is wrong, create or edit the `@Component` implementation class. Do not put
 business logic in the generated interface.
 
-## Repair Cycle
+## Recovery When Generation Produces Compile Errors
 
-The generator runs compile -> fix -> compile automatically, up to 3 times. Output shows
-`[RepairAgent]` lines during repair. If all 3 attempts fail, the build prints a `[WARN]` with the
-compiler errors above it.
-
-When repair is exhausted:
+Generation is deterministic — the same YAML produces the same code every time. A compile error in
+generated output means the event model is under-specified.
 
 1. Read the compiler error. It names the file and line.
 2. Fix the generator-owned file manually, or delete that generated file and rerun generation, as an
    emergency unblock. Manual fixes to generator-owned files are temporary; the next generation run
-   can overwrite them.
-3. Make the durable fix in `event-model.yaml` when the model is under-specified. If the model is
-   correct and the error repeats, report the issue against spring-crablet codegen.
+   will overwrite them.
+3. Make the durable fix in `event-model.yaml`: add the missing field, type, tag, or annotation and
+   re-run `plan` → `generate`. If the error repeats, report the issue against spring-crablet codegen.
 
 Do not delete user `@Component` implementation classes.
 
@@ -87,8 +84,6 @@ Do not delete user `@Component` implementation classes.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Compilation fails after 3 repair attempts | Generator cannot resolve the error | Read the compiler error. Fix the generated file as a temporary unblock, or fix `event-model.yaml` and rerun |
-| No `===FILE: ...===` blocks in output | Prompt exceeded context, or `claude-md-path` is misconfigured | Use the template Makefile/MCP flow, or check direct JAR invocation |
-| YAML parse error / `$ref` not found | Malformed `event-model.yaml` or missing schema entry | Run `plan` first. It parses without a model call and shows the error immediately |
-| `ANTHROPIC_API_KEY is not set` or similar | Provider not configured | Set the provider-specific env var or switch `CODEGEN_LLM_PROVIDER` |
+| Compilation fails in generated code | Event model under-specified | Read the compiler error. Fix `event-model.yaml` and rerun `plan` → `generate`. Manual edit is a temporary unblock only |
+| YAML parse error / `$ref` not found | Malformed `event-model.yaml` or missing schema entry | Run `plan` first. It parses without writing files and shows the error immediately |
 | Generated code compiles but behavior is wrong | Business logic missing; generated interfaces have no logic | Create a `@Component` class implementing the generated interface. Never edit the interface |
