@@ -1,6 +1,6 @@
 # Crablet Product Roadmap
 
-Last updated: 2026-05-25
+Last updated: 2026-05-31
 
 ---
 
@@ -197,6 +197,44 @@ KEDA integration exists. Correlation/causation propagation and observability are
 
 ---
 
+## Health Assessment (2026-05-31)
+
+A structural and process assessment (architecture, test ratios, docs, CI, code hygiene) — not a
+line-by-line correctness audit of poller/DCB internals.
+
+**Verdict: strong on design, implementation, and documentation; two soft spots — codegen maturity
+and adoption surface — both already sequenced in the roadmap below.**
+
+**Strengths (evidence):**
+
+- **Design.** Acyclic module DAG (`eventstore` root; `observability`/`db-migrations` are leaf
+  contracts). DCB multi-entity consistency without aggregate-per-command is a genuine differentiator
+  in the Java space. Conventions are governed as *closed decisions* (transaction_id linkage,
+  ClockProvider, EventType.type, snake_case tags), not informal style.
+- **Implementation.** ~21k lines of main Java with **0 TODO/FIXME/HACK** markers and 1 `@Deprecated`.
+  ~205 test files; strong ratios where it matters (commands 45, eventstore 37, outbox 32, poller 27),
+  Testcontainers-backed.
+- **CI.** Beyond build: verifies a committed codegen snapshot, runs doc guardrails, compiles tutorial
+  fixtures, regenerates snippets. This "docs can't drift from code" discipline is what makes the
+  heavy documentation trustworthy.
+- **Documentation.** 84 doc files + ~3,600 lines of module READMEs + skills + concept map; README
+  tiers maturity honestly (runtime near-complete, AI tooling in progress, K8s early).
+
+**Soft spots (risk → where addressed):**
+
+1. **Codegen maturity.** It is the headline/differentiator but the least-proven module (thin tests;
+   agents→generators refactor in progress). Risk: the marketed track is softer than the runtime.
+   → Mitigated by **H2 §2.3 deterministic codegen** (makes generation testable offline in CI) and a
+   near-term push on codegen test coverage.
+2. **Adoption surface.** Java 25 + Spring Boot 4 is bleeding-edge, narrowing near-term adopters;
+   single primary author. → Mitigated by **H1 §1.1 Maven Central publication** and the stated
+   Java 25 / Spring Boot 4 / PostgreSQL 17+ baseline + semantic-versioning policy in §1.2.
+
+**Positioning note:** lead the value proposition with the **runtime** (the solid part); present the
+AI-first codegen as the in-progress accelerator, consistent with the README's maturity tiering.
+
+---
+
 ## Roadmap
 
 ### Horizon 1: 1.0 Release (Q2–Q3 2026)
@@ -224,7 +262,19 @@ assume Central availability.
 - Java 25 / Spring Boot 4 / PostgreSQL 17+ baseline stated in README and release notes
 - SBOM generated via `cyclonedx-maven-plugin` attached to release
 
-#### 1.3 Course Example Committed
+#### 1.3 Fast Handler-Test Base (`crablet-test-commands`)
+
+Done: extracted the command-handler BDD base into a dedicated `crablet-test-commands` module
+(`AbstractInMemoryHandlerTest`, in-memory event store, no Postgres) so handler unit tests are fast
+and don't depend on the framework's internal `crablet-commands` test-jar. The originally-planned
+full split of `crablet-test-support` into `-inmemory` / `-postgres` (with migration relocation) was
+**dropped** — it bought only dependency hygiene, not speed, at high build-system churn. The shared
+PostgreSQL integration base was renamed separately to `AbstractPostgresEventStoreTest`. An optional
+minimal `crablet-test-inmemory` extraction remains documented for later if Testcontainers-on-classpath
+becomes a concern.
+Record + optional follow-ups: `docs/dev/plans/test-support-fast-slow-split.md`.
+
+#### 1.4 Course Example Committed
 
 The `course-example-app` is implemented but not committed. It is the only example that
 demonstrates the multi-aggregate DCB pattern (course capacity + student enrollment limit in

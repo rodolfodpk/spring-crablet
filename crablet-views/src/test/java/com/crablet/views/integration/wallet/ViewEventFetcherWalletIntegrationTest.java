@@ -1,13 +1,12 @@
 package com.crablet.views.integration.wallet;
 
 import com.crablet.eventstore.AppendEvent;
-import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.test.config.CrabletFlywayConfiguration;
 import com.crablet.views.ViewSubscription;
-import com.crablet.views.integration.AbstractViewsTest;
+import com.crablet.views.integration.AbstractViewsIntegrationTest;
 import com.crablet.views.internal.ViewEventFetcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,23 +35,14 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(classes = ViewEventFetcherWalletIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DisplayName("ViewEventFetcher Wallet Domain Integration Tests")
-class ViewEventFetcherWalletIntegrationTest extends AbstractViewsTest {
+class ViewEventFetcherWalletIntegrationTest extends AbstractViewsIntegrationTest {
 
     @Autowired
     private DataSource dataSource;
-
-    @Autowired
-    private EventStore eventStore;
-
     @Autowired
     private ViewEventFetcher eventFetcher;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
     @BeforeEach
     void setUp() {
-        cleanDatabase(jdbcTemplate);
     }
 
     @Test
@@ -311,9 +301,9 @@ class ViewEventFetcherWalletIntegrationTest extends AbstractViewsTest {
             SimpleDriverDataSource dataSource =
                     new SimpleDriverDataSource();
             dataSource.setDriverClass(org.postgresql.Driver.class);
-            dataSource.setUrl(AbstractViewsTest.postgres.getJdbcUrl());
-            dataSource.setUsername(AbstractViewsTest.postgres.getUsername());
-            dataSource.setPassword(AbstractViewsTest.postgres.getPassword());
+            dataSource.setUrl(AbstractViewsIntegrationTest.postgres.getJdbcUrl());
+            dataSource.setUsername(AbstractViewsIntegrationTest.postgres.getUsername());
+            dataSource.setPassword(AbstractViewsIntegrationTest.postgres.getPassword());
             return dataSource;
         }
 

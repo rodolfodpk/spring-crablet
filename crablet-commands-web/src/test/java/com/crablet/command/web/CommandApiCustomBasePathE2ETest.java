@@ -1,7 +1,7 @@
 package com.crablet.command.web;
 
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
-import com.crablet.test.AbstractCrabletTest;
+import com.crablet.test.AbstractPostgresEventStoreTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         }
 )
 @DisplayName("Command API Custom Base Path E2E Tests")
-class CommandApiCustomBasePathE2ETest extends AbstractCrabletTest {
+class CommandApiCustomBasePathE2ETest extends AbstractPostgresEventStoreTest {
 
     @LocalServerPort
     private int port;

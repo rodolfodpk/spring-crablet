@@ -2,7 +2,7 @@ package com.crablet.wallet;
 
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.EventStore;
-import com.crablet.test.cleanup.IntegrationTestDbCleanup;
+import com.crablet.test.cleanup.CrabletTestSchemaCleanup;
 import com.crablet.wallet.cleanup.WalletIntegrationTestDbCleanup;
 import com.crablet.wallet.cleanup.WalletViewProgressFixtures;
 import org.junit.jupiter.api.AfterAll;
@@ -118,9 +118,9 @@ public abstract class AbstractWalletTest {
 
     protected void cleanProcessorState() {
         try {
-            IntegrationTestDbCleanup.truncateAutomationProgress(jdbcTemplate);
-            IntegrationTestDbCleanup.truncateOutboxTopicProgress(jdbcTemplate);
-            IntegrationTestDbCleanup.truncateSharedFetchScanProgress(jdbcTemplate);
+            CrabletTestSchemaCleanup.truncateAutomationProgress(jdbcTemplate);
+            CrabletTestSchemaCleanup.truncateOutboxTopicProgress(jdbcTemplate);
+            CrabletTestSchemaCleanup.truncateSharedFetchScanProgress(jdbcTemplate);
         } catch (BadSqlGrammarException e) {
             // Tables don't exist yet - Flyway will create them
         } catch (Exception e) {

@@ -9,9 +9,11 @@ import com.crablet.codegen.model.ScenarioSpec;
 import com.crablet.codegen.model.ViewSpec;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 public class ModelValidator {
@@ -24,7 +26,7 @@ public class ModelValidator {
     }
 
     public List<String> errors(EventModel model) {
-        var errors = new java.util.ArrayList<String>();
+        var errors = new ArrayList<String>();
 
         requireName(errors, "domain", model.domain());
         requireName(errors, "basePackage", model.basePackage());
@@ -131,8 +133,8 @@ public class ModelValidator {
 
     private void validateAutomations(EventModel model, List<String> errors) {
         Set<String> eventNames = Set.copyOf(model.eventNames());
-        Set<String> commandNames = model.commands().stream().map(CommandSpec::name).collect(java.util.stream.Collectors.toSet());
-        Set<String> viewNames = model.views().stream().map(ViewSpec::name).collect(java.util.stream.Collectors.toSet());
+        Set<String> commandNames = model.commands().stream().map(CommandSpec::name).collect(Collectors.toSet());
+        Set<String> viewNames = model.views().stream().map(ViewSpec::name).collect(Collectors.toSet());
         for (AutomationSpec automation : model.automations()) {
             if (isBlank(automation.name())) {
                 errors.add("automations contains an automation without a name");

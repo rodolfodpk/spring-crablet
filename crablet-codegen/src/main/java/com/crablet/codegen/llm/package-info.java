@@ -1,5 +1,5 @@
 /**
- * Embabel codegen LLM client adapter.
+ * Codegen LLM client adapter.
  *
  * Public API annotations use {@code org.jspecify.annotations}.
  */

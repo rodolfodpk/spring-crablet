@@ -1,64 +1,62 @@
 # AI Workflow Feasibility Assessment
 
-_Date: 2026-05-24_
+_Date: 2026-07-02 (updated from 2026-05-24)_
 
-## Verdict: Feasible, with known gaps
+## Verdict: Feasible — default generate is deterministic
 
 ---
 
 ## What's fully built
 
-**The structural layer is complete.** The pipeline is real, not aspirational:
+**The generation pipeline is deterministic.** `generate`, `plan`, `init`, `k8s`, and
+`sync-scenarios` require no LLM API key:
 
-- `CodegenPipeline` runs all five agents (events → commands → views → automations → outbox) plus
-  scenario scaffold and a 3-attempt compile-and-repair loop
-  (`crablet-codegen/.../pipeline/CodegenPipeline.java`).
-- `ArtifactPlanner` is deterministic and well-tested — plan output is verified against the loan
-  fixture without LLM involvement (`planning/ArtifactPlannerTest.java`).
+- `CodegenPipeline` runs five deterministic generators (events → commands → views →
+  automations → outbox) plus `ScenarioScaffoldGenerator`.
+- `ArtifactPlanner` is deterministic and well-tested — plan output is verified against the
+  loan fixture without any LLM involvement (`planning/ArtifactPlannerTest.java`).
 - `McpServer` exposes `crablet_plan`, `crablet_generate`, `crablet_init`,
   `crablet_sync_scenarios` as real MCP tools — Claude Code and Cursor can invoke them.
-- Agent prompts (`CommandsAgent`, `ViewsAgent`, etc.) embed the framework patterns, DCB strategy
-  mapping, and YAVI constraints, not generic Java prompts.
-- `crablet-codegen/CLAUDE.md` is a concrete template used by `TemplateLoader` at runtime — the
-  agents know the exact interface shapes to produce.
+- `crablet-codegen/CLAUDE.md` is a human-readable shape contract for generated artifact
+  shapes; it is not injected into LLM prompts at runtime.
 
-**The two-step loop (workshop → YAML → code) is the right architecture.** The model is the durable
-artifact, not a transcript. The `plan` step lets you review artifact names before touching files.
-The repair loop catches structural compilation errors.
+**The two-step loop (workshop → YAML → code) is the right architecture.** The model is the
+durable artifact, not a conversation transcript. The `plan` step lets you review artifact
+names before touching files. `generate` produces the same output every time from the same
+YAML.
 
 ---
 
 ## Where the real risk lives
 
-**1. Code generation quality is untested end-to-end.**
-`CommandsAgentTest` only checks that the prompt contains the right facts — it captures but never
-evaluates the LLM response. No test runs `generate` against a real app and verifies the output
-compiles. The `make codegen-check` target only exercises `plan`, not generation.
+**1. Generator unit tests are incomplete.**
+Only `CommandsGeneratorTest` exists. Events, views, automations, and outbox generators are
+untested at the unit level. A generator regression will not be caught until the
+`codegen-snapshot-verify` CI step.
 
-**2. The repair loop has a hard ceiling.**
-Three repair attempts is fine for simple structural errors but may not be enough for a model with
-multi-aggregate DCB or complex automation wiring. There is no escalation path after attempt 3 — it
-prints a warning and exits.
+**2. No regenerate-and-diff gate yet.**
+`examples/loan-generated-snapshot` compiles in CI (`make codegen-snapshot-verify`) but is
+not compared against a fresh `generate` run. The snapshot can drift from the generator
+silently — the only signal is a compile error.
 
 **3. Model completeness is the human gate.**
 Generated code quality is directly proportional to `event-model.yaml` richness. Forgetting
-`guardEvents`, a wrong pattern, or a missing `produces` entry propagates into broken code. The
-workflow's "ask for missing facts" dialogue is critical — that is why the Claude Code skills exist.
+`guardEvents`, a wrong pattern, or a missing `produces` entry produces structurally broken
+or incorrect code. The event-modeling skills exist precisely to guide complete models.
 
 **4. Test scaffolds are stubs.**
-Generated tests (`SubmitLoanApplicationScenarioTest`) have `// Given/When/Then` comments but no
-assertions. CI will pass them, which masks missing business logic coverage.
+Generated tests (`SubmitLoanApplicationScenarioTest`) have `// Given/When/Then` comments
+but no assertions. CI will pass them, which masks missing business logic coverage. This is
+intentional — scenario stubs are human-owned from first write.
 
 ---
 
 ## Bottom line
 
-The infrastructure is substantially real. Model parsing, planning, prompt construction, MCP tools,
-and the pipeline are all production-grade code, not scaffolding. What is not yet in place is
-**hardening evidence**: no CI-level test runs `generate` end-to-end and checks a known-good app
-compiles. That is the main gap between "feasible" and "reliable."
+The infrastructure is substantially complete. Model parsing, planning, deterministic code
+generation, MCP tools, and the pipeline are production-grade. The remaining gaps are
+hardening gaps: generator unit test coverage and a regenerate-and-diff CI gate. Both are
+tracked in `docs/dev/plans/ai-workflow-trust-hardening.md`.
 
-The workflow will work well for clean, well-modeled greenfield slices. It will struggle on complex
-DCB boundaries, brownfield app integration, or underdefined models. Those are fixable by either
-adding end-to-end generation tests or deliberately running the loan-slice through `make generate`
-and committing the result as a living fixture.
+No API key is needed for the default workflow. An LLM is used only during the Event Modeling
+workshop phase (producing `event-model.yaml`), not during `generate`.

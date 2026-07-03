@@ -1,79 +1,21 @@
 package com.crablet.metrics.micrometer.integration;
 
-import com.crablet.eventstore.EventStore;
-import com.crablet.test.cleanup.IntegrationTestDbCleanup;
+import com.crablet.test.AbstractPostgresEventStoreTest;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
-import org.springframework.jdbc.BadSqlGrammarException;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Base class for metrics integration tests.
  * Sets up EventStore with MicrometerMetricsCollector and verifies metrics are collected.
  */
 @SpringBootTest(classes = TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
-@Testcontainers
-public abstract class AbstractMetricsIntegrationTest {
-    private static final PostgreSQLContainer<?> SHARED_POSTGRES = new PostgreSQLContainer<>("postgres:17")
-            .withDatabaseName("postgres")
-            .withUsername("postgres")
-            .withPassword("postgres")
-            .withReuse(true)
-            .withCommand("postgres", "-c", "max_connections=200", "-c", "shared_buffers=128MB", "-c", "work_mem=32MB")
-            .withLabel("testcontainers.reuse", "true");
-    static final PostgreSQLContainer<?> postgres = SHARED_POSTGRES;
+public abstract class AbstractMetricsIntegrationTest extends AbstractPostgresEventStoreTest {
 
-    static {
-        SHARED_POSTGRES.start();
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("Shutting down Testcontainers PostgreSQL container...");
-            try {
-                SHARED_POSTGRES.stop();
-                System.out.println("Testcontainers PostgreSQL container stopped successfully.");
-            } catch (Exception e) {
-                System.err.println("Failed to stop Testcontainers PostgreSQL container: " + e.getMessage());
-            }
-        }));
-    }
-
-    @Autowired
-    protected EventStore eventStore;
-    
     @Autowired
     protected MeterRegistry meterRegistry;
-    
-    @Autowired
-    protected JdbcTemplate jdbcTemplate;
-    
+
     @Autowired
     protected ApplicationContext applicationContext;
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.flyway.enabled", () -> true);
-        // Reduce connection pool sizes for tests to avoid exhausting PostgreSQL max_connections
-        registry.add("spring.datasource.hikari.maximum-pool-size", () -> 5);
-        registry.add("spring.datasource.hikari.minimum-idle", () -> 1);
-    }
-
-    @BeforeEach
-    void cleanDatabase() {
-        // Only clean if tables exist (Flyway may not have run yet)
-        try {
-            IntegrationTestDbCleanup.truncateEventStoreTablesAndRestartPositionSequence(jdbcTemplate);
-        } catch (BadSqlGrammarException e) {
-            // Tables don't exist yet - Flyway will create them
-            // This is expected on first run
-        }
-    }
 }

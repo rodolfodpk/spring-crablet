@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Tag("benchmark")
 @DisplayName("event_tags append write-path benchmark")
 @SpringBootTest(classes = TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
-class EventTagsAppendBenchmarkTest extends AbstractCrabletTest {
+class EventTagsAppendBenchmarkTest extends AbstractEventStoreIntegrationTest {
 
     private static final int SAMPLE_COUNT = 200;
     private static final int TAGS_PER_EVENT = 4;

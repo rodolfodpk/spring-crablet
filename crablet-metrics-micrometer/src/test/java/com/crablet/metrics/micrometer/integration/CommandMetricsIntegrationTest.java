@@ -8,6 +8,8 @@ import io.micrometer.core.instrument.Timer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.TimeUnit;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -122,7 +124,6 @@ class CommandMetricsIntegrationTest extends AbstractMetricsIntegrationTest {
             .timer();
         assertThat(timer).isNotNull();
         assertThat(timer.count()).isGreaterThanOrEqualTo(1);
-        assertThat(timer.totalTime(java.util.concurrent.TimeUnit.MILLISECONDS)).isGreaterThan(0);
+        assertThat(timer.totalTime(TimeUnit.MILLISECONDS)).isGreaterThan(0);
     }
 }
-

@@ -48,26 +48,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest(classes = AutomationDispatcherIntegrationTest.TestConfig.class,
         webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DisplayName("AutomationDispatcher Integration Tests")
-class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
-
-    @Autowired
-    private EventStore eventStore;
-
+class AutomationDispatcherIntegrationTest extends AbstractAutomationsIntegrationTest {
     @Autowired
     private CommandExecutor commandExecutor;
 
     @Autowired
     private ReadDataSource readDataSource;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
     @Autowired
     private RecordingAutomationHandler recordingHandler;
 
     @BeforeEach
     void setUp() {
-        cleanDatabase(jdbcTemplate);
         recordingHandler.clear();
     }
 
@@ -210,9 +201,9 @@ class AutomationDispatcherIntegrationTest extends AbstractAutomationsTest {
             SimpleDriverDataSource ds =
                     new SimpleDriverDataSource();
             ds.setDriverClass(org.postgresql.Driver.class);
-            ds.setUrl(AbstractAutomationsTest.postgres.getJdbcUrl());
-            ds.setUsername(AbstractAutomationsTest.postgres.getUsername());
-            ds.setPassword(AbstractAutomationsTest.postgres.getPassword());
+            ds.setUrl(AbstractAutomationsIntegrationTest.postgres.getJdbcUrl());
+            ds.setUsername(AbstractAutomationsIntegrationTest.postgres.getUsername());
+            ds.setPassword(AbstractAutomationsIntegrationTest.postgres.getPassword());
             return ds;
         }
 

@@ -191,7 +191,7 @@ public class WalletViewProjector extends AbstractTypedViewProjector<WalletEvent>
 
 ```java
 @Configuration
-public class ViewConfiguration {
+public class WalletViewConfig {
 
     @Bean
     public ViewSubscription walletViewSubscription(WalletViewProjector projector) {

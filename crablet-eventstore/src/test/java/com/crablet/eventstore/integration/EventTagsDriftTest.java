@@ -9,7 +9,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("event_tags drift tests")
-class EventTagsDriftTest extends AbstractCrabletTest {
+class EventTagsDriftTest extends AbstractEventStoreIntegrationTest {
 
     @Test
     @DisplayName("every event with tags has a corresponding event_tags row")

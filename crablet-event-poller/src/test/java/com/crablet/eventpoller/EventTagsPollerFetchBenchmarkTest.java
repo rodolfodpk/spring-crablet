@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Benchmark: per-processor poller fetch time with sparse required-tag-key filter.
  *
- * Establishes a timing baseline for EventSelectionSqlBuilder after the query
+ * Establishes a timing baseline for EventSelectionWhereClauseBuilder after the query
  * switch from unnest(tags) LIKE to event_tags correlated EXISTS subqueries.
  * Run with -Dgroups=benchmark to include in a benchmark-only suite.
  *
@@ -82,7 +82,7 @@ class EventTagsPollerFetchBenchmarkTest {
     @DisplayName("Average and P99 fetch time: sparse required-tag-key filter over 10k events")
     void sparseRequiredTagKeyFetch() {
         EventSelection selection = sparseSelection();
-        String sqlFilter = EventSelectionSqlBuilder.buildWhereClause(selection);
+        String sqlFilter = EventSelectionWhereClauseBuilder.buildWhereClause(selection);
 
         TestFetcher fetcher = new TestFetcher(dataSource, sqlFilter);
 

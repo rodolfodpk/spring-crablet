@@ -189,13 +189,13 @@ New class in `crablet-event-poller`:
 EventSelectionMatcher.matches(EventSelection selection, StoredEvent event) → boolean
 ```
 
-Mirrors `EventSelectionSqlBuilder` exactly:
+Mirrors `EventSelectionWhereClauseBuilder` exactly:
 - empty event types = match all; otherwise type must be in set
 - required tag keys: all must be present as `key=*` in tags array
 - any-of tag keys: at least one must be present
 - exact tag key=value pairs: must match exactly
 
-Unit-tested for parity with SQL builder across all filter combinations. Tag key/value inputs are domain-controlled (same trust boundary as `EventSelectionSqlBuilder`).
+Unit-tested for parity with SQL builder across all filter combinations. Tag key/value inputs are domain-controlled (same trust boundary as `EventSelectionWhereClauseBuilder`).
 
 **Extensibility:** The pipeline is **fetch → match → dispatch to `EventHandler`** — it is not tied to JDBC view writers. Any module that today uses `EventHandler` (including command-oriented automations) can reuse the same fan-out layer later without changing the fetch SQL; only the handler implementation differs.
 

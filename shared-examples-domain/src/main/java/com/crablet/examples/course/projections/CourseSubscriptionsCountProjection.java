@@ -4,6 +4,8 @@ import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.StoredEvent;
 
+import java.util.List;
+
 /**
  * Projector for counting course subscriptions.
  * Not a singleton - create instances as needed. This class is stateless and thread-safe.
@@ -19,8 +21,8 @@ public class CourseSubscriptionsCountProjection implements StateProjector<Intege
     }
 
     @Override
-    public java.util.List<String> getEventTypes() {
-        return java.util.List.of("StudentSubscribedToCourse");
+    public List<String> getEventTypes() {
+        return List.of("StudentSubscribedToCourse");
     }
 
     @Override
@@ -34,4 +36,3 @@ public class CourseSubscriptionsCountProjection implements StateProjector<Intege
         return currentState + 1;
     }
 }
-

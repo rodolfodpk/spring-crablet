@@ -7,6 +7,7 @@ import com.crablet.eventstore.query.Query;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Sealed decision type for command handling.
@@ -92,7 +93,7 @@ public sealed interface CommandDecision
         public CommutativeGuarded {
             var appendedEventTypes = events.stream()
                     .map(AppendEvent::type)
-                    .collect(java.util.stream.Collectors.toSet());
+                    .collect(Collectors.toSet());
 
             var overlappingTypes = guardQuery.items().stream()
                     .flatMap(item -> item.eventTypes().stream())

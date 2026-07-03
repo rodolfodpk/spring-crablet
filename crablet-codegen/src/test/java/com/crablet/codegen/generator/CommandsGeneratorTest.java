@@ -21,7 +21,7 @@ class CommandsGeneratorTest {
     Path tempDir;
 
     @Test
-    void generatesCommandRecordAndHandlerContractWithoutLlm() throws Exception {
+    void generatesIdempotentHandlerInterface() throws Exception {
         FileWriterTool fileWriter = new FileWriterTool();
         CommandsGenerator generator = new CommandsGenerator(fileWriter);
 
@@ -66,5 +66,113 @@ class CommandsGeneratorTest {
         assertThat(handler)
                 .contains("import com.crablet.command.IdempotentCommandHandler;")
                 .contains("public interface SubmitLoanApplicationCommandHandler extends IdempotentCommandHandler<SubmitLoanApplication>");
+    }
+
+    @Test
+    void generatesNonCommutativeHandlerInterface() throws Exception {
+        FileWriterTool fileWriter = new FileWriterTool();
+        CommandsGenerator generator = new CommandsGenerator(fileWriter);
+
+        EventModel model = new EventModel(
+                "Wallet",
+                "com.example.wallet",
+                null,
+                List.of(new EventSpec("FundsWithdrawn", List.of("wallet_id"), null, List.of())),
+                List.of(new CommandSpec(
+                        "WithdrawFunds",
+                        "non-commutative",
+                        List.of("FundsWithdrawn"),
+                        List.of(),
+                        null,
+                        List.of(new FieldSpec("walletId", "string", null, null, null, null, 1, null, null, null, null, null)),
+                        Map.of())),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        generator.generate(model, tempDir);
+
+        String handler = Files.readString(tempDir.resolve(
+                "com/example/wallet/command/WithdrawFundsCommandHandler.java"));
+
+        assertThat(handler)
+                .contains("import com.crablet.command.NonCommutativeCommandHandler;")
+                .contains("extends NonCommutativeCommandHandler<WithdrawFunds>");
+    }
+
+    @Test
+    void generatesCommutativeHandlerInterface() throws Exception {
+        FileWriterTool fileWriter = new FileWriterTool();
+        CommandsGenerator generator = new CommandsGenerator(fileWriter);
+
+        EventModel model = new EventModel(
+                "Wallet",
+                "com.example.wallet",
+                null,
+                List.of(new EventSpec("FundsDeposited", List.of("wallet_id"), null, List.of())),
+                List.of(new CommandSpec(
+                        "DepositFunds",
+                        "commutative",
+                        List.of("FundsDeposited"),
+                        List.of(),
+                        null,
+                        List.of(new FieldSpec("walletId", "string", null, null, null, null, 1, null, null, null, null, null)),
+                        Map.of())),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        generator.generate(model, tempDir);
+
+        String handler = Files.readString(tempDir.resolve(
+                "com/example/wallet/command/DepositFundsCommandHandler.java"));
+
+        assertThat(handler)
+                .contains("import com.crablet.command.CommutativeCommandHandler;")
+                .contains("extends CommutativeCommandHandler<DepositFunds>");
+    }
+
+    @Test
+    void generatesCommutativeWithGuardEventsInterface() throws Exception {
+        FileWriterTool fileWriter = new FileWriterTool();
+        CommandsGenerator generator = new CommandsGenerator(fileWriter);
+
+        EventModel model = new EventModel(
+                "Wallet",
+                "com.example.wallet",
+                null,
+                List.of(
+                        new EventSpec("WalletOpened", List.of("wallet_id"), null, List.of()),
+                        new EventSpec("FundsDeposited", List.of("wallet_id"), null, List.of())),
+                List.of(new CommandSpec(
+                        "DepositFunds",
+                        "commutative",
+                        List.of("FundsDeposited"),
+                        List.of("WalletOpened"),
+                        null,
+                        List.of(new FieldSpec("walletId", "string", null, null, null, null, 1, null, null, null, null, null)),
+                        Map.of())),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        generator.generate(model, tempDir);
+
+        String handler = Files.readString(tempDir.resolve(
+                "com/example/wallet/command/DepositFundsCommandHandler.java"));
+
+        assertThat(handler)
+                .contains("import com.crablet.command.CommutativeCommandHandler;")
+                .contains("extends CommutativeCommandHandler<DepositFunds>")
+                .contains("WalletOpened");
     }
 }

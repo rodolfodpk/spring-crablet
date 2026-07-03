@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -40,7 +41,7 @@ public class CountDownLatchPublisher implements OutboxPublisher {
         if (latch == null) {
             throw new IllegalStateException("No latch set up. Call expectEvents() first.");
         }
-        return latch.await(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+        return latch.await(timeoutMs, TimeUnit.MILLISECONDS);
     }
     
     /**
@@ -101,4 +102,3 @@ public class CountDownLatchPublisher implements OutboxPublisher {
         return PublishMode.BATCH;
     }
 }
-

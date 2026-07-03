@@ -105,10 +105,17 @@
             <artifactId>flyway-database-postgresql</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Crablet Test Support (for AbstractHandlerUnitTest, InMemoryEventStore, AbstractCrabletTest) -->
+        <!-- Crablet Test Support (for InMemoryEventStore, AbstractPostgresEventStoreTest) -->
         <dependency>
             <groupId>com.crablet</groupId>
             <artifactId>crablet-test-support</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Crablet Test Commands (AbstractInMemoryHandlerTest — handler BDD base) -->
+        <dependency>
+            <groupId>com.crablet</groupId>
+            <artifactId>crablet-test-commands</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

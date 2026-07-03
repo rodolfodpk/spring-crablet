@@ -2,6 +2,7 @@ package com.crablet.eventstore;
 
 import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -42,7 +43,7 @@ public record Tag(@Nullable String key, @Nullable String value) {
             throw new IllegalArgumentException("Key-value pairs must be even");
         }
 
-        var tags = new java.util.ArrayList<Tag>();
+        var tags = new ArrayList<Tag>();
         for (int i = 0; i < keyValuePairs.length; i += 2) {
             tags.add(new Tag(keyValuePairs[i], keyValuePairs[i + 1]));
         }

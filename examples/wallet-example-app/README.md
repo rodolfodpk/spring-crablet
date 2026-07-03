@@ -435,7 +435,7 @@ crablet.metrics.enabled=false
 
 ### View Configuration
 
-View subscriptions are configured in `ViewConfiguration.java`:
+View subscriptions are configured in `WalletViewConfig.java`:
 - Each view subscribes to specific event types
 - Uses tag-based filtering (wallet_id, from_wallet_id, to_wallet_id)
 - Views process events asynchronously with leader election
@@ -547,7 +547,7 @@ Test wiring in this module:
 - **`TestApplication`** (test scope) imports **`CrabletFlywayConfiguration`** from `crablet-test-support`, so the same consolidated framework migrations as other modules apply on the test classpath, alongside this app’s own scripts under `src/main/resources/db/migration/app/`.
 - **`AbstractWalletTest`** resets data between tests and seeds default view-processor rows via **`WalletIntegrationTestDbCleanup`** and **`WalletViewProgressFixtures`** (`src/test/java/com/crablet/wallet/cleanup/`). E2E tests call the same helpers for consistent `TRUNCATE` sets (`crablet_events`, `crablet_commands`, views, outbox, automations, shared-fetch tables as needed).
 
-For the general testing story and `IntegrationTestDbCleanup`, see **[EventStore testing guide](../../crablet-eventstore/TESTING.md)** and **[Build guide](../../docs/user/BUILD.md)**.
+For the general testing story and `CrabletTestSchemaCleanup`, see **[EventStore testing guide](../../crablet-eventstore/TESTING.md)** and **[Build guide](../../docs/user/BUILD.md)**.
 
 ### Running
 

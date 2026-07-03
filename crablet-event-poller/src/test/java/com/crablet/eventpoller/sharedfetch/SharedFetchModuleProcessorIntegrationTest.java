@@ -2,7 +2,7 @@ package com.crablet.eventpoller.sharedfetch;
 
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventSelection;
-import com.crablet.eventpoller.integration.AbstractEventProcessorTest;
+import com.crablet.eventpoller.integration.AbstractEventProcessorIntegrationTest;
 import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.eventpoller.progress.ProcessorStatus;
@@ -15,7 +15,7 @@ import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.internal.ClockProviderImpl;
 import com.crablet.eventstore.internal.EventStoreImpl;
-import com.crablet.test.cleanup.IntegrationTestDbCleanup;
+import com.crablet.test.cleanup.CrabletTestSchemaCleanup;
 import com.crablet.test.config.CrabletFlywayConfiguration;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Delayed;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -64,7 +65,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(classes = SharedFetchModuleProcessorIntegrationTest.TestConfig.class,
         webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DisplayName("SharedFetchModuleProcessor Integration Tests")
-class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTest {
+class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorIntegrationTest {
 
     static final String MODULE = "test-module";
     static final String PROC_A = "processor-a";
@@ -72,13 +73,6 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
 
     @Autowired
     SharedFetchModuleProcessor<TestProcessorConfig, String> processor;
-
-    @Autowired
-    EventStore eventStore;
-
-    @Autowired
-    JdbcTemplate jdbcTemplate;
-
     @Autowired
     DataSource dataSource;
 
@@ -99,7 +93,6 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
 
     @BeforeEach
     void setUp() {
-        cleanDatabase(jdbcTemplate);
         cleanScanProgress(jdbcTemplate);
         progressTracker.reset();
         handlerA.reset();
@@ -563,7 +556,7 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
 
     private void cleanScanProgress(JdbcTemplate jdbc) {
         try {
-            IntegrationTestDbCleanup.truncateSharedFetchScanProgress(jdbc);
+            CrabletTestSchemaCleanup.truncateSharedFetchScanProgress(jdbc);
         } catch (Exception ignored) {
             // Some schema variants used by focused tests do not include these tables.
         }
@@ -692,9 +685,9 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
             @Override public boolean isCancelled() { return cancelled; }
             @Override public boolean isDone() { return cancelled; }
             @Override public Void get() { return null; }
-            @Override public Void get(long timeout, java.util.concurrent.TimeUnit unit) { return null; }
+            @Override public Void get(long timeout, TimeUnit unit) { return null; }
             @Override public long getDelay(TimeUnit unit) { return 0; }
-            @Override public int compareTo(java.util.concurrent.Delayed o) { return 0; }
+            @Override public int compareTo(Delayed o) { return 0; }
         }
     }
 
@@ -773,9 +766,9 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorTe
         public DataSource dataSource() {
             var ds = new SimpleDriverDataSource();
             ds.setDriverClass(org.postgresql.Driver.class);
-            ds.setUrl(AbstractEventProcessorTest.postgres.getJdbcUrl());
-            ds.setUsername(AbstractEventProcessorTest.postgres.getUsername());
-            ds.setPassword(AbstractEventProcessorTest.postgres.getPassword());
+            ds.setUrl(AbstractEventProcessorIntegrationTest.postgres.getJdbcUrl());
+            ds.setUsername(AbstractEventProcessorIntegrationTest.postgres.getUsername());
+            ds.setPassword(AbstractEventProcessorIntegrationTest.postgres.getPassword());
             return ds;
         }
 

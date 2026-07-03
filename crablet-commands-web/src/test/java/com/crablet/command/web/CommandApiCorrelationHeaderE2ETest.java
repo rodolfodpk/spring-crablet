@@ -5,7 +5,7 @@ import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.Query;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.examples.wallet.notification.commands.SendWelcomeNotificationCommand;
-import com.crablet.test.AbstractCrabletTest;
+import com.crablet.test.AbstractPostgresEventStoreTest;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         }
 )
 @DisplayName("Command API Correlation Header E2E Tests")
-class CommandApiCorrelationHeaderE2ETest extends AbstractCrabletTest {
+class CommandApiCorrelationHeaderE2ETest extends AbstractPostgresEventStoreTest {
 
     @Autowired
     private EventRepository eventRepository;

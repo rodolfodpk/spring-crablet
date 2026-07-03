@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -609,7 +610,7 @@ class CommandExecutorImplTest extends AbstractCommandTest {
 
     @Test
     void executeWithCorrelationId_NonNullCorrelationId_IsStoredOnEvent() {
-        java.util.UUID correlationId = java.util.UUID.randomUUID();
+        UUID correlationId = UUID.randomUUID();
         TestCommand command = new TestCommand("test_command", "entity-with-corr");
         AppendEvent event = AppendEvent.builder("test_event")
                 .tag("entityId", "entity-with-corr")

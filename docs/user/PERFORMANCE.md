@@ -40,7 +40,7 @@ The framework relies on several PostgreSQL indexes for performance:
 ### `crablet_event_tags` derived table
 
 `crablet_event_tags` is the performance mechanism for poller tag filtering at scale. Each row represents
-one `key=value` pair from one event. Per-processor poller queries (`EventSelectionSqlBuilder`)
+one `key=value` pair from one event. Per-processor poller queries (`EventSelectionWhereClauseBuilder`)
 use correlated EXISTS subqueries against `crablet_event_tags` instead of scanning `unnest(crablet_events.tags)`
 per row.
 

@@ -1,10 +1,10 @@
 {
   "mcpServers": {
-    "embabel-codegen": {
+    "crablet-codegen": {
       "command": "java",
       "args": [
         "-jar",
-        "./tools/embabel-codegen.jar",
+        "./tools/crablet-codegen.jar",
         "--mcp"
       ]
     }

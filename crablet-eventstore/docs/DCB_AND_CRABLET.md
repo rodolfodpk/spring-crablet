@@ -355,6 +355,24 @@ Query query = QueryBuilder.builder()
 
 Generates SQL with event type filtering, tag containment checks, and position ordering.
 
+### Event Type Name Contract
+
+Crablet stores event type names as strings. The supported convention is that event type strings come
+from `EventType.type(Class)`, which returns the event class simple name. That simple name is durable
+application data: it appears in `crablet_events.type`, query filters, projector registrations,
+processor subscriptions, and Jackson `@JsonSubTypes` mappings.
+
+Do not rename an event class after events may have been stored for it. A rename creates a new event
+type from Crablet's point of view and can make historical events invisible to projectors or
+processors. If the domain language changes, add a new event class and teach readers to handle both
+old and new event types during the migration period.
+
+For application CI, add an opt-in Jackson subtype alignment test with `crablet-test-support`:
+
+```java
+EventTypeContract.assertJsonSubTypesMatchEventType(WalletEvent.class);
+```
+
 ### State Projectors
 
 ```java

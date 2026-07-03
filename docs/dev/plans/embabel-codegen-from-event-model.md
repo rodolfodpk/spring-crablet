@@ -1,5 +1,9 @@
 # Embabel Codegen from Event Model — Plan
 
+> **Superseded (historical record).** Embabel was replaced by a provider-neutral `DirectLlmClient`
+> that talks directly to any LLM over HTTP with no vendor SDK. This document is kept for context on
+> the original approach; it does not describe current `crablet-codegen` behavior.
+
 Generate spring-crablet code (views, automations, outbox, command handlers) from a structured
 event model YAML produced by the `event-modeling` skill. The goal is zero TODOs in generated
 code — anything structural is generated; only external system credentials and business rules

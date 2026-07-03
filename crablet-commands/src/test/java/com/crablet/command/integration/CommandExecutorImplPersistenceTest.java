@@ -1,6 +1,7 @@
 package com.crablet.command.integration;
 
 import com.crablet.command.CommandDecision;
+import com.crablet.command.CommandExecutionOptions;
 import com.crablet.command.ExecutionResult;
 import com.crablet.command.InvalidCommandException;
 import com.crablet.command.internal.CommandExecutorImpl;
@@ -17,8 +18,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
-import com.crablet.command.CommandExecutionOptions;
-
+import java.util.function.Function;
 import java.util.List;
 import java.util.UUID;
 
@@ -89,8 +89,8 @@ class CommandExecutorImplPersistenceTest {
                 .thenAnswer(invocation -> {
                     // Execute the function passed to executeInTransaction
                     @SuppressWarnings("unchecked")
-                    java.util.function.Function<EventStore, ExecutionResult> fn = 
-                        (java.util.function.Function<EventStore, ExecutionResult>) invocation.getArgument(0);
+                    Function<EventStore, ExecutionResult> fn =
+                        (Function<EventStore, ExecutionResult>) invocation.getArgument(0);
                     return fn.apply(eventStore);
                 });
 
@@ -134,8 +134,8 @@ class CommandExecutorImplPersistenceTest {
         when(eventStore.executeInTransaction(Mockito.any()))
                 .thenAnswer(invocation -> {
                     @SuppressWarnings("unchecked")
-                    java.util.function.Function<EventStore, ExecutionResult> fn =
-                        (java.util.function.Function<EventStore, ExecutionResult>) invocation.getArgument(0);
+                    Function<EventStore, ExecutionResult> fn =
+                        (Function<EventStore, ExecutionResult>) invocation.getArgument(0);
                     return fn.apply(eventStore);
                 });
 
@@ -182,8 +182,8 @@ class CommandExecutorImplPersistenceTest {
         when(eventStore.executeInTransaction(Mockito.any()))
                 .thenAnswer(invocation -> {
                     @SuppressWarnings("unchecked")
-                    java.util.function.Function<EventStore, ExecutionResult> fn =
-                            (java.util.function.Function<EventStore, ExecutionResult>) invocation.getArgument(0);
+                    Function<EventStore, ExecutionResult> fn =
+                            (Function<EventStore, ExecutionResult>) invocation.getArgument(0);
                     return fn.apply(eventStore);
                 });
 
@@ -217,8 +217,8 @@ class CommandExecutorImplPersistenceTest {
         when(eventStore.executeInTransaction(Mockito.any()))
                 .thenAnswer(invocation -> {
                     @SuppressWarnings("unchecked")
-                    java.util.function.Function<EventStore, ExecutionResult> fn =
-                            (java.util.function.Function<EventStore, ExecutionResult>) invocation.getArgument(0);
+                    Function<EventStore, ExecutionResult> fn =
+                            (Function<EventStore, ExecutionResult>) invocation.getArgument(0);
                     return fn.apply(eventStore);
                 });
 

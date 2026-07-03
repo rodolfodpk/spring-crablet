@@ -1,6 +1,6 @@
 package com.crablet.command.handlers.courses.unit;
 
-import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
+import com.crablet.test.commands.AbstractInMemoryHandlerTest;
 import com.crablet.examples.course.commands.ChangeCourseCapacityCommand;
 import com.crablet.examples.course.events.CourseCapacityChanged;
 import com.crablet.examples.course.events.CourseDefined;
@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * DCB concurrency is tested in integration tests.
  */
 @DisplayName("ChangeCourseCapacityCommandHandler Unit Tests")
-class ChangeCourseCapacityCommandHandlerUnitTest extends AbstractHandlerUnitTest {
+class ChangeCourseCapacityCommandHandlerUnitTest extends AbstractInMemoryHandlerTest {
     
     private ChangeCourseCapacityCommandHandler handler;
     

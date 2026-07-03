@@ -264,7 +264,7 @@ make course-start
 **New files (Step 3):**
 - `examples/course-example-app/pom.xml`
 - `examples/course-example-app/src/main/java/.../CourseApplication.java`
-- `examples/course-example-app/src/main/java/.../config/CrabletConfig.java`
+- `examples/course-example-app/src/main/java/.../config/CourseApplicationConfig.java`
 - `examples/course-example-app/src/main/resources/application.properties`
 - `examples/course-example-app/src/main/resources/db/migration/V1–V14 + V2__course_views.sql`
 - `examples/course-example-app/src/main/java/.../view/CourseAvailabilityViewProjector.java`

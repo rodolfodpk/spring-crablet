@@ -10,7 +10,7 @@ import com.crablet.examples.wallet.commands.DepositCommand;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.examples.wallet.commands.TransferMoneyCommand;
 import com.crablet.examples.wallet.commands.WithdrawCommand;
-import com.crablet.test.AbstractCrabletTest;
+import com.crablet.test.AbstractPostgresEventStoreTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 5. Verify 409 CONFLICT HTTP response
  */
 @SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
-class OptimisticLockingTest extends AbstractCrabletTest {
+class OptimisticLockingTest extends AbstractPostgresEventStoreTest {
 
     @Autowired
     private CommandExecutor commandExecutor;

@@ -129,7 +129,7 @@ The dimensions combine with AND. For example, `eventTypes=WalletOpened,DepositMa
 
 The same semantics apply in both fetch modes:
 
-- legacy per-processor fetch builds SQL with `EventSelectionSqlBuilder`
+- legacy per-processor fetch builds SQL with `EventSelectionWhereClauseBuilder`
 - shared-fetch mode does one module-level scan and routes events in memory with `EventSelectionMatcher`
 
 Shared-fetch changes query shape, not selection meaning. It is still module-scoped: enabling shared-fetch for views does not combine views, automations, and outbox into one global query.

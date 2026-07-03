@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Explicit allowlist of command classes exposed through the generic REST command API.
@@ -48,7 +49,7 @@ public final class CommandApiExposedCommands {
         Objects.requireNonNull(commandClasses, "commandClasses must not be null");
         Set<Class<?>> classes = Arrays.stream(commandClasses)
                 .peek(c -> Objects.requireNonNull(c, "command class must not be null"))
-                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+                .collect(Collectors.toUnmodifiableSet());
         return new CommandApiExposedCommands(classes::contains);
     }
 

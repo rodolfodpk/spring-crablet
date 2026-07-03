@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(properties = {
     "spring.config.import=classpath:application-test-with-outbox-global.properties"
 })
-class OutboxLeaderFailoverTest extends AbstractCrabletTest {
+class OutboxLeaderFailoverTest extends AbstractOutboxIntegrationTest {
     
     @Autowired
     private EventStore eventStore;

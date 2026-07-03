@@ -12,7 +12,7 @@ import com.crablet.examples.course.exceptions.CourseFullException;
 import com.crablet.examples.course.exceptions.CourseNotFoundException;
 import com.crablet.examples.course.exceptions.StudentSubscriptionLimitException;
 import com.crablet.examples.course.handlers.SubscribeStudentToCourseCommandHandler;
-import com.crablet.test.AbstractCrabletTest;
+import com.crablet.test.AbstractPostgresEventStoreTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @DisplayName("SubscribeStudentToCourseCommandHandler Integration Tests")
 @SpringBootTest(classes = com.crablet.command.integration.TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")
-class SubscribeStudentToCourseCommandHandlerTest extends AbstractCrabletTest {
+class SubscribeStudentToCourseCommandHandlerTest extends AbstractPostgresEventStoreTest {
 
     private SubscribeStudentToCourseCommandHandler handler;
     

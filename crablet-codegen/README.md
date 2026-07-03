@@ -1,33 +1,36 @@
 # Crablet Codegen
 
-AI-powered code generator for spring-crablet. Reads an `event-model.yaml` and generates production-ready Spring Boot source files for every layer of a Crablet application — events, commands, views, automations, and outbox — then compiles and self-repairs up to three times.
+Code generator for spring-crablet. Reads an `event-model.yaml` and deterministically generates
+production-ready Spring Boot source files for every layer of a Crablet application — events,
+commands, views, automations, and outbox.
 
-Uses Embabel's LLM abstraction. Anthropic remains the default provider for backward compatibility,
-and OpenAI-compatible providers can be selected with configuration.
+No LLM is required for the default `generate` command. Generation is fully deterministic:
+the same `event-model.yaml` plus the same generator version always produces the same output.
+An LLM API key is optional and reserved for future opt-in commands (`crablet explain`,
+`crablet suggest`) that are not part of the default workflow.
 
 ## How It Works
 
 ```
 event-model.yaml
-  → SchemaResolver (expand $ref schemas)
-  → EventsAgent       → sealed interface + record per event
-  → CommandsAgent     → command records + command handlers
-  → ViewsAgent        → view projectors + Flyway migrations
-  → AutomationsAgent  → automation handlers
-  → OutboxAgent       → outbox publishers
-  → RepairAgent       → compile → fix → compile (up to 3 attempts)
+  → SchemaResolver     (expand $ref schemas)
+  → EventsGenerator    → sealed interface + record per event
+  → CommandsGenerator  → command records + command handlers
+  → ViewsGenerator     → view projectors + Flyway migrations
+  → AutomationsGenerator → automation handler interfaces
+  → OutboxGenerator    → outbox publisher interfaces
+  → ScenarioScaffoldGenerator → JUnit 5 test skeletons (written once)
 ```
 
-Each agent injects **section templates** from **`crablet-codegen/CLAUDE.md`** (see `TemplateLoader`) into its system prompt so generated code matches the codegen shape (handler interfaces, view projector, etc.). Run the CLI from the **`crablet-codegen`** directory (as the root `Makefile` `codegen-*` targets do) so `codegen.claude-md-path: CLAUDE.md` resolves to that file.
+`crablet-codegen/CLAUDE.md` documents the exact generated artifact shapes (handler interfaces,
+view projector, etc.) as a human-readable shape contract — not a runtime LLM prompt.
 
 ## Prerequisites
 
 - Java 25
-- A configured generator provider:
-  - Anthropic: `ANTHROPIC_API_KEY`
-  - OpenAI: `OPENAI_API_KEY` plus `CODEGEN_LLM_MODEL` or `OPENAI_MODEL`
-  - Local/OpenAI-compatible: `CODEGEN_LLM_PROVIDER=openai-compatible`, `CODEGEN_LLM_BASE_URL`, and `CODEGEN_LLM_MODEL`
 - Maven (the framework build, `make install`, must have run first)
+
+No LLM provider key is needed to run `generate`, `plan`, `init`, `k8s`, or `sync-scenarios`.
 
 ## Build
 
@@ -141,7 +144,7 @@ The intended workflow pairs this tool with event-modeling guidance in an AI codi
 1. Start Claude Code or Cursor from the app root, or use Codex/terminal with Makefile commands
 2. Model one slice and update event-model.yaml
 3. crablet_plan / make plan                 # review what will be generated
-4. crablet_generate / make generate          # generate + compile + repair
+4. crablet_generate / make generate          # deterministically generate source files
 5. ./mvnw verify                             # full test run
 ```
 
@@ -149,7 +152,9 @@ See [`docs/user/ai-tooling/AI_FIRST_WORKFLOW.md`](../docs/user/ai-tooling/AI_FIR
 
 ## Configuration
 
-Set in `application.yml` or via environment:
+The default `generate`, `plan`, `init`, `k8s`, and `sync-scenarios` commands require no LLM
+configuration. LLM settings are reserved for future opt-in commands and can be omitted entirely
+on a clean checkout:
 
 ```yaml
 codegen:
@@ -160,7 +165,7 @@ codegen:
     model: ${CODEGEN_LLM_MODEL:}
     max-tokens: ${CODEGEN_LLM_MAX_TOKENS:8096}
   anthropic:
-    api-key: ${ANTHROPIC_API_KEY}
+    api-key: ${ANTHROPIC_API_KEY:}
     model: claude-sonnet-4-6
   openai:
     api-key: ${OPENAI_API_KEY:}
@@ -173,13 +178,12 @@ codegen:
     api-key: ${OPENAI_COMPATIBLE_API_KEY:}
     base-url: ${OPENAI_COMPATIBLE_BASE_URL:}
     model: ${OPENAI_COMPATIBLE_MODEL:}
-  claude-md-path: CLAUDE.md      # this module's CLAUDE.md (run JAR from crablet-codegen/; see above)
 ```
 
-Examples:
+When future opt-in LLM commands are added, five named providers will be available:
 
 ```bash
-# Anthropic default
+# Anthropic
 export ANTHROPIC_API_KEY=sk-ant-...
 
 # OpenAI
@@ -198,31 +202,14 @@ provider URLs into shared CI.
 
 ## When Generation Fails
 
-### Compilation still failing after 3 repair attempts
+### Compilation error in generated code
 
-The pipeline runs up to 3 compile-and-repair cycles. If the build still fails:
+Generation is deterministic; a compile error usually means the event model is under-specified.
 
-1. Read the error lines printed above the `[WARN]` message — they name the file and line.
-2. Open the file and fix the issue manually, or delete it and re-run `generate`.
-3. If the error pattern repeats, the event model is likely under-specified. Add the missing field or type to `event-model.yaml` and re-run `plan` → `generate`.
-
-### No `===FILE: ...===` blocks in LLM output
-
-The agent returned text but no file blocks. This usually means the prompt exceeded the model's context or the `claude-md-path` file is too large. Try:
-- Reduce `max-tokens` if it was increased
-- Check that `claude-md-path` points to a readable file
-- Re-run `generate` — transient API errors are retried on the next invocation
-
-### Provider key or configuration is missing
-
-```
-Error: ANTHROPIC_API_KEY is not set...
-```
-
-Set the provider-specific key or switch provider configuration before running:
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-```
+1. Read the compiler error — it names the file and line.
+2. Fix the generated file manually as an emergency unblock, or delete it and re-run `generate`.
+3. Make the durable fix in `event-model.yaml`: add the missing field, type, or tag specification,
+   then re-run `plan` → `generate`.
 
 ### YAML parse error on `event-model.yaml`
 
@@ -254,6 +241,22 @@ edits will be overwritten.
 ## Event Model Format
 
 See [`docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`](../docs/user/ai-tooling/EVENT_MODEL_FORMAT.md) for the full YAML schema reference and examples.
+
+## AI Modeling Layer (Non-CI)
+
+The `event-model.yaml` authoring step is AI-assisted but human-reviewed — not CI-gated. The
+Claude Code skills (`/crablet-event-modeling`, `/crablet-greenfield`, MCP `crablet_plan`) help
+translate Event Modeling workshop output into a reviewable YAML contract. A PR diff on
+`event-model.yaml` is the human review gate before `crablet_generate` runs.
+
+Scenario test scaffolds (generated `SubmitLoanApplicationScenarioTest`) are **structure-only stubs**
+with `// Given/When/Then` comments and no assertions. CI passes them by design — they are owned by
+the user from first write and serve as a starting point for assertion authoring, not as verification.
+
+The codegen tool itself (`generate`, `plan`, `init`, `k8s`, `sync-scenarios`) is fully
+deterministic and CI-gated: same YAML + same generator version = same output. Generator unit tests
+(`EventsGeneratorTest`, `CommandsGeneratorTest`, etc.) and the regenerate-and-diff check
+(`make codegen-regenerate-verify`) enforce this contract.
 
 ## See Also
 

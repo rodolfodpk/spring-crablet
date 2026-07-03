@@ -6,64 +6,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Component
 public class FileWriterTool {
 
-    private static final Pattern FILE_BLOCK = Pattern.compile(
-            "===FILE: ([^=]+)===\\s*\n(.*?)===END FILE===",
-            Pattern.DOTALL
-    );
-    private static final Pattern WHOLE_CONTENT_MARKDOWN_FENCE = Pattern.compile(
-            "\\A\\s*```[A-Za-z0-9_-]*\\R(.*?)\\R```\\s*\\z",
-            Pattern.DOTALL
-    );
-
-    /**
-     * Parses LLM output for ===FILE: path=== ... ===END FILE=== blocks
-     * and writes each to outputDir, creating parent directories as needed.
-     *
-     * @return list of written file paths (relative to outputDir)
-     */
-    public List<Path> writeGeneratedFiles(String llmOutput, Path outputDir) {
-        Path safeRoot = outputDir.toAbsolutePath().normalize();
-        List<Path> written = new ArrayList<>();
-        Matcher m = FILE_BLOCK.matcher(llmOutput);
-        while (m.find()) {
-            String relativePath = m.group(1).trim();
-            String fileContent = m.group(2);
-            Path target = safeRoot.resolve(relativePath).normalize();
-            if (!target.startsWith(safeRoot)) {
-                throw new IllegalArgumentException(
-                        "Path traversal rejected: '" + relativePath + "' escapes output directory");
-            }
-            try {
-                Files.createDirectories(target.getParent());
-                Files.writeString(target, stripWholeContentMarkdownFence(fileContent));
-                written.add(target);
-                System.out.println("  wrote " + target);
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to write " + target, e);
-            }
-        }
-        if (written.isEmpty()) {
-            System.err.println("[WARN] No ===FILE: ...=== blocks found in LLM output. Raw response follows:\n"
-                    + llmOutput.substring(0, Math.min(500, llmOutput.length())));
-        }
-        return written;
-    }
-
     public Path writeGeneratedFile(String relativePath, String content, Path outputDir) {
-        Path safeRoot = outputDir.toAbsolutePath().normalize();
-        Path target = safeRoot.resolve(relativePath).normalize();
-        if (!target.startsWith(safeRoot)) {
-            throw new IllegalArgumentException(
-                    "Path traversal rejected: '" + relativePath + "' escapes output directory");
-        }
+        Path target = safeResolve(relativePath, outputDir);
         try {
             Files.createDirectories(target.getParent());
             Files.writeString(target, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
@@ -74,11 +22,13 @@ public class FileWriterTool {
         }
     }
 
-    private static String stripWholeContentMarkdownFence(String content) {
-        Matcher fence = WHOLE_CONTENT_MARKDOWN_FENCE.matcher(content);
-        if (fence.matches()) {
-            return fence.group(1) + "\n";
+    static Path safeResolve(String relativePath, Path outputDir) {
+        Path safeRoot = outputDir.toAbsolutePath().normalize();
+        Path target = safeRoot.resolve(relativePath).normalize();
+        if (!target.startsWith(safeRoot)) {
+            throw new IllegalArgumentException(
+                    "Path traversal rejected: '" + relativePath + "' escapes output directory");
         }
-        return content;
+        return target;
     }
 }

@@ -1,6 +1,6 @@
 package com.crablet.wallet.cleanup;
 
-import com.crablet.test.cleanup.IntegrationTestDbCleanup;
+import com.crablet.test.cleanup.CrabletTestSchemaCleanup;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
@@ -37,16 +37,16 @@ public final class WalletIntegrationTestDbCleanup {
     }
 
     public static void truncateForWalletOutboxE2e(JdbcTemplate jdbc) {
-        IntegrationTestDbCleanup.truncateEventsCommandsAndOutboxProgress(jdbc);
+        CrabletTestSchemaCleanup.truncateEventsCommandsAndOutboxProgress(jdbc);
     }
 
     public static void truncateForWalletAutomationOrCorrelationE2e(JdbcTemplate jdbc) {
-        IntegrationTestDbCleanup.truncateAutomationsIntegrationTables(jdbc);
+        CrabletTestSchemaCleanup.truncateAutomationsIntegrationTables(jdbc);
     }
 
     public static void truncateSharedFetchScanProgressBestEffort(JdbcTemplate jdbc) {
         try {
-            IntegrationTestDbCleanup.truncateSharedFetchScanProgress(jdbc);
+            CrabletTestSchemaCleanup.truncateSharedFetchScanProgress(jdbc);
         } catch (Exception ignored) {
             // Schema variants without shared-fetch scan-progress tables
         }

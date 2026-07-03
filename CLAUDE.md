@@ -10,6 +10,8 @@ This file is the repo-level routing hub for Claude Code work in spring-crablet.
 - Framework module changes, public API work, eventstore/commands/poller internals, shared-fetch, auto-configuration, templates, codegen internals, maintainer docs: invoke `/crablet-maintainer`.
 - Event Modeling workshop, generator-ready `event-model.yaml`: invoke `/crablet-event-modeling`.
 - Deep DCB explanation, choosing or diagnosing DCB for an application command handler, `ConcurrencyException` analysis: invoke `/crablet-dcb`.
+- Writing handler unit tests, integration tests, or scenario tests; `crablet-test-commands` consumption; command audit-linkage in tests: invoke `/crablet-test-authoring`.
+- Reviewing a diff/file against repo conventions and closed design decisions (ClockProvider, no-FQN, snake_case tags, `transaction_id` linkage): invoke `/crablet-conventions`.
 - Docs diagram renderer rules, actor-board vocabulary, sidecar overlays, or multi-lane board authoring: invoke `/crablet-diagram-advisor`.
 - Local build, Testcontainers, MCP codegen loop, module test targets, troubleshooting: invoke `/crablet-local-dev`.
 
@@ -67,7 +69,7 @@ Spring-Crablet is a Java 25 event-sourcing framework for Spring Boot application
 Key technologies:
 
 - Java 25
-- Spring Boot 4.0.5
+- Spring Boot 4.1.0
 - PostgreSQL 17+
 - Maven multi-module project
 
@@ -123,9 +125,14 @@ crablet-metrics-micrometer  [reactor]
   observations for event throughput, concurrency violations, command execution, and poller processing.
 
 crablet-test-support  [installed separately via `make build-test-support`]
-  Shared test utilities: InMemoryEventStore for fast unit tests, AbstractCrabletTest backed by
-  Testcontainers PostgreSQL, and AbstractHandlerUnitTest for BDD-style command handler tests.
-  Bundles Flyway migration infrastructure and PostgreSQL driver needed for test isolation.
+  Shared test utilities: InMemoryEventStore for fast unit tests and AbstractPostgresEventStoreTest
+  backed by Testcontainers PostgreSQL. Bundles Flyway migration infrastructure and PostgreSQL driver
+  needed for test isolation.
+
+crablet-test-commands  [installed separately via `make build-test-commands`]
+  Fast, in-memory BDD base for command handler unit tests (AbstractInMemoryHandlerTest, package
+  com.crablet.test.commands). Depends on crablet-commands + crablet-test-support; no Postgres/
+  Testcontainers. This is the handler-test base apps consume — not the crablet-commands test-jar.
 
 docs-samples  [reactor, compile-only — no tests]
   Compilable tutorial fixtures that keep documentation aligned with the public API. Covers six
@@ -176,7 +183,8 @@ Module dependencies:
 
 - Never use fully qualified class names inline in Java code. Add imports.
 - Never call `Instant.now()` directly. Inject `ClockProvider` and call `clockProvider.now()`.
-- Use `EventType.type(Class)` for event type names.
+- Use `EventType.type(Class)` for event type names. Event class simple names are a persistence
+  contract: never rename an event class once events may exist; add a new event type instead.
 - Use snake_case tag keys; tag keys are normalized to lowercase and tag values remain case-sensitive.
 - Prefer domain-specific query pattern helpers for reused decision models.
 - When changing **docs/event-model-renderer.js** or describing a canonical actor board, align with **`/crablet-diagram-advisor`** and **`docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`**.
@@ -188,6 +196,13 @@ Module dependencies:
 `crablet_commands.transaction_id` and `crablet_events.transaction_id` share the same `pg_current_xact_id()` value when both writes happen in the same database transaction. This is the join key between the two tables. Do not propose adding a `command_id` column to `crablet_events` or `crablet_event_tags` as an alternative linkage mechanism — that decision is closed.
 
 The invariant this relies on: `CommandAuditStore.storeCommand` must always be called on the transaction-scoped store (`ConnectionScopedEventStore`) inside `executeInTransaction`, never on the top-level `EventStoreImpl`. `CommandExecutorImpl` upholds this. Any test or caller that wants command audit linkage must use `executeInTransaction` and cast the scoped store to `CommandAuditStore`.
+
+**Event class simple names are persisted event types.**
+`EventType.type(Class)` returns the event class simple name, and that string is stored in
+`crablet_events.type` and used by queries, projectors, processors, and Jackson subtype mappings.
+Do not rename an event class after events exist for it. Model the change as a new event class and
+handle both event types during the migration period. Applications can use `EventTypeContract` from
+`crablet-test-support` to verify Jackson subtype names stay aligned with `EventType.type(Class)`.
 
 ## Documentation Quick Links
 

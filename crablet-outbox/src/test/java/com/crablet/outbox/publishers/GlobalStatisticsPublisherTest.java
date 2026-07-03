@@ -15,6 +15,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -357,7 +358,7 @@ class GlobalStatisticsPublisherTest {
                 .noneMatch(message -> message.contains("===== Global Outbox Statistics ====="));
     }
 
-    private java.util.List<String> formattedLogMessages() {
+    private List<String> formattedLogMessages() {
         return logAppender.list.stream()
                 .map(ILoggingEvent::getFormattedMessage)
                 .toList();

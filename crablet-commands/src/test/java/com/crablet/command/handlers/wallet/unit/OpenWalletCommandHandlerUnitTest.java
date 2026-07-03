@@ -1,6 +1,6 @@
 package com.crablet.command.handlers.wallet.unit;
 
-import com.crablet.command.handlers.unit.AbstractHandlerUnitTest;
+import com.crablet.test.commands.AbstractInMemoryHandlerTest;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.examples.wallet.commands.OpenWalletCommandHandler;
 import com.crablet.examples.wallet.events.WalletOpened;
@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * DCB concurrency (idempotency) is tested in integration tests.
  */
 @DisplayName("OpenWalletCommandHandler Unit Tests")
-class OpenWalletCommandHandlerUnitTest extends AbstractHandlerUnitTest {
+class OpenWalletCommandHandlerUnitTest extends AbstractInMemoryHandlerTest {
     
     private OpenWalletCommandHandler handler;
     

@@ -1,5 +1,9 @@
 # Embabel-Based Multi-Provider Codegen
 
+> **Superseded (historical record).** Embabel was replaced by a provider-neutral `DirectLlmClient`
+> that talks directly to any LLM over HTTP with no vendor SDK. This document is kept for context on
+> the original approach; it does not describe current `crablet-codegen` behavior.
+
 ## Summary
 
 Move `crablet-codegen` off direct Anthropic-only wiring and onto an Embabel-backed,

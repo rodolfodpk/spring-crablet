@@ -21,7 +21,7 @@
 
 ### Integration test database hygiene
 
-PostgreSQL integration tests rely on **Flyway** migrations from `crablet-test-support` (`classpath:db/migration`) plus each module’s `TestApplication` importing `CrabletFlywayConfiguration`. Bases such as `AbstractCrabletTest` (in this module or in `crablet-test-support`) clear data between tests with `TRUNCATE` (and related helpers in `IntegrationTestDbCleanup`) so runs stay isolated without re-running migrations each time.
+PostgreSQL integration tests rely on **Flyway** migrations from `crablet-test-support` (`classpath:db/migration`) plus each module’s `TestApplication` importing `CrabletFlywayConfiguration`. Bases such as `AbstractPostgresEventStoreTest` from `crablet-test-support` or module-local integration bases clear data between tests with `TRUNCATE` (and related helpers in `CrabletTestSchemaCleanup`) so runs stay isolated without re-running migrations each time.
 
 ## Testing Strategy
 
@@ -77,9 +77,9 @@ In-memory `EventStore` implementation:
 - Accepts all appends (no DCB concurrency checks for unit tests)
 - Fast and lightweight - no database overhead
 
-#### AbstractHandlerUnitTest
+#### AbstractInMemoryHandlerTest
 
-**Location:** `com.crablet.test.AbstractHandlerUnitTest` (module: `crablet-test-support`)
+**Location:** `com.crablet.test.commands.AbstractInMemoryHandlerTest` (module: `crablet-test-commands`)
 
 BDD-style base class providing:
 - `given()` - Builder callback pattern for event seeding
@@ -93,11 +93,11 @@ BDD-style base class providing:
 
 ### Quick Start
 
-Extend `AbstractHandlerUnitTest` and start writing tests:
+Extend `AbstractInMemoryHandlerTest` and start writing tests:
 
 ```java
 @DisplayName("DepositCommandHandler Unit Tests")
-class DepositCommandHandlerUnitTest extends AbstractHandlerUnitTest {
+class DepositCommandHandlerUnitTest extends AbstractInMemoryHandlerTest {
     
     private DepositCommandHandler handler;
     
@@ -282,17 +282,17 @@ Integration tests validate DCB concurrency, database constraints, and real datab
 Use the framework's base test class:
 
 ```java
-import com.crablet.test.AbstractCrabletTest;
+import com.crablet.test.AbstractPostgresEventStoreTest;
 
-public class WalletIntegrationTest extends AbstractCrabletTest {
+public class WalletIntegrationTest extends AbstractPostgresEventStoreTest {
     
-    // eventStore and jdbcTemplate are inherited from AbstractCrabletTest — no redeclaration needed
+    // eventStore and jdbcTemplate are inherited from AbstractPostgresEventStoreTest — no redeclaration needed
     
     // Your test methods here
 }
 ```
 
-`AbstractCrabletTest` provides:
+`AbstractPostgresEventStoreTest` provides:
 - Shared PostgreSQL Testcontainers container
 - Automatic Flyway migrations
 - EventStore and JdbcTemplate autowired
@@ -300,7 +300,7 @@ public class WalletIntegrationTest extends AbstractCrabletTest {
 ### Integration Test Example
 
 ```java
-class WithdrawCommandHandlerTest extends AbstractCrabletTest {
+class WithdrawCommandHandlerTest extends AbstractPostgresEventStoreTest {
     
     @Autowired
     private WithdrawCommandHandler handler;
@@ -469,7 +469,7 @@ The framework never calls `Instant.now()` directly. All timestamps go through th
 
 #### Unit tests — implement a fixed `ClockProvider`
 
-For unit tests extending `AbstractHandlerUnitTest`, pass a fixed clock implementation to your handler:
+For unit tests extending `AbstractInMemoryHandlerTest`, pass a fixed clock implementation to your handler:
 
 ```java
 private static final Instant FIXED_TIME =
@@ -521,11 +521,11 @@ The test scope is organized into:
 
 - **Unit Tests** (`com.crablet.command.handlers.*.unit.*`): Pure unit tests for business logic
   - Fast, isolated, no database dependencies
-  - Use `AbstractHandlerUnitTest` base class
+  - Use `AbstractInMemoryHandlerTest` base class
 
 - **Integration Tests** (`com.crablet.command.handlers.*.integration.*`): Integration tests with Testcontainers
   - Real database testing, DCB concurrency validation
-  - Use `AbstractCrabletTest` base class
+  - Use `AbstractPostgresEventStoreTest` base class
 
 - **Framework Tests** (`com.crablet.eventstore.integration.*`): Integration tests for core EventStore functionality
 

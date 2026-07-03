@@ -53,7 +53,8 @@ public class ViewsGenerator {
                 .map(event -> renderSwitchCase(view, event))
                 .collect(Collectors.joining());
 
-        return """
+        // CHECKSTYLE:OFF - Java import lines are generated source text, not inline FQNs in this class.
+        String source = """
                 package %s;
 
                 import com.crablet.eventstore.ClockProvider;
@@ -108,6 +109,8 @@ public class ViewsGenerator {
                 eventInterface,
                 switchCases
         );
+        // CHECKSTYLE:ON
+        return source;
     }
 
     private String renderSwitchCase(ViewSpec view, EventSpec event) {

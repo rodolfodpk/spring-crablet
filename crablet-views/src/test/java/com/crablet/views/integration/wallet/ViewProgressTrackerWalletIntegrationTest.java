@@ -1,7 +1,7 @@
 package com.crablet.views.integration.wallet;
 
 import com.crablet.eventpoller.progress.ProcessorStatus;
-import com.crablet.views.integration.AbstractViewsTest;
+import com.crablet.views.integration.AbstractViewsIntegrationTest;
 import com.crablet.views.internal.ViewProgressTracker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,6 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 
 import javax.sql.DataSource;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -23,19 +24,14 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(classes = ViewProgressTrackerWalletIntegrationTest.TestConfig.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @DisplayName("ViewProgressTracker Wallet Domain Integration Tests")
-class ViewProgressTrackerWalletIntegrationTest extends AbstractViewsTest {
+class ViewProgressTrackerWalletIntegrationTest extends AbstractViewsIntegrationTest {
 
     @Autowired
     private DataSource dataSource;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
     private ViewProgressTracker progressTracker;
 
     @BeforeEach
     void setUp() {
-        cleanDatabase(jdbcTemplate);
         progressTracker = new ViewProgressTracker(dataSource);
     }
 
@@ -214,8 +210,8 @@ class ViewProgressTrackerWalletIntegrationTest extends AbstractViewsTest {
         long position = progressTracker.getLastPosition(viewName);
         assertThat(position)
             .as("Position should be from thread 1 (100-109) or thread 2 (200-209) range")
-            .isIn(java.util.List.of(100L, 101L, 102L, 103L, 104L, 105L, 106L, 107L, 108L, 109L,
-                                     200L, 201L, 202L, 203L, 204L, 205L, 206L, 207L, 208L, 209L));
+            .isIn(List.of(100L, 101L, 102L, 103L, 104L, 105L, 106L, 107L, 108L, 109L,
+                          200L, 201L, 202L, 203L, 204L, 205L, 206L, 207L, 208L, 209L));
     }
 
     @Test
@@ -243,9 +239,9 @@ class ViewProgressTrackerWalletIntegrationTest extends AbstractViewsTest {
             SimpleDriverDataSource dataSource =
                     new SimpleDriverDataSource();
             dataSource.setDriverClass(org.postgresql.Driver.class);
-            dataSource.setUrl(AbstractViewsTest.postgres.getJdbcUrl());
-            dataSource.setUsername(AbstractViewsTest.postgres.getUsername());
-            dataSource.setPassword(AbstractViewsTest.postgres.getPassword());
+            dataSource.setUrl(AbstractViewsIntegrationTest.postgres.getJdbcUrl());
+            dataSource.setUsername(AbstractViewsIntegrationTest.postgres.getUsername());
+            dataSource.setPassword(AbstractViewsIntegrationTest.postgres.getPassword());
             return dataSource;
         }
 
