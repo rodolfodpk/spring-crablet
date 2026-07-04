@@ -291,39 +291,56 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             }
 
             // Call append_events_if with dual conditions
-            try (Connection connection = writeDataSource.getConnection();
-                 PreparedStatement stmt = connection.prepareStatement(APPEND_EVENTS_IF_SQL)) {
+            try (Connection connection = writeDataSource.getConnection()) {
 
-                stmt.setArray(1, connection.createArrayOf("varchar", types));
-                stmt.setArray(2, connection.createArrayOf("varchar", tagArrays));
-                stmt.setArray(3, connection.createArrayOf("jsonb", dataStrings));
-                stmt.setObject(4, concurrencyTypes.isEmpty() ? null : concurrencyTypes.toArray(new String[0]));
-                stmt.setObject(5, concurrencyTags.isEmpty() ? null : concurrencyTags.toArray(new String[0]));
-                stmt.setObject(6, afterPosition);
-                stmt.setObject(7, idempotencyTypes != null && !idempotencyTypes.isEmpty() ? idempotencyTypes.toArray(new String[0]) : null);
-                stmt.setObject(8, idempotencyTags != null && !idempotencyTags.isEmpty() ? idempotencyTags.toArray(new String[0]) : null);
-                stmt.setTimestamp(9, Timestamp.from(clock.now()));
-                stmt.setObject(10, CorrelationContext.correlationId());
-                stmt.setObject(11, CorrelationContext.causationId());
-                stmt.setString(12, notifyChannel);
-                stmt.setString(13, notifyPayload);
+                // append_events_if's DCB conflict check is snapshot-based
+                // (transaction_id < pg_snapshot_xmin(...)), which cannot see a peer transaction's
+                // row until that peer commits. Under READ_COMMITTED, two genuinely concurrent
+                // appendNonCommutative calls racing the same condition can both pass the check and
+                // both succeed - see ConcurrentAppendNonCommutativeRaceTest. SERIALIZABLE closes
+                // this window via Postgres's SSI, at the cost of a 40001 serialization failure on
+                // the loser (mapped to ConcurrencyException below) instead of a clean DCB_VIOLATION
+                // JSON payload. Only applied when there's an actual concurrency check to protect -
+                // appendIdempotent (advisory-lock-protected) and appendCommutative (no check) are
+                // unaffected. ~10% latency overhead measured on the uncontended case (see
+                // AppendNonCommutativeLatencyBenchTest).
+                if (!concurrencyTypes.isEmpty() || !concurrencyTags.isEmpty()) {
+                    connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+                }
 
-                try (ResultSet rs = stmt.executeQuery()) {
-                    // Fail fast: Check if we have a result
-                    if (!rs.next()) {
-                        throw new RuntimeException("No result from append_events_if");
+                try (PreparedStatement stmt = connection.prepareStatement(APPEND_EVENTS_IF_SQL)) {
+
+                    stmt.setArray(1, connection.createArrayOf("varchar", types));
+                    stmt.setArray(2, connection.createArrayOf("varchar", tagArrays));
+                    stmt.setArray(3, connection.createArrayOf("jsonb", dataStrings));
+                    stmt.setObject(4, concurrencyTypes.isEmpty() ? null : concurrencyTypes.toArray(new String[0]));
+                    stmt.setObject(5, concurrencyTags.isEmpty() ? null : concurrencyTags.toArray(new String[0]));
+                    stmt.setObject(6, afterPosition);
+                    stmt.setObject(7, idempotencyTypes != null && !idempotencyTypes.isEmpty() ? idempotencyTypes.toArray(new String[0]) : null);
+                    stmt.setObject(8, idempotencyTags != null && !idempotencyTags.isEmpty() ? idempotencyTags.toArray(new String[0]) : null);
+                    stmt.setTimestamp(9, Timestamp.from(clock.now()));
+                    stmt.setObject(10, CorrelationContext.correlationId());
+                    stmt.setObject(11, CorrelationContext.causationId());
+                    stmt.setString(12, notifyChannel);
+                    stmt.setString(13, notifyPayload);
+
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        // Fail fast: Check if we have a result
+                        if (!rs.next()) {
+                            throw new RuntimeException("No result from append_events_if");
+                        }
+
+                        String jsonResult = rs.getString(1);
+                        String transactionId = parseAppendResult(jsonResult, events);
+
+                        // Publish metrics events after successful append
+                        eventPublisher.publishEvent(new EventsAppendedMetric(events.size()));
+                        for (AppendEvent event : events) {
+                            eventPublisher.publishEvent(new EventTypeMetric(event.type()));
+                        }
+
+                        return transactionId;
                     }
-
-                    String jsonResult = rs.getString(1);
-                    String transactionId = parseAppendResult(jsonResult, events);
-
-                    // Publish metrics events after successful append
-                    eventPublisher.publishEvent(new EventsAppendedMetric(events.size()));
-                    for (AppendEvent event : events) {
-                        eventPublisher.publishEvent(new EventTypeMetric(event.type()));
-                    }
-
-                    return transactionId;
                 }
             }
 
@@ -806,6 +823,15 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
      */
     private RuntimeException handleSQLException(SQLException e) {
         String sqlState = e.getSQLState();
+
+        // SERIALIZABLE isolation (see appendIf above) surfaces genuine write-skew conflicts as a
+        // raw Postgres serialization failure (40001), not the append_events_if() function's own
+        // DCB_VIOLATION JSON. Map it to the same ConcurrencyException callers already handle for
+        // DCB conflicts, so the exception contract is uniform regardless of which mechanism
+        // caught the race.
+        if ("40001".equals(sqlState)) {
+            return new ConcurrencyException("Concurrent modification (serialization failure): " + e.getMessage());
+        }
 
         // Fail fast: Handle PostgreSQL RAISE EXCEPTION (P0001)
         if ("P0001".equals(sqlState)) {

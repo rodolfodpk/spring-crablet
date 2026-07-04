@@ -107,11 +107,22 @@ DCB defines the core mechanism: criteria-based consistency boundaries and stream
 | **Use Case** | State-dependent operations (Withdraw, Transfer) | Order-independent operations (Deposit, Credit) | Entity creation (OpenWallet) |
 | **What It Checks** | "Has anything changed AFTER stream position X?" | Nothing (or optional lifecycle guard) | "Does entity already exist?" |
 | **Advisory Locks** | ❌ Not needed | ❌ Not needed | ✅ Required |
-| **Protection Mechanism** | PostgreSQL snapshot isolation (MVCC) | Optional lifecycle guard | Advisory locks serialize duplicate checks |
-| **Performance** | ~4x faster than idempotent (no lock contention) | Fastest (no conflict check) | Slowest (lock serialization) |
+| **Protection Mechanism** | PostgreSQL `SERIALIZABLE` isolation (SSI) | Optional lifecycle guard | Advisory locks serialize duplicate checks |
+| **Performance** | Faster than idempotent (no lock contention), ~10% slower than plain `READ_COMMITTED` on the uncontended case due to SSI overhead | Fastest (no conflict check) | Slowest (lock serialization) |
 | **Behavior** | 201 CREATED on success, 409 Conflict on stale position | Always succeeds (order-independent) | 201 CREATED for new entities, 200 OK for duplicates |
 
-**Key Insight**: `appendNonCommutative` can rely on snapshot isolation because it checks changes to existing state. `appendIdempotent` needs advisory locks because it checks for the existence of something that may not exist yet — snapshot isolation cannot prevent that race condition.
+**Key Insight**: `appendNonCommutative` relies on PostgreSQL's snapshot-based conflict check
+(`transaction_id < pg_snapshot_xmin(...)`), but that check alone only detects *staggered* races —
+if writer A's transaction commits before writer B's conflict check runs, B correctly sees the
+conflict. Under plain `READ_COMMITTED`, two *genuinely simultaneous* writers can both pass the
+check before either commits (neither can see the other's not-yet-committed row) and both succeed,
+silently violating the DCB guarantee. `appendNonCommutative` therefore runs at `SERIALIZABLE`
+isolation specifically for calls that carry a concurrency condition — Postgres's SSI closes this
+window, at the cost of surfacing the loser's failure as a serialization error (SQLSTATE `40001`,
+mapped to `ConcurrencyException` the same as a `DCB_VIOLATION`) rather than always via the SQL
+function's own JSON response. `appendIdempotent` still needs advisory locks regardless, because it
+checks for the existence of something that may not exist yet — no isolation level alone prevents
+that race condition.
 
 ### Commutative Operations and Lifecycle Guards
 
