@@ -83,8 +83,10 @@ crablet-db-migrations  [reactor]
 
 crablet-eventstore  [reactor]
   Core event store implementing three DCB-style atomic append methods (idempotent, commutative,
-  non-commutative), tag-based event queries, state projection helpers, and optional read-replica
-  routing. Foundational module — all other framework modules depend on it directly or transitively.
+  non-commutative), tag-based event queries, state projection helpers, period segmentation
+  (closing-the-books pattern via PeriodTags / PeriodType / @PeriodConfig), and optional
+  read-replica routing. Foundational module — all other framework modules depend on it directly
+  or transitively.
 
 crablet-commands  [reactor]
   Command handler framework layered on top of crablet-eventstore: Spring @Component-based
@@ -197,12 +199,33 @@ Module dependencies:
 
 The invariant this relies on: `CommandAuditStore.storeCommand` must always be called on the transaction-scoped store (`ConnectionScopedEventStore`) inside `executeInTransaction`, never on the top-level `EventStoreImpl`. `CommandExecutorImpl` upholds this. Any test or caller that wants command audit linkage must use `executeInTransaction` and cast the scoped store to `CommandAuditStore`.
 
+**Tombstone — domain-modeled entity termination (no framework primitive).**
+Crablet has no tombstone primitive. Entity termination is modeled as a domain event
+(e.g. `WalletClosed`, `CourseArchived`). The `StateProjector` transitions the entity's
+existence flag to `false` on that event; command handlers guard on `!state.isExisting()`.
+
+This is orthogonal to the closing-the-books / period pattern. A wallet can have many monthly
+periods and eventually be closed — those are independent concerns. `WalletStatementClosed`
+closes a *period*, not the entity. There is no built-in history compaction for terminated
+entities; the full event history is read on every rehydration. For long histories of terminated
+entities, the period pattern can serve as an optional performance optimization (the final period
+close materializes state, so only the last period needs reading on rehydration), but this is
+an application design choice, not a framework feature.
+
 **Event class simple names are persisted event types.**
 `EventType.type(Class)` returns the event class simple name, and that string is stored in
 `crablet_events.type` and used by queries, projectors, processors, and Jackson subtype mappings.
 Do not rename an event class after events exist for it. Model the change as a new event class and
 handle both event types during the migration period. Applications can use `EventTypeContract` from
 `crablet-test-support` to verify Jackson subtype names stay aligned with `EventType.type(Class)`.
+
+Crablet has no upcasting mechanism. This is intentional, following David Schmitz's rule
+("Event Sourcing You are doing it wrong"): if the new event schema can be constructed from the
+previous version's fields, add optional fields with defaults — same event type, no migration needed.
+If it cannot be constructed from the previous version, it is a semantically new event; add a new
+event class and handle both types in projectors during the transition. Upcasting adds hidden
+complexity and couples the read path to migration logic; the new-event-type rule keeps schema
+evolution explicit and type-safe.
 
 ## Documentation Quick Links
 
@@ -220,6 +243,7 @@ handle both event types during the migration period. Applications can use `Event
 - Outbox: `crablet-outbox/README.md`
 - DCB explained: `crablet-eventstore/docs/DCB_AND_CRABLET.md`
 - Command patterns: `crablet-eventstore/docs/COMMAND_PATTERNS.md`
+- Closing-the-books / period segmentation: `crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md`
 - Leader election: `docs/user/LEADER_ELECTION.md`
 - AI-first workflow: `docs/user/ai-tooling/AI_FIRST_WORKFLOW.md`
 - Feature slice workflow: `docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md`

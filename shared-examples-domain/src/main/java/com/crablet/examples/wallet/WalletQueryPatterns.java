@@ -4,6 +4,7 @@ import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.QueryBuilder;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
+import com.crablet.examples.wallet.events.WalletClosed;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WalletStatementOpened;
 import com.crablet.examples.wallet.events.WithdrawalMade;
@@ -34,11 +35,14 @@ public class WalletQueryPatterns {
      * <p>
      * This query intentionally excludes {@code DepositMade} and {@code WithdrawalMade} so that
      * concurrent deposits/withdrawals do NOT trigger the guard — only lifecycle changes do.
-     * If a {@code WalletClosed} event type is added to the domain, include it here.
+     * Includes {@code WalletClosed} so that any concurrent or prior wallet closure is
+     * detected — concurrent closures via the guard position check, prior closures via
+     * the {@code WalletBalanceState.isExisting()} flag in the projected state.
      */
     public static Query walletLifecycleModel(String walletId) {
         return QueryBuilder.builder()
                 .event(type(WalletOpened.class), WALLET_ID, walletId)
+                .event(type(WalletClosed.class), WALLET_ID, walletId)
                 .build();
     }
 
@@ -48,7 +52,7 @@ public class WalletQueryPatterns {
      */
     public static Query singleWalletDecisionModel(String walletId) {
         return QueryBuilder.builder()
-                .events(type(WalletOpened.class), type(DepositMade.class), type(WithdrawalMade.class))
+                .events(type(WalletOpened.class), type(WalletClosed.class), type(DepositMade.class), type(WithdrawalMade.class))
                 .tag(WALLET_ID, walletId)
                 .event(type(MoneyTransferred.class), FROM_WALLET_ID, walletId)
                 .event(type(MoneyTransferred.class), TO_WALLET_ID, walletId)
@@ -87,8 +91,9 @@ public class WalletQueryPatterns {
      */
     public static Query singleWalletPeriodDecisionModel(String walletId, int year, int month) {
         return QueryBuilder.builder()
-                // Include WalletOpened to establish wallet existence (no period tags)
+                // Include WalletOpened / WalletClosed without period tags — lifecycle events are not period-scoped
                 .event(type(WalletOpened.class), WALLET_ID, walletId)
+                .event(type(WalletClosed.class), WALLET_ID, walletId)
                 // Include WalletStatementOpened to get opening balance (all tags must match)
                 .matching(
                         new String[]{type(WalletStatementOpened.class)},

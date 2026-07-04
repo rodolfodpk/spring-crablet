@@ -108,4 +108,49 @@ public record AppendCondition(
     public static AppendCondition empty() {
         return new AppendCondition(StreamPosition.zero(), Query.noCondition(), Query.noCondition());
     }
+
+    // -------------------------------------------------------------------------
+    // Fluent UmaDB-style factory — failIfChanged(query).after(position)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Begin building a non-commutative DCB condition in UmaDB-style fluent syntax.
+     * <p>
+     * The condition will fail if any event matching {@code decisionModel} was appended
+     * after the stream position supplied via {@link #after(StreamPosition)}:
+     *
+     * <pre>{@code
+     * AppendCondition.failIfChanged(walletLifecycleModel(walletId))
+     *                .after(projection.streamPosition())
+     * }</pre>
+     *
+     * Equivalent to {@code AppendCondition.of(streamPosition, decisionModel)} but reads
+     * left-to-right as a sentence: "fail if [the model] changed after [this position]."
+     *
+     * @param decisionModel the query defining the DCB consistency boundary
+     * @return a condition ready to be completed with {@link #after(StreamPosition)}
+     */
+    public static AppendCondition failIfChanged(Query decisionModel) {
+        return new AppendCondition(StreamPosition.zero(), decisionModel, Query.noCondition());
+    }
+
+    /**
+     * Complete the condition with the stream position observed during the handler's projection.
+     * <p>
+     * Typically called on the result of {@link #failIfChanged(Query)}:
+     *
+     * <pre>{@code
+     * AppendCondition condition = AppendCondition
+     *         .failIfChanged(decisionModel)
+     *         .after(projection.streamPosition());
+     *
+     * return NonCommutative.of(event, condition);
+     * }</pre>
+     *
+     * @param streamPosition the position from {@link com.crablet.eventstore.query.ProjectionResult#streamPosition()}
+     * @return a complete condition
+     */
+    public AppendCondition after(StreamPosition streamPosition) {
+        return new AppendCondition(streamPosition, this.concurrencyQuery(), this.idempotencyQuery());
+    }
 }

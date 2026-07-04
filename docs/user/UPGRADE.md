@@ -399,6 +399,49 @@ Remove any `DataSource` constructor parameter from custom `EventHandler` impleme
 
 ---
 
+## AppendCondition fluent factory + AppendEvent.of concise factory (additive)
+
+**Affects:** No existing code — purely additive overloads.
+
+### What changed
+
+Two ergonomic shorthand APIs inspired by UmaDB's Java client were added:
+
+**`AppendCondition.failIfChanged(decisionModel).after(streamPosition)`** — replaces the positional
+`appendNonCommutative(events, decisionModel, streamPosition)` call with a named condition that reads
+left-to-right as a sentence:
+
+```java
+// Before (still works)
+return NonCommutative.of(event, decisionModel, projection.streamPosition());
+
+// After (preferred)
+return NonCommutative.of(event,
+        AppendCondition.failIfChanged(decisionModel).after(projection.streamPosition()));
+```
+
+**`AppendEvent.of(type, tagKey, tagValue, data)`** — replaces the builder for the common single-tag case:
+
+```java
+// Before (still works; use for multiple tags)
+AppendEvent.builder(type(WalletOpened.class))
+    .tag(WALLET_ID, walletId)
+    .data(walletOpened)
+    .build();
+
+// After (preferred for single-tag events)
+AppendEvent.of(type(WalletOpened.class), WALLET_ID, walletId, walletOpened);
+```
+
+A no-tag variant `AppendEvent.of(type, data)` is also available for events whose tag lives on the
+decision model rather than the event itself.
+
+### Migration
+
+No migration needed. Existing call sites continue to compile without changes.
+
+---
+
 ## See Also
 
 - [`crablet-automations/README.md`](../../crablet-automations/README.md) — AutomationHandler reference

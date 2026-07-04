@@ -6,6 +6,7 @@ import com.crablet.eventstore.Tag;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
+import com.crablet.examples.wallet.events.WalletClosed;
 import com.crablet.examples.wallet.events.WalletEvent;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WalletStatementClosed;
@@ -130,7 +131,8 @@ public class WalletStatementViewProjector extends AbstractTypedViewProjector<Wal
             case DepositMade deposit -> handleDepositMade(deposit, storedEvent, jdbcTemplate);
             case WithdrawalMade withdrawal -> handleWithdrawalMade(withdrawal, storedEvent, jdbcTemplate);
             case MoneyTransferred transfer -> handleMoneyTransferred(transfer, storedEvent, jdbcTemplate);
-            case WalletOpened _ -> false; // Not a statement event
+            case WalletOpened _ -> false;
+            case WalletClosed _ -> false; // Statement period records are not affected by entity closure
         };
     }
 

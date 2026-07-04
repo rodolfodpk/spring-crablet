@@ -1,5 +1,6 @@
 package com.crablet.command;
 
+import com.crablet.eventstore.AppendCondition;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.Stable;
 import com.crablet.eventstore.StreamPosition;
@@ -144,6 +145,27 @@ public sealed interface CommandDecision
         /** Single-event factory — the common case. */
         public static NonCommutative of(AppendEvent event, Query decisionModel, StreamPosition streamPosition) {
             return new NonCommutative(List.of(event), decisionModel, streamPosition);
+        }
+
+        /**
+         * Single-event factory accepting a named {@link AppendCondition}.
+         * <p>
+         * Prefer this form for readability:
+         *
+         * <pre>{@code
+         * return NonCommutative.of(event,
+         *         AppendCondition.failIfChanged(decisionModel).after(projection.streamPosition()));
+         * }</pre>
+         */
+        public static NonCommutative of(AppendEvent event, AppendCondition condition) {
+            return new NonCommutative(List.of(event), condition.concurrencyQuery(), condition.afterPosition());
+        }
+
+        /**
+         * Multi-event factory accepting a named {@link AppendCondition}.
+         */
+        public static NonCommutative of(List<AppendEvent> events, AppendCondition condition) {
+            return new NonCommutative(events, condition.concurrencyQuery(), condition.afterPosition());
         }
     }
 

@@ -5,6 +5,7 @@ import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
+import com.crablet.examples.wallet.events.WalletClosed;
 import com.crablet.examples.wallet.events.WalletEvent;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WalletStatementClosed;
@@ -58,9 +59,10 @@ public class WalletTransactionViewProjector extends AbstractTypedViewProjector<W
             case DepositMade deposit -> handleDepositMade(deposit, storedEvent, jdbcTemplate);
             case WithdrawalMade withdrawal -> handleWithdrawalMade(withdrawal, storedEvent, jdbcTemplate);
             case MoneyTransferred transfer -> handleMoneyTransferred(transfer, storedEvent, jdbcTemplate);
-            case WalletOpened ignored -> false; // Not a transaction event
-            case WalletStatementOpened ignored -> false; // Not a transaction event
-            case WalletStatementClosed ignored -> false; // Not a transaction event
+            case WalletOpened ignored -> false;
+            case WalletClosed ignored -> false; // Closure is not a financial transaction
+            case WalletStatementOpened ignored -> false;
+            case WalletStatementClosed ignored -> false;
         };
     }
 

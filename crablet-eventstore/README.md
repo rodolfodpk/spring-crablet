@@ -76,7 +76,8 @@ public void myOperation() {
     ProjectionResult<WalletBalanceState> projection = eventStore.project(decisionModel, projector);
     
     // 2. Append with streamPosition check (Crablet: appendNonCommutative detects concurrent changes)
-    String transactionId = eventStore.appendNonCommutative(events, decisionModel, projection.streamPosition());
+    String transactionId = eventStore.appendNonCommutative(events,
+            AppendCondition.failIfChanged(decisionModel).after(projection.streamPosition()));
 }
 ```
 
@@ -273,7 +274,8 @@ public CommandDecision.NonCommutative decide(EventStore eventStore, WithdrawComm
     //    - Check atomically: did any matching events appear after the captured stream position?
     //    - Throw ConcurrencyException if balance changed concurrently
     //    - Append event if condition passes
-    return CommandDecision.NonCommutative.of(event, decisionModel, projection.streamPosition());
+    return CommandDecision.NonCommutative.of(event,
+            AppendCondition.failIfChanged(decisionModel).after(projection.streamPosition()));
 }
 ```
 

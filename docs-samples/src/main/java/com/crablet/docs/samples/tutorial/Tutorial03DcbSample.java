@@ -1,5 +1,6 @@
 package com.crablet.docs.samples.tutorial;
 
+import com.crablet.eventstore.AppendCondition;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.StoredEvent;
@@ -57,8 +58,7 @@ final class Tutorial03DcbSample {
 
         eventStore.appendNonCommutative(
                 List.of(acceptTalkEvent),
-                conferenceQuery,
-                result.streamPosition()
+                AppendCondition.failIfChanged(conferenceQuery).after(result.streamPosition())
         );
     }
     // docs:end tutorial03-main

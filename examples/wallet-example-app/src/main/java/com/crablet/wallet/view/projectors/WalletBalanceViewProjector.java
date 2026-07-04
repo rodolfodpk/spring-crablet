@@ -5,6 +5,7 @@ import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.WriteDataSource;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
+import com.crablet.examples.wallet.events.WalletClosed;
 import com.crablet.examples.wallet.events.WalletEvent;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WalletStatementClosed;
@@ -66,11 +67,15 @@ public class WalletBalanceViewProjector extends AbstractTypedViewProjector<Walle
     protected boolean handleEvent(WalletEvent walletEvent, StoredEvent storedEvent, JdbcTemplate jdbcTemplate) {
         return switch (walletEvent) {
             case WalletOpened opened -> handleWalletOpened(opened, jdbcTemplate);
+            case WalletClosed closed -> {
+                jdbcTemplate.update("DELETE FROM wallet_balance_view WHERE wallet_id = ?", closed.walletId());
+                yield true;
+            }
             case DepositMade deposit -> handleDepositMade(deposit, jdbcTemplate);
             case WithdrawalMade withdrawal -> handleWithdrawalMade(withdrawal, jdbcTemplate);
             case MoneyTransferred transfer -> handleMoneyTransferred(transfer, jdbcTemplate);
-            case WalletStatementOpened ignored -> false; // Not relevant for balance view
-            case WalletStatementClosed ignored -> false; // Not relevant for balance view
+            case WalletStatementOpened ignored -> false;
+            case WalletStatementClosed ignored -> false;
         };
     }
 

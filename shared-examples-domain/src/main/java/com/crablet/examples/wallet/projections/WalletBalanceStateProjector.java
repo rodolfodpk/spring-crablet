@@ -8,6 +8,7 @@ import com.crablet.eventstore.query.StateProjector;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
+import com.crablet.examples.wallet.events.WalletClosed;
 import com.crablet.examples.wallet.events.WalletEvent;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WalletStatementClosed;
@@ -40,7 +41,7 @@ public class WalletBalanceStateProjector implements StateProjector<WalletBalance
 
     @Override
     public List<String> getEventTypes() {
-        return List.of("WalletStatementOpened", "WalletStatementClosed", "WalletOpened", "MoneyTransferred", "DepositMade", "WithdrawalMade");
+        return List.of("WalletStatementOpened", "WalletStatementClosed", "WalletOpened", "WalletClosed", "MoneyTransferred", "DepositMade", "WithdrawalMade");
     }
 
     @Override
@@ -74,6 +75,10 @@ public class WalletBalanceStateProjector implements StateProjector<WalletBalance
                         true // Wallet exists
                 );
             }
+
+            case WalletClosed closed ->
+                // Tombstone: wallet is permanently terminated; balance frozen at last known value
+                new WalletBalanceState(closed.walletId(), currentState.balance(), false);
 
             case MoneyTransferred transfer -> {
                 // Check if this transfer affects the current wallet

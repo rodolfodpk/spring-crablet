@@ -92,8 +92,7 @@ AppendEvent withdrawalEvent = AppendEvent.builder(type(WithdrawalMade.class))
 
 eventStore.appendNonCommutative(
     List.of(withdrawalEvent),
-    decisionModel,
-    result.streamPosition()
+    AppendCondition.failIfChanged(decisionModel).after(result.streamPosition())
 );
 ```
 

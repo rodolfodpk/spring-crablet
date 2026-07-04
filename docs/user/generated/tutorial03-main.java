@@ -39,7 +39,6 @@
 
         eventStore.appendNonCommutative(
                 List.of(acceptTalkEvent),
-                conferenceQuery,
-                result.streamPosition()
+                AppendCondition.failIfChanged(conferenceQuery).after(result.streamPosition())
         );
     }

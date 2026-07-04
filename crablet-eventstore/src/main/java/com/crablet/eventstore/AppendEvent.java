@@ -96,6 +96,28 @@ public record AppendEvent(
     }
 
     /**
+     * Concise factory for the common single-tag case.
+     * Equivalent to {@code builder(type).tag(tagKey, tagValue).data(eventData).build()}.
+     *
+     * <pre>{@code
+     * AppendEvent.of(type(WalletOpened.class), WALLET_ID, walletId, new WalletOpened(...))
+     * }</pre>
+     *
+     * Use the {@link #builder(String)} for events with multiple tags (period tags, transfer tags, etc.).
+     */
+    public static AppendEvent of(String type, String tagKey, String tagValue, Object eventData) {
+        return builder(type).tag(tagKey, tagValue).data(eventData).build();
+    }
+
+    /**
+     * Concise factory for events that carry no tags (tag is on the decision model, not the event).
+     * Equivalent to {@code builder(type).data(eventData).build()}.
+     */
+    public static AppendEvent of(String type, Object eventData) {
+        return builder(type).data(eventData).build();
+    }
+
+    /**
      * Check if this input event has a specific tag.
      */
     public boolean hasTag(String key, String value) {

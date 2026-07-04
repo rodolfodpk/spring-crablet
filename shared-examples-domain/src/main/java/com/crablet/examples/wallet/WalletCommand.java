@@ -2,6 +2,7 @@ package com.crablet.examples.wallet;
 
 import com.crablet.eventstore.period.PeriodConfig;
 import com.crablet.eventstore.period.PeriodType;
+import com.crablet.examples.wallet.commands.CloseWalletCommand;
 import com.crablet.examples.wallet.commands.DepositCommand;
 import com.crablet.examples.wallet.commands.OpenWalletCommand;
 import com.crablet.examples.wallet.commands.TransferMoneyCommand;
@@ -25,7 +26,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = DepositCommand.class, name = "deposit"),
         @JsonSubTypes.Type(value = WithdrawCommand.class, name = "withdraw"),
         @JsonSubTypes.Type(value = TransferMoneyCommand.class, name = "transfer_money"),
-        @JsonSubTypes.Type(value = OpenWalletCommand.class, name = "open_wallet")
+        @JsonSubTypes.Type(value = OpenWalletCommand.class, name = "open_wallet"),
+        @JsonSubTypes.Type(value = CloseWalletCommand.class, name = "close_wallet")
 })
 public interface WalletCommand {
 

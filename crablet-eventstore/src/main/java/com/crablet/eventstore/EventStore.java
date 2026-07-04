@@ -3,6 +3,7 @@ package com.crablet.eventstore;
 import com.crablet.eventstore.query.ProjectionResult;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.StateProjector;
+
 import java.util.List;
 import java.util.function.Function;
 
@@ -37,6 +38,26 @@ public interface EventStore {
      */
     String appendNonCommutative(
             List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition);
+
+    /**
+     * Convenience overload — accepts a named {@link AppendCondition} instead of positional parameters.
+     * <p>
+     * Prefer this form for readability at the call site:
+     *
+     * <pre>{@code
+     * eventStore.appendNonCommutative(events,
+     *         AppendCondition.failIfChanged(decisionModel).after(streamPosition));
+     * }</pre>
+     *
+     * @param events    The events to append (must not be empty)
+     * @param condition The named DCB append condition
+     * @return The transaction ID of the transaction that appended the events
+     * @throws IllegalArgumentException if the events list is empty
+     * @throws ConcurrencyException if a concurrent modification is detected
+     */
+    default String appendNonCommutative(List<AppendEvent> events, AppendCondition condition) {
+        return appendNonCommutative(events, condition.concurrencyQuery(), condition.afterPosition());
+    }
 
     /**
      * Appends idempotent events — entity creation; fails if an event with the same tag already exists

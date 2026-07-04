@@ -4,6 +4,7 @@ import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.Tag;
 import com.crablet.examples.wallet.events.DepositMade;
 import com.crablet.examples.wallet.events.MoneyTransferred;
+import com.crablet.examples.wallet.events.WalletClosed;
 import com.crablet.examples.wallet.events.WalletEvent;
 import com.crablet.examples.wallet.events.WalletOpened;
 import com.crablet.examples.wallet.events.WalletStatementClosed;
@@ -45,6 +46,11 @@ public class WalletTestUtils {
                     eventType = "WalletOpened";
                     tags = List.of(new Tag("wallet_id", e.walletId()));
                     occurredAt = e.openedAt();
+                }
+                case WalletClosed e -> {
+                    eventType = "WalletClosed";
+                    tags = List.of(new Tag("wallet_id", e.walletId()));
+                    occurredAt = e.closedAt();
                 }
                 case MoneyTransferred e -> {
                     eventType = "MoneyTransferred";
