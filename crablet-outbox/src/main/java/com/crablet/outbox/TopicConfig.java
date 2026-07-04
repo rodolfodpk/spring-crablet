@@ -23,12 +23,7 @@ public class TopicConfig implements EventSelection {
     private final Map<String, String> exactTags;  // Optional exact key=value matches
     private final Set<String> publishers;          // Explicit publisher list
     
-    public TopicConfig(String name, Set<String> requiredTags, Set<String> anyOfTags, 
-                       Map<String, String> exactTags, Set<String> publishers) {
-        this(name, Set.of(), requiredTags, anyOfTags, exactTags, publishers);
-    }
-
-    public TopicConfig(String name, Set<String> eventTypes, Set<String> requiredTags, Set<String> anyOfTags,
+    private TopicConfig(String name, Set<String> eventTypes, Set<String> requiredTags, Set<String> anyOfTags,
                        Map<String, String> exactTags, Set<String> publishers) {
         this.name = name;
         this.eventTypes = eventTypes != null ? eventTypes : Set.of();

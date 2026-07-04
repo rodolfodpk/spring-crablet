@@ -38,14 +38,11 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.TaskScheduler;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * Auto-configuration for outbox using the generic event processor.
@@ -167,30 +164,7 @@ public class OutboxAutoConfiguration {
             eventPublisher,
             wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new),
             eventPollerConfig.orElseGet(EventPollerConfig::new),
-            moduleEventTypes(topicConfigs.values()),
-            moduleRequiredTagKeys(topicConfigs.values()),
-            moduleAnyOfTagKeys(topicConfigs.values()),
-            moduleExactTagKeys(topicConfigs.values()));
-    }
-
-    private static Set<String> moduleEventTypes(Collection<? extends EventSelection> s) {
-        if (s.stream().anyMatch(sel -> sel.getEventTypes().isEmpty())) return Set.of();
-        return s.stream().flatMap(sel -> sel.getEventTypes().stream()).collect(Collectors.toUnmodifiableSet());
-    }
-
-    private static Set<String> moduleRequiredTagKeys(Collection<? extends EventSelection> s) {
-        if (s.stream().anyMatch(sel -> sel.getRequiredTags().isEmpty())) return Set.of();
-        return s.stream().flatMap(sel -> sel.getRequiredTags().stream()).collect(Collectors.toUnmodifiableSet());
-    }
-
-    private static Set<String> moduleAnyOfTagKeys(Collection<? extends EventSelection> s) {
-        if (s.stream().anyMatch(sel -> sel.getAnyOfTags().isEmpty())) return Set.of();
-        return s.stream().flatMap(sel -> sel.getAnyOfTags().stream()).collect(Collectors.toUnmodifiableSet());
-    }
-
-    private static Set<String> moduleExactTagKeys(Collection<? extends EventSelection> s) {
-        if (s.stream().anyMatch(sel -> sel.getExactTags().isEmpty())) return Set.of();
-        return s.stream().flatMap(sel -> sel.getExactTags().keySet().stream()).collect(Collectors.toUnmodifiableSet());
+            topicConfigs.values());
     }
 
     /**

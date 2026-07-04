@@ -8,6 +8,47 @@ here, and should use deprecation first when that is practical.
 
 ---
 
+## `EventProcessorFactory.createProcessor` — 4 trailing `Set<String>` params replaced with `Collection<? extends EventSelection>`
+
+**Affects:** Any code that calls the widest `EventProcessorFactory.createProcessor` overload directly
+(most applications go through `crablet-outbox`/`crablet-views`/`crablet-automations` auto-configuration
+and are unaffected)
+
+### What changed
+
+The widest overload in each `createProcessor` family (LeaderElector-supplied, and raw
+election-params) took 4 trailing parameters — `Set<String> subscribedEventTypes, requiredTagKeys,
+anyOfTagKeys, exactTagKeys` — an argument-transposition risk, since all four are same-typed and
+adjacent. Both are replaced by a single `Collection<? extends EventSelection> selections`
+parameter. `EventSelection` (already implemented by `TopicConfig`, `ViewSubscription`, and
+`AutomationDefinition`) now carries 4 new `static` union helpers
+(`unionEventTypes`/`unionRequiredTags`/`unionAnyOfTags`/`unionExactTagKeys`) that
+`EventProcessorFactory` uses internally to derive the same 4 filters — removing logic that was
+previously copy-pasted identically across `OutboxAutoConfiguration`, `ViewsAutoConfiguration`, and
+`AutomationsAutoConfiguration`.
+
+### Migration
+
+```java
+// Before:
+EventProcessorFactory.createProcessor(
+        configs, leaderElector, progressTracker, eventFetcher, eventHandler,
+        taskScheduler, eventPublisher, wakeupSourceFactory, eventPollerConfig,
+        moduleEventTypes(selections), moduleRequiredTagKeys(selections),
+        moduleAnyOfTagKeys(selections), moduleExactTagKeys(selections));
+
+// After:
+EventProcessorFactory.createProcessor(
+        configs, leaderElector, progressTracker, eventFetcher, eventHandler,
+        taskScheduler, eventPublisher, wakeupSourceFactory, eventPollerConfig,
+        selections); // Collection<? extends EventSelection>, e.g. topicConfigs.values()
+```
+
+No action required if you only rely on the `crablet-outbox`/`crablet-views`/`crablet-automations`
+auto-configuration beans — they've been migrated to the new overload internally.
+
+---
+
 ## Consolidated framework migrations, `crablet_event_tags`, and command-level idempotency
 
 **Affects:** Fresh test and example databases; users of `CommandExecutor` who want idempotency
@@ -57,6 +98,36 @@ Requires `crablet.eventstore.persist-commands=true`. An `InvalidCommandException
 No action required if you do not use the new overload. Existing `execute(T)` and `execute(T, CommandHandler<T>)` calls are unchanged. The previously deprecated `execute(T, @Nullable UUID correlationId)` overload has been removed — migrate to `execute(T, CommandExecutionOptions.builder().correlationId(id).build())` if you were using it.
 
 Because this consolidation rewrites pre-release Flyway history, discard and recreate any local database that already applied the old framework V1-V10 chain. The project uses Testcontainers for framework tests, so this mainly affects manually created local example databases.
+
+---
+
+## `TopicConfig` — public constructors removed, use the builder
+
+**Affects:** Any code that called `new TopicConfig(...)` directly instead of `TopicConfig.builder(name)`
+
+### What changed
+
+`TopicConfig`'s two public constructors (a 5-arg overload defaulting `eventTypes` to "match all",
+and the 6-arg field-assignment constructor) have been removed. `TopicConfig.builder(name)` was
+already the documented, exclusively-used construction path in this repo's own tests and
+call sites; the raw constructors offered no capability the builder didn't, while adding four
+consecutive `Set<String>` parameters that were easy to transpose silently.
+
+### Migration
+
+```java
+// Before:
+new TopicConfig(name, eventTypes, requiredTags, anyOfTags, exactTags, publishers);
+
+// After:
+TopicConfig.builder(name)
+        .eventTypes(eventTypes)
+        .requireTags(requiredTags.toArray(new String[0]))
+        .anyOfTags(anyOfTags.toArray(new String[0]))
+        .publishers(publishers.toArray(new String[0]))
+        // exactTags: call .exactTag(key, value) per entry
+        .build();
+```
 
 ---
 

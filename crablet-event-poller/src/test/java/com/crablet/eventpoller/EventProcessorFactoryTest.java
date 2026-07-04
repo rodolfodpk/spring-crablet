@@ -20,6 +20,7 @@ import org.springframework.scheduling.TaskScheduler;
 import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -142,6 +143,47 @@ class EventProcessorFactoryTest {
     }
 
     @Test
+    @DisplayName("Should create processor with explicit leader elector from event selections")
+    void shouldCreateProcessorWithExplicitLeaderElectorFromSelections() {
+        EventProcessor<TestProcessorConfig, String> processor = EventProcessorFactory.createProcessor(
+                Map.of("p1", new TestProcessorConfig("p1")),
+                mock(LeaderElector.class),
+                mockProgressTracker(),
+                (processorId, lastPosition, batchSize) -> List.of(),
+                (processorId, events) -> 0,
+                mock(TaskScheduler.class),
+                mock(ApplicationEventPublisher.class),
+                new CountingWakeupFactory(),
+                new EventPollerConfig(),
+                List.of(selection(Set.of("WalletOpened"), Set.of("wallet_id"), Set.of(), Map.of())));
+
+        assertThat(processor).isNotNull();
+        assertThat(processor.getAllStatuses()).containsKey("p1");
+    }
+
+    @Test
+    @DisplayName("Should create processor and leader elector from processor name and event selections")
+    void shouldCreateProcessorAndLeaderElectorFromSelections() {
+        EventProcessor<TestProcessorConfig, String> processor = EventProcessorFactory.createProcessor(
+                Map.of("p1", new TestProcessorConfig("p1")),
+                "test-module",
+                99L,
+                "instance-1",
+                mockProgressTracker(),
+                (processorId, lastPosition, batchSize) -> List.of(),
+                (processorId, events) -> 0,
+                new WriteDataSource(mock(DataSource.class)),
+                mock(TaskScheduler.class),
+                mock(ApplicationEventPublisher.class),
+                new CountingWakeupFactory(),
+                new EventPollerConfig(),
+                List.of(selection(Set.of("WalletOpened"), Set.of(), Set.of(), Map.of())));
+
+        assertThat(processor).isNotNull();
+        assertThat(processor.getAllStatuses()).containsKey("p1");
+    }
+
+    @Test
     @DisplayName("Should create management service")
     void shouldCreateManagementService() {
         ProcessorManagementService<String> service = EventProcessorFactory.createManagementService(
@@ -195,5 +237,15 @@ class EventProcessorFactoryTest {
                 @Override public void close() {}
             };
         }
+    }
+
+    private static EventSelection selection(
+            Set<String> types, Set<String> required, Set<String> anyOf, Map<String, String> exact) {
+        return new EventSelection() {
+            @Override public Set<String> getEventTypes()   { return types; }
+            @Override public Set<String> getRequiredTags() { return required; }
+            @Override public Set<String> getAnyOfTags()    { return anyOf; }
+            @Override public Map<String, String> getExactTags() { return exact; }
+        };
     }
 }
