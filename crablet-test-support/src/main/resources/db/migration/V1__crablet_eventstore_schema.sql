@@ -94,12 +94,13 @@ CREATE OR REPLACE FUNCTION append_events_if(
 ) RETURNS JSONB AS
 $$
 DECLARE
-    v_has_duplicate BOOLEAN;
-    v_has_conflict  BOOLEAN;
-    v_lock_key      BIGINT;
+    v_has_duplicate         BOOLEAN;
+    v_has_conflict          BOOLEAN;
+    v_idempotency_lock_key  BIGINT;
+    v_concurrency_lock_key  BIGINT;
 BEGIN
     IF p_idempotency_types IS NOT NULL OR p_idempotency_tags IS NOT NULL THEN
-        v_lock_key := hashtextextended(
+        v_idempotency_lock_key := hashtextextended(
             array_to_string(
                 ARRAY(
                     SELECT 'type:' || item.value
@@ -113,7 +114,34 @@ BEGIN
             ),
             0
         );
-        PERFORM pg_advisory_xact_lock(v_lock_key);
+        PERFORM pg_advisory_xact_lock(v_idempotency_lock_key);
+    END IF;
+
+    -- The DCB conflict check below is otherwise snapshot-based
+    -- (transaction_id < pg_snapshot_xmin(...)), which cannot see an uncommitted peer
+    -- transaction's row. Two genuinely simultaneous callers racing the *same* decision
+    -- model could otherwise both pass the check and both succeed. Serialize
+    -- check-then-insert per decision model via a second advisory lock, namespaced with a
+    -- distinct string prefix ('concurrency_type:'/'concurrency_tag:' vs the idempotency
+    -- lock's 'type:'/'tag:') so identical type/tag values never collide across the two
+    -- checks and force needless serialization between an idempotency check and an
+    -- unrelated concurrency check.
+    IF p_event_types IS NOT NULL OR p_condition_tags IS NOT NULL THEN
+        v_concurrency_lock_key := hashtextextended(
+            array_to_string(
+                ARRAY(
+                    SELECT 'concurrency_type:' || item.value
+                    FROM unnest(COALESCE(p_event_types, ARRAY[]::TEXT[])) AS item(value)
+                    UNION ALL
+                    SELECT 'concurrency_tag:' || item.value
+                    FROM unnest(COALESCE(p_condition_tags, ARRAY[]::TEXT[])) AS item(value)
+                    ORDER BY 1
+                ),
+                ','
+            ),
+            0
+        );
+        PERFORM pg_advisory_xact_lock(v_concurrency_lock_key);
     END IF;
 
     SELECT
@@ -204,7 +232,10 @@ COMMENT ON FUNCTION append_events_batch(TEXT[], TEXT[], JSONB[], TIMESTAMP WITH 
 
 COMMENT ON FUNCTION append_events_if(TEXT[], TEXT[], JSONB[], TEXT[], TEXT[], BIGINT, TEXT[], TEXT[], TIMESTAMP WITH TIME ZONE, UUID, BIGINT, TEXT, TEXT) IS
     'Conditionally insert events using DCB conflict checks over canonical crablet_events.tags '
-    'and optionally notify append listeners on commit. '
-    'Advisory lock key derived via hashtextextended() → signed 64-bit integer (~2^64 possible '
-    'values); collision probability per concurrent idempotency pair is negligible. Risk '
-    'accepted: worst case is unnecessary lock serialization, not data corruption.';
+    'and optionally notify append listeners on commit. Two independent pg_advisory_xact_lock '
+    'calls (idempotency-keyed and concurrency-keyed, distinctly namespaced) serialize '
+    'check-then-insert for callers racing the same idempotency or decision-model condition, '
+    'closing the snapshot-isolation blind spot for genuinely concurrent callers. Advisory '
+    'lock keys derived via hashtextextended() → signed 64-bit integer (~2^64 possible '
+    'values); collision probability per concurrent pair is negligible. Risk accepted: worst '
+    'case is unnecessary lock serialization, not data corruption.';

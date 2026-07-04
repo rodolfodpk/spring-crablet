@@ -37,8 +37,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * genuinely concurrently (via a CountDownLatch start gate). Under plain READ_COMMITTED, this race
  * let both transactions succeed ~95% of the time in manual verification, because snapshot isolation's
  * conflict check (transaction_id < pg_snapshot_xmin(...)) cannot see a peer's not-yet-committed row.
- * appendIf now bumps to SERIALIZABLE for this exact case (see EventStoreImpl.appendIf), which closes
- * the window via Postgres's SSI - this test locks in that guarantee.
+ * append_events_if() now takes a decision-model-keyed pg_advisory_xact_lock before this check (see
+ * the SQL function in V1__crablet_eventstore_schema.sql), forcing racers to run check-then-insert
+ * sequentially - this test locks in that guarantee.
  */
 @DisplayName("appendNonCommutative concurrent race regression")
 @SpringBootTest(classes = TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")

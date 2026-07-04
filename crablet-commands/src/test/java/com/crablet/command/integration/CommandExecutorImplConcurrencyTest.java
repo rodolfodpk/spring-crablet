@@ -4,14 +4,18 @@ import com.crablet.command.CommandDecision;
 import com.crablet.command.ExecutionResult;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.ConcurrencyException;
+import com.crablet.eventstore.DCBViolation;
 import com.crablet.eventstore.StreamPosition;
 import com.crablet.eventstore.query.Query;
+import com.crablet.eventstore.query.StateProjector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -105,6 +109,71 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
         // Act & Assert - should throw ConcurrencyException (open_wallet always throws on duplicate)
         assertThatThrownBy(() -> commandExecutor.execute(secondCommand))
                 .isInstanceOf(ConcurrencyException.class);
+    }
+
+    @Test
+    void executeCommand_WithCommutativeGuarded_StaggeredLifecycleConflict_ThrowsGuardViolation() {
+        // Arrange - capture the guard position before a lifecycle event (unrelated type to the
+        // appended event, per CommutativeGuarded's own overlap validation) commits.
+        String entityId = "guard-entity-" + UUID.randomUUID();
+        Query lifecycleQuery = Query.forEventAndTag("entity_closed", "entityId", entityId);
+        StreamPosition guardPosition = eventStore.project(
+                lifecycleQuery, StreamPosition.zero(), StateProjector.exists()).streamPosition();
+
+        // Staggered: the lifecycle event fully commits after the guard position was captured
+        // but before the guarded append runs.
+        eventStore.appendCommutative(List.of(
+                AppendEvent.builder("entity_closed").tag("entityId", entityId).data("{}").build()));
+
+        AppendEvent guardedEvent = AppendEvent.builder("test_event").tag("entityId", entityId).data("{}").build();
+        CommandDecision.CommutativeGuarded decision =
+                CommandDecision.CommutativeGuarded.withLifecycleGuard(guardedEvent, lifecycleQuery, guardPosition);
+        TestCommandHandler.setHandlerLogic(cmd -> decision);
+
+        TestCommand command = new TestCommand("test_command", entityId);
+        assertThatThrownBy(() -> commandExecutor.execute(command))
+                .isInstanceOf(ConcurrencyException.class)
+                .satisfies(ex -> {
+                    DCBViolation violation = ((ConcurrencyException) ex).violation;
+                    assertThat(violation).isNotNull();
+                    assertThat(violation.errorCode()).isEqualTo("GUARD_VIOLATION");
+                });
+    }
+
+    @Test
+    void executeCommand_WithCommutativeGuarded_IdempotentRetryAfterLifecycleChange_ReturnsIdempotent() {
+        // Arrange - idempotency must be checked before the guard, so a retry with the same
+        // idempotency key against a since-closed entity returns the idempotent result rather
+        // than throwing GUARD_VIOLATION.
+        String entityId = "guard-entity-" + UUID.randomUUID();
+        Query lifecycleQuery = Query.forEventAndTag("entity_closed", "entityId", entityId);
+        StreamPosition guardPosition = eventStore.project(
+                lifecycleQuery, StreamPosition.zero(), StateProjector.exists()).streamPosition();
+
+        AppendEvent guardedEvent = AppendEvent.builder("test_event")
+                .tag("entityId", entityId).tag("op_id", "op-1").data("{}").build();
+        CommandDecision.CommutativeGuarded firstDecision = CommandDecision.CommutativeGuarded
+                .withLifecycleGuard(guardedEvent, lifecycleQuery, guardPosition)
+                .idempotent("test_event", "op_id", "op-1");
+        TestCommandHandler.setHandlerLogic(cmd -> firstDecision);
+
+        TestCommand command = new TestCommand("test_command", entityId);
+        ExecutionResult first = commandExecutor.execute(command);
+        assertTrue(first.wasCreated());
+
+        // The lifecycle change commits after the first successful execution.
+        eventStore.appendCommutative(List.of(
+                AppendEvent.builder("entity_closed").tag("entityId", entityId).data("{}").build()));
+
+        // Retry with the same stale guardPosition and idempotencyKey - should return idempotent,
+        // not throw GUARD_VIOLATION, since idempotency is checked before concurrency.
+        CommandDecision.CommutativeGuarded retryDecision = CommandDecision.CommutativeGuarded
+                .withLifecycleGuard(guardedEvent, lifecycleQuery, guardPosition)
+                .idempotent("test_event", "op_id", "op-1");
+        TestCommandHandler.setHandlerLogic(cmd -> retryDecision);
+
+        ExecutionResult retry = commandExecutor.execute(command);
+        assertTrue(retry.wasIdempotent());
     }
 }
 

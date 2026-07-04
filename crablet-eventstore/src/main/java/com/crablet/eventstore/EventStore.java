@@ -56,7 +56,49 @@ public interface EventStore {
      * @throws ConcurrencyException if a concurrent modification is detected
      */
     default String appendNonCommutative(List<AppendEvent> events, AppendCondition condition) {
-        return appendNonCommutative(events, condition.concurrencyQuery(), condition.afterPosition());
+        return appendConditional(events, condition);
+    }
+
+    /**
+     * Low-level append supporting a fully general {@link AppendCondition} — a concurrency check
+     * (with stream position) AND an idempotency check evaluated together. Used internally by
+     * the command framework for {@code CommandDecision.CommutativeGuarded}, where a lifecycle
+     * guard query and an optional idempotency key must be checked atomically alongside the
+     * append. Prefer the semantic methods ({@link #appendCommutative}, {@link #appendNonCommutative},
+     * {@link #appendIdempotent}) for typical use; this exists for advanced direct-{@code EventStore}
+     * composition.
+     * <p>
+     * Idempotency is checked before concurrency (matching the production implementation's own
+     * precedence), so an idempotent retry against state that has since changed still returns the
+     * idempotent duplicate result rather than a spurious concurrency conflict.
+     * <p>
+     * <strong>Atomicity note for custom implementations:</strong> this default implementation
+     * performs the two checks as separate, non-atomic steps ({@link #exists} for idempotency,
+     * {@link #project} for concurrency, then an unconditional append) — the same race window as
+     * manually composing those primitives. The production PostgreSQL implementation and the
+     * in-memory test double both override this method with an atomic implementation. Override it
+     * yourself if you need this guarantee in a custom {@code EventStore}.
+     *
+     * @param events    The events to append (must not be empty)
+     * @param condition The general append condition (concurrency query + position, plus optional idempotency query)
+     * @return The transaction ID of the transaction that appended the events
+     * @throws IllegalArgumentException if the events list is empty
+     * @throws ConcurrencyException if the idempotency or concurrency check fails
+     */
+    default String appendConditional(List<AppendEvent> events, AppendCondition condition) {
+        if (!condition.idempotencyQuery().isEmpty() && exists(condition.idempotencyQuery())) {
+            throw new ConcurrencyException("AppendCondition violated: duplicate operation detected",
+                    new DCBViolation("IDEMPOTENCY_VIOLATION", "duplicate operation detected", 1));
+        }
+        if (!condition.concurrencyQuery().isEmpty()) {
+            boolean conflict = project(condition.concurrencyQuery(), condition.afterPosition(),
+                    StateProjector.exists()).state();
+            if (conflict) {
+                throw new ConcurrencyException("AppendCondition violated: append condition violated",
+                        new DCBViolation("DCB_VIOLATION", "append condition violated", 1));
+            }
+        }
+        return appendCommutative(events);
     }
 
     /**

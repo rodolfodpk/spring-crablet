@@ -22,7 +22,9 @@ DCB redefines consistency granularity in event-sourced systems, moving from fixe
 | **Flexible refactoring** | Adjust boundaries without stream restructuring |
 | **Less upfront design pressure** | Refine boundaries as you learn |
 
-**Performance:** ~4x faster for operations using streamPosition-only checks vs. advisory locks.
+**Performance:** streamPosition-based checks (`appendNonCommutative`) and duplicate checks
+(`appendIdempotent`) both use an advisory lock internally (distinctly keyed, so they never
+serialize against each other); overhead is comparable between the two.
 
 📖 **Details:** See [sections below](#what-is-dcb).
 
@@ -106,23 +108,22 @@ DCB defines the core mechanism: criteria-based consistency boundaries and stream
 |--------|-------------------|-------------------|-------------------|
 | **Use Case** | State-dependent operations (Withdraw, Transfer) | Order-independent operations (Deposit, Credit) | Entity creation (OpenWallet) |
 | **What It Checks** | "Has anything changed AFTER stream position X?" | Nothing (or optional lifecycle guard) | "Does entity already exist?" |
-| **Advisory Locks** | ❌ Not needed | ❌ Not needed | ✅ Required |
-| **Protection Mechanism** | PostgreSQL `SERIALIZABLE` isolation (SSI) | Optional lifecycle guard | Advisory locks serialize duplicate checks |
-| **Performance** | Faster than idempotent (no lock contention), ~10% slower than plain `READ_COMMITTED` on the uncontended case due to SSI overhead | Fastest (no conflict check) | Slowest (lock serialization) |
+| **Advisory Locks** | ✅ Required (decision-model-keyed) | ❌ Not needed | ✅ Required (idempotency-keyed) |
+| **Protection Mechanism** | Advisory lock (decision-model-keyed) + snapshot conflict check | Optional lifecycle guard | Advisory lock (idempotency-keyed) serializes duplicate checks |
+| **Performance** | Comparable to `appendIdempotent`'s lock overhead; independent of caller isolation level | Fastest (no conflict check) | Same lock mechanism, independent hash namespace |
 | **Behavior** | 201 CREATED on success, 409 Conflict on stale position | Always succeeds (order-independent) | 201 CREATED for new entities, 200 OK for duplicates |
 
-**Key Insight**: `appendNonCommutative` relies on PostgreSQL's snapshot-based conflict check
-(`transaction_id < pg_snapshot_xmin(...)`), but that check alone only detects *staggered* races —
-if writer A's transaction commits before writer B's conflict check runs, B correctly sees the
-conflict. Under plain `READ_COMMITTED`, two *genuinely simultaneous* writers can both pass the
-check before either commits (neither can see the other's not-yet-committed row) and both succeed,
-silently violating the DCB guarantee. `appendNonCommutative` therefore runs at `SERIALIZABLE`
-isolation specifically for calls that carry a concurrency condition — Postgres's SSI closes this
-window, at the cost of surfacing the loser's failure as a serialization error (SQLSTATE `40001`,
-mapped to `ConcurrencyException` the same as a `DCB_VIOLATION`) rather than always via the SQL
-function's own JSON response. `appendIdempotent` still needs advisory locks regardless, because it
-checks for the existence of something that may not exist yet — no isolation level alone prevents
-that race condition.
+**Key Insight**: `appendNonCommutative`'s DCB conflict check is snapshot-based
+(`transaction_id < pg_snapshot_xmin(...)`), which alone only detects *staggered* races — if writer
+A's transaction commits before writer B's conflict check runs, B correctly sees the conflict.
+Under plain `READ_COMMITTED`, two *genuinely simultaneous* writers racing the same decision model
+could otherwise both pass the check before either commits and both succeed, silently violating the
+DCB guarantee. `append_events_if()` closes this window with a `pg_advisory_xact_lock` keyed on the
+decision model's event types/tags (distinctly namespaced from the idempotency lock, so the two
+checks never collide or needlessly serialize against each other) — the same mechanism
+`appendIdempotent` already used, now extended to the concurrency check too. Because the lock lives
+inside the SQL function itself, this protection is uniform regardless of caller isolation level or
+whether the append runs standalone or inside a command-handler transaction.
 
 ### Commutative Operations and Lifecycle Guards
 
@@ -431,18 +432,22 @@ CREATE FUNCTION append_events_if(
 
 ## Performance Characteristics
 
-Measured on this codebase:
+Measured on this codebase (numbers below predate the decision-model-keyed advisory lock added to
+`appendNonCommutative`'s concurrency check — re-benchmark before relying on the exact figures;
+the qualitative ordering and safety properties still hold):
 
 | Operation | Throughput | p95 Latency | Notes |
 |-----------|------------|-------------|-------|
 | Wallet Creation | 44 req/s | ~500ms | Uses idempotency checks |
-| Deposits | ~350 req/s | ~200ms | StreamPosition-only checks (~4x improvement) |
-| Withdrawals | ~350 req/s | ~200ms | StreamPosition-only checks (~3.6x improvement) |
-| Transfers | ~300 req/s | ~250ms | StreamPosition-only checks (~4x improvement) |
+| Deposits | ~350 req/s | ~200ms | StreamPosition-only checks |
+| Withdrawals | ~350 req/s | ~200ms | StreamPosition-only checks |
+| Transfers | ~300 req/s | ~250ms | StreamPosition-only checks |
 | History Queries | ~1000 req/s | ~60ms | Read-only operations |
 
 **Key Performance Insights:**
-- **Operations**: ~4x improvement by removing advisory locks, using streamPosition-only concurrency control
+- **Operations**: `appendNonCommutative` and `appendIdempotent` both use an advisory lock
+  internally now (distinctly keyed); neither is lock-free, but the locks never serialize against
+  each other
 - **Reduced Event Consumption**: Fine-grained criteria means fewer events to process for state projection
 - **Reduced Contention**: Smaller consistency boundaries reduce append conflicts
 - **Safety**: Money protected by streamPosition checks, no duplicate charges possible

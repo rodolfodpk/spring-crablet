@@ -12,6 +12,7 @@ import com.crablet.command.metrics.CommandFailureMetric;
 import com.crablet.command.metrics.CommandStartedMetric;
 import com.crablet.command.metrics.CommandSuccessMetric;
 import com.crablet.command.metrics.IdempotentOperationMetric;
+import com.crablet.eventstore.AppendCondition;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.CommandAuditStore;
@@ -21,7 +22,7 @@ import com.crablet.eventstore.DCBViolation;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.Tag;
-import com.crablet.eventstore.query.StateProjector;
+import com.crablet.eventstore.query.Query;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -280,19 +281,39 @@ public class CommandExecutorImpl implements CommandExecutor {
                         }
                         case CommandDecision.CommutativeGuarded cg -> {
                             operationType.set("commutative_guarded");
-                            // Selective lifecycle guard: detect if entity state changed (e.g., WalletClosed)
-                            // between the handler's projection and this append, without blocking
-                            // concurrent commutative operations (e.g., DepositMade not in guard query).
-                            if (txStore.project(cg.guardQuery(), cg.guardPosition(), StateProjector.exists()).state()) {
-                                throw new ConcurrencyException(
-                                    "Commutative guard violated: lifecycle state changed since projection",
-                                    new DCBViolation(
-                                        "GUARD_VIOLATION", "Concurrent lifecycle event detected", 1));
-                            }
-                            yield cg.idempotencyKey() != null
-                                    ? txStore.appendIdempotent(cg.events(), cg.idempotencyKey().eventType(),
+                            // Fold the lifecycle guard (guardQuery/guardPosition) and any
+                            // idempotency key into one AppendCondition, so the guard check and
+                            // the append become a single atomic append call (advisory-lock
+                            // protected, see append_events_if()) instead of a separate project()
+                            // existence check followed by a blind append with a race window
+                            // between them. Idempotency is checked before concurrency (matching
+                            // append_events_if()'s own precedence), so an idempotent retry against
+                            // a since-changed lifecycle state returns the duplicate result instead
+                            // of a spurious guard violation.
+                            Query idempotencyQuery = cg.idempotencyKey() != null
+                                    ? Query.forEventAndTag(cg.idempotencyKey().eventType(),
                                             cg.idempotencyKey().tagKey(), cg.idempotencyKey().tagValue())
-                                    : txStore.appendCommutative(cg.events());
+                                    : Query.noCondition();
+                            AppendCondition condition =
+                                    AppendCondition.of(cg.guardPosition(), cg.guardQuery(), idempotencyQuery);
+                            try {
+                                yield txStore.appendConditional(cg.events(), condition);
+                            } catch (ConcurrencyException guardEx) {
+                                // Relabel a genuine guard (lifecycle) conflict as GUARD_VIOLATION,
+                                // preserving the existing external error-code contract
+                                // (CommandApiExceptionHandlerTest, duplicatePolicyFor). An
+                                // idempotency duplicate (IDEMPOTENCY_VIOLATION) is rethrown
+                                // unchanged so the outer catch's handleConcurrencyException/
+                                // duplicatePolicyFor dispatch still applies.
+                                DCBViolation v = guardEx.violation;
+                                if (v != null && "DCB_VIOLATION".equals(v.errorCode())) {
+                                    throw new ConcurrencyException(
+                                            "Commutative guard violated: lifecycle state changed since projection",
+                                            new DCBViolation("GUARD_VIOLATION",
+                                                    "Concurrent lifecycle event detected", v.matchingEventsCount()));
+                                }
+                                throw guardEx;
+                            }
                         }
                         case CommandDecision.NonCommutative nc -> {
                             operationType.set("non_commutative");
@@ -439,12 +460,15 @@ public class CommandExecutorImpl implements CommandExecutor {
                                                            T command,
                                                            CommandDecision result) {
         String message = e.getMessage();
+        // Preserve e.violation (structured error code/message/matching count) rather than
+        // dropping it via the (message, command, cause) overload - callers (e.g. the command-web
+        // exception mapper) rely on the error code surviving this rethrow.
         if (message == null || !message.toLowerCase().contains("duplicate operation detected")) {
-            throw new ConcurrencyException(message, command, e);
+            throw new ConcurrencyException(message, command, e.violation);
         }
 
         if (duplicatePolicyFor(result) == OnDuplicate.THROW) {
-            throw new ConcurrencyException(message, command, e);
+            throw new ConcurrencyException(message, command, e.violation);
         }
 
         log.debug("Transaction committed successfully for command: {} (idempotent - duplicate detected)", commandType);

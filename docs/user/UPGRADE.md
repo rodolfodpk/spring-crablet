@@ -8,6 +8,37 @@ here, and should use deprecation first when that is practical.
 
 ---
 
+## `EventStore.appendConditional` — combined concurrency+idempotency append (additive)
+
+**Affects:** No existing code — purely additive default method. Custom `EventStore`
+implementations get a safe (non-atomic) fallback automatically; override it if you need the
+atomicity guarantee the bundled PostgreSQL and in-memory implementations provide.
+
+### What changed
+
+A new low-level method composes a concurrency check (with stream position) and an idempotency
+check into a single call, used internally by `CommandExecutorImpl` for
+`CommandDecision.CommutativeGuarded`:
+
+```java
+String appendConditional(List<AppendEvent> events, AppendCondition condition);
+```
+
+`EventStore.appendNonCommutative(events, AppendCondition)` now delegates to it, which also fixes a
+pre-existing bug where that overload silently dropped `condition.idempotencyQuery()`.
+
+As a related fix, `append_events_if()`'s DCB conflict check now takes a decision-model-keyed
+advisory lock (mirroring the existing idempotency lock) to close a race where two genuinely
+concurrent callers racing the same condition could otherwise both succeed under `READ_COMMITTED`.
+This protects both the standalone `EventStore` append path and command-handler-driven appends via
+`CommandExecutor` uniformly.
+
+### Migration
+
+No action required.
+
+---
+
 ## `EventProcessorFactory.createProcessor` — 4 trailing `Set<String>` params replaced with `Collection<? extends EventSelection>`
 
 **Affects:** Any code that calls the widest `EventProcessorFactory.createProcessor` overload directly

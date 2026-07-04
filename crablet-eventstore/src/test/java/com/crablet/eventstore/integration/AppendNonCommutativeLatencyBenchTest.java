@@ -20,11 +20,10 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Rough latency guard for the SERIALIZABLE isolation bump in appendIf's non-commutative path
- * (uncontended, sequential case - the common case for most real usage). Manual comparison against
- * the pre-fix READ_COMMITTED baseline measured ~3.19ms/call vs. ~3.51ms/call with the fix
- * (~10% overhead) on a local Testcontainers instance. This test doesn't pin that exact number
- * (too environment-sensitive) - it only guards against a gross regression.
+ * Rough latency guard for the decision-model-keyed advisory lock in append_events_if()'s
+ * non-commutative conflict check (uncontended, sequential case - the common case for most real
+ * usage). This test doesn't pin an exact number (too environment-sensitive) - it only guards
+ * against a gross regression.
  */
 @DisplayName("appendNonCommutative uncontended latency")
 @SpringBootTest(classes = TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.profiles.active=test")

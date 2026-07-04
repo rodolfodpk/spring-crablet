@@ -1,6 +1,9 @@
 package com.crablet.test;
 
+import com.crablet.eventstore.AppendCondition;
 import com.crablet.eventstore.ClockProvider;
+import com.crablet.eventstore.ConcurrencyException;
+import com.crablet.eventstore.DCBViolation;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.Query;
 import com.crablet.eventstore.query.ProjectionResult;
@@ -32,13 +35,17 @@ import java.util.stream.Collectors;
  * <ul>
  *   <li>Stores original event objects directly (no JSON serialization)</li>
  *   <li>Uses real StateProjector logic for accurate projections</li>
- *   <li>Accepts all appends (no DCB concurrency checks for unit tests)</li>
+ *   <li>{@code appendCommutative}/{@code appendNonCommutative}/{@code appendIdempotent} accept
+ *       all appends unconditionally (no DCB concurrency checks); {@code appendConditional} is the
+ *       exception - it performs real condition checking (concurrency + idempotency), since it's
+ *       the atomicity-bearing method the command framework uses for
+ *       {@code CommandDecision.CommutativeGuarded}</li>
  *   <li>Fast and lightweight - no database overhead</li>
  * </ul>
  * <p>
  * <strong>Limitations:</strong>
  * <ul>
- *   <li>Does not test DCB concurrency (use integration tests for that)</li>
+ *   <li>Does not test real DCB concurrency under actual concurrent load (use integration tests for that)</li>
  *   <li>Does not test database constraints or transactions</li>
  *   <li>Simplified query matching (checks event types and tags)</li>
  * </ul>
@@ -127,6 +134,40 @@ public class InMemoryEventStore implements EventStore, CommandAuditStore {
     @Override
     public String appendIdempotent(List<AppendEvent> events, Query idempotencyQuery) {
         return doAppend(events);
+    }
+
+    /**
+     * Unlike the other appendXxx methods above (which accept everything unconditionally), this
+     * performs real condition checking - it's the atomicity-bearing method CommandExecutorImpl
+     * uses for CommandDecision.CommutativeGuarded, so BDD-style handler unit tests must actually
+     * enforce the guard/idempotency conditions here to catch guard-violation regressions.
+     */
+    @Override
+    public String appendConditional(List<AppendEvent> appendEvents, AppendCondition condition) {
+        if (appendEvents == null || appendEvents.isEmpty()) {
+            throw new IllegalArgumentException("Cannot append empty events list");
+        }
+
+        // Idempotency first (matches append_events_if()'s own precedence): search ALL events,
+        // ignoring position, for a prior match.
+        if (!condition.idempotencyQuery().isEmpty()
+                && events.stream().anyMatch(e -> matchesQuery(e, condition.idempotencyQuery()))) {
+            throw new ConcurrencyException("AppendCondition violated: duplicate operation detected",
+                    new DCBViolation("IDEMPOTENCY_VIOLATION", "duplicate operation detected", 1));
+        }
+
+        // Concurrency: any matching event strictly after the captured stream position.
+        if (!condition.concurrencyQuery().isEmpty()) {
+            long afterPosition = condition.afterPosition().position();
+            boolean conflict = events.stream()
+                    .anyMatch(e -> e.position() > afterPosition && matchesQuery(e, condition.concurrencyQuery()));
+            if (conflict) {
+                throw new ConcurrencyException("AppendCondition violated: append condition violated",
+                        new DCBViolation("DCB_VIOLATION", "append condition violated", 1));
+            }
+        }
+
+        return doAppend(appendEvents);
     }
 
     private String doAppend(List<AppendEvent> appendEvents) {
