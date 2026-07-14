@@ -7,6 +7,7 @@ import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.CommandAuditStore;
 import com.crablet.eventstore.ConcurrencyException;
 import com.crablet.eventstore.CorrelationContext;
+import com.crablet.eventstore.DCBErrorCode;
 import com.crablet.eventstore.DCBViolation;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
@@ -94,9 +95,6 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
      * SQL statements for PostgreSQL functions and queries.
      * Extracted as constants for maintainability and readability.
      */
-    private static final String APPEND_EVENTS_IF_SQL =
-        "SELECT append_events_if(?, ?, ?::jsonb[], ?, ?, ?, ?, ?, ?::TIMESTAMP WITH TIME ZONE, ?::uuid, ?, ?::text, ?::text)";
-
     private static final String APPEND_EVENTS_IF_CONNECTION_SQL =
         "SELECT append_events_if(?::text[], ?::text[], ?::jsonb[], ?::text[], ?::text[], ?, ?::text[], ?::text[], ?::TIMESTAMP WITH TIME ZONE, ?::uuid, ?, ?::text, ?::text)";
 
@@ -249,97 +247,12 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             throw new IllegalArgumentException("Cannot append empty events list");
         }
 
-        try {
-            // Extract concurrency check (with stream position)
-            List<String> concurrencyTypes = condition.concurrencyQuery().items().stream()
-                    .flatMap(item -> item.eventTypes().stream())
-                    .distinct()
-                    .toList();
-
-            List<String> concurrencyTags = condition.concurrencyQuery().items().stream()
-                    .flatMap(item -> item.tags().stream())
-                    .map(tag -> tag.key() + "=" + tag.value())
-                    .distinct()
-                    .toList();
-
-            // Extract idempotency check (no stream position)
-            List<String> idempotencyTypes = null;
-            List<String> idempotencyTags = null;
-            if (!condition.idempotencyQuery().items().isEmpty()) {
-                idempotencyTypes = condition.idempotencyQuery().items().stream()
-                        .flatMap(item -> item.eventTypes().stream())
-                        .distinct()
-                        .toList();
-                idempotencyTags = condition.idempotencyQuery().items().stream()
-                        .flatMap(item -> item.tags().stream())
-                        .map(tag -> tag.key() + "=" + tag.value())
-                        .distinct()
-                        .sorted()  // Ensure deterministic order for consistent hash
-                        .toList();
-            }
-
-            // Prepare event data
-            String[] types = events.stream().map(AppendEvent::type).toArray(String[]::new);
-            String[] tagArrays = events.stream()
-                    .map(event -> convertTagsToPostgresArray(event.tags()))
-                    .toArray(String[]::new);
-            String[] dataStrings = events.stream()
-                    .map(event -> serializeEventData(event.eventData()))
-                    .toArray(String[]::new);
-            String notifyPayload = encodeNotifyPayload(events);
-
-            // Determine stream position: NULL for empty conditions (no concurrency check), actual value otherwise
-            Long afterPosition = null;
-            if (!concurrencyTypes.isEmpty() || !concurrencyTags.isEmpty()) {
-                // Only use stream position if we're actually doing a concurrency check
-                afterPosition = condition.afterPosition().position();
-            }
-
-            // Call append_events_if with dual conditions
-            try (Connection connection = writeDataSource.getConnection();
-                 PreparedStatement stmt = connection.prepareStatement(APPEND_EVENTS_IF_SQL)) {
-
-                stmt.setArray(1, connection.createArrayOf("varchar", types));
-                stmt.setArray(2, connection.createArrayOf("varchar", tagArrays));
-                stmt.setArray(3, connection.createArrayOf("jsonb", dataStrings));
-                stmt.setObject(4, concurrencyTypes.isEmpty() ? null : concurrencyTypes.toArray(new String[0]));
-                stmt.setObject(5, concurrencyTags.isEmpty() ? null : concurrencyTags.toArray(new String[0]));
-                stmt.setObject(6, afterPosition);
-                stmt.setObject(7, idempotencyTypes != null && !idempotencyTypes.isEmpty() ? idempotencyTypes.toArray(new String[0]) : null);
-                stmt.setObject(8, idempotencyTags != null && !idempotencyTags.isEmpty() ? idempotencyTags.toArray(new String[0]) : null);
-                stmt.setTimestamp(9, Timestamp.from(clock.now()));
-                stmt.setObject(10, CorrelationContext.correlationId());
-                stmt.setObject(11, CorrelationContext.causationId());
-                stmt.setString(12, notifyChannel);
-                stmt.setString(13, notifyPayload);
-
-                try (ResultSet rs = stmt.executeQuery()) {
-                    // Fail fast: Check if we have a result
-                    if (!rs.next()) {
-                        throw new RuntimeException("No result from append_events_if");
-                    }
-
-                    String jsonResult = rs.getString(1);
-                    String transactionId = parseAppendResult(jsonResult, events);
-
-                    // Publish metrics events after successful append
-                    eventPublisher.publishEvent(new EventsAppendedMetric(events.size()));
-                    for (AppendEvent event : events) {
-                        eventPublisher.publishEvent(new EventTypeMetric(event.type()));
-                    }
-
-                    return transactionId;
-                }
-            }
-
-        } catch (ConcurrencyException e) {
-            // Publish concurrency violation metric
-            eventPublisher.publishEvent(new ConcurrencyViolationMetric());
-            throw e;
+        try (Connection connection = writeDataSource.getConnection()) {
+            String transactionId = appendIfWithConnection(connection, events, condition);
+            publishAppendMetrics(events);
+            return transactionId;
         } catch (SQLException e) {
             throw handleSQLException(e);
-        } catch (Exception e) {
-            throw handleGenericException(e);
         }
     }
 
@@ -350,69 +263,19 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             throw new IllegalArgumentException("Projectors must not be empty");
         }
 
-        try {
-            // Build SQL using existing helper
-            StringBuilder sql = new StringBuilder("SELECT type, tags, data, transaction_id, position, occurred_at, correlation_id, causation_id FROM crablet_events");
-            List<Object> params = new ArrayList<>();
-            String whereClause = sqlBuilder.buildWhereClause(query, after, params);
-            if (!whereClause.isEmpty()) {
-                sql.append(" WHERE ").append(whereClause);
+        try (Connection connection = readDataSource.getConnection()) {
+            connection.setReadOnly(true);  // Read-only operation
+            connection.setAutoCommit(false); // Required for server-side cursor
+
+            try {
+                ProjectionResult<T> result = projectWithConnection(connection, query, after, projectors);
+                connection.commit(); // Commit read-only transaction
+                return result;
+            } catch (Exception e) {
+                connection.rollback();
+                throw e;
             }
-            sql.append(" ORDER BY transaction_id, position ASC");
-
-            // Stream with server-side cursor
-            try (Connection connection = readDataSource.getConnection()) {
-                connection.setReadOnly(true);  // Read-only operation
-                connection.setAutoCommit(false); // Required for server-side cursor
-
-                try (PreparedStatement stmt = connection.prepareStatement(
-                        sql.toString(),
-                        ResultSet.TYPE_FORWARD_ONLY,
-                        ResultSet.CONCUR_READ_ONLY)) {
-
-                    stmt.setFetchSize(config.getFetchSize());
-
-                    // Set parameters using existing logic
-                    for (int i = 0; i < params.size(); i++) {
-                        Object param = params.get(i);
-                        if (param instanceof String[] strings) {
-                            stmt.setArray(i + 1, connection.createArrayOf("text", strings));
-                        } else {
-                            stmt.setObject(i + 1, param);
-                        }
-                    }
-
-                    // Stream and project incrementally
-                    EventDeserializer deserializer = this.eventDeserializer;
-                    T state = projectors.get(0).getInitialState();
-                    StreamPosition lastStreamPosition = after;
-
-                    try (ResultSet rs = stmt.executeQuery()) {
-                        while (rs.next()) {
-                            StoredEvent event = EVENT_ROW_MAPPER.mapRow(rs, 0);
-
-                            // Apply projectors - pass deserializer
-                            // Deserialization errors will bubble up, failing the entire projection
-                            for (StateProjector<T> projector : projectors) {
-                                if (handlesEventType(projector, event)) {
-                                    state = projector.transition(state, event, deserializer);
-                                }
-                            }
-
-                            // Track stream position
-                            lastStreamPosition = StreamPosition.of(event.position(), event.occurredAt(), event.transactionId());
-                        }
-                    }
-
-                    connection.commit(); // Commit read-only transaction
-                    return ProjectionResult.of(state, lastStreamPosition);
-
-                } catch (Exception e) {
-                    connection.rollback();
-                    throw e;
-                }
-            }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             throw new EventStoreException("Failed to project state", e);
         }
     }
@@ -430,8 +293,9 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     }
 
     /**
-     * Private method to append events conditionally using a provided connection.
-     * Used internally by ConnectionScopedEventStore.
+     * Append events conditionally using a provided connection. The sole implementation of the
+     * DCB append logic — used internally by both {@link #appendIf} (which opens its own
+     * connection) and {@code ConnectionScopedEventStore} (which reuses a transaction's connection).
      */
     private String appendIfWithConnection(Connection connection, List<AppendEvent> events, AppendCondition condition) {
         if (events.isEmpty()) {
@@ -506,22 +370,18 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 }
 
                 String jsonResult = rs.getString(1);
-                return parseAppendResult(jsonResult, events);
+                String transactionId = parseAppendResult(jsonResult, events);
+
+                return transactionId;
             }
         } catch (ConcurrencyException e) {
             eventPublisher.publishEvent(new ConcurrencyViolationMetric());
             throw e;
         } catch (SQLException e) {
-            throw new EventStoreException("Failed to append events with condition using connection", e);
+            throw handleSQLException(e);
+        } catch (Exception e) {
+            throw handleGenericException(e);
         }
-    }
-
-    /**
-     * Create a connection-scoped EventStore for internal transaction management.
-     * This is a private implementation detail - not exposed in public API.
-     */
-    private EventStore createConnectionScopedStore(Connection connection) {
-        return new ConnectionScopedEventStore(connection);
     }
 
     @Override
@@ -532,12 +392,12 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
             connection.setTransactionIsolation(isolationLevel);
             connection.setAutoCommit(false);
 
+            ConnectionScopedEventStore txStore = new ConnectionScopedEventStore(connection);
+            T result;
             try {
-                EventStore txStore = createConnectionScopedStore(connection);
-                T result = operation.apply(txStore);
+                result = operation.apply(txStore);
                 connection.commit();
                 log.debug("Transaction committed successfully");
-                return result;
             } catch (Exception e) {
                 try {
                     connection.rollback();
@@ -548,6 +408,8 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 }
                 throw e;
             }
+            txStore.publishCommittedAppendMetrics();
+            return result;
         } catch (SQLException e) {
             throw new EventStoreException("Failed to execute transaction", e);
         }
@@ -567,6 +429,13 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 yield Connection.TRANSACTION_READ_COMMITTED;
             }
         };
+    }
+
+    private void publishAppendMetrics(List<AppendEvent> events) {
+        eventPublisher.publishEvent(new EventsAppendedMetric(events.size()));
+        for (AppendEvent event : events) {
+            eventPublisher.publishEvent(new EventTypeMetric(event.type()));
+        }
     }
 
     // Connection-based methods for ConnectionScopedEventStore
@@ -740,7 +609,7 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
      * Uses fail-fast principles to validate and extract transaction ID.
      *
      * @param jsonResult The JSON string result from PostgreSQL function
-     * @param events The events being appended (null for appendIfWithConnection, used for metrics)
+     * @param events The events being appended, used to build DCB violation details on failure
      * @return The transaction ID from the result
      * @throws ConcurrencyException if the append condition was violated
      * @throws EventStoreException if the result is invalid
@@ -765,9 +634,18 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
 
             // Fail fast: Check if condition failed
             if (!success) {
-                // Parse DCB violation details (only in appendIf, not appendIfWithConnection)
+                // Parse DCB violation details
                 if (events != null) {
-                    String errorCode = (String) result.getOrDefault("error_code", "DCB_VIOLATION");
+                    Object rawErrorCode = result.get("error_code");
+                    String errorCodeStr = rawErrorCode instanceof String value && !value.isBlank()
+                            ? value : DCBErrorCode.DCB_VIOLATION.name();
+                    DCBErrorCode errorCode;
+                    try {
+                        errorCode = DCBErrorCode.valueOf(errorCodeStr);
+                    } catch (IllegalArgumentException e) {
+                        log.warn("Unrecognized error_code from append_events_if: {}", errorCodeStr);
+                        errorCode = DCBErrorCode.DCB_VIOLATION;
+                    }
                     String message = (String) result.getOrDefault("message", "append condition violated");
 
                     Number matchingCount = (Number) result.get("matching_events_count");
@@ -936,20 +814,33 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
     // Inner class for connection-scoped EventStore
     private class ConnectionScopedEventStore implements EventStore, CommandAuditStore {
         private final Connection connection;
+        private final List<List<AppendEvent>> pendingMetricBatches = new ArrayList<>();
 
         private ConnectionScopedEventStore(Connection connection) {
             this.connection = connection;
         }
 
+        private String appendAndTrack(List<AppendEvent> events, AppendCondition condition) {
+            String transactionId = EventStoreImpl.this.appendIfWithConnection(connection, events, condition);
+            pendingMetricBatches.add(List.copyOf(events));
+            return transactionId;
+        }
+
+        private void publishCommittedAppendMetrics() {
+            for (List<AppendEvent> events : pendingMetricBatches) {
+                EventStoreImpl.this.publishAppendMetrics(events);
+            }
+        }
+
         @Override
         public String appendCommutative(List<AppendEvent> events) {
-            return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.empty());
+            return appendAndTrack(events, AppendCondition.empty());
         }
 
         @Override
         public String appendNonCommutative(
                 List<AppendEvent> events, Query decisionModel, StreamPosition streamPosition) {
-            return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendConditionBuilder.of(decisionModel, streamPosition).build());
+            return appendAndTrack(events, AppendConditionBuilder.of(decisionModel, streamPosition).build());
         }
 
         @Override
@@ -958,17 +849,17 @@ public class EventStoreImpl implements EventStore, CommandAuditStore {
                 String eventType,
                 String tagKey,
                 String tagValue) {
-            return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.idempotent(eventType, tagKey, tagValue));
+            return appendAndTrack(events, AppendCondition.idempotent(eventType, tagKey, tagValue));
         }
 
         @Override
         public String appendIdempotent(List<AppendEvent> events, Query idempotencyQuery) {
-            return EventStoreImpl.this.appendIfWithConnection(connection, events, AppendCondition.idempotent(idempotencyQuery));
+            return appendAndTrack(events, AppendCondition.idempotent(idempotencyQuery));
         }
 
         @Override
         public String appendConditional(List<AppendEvent> events, AppendCondition condition) {
-            return EventStoreImpl.this.appendIfWithConnection(connection, events, condition);
+            return appendAndTrack(events, condition);
         }
 
         @Override

@@ -1,6 +1,7 @@
 package com.crablet.command.web.internal;
 
 import com.crablet.eventstore.ConcurrencyException;
+import com.crablet.eventstore.DCBErrorCode;
 import com.crablet.eventstore.DCBViolation;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -18,7 +19,7 @@ class CommandApiExceptionHandlerTest {
 
     @Test
     void conflictProblemIncludesDcbViolationPropertiesWhenAvailable() {
-        DCBViolation violation = new DCBViolation("GUARD_VIOLATION", "Concurrent lifecycle event detected", 1);
+        DCBViolation violation = new DCBViolation(DCBErrorCode.GUARD_VIOLATION, "Concurrent lifecycle event detected", 1);
         ConcurrencyException exception = new ConcurrencyException("AppendCondition violated", violation);
 
         ResponseEntity<ProblemDetail> response = handler.handleConflict(exception);

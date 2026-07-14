@@ -3,6 +3,7 @@ package com.crablet.test;
 import com.crablet.eventstore.AppendCondition;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ConcurrencyException;
+import com.crablet.eventstore.DCBErrorCode;
 import com.crablet.eventstore.DCBViolation;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.Query;
@@ -153,7 +154,7 @@ public class InMemoryEventStore implements EventStore, CommandAuditStore {
         if (!condition.idempotencyQuery().isEmpty()
                 && events.stream().anyMatch(e -> matchesQuery(e, condition.idempotencyQuery()))) {
             throw new ConcurrencyException("AppendCondition violated: duplicate operation detected",
-                    new DCBViolation("IDEMPOTENCY_VIOLATION", "duplicate operation detected", 1));
+                    new DCBViolation(DCBErrorCode.IDEMPOTENCY_VIOLATION, "duplicate operation detected", 1));
         }
 
         // Concurrency: any matching event strictly after the captured stream position.
@@ -163,7 +164,7 @@ public class InMemoryEventStore implements EventStore, CommandAuditStore {
                     .anyMatch(e -> e.position() > afterPosition && matchesQuery(e, condition.concurrencyQuery()));
             if (conflict) {
                 throw new ConcurrencyException("AppendCondition violated: append condition violated",
-                        new DCBViolation("DCB_VIOLATION", "append condition violated", 1));
+                        new DCBViolation(DCBErrorCode.DCB_VIOLATION, "append condition violated", 1));
             }
         }
 

@@ -16,7 +16,7 @@ class DCBViolationTest {
     @DisplayName("Should create DCBViolation with all parameters")
     void shouldCreateDCBViolation_WithAllParameters() {
         // Given
-        String errorCode = "DCB_VIOLATION";
+        DCBErrorCode errorCode = DCBErrorCode.DCB_VIOLATION;
         String message = "Append condition violated: stream position mismatch";
         int matchingEventsCount = 2;
 
@@ -33,7 +33,7 @@ class DCBViolationTest {
     @DisplayName("Should implement toString with formatted message")
     void shouldImplementToString_WithFormattedMessage() {
         // Given
-        String errorCode = "DCB_VIOLATION";
+        DCBErrorCode errorCode = DCBErrorCode.DCB_VIOLATION;
         String message = "Append condition violated";
         int matchingEventsCount = 5;
 
@@ -54,7 +54,7 @@ class DCBViolationTest {
     @DisplayName("Should implement equals with same values")
     void shouldImplementEquals_WithSameValues() {
         // Given
-        String errorCode = "DCB_VIOLATION";
+        DCBErrorCode errorCode = DCBErrorCode.DCB_VIOLATION;
         String message = "Append condition violated";
         int matchingEventsCount = 3;
 
@@ -75,8 +75,8 @@ class DCBViolationTest {
         int matchingEventsCount = 3;
 
         // When
-        DCBViolation violation1 = new DCBViolation("DCB_VIOLATION", message, matchingEventsCount);
-        DCBViolation violation2 = new DCBViolation("STREAM_POSITION_MISMATCH", message, matchingEventsCount);
+        DCBViolation violation1 = new DCBViolation(DCBErrorCode.DCB_VIOLATION, message, matchingEventsCount);
+        DCBViolation violation2 = new DCBViolation(DCBErrorCode.GUARD_VIOLATION, message, matchingEventsCount);
 
         // Then
         assertThat(violation1).isNotEqualTo(violation2);
@@ -86,7 +86,7 @@ class DCBViolationTest {
     @DisplayName("Should implement equals with different message")
     void shouldImplementEquals_WithDifferentMessage() {
         // Given
-        String errorCode = "DCB_VIOLATION";
+        DCBErrorCode errorCode = DCBErrorCode.DCB_VIOLATION;
         int matchingEventsCount = 3;
 
         // When
@@ -101,7 +101,7 @@ class DCBViolationTest {
     @DisplayName("Should implement equals with different matchingEventsCount")
     void shouldImplementEquals_WithDifferentMatchingEventsCount() {
         // Given
-        String errorCode = "DCB_VIOLATION";
+        DCBErrorCode errorCode = DCBErrorCode.DCB_VIOLATION;
         String message = "Append condition violated";
 
         // When
@@ -132,7 +132,7 @@ class DCBViolationTest {
     @DisplayName("Should handle null message")
     void shouldHandleNullMessage_ShouldAllow() {
         // Given
-        String errorCode = "DCB_VIOLATION";
+        DCBErrorCode errorCode = DCBErrorCode.DCB_VIOLATION;
         int matchingEventsCount = 1;
 
         // When
@@ -163,7 +163,7 @@ class DCBViolationTest {
     @DisplayName("Should handle zero matchingEventsCount")
     void shouldHandleZeroMatchingEventsCount() {
         // Given
-        String errorCode = "DCB_VIOLATION";
+        DCBErrorCode errorCode = DCBErrorCode.DCB_VIOLATION;
         String message = "Append condition violated";
 
         // When
@@ -178,7 +178,7 @@ class DCBViolationTest {
     @DisplayName("Should handle negative matchingEventsCount")
     void shouldHandleNegativeMatchingEventsCount() {
         // Given
-        String errorCode = "DCB_VIOLATION";
+        DCBErrorCode errorCode = DCBErrorCode.DCB_VIOLATION;
         String message = "Append condition violated";
 
         // When
@@ -190,25 +190,10 @@ class DCBViolationTest {
     }
 
     @Test
-    @DisplayName("Should handle empty errorCode")
-    void shouldHandleEmptyErrorCode() {
-        // Given
-        String message = "Append condition violated";
-        int matchingEventsCount = 1;
-
-        // When
-        DCBViolation violation = new DCBViolation("", message, matchingEventsCount);
-
-        // Then
-        assertThat(violation.errorCode()).isEmpty();
-        assertThat(violation.message()).isEqualTo(message);
-    }
-
-    @Test
     @DisplayName("Should handle empty message")
     void shouldHandleEmptyMessage() {
         // Given
-        String errorCode = "DCB_VIOLATION";
+        DCBErrorCode errorCode = DCBErrorCode.DCB_VIOLATION;
         int matchingEventsCount = 1;
 
         // When
@@ -223,7 +208,7 @@ class DCBViolationTest {
     @DisplayName("Should handle large matchingEventsCount")
     void shouldHandleLargeMatchingEventsCount() {
         // Given
-        String errorCode = "DCB_VIOLATION";
+        DCBErrorCode errorCode = DCBErrorCode.DCB_VIOLATION;
         String message = "Append condition violated";
         int largeCount = Integer.MAX_VALUE;
 

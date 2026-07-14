@@ -72,7 +72,7 @@ class ConcurrencyExceptionTest {
         // Given
         String message = "Concurrency violation detected";
         Object command = new TestCommand("wallet-123");
-        DCBViolation violation = new DCBViolation("DCB_VIOLATION", "StreamPosition mismatch", 2);
+        DCBViolation violation = new DCBViolation(DCBErrorCode.DCB_VIOLATION, "StreamPosition mismatch", 2);
 
         // When
         ConcurrencyException exception = new ConcurrencyException(message, command, violation);
@@ -81,7 +81,7 @@ class ConcurrencyExceptionTest {
         assertThat(exception.getMessage()).isEqualTo(message);
         assertThat(exception.command).isSameAs(command);
         assertThat(exception.violation).isSameAs(violation);
-        assertThat(requireNonNull(exception.violation).errorCode()).isEqualTo("DCB_VIOLATION");
+        assertThat(requireNonNull(exception.violation).errorCode()).isEqualTo(DCBErrorCode.DCB_VIOLATION);
         assertThat(exception.getCause()).isNull();
     }
 
@@ -90,7 +90,7 @@ class ConcurrencyExceptionTest {
     void shouldCreateConcurrencyException_WithMessageAndViolation() {
         // Given
         String message = "Concurrency violation detected";
-        DCBViolation violation = new DCBViolation("DCB_VIOLATION", "StreamPosition mismatch", 2);
+        DCBViolation violation = new DCBViolation(DCBErrorCode.DCB_VIOLATION, "StreamPosition mismatch", 2);
 
         // When
         ConcurrencyException exception = new ConcurrencyException(message, violation);
@@ -123,7 +123,7 @@ class ConcurrencyExceptionTest {
     void shouldInitializeFields_WhenViolationProvided() {
         // Given
         String message = "Test message";
-        DCBViolation violation = new DCBViolation("ERROR_CODE", "Error message", 5);
+        DCBViolation violation = new DCBViolation(DCBErrorCode.IDEMPOTENCY_VIOLATION, "Error message", 5);
 
         // When
         ConcurrencyException exception = new ConcurrencyException(message, violation);
@@ -131,7 +131,7 @@ class ConcurrencyExceptionTest {
         // Then
         assertThat(exception.violation).isNotNull();
         assertThat(exception.violation).isSameAs(violation);
-        assertThat(requireNonNull(exception.violation).errorCode()).isEqualTo("ERROR_CODE");
+        assertThat(requireNonNull(exception.violation).errorCode()).isEqualTo(DCBErrorCode.IDEMPOTENCY_VIOLATION);
         assertThat(requireNonNull(exception.violation).message()).isEqualTo("Error message");
         assertThat(requireNonNull(exception.violation).matchingEventsCount()).isEqualTo(5);
     }
@@ -145,7 +145,7 @@ class ConcurrencyExceptionTest {
         // When
         ConcurrencyException exception1 = new ConcurrencyException(expectedMessage);
         ConcurrencyException exception2 = new ConcurrencyException(expectedMessage, new TestCommand("id"));
-        ConcurrencyException exception3 = new ConcurrencyException(expectedMessage, new DCBViolation("ERR", "msg", 1));
+        ConcurrencyException exception3 = new ConcurrencyException(expectedMessage, new DCBViolation(DCBErrorCode.GUARD_VIOLATION, "msg", 1));
 
         // Then
         assertThat(exception1.getMessage()).isEqualTo(expectedMessage);
@@ -231,7 +231,7 @@ class ConcurrencyExceptionTest {
     @DisplayName("Should handle null message with violation")
     void shouldHandleNullMessage_WithViolation() {
         // Given
-        DCBViolation violation = new DCBViolation("ERR", "msg", 1);
+        DCBViolation violation = new DCBViolation(DCBErrorCode.GUARD_VIOLATION, "msg", 1);
 
         // When
         ConcurrencyException exception = new ConcurrencyException(null, violation);
@@ -263,7 +263,7 @@ class ConcurrencyExceptionTest {
         // Given
         String message = "Test message";
         Object command = new TestCommand("wallet-123");
-        DCBViolation violation = new DCBViolation("DCB_VIOLATION", "StreamPosition mismatch", 2);
+        DCBViolation violation = new DCBViolation(DCBErrorCode.DCB_VIOLATION, "StreamPosition mismatch", 2);
 
         // When
         ConcurrencyException exception = new ConcurrencyException(message, command, violation);

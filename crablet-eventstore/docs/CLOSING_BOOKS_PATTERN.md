@@ -313,7 +313,8 @@ If a `ConcurrencyException` carries an `IDEMPOTENCY_VIOLATION` error code, it's 
 
 ```java
 } catch (ConcurrencyException e) {
-    if (e.violation != null && "IDEMPOTENCY_VIOLATION".equals(e.violation.errorCode())) {
+    if (e.violation != null
+            && e.violation.errorCode() == DCBErrorCode.IDEMPOTENCY_VIOLATION) {
         return; // Already exists — idempotent success
     }
     throw e; // Real concurrency conflict — propagate
@@ -395,4 +396,3 @@ See `ClosingBooksPatternTest` for comprehensive examples covering:
 - Transfers across periods (wallets in different periods)
 
 See: `crablet-eventstore/src/test/java/com/crablet/examples/wallet/ClosingBooksPatternTest.java`
-

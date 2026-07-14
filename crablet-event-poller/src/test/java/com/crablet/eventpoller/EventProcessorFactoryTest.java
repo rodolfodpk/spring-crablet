@@ -23,10 +23,42 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.Mockito.mock;
 
 @DisplayName("EventProcessorFactory Unit Tests")
 class EventProcessorFactoryTest {
+
+    @Test
+    @DisplayName("Should create processor from named spec with defaults")
+    void shouldCreateProcessorFromSpecWithDefaults() {
+        EventProcessor<TestProcessorConfig, String> processor = EventProcessorFactory.createProcessor(
+                ProcessorSpec.<TestProcessorConfig, String>builder()
+                        .configs(Map.of("p1", new TestProcessorConfig("p1")))
+                        .leaderElector(mock(LeaderElector.class))
+                        .progressTracker(mockProgressTracker())
+                        .eventFetcher((processorId, lastPosition, batchSize) -> List.of())
+                        .eventHandler((processorId, events) -> 0)
+                        .taskScheduler(mock(TaskScheduler.class))
+                        .eventPublisher(mock(ApplicationEventPublisher.class))
+                        .build());
+
+        assertThat(processor.getAllStatuses()).containsKey("p1");
+    }
+
+    @Test
+    @DisplayName("Should reject spec without an election strategy")
+    void shouldRejectSpecWithoutElectionStrategy() {
+        assertThatIllegalArgumentException().isThrownBy(() ->
+                ProcessorSpec.<TestProcessorConfig, String>builder()
+                        .configs(Map.of())
+                        .progressTracker(mockProgressTracker())
+                        .eventFetcher((processorId, lastPosition, batchSize) -> List.of())
+                        .eventHandler((processorId, events) -> 0)
+                        .taskScheduler(mock(TaskScheduler.class))
+                        .eventPublisher(mock(ApplicationEventPublisher.class))
+                        .build());
+    }
 
     @Test
     @DisplayName("Should create leader elector")
@@ -43,119 +75,21 @@ class EventProcessorFactoryTest {
     }
 
     @Test
-    @DisplayName("Should create processor with explicit leader elector and default wakeup")
-    void shouldCreateProcessorWithExplicitLeaderElectorAndDefaultWakeup() {
-        EventProcessor<TestProcessorConfig, String> processor = EventProcessorFactory.createProcessor(
-                Map.of("p1", new TestProcessorConfig("p1")),
-                mock(LeaderElector.class),
-                mockProgressTracker(),
-                (processorId, lastPosition, batchSize) -> List.of(),
-                (processorId, events) -> 0,
-                mock(TaskScheduler.class),
-                mock(ApplicationEventPublisher.class));
-
-        assertThat(processor).isNotNull();
-        assertThat(processor.getAllStatuses()).containsKey("p1");
-    }
-
-    @Test
-    @DisplayName("Should create processor with explicit wakeup and event poller config")
-    void shouldCreateProcessorWithExplicitWakeupAndConfig() {
-        CountingWakeupFactory wakeupFactory = new CountingWakeupFactory();
-        EventPollerConfig config = new EventPollerConfig();
-        config.setLeaderRetryCooldownMs(123L);
-        config.setStartupDelayMs(456L);
-
-        EventProcessor<TestProcessorConfig, String> processor = EventProcessorFactory.createProcessor(
-                Map.of("p1", new TestProcessorConfig("p1")),
-                mock(LeaderElector.class),
-                mockProgressTracker(),
-                (processorId, lastPosition, batchSize) -> List.of(),
-                (processorId, events) -> 0,
-                mock(TaskScheduler.class),
-                mock(ApplicationEventPublisher.class),
-                wakeupFactory,
-                config);
-
-        assertThat(processor).isNotNull();
-        assertThat(wakeupFactory.created).isEqualTo(1);
-    }
-
-    @Test
-    @DisplayName("Should create processor and leader elector from processor name")
-    void shouldCreateProcessorAndLeaderElectorFromProcessorName() {
-        EventProcessor<TestProcessorConfig, String> processor = EventProcessorFactory.createProcessor(
-                Map.of("p1", new TestProcessorConfig("p1")),
-                "test-module",
-                99L,
-                "instance-1",
-                mockProgressTracker(),
-                (processorId, lastPosition, batchSize) -> List.of(),
-                (processorId, events) -> 0,
-                new WriteDataSource(mock(DataSource.class)),
-                mock(TaskScheduler.class),
-                mock(ApplicationEventPublisher.class),
-                new CountingWakeupFactory(),
-                new EventPollerConfig());
-
-        assertThat(processor).isNotNull();
-        assertThat(processor.getAllStatuses()).containsKey("p1");
-    }
-
-    @Test
-    @DisplayName("Should create processor from processor name with default wakeup")
-    void shouldCreateProcessorFromProcessorNameWithDefaultWakeup() {
-        EventProcessor<TestProcessorConfig, String> processor = EventProcessorFactory.createProcessor(
-                Map.of("p1", new TestProcessorConfig("p1")),
-                "test-module",
-                99L,
-                "instance-1",
-                mockProgressTracker(),
-                (processorId, lastPosition, batchSize) -> List.of(),
-                (processorId, events) -> 0,
-                new WriteDataSource(mock(DataSource.class)),
-                mock(TaskScheduler.class),
-                mock(ApplicationEventPublisher.class));
-
-        assertThat(processor).isNotNull();
-    }
-
-    @Test
-    @DisplayName("Should create processor from processor name with explicit wakeup and default config")
-    void shouldCreateProcessorFromProcessorNameWithExplicitWakeupAndDefaultConfig() {
-        CountingWakeupFactory wakeupFactory = new CountingWakeupFactory();
-
-        EventProcessor<TestProcessorConfig, String> processor = EventProcessorFactory.createProcessor(
-                Map.of("p1", new TestProcessorConfig("p1")),
-                "test-module",
-                99L,
-                "instance-1",
-                mockProgressTracker(),
-                (processorId, lastPosition, batchSize) -> List.of(),
-                (processorId, events) -> 0,
-                new WriteDataSource(mock(DataSource.class)),
-                mock(TaskScheduler.class),
-                mock(ApplicationEventPublisher.class),
-                wakeupFactory);
-
-        assertThat(processor).isNotNull();
-        assertThat(wakeupFactory.created).isEqualTo(1);
-    }
-
-    @Test
     @DisplayName("Should create processor with explicit leader elector from event selections")
     void shouldCreateProcessorWithExplicitLeaderElectorFromSelections() {
         EventProcessor<TestProcessorConfig, String> processor = EventProcessorFactory.createProcessor(
-                Map.of("p1", new TestProcessorConfig("p1")),
-                mock(LeaderElector.class),
-                mockProgressTracker(),
-                (processorId, lastPosition, batchSize) -> List.of(),
-                (processorId, events) -> 0,
-                mock(TaskScheduler.class),
-                mock(ApplicationEventPublisher.class),
-                new CountingWakeupFactory(),
-                new EventPollerConfig(),
-                List.of(selection(Set.of("WalletOpened"), Set.of("wallet_id"), Set.of(), Map.of())));
+                ProcessorSpec.<TestProcessorConfig, String>builder()
+                        .configs(Map.of("p1", new TestProcessorConfig("p1")))
+                        .leaderElector(mock(LeaderElector.class))
+                        .progressTracker(mockProgressTracker())
+                        .eventFetcher((processorId, lastPosition, batchSize) -> List.of())
+                        .eventHandler((processorId, events) -> 0)
+                        .taskScheduler(mock(TaskScheduler.class))
+                        .eventPublisher(mock(ApplicationEventPublisher.class))
+                        .wakeupSourceFactory(new CountingWakeupFactory())
+                        .eventPollerConfig(new EventPollerConfig())
+                        .selections(List.of(selection(Set.of("WalletOpened"), Set.of("wallet_id"), Set.of(), Map.of())))
+                        .build());
 
         assertThat(processor).isNotNull();
         assertThat(processor.getAllStatuses()).containsKey("p1");
@@ -165,22 +99,41 @@ class EventProcessorFactoryTest {
     @DisplayName("Should create processor and leader elector from processor name and event selections")
     void shouldCreateProcessorAndLeaderElectorFromSelections() {
         EventProcessor<TestProcessorConfig, String> processor = EventProcessorFactory.createProcessor(
-                Map.of("p1", new TestProcessorConfig("p1")),
-                "test-module",
-                99L,
-                "instance-1",
-                mockProgressTracker(),
-                (processorId, lastPosition, batchSize) -> List.of(),
-                (processorId, events) -> 0,
-                new WriteDataSource(mock(DataSource.class)),
-                mock(TaskScheduler.class),
-                mock(ApplicationEventPublisher.class),
-                new CountingWakeupFactory(),
-                new EventPollerConfig(),
-                List.of(selection(Set.of("WalletOpened"), Set.of(), Set.of(), Map.of())));
+                ProcessorSpec.<TestProcessorConfig, String>builder()
+                        .configs(Map.of("p1", new TestProcessorConfig("p1")))
+                        .processorName("test-module")
+                        .lockKey(99L)
+                        .instanceId("instance-1")
+                        .writeDataSource(new WriteDataSource(mock(DataSource.class)))
+                        .progressTracker(mockProgressTracker())
+                        .eventFetcher((processorId, lastPosition, batchSize) -> List.of())
+                        .eventHandler((processorId, events) -> 0)
+                        .taskScheduler(mock(TaskScheduler.class))
+                        .eventPublisher(mock(ApplicationEventPublisher.class))
+                        .wakeupSourceFactory(new CountingWakeupFactory())
+                        .eventPollerConfig(new EventPollerConfig())
+                        .selections(List.of(selection(Set.of("WalletOpened"), Set.of(), Set.of(), Map.of())))
+                        .build());
 
         assertThat(processor).isNotNull();
         assertThat(processor.getAllStatuses()).containsKey("p1");
+    }
+
+    @Test
+    @DisplayName("Should reject partial raw election settings")
+    void shouldRejectPartialRawElectionSettings() {
+        assertThatIllegalArgumentException().isThrownBy(() -> baseSpecBuilder()
+                .processorName("test-module")
+                .build());
+    }
+
+    @Test
+    @DisplayName("Should reject leader elector combined with raw election settings")
+    void shouldRejectMixedElectionStrategies() {
+        assertThatIllegalArgumentException().isThrownBy(() -> baseSpecBuilder()
+                .leaderElector(mock(LeaderElector.class))
+                .processorName("test-module")
+                .build());
     }
 
     @Test
@@ -196,6 +149,16 @@ class EventProcessorFactoryTest {
 
     private static ProgressTracker<String> mockProgressTracker() {
         return new TestProgressTracker();
+    }
+
+    private static ProcessorSpec.Builder<TestProcessorConfig, String> baseSpecBuilder() {
+        return ProcessorSpec.<TestProcessorConfig, String>builder()
+                .configs(Map.of())
+                .progressTracker(mockProgressTracker())
+                .eventFetcher((processorId, lastPosition, batchSize) -> List.of())
+                .eventHandler((processorId, events) -> 0)
+                .taskScheduler(mock(TaskScheduler.class))
+                .eventPublisher(mock(ApplicationEventPublisher.class));
     }
 
     static class TestProgressTracker implements ProgressTracker<String> {

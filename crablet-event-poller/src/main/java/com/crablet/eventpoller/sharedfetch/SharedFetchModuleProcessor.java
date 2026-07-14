@@ -10,7 +10,6 @@ import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
-import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSource;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSource;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.StoredEvent;
@@ -96,47 +95,6 @@ public class SharedFetchModuleProcessor<C extends ProcessorConfig<I>, I>
     private volatile @Nullable ScheduledFuture<?> sharedSchedule;
     private volatile @Nullable ScheduledFuture<?> leaderRetrySchedule;
     private volatile @Nullable ScheduledFuture<?> pendingImmediatePoll;
-
-    public SharedFetchModuleProcessor(
-            Map<I, C> configs,
-            Map<I, EventSelection> selections,
-            String moduleName,
-            String instanceId,
-            LeaderElector leaderElector,
-            ProgressTracker<I> progressTracker,
-            ModuleScanProgressRepository moduleScanRepo,
-            ProcessorScanProgressRepository processorScanRepo,
-            EventHandler<I> eventHandler,
-            DataSource readDataSource,
-            int fetchBatchSize,
-            TaskScheduler taskScheduler,
-            ApplicationEventPublisher eventPublisher,
-            Function<I, String> idSerializer) {
-        this(configs, selections, moduleName, instanceId, leaderElector, progressTracker,
-                moduleScanRepo, processorScanRepo, eventHandler, readDataSource, fetchBatchSize,
-                taskScheduler, eventPublisher, idSerializer, new NoopProcessorWakeupSource(), ClockProvider.systemDefault());
-    }
-
-    public SharedFetchModuleProcessor(
-            Map<I, C> configs,
-            Map<I, EventSelection> selections,
-            String moduleName,
-            String instanceId,
-            LeaderElector leaderElector,
-            ProgressTracker<I> progressTracker,
-            ModuleScanProgressRepository moduleScanRepo,
-            ProcessorScanProgressRepository processorScanRepo,
-            EventHandler<I> eventHandler,
-            DataSource readDataSource,
-            int fetchBatchSize,
-            TaskScheduler taskScheduler,
-            ApplicationEventPublisher eventPublisher,
-            Function<I, String> idSerializer,
-            ProcessorWakeupSource wakeupSource) {
-        this(configs, selections, moduleName, instanceId, leaderElector, progressTracker,
-                moduleScanRepo, processorScanRepo, eventHandler, readDataSource, fetchBatchSize,
-                taskScheduler, eventPublisher, idSerializer, wakeupSource, ClockProvider.systemDefault());
-    }
 
     public SharedFetchModuleProcessor(
             Map<I, C> configs,

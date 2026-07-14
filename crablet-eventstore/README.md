@@ -137,8 +137,10 @@ public class EventStoreConfig {
 ```
 
 The following metrics are published:
-- `EventsAppendedMetric` - Events appended to the store
-- `EventTypeMetric` - Event types appended
+- `EventsAppendedMetric` - Events appended by successfully committed transactions
+- `EventTypeMetric` - Event types appended by successfully committed transactions
+
+Append metrics are emitted only after commit; events from rolled-back transactions are not counted.
 - `ConcurrencyViolationMetric` - Concurrency violations detected
 
 ## Tag Key Normalization

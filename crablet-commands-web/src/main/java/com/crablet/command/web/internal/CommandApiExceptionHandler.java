@@ -57,7 +57,7 @@ class CommandApiExceptionHandler {
         DCBViolation violation = e.violation;
         if (violation != null) {
             if (violation.errorCode() != null) {
-                problem.setProperty("violationCode", violation.errorCode());
+                problem.setProperty("violationCode", violation.errorCode().name());
             }
             problem.setProperty("matchingEventsCount", violation.matchingEventsCount());
             problem.setProperty("hint", "Refresh state and retry the command if it is still valid.");

@@ -3,6 +3,7 @@ package com.crablet.outbox.config;
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventProcessorFactory;
+import com.crablet.eventpoller.ProcessorSpec;
 import com.crablet.eventpoller.EventSelection;
 import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.config.EventPollerAutoConfiguration;
@@ -155,16 +156,18 @@ public class OutboxAutoConfiguration {
             Optional<ProcessorWakeupSourceFactory> wakeupSourceFactory,
             Optional<EventPollerConfig> eventPollerConfig) {
         return EventProcessorFactory.createProcessor(
-            configs,
-            outboxLeaderElector,
-            progressTracker,
-            eventFetcher,
-            eventHandler,
-            taskScheduler,
-            eventPublisher,
-            wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new),
-            eventPollerConfig.orElseGet(EventPollerConfig::new),
-            topicConfigs.values());
+                ProcessorSpec.<OutboxProcessorConfig, TopicPublisherPair>builder()
+                        .configs(configs)
+                        .leaderElector(outboxLeaderElector)
+                        .progressTracker(progressTracker)
+                        .eventFetcher(eventFetcher)
+                        .eventHandler(eventHandler)
+                        .taskScheduler(taskScheduler)
+                        .eventPublisher(eventPublisher)
+                        .wakeupSourceFactory(wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new))
+                        .eventPollerConfig(eventPollerConfig.orElseGet(EventPollerConfig::new))
+                        .selections(topicConfigs.values())
+                        .build());
     }
 
     /**

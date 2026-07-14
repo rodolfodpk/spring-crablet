@@ -1,21 +1,19 @@
 package com.crablet.automations.management;
 
+import com.crablet.eventpoller.management.AbstractProgressManagementService;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventstore.ClockProvider;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Management service for automations, extending the generic {@link ProcessorManagementService}
@@ -27,13 +25,7 @@ import java.util.Map;
  *   <li>{@code ProcessorManagementService<String>} — for generic operations only</li>
  * </ul>
  */
-public class AutomationManagementService implements ProcessorManagementService<String> {
-
-    private static final Logger log = LoggerFactory.getLogger(AutomationManagementService.class);
-
-    private final ProcessorManagementService<String> delegate;
-    private final DataSource dataSource;
-    private final ClockProvider clockProvider;
+public class AutomationManagementService extends AbstractProgressManagementService<String> {
 
     private static final String SELECT_PROGRESS_SQL = """
         SELECT automation_name, instance_id, status, last_position, error_count,
@@ -58,39 +50,8 @@ public class AutomationManagementService implements ProcessorManagementService<S
             ProcessorManagementService<String> delegate,
             DataSource dataSource,
             ClockProvider clockProvider) {
-        if (delegate == null) throw new IllegalArgumentException("delegate must not be null");
-        if (dataSource == null) throw new IllegalArgumentException("dataSource must not be null");
-        if (clockProvider == null) throw new IllegalArgumentException("clockProvider must not be null");
-        this.delegate = delegate;
-        this.dataSource = dataSource;
-        this.clockProvider = clockProvider;
+        super(delegate, dataSource, clockProvider);
     }
-
-    // ========== Delegated Methods ==========
-
-    @Override
-    public boolean pause(String automationName) { return delegate.pause(automationName); }
-
-    @Override
-    public boolean resume(String automationName) { return delegate.resume(automationName); }
-
-    @Override
-    public boolean reset(String automationName) { return delegate.reset(automationName); }
-
-    @Override
-    public ProcessorStatus getStatus(String automationName) { return delegate.getStatus(automationName); }
-
-    @Override
-    public Map<String, ProcessorStatus> getAllStatuses() { return delegate.getAllStatuses(); }
-
-    @Override
-    public @Nullable Long getLag(String automationName) { return delegate.getLag(automationName); }
-
-    @Override
-    public @Nullable BackoffInfo getBackoffInfo(String automationName) { return delegate.getBackoffInfo(automationName); }
-
-    @Override
-    public Map<String, BackoffInfo> getAllBackoffInfo() { return delegate.getAllBackoffInfo(); }
 
     // ========== Automation-Specific Methods ==========
 
@@ -100,41 +61,19 @@ public class AutomationManagementService implements ProcessorManagementService<S
      * @return details, or {@code null} if not found
      */
     public @Nullable AutomationProgressDetails getProgressDetails(String automationName) {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(SELECT_PROGRESS_SQL)) {
-
-            stmt.setString(1, automationName);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapRow(rs);
-                }
-                return null;
-            }
-        } catch (SQLException e) {
-            log.error("Failed to get progress details for automation: {}", automationName, e);
-            throw new RuntimeException("Failed to get automation progress details", e);
-        }
+        return queryOne(SELECT_PROGRESS_SQL, statement -> statement.setString(1, automationName),
+                this::mapRow, "get automation progress details");
     }
 
     /**
      * Get detailed progress for all automations.
      */
     public Map<String, AutomationProgressDetails> getAllProgressDetails() {
-        Map<String, AutomationProgressDetails> result = new HashMap<>();
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(SELECT_ALL_PROGRESS_SQL);
-             ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                AutomationProgressDetails details = mapRow(rs);
-                result.put(details.automationName(), details);
-            }
-        } catch (SQLException e) {
-            log.error("Failed to get all automation progress details", e);
-            throw new RuntimeException("Failed to get all automation progress details", e);
-        }
-        return result;
+        List<AutomationProgressDetails> details = queryAll(
+                SELECT_ALL_PROGRESS_SQL, this::mapRow,
+                "get all automation progress details");
+        return details.stream().collect(Collectors.toMap(
+                AutomationProgressDetails::automationName, Function.identity()));
     }
 
     private AutomationProgressDetails mapRow(ResultSet rs) throws SQLException {
@@ -156,10 +95,11 @@ public class AutomationManagementService implements ProcessorManagementService<S
         Instant lastErrorAt = lastErrorAtTs != null ? lastErrorAtTs.toInstant() : null;
 
         Timestamp lastUpdatedAtTs = rs.getTimestamp("last_updated_at");
-        Instant lastUpdatedAt = lastUpdatedAtTs != null ? lastUpdatedAtTs.toInstant() : clockProvider.now();
+        Instant lastUpdatedAt = lastUpdatedAtTs != null
+                ? lastUpdatedAtTs.toInstant() : clockProvider().now();
 
         Timestamp createdAtTs = rs.getTimestamp("created_at");
-        Instant createdAt = createdAtTs != null ? createdAtTs.toInstant() : clockProvider.now();
+        Instant createdAt = createdAtTs != null ? createdAtTs.toInstant() : clockProvider().now();
 
         return new AutomationProgressDetails(
                 automationName, instanceId, status, lastPosition,

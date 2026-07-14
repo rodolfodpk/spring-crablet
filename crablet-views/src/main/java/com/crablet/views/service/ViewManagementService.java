@@ -1,21 +1,19 @@
 package com.crablet.views.service;
 
+import com.crablet.eventpoller.management.AbstractProgressManagementService;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventstore.ClockProvider;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Unified service for view management that extends ProcessorManagementService
@@ -34,14 +32,8 @@ import java.util.Map;
  *   <li>{@code ProcessorManagementService<String>} - for backward compatibility</li>
  * </ul>
  */
-public class ViewManagementService implements ProcessorManagementService<String> {
-    
-    private static final Logger log = LoggerFactory.getLogger(ViewManagementService.class);
-    
-    private final ProcessorManagementService<String> delegate;
-    private final DataSource dataSource;
-    private final ClockProvider clockProvider;
-    
+public class ViewManagementService extends AbstractProgressManagementService<String> {
+
     private static final String SELECT_PROGRESS_SQL = """
         SELECT view_name, instance_id, status, last_position, error_count,
                last_error, last_error_at, last_updated_at, created_at
@@ -65,63 +57,10 @@ public class ViewManagementService implements ProcessorManagementService<String>
             ProcessorManagementService<String> delegate,
             DataSource dataSource,
             ClockProvider clockProvider) {
-        if (delegate == null) {
-            throw new IllegalArgumentException("delegate must not be null");
-        }
-        if (dataSource == null) {
-            throw new IllegalArgumentException("dataSource must not be null");
-        }
-        if (clockProvider == null) {
-            throw new IllegalArgumentException("clockProvider must not be null");
-        }
-        this.delegate = delegate;
-        this.dataSource = dataSource;
-        this.clockProvider = clockProvider;
-    }
-    
-    // ========== Delegated Methods (ProcessorManagementService interface) ==========
-    
-    @Override
-    public boolean pause(String viewName) {
-        return delegate.pause(viewName);
-    }
-    
-    @Override
-    public boolean resume(String viewName) {
-        return delegate.resume(viewName);
-    }
-    
-    @Override
-    public boolean reset(String viewName) {
-        return delegate.reset(viewName);
-    }
-    
-    @Override
-    public ProcessorStatus getStatus(String viewName) {
-        return delegate.getStatus(viewName);
-    }
-    
-    @Override
-    public Map<String, ProcessorStatus> getAllStatuses() {
-        return delegate.getAllStatuses();
-    }
-    
-    @Override
-    public @Nullable Long getLag(String viewName) {
-        return delegate.getLag(viewName);
+        super(delegate, dataSource, clockProvider);
     }
 
-    @Override
-    public @Nullable BackoffInfo getBackoffInfo(String viewName) {
-        return delegate.getBackoffInfo(viewName);
-    }
-    
-    @Override
-    public Map<String, BackoffInfo> getAllBackoffInfo() {
-        return delegate.getAllBackoffInfo();
-    }
-    
-    // ========== New Methods (Detailed Progress Monitoring) ==========
+    // ========== Detailed Progress Monitoring ==========
     
     /**
      * Get detailed progress information for a specific view.
@@ -130,21 +69,8 @@ public class ViewManagementService implements ProcessorManagementService<String>
      * @return ViewProgressDetails or null if view not found
      */
     public @Nullable ViewProgressDetails getProgressDetails(String viewName) {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(SELECT_PROGRESS_SQL)) {
-
-            stmt.setString(1, viewName);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapRowToDetails(rs);
-                }
-                return null;
-            }
-        } catch (SQLException e) {
-            log.error("Failed to get progress details for view: {}", viewName, e);
-            throw new RuntimeException("Failed to get progress details for view: " + viewName, e);
-        }
+        return queryOne(SELECT_PROGRESS_SQL, statement -> statement.setString(1, viewName),
+                this::mapRowToDetails, "get progress details for view: " + viewName);
     }
     
     /**
@@ -153,22 +79,10 @@ public class ViewManagementService implements ProcessorManagementService<String>
      * @return Map of view name to ViewProgressDetails
      */
     public Map<String, ViewProgressDetails> getAllProgressDetails() {
-        Map<String, ViewProgressDetails> result = new HashMap<>();
-
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(SELECT_ALL_PROGRESS_SQL);
-             ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                ViewProgressDetails details = mapRowToDetails(rs);
-                result.put(details.viewName(), details);
-            }
-        } catch (SQLException e) {
-            log.error("Failed to get all progress details", e);
-            throw new RuntimeException("Failed to get all progress details", e);
-        }
-
-        return result;
+        List<ViewProgressDetails> details = queryAll(
+                SELECT_ALL_PROGRESS_SQL, this::mapRowToDetails, "get all progress details");
+        return details.stream().collect(Collectors.toMap(
+                ViewProgressDetails::viewName, Function.identity()));
     }
     
     /**
@@ -202,12 +116,12 @@ public class ViewManagementService implements ProcessorManagementService<String>
         Timestamp lastUpdatedAtTimestamp = rs.getTimestamp("last_updated_at");
         Instant lastUpdatedAt = lastUpdatedAtTimestamp != null 
             ? lastUpdatedAtTimestamp.toInstant() 
-            : clockProvider.now(); // Fallback, though this should never be null
+            : clockProvider().now(); // Fallback, though this should never be null
         
         Timestamp createdAtTimestamp = rs.getTimestamp("created_at");
         Instant createdAt = createdAtTimestamp != null 
             ? createdAtTimestamp.toInstant() 
-            : clockProvider.now(); // Fallback, though this should never be null
+            : clockProvider().now(); // Fallback, though this should never be null
         
         return new ViewProgressDetails(
             viewName,

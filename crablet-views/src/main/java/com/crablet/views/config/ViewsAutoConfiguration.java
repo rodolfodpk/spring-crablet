@@ -3,6 +3,7 @@ package com.crablet.views.config;
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventProcessorFactory;
+import com.crablet.eventpoller.ProcessorSpec;
 import com.crablet.eventpoller.EventSelection;
 import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.config.EventPollerAutoConfiguration;
@@ -124,19 +125,21 @@ public class ViewsAutoConfiguration {
             Optional<EventPollerConfig> eventPollerConfig) {
 
         return EventProcessorFactory.createProcessor(
-            processorConfigs,
-            "views",
-            VIEWS_LOCK_KEY,
-            instanceIdProvider.getInstanceId(),
-            progressTracker,
-            eventFetcher,
-            eventHandler,
-            writeDataSource,
-            taskScheduler,
-            eventPublisher,
-            wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new),
-            eventPollerConfig.orElseGet(EventPollerConfig::new),
-            viewSubscriptions.values());
+                ProcessorSpec.<ViewProcessorConfig, String>builder()
+                        .configs(processorConfigs)
+                        .processorName("views")
+                        .lockKey(VIEWS_LOCK_KEY)
+                        .instanceId(instanceIdProvider.getInstanceId())
+                        .writeDataSource(writeDataSource)
+                        .progressTracker(progressTracker)
+                        .eventFetcher(eventFetcher)
+                        .eventHandler(eventHandler)
+                        .taskScheduler(taskScheduler)
+                        .eventPublisher(eventPublisher)
+                        .wakeupSourceFactory(wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new))
+                        .eventPollerConfig(eventPollerConfig.orElseGet(EventPollerConfig::new))
+                        .selections(viewSubscriptions.values())
+                        .build());
     }
 
     @Bean("viewsEventProcessor")
