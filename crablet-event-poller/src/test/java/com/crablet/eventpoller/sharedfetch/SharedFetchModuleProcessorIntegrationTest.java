@@ -7,6 +7,7 @@ import com.crablet.eventpoller.leader.LeaderElector;
 import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventpoller.progress.ProgressTracker;
+import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSource;
 import com.crablet.eventpoller.wakeup.ProcessorWakeupSource;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.ClockProvider;
@@ -264,7 +265,9 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorIn
                 1000,
                 new NoopTaskScheduler(),
                 new GenericApplicationContext(),
-                Function.identity());
+                Function.identity(),
+                new NoopProcessorWakeupSource(),
+                ClockProvider.systemDefault());
         localProcessor.reloadCursorState();
 
         appendEvents("TypeA", 5);
@@ -546,7 +549,8 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorIn
                 taskScheduler,
                 new GenericApplicationContext(),
                 Function.identity(),
-                wakeupSource);
+                wakeupSource,
+                ClockProvider.systemDefault());
     }
 
     private long maxPosition(JdbcTemplate jdbc) {
@@ -886,7 +890,9 @@ class SharedFetchModuleProcessorIntegrationTest extends AbstractEventProcessorIn
                     1000,
                     taskScheduler,
                     eventPublisher,
-                    Function.identity());
+                    Function.identity(),
+                    new NoopProcessorWakeupSource(),
+                    ClockProvider.systemDefault());
         }
     }
 }

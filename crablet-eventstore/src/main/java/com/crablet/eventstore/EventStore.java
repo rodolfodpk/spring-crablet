@@ -88,14 +88,14 @@ public interface EventStore {
     default String appendConditional(List<AppendEvent> events, AppendCondition condition) {
         if (!condition.idempotencyQuery().isEmpty() && exists(condition.idempotencyQuery())) {
             throw new ConcurrencyException("AppendCondition violated: duplicate operation detected",
-                    new DCBViolation("IDEMPOTENCY_VIOLATION", "duplicate operation detected", 1));
+                    new DCBViolation(DCBErrorCode.IDEMPOTENCY_VIOLATION, "duplicate operation detected", 1));
         }
         if (!condition.concurrencyQuery().isEmpty()) {
             boolean conflict = project(condition.concurrencyQuery(), condition.afterPosition(),
                     StateProjector.exists()).state();
             if (conflict) {
                 throw new ConcurrencyException("AppendCondition violated: append condition violated",
-                        new DCBViolation("DCB_VIOLATION", "append condition violated", 1));
+                        new DCBViolation(DCBErrorCode.DCB_VIOLATION, "append condition violated", 1));
             }
         }
         return appendCommutative(events);

@@ -1,23 +1,17 @@
 package com.crablet.outbox.management;
 
+import com.crablet.eventpoller.management.AbstractProgressManagementService;
 import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.progress.ProcessorStatus;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.outbox.TopicPublisherPair;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Management service for outbox processors, extending the generic
@@ -29,13 +23,7 @@ import java.util.Map;
  *   <li>{@code ProcessorManagementService<TopicPublisherPair>} — for generic operations</li>
  * </ul>
  */
-public class OutboxManagementService implements ProcessorManagementService<TopicPublisherPair> {
-
-    private static final Logger log = LoggerFactory.getLogger(OutboxManagementService.class);
-
-    private final ProcessorManagementService<TopicPublisherPair> delegate;
-    private final DataSource dataSource;
-    private final ClockProvider clockProvider;
+public class OutboxManagementService extends AbstractProgressManagementService<TopicPublisherPair> {
 
     private static final String SELECT_PROGRESS_SQL = """
         SELECT topic, publisher, status, last_position, last_published_at,
@@ -61,39 +49,8 @@ public class OutboxManagementService implements ProcessorManagementService<Topic
             ProcessorManagementService<TopicPublisherPair> delegate,
             DataSource dataSource,
             ClockProvider clockProvider) {
-        if (delegate == null) throw new IllegalArgumentException("delegate must not be null");
-        if (dataSource == null) throw new IllegalArgumentException("dataSource must not be null");
-        if (clockProvider == null) throw new IllegalArgumentException("clockProvider must not be null");
-        this.delegate = delegate;
-        this.dataSource = dataSource;
-        this.clockProvider = clockProvider;
+        super(delegate, dataSource, clockProvider);
     }
-
-    // ========== Delegated Methods ==========
-
-    @Override
-    public boolean pause(TopicPublisherPair id) { return delegate.pause(id); }
-
-    @Override
-    public boolean resume(TopicPublisherPair id) { return delegate.resume(id); }
-
-    @Override
-    public boolean reset(TopicPublisherPair id) { return delegate.reset(id); }
-
-    @Override
-    public ProcessorStatus getStatus(TopicPublisherPair id) { return delegate.getStatus(id); }
-
-    @Override
-    public Map<TopicPublisherPair, ProcessorStatus> getAllStatuses() { return delegate.getAllStatuses(); }
-
-    @Override
-    public @Nullable Long getLag(TopicPublisherPair id) { return delegate.getLag(id); }
-
-    @Override
-    public @Nullable BackoffInfo getBackoffInfo(TopicPublisherPair id) { return delegate.getBackoffInfo(id); }
-
-    @Override
-    public Map<TopicPublisherPair, BackoffInfo> getAllBackoffInfo() { return delegate.getAllBackoffInfo(); }
 
     // ========== Outbox-Specific Methods ==========
 
@@ -103,41 +60,18 @@ public class OutboxManagementService implements ProcessorManagementService<Topic
      * @return details, or {@code null} if not found
      */
     public @Nullable OutboxProgressDetails getProgressDetails(String topic, String publisher) {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(SELECT_PROGRESS_SQL)) {
-
-            stmt.setString(1, topic);
-            stmt.setString(2, publisher);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapRow(rs);
-                }
-                return null;
-            }
-        } catch (SQLException e) {
-            log.error("Failed to get progress details for outbox topic={} publisher={}", topic, publisher, e);
-            throw new RuntimeException("Failed to get outbox progress details", e);
-        }
+        return queryOne(SELECT_PROGRESS_SQL, statement -> {
+            statement.setString(1, topic);
+            statement.setString(2, publisher);
+        }, this::mapRow, "get outbox progress details");
     }
 
     /**
      * Get detailed progress for all topic-publisher pairs.
      */
     public List<OutboxProgressDetails> getAllProgressDetails() {
-        List<OutboxProgressDetails> result = new ArrayList<>();
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(SELECT_ALL_PROGRESS_SQL);
-             ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                result.add(mapRow(rs));
-            }
-        } catch (SQLException e) {
-            log.error("Failed to get all outbox progress details", e);
-            throw new RuntimeException("Failed to get all outbox progress details", e);
-        }
-        return result;
+        return queryAll(
+                SELECT_ALL_PROGRESS_SQL, this::mapRow, "get all outbox progress details");
     }
 
     private OutboxProgressDetails mapRow(ResultSet rs) throws SQLException {
@@ -157,7 +91,7 @@ public class OutboxManagementService implements ProcessorManagementService<Topic
         Instant lastPublishedAt = lastPublishedAtTs != null ? lastPublishedAtTs.toInstant() : null;
 
         Timestamp updatedAtTs = rs.getTimestamp("updated_at");
-        Instant updatedAt = updatedAtTs != null ? updatedAtTs.toInstant() : clockProvider.now();
+        Instant updatedAt = updatedAtTs != null ? updatedAtTs.toInstant() : clockProvider().now();
 
         String leaderInstance = rs.getString("leader_instance");
         if (rs.wasNull()) leaderInstance = null;

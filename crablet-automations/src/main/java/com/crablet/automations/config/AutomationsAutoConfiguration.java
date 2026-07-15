@@ -13,6 +13,7 @@ import com.crablet.command.CommandExecutor;
 import com.crablet.eventpoller.EventFetcher;
 import com.crablet.eventpoller.EventHandler;
 import com.crablet.eventpoller.EventProcessorFactory;
+import com.crablet.eventpoller.ProcessorSpec;
 import com.crablet.eventpoller.EventSelection;
 import com.crablet.eventpoller.InstanceIdProvider;
 import com.crablet.eventpoller.config.EventPollerAutoConfiguration;
@@ -138,19 +139,21 @@ public class AutomationsAutoConfiguration {
             Optional<EventPollerConfig> eventPollerConfig) {
 
         return EventProcessorFactory.createProcessor(
-            automationProcessorConfigs,
-            "automations",
-            AUTOMATIONS_LOCK_KEY,
-            instanceIdProvider.getInstanceId(),
-            automationProgressTracker,
-            automationEventFetcher,
-            automationEventHandler,
-            writeDataSource,
-            taskScheduler,
-            eventPublisher,
-            wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new),
-            eventPollerConfig.orElseGet(EventPollerConfig::new),
-            resolvedDefinitions.values());
+                ProcessorSpec.<AutomationProcessorConfig, String>builder()
+                        .configs(automationProcessorConfigs)
+                        .processorName("automations")
+                        .lockKey(AUTOMATIONS_LOCK_KEY)
+                        .instanceId(instanceIdProvider.getInstanceId())
+                        .writeDataSource(writeDataSource)
+                        .progressTracker(automationProgressTracker)
+                        .eventFetcher(automationEventFetcher)
+                        .eventHandler(automationEventHandler)
+                        .taskScheduler(taskScheduler)
+                        .eventPublisher(eventPublisher)
+                        .wakeupSourceFactory(wakeupSourceFactory.orElseGet(NoopProcessorWakeupSourceFactory::new))
+                        .eventPollerConfig(eventPollerConfig.orElseGet(EventPollerConfig::new))
+                        .selections(resolvedDefinitions.values())
+                        .build());
     }
 
     @Bean("automationsEventProcessor")

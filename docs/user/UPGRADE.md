@@ -8,6 +8,75 @@ here, and should use deprecation first when that is practical.
 
 ---
 
+## `EventProcessorFactory.createProcessor` — positional overloads replaced by `ProcessorSpec`
+
+**Affects:** Code that creates event processors directly; Spring Boot auto-configuration users are
+already migrated internally.
+
+### What changed
+
+All positional `EventProcessorFactory.createProcessor(...)` overloads were removed. The single
+entry point now accepts a named, validated `ProcessorSpec`. The spec requires exactly one
+leader-election strategy: either an existing `LeaderElector`, or all four raw settings
+(`processorName`, `lockKey`, `instanceId`, and `writeDataSource`). It also exposes
+`clockProvider(...)` for deterministic tests and defaults wakeup, poller configuration, clock, and
+selections when they are omitted.
+
+The shorter `SharedFetchModuleProcessor` constructors were also removed. Direct callers must now
+provide both `ProcessorWakeupSource` and `ClockProvider` to its full constructor.
+
+### Migration
+
+```java
+// Before:
+EventProcessorFactory.createProcessor(
+        configs, leaderElector, progressTracker, eventFetcher, eventHandler,
+        taskScheduler, eventPublisher, wakeupSourceFactory, eventPollerConfig,
+        selections);
+
+// After:
+EventProcessorFactory.createProcessor(
+        ProcessorSpec.<MyConfig, String>builder()
+                .configs(configs)
+                .leaderElector(leaderElector)
+                .progressTracker(progressTracker)
+                .eventFetcher(eventFetcher)
+                .eventHandler(eventHandler)
+                .taskScheduler(taskScheduler)
+                .eventPublisher(eventPublisher)
+                .wakeupSourceFactory(wakeupSourceFactory)
+                .eventPollerConfig(eventPollerConfig)
+                .selections(selections)
+                .build());
+```
+
+To have the factory create the elector, replace `.leaderElector(...)` with
+`.processorName(...)`, `.lockKey(...)`, `.instanceId(...)`, and `.writeDataSource(...)`.
+
+---
+
+## `DCBViolation.errorCode()` — `String` replaced by `DCBErrorCode`
+
+**Affects:** Code that compares or stores the error code from `DCBViolation`.
+
+### What changed
+
+`DCBViolation.errorCode()` now returns the enum `DCBErrorCode`, preventing misspelled string
+comparisons. PostgreSQL error values that are absent or unknown are conservatively mapped to
+`DCBErrorCode.CONCURRENCY_VIOLATION`.
+
+### Migration
+
+```java
+// Before:
+"IDEMPOTENCY_VIOLATION".equals(violation.errorCode())
+
+// After:
+violation.errorCode() == DCBErrorCode.IDEMPOTENCY_VIOLATION
+```
+
+---
+
 ## `EventStore.appendConditional` — combined concurrency+idempotency append (additive)
 
 **Affects:** No existing code — purely additive default method. Custom `EventStore`
@@ -39,7 +108,7 @@ No action required.
 
 ---
 
-## `EventProcessorFactory.createProcessor` — 4 trailing `Set<String>` params replaced with `Collection<? extends EventSelection>`
+## `EventProcessorFactory.createProcessor` — 4 trailing `Set<String>` params replaced with `Collection<? extends EventSelection>` (superseded)
 
 **Affects:** Any code that calls the widest `EventProcessorFactory.createProcessor` overload directly
 (most applications go through `crablet-outbox`/`crablet-views`/`crablet-automations` auto-configuration
@@ -75,8 +144,9 @@ EventProcessorFactory.createProcessor(
         selections); // Collection<? extends EventSelection>, e.g. topicConfigs.values()
 ```
 
-No action required if you only rely on the `crablet-outbox`/`crablet-views`/`crablet-automations`
-auto-configuration beans — they've been migrated to the new overload internally.
+This intermediate pre-release API was subsequently replaced by `ProcessorSpec`; use the migration
+at the top of this guide. No action is required if you only rely on the module auto-configuration
+beans.
 
 ---
 

@@ -9,7 +9,7 @@ import org.jspecify.annotations.Nullable;
  * This provides rich context for debugging concurrency conflicts and can inform
  * retry strategies.
  */
-public record DCBViolation(@Nullable String errorCode, @Nullable String message, int matchingEventsCount) {
+public record DCBViolation(@Nullable DCBErrorCode errorCode, @Nullable String message, int matchingEventsCount) {
 
     @Override
     public String toString() {

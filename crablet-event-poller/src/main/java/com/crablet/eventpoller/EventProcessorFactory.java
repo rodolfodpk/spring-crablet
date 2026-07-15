@@ -1,6 +1,5 @@
 package com.crablet.eventpoller;
 
-import com.crablet.eventpoller.config.EventPollerConfig;
 import com.crablet.eventpoller.internal.EventProcessorImpl;
 import com.crablet.eventpoller.internal.LeaderElectorImpl;
 import com.crablet.eventpoller.internal.ProcessorManagementServiceImpl;
@@ -9,17 +8,11 @@ import com.crablet.eventpoller.management.ProcessorManagementService;
 import com.crablet.eventpoller.processor.EventProcessor;
 import com.crablet.eventpoller.processor.ProcessorConfig;
 import com.crablet.eventpoller.progress.ProgressTracker;
-import com.crablet.eventpoller.wakeup.NoopProcessorWakeupSourceFactory;
-import com.crablet.eventpoller.wakeup.ProcessorWakeupSourceFactory;
-import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ReadDataSource;
 import com.crablet.eventstore.WriteDataSource;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.TaskScheduler;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Factory for creating event processor infrastructure beans without directly
@@ -39,9 +32,18 @@ import java.util.Map;
  *         WriteDataSource writeDataSource,
  *         TaskScheduler scheduler,
  *         ApplicationEventPublisher publisher) {
- *     return EventProcessorFactory.createProcessor(
- *         configs, "my-processor", MY_LOCK_KEY, instanceIdProvider.getInstanceId(),
- *         progressTracker, fetcher, handler, writeDataSource, scheduler, publisher);
+ *     return EventProcessorFactory.createProcessor(ProcessorSpec.<MyConfig, String>builder()
+ *         .configs(configs)
+ *         .processorName("my-processor")
+ *         .lockKey(MY_LOCK_KEY)
+ *         .instanceId(instanceIdProvider.getInstanceId())
+ *         .progressTracker(progressTracker)
+ *         .eventFetcher(fetcher)
+ *         .eventHandler(handler)
+ *         .writeDataSource(writeDataSource)
+ *         .taskScheduler(scheduler)
+ *         .eventPublisher(publisher)
+ *         .build());
  * }
  * }</pre>
  */
@@ -49,25 +51,30 @@ public final class EventProcessorFactory {
 
     private EventProcessorFactory() {}
 
-    /**
-     * Creates a fully wired {@link EventProcessor} including its internal
-     * {@code LeaderElector}. The leader elector is not exposed as a separate bean;
-     * it is managed by the returned processor.
-     *
-     * @param configs          per-processor configuration map
-     * @param processorName    human-readable name used in leader election and logs (e.g. "views")
-     * @param lockKey          PostgreSQL advisory lock key — must be unique per processor type
-     * @param instanceId       this instance's unique identifier (from {@link InstanceIdProvider})
-     * @param progressTracker  tracks last-processed position per processor
-     * @param eventFetcher     fetches events from the read replica
-     * @param eventHandler     processes fetched event batches
-     * @param writeDataSource  write datasource (used for lock acquisition and progress writes)
-     * @param taskScheduler    Spring task scheduler for polling intervals
-     * @param eventPublisher   publishes processing metrics
-     */
+    /** Creates a processor from named, validated inputs. */
+    public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
+            ProcessorSpec<C, I> spec) {
+        LeaderElector elector = spec.leaderElector;
+        if (elector == null) {
+            elector = createLeaderElector(
+                    requireNonNull(spec.writeDataSource), requireNonNull(spec.processorName),
+                    requireNonNull(spec.instanceId), requireNonNull(spec.lockKey),
+                    spec.eventPublisher);
+        }
+        return new EventProcessorImpl<>(
+                spec.configs, elector, spec.progressTracker, spec.eventFetcher, spec.eventHandler,
+                spec.taskScheduler, spec.eventPublisher, spec.wakeupSourceFactory.create(),
+                spec.eventPollerConfig.getLeaderRetryCooldownMs(),
+                spec.eventPollerConfig.getStartupDelayMs(), spec.clockProvider,
+                EventSelection.unionEventTypes(spec.selections),
+                EventSelection.unionRequiredTags(spec.selections),
+                EventSelection.unionAnyOfTags(spec.selections),
+                EventSelection.unionExactTagKeys(spec.selections));
+    }
+
     /**
      * Creates a {@link LeaderElector} for use with
-     * {@link #createProcessor(Map, LeaderElector, ProgressTracker, EventFetcher, EventHandler, TaskScheduler, ApplicationEventPublisher)}.
+     * {@link #createProcessor(ProcessorSpec)}.
      * Expose this as a separate bean when tests or management components need to inject the elector directly.
      */
     public static LeaderElector createLeaderElector(
@@ -77,175 +84,6 @@ public final class EventProcessorFactory {
             long lockKey,
             ApplicationEventPublisher eventPublisher) {
         return new LeaderElectorImpl(writeDataSource.dataSource(), processorName, instanceId, lockKey, eventPublisher);
-    }
-
-    /**
-     * Creates a fully wired {@link EventProcessor} using an already-created {@link LeaderElector}.
-     * Use this overload when the leader elector must also be a Spring bean (e.g. for test injection).
-     */
-    public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
-            Map<I, C> configs,
-            LeaderElector leaderElector,
-            ProgressTracker<I> progressTracker,
-            EventFetcher<I> eventFetcher,
-            EventHandler<I> eventHandler,
-            TaskScheduler taskScheduler,
-            ApplicationEventPublisher eventPublisher) {
-        return createProcessor(
-                configs,
-                leaderElector,
-                progressTracker,
-                eventFetcher,
-                eventHandler,
-                taskScheduler,
-                eventPublisher,
-                new NoopProcessorWakeupSourceFactory());
-    }
-
-    public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
-            Map<I, C> configs,
-            LeaderElector leaderElector,
-            ProgressTracker<I> progressTracker,
-            EventFetcher<I> eventFetcher,
-            EventHandler<I> eventHandler,
-            TaskScheduler taskScheduler,
-            ApplicationEventPublisher eventPublisher,
-            ProcessorWakeupSourceFactory wakeupSourceFactory) {
-        return createProcessor(configs, leaderElector, progressTracker, eventFetcher, eventHandler,
-                taskScheduler, eventPublisher, wakeupSourceFactory, new EventPollerConfig());
-    }
-
-    public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
-            Map<I, C> configs,
-            LeaderElector leaderElector,
-            ProgressTracker<I> progressTracker,
-            EventFetcher<I> eventFetcher,
-            EventHandler<I> eventHandler,
-            TaskScheduler taskScheduler,
-            ApplicationEventPublisher eventPublisher,
-            ProcessorWakeupSourceFactory wakeupSourceFactory,
-            EventPollerConfig eventPollerConfig) {
-        return createProcessor(configs, leaderElector, progressTracker, eventFetcher, eventHandler,
-                taskScheduler, eventPublisher, wakeupSourceFactory, eventPollerConfig, List.of());
-    }
-
-    /**
-     * Creates a fully wired {@link EventProcessor} from an already-created {@link LeaderElector},
-     * deriving the event-type and tag-key filters from {@code selections} — the module's
-     * {@link EventSelection}s (e.g. {@code TopicConfig}, {@code ViewSubscription},
-     * {@code AutomationDefinition} values). If any selection is unrestricted on a dimension
-     * (empty set), the derived filter is unrestricted on that dimension too.
-     */
-    public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
-            Map<I, C> configs,
-            LeaderElector leaderElector,
-            ProgressTracker<I> progressTracker,
-            EventFetcher<I> eventFetcher,
-            EventHandler<I> eventHandler,
-            TaskScheduler taskScheduler,
-            ApplicationEventPublisher eventPublisher,
-            ProcessorWakeupSourceFactory wakeupSourceFactory,
-            EventPollerConfig eventPollerConfig,
-            Collection<? extends EventSelection> selections) {
-
-        return new EventProcessorImpl<>(
-                configs, leaderElector, progressTracker, eventFetcher, eventHandler,
-                taskScheduler, eventPublisher, wakeupSourceFactory.create(),
-                eventPollerConfig.getLeaderRetryCooldownMs(), eventPollerConfig.getStartupDelayMs(),
-                ClockProvider.systemDefault(),
-                EventSelection.unionEventTypes(selections),
-                EventSelection.unionRequiredTags(selections),
-                EventSelection.unionAnyOfTags(selections),
-                EventSelection.unionExactTagKeys(selections));
-    }
-
-    public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
-            Map<I, C> configs,
-            String processorName,
-            long lockKey,
-            String instanceId,
-            ProgressTracker<I> progressTracker,
-            EventFetcher<I> eventFetcher,
-            EventHandler<I> eventHandler,
-            WriteDataSource writeDataSource,
-            TaskScheduler taskScheduler,
-            ApplicationEventPublisher eventPublisher) {
-        return createProcessor(
-                configs,
-                processorName,
-                lockKey,
-                instanceId,
-                progressTracker,
-                eventFetcher,
-                eventHandler,
-                writeDataSource,
-                taskScheduler,
-                eventPublisher,
-                new NoopProcessorWakeupSourceFactory());
-    }
-
-    public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
-            Map<I, C> configs,
-            String processorName,
-            long lockKey,
-            String instanceId,
-            ProgressTracker<I> progressTracker,
-            EventFetcher<I> eventFetcher,
-            EventHandler<I> eventHandler,
-            WriteDataSource writeDataSource,
-            TaskScheduler taskScheduler,
-            ApplicationEventPublisher eventPublisher,
-            ProcessorWakeupSourceFactory wakeupSourceFactory) {
-        return createProcessor(configs, processorName, lockKey, instanceId, progressTracker, eventFetcher,
-                eventHandler, writeDataSource, taskScheduler, eventPublisher, wakeupSourceFactory, new EventPollerConfig());
-    }
-
-    public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
-            Map<I, C> configs,
-            String processorName,
-            long lockKey,
-            String instanceId,
-            ProgressTracker<I> progressTracker,
-            EventFetcher<I> eventFetcher,
-            EventHandler<I> eventHandler,
-            WriteDataSource writeDataSource,
-            TaskScheduler taskScheduler,
-            ApplicationEventPublisher eventPublisher,
-            ProcessorWakeupSourceFactory wakeupSourceFactory,
-            EventPollerConfig eventPollerConfig) {
-        return createProcessor(configs, processorName, lockKey, instanceId, progressTracker,
-                eventFetcher, eventHandler, writeDataSource, taskScheduler, eventPublisher,
-                wakeupSourceFactory, eventPollerConfig, List.of());
-    }
-
-    /**
-     * Creates a fully wired {@link EventProcessor}, building its {@link LeaderElector} internally
-     * from the raw election parameters, and deriving the event-type and tag-key filters from
-     * {@code selections} — the module's {@link EventSelection}s (e.g. {@code TopicConfig},
-     * {@code ViewSubscription}, {@code AutomationDefinition} values). If any selection is
-     * unrestricted on a dimension (empty set), the derived filter is unrestricted on that
-     * dimension too.
-     */
-    public static <C extends ProcessorConfig<I>, I> EventProcessor<C, I> createProcessor(
-            Map<I, C> configs,
-            String processorName,
-            long lockKey,
-            String instanceId,
-            ProgressTracker<I> progressTracker,
-            EventFetcher<I> eventFetcher,
-            EventHandler<I> eventHandler,
-            WriteDataSource writeDataSource,
-            TaskScheduler taskScheduler,
-            ApplicationEventPublisher eventPublisher,
-            ProcessorWakeupSourceFactory wakeupSourceFactory,
-            EventPollerConfig eventPollerConfig,
-            Collection<? extends EventSelection> selections) {
-
-        var leaderElector = createLeaderElector(
-                writeDataSource, processorName, instanceId, lockKey, eventPublisher);
-
-        return createProcessor(configs, leaderElector, progressTracker, eventFetcher, eventHandler,
-                taskScheduler, eventPublisher, wakeupSourceFactory, eventPollerConfig, selections);
     }
 
     /**

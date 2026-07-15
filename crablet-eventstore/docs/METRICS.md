@@ -2,7 +2,7 @@
 
 ## Available Metrics
 
-EventStore provides metrics for monitoring event operations and DCB (Dynamic Consistency Boundary) concurrency violations.
+EventStore provides metrics for monitoring event operations and DCB (Dynamic Consistency Boundary) concurrency violations. Append counters are published only after the surrounding transaction commits successfully; rolled-back appends are excluded.
 
 **Note:** Command execution metrics (command duration, failures, idempotency) are published by `CommandExecutor` (in `crablet-commands` module), not by EventStore. See [Command README](../crablet-commands/README.md#metrics) for command metrics documentation.
 

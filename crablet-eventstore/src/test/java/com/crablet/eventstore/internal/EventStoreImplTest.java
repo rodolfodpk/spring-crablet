@@ -7,6 +7,8 @@ import com.crablet.eventstore.EventStoreConfig;
 import com.crablet.eventstore.EventStoreException;
 import com.crablet.eventstore.StoredEvent;
 import com.crablet.eventstore.StreamPosition;
+import com.crablet.eventstore.metrics.EventTypeMetric;
+import com.crablet.eventstore.metrics.EventsAppendedMetric;
 import com.crablet.eventstore.query.EventDeserializer;
 import com.crablet.eventstore.query.EventRepository;
 import com.crablet.eventstore.query.ProjectionResult;
@@ -50,6 +52,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 /**
  * Direct unit test for EventStoreImpl without Spring framework.
@@ -64,6 +68,7 @@ class EventStoreImplTest {
     private EventStore eventStore;
     private ObjectMapper objectMapper;
     private ClockProviderImpl clockProvider;
+    private ApplicationEventPublisher eventPublisher;
 
     @BeforeAll
     static void startDatabase() {
@@ -106,7 +111,7 @@ class EventStoreImplTest {
         clockProvider.setClock(Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC));
 
         // Directly instantiate EventStoreImpl - NO SPRING INVOLVEMENT
-        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+        eventPublisher = mock(ApplicationEventPublisher.class);
         eventStoreImpl = new EventStoreImpl(
                 dataSource,      // writeDataSource
                 dataSource,      // readDataSource
@@ -116,6 +121,28 @@ class EventStoreImplTest {
                 eventPublisher
         );
         eventStore = eventStoreImpl;
+    }
+
+    @Test
+    void transactionPublishesAppendMetricsOnlyAfterCommit() {
+        eventStore.executeInTransaction(txStore -> {
+            txStore.appendCommutative(List.of(typedAppendEvent("CommittedMetricEvent")));
+            verify(eventPublisher, never()).publishEvent(Mockito.any());
+            return true;
+        });
+
+        verify(eventPublisher).publishEvent(new EventsAppendedMetric(1));
+        verify(eventPublisher).publishEvent(new EventTypeMetric("CommittedMetricEvent"));
+    }
+
+    @Test
+    void transactionDoesNotPublishAppendMetricsAfterRollback() {
+        assertThrows(IllegalStateException.class, () -> eventStore.executeInTransaction(txStore -> {
+            txStore.appendCommutative(List.of(typedAppendEvent("RolledBackMetricEvent")));
+            throw new IllegalStateException("force rollback");
+        }));
+
+        verify(eventPublisher, never()).publishEvent(Mockito.any());
     }
     
     // Simple test event record

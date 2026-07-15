@@ -18,6 +18,7 @@ import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.CommandAuditStore;
 import com.crablet.eventstore.ConcurrencyException;
 import com.crablet.eventstore.CorrelationContext;
+import com.crablet.eventstore.DCBErrorCode;
 import com.crablet.eventstore.DCBViolation;
 import com.crablet.eventstore.EventStore;
 import com.crablet.eventstore.EventStoreConfig;
@@ -306,10 +307,10 @@ public class CommandExecutorImpl implements CommandExecutor {
                                 // unchanged so the outer catch's handleConcurrencyException/
                                 // duplicatePolicyFor dispatch still applies.
                                 DCBViolation v = guardEx.violation;
-                                if (v != null && "DCB_VIOLATION".equals(v.errorCode())) {
+                                if (v != null && v.errorCode() == DCBErrorCode.DCB_VIOLATION) {
                                     throw new ConcurrencyException(
                                             "Commutative guard violated: lifecycle state changed since projection",
-                                            new DCBViolation("GUARD_VIOLATION",
+                                            new DCBViolation(DCBErrorCode.GUARD_VIOLATION,
                                                     "Concurrent lifecycle event detected", v.matchingEventsCount()));
                                 }
                                 throw guardEx;

@@ -4,6 +4,7 @@ import com.crablet.command.CommandDecision;
 import com.crablet.command.ExecutionResult;
 import com.crablet.eventstore.AppendEvent;
 import com.crablet.eventstore.ConcurrencyException;
+import com.crablet.eventstore.DCBErrorCode;
 import com.crablet.eventstore.DCBViolation;
 import com.crablet.eventstore.StreamPosition;
 import com.crablet.eventstore.query.Query;
@@ -136,7 +137,7 @@ class CommandExecutorImplConcurrencyTest extends AbstractCommandTest {
                 .satisfies(ex -> {
                     DCBViolation violation = ((ConcurrencyException) ex).violation;
                     assertThat(violation).isNotNull();
-                    assertThat(violation.errorCode()).isEqualTo("GUARD_VIOLATION");
+                    assertThat(violation.errorCode()).isEqualTo(DCBErrorCode.GUARD_VIOLATION);
                 });
     }
 

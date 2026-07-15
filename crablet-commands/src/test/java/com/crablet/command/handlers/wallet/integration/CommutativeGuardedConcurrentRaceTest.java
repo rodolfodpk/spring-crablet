@@ -3,6 +3,7 @@ package com.crablet.command.handlers.wallet.integration;
 import com.crablet.command.CommandExecutor;
 import com.crablet.eventstore.ClockProvider;
 import com.crablet.eventstore.ConcurrencyException;
+import com.crablet.eventstore.DCBErrorCode;
 import com.crablet.examples.wallet.commands.CloseWalletCommand;
 import com.crablet.examples.wallet.commands.CloseWalletCommandHandler;
 import com.crablet.examples.wallet.commands.DepositCommand;
@@ -102,7 +103,7 @@ class CommutativeGuardedConcurrentRaceTest extends AbstractPostgresEventStoreTes
                     new DepositCommandHandler(periodHelper));
             return "success";
         } catch (ConcurrencyException e) {
-            return e.violation != null && "GUARD_VIOLATION".equals(e.violation.errorCode())
+            return e.violation != null && e.violation.errorCode() == DCBErrorCode.GUARD_VIOLATION
                     ? "guard_violation" : "other_conflict:" + e.getMessage();
         } catch (Exception e) {
             return "error:" + e.getClass().getSimpleName();
