@@ -11,7 +11,7 @@
       background: #f1f0eb;
       color: #1f2937;
       padding: 40px 24px;
-      max-width: 900px;
+      max-width: 700px;
       margin: 0 auto;
     }
     header { text-align: center; margin-bottom: 40px; }
@@ -28,54 +28,6 @@
       max-width: 560px;
       margin: 0 auto;
       line-height: 1.6;
-    }
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 20px;
-      margin-bottom: 40px;
-    }
-    .card {
-      background: #faf8f3;
-      border: 1px solid #d6c8aa;
-      border-radius: 10px;
-      padding: 20px;
-      text-decoration: none;
-      color: inherit;
-      transition: box-shadow 0.15s, border-color 0.15s;
-      display: block;
-    }
-    .card:hover {
-      box-shadow: 0 4px 16px rgba(0,0,0,0.10);
-      border-color: #b5a48a;
-    }
-    .card-thumb {
-      height: 80px;
-      border-radius: 6px;
-      margin-bottom: 14px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      padding: 8px;
-      background: #f5f1e8;
-      border: 1px solid #e5ddd0;
-    }
-    .lane-bar {
-      height: 18px;
-      border-radius: 3px;
-      opacity: 0.85;
-    }
-    .card h2 {
-      font-size: 16px;
-      font-weight: 700;
-      color: #111827;
-      margin-bottom: 6px;
-    }
-    .card p {
-      font-size: 13px;
-      color: #6b7280;
-      line-height: 1.5;
     }
     .links {
       background: #fff;
@@ -97,17 +49,6 @@
       font-size: 14px;
     }
     .links a:hover { text-decoration: underline; }
-    .links .tag {
-      display: inline-block;
-      font-size: 10px;
-      font-weight: 600;
-      background: #e5e7eb;
-      color: #4b5563;
-      border-radius: 3px;
-      padding: 1px 5px;
-      margin-left: 6px;
-      vertical-align: middle;
-    }
   </style>
 </head>
 <body>
@@ -118,79 +59,15 @@
        without distributed locks.</p>
   </header>
 
-  <div class="cards">
-    <a class="card" href="event-model-viewer.html?id=wallet">
-      <div class="card-thumb">
-        <div class="lane-bar" style="background:#cfe3ff"></div>
-        <div class="lane-bar" style="background:#f7ea72"></div>
-        <div class="lane-bar" style="background:#b8efb6"></div>
-        <div class="lane-bar" style="background:#fbd38d"></div>
-      </div>
-      <h2>Wallet Domain</h2>
-      <p>Single-entity event sourcing — deposit, withdraw, transfer with DCB optimistic concurrency.</p>
-    </a>
-
-    <a class="card" href="event-model-viewer.html?id=course">
-      <div class="card-thumb">
-        <div class="lane-bar" style="background:#cfe3ff"></div>
-        <div class="lane-bar" style="background:#f7ea72"></div>
-        <div class="lane-bar" style="background:#b8efb6;width:85%"></div>
-      </div>
-      <h2>Course Enrollment</h2>
-      <p>Multi-entity DCB — student subscription spans course capacity and per-student enrollment boundaries simultaneously.</p>
-    </a>
-
-    <a class="card" href="event-model-viewer.html?id=loan-submit">
-      <div class="card-thumb">
-        <div class="lane-bar" style="background:#cfe3ff"></div>
-        <div class="lane-bar" style="background:#f7ea72"></div>
-        <div class="lane-bar" style="background:#b8efb6;width:70%"></div>
-        <div class="lane-bar" style="background:#fbd38d;width:55%"></div>
-      </div>
-      <h2>Loan Application — Submit Slice</h2>
-      <p>Minimal feature slice — customer submits, fraud detector fires, pending-applications view is projected.</p>
-    </a>
-
-    <a class="card" href="event-model-viewer.html?id=wallet-opened">
-      <div class="card-thumb">
-        <div class="lane-bar" style="background:#cfe3ff"></div>
-        <div class="lane-bar" style="background:#f7ea72"></div>
-        <div class="lane-bar" style="background:#b8efb6;width:75%"></div>
-        <div class="lane-bar" style="background:#fbd38d;width:60%"></div>
-        <div class="lane-bar" style="background:#f9c4d2;width:45%"></div>
-      </div>
-      <h2>Wallet Opened — Automation and Outbox Slice</h2>
-      <p>Reactive slice — one committed event fans out into view, automation, follow-up command, and outbox path.</p>
-    </a>
-
-    <a class="card" href="concepts.html">
-      <div class="card-thumb" style="align-items:center;justify-content:center;background:#fff">
-        <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="30" cy="30" r="6" fill="#374151"/>
-          <circle cx="10" cy="15" r="4" fill="#6b7280"/>
-          <circle cx="50" cy="15" r="4" fill="#6b7280"/>
-          <circle cx="10" cy="45" r="4" fill="#6b7280"/>
-          <circle cx="50" cy="45" r="4" fill="#6b7280"/>
-          <line x1="30" y1="30" x2="10" y2="15" stroke="#9ca3af" stroke-width="1.5"/>
-          <line x1="30" y1="30" x2="50" y2="15" stroke="#9ca3af" stroke-width="1.5"/>
-          <line x1="30" y1="30" x2="10" y2="45" stroke="#9ca3af" stroke-width="1.5"/>
-          <line x1="30" y1="30" x2="50" y2="45" stroke="#9ca3af" stroke-width="1.5"/>
-        </svg>
-      </div>
-      <h2>Concept Map</h2>
-      <p>Interactive mind map covering core concepts, framework modules, AI tooling, and operational guidance.</p>
-    </a>
-  </div>
-
   <div class="links">
     <h2>Documentation</h2>
     <ul>
-      <li><a href="https://github.com/rodolfodpk/spring-crablet">GitHub Repository</a> <span class="tag">source</span></li>
+      <li><a href="https://github.com/rodolfodpk/spring-crablet">GitHub Repository</a></li>
+      <li><a href="https://github.com/rodolfodpk/spring-crablet/blob/main/docs/user/QUICKSTART.md">Quickstart</a></li>
       <li><a href="https://github.com/rodolfodpk/spring-crablet/blob/main/docs/user/README.md">User Guide</a></li>
       <li><a href="https://github.com/rodolfodpk/spring-crablet/blob/main/crablet-eventstore/docs/DCB_AND_CRABLET.md">DCB Pattern Explained</a></li>
       <li><a href="https://github.com/rodolfodpk/spring-crablet/blob/main/crablet-eventstore/docs/COMMAND_PATTERNS.md">Command Patterns</a></li>
-      <li><a href="https://github.com/rodolfodpk/spring-crablet/blob/main/docs/user/ai-tooling/EVENT_MODEL_FORMAT.md">Event Model Format</a> <span class="tag">codegen</span></li>
-      <li><a href="https://github.com/rodolfodpk/spring-crablet/blob/main/crablet-codegen/README.md">AI Codegen (crablet-codegen)</a></li>
+      <li><a href="https://github.com/rodolfodpk/spring-crablet/blob/main/docs/dev/PRODUCT_ROADMAP.md">Roadmap</a></li>
     </ul>
   </div>
 </body>

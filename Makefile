@@ -11,7 +11,7 @@
 # examples/wallet-example-app is built separately after the reactor is installed.
 # See BUILD.md for full explanation.
 
-.PHONY: help install install-all-tests ci-verify validate-all skills-check check-test-support-artifact check-db-migrations-artifact check-migration-sync build-all compile package test test-pl test-skip examples-check clean verify build-core build-shared build-test-commands build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check docs-generate docs-generate-check codegen-build codegen-install codegen-plan-example codegen-check codegen-snapshot-verify codegen-regenerate-verify event-model-diagrams
+.PHONY: help install install-all-tests ci-verify validate-all skills-check check-test-support-artifact check-db-migrations-artifact check-migration-sync build-all compile package test test-pl test-skip examples-check clean verify build-core build-shared build-test-commands build-reactor build-reactor-verify build-reactor-install-artifacts start wallet-dev course-start course-dev serve-docs docs-check docs-compile-check codegen-build codegen-install codegen-plan-example codegen-check codegen-snapshot-verify codegen-regenerate-verify event-model-diagrams
 
 .NOTPARALLEL:
 
@@ -34,8 +34,6 @@ help:
 	@echo "  verify           - Full build with tests and verification"
 	@echo "  docs-check       - Validate markdown links and key documentation guardrails"
 	@echo "  docs-compile-check - Compile tutorial fixture sources in docs-samples"
-	@echo "  docs-generate    - Regenerate source-derived snippets under docs/user/generated"
-	@echo "  docs-generate-check - Fail if generated snippets are out of date"
 	@echo ""
 	@echo "Test Commands:"
 	@echo "  test        - Run all tests across all modules"
@@ -87,7 +85,7 @@ install-all-tests: build-core build-test-support check-test-support-artifact che
 ci-verify: build-core build-test-support check-test-support-artifact check-db-migrations-artifact check-migration-sync build-command build-shared build-test-commands build-reactor-verify
 	@echo "✓ CI build complete with all tests!"
 
-validate-all: skills-check install-all-tests docs-check docs-compile-check docs-generate-check codegen-check codegen-regenerate-verify codegen-snapshot-verify examples-check
+validate-all: skills-check install-all-tests docs-check docs-compile-check codegen-check codegen-regenerate-verify codegen-snapshot-verify examples-check
 	@echo "✓ Full local validation complete."
 
 skills-check:
@@ -112,16 +110,6 @@ docs-check:
 
 docs-compile-check:
 	@./mvnw -pl docs-samples -am compile -DskipTests
-
-docs-generate:
-	@chmod +x scripts/generate-doc-snippets.sh
-	@./scripts/generate-doc-snippets.sh write
-
-docs-generate-check:
-	@chmod +x scripts/generate-doc-snippets.sh
-	@tmp_dir="$$(mktemp -d)"; \
-	./scripts/generate-doc-snippets.sh check "$$tmp_dir"; \
-	rm -rf "$$tmp_dir"
 
 # Alias for install
 build-all: install

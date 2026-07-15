@@ -146,7 +146,7 @@ See [Build](../docs/user/BUILD.md) for details.
 ## Event Model Diagrams
 
 Visual event models for both domains, generated from the event-model YAML sources by
-the shared [event-model renderer](../docs/event-model-renderer.js).
+the shared [event-model renderer](../docs/event-model-renderer.js) (pré-1.0/experimental).
 
 ### Wallet Event Model
 

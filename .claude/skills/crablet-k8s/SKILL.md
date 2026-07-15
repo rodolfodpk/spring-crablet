@@ -3,18 +3,17 @@ name: crablet-k8s
 description: >
   Use this skill for Crablet-specific Kubernetes deployment concerns: KEDA configuration,
   LISTEN/NOTIFY and scale-to-zero interaction, deployment.topology → k8s/base manifest
-  mapping, and leader election behavior under KEDA. For generic K8s manifest quality,
-  Helm, RBAC, and security hardening use /kubernetes-skill.
+  mapping, and leader election behavior under KEDA. Generic K8s manifest quality, Helm,
+  RBAC, and security hardening are out of scope for this skill.
 ---
 
 # Crablet Kubernetes Deployment
 
-Crablet-specific K8s/KEDA concerns. For generic manifest quality, security contexts,
-RBAC, and Helm patterns use `/kubernetes-skill`.
+Crablet-specific K8s/KEDA concerns only. Generic manifest quality, security contexts,
+RBAC, and Helm patterns are not covered here.
 
 ## Routing
 
-- Generic K8s manifests, Helm, RBAC, security hardening → `/kubernetes-skill`
 - KEDA configuration, KEDA + Crablet wakeup, `deployment:` YAML block → this skill
 - Local build, Testcontainers, codegen workflow → `/crablet-local-dev`
 
@@ -81,3 +80,6 @@ Crablet's leader election picks one active instance per poller-backed module. In
 not PgBouncer in transaction mode, not PgCat, not RDS Proxy. In K8s, configure a
 direct Postgres service URL for this property, separate from the connection pool URL
 used by the application datasources.
+
+
+**Status:** pré-1.0/experimental — ver `docs/dev/PRODUCT_ROADMAP.md` para critérios de maturidade.

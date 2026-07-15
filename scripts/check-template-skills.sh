@@ -67,18 +67,14 @@ grep_markers "${SKILLS}/crablet-dcb/SKILL.md" \
 
 grep_markers "${SKILLS}/crablet-greenfield/SKILL.md" \
   'Phase A' \
-  'make diagram-preview' \
   'crablet-app-dev'
 
 grep_markers "${SKILLS}/crablet-app-dev/SKILL.md" \
-  'make plan' \
-  'make generate' \
-  'make verify' \
-  'make diagram-preview'
+  'Feature Slice Workflow' \
+  './mvnw verify'
 
 grep_markers "${SKILLS}/crablet-codegen/SKILL.md" \
   'Regeneration behavior' \
-  'RepairAgent' \
   'CODEGEN_LLM_PROVIDER'
 
 grep_markers "${SKILLS}/crablet-local-dev/SKILL.md" \

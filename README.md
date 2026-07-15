@@ -5,49 +5,53 @@
 [![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/25/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Crablet is a Java 25 / Spring Boot stack for building event-sourced applications from event-modeled domains.
+Crablet is a Java 25 / Spring Boot event-sourcing framework built on the Dynamic Consistency
+Boundary (DCB) pattern: consistency checks scoped by tags instead of one aggregate per command.
 
-The project has three related tracks. Each track has a different maturity level, so the docs are split by what you are trying to do.
+## Quickstart
 
-| Track | Status | Start here |
-|------|--------|------------|
-| **Spring-native runtime** for commands, events, consistency checks, views, automations, outbox publishing, and tests | **Near complete** | [Quickstart](docs/user/QUICKSTART.md), [Tutorial](docs/user/TUTORIAL.md), [Module reference](docs/user/MODULES.md) |
-| **AI-first Event Modeling and code generation** from workshop conversation to `event-model.yaml` to Spring code | **In progress** | [AI-first workflow](docs/user/ai-tooling/AI_FIRST_WORKFLOW.md), [Feature-slice workflow](docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md), [Event model format](docs/user/ai-tooling/EVENT_MODEL_FORMAT.md) |
-| **Local Kubernetes generation** from the modeled service shape | **Early / planned** | [Deployment topology](docs/user/DEPLOYMENT_TOPOLOGY.md), [App template](templates/crablet-app/README.md), [Codegen CLI](crablet-codegen/README.md) |
+- [Quickstart](docs/user/QUICKSTART.md) — wallet reference app, fastest path
+- [Tutorial](docs/user/TUTORIAL.md) — hands-on tutorial series
+- [Module reference](docs/user/MODULES.md) — what each module does
 
-The AI tooling is optional. The Java runtime APIs work directly when a team wants to build by hand, customize generated code, or adopt Crablet one module at a time.
+```bash
+make install    # full build with unit tests
+make start      # run the wallet example app on :8080
+```
+
+See [`docs/user/BUILD.md`](docs/user/BUILD.md) for the full command reference.
+
+## Stable Modules
+
+`crablet-eventstore` (event store, DCB appends, queries, projections), `crablet-commands`
+(command handlers, `CommandExecutor`), `crablet-commands-web` (generic HTTP command API),
+`crablet-views` (materialized read models), `crablet-automations` (event-driven reactions),
+`crablet-outbox` (reliable external publication), `crablet-event-poller` (shared polling
+infrastructure), `crablet-metrics-micrometer` (optional metrics).
 
 ## What You Build
 
-A Crablet application is a Spring Boot service backed by the Crablet event store. Commands make decisions against event history, append new events, and optionally feed read models, automations, and outbox publishers.
+A Crablet application is a Spring Boot service backed by the Crablet event store. Commands make
+decisions against event history, append new events, and optionally feed read models, automations,
+and outbox publishers — all written directly in Java against the framework's public API.
 
-The same model can drive:
-
-- command records, handlers, validation, and consistency decisions
-- event records and sealed event interfaces
-- state projectors and materialized views
-- automations that react to events and emit commands
-- outbox publishers for integration events
-- focused test scaffolding
-- local Kubernetes manifests for testing
-
-For the simplest correctness-first deployment topology, run **1 application instance per cluster**; if views, automations, or outbox need operational isolation, use a singleton worker service per poller-backed module.
+For the simplest correctness-first deployment topology, run **1 application instance per cluster**; if views, automations, or outbox need operational isolation, use a singleton worker service per poller-backed module. See [Deployment Topology](docs/user/DEPLOYMENT_TOPOLOGY.md).
 
 ## When Crablet Fits
 
-Crablet fits domains where command decisions depend on event history, consistency may cross entity boundaries, and the team wants the model, generated code, and runtime behavior to stay aligned.
+Crablet fits domains where command decisions depend on event history, consistency may cross
+entity boundaries, and the team wants the model and runtime behavior to stay aligned.
 
-It is probably not the right tool when plain CRUD is enough, one aggregate per command already explains the whole domain, or Java 25 / Spring Boot is not a good platform choice for the team.
+It is probably not the right tool when plain CRUD is enough, one aggregate per command already
+explains the whole domain, or Java 25 / Spring Boot is not a good platform choice for the team.
 
 ## Documentation
 
 - [Documentation index](docs/README.md)
 - [User docs](docs/user/README.md)
-- [AI tooling docs](docs/user/ai-tooling/AI_FIRST_WORKFLOW.md)
-- [AI skills](docs/user/ai-tooling/AI_SKILLS.md)
 - [Framework development docs](docs/dev/README.md)
 - [GitHub Pages site](https://rodolfodpk.github.io/spring-crablet/)
-- [Interactive concept map](https://rodolfodpk.github.io/spring-crablet/concepts.html)
+- [Roadmap](docs/dev/PRODUCT_ROADMAP.md) — AI-assisted codegen and Kubernetes generation status (pré-1.0/experimental)
 
 ## License
 

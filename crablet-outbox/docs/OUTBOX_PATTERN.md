@@ -430,5 +430,5 @@ curl http://localhost:8080/api/outbox/status
 ## See Also
 
 - [Leader Election Guide](../../docs/user/LEADER_ELECTION.md) - Complete leader election documentation
-- [EventStore README](../crablet-eventstore/README.md) - DCB event sourcing library
-- [Command README](../crablet-commands/README.md) - Command framework
+- [EventStore README](../../crablet-eventstore/README.md) - DCB event sourcing library
+- [Command README](../../crablet-commands/README.md) - Command framework

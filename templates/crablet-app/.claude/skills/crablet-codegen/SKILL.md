@@ -87,3 +87,6 @@ Do not delete user `@Component` implementation classes.
 | Compilation fails in generated code | Event model under-specified | Read the compiler error. Fix `event-model.yaml` and rerun `plan` → `generate`. Manual edit is a temporary unblock only |
 | YAML parse error / `$ref` not found | Malformed `event-model.yaml` or missing schema entry | Run `plan` first. It parses without writing files and shows the error immediately |
 | Generated code compiles but behavior is wrong | Business logic missing; generated interfaces have no logic | Create a `@Component` class implementing the generated interface. Never edit the interface |
+
+
+**Status:** pré-1.0/experimental — ver `docs/dev/PRODUCT_ROADMAP.md` para critérios de maturidade.

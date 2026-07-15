@@ -39,41 +39,11 @@ print_matches() {
 
 check_links() {
   local missing=0
-  local markdown_files=(
-    "docs/README.md"
-    "docs/user/README.md"
-    "README.md"
-    "crablet-commands/README.md"
-    "crablet-event-poller/README.md"
-    "crablet-eventstore/GETTING_STARTED.md"
-    "crablet-views/README.md"
-    "crablet-outbox/README.md"
-    "crablet-automations/README.md"
-    "examples/wallet-example-app/README.md"
-    "templates/crablet-app/README.md"
-    "docs/user/ai-tooling/AI_FIRST_WORKFLOW.md"
-    "docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md"
-    "docs/user/ai-tooling/EVENT_MODEL_FORMAT.md"
-    "docs/user/ai-tooling/EVENT_MODELING.md"
-    "docs/user/QUICKSTART.md"
-    "docs/user/CREATE_A_CRABLET_APP.md"
-    "docs/user/PERFORMANCE.md"
-    "docs/user/TROUBLESHOOTING.md"
-    "docs/user/LEARNING_MODE.md"
-    "docs/user/COMMANDS_FIRST_ADOPTION.md"
-    "docs/user/DEPLOYMENT_TOPOLOGY.md"
-    "docs/user/TUTORIAL.md"
-    "docs/dev/DOCS_VERIFICATION.md"
-    "docs/user/tutorials/01-event-store-basics.md"
-    "docs/user/tutorials/02-commands.md"
-    "docs/user/tutorials/03-dcb-consistency-boundaries.md"
-    "docs/user/tutorials/04-views.md"
-    "docs/user/tutorials/05-automations.md"
-    "docs/user/tutorials/06-outbox.md"
-  )
-
   local file=""
-  for file in "${markdown_files[@]}"; do
+
+  while IFS= read -r file; do
+    is_generic_third_party_skill "$file" && continue
+
     local dir=""
     dir="$(dirname "$file")"
 
@@ -99,7 +69,7 @@ check_links() {
         missing=1
       fi
     done < <(grep -oE '\[[^]]+\]\((<[^>]+>|[^)]+)\)' "$file" || true)
-  done
+  done < <(git ls-files '*.md')
 
   [ "$missing" -eq 0 ] || fail "link validation failed"
 }
@@ -157,21 +127,157 @@ check_tutorial_import_context() {
 }
 
 check_canonical_fixture_links() {
-  local files=(
-    "crablet-eventstore/GETTING_STARTED.md"
-    "docs/user/tutorials/01-event-store-basics.md"
-    "docs/user/tutorials/02-commands.md"
-    "docs/user/tutorials/03-dcb-consistency-boundaries.md"
-    "docs/user/tutorials/04-views.md"
-    "docs/user/tutorials/05-automations.md"
-    "docs/user/tutorials/06-outbox.md"
-  )
-
   local file=""
-  for file in "${files[@]}"; do
+  for file in "crablet-eventstore/GETTING_STARTED.md" docs/user/tutorials/*.md; do
+    [ -f "$file" ] || continue
     contains "Canonical compile fixture:" "$file" || fail "$file must link to its canonical compile fixture"
     contains "docs-samples/src/main/java/com/crablet/docs/samples/tutorial/" "$file" || fail "$file must reference a docs-samples tutorial fixture"
   done
+}
+
+# --- Word-budget guardrail ---------------------------------------------
+
+# Ceilings set with modest headroom above the post-reduction baseline (208k -> ~85k words,
+# ~59% cut) once the pré-1.0/experimental renderer chain was restored alongside crablet-codegen
+# and crablet-k8s. These bound future growth; they are not meant to be shaved to the exact
+# current count.
+PUBLIC_BUDGET=60000
+MAINTAINER_BUDGET=5000
+AGENTS_BUDGET=30000
+TOTAL_BUDGET=90000
+
+# Exhaustive, exclusive precedence: first matching case branch wins, the
+# trailing "*" catch-all guarantees every tracked Markdown file lands in
+# exactly one category.
+classify_doc() {
+  case "$1" in
+    docs/dev/*) echo "maintainer" ;;
+    CLAUDE.md|*/CLAUDE.md) echo "agents" ;;
+    .claude/*|.agents/*) echo "agents" ;;
+    templates/crablet-app/.claude/skills/*) echo "agents" ;;
+    *) echo "public" ;;
+  esac
+}
+
+check_word_budget() {
+  local total=0 maint=0 agents=0 public=0
+  local file="" words="" category=""
+
+  while IFS= read -r file; do
+    words="$(wc -w < "$file")"
+    total=$((total + words))
+    category="$(classify_doc "$file")"
+    case "$category" in
+      maintainer) maint=$((maint + words)) ;;
+      agents) agents=$((agents + words)) ;;
+      public) public=$((public + words)) ;;
+      *) fail "internal error: $file did not classify into a budget area" ;;
+    esac
+  done < <(git ls-files '*.md')
+
+  echo "docs-check: word counts — public/modules=$public/$PUBLIC_BUDGET, maintainer=$maint/$MAINTAINER_BUDGET, agents=$agents/$AGENTS_BUDGET, total=$total/$TOTAL_BUDGET"
+
+  local over=0
+  [ "$public" -le "$PUBLIC_BUDGET" ] || { echo "docs-check: public/modules docs exceed budget: $public > $PUBLIC_BUDGET" >&2; over=1; }
+  [ "$maint" -le "$MAINTAINER_BUDGET" ] || { echo "docs-check: maintainer docs exceed budget: $maint > $MAINTAINER_BUDGET" >&2; over=1; }
+  [ "$agents" -le "$AGENTS_BUDGET" ] || { echo "docs-check: agent/skill docs exceed budget: $agents > $AGENTS_BUDGET" >&2; over=1; }
+  [ "$total" -le "$TOTAL_BUDGET" ] || { echo "docs-check: total docs exceed budget: $total > $TOTAL_BUDGET" >&2; over=1; }
+  [ "$over" -eq 0 ] || fail "word budget exceeded"
+}
+
+# --- Banned AI/Kubernetes promotional terms -----------------------------
+#
+# AI-first codegen and Kubernetes generation are pré-1.0/experimental. They
+# may only be described as ready-to-use in docs/dev/PRODUCT_ROADMAP.md, in
+# the four Crablet skills whose whole subject is that track (marked
+# pré-1.0/experimental in their own body), and in generic third-party
+# skills that aren't Crablet product docs at all.
+
+is_roadmap_doc() {
+  case "$1" in
+    docs/dev/PRODUCT_ROADMAP.md|docs/examples/concepts.md)
+      # concepts.md is the mind-map data source rendered by the pré-1.0/experimental
+      # concepts.html viewer — it necessarily names the tracks it maps, same as the roadmap.
+      return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_ai_exempt_skill() {
+  case "$1" in
+    .claude/skills/crablet-event-modeling/SKILL.md| \
+    .claude/skills/crablet-codegen/SKILL.md| \
+    .claude/skills/crablet-diagram-advisor/SKILL.md| \
+    .claude/skills/crablet-k8s/SKILL.md| \
+    templates/crablet-app/.claude/skills/crablet-event-modeling/SKILL.md| \
+    templates/crablet-app/.claude/skills/crablet-codegen/SKILL.md| \
+    templates/crablet-app/.claude/skills/crablet-diagram-advisor/SKILL.md| \
+    templates/crablet-app/.claude/skills/crablet-k8s/SKILL.md)
+      return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_generic_third_party_skill() {
+  case "$1" in
+    .claude/skills/balanced-coupling/*| \
+    .claude/skills/design/*| \
+    .claude/skills/document/*| \
+    .claude/skills/jspecify/*| \
+    .claude/skills/postgres-best-practices/*| \
+    .claude/skills/review/*| \
+    .claude/skills/skill-creator/*| \
+    .agents/skills/skill-creator/*)
+      return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_generic_infra_doc() {
+  # Documents that describe running Crablet ON Kubernetes/an orchestrator as one deployment
+  # option among several (portability fact), not documents that promote Crablet's own
+  # pré-1.0/experimental manifest-generation feature as ready.
+  case "$1" in
+    crablet-event-poller/README.md| \
+    crablet-eventstore/docs/CONNECTION_POOLERS.md| \
+    crablet-outbox/docs/OUTBOX_METRICS.md| \
+    crablet-outbox/docs/OUTBOX_PATTERN.md| \
+    docs/user/LEADER_ELECTION.md)
+      return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+check_banned_ai_kubernetes_terms() {
+  local pattern='AI-first|\bLLM\b|Kubernetes|\bK8s\b|\bHelm\b|\bKEDA\b'
+  local exempt_line_pattern='pré-1\.0|experimental|PRODUCT_ROADMAP'
+  local violations=0
+  local file="" hit="" filtered=""
+
+  while IFS= read -r file; do
+    is_roadmap_doc "$file" && continue
+    is_ai_exempt_skill "$file" && continue
+    is_generic_third_party_skill "$file" && continue
+    is_generic_infra_doc "$file" && continue
+
+    if [ "$has_rg" -eq 1 ]; then
+      hit="$(rg -ni "$pattern" "$file" || true)"
+    else
+      hit="$(grep -Eni "$pattern" "$file" || true)"
+    fi
+    [ -z "$hit" ] && continue
+
+    # Drop lines that already carry the pré-1.0/experimental/roadmap disclaimer inline.
+    filtered="$(printf '%s\n' "$hit" | grep -Eiv "$exempt_line_pattern" || true)"
+
+    if [ -n "$filtered" ]; then
+      echo "docs-check: banned AI/Kubernetes promotional term outside roadmap in $file:" >&2
+      echo "$filtered" >&2
+      violations=1
+    fi
+  done < <(git ls-files '*.md')
+
+  [ "$violations" -eq 0 ] || fail "banned AI/Kubernetes terms found outside docs/dev/PRODUCT_ROADMAP.md and exempt skills"
 }
 
 check_outbox_api_snippet() {
@@ -228,5 +334,7 @@ check_tutorial_import_context
 check_canonical_fixture_links
 check_outbox_api_snippet
 check_runtime_doc_examples
+check_banned_ai_kubernetes_terms
+check_word_budget
 
 echo "docs-check: OK"

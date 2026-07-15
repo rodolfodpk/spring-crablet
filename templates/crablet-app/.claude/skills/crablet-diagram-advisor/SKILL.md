@@ -56,3 +56,6 @@ Time flows left to right across all lanes on the same timeline.
 A `*-diagram.yaml` sidecar holds docs-only visual overlays that do not belong in the structural
 model: trigger cards, synthetic command nodes, event badges. Keep structural model data in
 `event-model.yaml`; put docs-only context in the sidecar.
+
+
+**Status:** pré-1.0/experimental — ver `docs/dev/PRODUCT_ROADMAP.md` para critérios de maturidade.

@@ -127,3 +127,6 @@ fall back to YAML declaration order.
 
 **Row order** in default mode: `trigger → command → event → view → automation → outbox`.
 In canonical mode rows are per-actor bands stacked vertically in the same semantic order.
+
+
+**Status:** pré-1.0/experimental — ver `docs/dev/PRODUCT_ROADMAP.md` para critérios de maturidade.

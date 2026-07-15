@@ -109,13 +109,7 @@ created by copying `templates/crablet-app` or by running `crablet-codegen init`)
 
 Once the single-instance flow makes sense, choose a path:
 
-**Stay on the Java-first path:**
 - learn the full stack locally: [Learning Mode](LEARNING_MODE.md)
 - adopt the command side first: [Commands-First Adoption](COMMANDS_FIRST_ADOPTION.md)
 - build manually against the runtime APIs: [Create A New Crablet App Manually](CREATE_A_CRABLET_APP.md)
 - review deployment shapes: [Deployment Topology](DEPLOYMENT_TOPOLOGY.md)
-
-**Move to the AI-first path (Stage 2):**
-- generate from an event model: [AI-First Workflow](ai-tooling/AI_FIRST_WORKFLOW.md)
-- add one generated vertical slice: [Feature Slice Workflow](ai-tooling/FEATURE_SLICE_WORKFLOW.md)
-- write the model contract: [Event Model Format](ai-tooling/EVENT_MODEL_FORMAT.md)

@@ -2,15 +2,13 @@
 
 Crablet is split into a small required write-side core and optional libraries you add by capability. This page lists module areas and when to adopt each. For **poller-backed module deployment and scaling rules** (views, outbox, automations), see [Deployment Topology](DEPLOYMENT_TOPOLOGY.md) — the constraints are documented there, not duplicated below.
 
-**Kubernetes:** the [app template](../../templates/crablet-app/README.md) can generate `k8s/base` with `make k8s` (see [Crablet Codegen](../../crablet-codegen/README.md)) from the `deployment` block in `event-model.yaml`. Read `k8s/base/README-k8s.md` in the generated output for how singleton workers, KEDA, and env vars line up with the table below — still anchored in [Deployment Topology](DEPLOYMENT_TOPOLOGY.md).
-
 | Area | Modules |
 |------|---------|
 | Core runtime | [Event Store](../../crablet-eventstore/README.md), [Commands](../../crablet-commands/README.md) |
 | Optional add-ons | [Views](../../crablet-views/README.md), [Outbox](../../crablet-outbox/README.md), [Automations](../../crablet-automations/README.md), [Command Web API](../../crablet-commands-web/README.md), [Observability](OBSERVABILITY.md), [Micrometer compatibility metrics](../../crablet-metrics-micrometer/README.md) |
 | Support and examples | [Test support](../../crablet-test-support/README.md), [Wallet example app](../../examples/wallet-example-app/README.md), [Course example app](../../examples/course-example-app/README.md), shared example domain code, compiled docs samples |
 | Internal infrastructure | [Event Poller](../../crablet-event-poller/README.md) powers the poller-backed modules |
-| AI-first tooling | [Crablet Codegen](../../crablet-codegen/README.md) — generates code from event-model.yaml; [Templates](../../templates/README.md) — starter project |
+| Starter template | [Templates](../../templates/README.md) — starter project for hand-written apps |
 
 ## Module boundaries
 
@@ -58,9 +56,9 @@ deployment workers.
 | `automations` | `AutomationHandler` / `ViewBackedAutomationHandler` implementations | When running automations in a dedicated worker |
 | `outbox` | `OutboxPublisher` implementations, external integration | When running outbox in a dedicated worker |
 
-**Java APIs are the source of truth.** `event-model.yaml` is tooling input for AI workflow,
-codegen, diagrams, and Kubernetes generation. It must produce the same Java shape a user could
-write manually. Pure Java consumers do not need `event-model.yaml` at runtime.
+**Java APIs are the source of truth.** `event-model.yaml` is optional tooling input for the
+pré-1.0/experimental codegen track (see `docs/dev/PRODUCT_ROADMAP.md`). Pure Java consumers do
+not need `event-model.yaml` at runtime.
 
 ### The `view-contracts` Module in Split Deployments
 
@@ -78,21 +76,6 @@ automations worker classpath: domain + view-contracts + automations
 With `crablet.views.enabled=false` in the automations worker, the framework picks up
 `ViewSubscription` beans for wake-event inference without starting any view processing.
 See [Deployment Topology](DEPLOYMENT_TOPOLOGY.md) for the full topology rules.
-
-### Generated Kubernetes Topology
-
-When you run `make k8s` (or `crablet k8s`), the `deployment:` block in `event-model.yaml` selects
-the deployment shape; the modules that exist in the model control which workers are generated.
-All workers use the same container image — `CRABLET_*_ENABLED` env flags control which processors start.
-
-| `deployment.topology` | Generated workers |
-|-----------------------|-------------------|
-| `monolith` (default) | One `command-api`; `CRABLET_VIEWS_ENABLED`, `CRABLET_AUTOMATIONS_ENABLED`, `CRABLET_OUTBOX_ENABLED` reflect which modules are present |
-| `distributed` | `command-api` with all poller flags `false`; plus `views-worker`, `automations-worker`, and `outbox-worker` for each module present in the model |
-
-Topology is an explicit choice, not inferred. Start with `monolith` and switch to `distributed` when
-you need operational isolation for individual workers. See [Deployment Topology](DEPLOYMENT_TOPOLOGY.md)
-for singleton-worker rules and KEDA scale-to-zero behavior.
 
 ## Resilience boundaries
 
