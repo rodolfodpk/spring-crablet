@@ -4,21 +4,20 @@ This file is the repo-level routing hub for Claude Code work in spring-crablet.
 
 ## Skill Routing
 
-- Application work, feature slices, app command handlers, app views, automations, outbox — hand-written Java: invoke `/crablet-app-dev`.
-- Greenfield onboarding, repo bootstrap, first slice, and evolving app lifecycle: invoke `/crablet-greenfield`.
+- Application work, generated Crablet apps, feature slices, app command handlers, app views, automations, outbox, codegen sequencing: invoke `/crablet-app-dev`.
+- Greenfield onboarding, repo bootstrap, first workshop, first slice, and evolving app lifecycle: invoke `/crablet-greenfield`.
+- Codegen provider config, artifact ownership, repair cycle, and recovery: invoke `/crablet-codegen`.
 - Framework module changes, public API work, eventstore/commands/poller internals, shared-fetch, auto-configuration, templates, codegen internals, maintainer docs: invoke `/crablet-maintainer`.
+- Event Modeling workshop, generator-ready `event-model.yaml`: invoke `/crablet-event-modeling`.
 - Deep DCB explanation, choosing or diagnosing DCB for an application command handler, `ConcurrencyException` analysis: invoke `/crablet-dcb`.
 - Writing handler unit tests, integration tests, or scenario tests; `crablet-test-commands` consumption; command audit-linkage in tests: invoke `/crablet-test-authoring`.
 - Reviewing a diff/file against repo conventions and closed design decisions (ClockProvider, no-FQN, snake_case tags, `transaction_id` linkage): invoke `/crablet-conventions`.
-- Local build, Testcontainers, module test targets, troubleshooting: invoke `/crablet-local-dev`.
-
-Pré-1.0/experimental (AI-assisted codegen track — see `docs/dev/PRODUCT_ROADMAP.md`):
-- Event Modeling workshop, generator-ready `event-model.yaml`: invoke `/crablet-event-modeling`.
-- Codegen provider config, artifact ownership, repair cycle, and recovery: invoke `/crablet-codegen`.
-- Docs diagram renderer rules, actor-board vocabulary, sidecar overlays, or multi-lane board authoring (pré-1.0/experimental): invoke `/crablet-diagram-advisor`.
-- Crablet-specific KEDA, LISTEN/NOTIFY + scale-to-zero, K8s manifest mapping (pré-1.0/experimental): invoke `/crablet-k8s`.
+- Docs diagram renderer rules, actor-board vocabulary, sidecar overlays, or multi-lane board authoring: invoke `/crablet-diagram-advisor`.
+- Local build, Testcontainers, MCP codegen loop, module test targets, troubleshooting: invoke `/crablet-local-dev`.
 
 Other tools (invoke by name when needed):
+- `/crablet-k8s` — Crablet-specific KEDA, LISTEN/NOTIFY + scale-to-zero, K8s manifest mapping
+- `/kubernetes-skill` — generic K8s manifests, Helm, RBAC, security hardening, hallucination prevention
 - `/balanced-coupling` — evaluate module coupling; classify balanced vs unbalanced
 - `/design` — produce modular architecture designs from functional requirements
 - `/review` — modularity analysis using Balanced Coupling model
@@ -28,8 +27,8 @@ Other tools (invoke by name when needed):
 Searchable signposts:
 
 - Datasource rules, shared-fetch, LISTEN/NOTIFY, generated interface policy, and build graph caveats live in `crablet-maintainer`.
-- Docs HTML diagram renderer (pré-1.0/experimental): `docs/event-model-renderer.js`; board notation in `/crablet-event-modeling` (§ Event Modeling Board Semantics); full renderer/arrow rules in `/crablet-diagram-advisor`.
-- Greenfield lifecycle pacing lives in `crablet-greenfield`; feature-slice workflow and hand-written app implementation defaults live in `crablet-app-dev`.
+- Docs HTML diagram renderer: `docs/event-model-renderer.js`; board notation in `/crablet-event-modeling` (§ Event Modeling Board Semantics); full renderer/arrow rules in `/crablet-diagram-advisor`.
+- Greenfield lifecycle pacing lives in `crablet-greenfield`; feature-slice workflow, MCP `output: src/main/java`, generated app verification, and app implementation defaults live in `crablet-app-dev`.
 
 ## Build Commands
 
@@ -157,16 +156,16 @@ examples/course-example-app  [outside reactor — `make course-start`, port 8081
   with capacity limits and per-student subscription limits enforced via non-commutative append and
   composite projectors spanning multiple entity streams.
 
-crablet-codegen  [outside reactor — `make codegen-build`, pré-1.0/experimental]
-  CLI/MCP code generator: reads event-model.yaml and emits command handler interfaces,
-  view projectors, automation handlers, outbox publishers, and scenario test stubs. Provider-neutral
-  for its dormant, not-yet-enabled model-assisted commands; the default `generate` command is
-  deterministic. See `docs/dev/PRODUCT_ROADMAP.md`.
+crablet-codegen  [outside reactor — `make codegen-build`]
+  AI-first CLI/MCP code generator: reads event-model.yaml and emits command handler interfaces,
+  view projectors, automation handlers, outbox publishers, and scenario test stubs. Provider-neutral;
+  speaks directly to Anthropic or OpenAI-compatible chat APIs via HTTP without vendor SDK dependencies
+  (providers include anthropic, openai, deepseek, ollama, and openai-compatible/custom).
 
 templates/crablet-app
   Starter project template for new Crablet applications: Spring Boot, BOM dependency management,
   commands-web, views, and test-support pre-wired, plus a CLAUDE.md with skill routing for
-  hand-written app development and Makefile/CLI workflows.
+  AI-assisted development via crablet-codegen MCP and Makefile/CLI workflows.
 ```
 
 Module dependencies:
@@ -190,7 +189,7 @@ Module dependencies:
   contract: never rename an event class once events may exist; add a new event type instead.
 - Use snake_case tag keys; tag keys are normalized to lowercase and tag values remain case-sensitive.
 - Prefer domain-specific query pattern helpers for reused decision models.
-- When changing **docs/event-model-renderer.js** or describing a canonical actor board, align with **`/crablet-diagram-advisor`** (pré-1.0/experimental).
+- When changing **docs/event-model-renderer.js** or describing a canonical actor board, align with **`/crablet-diagram-advisor`** and **`docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`**.
 - When changing docs or diagrams, use Event Modeling vocabulary consistently: rows are semantic element layers; lanes are subsystem or bounded-context groupings; time flows left to right.
 
 ## Design Decisions
@@ -246,10 +245,13 @@ evolution explicit and type-safe.
 - Command patterns: `crablet-eventstore/docs/COMMAND_PATTERNS.md`
 - Closing-the-books / period segmentation: `crablet-eventstore/docs/CLOSING_BOOKS_PATTERN.md`
 - Leader election: `docs/user/LEADER_ELECTION.md`
+- AI-first workflow: `docs/user/ai-tooling/AI_FIRST_WORKFLOW.md`
+- Feature slice workflow: `docs/user/ai-tooling/FEATURE_SLICE_WORKFLOW.md`
+- Event model format & diagram projection: `docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`
+- HTML diagram renderer: `docs/event-model-renderer.js`
 - Codegen: `crablet-codegen/README.md`
-- HTML diagram renderer (pré-1.0/experimental): `docs/event-model-renderer.js`
 - Starter template: `templates/crablet-app/README.md`
-- Roadmap (AI/codegen/Kubernetes maturity): `docs/dev/PRODUCT_ROADMAP.md`
+- Concept map source: `docs/examples/concepts.md`
 
 ## Key Package Locations
 

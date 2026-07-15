@@ -1,7 +1,11 @@
 # Create A New Crablet App Manually
 
 This guide shows how to create a Crablet application directly against the runtime
-APIs.
+APIs. Use it for brownfield additions, explicit module layout control, or learning
+the APIs that generated applications target.
+
+For the recommended event-model-to-app path, start with
+[AI-First Workflow](ai-tooling/AI_FIRST_WORKFLOW.md) and [Event Model Format](ai-tooling/EVENT_MODEL_FORMAT.md).
 
 ## Prerequisites
 
@@ -151,3 +155,6 @@ contract.
 - [Tutorial](TUTORIAL.md)
 - [Quickstart](QUICKSTART.md)
 - [Wallet Example App](../../examples/wallet-example-app/README.md)
+
+For the AI-first path (generating code from `event-model.yaml`), see
+[AI-First Workflow](ai-tooling/AI_FIRST_WORKFLOW.md).

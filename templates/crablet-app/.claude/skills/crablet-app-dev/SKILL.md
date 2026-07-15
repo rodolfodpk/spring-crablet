@@ -2,30 +2,25 @@
 name: crablet-app-dev
 description: >
   Use this skill for application work in this Crablet app: adding feature slices,
-  implementing command handlers, views, automations, and outbox publishers by
-  hand, and verifying app code. Do not use for spring-crablet framework module
+  sequencing event-model.yaml with codegen, using crablet_plan or crablet_generate,
+  implementing app command handlers, views, automations, outbox publishers, and
+  verifying generated app code. Do not use for spring-crablet framework module
   internals or public API changes.
 ---
 
 # Crablet App Development
 
-This skill is for developers building this Crablet application, writing handlers, views,
-automations, and outbox publishers directly in Java.
+This skill is for developers building this Crablet application.
 
 Source of truth: this template skill mirrors the framework repo skill at
 `.claude/skills/crablet-app-dev/SKILL.md`. Template-only wording says that this
 repo is the generated app root.
 
-An AI-assisted codegen path (`event-model.yaml` → generated structural code) exists as a
-separate, pré-1.0/experimental track — see `crablet-codegen`, `crablet-event-modeling`, and the
-spring-crablet `docs/dev/PRODUCT_ROADMAP.md`. It is not required; this skill covers manual
-Java-first development, which is the default and recommended path today.
-
 ## Routing
 
-- Use this skill to sequence and implement app command handlers, views, automations, and
-  outbox publishers by hand.
-- Use `crablet-greenfield` for end-to-end pacing across app baseline, first slice, and app evolution.
+- Use `event-modeling` for workshop dialogue and generator-ready `event-model.yaml` shape.
+- Use `crablet-greenfield` for end-to-end greenfield pacing across app baseline, modeling, slices, and app evolution.
+- Use this skill to sequence the app workflow around that model and implement/repair app code.
 - Use `crablet-dcb` for deep DCB diagnosis, `ConcurrencyException` analysis, or command-pattern explanation when available.
 - Framework module, public API, template, or codegen internals belong in the spring-crablet repo, not this app.
 
@@ -34,12 +29,19 @@ Java-first development, which is the default and recommended path today.
 Work one vertical slice at a time, scoped to one observable user outcome.
 
 1. Ask for missing business facts before changing files.
-2. Write the command record, its validation, and the command handler.
-3. Write the event record(s) the handler appends, with tags matching the consistency boundary.
-4. Write the state projector / view needed to observe the outcome, if any.
-5. Write the automation or outbox publisher, if the slice needs a reaction or external effect.
-6. Write handler/view/automation tests.
-7. Run `./mvnw verify` after each change.
+2. Use or sequence with `event-modeling` to update `event-model.yaml` first.
+3. After any model-affecting change, run `make diagram-preview` from this app root or provide a
+   textual board walk-through; check actors, lanes, commands, events, views, automations, and outbox
+   before planning.
+4. Run `crablet_plan` and show the planned artifacts.
+5. Ask for confirmation before `crablet_generate`.
+6. Call `crablet_generate` with `output` set to `src/main/java`.
+7. Run `./mvnw verify` after generation or manual repair.
+8. Prefer improving `event-model.yaml` over hand-patching generated structural code.
+
+For Claude Code and Cursor, use MCP tools when available. For Codex, other agents, or terminal
+workflows, use `make plan`, `make generate`, and `make verify` from the app root. `plan` is
+deterministic and does not call a model; `generate` uses the configured codegen provider.
 
 For each slice, clarify:
 
@@ -63,12 +65,11 @@ Use this as a quick choice guide.
 
 Tags define the consistency boundary. Ensure decision-model tags match the tags on appended events.
 
-## Code Boundaries
+## Generated Code Boundaries
 
-- Command handlers hold decision logic; keep external clients, credentials, and retry policy in
-  application-owned adapters, not in the handler.
-- Automation handlers and outbox publishers should stay focused on their single reaction/publish
-  responsibility; put shared decision state in an explicit read model, not hidden handler state.
+- Generated command-handler artifacts are structural interfaces. User logic belongs in separate `@Component` implementation classes.
+- Generated automation handler and outbox publisher artifacts should carry metadata only; application code implements behavior in separate components.
+- Client setup, credentials, retry policy, and adapter-specific external integration code belong in application-owned boundaries.
 - Commands validate at construction. Handlers may assume command values are valid.
 - Use `ClockProvider.now()` instead of `Instant.now()` for deterministic tests.
 
@@ -109,9 +110,8 @@ decision state across events, model it as an explicit TODO/read model that the a
 
 ## App Gotchas
 
+- If MCP is unavailable, prefer the Makefile targets over hand-running long `java -jar` commands.
+- Do not generate code until the artifact plan has been reviewed.
+- Do not skip `event-model.yaml`; it is the structural source for generated app code.
 - Do not put external HTTP/webhook publishing inside automations; use outbox for reliable publication.
 - LISTEN/NOTIFY wakeup requires a direct Postgres JDBC URL, not PgBouncer transaction mode, PgCat, or RDS Proxy.
-
-**Status:** the manual Java-first workflow above is the stable, recommended path. The
-AI-assisted codegen alternative is pré-1.0/experimental — see the spring-crablet
-`docs/dev/PRODUCT_ROADMAP.md`.

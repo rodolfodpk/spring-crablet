@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modularity Review — spring-crablet</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --red: #f85149;
+      --yellow: #e3b341;
+      --green: #3fb950;
+      --orange: #d29922;
+      --code-bg: #1f2937;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+    h1 { font-size: 2rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    h2 { font-size: 1.3rem; font-weight: 600; color: var(--accent); margin: 48px 0 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin: 32px 0 12px; }
+    p { margin: 12px 0; color: var(--text); }
+    .meta { color: var(--muted); font-size: 0.88rem; margin-bottom: 32px; }
+    .meta span { margin-right: 24px; }
+    .summary-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+      padding: 18px 24px;
+      margin: 24px 0;
+    }
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.85em;
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #a5d6ff;
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+      overflow-x: auto;
+      margin: 16px 0;
+    }
+    pre code { background: none; padding: 0; color: #a5d6ff; font-size: 0.83em; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 0.9rem;
+    }
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge-red    { background: rgba(248,81,73,.15); color: var(--red); }
+    .badge-yellow { background: rgba(227,179,65,.15); color: var(--yellow); }
+    .badge-green  { background: rgba(63,185,80,.15);  color: var(--green); }
+    .badge-orange { background: rgba(210,153,34,.15); color: var(--orange); }
+    .badge-blue   { background: rgba(88,166,255,.15); color: var(--accent); }
+    .issue-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 24px 0;
+    }
+    .issue-block.unbalanced { border-left: 4px solid var(--red); }
+    .issue-block.acceptable { border-left: 4px solid var(--yellow); }
+    .issue-block.risk       { border-left: 4px solid var(--orange); }
+    .issue-block.note       { border-left: 4px solid var(--muted); }
+    .verdict {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+    .verdict-unbalanced { color: var(--red); }
+    .verdict-acceptable { color: var(--yellow); }
+    .verdict-risk       { color: var(--orange); }
+    .verdict-note       { color: var(--muted); }
+    .working-well {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--green);
+      border-radius: 6px;
+      padding: 16px 24px;
+      margin: 12px 0;
+    }
+    .working-well h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 6px; }
+    ul { margin: 10px 0 10px 20px; }
+    li { margin: 4px 0; }
+    .rec-table td:first-child { font-weight: 600; }
+    .formula {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.85em;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin: 12px 0;
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+
+<h1>Modularity Review</h1>
+<p class="meta">
+  <span>Model: Balanced Coupling (Vlad Khononov)</span>
+  <span>Scope: Entire codebase</span>
+  <span>Date: 2026-04-16</span>
+</p>
+
+<div class="summary-box" style="border-color: var(--green);">
+  <strong>Follow-up (2026-04-17)</strong>
+  <p style="margin-top:8px;">
+    Findings §1 (<code>TopicPublisherPair</code> public API) and §3 (poller-backed
+    <code>@AutoConfiguration</code> ordering) are implemented in the current codebase.
+    The analysis below is kept as written for context.
+  </p>
+</div>
+
+<div class="summary-box">
+  <strong>Executive Summary</strong>
+  <p style="margin-top:8px;">
+    The module boundaries in spring-crablet are sound. Public APIs are stable, internal
+    implementations are well-hidden behind factory methods and auto-configurations, and the
+    metrics layer is a textbook inversion-of-control design. One integration was concretely
+    unbalanced (<code>TopicPublisherPair</code> leaking via <code>OutboxManagementService</code>;
+    see §1 — <strong>since fixed</strong>). Everything else is either well-balanced or tolerable
+    given the project's solo-developer context.
+  </p>
+</div>
+
+<h2>Component Map</h2>
+
+<table>
+  <thead>
+    <tr><th>Module</th><th>Classification</th><th>Volatility</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>crablet-eventstore</code></td><td>Core subdomain</td><td><span class="badge badge-green">Low</span></td></tr>
+    <tr><td><code>crablet-commands</code></td><td>Supporting</td><td><span class="badge badge-green">Low</span></td></tr>
+    <tr><td><code>crablet-commands-web</code></td><td>Generic (HTTP adapter)</td><td><span class="badge badge-green">Low</span></td></tr>
+    <tr><td><code>crablet-event-poller</code></td><td>Generic infrastructure</td><td><span class="badge badge-green">Low</span></td></tr>
+    <tr><td><code>crablet-views</code></td><td>Supporting</td><td><span class="badge badge-yellow">Low-medium</span></td></tr>
+    <tr><td><code>crablet-outbox</code></td><td>Supporting</td><td><span class="badge badge-yellow">Low-medium</span></td></tr>
+    <tr><td><code>crablet-automations</code></td><td>Supporting</td><td><span class="badge badge-yellow">Low-medium</span></td></tr>
+    <tr><td><code>crablet-metrics-micrometer</code></td><td>Generic (pub/sub)</td><td><span class="badge badge-green">Very low</span></td></tr>
+    <tr><td><code>crablet-test-support</code></td><td>Generic (test utils)</td><td><span class="badge badge-green">Very low</span></td></tr>
+    <tr><td><code>shared-examples-domain</code></td><td>Reference domain</td><td><span class="badge badge-yellow">Medium</span></td></tr>
+    <tr><td><code>wallet-example-app</code></td><td>Application layer</td><td><span class="badge badge-orange">High</span></td></tr>
+  </tbody>
+</table>
+
+<h2>Integration Analysis</h2>
+
+<!-- Issue 1 -->
+<div class="issue-block" style="border-color: var(--green);">
+  <div class="verdict" style="background: var(--green); color: #0d1117;">✓ Resolved</div>
+  <h3 style="margin-top:0">1. <code>OutboxManagementService</code> leaked an internal type <em>(was: Unbalanced — Fix)</em></h3>
+
+  <p>
+    <code>OutboxAutoConfiguration</code> was using
+    <code>com.crablet.outbox.<strong>internal</strong>.TopicPublisherPair</code>
+    as the type parameter for every infrastructure bean, forcing consumers (e.g.
+    <code>wallet-example-app</code>) to import from a <code>*.internal</code> package.
+    A public <code>com.crablet.outbox.TopicPublisherPair</code> existed but was unused.
+  </p>
+
+  <table>
+    <thead><tr><th>Dimension</th><th>Assessment</th></tr></thead>
+    <tbody>
+      <tr><td>Strength</td><td><span class="badge badge-red">Model</span> — internal type in every public method signature</td></tr>
+      <tr><td>Distance</td><td><span class="badge badge-red">Cross-module</span> — escapes the library; consumers must import internals</td></tr>
+      <tr><td>Volatility</td><td><span class="badge badge-green">Low</span> — "identify a processor by (topic, publisher)" is stable</td></tr>
+    </tbody>
+  </table>
+
+  <div class="formula">
+    BALANCE = (HIGH_STRENGTH XOR HIGH_DISTANCE) OR NOT LOW_VOLATILITY = FALSE OR TRUE = TRUE
+  </div>
+
+  <p>
+    Low volatility technically balanced the equation, but the <em>XOR leg was false</em> —
+    both strength and distance were high. Tolerable, but an API design error.
+  </p>
+
+  <p><strong>Resolution.</strong>
+    <code>com.crablet.outbox.internal.TopicPublisherPair</code> was removed.
+    All infrastructure and consumers now use <code>com.crablet.outbox.TopicPublisherPair</code>
+    with compact-constructor validation.
+  </p>
+</div>
+
+<!-- Issue 2 -->
+<div class="issue-block" style="border-color: var(--green);">
+  <div class="verdict" style="background: var(--green); color: #0d1117;">✓ Resolved</div>
+  <h3 style="margin-top:0">2. <code>CommandWebAutoConfiguration</code> imported <code>command.internal.DiscoveredCommandRegistry</code> <em>(was: Acceptable)</em></h3>
+
+  <p>
+    <code>CommandWebAutoConfiguration</code> (in <code>crablet-commands-web</code>) creates
+    a <code>DiscoveredCommandRegistry</code> by calling the static factory. The class now
+    lives in the public package:
+  </p>
+
+  <pre><code>// CommandWebAutoConfiguration.java
+import com.crablet.command.DiscoveredCommandRegistry;  // now public
+
+@Bean
+public DiscoveredCommandRegistry discoveredCommandRegistry(List&lt;CommandHandler&lt;?&gt;&gt; handlers) {
+    return DiscoveredCommandRegistry.fromHandlers(handlers);
+}</code></pre>
+
+  <table>
+    <thead><tr><th>Dimension</th><th>Assessment</th></tr></thead>
+    <tbody>
+      <tr><td>Strength</td><td><span class="badge badge-yellow">Functional</span> — creates and passes the registry; no business logic shared</td></tr>
+      <tr><td>Distance</td><td><span class="badge badge-green">Adjacent</span> — declared pom.xml dependency; same module family</td></tr>
+      <tr><td>Volatility</td><td><span class="badge badge-green">Low</span> — handler discovery mechanics are stable</td></tr>
+    </tbody>
+  </table>
+
+  <div class="formula">
+    BALANCE = (FUNCTIONAL XOR LOW_DISTANCE) OR NOT LOW = TRUE OR TRUE = TRUE
+  </div>
+
+  <p>
+    Balanced. <strong>Resolution.</strong> <code>DiscoveredCommandRegistry</code> promoted
+    from <code>com.crablet.command.internal</code> to <code>com.crablet.command</code>.
+  </p>
+</div>
+
+<!-- Issue 3 -->
+<div class="issue-block" style="border-color: var(--green);">
+  <div class="verdict" style="background: var(--green); color: #0d1117;">✓ Resolved</div>
+  <h3 style="margin-top:0">3. Poller-backed modules used <code>@Configuration</code> instead of <code>@AutoConfiguration</code> <em>(was: Correctness risk — Improve)</em></h3>
+
+  <p>
+    <code>ViewsAutoConfiguration</code>, <code>OutboxAutoConfiguration</code>, and
+    <code>AutomationsAutoConfiguration</code> were annotated <code>@Configuration</code>,
+    preventing them from declaring <code>after = EventPollerAutoConfiguration.class</code>.
+    Ordering worked at runtime via bean dependency resolution, but there was no explicit
+    contract — a future Spring Boot version could have changed resolution order.
+  </p>
+
+  <p><strong>Resolution.</strong>
+    All three now use
+    <code>@AutoConfiguration(after = EventPollerAutoConfiguration.class)</code>
+    while remaining registered in
+    <code>META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</code>.
+  </p>
+</div>
+
+<!-- Issue 4 -->
+<div class="issue-block note">
+  <div class="verdict verdict-note">ℹ Note — Tolerable for solo, revisit if project grows</div>
+  <h3 style="margin-top:0">4. <code>shared-examples-domain</code> ↔ framework test scope (build cycle)</h3>
+
+  <p>
+    Framework modules use <code>shared-examples-domain</code> in test scope to run
+    realistic domain tests. <code>shared-examples-domain</code> depends on
+    <code>crablet-eventstore</code> and <code>crablet-commands</code> to compile. The
+    resulting cycle requires stub JARs and a specific Makefile build order.
+  </p>
+
+  <table>
+    <thead><tr><th>Dimension</th><th>Assessment</th></tr></thead>
+    <tbody>
+      <tr><td>Strength</td><td><span class="badge badge-yellow">Model</span> — tests instantiate real wallet types; a CommandHandler API change propagates to shared-examples-domain</td></tr>
+      <tr><td>Distance</td><td><span class="badge badge-green">Same repo, same developer</span> — low effective distance</td></tr>
+      <tr><td>Volatility</td><td><span class="badge badge-yellow">Medium</span> — framework public API is actively evolving</td></tr>
+    </tbody>
+  </table>
+
+  <p>
+    Model strength + low distance: the <em>XOR leg is false</em> (both medium), but low
+    distance saves the balance. The design is correct for a solo project. It becomes
+    problematic if a second contributor joins and owns only one module, or if the example
+    domain is extracted as a separate repository — at that point, distance increases and the
+    build cycle becomes an unbalanced coupling.
+  </p>
+</div>
+
+<h2>What Is Working Well</h2>
+
+<div class="working-well">
+  <h4>Pub/sub metrics — exemplary design</h4>
+  <p>
+    <code>crablet-metrics-micrometer</code> has zero knowledge of how events are generated.
+    It subscribes via <code>@EventListener</code> to metric events published by each module
+    via <code>ApplicationEventPublisher</code>. Strength: contract. Distance: cross-module.
+    Volatility: very low. Perfectly balanced.
+  </p>
+</div>
+
+<div class="working-well">
+  <h4>Factory abstractions over implementations</h4>
+  <p>
+    <code>CommandExecutors.create(...)</code> and
+    <code>EventProcessorFactory.createProcessor(...)</code> mean that
+    <code>CommandExecutorImpl</code> and <code>EventProcessorImpl</code> are never
+    referenced by name outside their own modules. The internal package boundary is real,
+    not just a naming convention.
+  </p>
+</div>
+
+<div class="working-well">
+  <h4>Optional dependency done right</h4>
+  <p>
+    <code>AutomationsAutoConfiguration</code> uses <code>ObjectProvider&lt;CommandExecutor&gt;</code>
+    with a clear startup failure message when in-process handlers are declared without a
+    <code>CommandExecutor</code> bean. The optional coupling is explicit, validated early,
+    and documented in the error message.
+  </p>
+</div>
+
+<div class="working-well">
+  <h4>Activation by inclusion</h4>
+  <p>
+    <code>crablet-commands-web</code> is activated by adding it to <code>pom.xml</code> and
+    declaring one required bean (<code>CommandApiExposedCommands</code>). If absent, Spring
+    Boot fails at startup with a clear missing-bean message — no silent misconfiguration.
+    This is a cleaner opt-in than the <code>@ConditionalOnProperty</code> pattern used by
+    the poller modules.
+  </p>
+</div>
+
+<h2>Prioritized Recommendations</h2>
+
+<table class="rec-table">
+  <thead>
+    <tr><th>Priority</th><th>Finding</th><th>Action</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="badge badge-green">Done</span></td>
+      <td><code>OutboxManagementService</code> leaked <code>internal.TopicPublisherPair</code> into public API</td>
+      <td>Single public <code>TopicPublisherPair</code> with validation; internal duplicate removed</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-green">Done</span></td>
+      <td><code>views</code>/<code>outbox</code>/<code>automations</code> used <code>@Configuration</code> instead of <code>@AutoConfiguration</code></td>
+      <td>Now <code>@AutoConfiguration(after = EventPollerAutoConfiguration.class)</code></td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-green">Done</span></td>
+      <td><code>DiscoveredCommandRegistry</code> was in <code>command.internal</code> but used by a sibling module</td>
+      <td>Promoted to <code>com.crablet.command</code></td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-blue">Note</span></td>
+      <td><code>shared-examples-domain</code> ↔ framework test cycle requires stub JARs</td>
+      <td>Acceptable for solo development; revisit if a contributor joins or the example domain is extracted</td>
+    </tr>
+  </tbody>
+</table>
+
+</body>
+</html>

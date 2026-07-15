@@ -163,7 +163,7 @@ If you explain the slice with an Event Modeling diagram or board, preserve the c
 - When the model has **two or more bounded contexts or subsystems** (e.g. wallet + notification,
   course + student enrollment), suggest adding `diagram.lanes` and `diagram.assignments` to the
   `event-model.yaml`. Java codegen ignores the `diagram:` key entirely; it is for the renderer
-  and tooling only (pré-1.0/experimental).
+  and tooling only.
 - Use a `*-diagram.yaml` sidecar only for purely docs-specific visual overlays that do not belong
   with the model: trigger cards, synthetic command nodes, event badges, and diagram-only automation
   rows that cross bounded context lines and cannot be codegen inputs.
@@ -175,8 +175,7 @@ If you explain the slice with an Event Modeling diagram or board, preserve the c
 - Do not turn the board into a top-to-bottom flowchart with time flowing downward.
 - If a diagram is only illustrative and not a complete consequence map, label it as illustrative.
 
-For rendered board vocabulary, actor bands, and arrow rules, use `/crablet-diagram-advisor`
-(pré-1.0/experimental).
+For rendered board vocabulary, actor bands, and arrow rules, use `/crablet-diagram-advisor`.
 
 ### 4. Add Automations (optional)
 
@@ -362,6 +361,3 @@ deployment:
 
 Downstream sequencing lives in `crablet-app-dev`; full greenfield pacing lives in
 `crablet-greenfield`.
-
-
-**Status:** pré-1.0/experimental — ver `docs/dev/PRODUCT_ROADMAP.md` para critérios de maturidade.

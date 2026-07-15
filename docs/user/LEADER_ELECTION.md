@@ -300,6 +300,6 @@ if (!leaderElector.isGlobalLeader()) {
 
 ## See Also
 
-- **[Event Processor README](../../crablet-event-poller/README.md)** - Generic event processing infrastructure
-- **[Outbox README](../../crablet-outbox/README.md)** - Outbox pattern implementation
-- **[Views README](../../crablet-views/README.md)** - View projections implementation
+- **[Event Processor README](crablet-event-poller/README.md)** - Generic event processing infrastructure
+- **[Outbox README](crablet-outbox/README.md)** - Outbox pattern implementation
+- **[Views README](crablet-views/README.md)** - View projections implementation

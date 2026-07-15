@@ -112,6 +112,3 @@ For each reaction or policy:
 
 Downstream sequencing lives in `crablet-app-dev`; full greenfield pacing lives in
 `crablet-greenfield`.
-
-
-**Status:** pré-1.0/experimental — ver `docs/dev/PRODUCT_ROADMAP.md` para critérios de maturidade.

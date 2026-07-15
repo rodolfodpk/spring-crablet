@@ -3,13 +3,15 @@ name: crablet-k8s
 description: >
   Use this skill for Crablet-specific Kubernetes concerns in this application: deployment.topology,
   manifests under k8s/base, singleton poller-backed workers, KEDA, and NOTIFY vs scale-to-zero.
-  Generic manifest hardening, Helm, RBAC, and fleet patterns are out of scope for this skill.
+  For generic manifest hardening, Helm, RBAC, and fleet patterns, open the spring-crablet parent
+  repo skill /kubernetes-skill.
 ---
 
 # Crablet Kubernetes (app template)
 
 This skill is for **Crablet-shaped** manifests generated from **`event-model.yaml`**. Generic
-Kubernetes quality bar is out of scope here.
+Kubernetes quality bar → **`/kubernetes-skill`** on the **spring-crablet** repository (not
+vendored in this app template).
 
 Local build / Testcontainers / codegen → `/crablet-local-dev`.
 
@@ -50,6 +52,3 @@ If automation or outbox delivery needs low latency, keep **`minReplicas: 1`** fo
 Configure **`crablet.event-poller.notifications.jdbc-url`** as a **direct** PostgreSQL JDBC URL—
 not PgBouncer transaction pooling, not PgCat, not RDS Proxy. In Kubernetes, expose a Postgres
 service URL dedicated to NOTIFY if your app pool URLs go through proxies.
-
-
-**Status:** pré-1.0/experimental — ver `docs/dev/PRODUCT_ROADMAP.md` para critérios de maturidade.

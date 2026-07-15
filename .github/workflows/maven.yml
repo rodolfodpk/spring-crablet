@@ -62,6 +62,9 @@ jobs:
       - name: Compile tutorial fixtures
         run: make docs-compile-check
 
+      - name: Verify generated snippets
+        run: make docs-generate-check
+
       - name: Debug JaCoCo Report
         run: |
           echo "Checking for jacoco.exec files in modules..."

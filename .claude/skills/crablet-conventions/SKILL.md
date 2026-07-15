@@ -63,7 +63,7 @@ over reading whole files for the mechanical rules below.
 ## Docs / diagram rules
 
 11. When changing `docs/event-model-renderer.js` or describing a canonical actor board, align with
-    `/crablet-diagram-advisor` (pré-1.0/experimental).
+    `/crablet-diagram-advisor` and `docs/user/ai-tooling/EVENT_MODEL_FORMAT.md`.
 12. Use Event Modeling vocabulary consistently: **rows** are semantic element layers; **lanes** are
     subsystem/bounded-context groupings; time flows left to right.
 

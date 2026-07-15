@@ -135,6 +135,3 @@ Scenarios are structural model elements authored during the workshop.
 
 - `crablet-codegen/README.md` — provider configuration and recovery guidance.
 - `crablet-codegen/CLAUDE.md` — exact generated artifact shape templates.
-
-
-**Status:** pré-1.0/experimental — ver `docs/dev/PRODUCT_ROADMAP.md` para critérios de maturidade.

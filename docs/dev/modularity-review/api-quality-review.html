@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Quality Review — Current Status</title>
+<style>
+  :root {
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-mono: "SF Mono", Menlo, Consolas, monospace;
+    --bg: #ffffff;
+    --text: #1f2933;
+    --muted: #52606d;
+    --border: #d9e2ec;
+    --code: #f0f4f8;
+    --fixed: #147d64;
+    --tradeoff: #8a6116;
+  }
+  body {
+    margin: 0;
+    padding: 2rem 1.25rem;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    line-height: 1.65;
+  }
+  main {
+    max-width: 920px;
+    margin: 0 auto;
+  }
+  h1 {
+    margin: 0 0 0.35rem;
+    font-size: 2rem;
+  }
+  h2 {
+    margin-top: 2rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 1.35rem;
+  }
+  .meta {
+    color: var(--muted);
+    margin: 0 0 1.5rem;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1rem 0;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #f8fafc;
+  }
+  code {
+    background: var(--code);
+    border-radius: 4px;
+    padding: 0.1rem 0.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+  }
+  pre {
+    background: var(--code);
+    border-radius: 6px;
+    overflow-x: auto;
+    padding: 1rem;
+  }
+  pre code {
+    background: transparent;
+    padding: 0;
+  }
+  .fixed {
+    color: var(--fixed);
+    font-weight: 700;
+  }
+  .tradeoff {
+    color: var(--tradeoff);
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>API Quality Review — Current Status</h1>
+  <p class="meta"><strong>Scope:</strong> public <code>EventStore</code> API, command handler API, <code>CommandDecision</code>, <code>CommandExecutor</code>, and related value types. <strong>Status date:</strong> May 2026.</p>
+
+  <h2>Executive Summary</h2>
+  <p>The original review identified several pre-1.0 polish issues around abstraction boundaries, typed command decisions, and direct event-store ergonomics. The critical boundary issues have since been fixed. The remaining items are accepted tradeoffs: <code>executeInTransaction(...)</code> remains public for advanced direct <code>EventStore</code> usage, and <code>appendIdempotent(...)</code> keeps both a simple raw-string overload and a <code>Query</code> overload.</p>
+  <p>The current API shape is coherent enough to treat as the public baseline, with focused guardrail tests to prevent the old issues from reappearing.</p>
+
+  <h2>Status Table</h2>
+  <table>
+    <thead>
+      <tr><th>Finding</th><th>Current status</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>storeCommand(...)</code> exposed on <code>EventStore</code></td><td class="fixed">Fixed</td><td>Command audit now lives on <code>CommandAuditStore</code>, not <code>EventStore</code>.</td></tr>
+      <tr><td><code>hasConflict(...)</code> exposed on <code>EventStore</code></td><td class="fixed">Fixed</td><td>Guard checks now use projection/existence primitives instead of a command-layer method on the foundational interface.</td></tr>
+      <tr><td><code>CommutativeCommandHandler.decide(...)</code> returned parent <code>CommandDecision</code></td><td class="fixed">Fixed</td><td>It now returns <code>CommandDecision.CommutativeDecision</code>.</td></tr>
+      <tr><td><code>CommutativeGuarded</code> and <code>NonCommutative</code> looked structurally interchangeable</td><td class="fixed">Fixed</td><td><code>withLifecycleGuard(...)</code> names the intended semantics, and the constructor rejects guard queries that include appended event types.</td></tr>
+      <tr><td><code>ProjectionResult</code> carried a write helper</td><td class="fixed">Fixed</td><td><code>ProjectionResult</code> is now a passive value object.</td></tr>
+      <tr><td><code>Query.empty()</code> had dual semantics</td><td class="fixed">Fixed</td><td><code>Query.empty()</code> documents match-all read semantics. <code>Query.noCondition()</code> documents skipped condition checks.</td></tr>
+      <tr><td><code>appendIdempotent(...)</code> raw strings vs <code>Query</code> overload</td><td class="tradeoff">Accepted tradeoff</td><td>The raw-string overload is the simple common case; the <code>Query</code> overload is for advanced or multi-criteria idempotency checks.</td></tr>
+      <tr><td><code>executeInTransaction(...)</code> on <code>EventStore</code></td><td class="tradeoff">Accepted tradeoff</td><td>It is the public advanced primitive for direct <code>EventStore</code> users who need project/exists/append/audit composition on one transaction-scoped store.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Current API Boundary</h2>
+  <p><code>EventStore</code> is the foundational application-facing abstraction for event appends, projections, existence checks, and direct transaction composition. It should not expose command-layer concerns. The public guardrail is simple: methods such as <code>storeCommand(...)</code> and <code>hasConflict(...)</code> must not appear on <code>EventStore</code>.</p>
+  <p><code>CommandExecutor</code> owns command execution. It runs handler decision logic, dispatches the resulting <code>CommandDecision</code>, handles idempotent results, records command audit when enabled, and reports metrics. Its public <code>execute(...)</code> overloads return <code>ExecutionResult</code>.</p>
+
+  <h2>Accepted Tradeoffs</h2>
+  <p>Keeping <code>EventStore.executeInTransaction(...)</code> public broadens <code>EventStore</code> beyond simple event storage, but the tradeoff is useful. It gives direct <code>EventStore</code> users the same primitive the command layer relies on: one JDBC connection, configured isolation, atomic commit/rollback, and a transaction-scoped store for projections and appends.</p>
+  <p>The raw-string <code>appendIdempotent(events, eventType, tagKey, tagValue)</code> overload is intentionally kept as the common-case API. The <code>appendIdempotent(events, idempotencyQuery)</code> overload supports advanced idempotency criteria without forcing simple callers to build a <code>Query</code>.</p>
+
+  <h2>Guardrail Tests</h2>
+  <p>The API baseline should be protected by focused tests rather than a brittle snapshot of every public method: <code>EventStore</code> must not expose command internals, <code>CommandExecutor.execute(...)</code> must return <code>ExecutionResult</code>, commutative handlers must return <code>CommutativeDecision</code>, and <code>ProjectionResult</code> must remain passive.</p>
+</main>
+</body>
+</html>
